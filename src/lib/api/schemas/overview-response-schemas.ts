@@ -8,6 +8,7 @@ import {
 } from "./misc-response-schema-core";
 import { dateTimeSchema } from "./response-schema-primitives";
 import { scheduleEntrySchema } from "./schedule-response-schema-core";
+import { personalCalendarItemSchema } from "./young-workspace-schemas";
 
 export const compactOverviewResponseSchema = z.object({
   user: viewerContextSchema.pick({
@@ -69,5 +70,35 @@ export const compactOverviewResponseSchema = z.object({
   exams: z.object({
     total: z.number().int().nonnegative(),
     items: z.array(subscribedExamSchema),
+  }),
+});
+
+export const actionableOverviewResponseSchema = z.object({
+  anchor: z.object({
+    atTime: dateTimeSchema,
+    dateFrom: dateTimeSchema,
+    dateTo: dateTimeSchema,
+  }),
+  focus: personalCalendarItemSchema
+    .extend({ status: z.enum(["now", "urgent", "next"]) })
+    .nullable(),
+  urgency: z.array(personalCalendarItemSchema),
+  upcoming: z.array(personalCalendarItemSchema),
+  deadlines: z.object({
+    today: z.array(personalCalendarItemSchema),
+    nextThreeDays: z.array(personalCalendarItemSchema),
+    allPending: z.array(personalCalendarItemSchema),
+  }),
+  subscriptions: z.object({
+    totalCount: z.number().int().nonnegative(),
+    currentSemesterCount: z.number().int().nonnegative(),
+    currentSemester: z
+      .object({
+        id: z.number().int(),
+        nameCn: z.string(),
+        startDate: dateTimeSchema,
+        endDate: dateTimeSchema,
+      })
+      .nullable(),
   }),
 });

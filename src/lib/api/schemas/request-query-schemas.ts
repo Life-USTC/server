@@ -26,6 +26,7 @@ export {
 } from "./content-query-schemas";
 export {
   accountClientActivityQuerySchema,
+  actionableOverviewQuerySchema,
   busNextDeparturesQuerySchema,
   busPreferenceRequestSchema,
   busQuerySchema,

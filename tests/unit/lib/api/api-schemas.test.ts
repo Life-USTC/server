@@ -600,6 +600,23 @@ describe("其他请求 schema", () => {
       limit: SECTION_SCHEDULE_MAX_LIMIT,
     });
     expect(
+      sectionSchedulesQuerySchema.parse({ page: "101", pageSize: "100" }),
+    ).toMatchObject({
+      page: 101,
+      pageSize: 100,
+    });
+    expect(
+      sectionSchedulesQuerySchema.parse({ page: "1" }).limit,
+    ).toBeUndefined();
+    for (const input of [
+      { page: "1", limit: "10" },
+      { pageSize: "20", limit: "10" },
+      { page: "100001" },
+      { pageSize: "101" },
+    ]) {
+      expect(sectionSchedulesQuerySchema.safeParse(input).success).toBe(false);
+    }
+    expect(
       sectionDetailQuerySchema.parse({
         includeExams: "true",
         includeSchedules: "false",
@@ -656,6 +673,17 @@ describe("其他请求 schema", () => {
     expect(todos).toMatchObject({ completed: true, limit: 20 });
     expect(todos.dueBefore).toEqual(new Date("2026-03-01T00:00:00.000Z"));
     expect(todosQuerySchema.parse({}).limit).toBe(100);
+    expect(todosQuerySchema.parse({ completed: "false" })).toEqual({
+      completed: false,
+      limit: 100,
+    });
+    expect(todosQuerySchema.parse({ page: "1" })).toEqual({ page: 1 });
+    expect(todosQuerySchema.parse({ pageSize: "20" })).toEqual({
+      pageSize: 20,
+    });
+    expect(
+      todosQuerySchema.safeParse({ page: "1", limit: "100" }).success,
+    ).toBe(false);
 
     expect(homeworksQuerySchema.parse({ includeDeleted: "true" })).toEqual({
       includeDeleted: true,

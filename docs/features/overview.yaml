@@ -269,6 +269,66 @@ requirements:
     test:
       file: tests/e2e/src/app/workspace/overview-order.test.ts
       name: overview.omit-empty-bands
+- id: overview.native-actionable-projection
+  category: privacy
+  applies_to:
+  - authenticated-overview
+  expectation:
+    kind: public_projection
+    operation:
+      module: src/features/workspace/server/actionable-overview-read-model.ts
+      export: getActionableOverview
+    response:
+      schema: actionableOverviewResponseSchema
+      path: /
+    fields:
+    - anchor
+    - focus
+    - urgency
+    - upcoming
+    - deadlines
+    - subscriptions
+    nested_fields:
+      anchor:
+      - atTime
+      - dateFrom
+      - dateTo
+      deadlines:
+      - today
+      - nextThreeDays
+      - allPending
+      subscriptions:
+      - totalCount
+      - currentSemesterCount
+      - currentSemester
+    preserves:
+      anchor/atTime: true
+      subscriptions/totalCount: true
+      subscriptions/currentSemesterCount: true
+    concealed_source_values: true
+  acceptance:
+    given: Two isolated owners have different todo state and one has a historical TA subscription, class, exam, homework and activity.
+    when: Scoped REST callers read the actionable overview at a fixed Shanghai instant.
+    then:
+    - The response uses the shared seven-day action ordering and complete deadline groups, retaining undated pending work and historical context.
+    - TA homework due exactly at the anchor or earlier and completed work are excluded, while future and undated TA work remain.
+    - Only the declared projection is returned, without account data, a calendar feed credential or the other owner's state.
+    test:
+      file: tests/integration/workspace-native-read-contract.test.ts
+      name: overview.native-actionable-projection
+- id: overview.native-read-authorization
+  category: authorization
+  rule: GET /api/workspace/overview/actionable accepts an authenticated session or a valid workspace.overview:read
+    Bearer token. A supplied malformed, invalid or insufficient-scope Bearer returns 401 even with a valid session cookie.
+    Successful reads are private and no-store; invalid atTime values return 400. This route does not expose a calendar feed credential.
+  acceptance:
+    given: An isolated owner has a session and resource-bound OAuth grant.
+    when: Anonymous, cookie, narrowly scoped and invalid Bearer requests reach the real HTTP endpoint.
+    then:
+    - Only the session and correctly scoped token receive the private owner projection; denied Bearers do not fall back to the cookie.
+    test:
+      file: tests/integration/workspace-native-read-contract.test.ts
+      name: overview.native-read-authorization
 capabilities:
   authenticated-overview:
     title: Authenticated Workspace Overview
@@ -299,6 +359,16 @@ capabilities:
           anchor to the start of that Asia/Shanghai day.
         - Includes today schedule samples and incomplete todo samples in addition to the due-todo, homework,
           and exam samples exposed by workspace_overview_get.
+      - method: GET
+        path: /api/workspace/overview/actionable
+        notes:
+        - Complete actionable home projection with optional atTime and locale, shared focus and stack ordering, complete pending deadline groups and current/historical subscription counts.
+        requirement_refs:
+        - overview.native-actionable-projection
+        - overview.native-read-authorization
+        - overview.now-next-first
+        - overview.homework-todo-layered
+        - overview.current-semester-priority
     graphql:
       fields:
       - parent: Workspace

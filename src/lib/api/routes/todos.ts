@@ -8,6 +8,7 @@ import {
 import {
   createTodoAction,
   deleteTodoAction,
+  listTodoPageAction,
   listTodosAction,
   updateTodoAction,
 } from "@/lib/api/routes/todo-actions";
@@ -80,9 +81,15 @@ export async function getTodosRoute(request: Request) {
   if (parsedQuery instanceof Response) {
     return parsedQuery;
   }
-  const { limit, ...filters } = parsedQuery;
+  const { limit, page, pageSize, ...filters } = parsedQuery;
 
   try {
+    if (page !== undefined || pageSize !== undefined) {
+      return await listTodoPageAction(userId, filters, {
+        page: page ?? 1,
+        pageSize: pageSize ?? 20,
+      });
+    }
     return await listTodosAction(userId, filters, limit);
   } catch (error) {
     return handleRouteError("Failed to fetch todos", error);

@@ -37,6 +37,14 @@ describe("openapi generator", () => {
 
   it("openapi.security-schemes", () => {
     let bearerOperations = 0;
+    const publicViewerReads = [
+      "/api/community/comments",
+      "/api/community/comments/{id}",
+      "/api/community/comments/{id}/replies",
+      "/api/community/descriptions",
+      "/api/community/section-homeworks",
+      "/api/community/section-homeworks/{id}",
+    ];
     for (const [path, methods] of Object.entries(doc.paths ?? {})) {
       for (const [method, raw] of Object.entries(methods)) {
         if (!raw || typeof raw !== "object" || !("responses" in raw)) continue;
@@ -76,12 +84,21 @@ describe("openapi generator", () => {
           expect(operation.security, path).toEqual(
             path === "/api/account/client-activity"
               ? [{ bearerAuth: [] }]
-              : [{ bearerAuth: [] }, { sessionCookie: [] }],
+              : method === "get" && publicViewerReads.includes(path)
+                ? [{}, { bearerAuth: [] }, { sessionCookie: [] }]
+                : [{ bearerAuth: [] }, { sessionCookie: [] }],
           );
         }
       }
     }
     expect(bearerOperations).toBeGreaterThan(40);
+    for (const path of publicViewerReads) {
+      expect(doc.paths?.[path]?.get?.security, path).toEqual([
+        {},
+        { bearerAuth: [] },
+        { sessionCookie: [] },
+      ]);
+    }
     expect(
       doc.paths?.["/api/workspace/subscriptions/current"]?.get,
     ).toMatchObject({
@@ -207,6 +224,21 @@ describe("openapi generator", () => {
       expect(pageSize?.deprecated, path).not.toBe(true);
       expect(limit, path).toBeUndefined();
     }
+  });
+
+  it("documents the todo limit default only for legacy requests", () => {
+    const limit = doc.paths?.["/api/workspace/todos"]?.get?.parameters?.find(
+      (parameter) => "name" in parameter && parameter.name === "limit",
+    );
+    expect(limit).toMatchObject({
+      schema: {
+        minimum: 1,
+        maximum: 200,
+        description:
+          "Legacy list limit; defaults to 100 only when page and pageSize are omitted. Cannot be combined with pagination.",
+      },
+    });
+    expect(limit).not.toHaveProperty("schema.default");
   });
 
   it("publishes true creates as 201 responses with Location", () => {

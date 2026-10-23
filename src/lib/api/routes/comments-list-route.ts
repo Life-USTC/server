@@ -11,7 +11,7 @@ import {
   parseRouteQuery,
 } from "@/lib/api/helpers";
 import { commentsQuerySchema } from "@/lib/api/schemas/request-schemas";
-import { resolveSessionUserId } from "@/lib/auth/api-auth";
+import { resolveOptionalApiUserId } from "@/lib/auth/api-auth";
 
 export async function getCommentsRoute(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -56,7 +56,11 @@ export async function getCommentsRoute(request: Request) {
       return notFound();
     }
 
-    const viewerUserId = await resolveSessionUserId(request);
+    const viewerUserId = await resolveOptionalApiUserId(request, {
+      feature: "community.comment",
+      action: "read",
+    });
+    if (viewerUserId instanceof Response) return viewerUserId;
     const { comments, hiddenCount, total, viewer } = await loadCommentThread({
       pagination,
       target: resolved.target,

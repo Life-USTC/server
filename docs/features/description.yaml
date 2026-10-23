@@ -11,6 +11,19 @@ policy_refs:
 - rendering-and-cache
 - audit
 requirements:
+- id: description.scoped-rest-viewer
+  category: authorization
+  rule: Description REST reads preserve public content and edit history while projecting current session or explicitly scoped OAuth viewer permissions. A supplied Bearer token requires a valid REST audience, active grant and community.description read or write scope; rejected credentials return 401 without session or anonymous fallback. Reads report current suspension, do not change description history and remain private and non-cacheable.
+  acceptance:
+    given: A shared description has a named editor and persisted history; signed sessions and resource-bound tokens belong to an active user and a currently suspended user.
+    when: Read through real HTTP anonymously, with a session, with scoped credentials and with invalid Bearer credentials paired with a valid session.
+    then:
+    - Public text and history stay identical while the viewer reflects the authenticated Bearer actor, including current suspension.
+    - Empty, malformed, wrong-audience, expired, unrelated-scope and inactive-grant credentials return 401 without reading as the Cookie actor.
+    - The history count is unchanged and responses are private, no-store.
+    test:
+      file: tests/integration/community-scoped-read-contract.test.ts
+      name: description.scoped-rest-viewer
 - id: description.moderation-content-bound
   category: validation
   applies_to:

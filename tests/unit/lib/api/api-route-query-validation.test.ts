@@ -101,6 +101,32 @@ describe("API 路由查询校验", () => {
       parseTodosQuery(new Request("https://example.test/api/workspace/todos")),
     ).toMatchObject({ limit: 100 });
   });
+
+  it.each([
+    ["page=2", { page: 2 }],
+    ["pageSize=50", { pageSize: 50 }],
+    ["page=2&pageSize=50", { page: 2, pageSize: 50 }],
+  ])("待办分页查询 %s 不注入旧 limit 默认值", (query, expected) => {
+    expect(
+      parseTodosQuery(
+        new Request(`https://example.test/api/workspace/todos?${query}`),
+      ),
+    ).toEqual(expected);
+  });
+
+  it.each(["limit=100&page=1", "limit=100&pageSize=20"])(
+    "拒绝显式混合旧限制与分页参数 %s",
+    async (query) => {
+      const result = parseTodosQuery(
+        new Request(`https://example.test/api/workspace/todos?${query}`),
+      );
+      expect(result).toBeInstanceOf(Response);
+      await expectInvalidQueryResponse(
+        result as Response,
+        "Invalid todo query",
+      );
+    },
+  );
 });
 
 it("preserves unknown query fields for a strict declared schema to reject", async () => {

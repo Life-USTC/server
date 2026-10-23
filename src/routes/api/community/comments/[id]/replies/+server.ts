@@ -8,8 +8,11 @@ import type { RequestHandler } from "./$types";
  * @params commentRepliesQuerySchema
  * @response commentRepliesResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
  * @response 403:openApiErrorSchema
  * @response 404:openApiErrorSchema
+ * @anonymous
+ * @oauthScope community.comment:read
  */
 export const GET: RequestHandler = ({ request, params }) =>
   observedApiRoute(() => getCommentRepliesRoute(request, { id: params.id }))(

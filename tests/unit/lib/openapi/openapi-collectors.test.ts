@@ -22,6 +22,32 @@ describe("SchemaCollector", () => {
 });
 
 describe("route collector", () => {
+  it("keeps anonymous access alongside explicit scoped viewer authentication", () => {
+    const project = new Project({
+      useInMemoryFileSystem: true,
+      skipLoadingLibFiles: true,
+    });
+    project.createSourceFile(
+      "src/routes/api/community/comments/+server.ts",
+      `
+/**
+ * List visible comments.
+ * @anonymous
+ * @oauthScope community.comment:read
+ * @response 401:openApiErrorSchema
+ */
+export const GET = () => new Response();
+`,
+    );
+    expect(
+      collectPaths(project, new SchemaCollector())["/api/community/comments"]
+        .get,
+    ).toMatchObject({
+      security: [{}, { bearerAuth: [] }, { sessionCookie: [] }],
+      "x-oauth-scopes": ["community.comment:read"],
+    });
+  });
+
   it("rejects unregistered scope declarations and keeps session-only routes explicit", () => {
     const project = new Project({
       useInMemoryFileSystem: true,

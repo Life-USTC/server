@@ -483,6 +483,22 @@ export async function listTodoPage(input: {
   });
 }
 
+export async function listPaginatedTodoSummary(input: {
+  filters?: TodoListFilters;
+  pagination: { page: number; pageSize: number };
+  userId: string;
+}) {
+  const [page, summary] = await Promise.all([
+    listTodoPage(input),
+    listTodoSummary({ userId: input.userId, take: 0 }),
+  ]);
+  return {
+    data: page.data,
+    pagination: page.pagination,
+    meta: { counts: summary.counts },
+  };
+}
+
 async function findOwnedTodo(
   tx: Prisma.TransactionClient,
   id: string,

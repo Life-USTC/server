@@ -198,7 +198,6 @@ requirements:
     input: limit
     minimum: 1
     maximum: 200
-    default: 100
     integer: true
   acceptance:
     given: An authenticated caller lists personal todos.
@@ -208,6 +207,93 @@ requirements:
     test:
       file: tests/unit/features/todos/todo-specification-inputs.test.ts
       name: "REST todo list limit > accepts limit undefined and reads 100 rows"
+- id: todo.rest-pagination-mode
+  category: behavior
+  rule: Supplying page or pageSize selects complete todo pagination with defaults page 1 and pageSize 20.
+    Paginated responses return the filtered todos as data, complete pagination metadata and global summary counts under meta.counts.
+    Explicit limit cannot be combined with either pagination input. Omitting pagination retains the legacy limit response with a default limit of 100.
+  acceptance:
+    given: An owner has 205 pending todos and completed history, and another owner has a private todo.
+    when: Session and scoped OAuth readers exhaust pages, request legacy limits and submit mixed or invalid inputs.
+    then:
+    - All owner rows are reachable once; global counts retain completed history and no other owner's todo appears.
+    - Legacy requests retain their shape and limits; ambiguous mode selection returns 400.
+    test:
+      file: tests/integration/workspace-native-read-contract.test.ts
+      name: todo.rest-complete-pagination
+- id: todo.rest-page-size
+  category: validation
+  applies_to:
+  - todo-list
+  expectation:
+    kind: numeric_input
+    surface: rest
+    operation: GET /api/workspace/todos
+    input: pageSize
+    minimum: 1
+    maximum: 100
+    integer: true
+  acceptance:
+    given: A scoped owner requests paginated todos.
+    when: Page size is within or outside its bounds.
+    then:
+    - Valid sizes are echoed and invalid values return 400.
+    test:
+      file: tests/integration/workspace-native-read-contract.test.ts
+      name: todo.rest-complete-pagination
+- id: todo.rest-page-number
+  category: validation
+  applies_to:
+  - todo-list
+  expectation:
+    kind: numeric_input
+    surface: rest
+    operation: GET /api/workspace/todos
+    input: page
+    minimum: 1
+    maximum: 100000
+    integer: true
+  acceptance:
+    given: A scoped owner requests paginated todos.
+    when: The page number is fractional or outside its bounds.
+    then:
+    - Invalid values return 400; exhausted valid pages return no items with the complete filtered total.
+    test:
+      file: tests/integration/workspace-native-read-contract.test.ts
+      name: todo.rest-complete-pagination
+- id: todo.rest-complete-pagination
+  category: consistency
+  applies_to:
+  - todo-list
+  expectation:
+    kind: ordered_page
+    operation:
+      module: src/features/todos/server/todo-service.ts
+      export: listPaginatedTodoSummary
+    model: Todo
+    surfaces:
+    - rest
+    order:
+    - field: completed
+      direction: asc
+    - field: dueAt
+      direction: asc
+      nulls: last
+    - field: createdAt
+      direction: desc
+    - field: id
+      direction: asc
+    page_size_echoed: true
+    complete_total: true
+    exhausted_items: 0
+  acceptance:
+    given: More than 200 owned todos share a deadline and creation time, with completed history and a foreign row.
+    when: Real scoped HTTP reads exhaust the owner's filtered pages.
+    then:
+    - Every expected ID appears once in stable order, metadata reports the complete filtered total and the next page is empty.
+    test:
+      file: tests/integration/workspace-native-read-contract.test.ts
+      name: todo.rest-complete-pagination
 - id: todo.mcp-list-limit
   category: validation
   applies_to:
@@ -623,11 +709,15 @@ capabilities:
         notes:
         - Returns the same count summary as workspace_todo_list plus todos[]; each item contains id, title,
           content, completed, priority, dueAt, createdAt, and updatedAt.
-        - Supports completed, priority, dueBefore, dueAfter, and limit query parameters.
+        - Supports completed, priority, dueBefore, dueAfter, limit, page, and pageSize query parameters.
         - Summary counts cover all of the current user's todos regardless of list filters and are computed
           in one aggregate statement.
         requirement_refs:
         - todo.rest-list-limit
+        - todo.rest-pagination-mode
+        - todo.rest-complete-pagination
+        - todo.rest-page-size
+        - todo.rest-page-number
     mcp:
       tools:
       - name: workspace_todo_list

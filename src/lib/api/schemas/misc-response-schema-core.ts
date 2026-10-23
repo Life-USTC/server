@@ -5,7 +5,7 @@ import {
   busCampusSchema,
   sectionCompactSchema,
 } from "./academic-response-schema-core";
-import { dateTimeSchema } from "./response-schema-primitives";
+import { dateTimeSchema, paginationSchema } from "./response-schema-primitives";
 
 export const viewerContextSchema = z.object({
   userId: z.string().nullable(),
@@ -253,10 +253,14 @@ export const todoCountsSchema = z.object({
   overdue: z.number().int().nonnegative(),
 });
 
-export const todosListResponseSchema = z.object({
-  counts: todoCountsSchema,
-  todos: z.array(todoItemSchema),
-});
+export const todosListResponseSchema = z.union([
+  z.object({ counts: todoCountsSchema, todos: z.array(todoItemSchema) }),
+  z.object({
+    data: z.array(todoItemSchema),
+    pagination: paginationSchema,
+    meta: z.object({ counts: todoCountsSchema }),
+  }),
+]);
 
 export const todoUpdateResponseSchema = z.object({
   success: z.boolean(),

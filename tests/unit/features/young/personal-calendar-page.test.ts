@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const list = vi.hoisted(() => vi.fn());
+const { list, kinds } = vi.hoisted(() => ({ list: vi.fn(), kinds: vi.fn() }));
+vi.mock("@/features/subscriptions/server/subscription-kind", () => ({
+  getUserSubscriptionKinds: kinds,
+}));
 vi.mock("@/features/calendar/server/calendar-events", () => ({
   listUserCalendarEvents: list,
 }));
@@ -9,7 +12,10 @@ import { listPersonalCalendarPage } from "@/features/calendar/server/personal-ca
 
 const at = "2035-09-15T10:00:00+08:00";
 const endsAt = "2035-09-15T11:00:00+08:00";
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  kinds.mockResolvedValue(new Map([[2, "teaching_assistant"]]));
+});
 describe("complete personal calendar page contract", () => {
   it("keeps every source type and its destination, without treating Young activities as todos", async () => {
     list.mockResolvedValue([
@@ -23,13 +29,26 @@ describe("complete personal calendar page contract", () => {
         type: "todo_due",
         at,
         endsAt: null,
-        payload: { id: "todo", title: "Read" },
+        payload: {
+          id: "todo",
+          title: "Read",
+          dueAt: new Date(at),
+          priority: "high",
+          content: "Chapter 2",
+        },
       },
       {
         type: "homework_due",
         at,
         endsAt: null,
-        payload: { id: "hw", title: "Exercise" },
+        payload: {
+          id: "hw",
+          title: "Exercise",
+          submissionDueAt: new Date(at),
+          sectionId: 2,
+          section: { jwId: 2, code: "MATH" },
+          completionRequired: false,
+        },
       },
       {
         type: "schedule",
@@ -37,15 +56,26 @@ describe("complete personal calendar page contract", () => {
         endsAt,
         payload: {
           id: 1,
+          sectionId: 2,
+          startTime: 1000,
+          customPlace: "Custom room",
+          teacherParticipations: [{ teacher: { nameCn: "教师" } }],
           room: { nameCn: "东区" },
-          section: { jwId: 2, course: { nameCn: "数学" } },
+          section: { jwId: 2, code: "MATH", course: { nameCn: "数学" } },
         },
       },
       {
         type: "exam",
         at,
         endsAt,
-        payload: { id: 3, section: { course: { nameCn: "数学" } } },
+        payload: {
+          id: 3,
+          sectionId: 2,
+          startTime: null,
+          examMode: "闭卷",
+          examRooms: [{ room: "A" }, { room: "B" }],
+          section: { jwId: 2, code: "MATH", course: { nameCn: "数学" } },
+        },
       },
     ]);
     const result = await listPersonalCalendarPage("owner", {
@@ -60,7 +90,7 @@ describe("complete personal calendar page contract", () => {
       ["schedule", "/catalog/sections/2"],
       ["exam", "/workspace/exams"],
     ]);
-    expect(result.data[0]).toEqual({
+    expect(result.data[0]).toMatchObject({
       id: "young-42",
       type: "young_event",
       youngId: "42",
@@ -70,7 +100,28 @@ describe("complete personal calendar page contract", () => {
       location: "Lab",
       url: "/catalog/young-events/42",
     });
-    expect(result.data[1].endsAt).toBeNull();
+    expect(result.data[1]).toMatchObject({
+      endsAt: null,
+      priority: "high",
+      content: "Chapter 2",
+      target: { kind: "todo", id: "todo" },
+    });
+    expect(result.data[2]).toMatchObject({
+      completionRequired: false,
+      subscriptionKind: "teaching_assistant",
+      target: { kind: "homework", id: "hw" },
+    });
+    expect(result.data[3]).toMatchObject({
+      location: "Custom room",
+      teachers: ["教师"],
+      target: { kind: "section", id: "2" },
+    });
+    expect(result.data[4]).toMatchObject({
+      location: "A · B",
+      examMode: "闭卷",
+      hasTime: false,
+      target: { kind: "exam", id: "3" },
+    });
     expect(list).toHaveBeenCalledWith(
       "owner",
       expect.objectContaining({ locale: "zh-cn" }),
@@ -84,8 +135,12 @@ describe("complete personal calendar page contract", () => {
         endsAt,
         payload: {
           id,
+          sectionId: id,
+          startTime: 1000,
+          customPlace: null,
+          teacherParticipations: [],
           room: null,
-          section: { jwId: id, course: { nameCn: "课" } },
+          section: { jwId: id, code: "COURSE", course: { nameCn: "课" } },
         },
       })),
     );
@@ -114,6 +169,7 @@ describe("complete personal calendar page contract", () => {
       }),
     ).rejects.toThrow();
     expect(list).not.toHaveBeenCalled();
+    expect(kinds).not.toHaveBeenCalled();
   });
   it("does not silently discard a source absent from the response contract", async () => {
     list.mockResolvedValue([{ type: "unsupported", at, endsAt }]);

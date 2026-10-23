@@ -54,15 +54,18 @@ const todoLimitSchema = integerQueryRangeSchema({
   minimum: 1,
   maximum: TODO_LIST_MAX_LIMIT,
   message: `limit must be between 1 and ${TODO_LIST_MAX_LIMIT}`,
-}).meta({
-  override: {
-    type: "integer",
-    format: "int64",
-    minimum: 1,
-    maximum: TODO_LIST_MAX_LIMIT,
-    default: TODO_LIST_DEFAULT_LIMIT,
-  },
-});
+})
+  .meta({
+    override: {
+      type: "integer",
+      format: "int64",
+      minimum: 1,
+      maximum: TODO_LIST_MAX_LIMIT,
+    },
+  })
+  .describe(
+    `Legacy list limit; defaults to ${TODO_LIST_DEFAULT_LIMIT} only when page and pageSize are omitted. Cannot be combined with pagination.`,
+  );
 
 const overviewHomeworkWindowDaysSchema = integerQueryRangeSchema({
   minimum: 1,
@@ -144,6 +147,11 @@ export const compactOverviewQuerySchema = z.object({
   locale: z.enum(APP_LOCALES).optional(),
 });
 
+export const actionableOverviewQuerySchema = compactOverviewQuerySchema.pick({
+  atTime: true,
+  locale: true,
+});
+
 export const publicUserProfileQuerySchema = z
   .object({
     username: z.string().trim().min(1).optional(),
@@ -168,13 +176,35 @@ export const publicUserProfileQuerySchema = z
     }
   });
 
-export const todosQuerySchema = z.object({
-  completed: booleanQuerySchema.optional(),
-  priority: todoPrioritySchema.optional(),
-  dueBefore: dateQuerySchema().optional(),
-  dueAfter: dateQuerySchema().optional(),
-  limit: todoLimitSchema.default(TODO_LIST_DEFAULT_LIMIT),
-});
+export const todosQuerySchema = z
+  .object({
+    completed: booleanQuerySchema.optional(),
+    priority: todoPrioritySchema.optional(),
+    dueBefore: dateQuerySchema().optional(),
+    dueAfter: dateQuerySchema().optional(),
+    limit: todoLimitSchema.optional(),
+    page: integerQueryRangeSchema({
+      minimum: 1,
+      maximum: 100000,
+      message: "Invalid page",
+    }).optional(),
+    pageSize: integerQueryRangeSchema({
+      minimum: 1,
+      maximum: 100,
+      message: "Invalid pageSize",
+    }).optional(),
+  })
+  .refine(
+    (query) =>
+      query.limit === undefined ||
+      (query.page === undefined && query.pageSize === undefined),
+    { message: "Use either limit or page/pageSize", path: ["limit"] },
+  )
+  .overwrite((query) =>
+    query.page === undefined && query.pageSize === undefined
+      ? { ...query, limit: query.limit ?? TODO_LIST_DEFAULT_LIMIT }
+      : query,
+  );
 
 export const uploadObjectQuerySchema = z.object({
   key: z.string().trim().min(1),

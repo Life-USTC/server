@@ -307,9 +307,14 @@ function buildOperation(
   const responses: Record<string, unknown> = {};
   let has401 = false;
   let hasIngestionSecret = false;
+  let allowsAnonymous = false;
 
   for (const docTag of tags) {
     switch (docTag.name) {
+      case "anonymous": {
+        allowsAnonymous = true;
+        break;
+      }
       case "params": {
         const schema = schemas.lookup(docTag.text);
         if (schema) requestParams.query = schema;
@@ -373,6 +378,7 @@ function buildOperation(
     has401,
     hasIngestionSecret,
     Array.isArray(operation["x-oauth-scopes"]),
+    allowsAnonymous,
   );
   if (security) {
     operation.security = security;
@@ -574,6 +580,7 @@ function buildSecurity(
   has401: boolean,
   hasIngestionSecret: boolean,
   hasBearerScope: boolean,
+  allowsAnonymous: boolean,
 ): Array<Record<string, string[]>> | undefined {
   if (!has401) return undefined;
 
@@ -601,7 +608,10 @@ function buildSecurity(
     return [{ sessionCookie: [] }, { calendarFeedToken: [] }];
   }
 
-  return hasBearerScope
-    ? [{ bearerAuth: [] }, { sessionCookie: [] }]
-    : [{ sessionCookie: [] }];
+  if (hasBearerScope) {
+    return allowsAnonymous
+      ? [{}, { bearerAuth: [] }, { sessionCookie: [] }]
+      : [{ bearerAuth: [] }, { sessionCookie: [] }];
+  }
+  return [{ sessionCookie: [] }];
 }

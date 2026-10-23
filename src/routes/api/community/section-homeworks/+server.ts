@@ -8,7 +8,10 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @params homeworksQuerySchema
  * @response homeworksListResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
  * @response 404:openApiErrorSchema
+ * @anonymous
+ * @oauthScope community.section-homework:read
  */
 export const GET = svelteRequestHandler(observedApiRoute(getHomeworksRoute));
 

@@ -166,3 +166,144 @@ test("/api/catalog/sections/[jwId]/schedules 无效 limit 返回 400", {
     }
   });
 });
+
+for (const retired of [false, true]) {
+  test(`section schedule pagination retains complete ${retired ? "retired" : "active"} meeting context`, {
+    tag: "@Schedule/REST",
+  }, async ({ run, request, academic, isolatedWorker }) => {
+    await run(async () => {
+      const ids = Array.from(
+        { length: 201 },
+        (_, index) => 1_850_100_000 + index,
+      );
+      const room = await isolatedWorker.database.owner.room.create({
+        data: {
+          jwId: 1_850_100_000,
+          code: "PAGE-ROOM",
+          nameCn: "分页教室",
+          nameEn: "After-cap room",
+          virtual: false,
+          seatsForSection: 30,
+          seats: 30,
+        },
+      });
+      await isolatedWorker.database.owner.schedule.createMany({
+        data: ids.toReversed().map((id) => ({
+          id,
+          sectionId: academic.section.id,
+          scheduleGroupId: academic.defaultGroup.id,
+          roomId: room.id,
+          date: new Date(`${academic.date}T00:00:00Z`),
+          weekday: 3,
+          startTime: 900,
+          endTime: 1000,
+          periods: 1.5,
+          weekIndex: 1,
+          startUnit: 1,
+          endUnit: 2,
+        })),
+      });
+      await isolatedWorker.database.owner.scheduleTeacher.create({
+        data: {
+          scheduleId: ids[200],
+          teacherId: academic.teacher.id,
+          periods: 1.5,
+          exerciseClass: true,
+        },
+      });
+      if (retired) {
+        await isolatedWorker.database.owner.section.update({
+          where: { id: academic.section.id },
+          data: { retiredAt: new Date() },
+        });
+      }
+
+      const meetings: Array<{ id: number; [key: string]: unknown }> = [];
+      for (let page = 1; page <= 4; page += 1) {
+        const response = await request.get(
+          `/api/catalog/sections/${academic.section.jwId}/schedules?page=${page}&pageSize=100&dateFrom=${academic.date}&dateTo=${academic.date}&locale=en-us`,
+        );
+        expect(response.status()).toBe(200);
+        const body = await response.json();
+        expect(body.pagination).toEqual({
+          page,
+          pageSize: 100,
+          total: 203,
+          totalPages: 3,
+        });
+        expect(body.data).toHaveLength([100, 100, 3, 0][page - 1]);
+        meetings.push(...body.data);
+      }
+      expect(meetings.map(({ id }) => id)).toEqual([
+        academic.schedules[2].id,
+        ...ids,
+        academic.schedules[1].id,
+      ]);
+      expect(meetings.find(({ id }) => id === ids[200])).toMatchObject({
+        startTime: "09:00",
+        endTime: "10:00",
+        room: { id: room.id, namePrimary: "After-cap room" },
+        teachers: [{ id: academic.teacher.id }],
+        teacherParticipations: [
+          {
+            teacher: { id: academic.teacher.id },
+            periods: 1.5,
+            exerciseClass: true,
+          },
+        ],
+        scheduleGroup: { id: academic.defaultGroup.id },
+      });
+    });
+  });
+}
+
+test("section schedule pagination validates modes and missing sections", {
+  tag: "@Schedule/REST",
+}, async ({ run, request, academic }) => {
+  await run(async () => {
+    for (const query of [
+      "page=0",
+      "page=100001",
+      "page=1.5",
+      "pageSize=0",
+      "pageSize=101",
+      "page=1&limit=10",
+      "pageSize=20&limit=10",
+    ]) {
+      const response = await request.get(
+        `/api/catalog/sections/${academic.section.jwId}/schedules?${query}`,
+      );
+      expect(response.status(), query).toBe(400);
+    }
+    const missing = await request.get(
+      "/api/catalog/sections/2147483647/schedules?page=1&pageSize=100",
+    );
+    expect(missing.status()).toBe(404);
+    const defaultSize = await request.get(
+      `/api/catalog/sections/${academic.section.jwId}/schedules?page=1`,
+    );
+    expect((await defaultSize.json()).pagination).toEqual({
+      page: 1,
+      pageSize: 20,
+      total: 4,
+      totalPages: 1,
+    });
+    const defaultPage = await request.get(
+      `/api/catalog/sections/${academic.section.jwId}/schedules?pageSize=1`,
+    );
+    expect((await defaultPage.json()).pagination).toEqual({
+      page: 1,
+      pageSize: 1,
+      total: 4,
+      totalPages: 4,
+    });
+    const exhausted = await request.get(
+      `/api/catalog/sections/${academic.section.jwId}/schedules?page=101&pageSize=1`,
+    );
+    expect(exhausted.status()).toBe(200);
+    expect(await exhausted.json()).toMatchObject({
+      data: [],
+      pagination: { page: 101, pageSize: 1, total: 4, totalPages: 4 },
+    });
+  });
+});

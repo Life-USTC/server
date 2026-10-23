@@ -89,6 +89,15 @@ export const sectionSchedulesResponseSchema = z.array(
   sectionScheduleEntrySchema,
 );
 
+export const paginatedSectionSchedulesResponseSchema = createPaginatedSchema(
+  sectionScheduleEntrySchema,
+);
+
+export const sectionSchedulesReadResponseSchema = z.union([
+  sectionSchedulesResponseSchema,
+  paginatedSectionSchedulesResponseSchema,
+]);
+
 export const scheduleGroupWithSchedulesSchema = scheduleGroupSchema.extend({
   schedules: z.array(scheduleBaseSchema),
 });

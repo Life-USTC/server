@@ -2,7 +2,12 @@ import { expect } from "@playwright/test";
 import { test } from "../../../e2e/utils/owned-worker";
 import { createCatalogContractFixture } from "../../../shared/catalog-contract-fixture";
 
-type Schema = { $ref?: string; properties?: Record<string, Schema> };
+type Schema = {
+  $ref?: string;
+  properties?: Record<string, Schema>;
+  anyOf?: Schema[];
+  oneOf?: Schema[];
+};
 
 test("openapi.paginated-list-envelope", { tag: "@OpenAPI/REST" }, async ({
   run,
@@ -51,10 +56,17 @@ test("openapi.paginated-list-envelope", { tag: "@OpenAPI/REST" }, async ({
       schema.$ref
         ? resolve(spec.components.schemas[schema.$ref.split("/").at(-1) ?? ""])
         : schema;
+    const isPaginated = (schema: Schema): boolean => {
+      const resolved = resolve(schema);
+      return (
+        Boolean(resolved.properties?.pagination) ||
+        [...(resolved.anyOf ?? []), ...(resolved.oneOf ?? [])].some(isPaginated)
+      );
+    };
     const paths = Object.entries(spec.paths).filter(([, { get }]) => {
       const schema =
         get?.responses?.["200"]?.content?.["application/json"]?.schema;
-      return schema && resolve(schema).properties?.pagination;
+      return schema && isPaginated(schema);
     });
     expect(paths.map(([path]) => path)).toEqual(
       expect.arrayContaining([
@@ -62,6 +74,8 @@ test("openapi.paginated-list-envelope", { tag: "@OpenAPI/REST" }, async ({
         "/api/catalog/sections",
         "/api/community/comments",
         "/api/workspace/exams",
+        "/api/workspace/todos",
+        "/api/catalog/sections/{jwId}/schedules",
         "/api/admin/users",
       ]),
     );
@@ -75,6 +89,7 @@ test("openapi.paginated-list-envelope", { tag: "@OpenAPI/REST" }, async ({
     };
     for (const [path, { get }] of paths) {
       const query = new URLSearchParams({ page: "1", pageSize: "1" });
+      const requestPath = path.replace("{jwId}", String(section.jwId));
       if (path === "/api/community/comments") {
         query.set("targetType", "section");
         query.set("sectionJwId", String(section.jwId));
@@ -84,13 +99,14 @@ test("openapi.paginated-list-envelope", { tag: "@OpenAPI/REST" }, async ({
       for (const parameter of get?.parameters ?? [])
         if (parameter.required)
           expect(
-            query.has(parameter.name),
+            query.has(parameter.name) ||
+              (parameter.name === "jwId" && path.includes("{jwId}")),
             `${path} requires a fixture for ${parameter.name}`,
           ).toBe(true);
       let total: number | undefined;
       for (const page of [1, 2]) {
         query.set("page", String(page));
-        const response = await request.get(`${path}?${query}`);
+        const response = await request.get(`${requestPath}?${query}`);
         expect(response.status(), path).toBe(200);
         const body = await response.json();
         expect(Array.isArray(body.data), path).toBe(true);
