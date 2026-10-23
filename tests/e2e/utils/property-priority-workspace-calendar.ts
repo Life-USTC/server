@@ -224,7 +224,28 @@ export async function checkWorkspaceCalendarPriorityViews(
     const quickSemester = quick.locator("#subscriptions-quick-add-semester");
     await quickSemester.selectOption(String(data.semester.id));
     await quick.locator("#subscriptions-quick-add-code").fill(section.code);
-    await quick.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+    const [searchResponse] = await Promise.all([
+      page.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return (
+          response.request().method() === "GET" &&
+          url.origin === data.origin &&
+          url.pathname === "/api/catalog/sections" &&
+          url.searchParams.get("semesterId") === String(data.semester.id) &&
+          url.searchParams.get("search") === section.code
+        );
+      }),
+      quick.getByRole("button", { name: /^(搜索|Search)$/ }).click(),
+    ]);
+    expect(searchResponse.status()).toBe(200);
+    const searchResult = await searchResponse.json();
+    expect(searchResult.data).toContainEqual(
+      expect.objectContaining({
+        id: section.id,
+        jwId: section.jwId,
+        code: section.code,
+      }),
+    );
     const quickRow = quick
       .locator('[data-slot="item"]')
       .filter({ hasText: courseName });
