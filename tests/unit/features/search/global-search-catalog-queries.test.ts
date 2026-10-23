@@ -25,9 +25,15 @@ function contains(value: string) {
 function sectionTerm(value: string) {
   return {
     OR: [
-      { course: { nameCn: contains(value) } },
-      { course: { nameEn: contains(value) } },
-      { course: { code: contains(value) } },
+      {
+        course: {
+          OR: [
+            { nameCn: contains(value) },
+            { nameEn: contains(value) },
+            { code: contains(value) },
+          ],
+        },
+      },
       { code: contains(value) },
       {
         teachers: {

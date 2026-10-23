@@ -73,6 +73,99 @@ test(
 );
 
 test(
+  "preserves section matches, ordering and limits across course fields",
+  { tag: "@Search/REST" },
+  async ({ request, isolatedWorker, run }) =>
+    run(async () => {
+      await isolatedWorker.database.owner.$transaction(async (tx) => {
+        const current = await tx.semester.create({
+          data: { jwId: 202601, code: "CURRENT", nameCn: "2026年秋季学期" },
+        });
+        const previous = await tx.semester.create({
+          data: { jwId: 202501, code: "PREVIOUS", nameCn: "2025年秋季学期" },
+        });
+        const chinese = await tx.course.create({
+          data: { jwId: 3101, code: "CN-COURSE", nameCn: "NEEDLE 中文" },
+        });
+        const english = await tx.course.create({
+          data: {
+            jwId: 3102,
+            code: "EN-COURSE",
+            nameCn: "英文课程",
+            nameEn: "Needle English",
+          },
+        });
+        const code = await tx.course.create({
+          data: { jwId: 3103, code: "NEEDLE-CODE", nameCn: "代码课程" },
+        });
+        const other = await tx.course.create({
+          data: { jwId: 3104, code: "OTHER-COURSE", nameCn: "其他课程" },
+        });
+        await tx.section.createMany({
+          data: [
+            { jwId: 3303, courseId: chinese.id },
+            { jwId: 3301, courseId: english.id },
+            { jwId: 3302, courseId: code.id },
+            { jwId: 3304, courseId: other.id, code: "NEEDLE-SECTION" },
+            { jwId: 3290, courseId: chinese.id, semesterId: previous.id },
+            {
+              jwId: 3291,
+              courseId: chinese.id,
+              retiredAt: new Date("2026-01-01T00:00:00Z"),
+            },
+            { jwId: 3281, courseId: chinese.id },
+            { jwId: 3282, courseId: other.id },
+          ].map((section) => ({
+            code: `SECTION-${section.jwId}`,
+            semesterId: current.id,
+            ...section,
+          })),
+        });
+        await tx.teacher.create({
+          data: {
+            jwId: 3201,
+            code: "MATCH-TEACHER",
+            nameCn: "授课教师",
+            sections: {
+              connect: [3301, 3302, 3303, 3304, 3290, 3291, 3282].map(
+                (jwId) => ({ jwId }),
+              ),
+            },
+          },
+        });
+      });
+
+      const response = await request.get(
+        `${search("nEeDlE TEACHER")}&limit=25`,
+      );
+      expect(response.status()).toBe(200);
+      const result: GlobalSearchResponse = await response.json();
+      expect(
+        result.groups
+          .find((group) => group.type === "sections")
+          ?.items.map((item) => item.id),
+      ).toEqual([
+        "section:3301",
+        "section:3302",
+        "section:3303",
+        "section:3304",
+        "section:3290",
+      ]);
+
+      const limitedResponse = await request.get(
+        `${search("nEeDlE TEACHER")}&limit=2`,
+      );
+      expect(limitedResponse.status()).toBe(200);
+      const limited: GlobalSearchResponse = await limitedResponse.json();
+      expect(
+        limited.groups
+          .find((group) => group.type === "sections")
+          ?.items.map((item) => item.id),
+      ).toEqual(["section:3301", "section:3302"]);
+    }),
+);
+
+test(
   "returns catalog results for signed-in users and can include workspace groups",
   { tag: "@Search/REST" },
   async ({ request, catalog, isolatedWorker, run }) =>
