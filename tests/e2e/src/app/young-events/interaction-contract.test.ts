@@ -2,7 +2,7 @@ import {
   Client,
   StreamableHTTPClientTransport,
 } from "@modelcontextprotocol/client";
-import { expect, type Page } from "@playwright/test";
+import { request as apiRequest, expect, type Page } from "@playwright/test";
 import { test as publicTest } from "../../../utils/public-worker";
 import { test } from "./interaction-fixture";
 
@@ -99,17 +99,22 @@ test("young-event.private-client-overlays", { tag: "@Young/Web" }, async ({
       let rejectedReads = 0;
       await page.route(endpoint, (route) =>
         observation.own(async () => {
-          const response = await route.fetch({
-            maxRedirects: 0,
-            headers: {
-              ...observation.readHeaders(route.request()),
-              cookie: "",
-            },
-          });
-          expect(response.status()).toBe(401);
-          rejectedReads++;
-          await response.body();
-          await route.fulfill({ response });
+          const anonymous = await apiRequest.newContext();
+          try {
+            const response = await anonymous.get(route.request().url(), {
+              maxRedirects: 0,
+              headers: {
+                ...observation.readHeaders(route.request()),
+                cookie: "",
+              },
+            });
+            expect(response.status()).toBe(401);
+            rejectedReads++;
+            await response.body();
+            await route.fulfill({ response });
+          } finally {
+            await anonymous.dispose();
+          }
         }),
       );
       await page.goto(target);
