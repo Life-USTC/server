@@ -56,7 +56,7 @@ afterNavigate(({ shallow, type }) => {
         </Button>
       {/snippet}
     </Popover.Trigger>
-    <Popover.Content {align} role="dialog" aria-label={label} class="max-h-[70dvh] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto">
+    <Popover.Content {align} role="dialog" aria-label={label} class="w-80 max-w-[calc(100vw-2rem)] overflow-y-auto" style="max-height: min(70dvh, var(--bits-popover-content-available-height))">
       {@render children()}
     </Popover.Content>
   </Popover.Root>

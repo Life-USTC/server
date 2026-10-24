@@ -6,8 +6,10 @@ import {
 } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
+  applyWorkspaceTaskFilter,
   openWorkspaceTaskFilter,
   test,
+  workspaceTaskFilterValue,
 } from "../../../utils/workspace-task-filters";
 
 function taskTitle(
@@ -25,21 +27,77 @@ function taskTitle(
   return locator.filter({ visible: true });
 }
 
-async function expectSelection(group: Locator, selected: string) {
-  const states = await group.getByRole("radio").evaluateAll((elements) =>
-    elements.map((element) => ({
-      value: element.getAttribute("data-value"),
-      checked: element.getAttribute("aria-checked"),
-      state: element.getAttribute("data-state"),
-      background: getComputedStyle(element).backgroundColor,
-    })),
+test("workspace table filters share drafts across columns", {
+  tag: "@Todo/Web",
+}, async ({ page, taskFilterState, taskFilterRun }) => {
+  const fixture = await taskFilterState(true);
+  await taskFilterRun(
+    async () => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await gotoAndWaitForReady(page, "/workspace/todos");
+      const completed = taskTitle(page, "todos", fixture.completedTitle.todos);
+      const pending = taskTitle(page, "todos", fixture.pendingTitle.todos);
+      await openWorkspaceTaskFilter(page, "todos");
+      await workspaceTaskFilterValue(page, "completed").check();
+      await page.keyboard.press("Escape");
+      const headers = page.locator('[data-slot="table-column-header"]:visible');
+      await headers
+        .getByRole("button", { name: /^(优先级|Priority)$/i })
+        .click();
+      const priority = page.locator('[data-filter-field="priority"]:visible');
+      await priority.getByRole("checkbox", { name: /^(高|High)$/i }).check();
+      await priority.getByRole("checkbox", { name: /^(中|Medium)$/i }).check();
+      await page.keyboard.press("Escape");
+      await headers.getByRole("button", { name: /^(标题|Title)$/i }).click();
+      await page
+        .locator('[data-filter-field="title"]:visible input')
+        .fill(fixture.completedTitle.todos);
+      await page.keyboard.press("Escape");
+      await expect(completed).toHaveCount(0);
+      await expect(pending).toHaveCount(1);
+      await headers
+        .getByRole("button", { name: /^(优先级|Priority)$/i })
+        .click();
+      await expect(
+        priority.getByRole("checkbox", { checked: true }),
+      ).toHaveCount(2);
+      await page.keyboard.press("Escape");
+      const apply = page.getByRole("button", {
+        name: /^(应用筛选|Apply filters)$/i,
+      });
+      await expect(apply).toHaveCount(1);
+      await apply.click();
+      await expect(completed).toHaveCount(1);
+      await expect(pending).toHaveCount(0);
+      await headers.getByRole("button", { name: /^(标题|Title)$/i }).click();
+      await page.locator('[data-filter-field="title"]:visible input').fill("");
+      await page.keyboard.press("Escape");
+      await apply.click();
+      await expect(completed).toHaveCount(1);
+      await expect(pending).toHaveCount(1);
+    },
+    { calendarMessages: [], calendarTokenCreated: false },
   );
-  for (const active of [
-    states.filter((state) => state.checked === "true"),
-    states.filter((state) => state.state === "on"),
-    states.filter((state) => state.background !== "rgba(0, 0, 0, 0)"),
-  ]) {
-    expect(active.map((state) => state.value)).toEqual([selected]);
+});
+
+async function expectSelection(group: Locator, selected: string) {
+  const checked = group.getByRole("checkbox", { checked: true });
+  await expect(checked).toHaveCount(selected === "all" ? 0 : 1);
+  if (selected === "all") {
+    await expect(group.getByRole("button").first()).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  } else {
+    const name =
+      selected === "completed"
+        ? /^(已完成|Completed|Ended|已结束)$/i
+        : /^(未完成|Incomplete|Upcoming|未结束)$/i;
+    await expect(group.getByRole("checkbox", { name })).toBeChecked();
+    await expect(group.getByRole("checkbox", { name })).toHaveAttribute(
+      "data-state",
+      "checked",
+    );
   }
 }
 
@@ -60,11 +118,12 @@ test("task filters respond after navigating between workspace pages", {
           .click();
         await page.waitForURL(`**/workspace/${tab}`);
         await openWorkspaceTaskFilter(page, tab);
-        const group = page
-          .locator('[data-slot="toggle-group"]')
-          .filter({ has: page.locator('[data-value="incomplete"]') });
+        const group = page.locator('[data-filter-field="completion"]:visible');
         for (const value of ["all", "completed", "incomplete"]) {
-          await group.locator(`[data-value="${value}"]`).click();
+          await applyWorkspaceTaskFilter(
+            page,
+            workspaceTaskFilterValue(page, value),
+          );
           await page.mouse.move(0, 0);
           await expectSelection(group, value);
           await expect(
@@ -109,9 +168,9 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                   browserHealth: {},
                 });
                 const filterDialog = await openWorkspaceTaskFilter(page, tab);
-                const group = page
-                  .locator('[data-slot="toggle-group"]')
-                  .filter({ has: page.locator('[data-value="incomplete"]') });
+                const group = page.locator(
+                  '[data-filter-field="completion"]:visible',
+                );
                 const completed = taskTitle(
                   page,
                   tab,
@@ -135,7 +194,8 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                       page
                         .getByRole("columnheader")
                         .locator('[data-slot="table-column-header"]')
-                        .getByRole("button"),
+                        .getByRole("button")
+                        .first(),
                     ).toBeVisible();
                   }
                   if (tab === "todos") {
@@ -145,7 +205,10 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                     await openWorkspaceTaskFilter(page, tab);
                   } else {
                     await expect(clear).toHaveCount(0);
-                    await group.locator('[data-value="all"]').click();
+                    await applyWorkspaceTaskFilter(
+                      page,
+                      workspaceTaskFilterValue(page, "all"),
+                    );
                   }
                   await expectSelection(group, "all");
                   await expect(completed).toHaveCount(1);
@@ -163,7 +226,10 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                       new URL(request.url()).pathname === roomPath,
                   );
                   await duringRemoval(removedRequests, async () => {
-                    await group.locator('[data-value="incomplete"]').click();
+                    await applyWorkspaceTaskFilter(
+                      page,
+                      workspaceTaskFilterValue(page, "incomplete"),
+                    );
                     await expect(completed).toHaveCount(0);
                   });
                 }
@@ -176,10 +242,9 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                   "incomplete",
                   "all",
                 ]) {
-                  const option = group.locator(`[data-value="${selected}"]`);
+                  const option = workspaceTaskFilterValue(page, selected);
                   for (const action of ["click", "click", "space"] as const) {
-                    if (action === "space") await option.press("Space");
-                    else await option.click();
+                    await applyWorkspaceTaskFilter(page, option, action);
                     await page.mouse.move(0, 0);
                     await expectSelection(group, selected);
                     await expect(completed).toHaveCount(
@@ -282,7 +347,10 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                         })
                         .filter({ visible: true }),
                     ).toHaveCount(0);
-                    await group.locator('[data-value="all"]').click();
+                    await applyWorkspaceTaskFilter(
+                      page,
+                      workspaceTaskFilterValue(page, "all"),
+                    );
                   }
                   await expectSelection(group, "all");
                   await expect(pending).toHaveCount(1);
@@ -292,7 +360,10 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                   await openWorkspaceTaskFilter(page, tab);
                   await expectSelection(group, "incomplete");
                   await expect(pending).toHaveCount(0);
-                  await group.locator('[data-value="completed"]').click();
+                  await applyWorkspaceTaskFilter(
+                    page,
+                    workspaceTaskFilterValue(page, "completed"),
+                  );
                   await expect(pending).toHaveCount(1);
                 }
                 expect(errors).toEqual([]);

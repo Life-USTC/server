@@ -14,6 +14,18 @@ policy_refs:
 - homework-naming
 - cases.missing-data
 requirements:
+- id: homework.web-table-filters
+  category: presentation
+  rule: Workspace homework column and top-area filters share one draft and Apply action. Course, semester, section, completion and status badges allow multiple alternatives; title, description and Shanghai date comparisons combine across fields. Filtering preserves the viewer-specific advisory and pending semantics.
+  acceptance:
+    given: Homework rows include overdue required work and advisory work before and after its deadline.
+    when: The viewer combines course, semester, completion and badge filters.
+    then:
+    - Multiple alternatives match within one field and independent fields intersect.
+    - Advisory items remain pending only according to the existing viewer-specific rule.
+    test:
+      file: tests/unit/features/workspace/workspace-task-table-filters.test.ts
+      name: keeps advisory completion semantics and supports course, semester and status badges
 - id: homework.scoped-rest-viewer
   category: authorization
   rule: Shared section-homework list and detail REST reads remain public while projecting only the authenticated viewer's completion. A supplied Bearer token requires a valid REST audience, active grant and community.section-homework read or write scope; rejected credentials return 401 without session or anonymous fallback. Mixed credentials use the Bearer actor, reads do not alter completion records and responses remain private and non-cacheable.
@@ -506,10 +518,10 @@ requirements:
       name: homework.oauth-write-gates
 - id: homework.responsive-workspace-view
   category: presentation
-  rule: Workspace homework displays cards on mobile and lists on desktop. Completion filters open from the desktop status column header or the mobile collection header, including when no records match. There is no view-mode control.
+  rule: Workspace homework displays cards on mobile and lists on desktop. Every displayed column opens its filters from the desktop header or mobile collection header, including when no records match. Section identity, description and additional timestamps live in the top filter area. All controls edit a shared draft and one Apply action commits the filters. There is no view-mode control.
   acceptance:
     given: An authenticated owner subscribes to a section with actual homework records.
-    when: The workspace renders at desktop and mobile widths and the viewer selects every completion filter.
+    when: The workspace renders at desktop and mobile widths and the viewer selects and applies every completion filter.
     then:
     - Desktop displays the homework list and mobile displays cards.
     - The visible status header opens completion filters and selection works, including recovery from empty results.

@@ -370,9 +370,7 @@ let signedData = $derived(
   ),
 );
 let homeworkReferenceDate = $derived(referenceDate(signedData?.referenceNow));
-let filteredTodos = $derived(derivedState.filteredTodos);
 let examRows = $derived(derivedState.examRows);
-let filteredExamRows = $derived(derivedState.filteredExamRows);
 let catalogLinkItems = $derived(derivedState.catalogLinkItems);
 let signedLinkGroups = $derived(derivedState.signedLinkGroups);
 let calendarData = $derived(derivedState.calendarData);
@@ -419,8 +417,6 @@ onMount(mount);
         examMetadataLabels={examMetadataLabels}
         examRows={examRows}
         examTimeLabel={examTimeLabel}
-        filteredExamRows={filteredExamRows}
-        filteredTodos={filteredTodos}
         homeworkActionError={homeworkActionError}
         homeworkCopy={homeworkCopy}
         homeworkReferenceDate={homeworkReferenceDate}

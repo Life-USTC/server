@@ -2,10 +2,17 @@
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
 import { onMount } from "svelte";
 import TableColumnHeader from "#lib/components/TableColumnHeader.svelte";
+import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
+import TableFilterFields from "#lib/components/TableFilterFields.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Collapsible from "#lib/components/ui/collapsible/index.js";
 import * as Empty from "#lib/components/ui/empty/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
+import {
+  busStopFilterFields,
+  filterBusTableRoutes,
+} from "@/features/bus/lib/bus-table-filters";
 import {
   hasEstimatedBusTimes,
   nextBusTripHighlightKey,
@@ -37,11 +44,19 @@ export let onPlannerChange: (() => void) | undefined = undefined;
 let loadedBus: WorkspaceBusData | null = bus;
 let busStateVersion = 0;
 let busDayType: "weekday" | "saturday" | "sunday" = "weekday";
-let busEndCampusId: number | null = null;
 let busPlannerReady = false;
-let busShowDepartedTrips = false;
-let busStartCampusId: number | null = null;
 let timetableOpen = true;
+let plannerControlsOpen = false;
+let tableDraft: Record<string, string> = {};
+let tableFilters: Record<string, string> = {};
+let plannerDraft = {
+  startCampusId: null as number | null,
+  endCampusId: null as number | null,
+  dayType: "weekday" as "weekday" | "saturday" | "sunday",
+  showDepartedTrips: false,
+};
+let draftInitialized = false;
+const formId = "bus-table-filters";
 let busLoading = !bus;
 let busLoadFailed = false;
 const state = createBusTabState({
@@ -67,6 +82,7 @@ async function loadPublicBusData() {
     loadedBus = result.data;
     state.initializeWhenNeeded();
     restoreRecentRoute();
+    synchronizeDraft();
   } catch {
     busLoadFailed = true;
   } finally {
@@ -127,27 +143,75 @@ function saveRecentRoute() {
   );
 }
 
+function synchronizeDraft() {
+  plannerDraft = {
+    startCampusId: state.values.busStartCampusId,
+    endCampusId: state.values.busEndCampusId,
+    dayType: state.values.busDayType,
+    showDepartedTrips: state.values.busShowDepartedTrips,
+  };
+  draftInitialized = true;
+}
+
+function updateFilters(patch: Record<string, string>) {
+  onPlannerChange?.();
+  tableDraft = { ...tableDraft, ...patch };
+}
+
 function reverseBusStops() {
   onPlannerChange?.();
-  state.actions.reverseBusStops();
-  saveRecentRoute();
+  plannerDraft = {
+    ...plannerDraft,
+    startCampusId: plannerDraft.endCampusId,
+    endCampusId: plannerDraft.startCampusId,
+  };
+  plannerControlsOpen = true;
 }
 
 function selectBusEnd(campusId: number) {
   onPlannerChange?.();
-  state.actions.selectBusEnd(campusId);
-  saveRecentRoute();
+  plannerDraft = {
+    ...plannerDraft,
+    endCampusId: campusId,
+    startCampusId:
+      plannerDraft.startCampusId === campusId
+        ? plannerDraft.endCampusId
+        : plannerDraft.startCampusId,
+  };
 }
 
 function selectBusStart(campusId: number) {
   onPlannerChange?.();
-  state.actions.selectBusStart(campusId);
+  plannerDraft = {
+    ...plannerDraft,
+    startCampusId: campusId,
+    endCampusId:
+      plannerDraft.endCampusId === campusId
+        ? plannerDraft.startCampusId
+        : plannerDraft.endCampusId,
+  };
+}
+
+function applyFilters(event: SubmitEvent) {
+  event.preventDefault();
+  if (!busPlannerReady) return;
+  onPlannerChange?.();
+  tableFilters = { ...tableDraft };
+  state.actions.applyBusFilters(plannerDraft);
   saveRecentRoute();
+  plannerControlsOpen = false;
+}
+
+function clearFilters() {
+  onPlannerChange?.();
+  tableDraft = {};
+  synchronizeDraft();
 }
 
 onMount(() => {
   const cleanup = state.actions.mount();
   restoreRecentRoute();
+  synchronizeDraft();
   void loadPublicBusData();
   return cleanup;
 });
@@ -156,12 +220,12 @@ $: {
   void busStateVersion;
   if (bus) loadedBus = bus;
   state.initializeWhenNeeded();
-  busApplicableRoutes = loadedBus ? state.applicableRoutes() : [];
+  busApplicableRoutes = loadedBus
+    ? filterBusTableRoutes(state.applicableRoutes(), tableFilters)
+    : [];
   busDayType = state.values.busDayType;
-  busEndCampusId = state.values.busEndCampusId;
   busPlannerReady = state.values.busPlannerReady;
-  busShowDepartedTrips = state.values.busShowDepartedTrips;
-  busStartCampusId = state.values.busStartCampusId;
+  if (!draftInitialized && loadedBus) synchronizeDraft();
 }
 $: busNextTripHighlightKey = nextBusTripHighlightKey(busApplicableRoutes);
 $: busShowsEstimatedHint = hasEstimatedBusTimes(
@@ -171,23 +235,23 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
 );
 </script>
 
-{#snippet plannerControls(viewport: "mobile" | "desktop")}
+{#snippet plannerControls()}
   {#if loadedBus}
-    <TableColumnHeader label={busCopy.changeRoute} active={true}>
+    <TableColumnHeader label={busCopy.changeRoute} active={true} bind:open={plannerControlsOpen}>
       <BusTabSettings
         bus={loadedBus}
-        idPrefix={`bus-${viewport}`}
+        idPrefix="bus-settings"
         {busCopy}
-        {busDayType}
-        {busEndCampusId}
+        busDayType={plannerDraft.dayType}
+        busEndCampusId={plannerDraft.endCampusId}
         {busPlannerReady}
-        {busShowDepartedTrips}
-        {busStartCampusId}
+        busShowDepartedTrips={plannerDraft.showDepartedTrips}
+        busStartCampusId={plannerDraft.startCampusId}
         {reverseBusStops}
         {selectBusEnd}
         {selectBusStart}
-        setBusDayType={(dayType) => { onPlannerChange?.(); state.actions.setBusDayType(dayType); }}
-        toggleBusDepartedTrips={() => { onPlannerChange?.(); state.actions.toggleBusDepartedTrips(); }}
+        setBusDayType={(dayType) => { onPlannerChange?.(); plannerDraft = { ...plannerDraft, dayType }; }}
+        toggleBusDepartedTrips={() => { onPlannerChange?.(); plannerDraft = { ...plannerDraft, showDepartedTrips: !plannerDraft.showDepartedTrips }; }}
       />
     </TableColumnHeader>
   {/if}
@@ -209,9 +273,17 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
           <BusTabCompactSummary {busApplicableRoutes} {busCopy} {busPlannerReady} {reverseBusStops} />
         </div>
       {/if}
-      <div class="flex flex-wrap items-center gap-2 lg:hidden" data-slot="collection-header">
-        {@render plannerControls("mobile")}
-      </div>
+      <form id={formId} onsubmit={applyFilters} data-slot="collection-header">
+        <Field.Group class="flex-row flex-wrap items-center gap-3">
+          {@render plannerControls()}
+          <TableFieldFilter label={busCopy.planner.routes} fields={[{ name: "routeId", label: busCopy.planner.routes, options: loadedBus.routes.map((route) => ({ value: String(route.id), label: route.descriptionPrimary })) }]} values={tableDraft} onchange={updateFilters} labels={busCopy.tableFilters} idPrefix="bus-routes" {formId} />
+          <TableColumnHeader label={busCopy.route.stops} active={Object.entries(tableDraft).some(([key, value]) => /^(stop|time)\d+$/.test(key) && Boolean(value))}>
+            <TableFilterFields fields={loadedBus.campuses.flatMap((campus) => busStopFilterFields(campus.id, campus.namePrimary, busCopy))} values={tableDraft} onchange={updateFilters} labels={busCopy.tableFilters} idPrefix="bus-stops" {formId} />
+          </TableColumnHeader>
+          <Button type="submit" class="h-11 md:h-8" disabled={!busPlannerReady}>{busCopy.applyFilters}</Button>
+          <Button type="button" variant="ghost" class="h-11 md:h-8" onclick={clearFilters}>{busCopy.clear}</Button>
+        </Field.Group>
+      </form>
       <Collapsible.Root bind:open={timetableOpen} class="group/full-timetable">
         {#if compact}
           <Collapsible.Trigger>
@@ -234,9 +306,10 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
               {busShowsEstimatedHint}
               {reverseBusStops}
               showHeader={false}
-            >
-              {#snippet controls()}{@render plannerControls("desktop")}{/snippet}
-            </BusTabTimetable>
+              filterValues={tableDraft}
+              onFilterChange={updateFilters}
+              {formId}
+            />
           </div>
         </Collapsible.Content>
       </Collapsible.Root>

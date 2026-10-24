@@ -5,11 +5,14 @@ import type { WorkspaceCopy } from "@/features/workspace/lib/workspace-controlle
 export let workspaceCopy: Pick<WorkspaceCopy, "linkHub">;
 export let linkSearchQuery: string;
 export let id: string;
+export let onchange: ((value: string) => void) | undefined = undefined;
 </script>
 
     <SearchField
       {id}
+      form="links-filters"
       label={workspaceCopy.linkHub.searchPlaceholder}
       placeholder={workspaceCopy.linkHub.searchPlaceholder}
-      bind:value={linkSearchQuery}
+      value={linkSearchQuery}
+      oninput={(event) => { linkSearchQuery = event.currentTarget.value; onchange?.(linkSearchQuery); }}
     />

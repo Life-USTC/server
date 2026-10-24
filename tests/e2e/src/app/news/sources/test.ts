@@ -4,6 +4,67 @@ import { test } from "../../../../utils/publication-fixture";
 import { assertPageContract } from "../../_shared/page-contract";
 
 test.describe("/news/sources 来源目录", () => {
+  test("来源列筛选将数字比较与组织多选一次应用", {
+    tag: "@Publication/Web",
+  }, async ({ browseRun, page, publication: fixture }) => {
+    await browseRun(async () => {
+      for (const width of [390, 1280]) {
+        await page.setViewportSize({ width, height: 844 });
+        await gotoAndWaitForReady(page, "/news/sources");
+        const apply = page.getByRole("button", {
+          name: /^(应用筛选|Apply filters)$/i,
+        });
+        await expect(apply).toHaveCount(1);
+        const levelTrigger = page.getByRole("button", {
+          name: /^(组织层级|Organization level)$/i,
+        });
+        await levelTrigger.focus();
+        await page.keyboard.press("Enter");
+        const levels = page.locator('[data-filter-field="organizationLevel"]');
+        await levels
+          .getByRole("checkbox", { name: /^(学校机关|University)$/i })
+          .check();
+        await levels
+          .getByRole("checkbox", { name: /机关部处|Administrative offices/i })
+          .check();
+        await page.keyboard.press("Escape");
+        await expect(levelTrigger).toBeFocused();
+        const countTrigger = page
+          .getByRole("button", { name: /^(内容数|Publications)$/i })
+          .filter({ visible: true });
+        await countTrigger.click();
+        const dialog = page.getByRole("dialog", {
+          name: /^(内容数|Publications)$/i,
+        });
+        await dialog.getByRole("combobox").selectOption("lte");
+        await dialog.getByRole("spinbutton").fill("2");
+        await expect(
+          dialog.getByRole("button", { name: /应用筛选|Apply filters/i }),
+        ).toHaveCount(0);
+        await page.keyboard.press("Escape");
+        await expect(page.locator("#level-university")).toBeVisible();
+        await apply.click();
+        await expect(page.locator("#level-university")).toHaveCount(0);
+        await expect(page.locator("#level-office")).toContainText(
+          fixture.officeSourceName,
+        );
+        await countTrigger.click();
+        await dialog.getByRole("combobox").selectOption("gt");
+        await dialog.getByRole("spinbutton").fill("30");
+        await page.keyboard.press("Escape");
+        await apply.click();
+        await expect(page.locator("#level-office")).toHaveCount(0);
+        await expect(countTrigger).toBeVisible();
+        await countTrigger.click();
+        await dialog.getByRole("spinbutton").fill("");
+        await page.keyboard.press("Escape");
+        await apply.click();
+        await expect(page.locator("#level-office")).toBeVisible();
+        await expect(page.locator("#level-university")).toBeVisible();
+      }
+    });
+  });
+
   test("页面契约", { tag: "@Publication/Web" }, async ({ browseRun, page }) => {
     await browseRun(async () => {
       await assertPageContract(page, { routePath: "/news/sources" });
@@ -66,13 +127,22 @@ test.describe("/news/sources 来源目录", () => {
         name: /搜索来源名称|Search source names/i,
       });
       await search.fill(fixture.officeSourceName);
+      await page
+        .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+        .click();
       await expect(officeGroup).toBeVisible();
       await expect(universityGroup).toHaveCount(0);
       await expect(officeRow).toHaveCount(1);
       await search.fill("no-matching-source");
+      await page
+        .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+        .click();
       await expect(page.locator("tr[data-publication-source]")).toHaveCount(0);
       await expect(search).toBeVisible();
       await search.fill("");
+      await page
+        .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+        .click();
       await expect(universityGroup).toBeVisible();
       await expect(officeGroup).toBeVisible();
     });
@@ -99,14 +169,23 @@ test.describe("/news/sources 来源目录", () => {
         const heading = group.getByRole("heading", { level: 2 });
         await expect(heading).toBeVisible();
         await search.fill(fixture.officeSourceName);
+        await page
+          .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+          .click();
         await expect(page.locator("#level-university")).toHaveCount(0);
         await expect(group).toContainText(fixture.officeSourceName);
         await search.fill("no-matching-source");
+        await page
+          .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+          .click();
         await expect(search).toBeVisible();
         await expect(page.locator("tr[data-publication-source]")).toHaveCount(
           0,
         );
         await search.fill("");
+        await page
+          .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+          .click();
         await expect(page.locator("#level-university")).toBeVisible();
         await expect(group).toBeVisible();
         expect(

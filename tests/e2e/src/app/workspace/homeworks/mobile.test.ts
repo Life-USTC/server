@@ -2,7 +2,12 @@ import { expect } from "@playwright/test";
 import { test } from "../../../../utils/homework-fixture";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
+import {
+  applyWorkspaceTaskFilter,
+  expectWorkspaceTaskFilterSelected,
+  openWorkspaceTaskFilter,
+  workspaceTaskFilterControl,
+} from "../../../../utils/workspace-task-filters";
 
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
@@ -21,9 +26,10 @@ test.describe("仪表盘作业", () => {
         await gotoAndWaitForReady(page, "/workspace/homeworks");
 
         await openWorkspaceTaskFilter(page, "homeworks");
-        const incomplete = page
-          .getByRole("radio", { name: /未完成|Incomplete/i })
-          .first();
+        const incomplete = workspaceTaskFilterControl(
+          page,
+          /未完成|Incomplete/i,
+        ).first();
         const add = page.getByTestId("workspace-homeworks-add");
         await expect(incomplete).toBeVisible();
         await expect(add).toBeVisible();
@@ -34,15 +40,18 @@ test.describe("仪表盘作业", () => {
         const addBox = await add.boundingBox();
         expect(addBox?.height ?? 0).toBeGreaterThanOrEqual(44);
         expect(addBox?.width ?? 0).toBeGreaterThanOrEqual(44);
-        const filterBox = await incomplete.boundingBox();
+        const filterBox = await incomplete
+          .locator("..")
+          .locator("label")
+          .boundingBox();
         expect(filterBox?.height).toBeGreaterThanOrEqual(44);
         expect(filterBox?.width).toBeGreaterThanOrEqual(44);
 
         await openWorkspaceTaskFilter(page, "homeworks");
-        const all = page.getByRole("radio", { name: /全部|All/i }).first();
+        const all = workspaceTaskFilterControl(page, /全部|All/i).first();
         await openWorkspaceTaskFilter(page, "homeworks");
-        await all.click();
-        await expect(all).toHaveAttribute("aria-checked", "true");
+        await applyWorkspaceTaskFilter(page, all);
+        await expectWorkspaceTaskFilterSelected(all);
 
         await gotoAndWaitForReady(
           page,

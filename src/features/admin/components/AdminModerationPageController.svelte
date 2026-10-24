@@ -1,5 +1,7 @@
 <script lang="ts">
 import { toast } from "svelte-sonner";
+import TableFilterFields from "#lib/components/TableFilterFields.svelte";
+import { Button } from "#lib/components/ui/button/index.js";
 import AdminModerationDialogs from "@/features/admin/components/AdminModerationDialogs.svelte";
 import AdminModerationFilters from "@/features/admin/components/AdminModerationFilters.svelte";
 import AdminModerationHeader from "@/features/admin/components/AdminModerationHeader.svelte";
@@ -17,17 +19,16 @@ import type {
   AdminModerationTab,
 } from "@/features/admin/components/admin-moderation-page-types";
 import { createAdminModerationControllerDefaultState } from "@/features/admin/lib/admin-moderation-controller-default-state";
-import { visibleModerationComments } from "@/features/admin/lib/moderation-display";
 import { createModerationPageActions } from "@/features/admin/lib/moderation-page-actions";
 import {
   buildCommentStatusOptions,
-  buildDescriptionContentOptions,
-  buildDescriptionTargetOptions,
-  buildStatusFilterOptions,
   buildSuspensionDurationOptions,
 } from "@/features/admin/lib/moderation-page-options";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import { tableFilterPageHref } from "@/lib/table-filter-query";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
-import { invalidateAll } from "$app/navigation";
+import { goto, invalidateAll } from "$app/navigation";
+import { moderationTableFields } from "../lib/admin-moderation-table-fields";
 
 type ModerationComment = AdminModerationComment;
 type ModerationDescription = AdminModerationDescription;
@@ -40,12 +41,7 @@ type PageData = {
     moderation: AdminModerationCopy;
   };
   descriptions: ModerationDescription[];
-  filters: {
-    descriptionContent?: string | null;
-    descriptionTarget?: string | null;
-    search: string;
-    status?: string | null;
-  };
+  filters: Record<string, string>;
   homeworks: ModerationHomework[];
   locale: string;
   suspensions: AdminModerationSuspension[];
@@ -70,7 +66,6 @@ let {
   _pendingDeleteHomework,
   _pendingServerAction,
   _refreshError,
-  _searchQuery,
   _selectedComment,
   _selectedDescription,
   _suspensionDuration,
@@ -90,11 +85,34 @@ $: _dateTimeFormatter = createShanghaiDateTimeFormatter(data.locale, {
   timeStyle: "short",
 });
 $: _commentStatusOptions = buildCommentStatusOptions(_copy);
-$: statusFilterOptions = buildStatusFilterOptions(_copy);
-$: descriptionTargetOptions = buildDescriptionTargetOptions(_copy);
-$: descriptionContentOptions = buildDescriptionContentOptions(_copy);
 $: suspensionDurationOptions = buildSuspensionDurationOptions(_copy);
-$: _visibleComments = visibleModerationComments(data.comments, _searchQuery);
+
+let draft: Record<string, string> = {};
+$: draft = Object.fromEntries(
+  Object.entries(data.filters).map(([key, value]) => [
+    key,
+    value === "all" ? "" : value,
+  ]),
+);
+$: common = getWorkspacePageCopy(
+  data.locale === "en-us" ? "en-us" : "zh-cn",
+).common;
+$: filterFields = moderationTableFields(data.tab, _copy, common.tableFilters);
+function change(patch: Record<string, string>) {
+  draft = { ...draft, ...patch };
+}
+function apply(event: SubmitEvent) {
+  event.preventDefault();
+  void goto(
+    tableFilterPageHref("/admin/moderation", {
+      ...draft,
+      tab: data.tab,
+      status: draft.status || "all",
+      descriptionContent: draft.descriptionContent || "all",
+      descriptionTarget: draft.descriptionTarget || "all",
+    }),
+  );
+}
 
 function inputValue(event: Event) {
   return (event.currentTarget as HTMLInputElement | HTMLTextAreaElement).value;
@@ -195,13 +213,11 @@ function _enhanceAdminAction(action: Parameters<typeof enhanceAdminAction>[0]) {
 
 {#snippet filterControls(kind: AdminModerationFilterKind, viewport: "mobile" | "desktop")}
   <AdminModerationFilters
-    copy={_copy}
-    {descriptionContentOptions}
-    {descriptionTargetOptions}
-    filters={data.filters}
-    bind:searchQuery={_searchQuery}
-    {statusFilterOptions}
-    tab={data.tab}
+    fields={filterFields.fields[kind] ?? []}
+    filters={draft}
+    onchange={change}
+    labels={common.tableFilters}
+    searchPlaceholder={data.tab === "comments" ? _copy.searchPlaceholder : _copy.searchAllPlaceholder}
     {kind}
     {viewport}
   />
@@ -219,6 +235,10 @@ function _enhanceAdminAction(action: Parameters<typeof enhanceAdminAction>[0]) {
   {#snippet feedback()}
     <AdminModerationStatusAlerts {form} refreshError={_refreshError} />
   {/snippet}
+  <form id="moderation-filters" onsubmit={apply} class="flex flex-wrap items-end gap-3">
+    {#if filterFields.extras.length}<TableFilterFields fields={filterFields.extras} values={draft} onchange={change} labels={common.tableFilters} idPrefix="moderation-extra" formId="moderation-filters" />{/if}
+    <Button type="submit">{common.applyFilters}</Button>
+  </form>
   <AdminModerationTabContent
     {filterControls}
     copy={_copy}
@@ -234,7 +254,7 @@ function _enhanceAdminAction(action: Parameters<typeof enhanceAdminAction>[0]) {
     onManageComment={(comment) => _openCommentDialog(comment as ModerationComment)}
     onManageDescription={(description) =>
       _openDescriptionDialog(description as ModerationDescription)}
-    visibleComments={_visibleComments}
+    visibleComments={data.comments}
   />
 </AdminWorkspace>
 

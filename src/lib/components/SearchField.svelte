@@ -9,20 +9,16 @@ import InputGroupAddon from "#lib/components/ui/input-group/input-group-addon.sv
 import InputGroupInput from "#lib/components/ui/input-group/input-group-input.svelte";
 
 let {
-  id,
   label,
-  name,
-  placeholder,
   value = $bindable(""),
   ref = $bindable(null),
-  maxlength,
-  disabled = false,
-  oninput,
   shortcut = true,
+  ...inputProps
 }: {
   id: string;
   label: string;
   name?: string;
+  form?: string;
   placeholder?: string;
   value?: string;
   ref?: HTMLInputElement | null;
@@ -35,10 +31,10 @@ onMount(() => (shortcut ? mountPageSearchShortcut(() => ref) : undefined));
 </script>
 
 <div class="min-w-0 flex-1" data-slot="search-field">
-  <label class="sr-only" for={id}>{label}</label>
+  <label class="sr-only" for={inputProps.id}>{label}</label>
   <InputGroupRoot>
     <InputGroupAddon><SearchIcon aria-hidden="true" /></InputGroupAddon>
-    <InputGroupInput {id} {name} {placeholder} {maxlength} {disabled} {oninput} bind:ref bind:value type="search" />
+    <InputGroupInput {...inputProps} bind:ref bind:value type="search" />
     {#if shortcut}<InputGroupAddon align="inline-end"><PageSearchShortcutHint /></InputGroupAddon>{/if}
   </InputGroupRoot>
 </div>

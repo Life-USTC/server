@@ -26,7 +26,31 @@ const SECTION_ID_KEYS = [
   "educationLevelId",
   "semesterId",
 ] as const;
-const SECTION_TEXT_KEYS = ["courseCode", "sectionCode", "teacher"] as const;
+const SECTION_TEXT_KEYS = [
+  "courseName",
+  "courseCode",
+  "sectionCode",
+  "teacher",
+] as const;
+const TEACHER_ID_KEYS = ["departmentId", "teacherTitleId"] as const;
+const NAME_TEXT_KEYS = ["name", "code"] as const;
+const NUMERIC_OPERATORS = new Set([
+  "eq",
+  "ne",
+  "gt",
+  "gte",
+  "lt",
+  "lte",
+  "between",
+]);
+const SECTION_NUMERIC_KEYS = [
+  "credits",
+  "stdCount",
+  "limitCount",
+  "teacherCount",
+] as const;
+const numericKeys = (fields: readonly string[]) =>
+  fields.flatMap((field) => [field, `${field}Op`, `${field}Max`]);
 const SECTION_SORT_VALUES = new Set([
   "campus",
   "capacity",
@@ -41,17 +65,29 @@ const CATALOG_ALLOWED_QUERY_KEYS: Record<
   CatalogListPath,
   ReadonlySet<string>
 > = {
-  "/catalog/courses": new Set([...COURSE_ID_KEYS, "page", "search"]),
+  "/catalog/courses": new Set([
+    ...COURSE_ID_KEYS,
+    ...NAME_TEXT_KEYS,
+    "page",
+    "search",
+  ]),
   "/catalog/sections": new Set([
     ...SECTION_ID_KEYS,
     ...SECTION_TEXT_KEYS,
-    "credits",
+    ...numericKeys(SECTION_NUMERIC_KEYS),
     "order",
     "page",
     "search",
     "sort",
   ]),
-  "/catalog/teachers": new Set(["departmentId", "page", "search"]),
+  "/catalog/teachers": new Set([
+    ...TEACHER_ID_KEYS,
+    ...NAME_TEXT_KEYS,
+    "email",
+    ...numericKeys(["sectionCount"]),
+    "page",
+    "search",
+  ]),
 };
 
 const DECIMAL_INTEGER = /^\d+$/;
@@ -72,6 +108,50 @@ function positiveDecimal(value: string | null, maximum: number) {
     return undefined;
   }
   return String(parsed);
+}
+
+function positiveDecimalList(value: string | null) {
+  if (!value?.trim()) return undefined;
+  const values = value.split(",");
+  if (values.length > CATALOG_ID_LIST_MAX_ITEMS) return undefined;
+  const parsed = values.map((item) => positiveDecimal(item, CATALOG_MAX_ID));
+  if (parsed.some((item) => item === undefined)) return undefined;
+  return [...new Set(parsed as string[])]
+    .sort((a, b) => Number(a) - Number(b))
+    .join(",");
+}
+
+function normalizeNumericFilter(
+  result: URLSearchParams,
+  input: URLSearchParams,
+  field: string,
+) {
+  const value = decimalNumber(input.get(field));
+  const operator = input.get(`${field}Op`)?.trim() || "eq";
+  const validValue = (candidate: string | undefined) =>
+    candidate !== undefined &&
+    Number(candidate) <= CATALOG_MAX_ID &&
+    (field === "credits" || Number.isInteger(Number(candidate)));
+  if (!validValue(value) || !NUMERIC_OPERATORS.has(operator)) return;
+  if (operator === "between") {
+    const maximum = decimalNumber(input.get(`${field}Max`));
+    if (!validValue(maximum) || Number(maximum) < Number(value)) return;
+    result.set(`${field}Max`, maximum as string);
+  }
+  result.set(field, value as string);
+  if (operator !== "eq") result.set(`${field}Op`, operator);
+}
+
+/** Flat, canonical Web form values; independent from transport scalar schemas. */
+export function catalogTableFilterValues(
+  pathname: CatalogListPath,
+  params: URLSearchParams,
+) {
+  return Object.fromEntries(
+    [...normalizeCatalogListQuery(pathname, params)].filter(
+      ([key]) => key !== "page",
+    ),
+  );
 }
 
 function boundedPage(value: string | null) {
@@ -127,41 +207,36 @@ export function normalizeCatalogListQuery(
     boundedSearch(searchParams.get("search")),
   );
 
-  if (pathname === "/catalog/courses") {
-    for (const key of COURSE_ID_KEYS) {
-      setNormalized(
-        normalized,
-        key,
-        positiveDecimal(searchParams.get(key), CATALOG_MAX_ID),
-      );
-    }
-  } else if (pathname === "/catalog/teachers") {
+  const idKeys =
+    pathname === "/catalog/courses"
+      ? COURSE_ID_KEYS
+      : pathname === "/catalog/teachers"
+        ? TEACHER_ID_KEYS
+        : SECTION_ID_KEYS;
+  for (const key of idKeys) {
+    setNormalized(normalized, key, positiveDecimalList(searchParams.get(key)));
+  }
+  const textKeys =
+    pathname === "/catalog/sections"
+      ? SECTION_TEXT_KEYS
+      : pathname === "/catalog/teachers"
+        ? [...NAME_TEXT_KEYS, "email"]
+        : NAME_TEXT_KEYS;
+  for (const key of textKeys) {
     setNormalized(
       normalized,
-      "departmentId",
-      positiveDecimal(searchParams.get("departmentId"), CATALOG_MAX_ID),
+      key,
+      boundedText(searchParams.get(key), CATALOG_TEXT_FILTER_MAX_LENGTH),
     );
-  } else {
-    for (const key of SECTION_ID_KEYS) {
-      setNormalized(
-        normalized,
-        key,
-        positiveDecimal(searchParams.get(key), CATALOG_MAX_ID),
-      );
-    }
-    for (const key of SECTION_TEXT_KEYS) {
-      setNormalized(
-        normalized,
-        key,
-        boundedText(searchParams.get(key), CATALOG_TEXT_FILTER_MAX_LENGTH),
-      );
-    }
-    setNormalized(
-      normalized,
-      "credits",
-      decimalNumber(searchParams.get("credits")),
-    );
-
+  }
+  for (const key of pathname === "/catalog/sections"
+    ? SECTION_NUMERIC_KEYS
+    : pathname === "/catalog/teachers"
+      ? ["sectionCount"]
+      : []) {
+    normalizeNumericFilter(normalized, searchParams, key);
+  }
+  if (pathname === "/catalog/sections") {
     const requestedSort = searchParams.get("sort")?.trim().toLowerCase();
     if (requestedSort && SECTION_SORT_VALUES.has(requestedSort)) {
       normalized.set("sort", requestedSort);
@@ -206,19 +281,13 @@ export function resolveCatalogListPublicSsrMode(url: URL) {
 /** Build a catalog list URL for `targetPage`, preserving current filter params. */
 export function catalogListPageHref(url: URL, targetPage: number) {
   const params = new URLSearchParams(url.searchParams);
-  if (targetPage > 1) {
-    params.set("page", String(targetPage));
+  const page = boundedPage(String(targetPage));
+  if (page && page !== "1") {
+    params.set("page", page);
   } else {
     params.delete("page");
   }
 
-  const pathname = url.pathname;
-  if (!isCatalogListPath(pathname)) {
-    const query = params.toString();
-    return query ? `${pathname}?${query}` : pathname;
-  }
-
-  const normalized = normalizeCatalogListQuery(pathname, params);
-  const query = normalized.toString();
-  return query ? `${pathname}?${query}` : pathname;
+  const query = params.toString();
+  return query ? `${url.pathname}?${query}` : url.pathname;
 }

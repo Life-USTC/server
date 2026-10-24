@@ -2,7 +2,12 @@ import { expect } from "@playwright/test";
 import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { readTodoCalendar, test } from "../../../../utils/todo-fixture";
-import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
+import {
+  applyWorkspaceTaskFilter,
+  expectWorkspaceTaskFilterSelected,
+  openWorkspaceTaskFilter,
+  workspaceTaskFilterControl,
+} from "../../../../utils/workspace-task-filters";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -55,15 +60,17 @@ for (const viewport of [
             `${prefix}-undated`,
           ]);
           await openWorkspaceTaskFilter(page, "todos");
-          const incomplete = page.getByRole("radio", {
-            name: /^(未完成|Incomplete)$/i,
-          });
+          const incomplete = workspaceTaskFilterControl(
+            page,
+            /^(未完成|Incomplete)$/i,
+          );
           await openWorkspaceTaskFilter(page, "todos");
-          const completed = page.getByRole("radio", {
-            name: /^(已完成|Completed)$/i,
-          });
+          const completed = workspaceTaskFilterControl(
+            page,
+            /^(已完成|Completed)$/i,
+          );
           await openWorkspaceTaskFilter(page, "todos");
-          const all = page.getByRole("radio", { name: /^(全部|All)$/i });
+          const all = workspaceTaskFilterControl(page, /^(全部|All)$/i);
           for (const filter of [
             incomplete,
             completed,
@@ -73,8 +80,8 @@ for (const viewport of [
             incomplete,
           ]) {
             await openWorkspaceTaskFilter(page, "todos");
-            await filter.click();
-            await expect(filter).toBeChecked();
+            await applyWorkspaceTaskFilter(page, filter);
+            await expectWorkspaceTaskFilterSelected(filter);
             await expect(titles).toHaveCount(
               filter === completed
                 ? action === "delete"
@@ -89,7 +96,7 @@ for (const viewport of [
           }
           if (action === "delete") {
             await openWorkspaceTaskFilter(page, "todos");
-            await completed.click();
+            await applyWorkspaceTaskFilter(page, completed);
           }
           await page.keyboard.press("Escape");
           await list
@@ -169,8 +176,8 @@ for (const viewport of [
           await expect(titles).toHaveCount(action === "complete" ? 3 : 0);
           for (const filter of [all, incomplete, completed, incomplete]) {
             await openWorkspaceTaskFilter(page, "todos");
-            await filter.click();
-            await expect(filter).toBeChecked();
+            await applyWorkspaceTaskFilter(page, filter);
+            await expectWorkspaceTaskFilterSelected(filter);
             const containsCompleted =
               action === "complete" && filter !== incomplete;
             await expect(titles).toHaveCount(

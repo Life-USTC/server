@@ -9,7 +9,11 @@ import {
   waitForUiSettled,
 } from "../../../utils/page-ready";
 import { expectRenderedUiQuality } from "../../../utils/ui-quality";
-import { openWorkspaceTaskFilter } from "../../../utils/workspace-task-filters";
+import {
+  applyWorkspaceTaskFilter,
+  openWorkspaceTaskFilter,
+  workspaceTaskFilterControl,
+} from "../../../utils/workspace-task-filters";
 
 const test = workerTest.extend<{
   browserRun: (work: () => Promise<void>) => Promise<void>;
@@ -176,7 +180,10 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             : page.getByTestId("workspace-todos-cards");
         await expect(surface).toBeVisible();
         await openWorkspaceTaskFilter(page, "todos");
-        await page.getByRole("radio", { name: text.all, exact: true }).click();
+        await applyWorkspaceTaskFilter(
+          page,
+          workspaceTaskFilterControl(page, text.all),
+        );
         await page.keyboard.press("Escape");
         for (const title of [text.reading, text.outline, text.library]) {
           await expect(
@@ -223,9 +230,10 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         ).toBeFocused();
 
         await openWorkspaceTaskFilter(page, "todos");
-        await page
-          .getByRole("radio", { name: text.completed, exact: true })
-          .click();
+        await applyWorkspaceTaskFilter(
+          page,
+          workspaceTaskFilterControl(page, text.completed),
+        );
         await expect(
           surface.getByRole("button", { name: text.library, exact: true }),
         ).toBeVisible();
@@ -235,9 +243,10 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         await expect(
           surface.getByRole("button", { name: text.outline, exact: true }),
         ).toHaveCount(0);
-        await page
-          .getByRole("radio", { name: text.incomplete, exact: true })
-          .click();
+        await applyWorkspaceTaskFilter(
+          page,
+          workspaceTaskFilterControl(page, text.incomplete),
+        );
         await expect(
           surface.getByRole("button", { name: text.library, exact: true }),
         ).toHaveCount(0);

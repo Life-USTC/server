@@ -2,7 +2,6 @@
 import type { Snippet } from "svelte";
 import ActiveFilters from "#lib/components/ActiveFilters.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
-import { toolbarControlClass } from "#lib/components/toolbar-control.js";
 import { Button } from "#lib/components/ui/button/index.js";
 
 let {
@@ -10,33 +9,36 @@ let {
   clearHref,
   clearLabel,
   filterTitle,
-  hiddenFilters = [],
-  searchId,
   searchLabel,
   searchPlaceholder,
-  searchValue = $bindable(""),
+  values,
+  onchange,
+  applyLabel,
+  formId,
   children,
 }: {
   activeFilters?: { href: string; label: string }[];
   clearHref: string;
   clearLabel: string;
   filterTitle: string;
-  hiddenFilters?: { name: string; value: string }[];
-  searchId: string;
   searchLabel: string;
   searchPlaceholder: string;
-  searchValue?: string;
+  values: Record<string, string>;
+  onchange: (patch: Record<string, string>) => void;
+  applyLabel: string;
+  formId: string;
   children?: Snippet;
 } = $props();
 </script>
-<div class="grid w-full min-w-0 gap-3">
-  <div class="flex min-w-0 flex-wrap items-center gap-2">
-      <form method="get" class="flex w-full min-w-0 flex-none items-center gap-2 xl:w-auto xl:flex-1">
-        <SearchField id={searchId} name="search" label={searchLabel} placeholder={searchPlaceholder} bind:value={searchValue} />
-        {#each hiddenFilters as filter}{#if filter.value}<input type="hidden" name={filter.name} value={filter.value} />{/if}{/each}
-        <Button type="submit" class={toolbarControlClass}>{searchLabel}</Button>
-      </form>
-    {@render children?.()}
-  </div>
+
+<div class="grid w-full min-w-0 gap-3" data-slot="table-filter-toolbar">
+  <form id={formId} action={clearHref} method="get" class="flex min-w-0 flex-wrap items-center gap-2">
+    <SearchField id={formId + "-search"} name="search" label={searchLabel} placeholder={searchPlaceholder} bind:value={() => values.search ?? "", (value) => onchange({ search: value })} />
+    {#each Object.entries(values) as [name, value]}
+      {#if name !== "search" && name !== "page" && value}<input type="hidden" {name} {value} />{/if}
+    {/each}
+    <Button type="submit">{applyLabel}</Button>
+  </form>
+  {#if children}<div class="flex flex-wrap items-center gap-x-4 gap-y-2">{@render children()}</div>{/if}
   <ActiveFilters items={activeFilters} ariaLabel={filterTitle} {clearHref} {clearLabel} />
 </div>

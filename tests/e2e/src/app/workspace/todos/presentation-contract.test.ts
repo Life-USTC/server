@@ -3,7 +3,12 @@ import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-res
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
 import { expectTodoFormResponse, test } from "../../../../utils/todo-fixture";
-import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
+import {
+  applyWorkspaceTaskFilter,
+  expectWorkspaceTaskFilterSelected,
+  openWorkspaceTaskFilter,
+  workspaceTaskFilterControl,
+} from "../../../../utils/workspace-task-filters";
 
 test.describe.configure({ mode: "parallel" });
 const widths = [1280, 390];
@@ -44,9 +49,12 @@ for (const width of widths) {
           /^(全部|All)$/i,
         ]) {
           await openWorkspaceTaskFilter(page, "todos");
-          const filter = page.getByRole("radio", { name: label });
+          const filter = workspaceTaskFilterControl(page, label);
           await expect(filter).toBeVisible();
-          const box = await filter.boundingBox();
+          const box = await ((await filter.getAttribute("role")) === "checkbox"
+            ? filter.locator("..").locator("label")
+            : filter
+          ).boundingBox();
           if (width < 768) {
             expect(box?.width).toBeGreaterThanOrEqual(44);
             expect(box?.height).toBeGreaterThanOrEqual(44);
@@ -55,8 +63,8 @@ for (const width of widths) {
           expect(box.x).toBeGreaterThanOrEqual(0);
           expect(box.x + box.width).toBeLessThanOrEqual(width);
           await openWorkspaceTaskFilter(page, "todos");
-          await filter.click();
-          await expect(filter).toBeChecked();
+          await applyWorkspaceTaskFilter(page, filter);
+          await expectWorkspaceTaskFilterSelected(filter);
         }
         await expect(page.getByTestId("workspace-todos-view-menu")).toHaveCount(
           0,
@@ -165,15 +173,17 @@ for (const width of widths) {
         await page.setViewportSize({ width, height: 844 });
         await gotoAndWaitForReady(page, "/workspace/todos");
         await openWorkspaceTaskFilter(page, "todos");
-        const all = page.getByRole("radio", { name: /^(全部|All)$/i });
+        const all = workspaceTaskFilterControl(page, /^(全部|All)$/i);
         await openWorkspaceTaskFilter(page, "todos");
-        const completed = page.getByRole("radio", {
-          name: /^(已完成|Completed)$/i,
-        });
+        const completed = workspaceTaskFilterControl(
+          page,
+          /^(已完成|Completed)$/i,
+        );
         await openWorkspaceTaskFilter(page, "todos");
-        const incomplete = page.getByRole("radio", {
-          name: /^(未完成|Incomplete)$/i,
-        });
+        const incomplete = workspaceTaskFilterControl(
+          page,
+          /^(未完成|Incomplete)$/i,
+        );
         for (const filter of [
           completed,
           completed,
@@ -182,8 +192,8 @@ for (const width of widths) {
           completed,
         ]) {
           await openWorkspaceTaskFilter(page, "todos");
-          await filter.click();
-          await expect(filter).toBeChecked();
+          await applyWorkspaceTaskFilter(page, filter);
+          await expectWorkspaceTaskFilterSelected(filter);
           const empty = surface(page, width).locator('[data-slot="empty"]');
           if (filter === completed) {
             await expect(empty).toBeVisible();
@@ -194,11 +204,13 @@ for (const width of widths) {
             ).toHaveCount(0);
           } else await expect(empty).toHaveCount(0);
         }
+        await page.keyboard.press("Escape");
         await surface(page, width)
           .locator('[data-slot="empty-content"]')
           .getByRole("button")
           .click();
-        await expect(all).toBeChecked();
+        await openWorkspaceTaskFilter(page, "todos");
+        await expectWorkspaceTaskFilterSelected(all);
         await expect(
           surface(page, width).locator('[data-slot="empty"]'),
         ).toHaveCount(0);
@@ -267,15 +279,17 @@ for (const width of widths) {
           .getByRole("button")
           .filter({ hasText: "Order " });
         await openWorkspaceTaskFilter(page, "todos");
-        const incomplete = page.getByRole("radio", {
-          name: /^(未完成|Incomplete)$/i,
-        });
+        const incomplete = workspaceTaskFilterControl(
+          page,
+          /^(未完成|Incomplete)$/i,
+        );
         await openWorkspaceTaskFilter(page, "todos");
-        const completed = page.getByRole("radio", {
-          name: /^(已完成|Completed)$/i,
-        });
+        const completed = workspaceTaskFilterControl(
+          page,
+          /^(已完成|Completed)$/i,
+        );
         await openWorkspaceTaskFilter(page, "todos");
-        const all = page.getByRole("radio", { name: /^(全部|All)$/i });
+        const all = workspaceTaskFilterControl(page, /^(全部|All)$/i);
         const expectedIncomplete = [
           "Order old",
           "Order pending tie first",
@@ -307,8 +321,8 @@ for (const width of widths) {
           [all, expectedAll],
         ] as const) {
           await openWorkspaceTaskFilter(page, "todos");
-          await filter.click();
-          await expect(filter).toBeChecked();
+          await applyWorkspaceTaskFilter(page, filter);
+          await expectWorkspaceTaskFilterSelected(filter);
           await expect(titles).toHaveText(expected);
         }
         const stored = await todoState.read();
@@ -356,13 +370,14 @@ for (const width of widths) {
           document.documentElement.dataset.todoMutationSession = "retained";
         });
         await openWorkspaceTaskFilter(page, "todos");
-        const completed = page.getByRole("radio", {
-          name: /^(已完成|Completed)$/i,
-        });
+        const completed = workspaceTaskFilterControl(
+          page,
+          /^(已完成|Completed)$/i,
+        );
         await openWorkspaceTaskFilter(page, "todos");
-        const all = page.getByRole("radio", { name: /^(全部|All)$/i });
+        const all = workspaceTaskFilterControl(page, /^(全部|All)$/i);
         await openWorkspaceTaskFilter(page, "todos");
-        await completed.click();
+        await applyWorkspaceTaskFilter(page, completed);
         const list = surface(page, width);
         const titles = list
           .getByRole("button")
@@ -418,8 +433,8 @@ for (const width of widths) {
         // the stored rows, including the formerly oldest task's new position.
         for (const filter of [completed, all, completed]) {
           await openWorkspaceTaskFilter(page, "todos");
-          await filter.click();
-          await expect(filter).toBeChecked();
+          await applyWorkspaceTaskFilter(page, filter);
+          await expectWorkspaceTaskFilterSelected(filter);
           await expect(titles).toHaveText([
             "Edit order between",
             "Edit order oldest",

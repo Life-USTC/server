@@ -1,6 +1,8 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { prisma as defaultPrisma } from "@/lib/db/prisma";
 import { ilike } from "@/lib/query-filter-helpers";
+import { dateTableFilter } from "@/lib/table-filter-query";
+import { tableFilterValues } from "@/lib/table-filters";
 
 type AdminUsersParsedQuery = {
   pagination: {
@@ -9,6 +11,7 @@ type AdminUsersParsedQuery = {
   };
   query?: {
     search?: string | null;
+    filters?: Record<string, string>;
   };
 };
 
@@ -55,11 +58,32 @@ function normalizeAdminUsersSearch(search: string | null | undefined) {
   return search?.trim() ?? "";
 }
 
+function adminUserDisplayNameWhere(value: string): Prisma.UserWhereInput {
+  return {
+    OR: [
+      { name: ilike(value) },
+      { name: "", username: ilike(value) },
+      {
+        name: "",
+        OR: [{ username: null }, { username: "" }],
+        email: ilike(value),
+      },
+      {
+        name: "",
+        OR: [{ username: null }, { username: "" }],
+        email: "",
+        id: ilike(value),
+      },
+    ],
+  };
+}
+
 export function buildAdminUsersWhere(
   search: string | null | undefined,
+  filters: Record<string, string> = {},
 ): Prisma.UserWhereInput {
   const normalized = normalizeAdminUsersSearch(search);
-  return normalized
+  const searchWhere: Prisma.UserWhereInput = normalized
     ? {
         OR: [
           { id: ilike(normalized) },
@@ -69,6 +93,51 @@ export function buildAdminUsersWhere(
         ],
       }
     : {};
+  if (
+    !Object.entries(filters).some(([key, value]) => key !== "search" && value)
+  )
+    return searchWhere;
+  const roles = tableFilterValues(filters.role);
+  const suspension = tableFilterValues(filters.suspension);
+  const active: Prisma.UserSuspensionWhereInput = {
+    liftedAt: null,
+    OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+  };
+  return {
+    AND: [
+      searchWhere,
+      ...(filters.name ? [adminUserDisplayNameWhere(filters.name)] : []),
+      ...(filters.username ? [{ username: ilike(filters.username) }] : []),
+      ...(filters.email ? [{ email: ilike(filters.email) }] : []),
+      ...(roles.length
+        ? [
+            {
+              OR: roles.flatMap((role) =>
+                role === "admin"
+                  ? [{ isAdmin: true }]
+                  : role === "user"
+                    ? [{ isAdmin: false }]
+                    : [],
+              ),
+            },
+          ]
+        : []),
+      ...(suspension.length
+        ? [
+            {
+              OR: suspension.flatMap((status): Prisma.UserWhereInput[] =>
+                status === "suspended"
+                  ? [{ suspensions: { some: active } }]
+                  : status === "clear"
+                    ? [{ suspensions: { none: active } }]
+                    : [],
+              ),
+            },
+          ]
+        : []),
+      { createdAt: dateTableFilter(filters, "createdAt") },
+    ],
+  };
 }
 
 export function toAdminUserListItem(user: AdminUserListRow): AdminUserListItem {
@@ -121,7 +190,7 @@ export async function listAdminUsers({
   includeActiveSuspension?: boolean;
   prismaClient?: AdminUserReadPrisma;
 }) {
-  const where = buildAdminUsersWhere(query?.search);
+  const where = buildAdminUsersWhere(query?.search, query?.filters);
 
   const [users, total] = await Promise.all([
     prismaClient.user.findMany({

@@ -161,21 +161,21 @@ requirements:
 - id: ui.list-table-1
   category: presentation
   topic: list-table
-  rule: Public course, teacher, section, Young event, Young organizer and news browse collections use PageLayout, PageHeader and Panel. Headings and summaries precede records and pagination follows them. Data-table search, filters and sorting live in the table header; compact card views expose the same controls in their collection header. News retains its title-led list and existing filter toolbar.
+  rule: Public course, teacher, section, Young event, Young organizer and news browse collections use PageLayout, PageHeader and Panel. Headings and summaries precede records and pagination follows them. Data-column filters and sorting live in the corresponding table header; compact card views expose the same controls in their collection header. Whole-page search, extra properties without a displayed column, and the single Apply filters action appear in the page toolbar. News retains its title-led list and existing filter toolbar.
   rationale: Administrative and personal workspaces deliberately use their shared workspace structures; ui.layout-principles-4 owns primitive reuse. Their applicable collection ordering remains in ui.other-collection-order.
   acceptance:
     given: Isolated data provides more than one page of results for each of the six public browse collections.
     when: A browser opens the filtered first page at mobile and desktop widths.
     then:
     - The shared page frame contains its heading and panel; summaries and header controls precede records, and pagination follows in the panel footer.
-    - Table search controls belong to the visible table header on desktop and the compact collection header on mobile.
+    - Whole-page search and the single Apply filters action precede the table or compact collection; column controls remain in the applicable header.
     test:
       file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
       name: ui.list-table-1 Course
 - id: ui.other-collection-order
   category: presentation
   topic: list-table
-  rule: Link and publication-source directories, workspace uploads, the three activity-reminder views, and administrative users, bus, OAuth and four moderation lists put their page heading before summaries and records; available pagination follows the records. Existing table filters and search belong to column headers or a spanning header row for controls that apply to several columns or groups. Compact card views retain these controls in their collection header. Their layout uses the shared primitives required by ui.layout-principles-4.
+  rule: Link and publication-source directories, workspace uploads, the three activity-reminder views, and administrative users, bus, OAuth and four moderation lists put their page heading before summaries and records; available pagination follows the records. Data-column filters belong to their column headers; extra properties without displayed columns and the single Apply filters action belong to the page toolbar. Shared searches retain their whole-collection scope. Compact card views retain these controls in their collection header. Their layout uses the shared primitives required by ui.layout-principles-4.
   acceptance:
     given: Isolated uploads, subscriptions, notifications, accounts and moderation records populate the thirteen directory/workspace/administrative views alongside the application link registry and publication source fixture.
     when: A browser opens each view at mobile and desktop widths.
@@ -188,7 +188,7 @@ requirements:
 - id: ui.embedded-collection-order
   category: presentation
   topic: list-table
-  rule: Collection surfaces outside the public browse pages in ui.list-table-1 and the directory/workspace/administrative views in ui.other-collection-order, including embedded workspace task and detail collections, put their heading before result summaries and records; applicable filters live in the table or compact collection header and available pagination follows the records.
+  rule: Collection surfaces outside the public browse pages in ui.list-table-1 and the directory/workspace/administrative views in ui.other-collection-order, including embedded workspace task and detail collections, put their heading before result summaries and records; column filters live in the table or compact collection header, extra-property filters and the single Apply filters action precede the collection, and available pagination follows the records.
   rationale: These embedded collection ordering obligations remain separate from verified top-level browse layouts. A heading and its summary may share a row in reading order.
   acceptance:
     given: Isolated records populate workspace homework/exam/todo/subscription collections, course/teacher offering history, organizer activity history and section homework/calendar/exam collections.
@@ -217,12 +217,12 @@ requirements:
 - id: ui.list-table-3
   category: presentation
   topic: list-table
-  rule: Data-table filters and sorting open from the corresponding column heading in labeled popovers. Whole-table search and filters without a displayed column belong to a spanning header row. Each catalog column filter retains an explicit Apply action; Escape or clicking outside dismisses without applying. Empty results retain the header controls.
+  rule: Every data column has a labeled filter in its corresponding heading; extra properties without a displayed column are grouped at the top of the page. Filters and sorting share one page draft and one Apply filters action. Popovers contain no separate Apply action. Categorical fields support multiple selections; numeric fields support equality, inequality, ordered and inclusive-range comparisons. An unrestricted selection displays only the localized Any label. Empty results retain all controls.
   acceptance:
     given: The seeded course, teacher, and section collections expose their declared advanced filters.
-    when: An anonymous browser opens each column filter at desktop and mobile widths and inspects its accessible name, form fields, Apply action, and dismissal behavior.
+    when: An anonymous browser opens each column and extra-property filter at desktop and mobile widths and inspects accessible controls, the page Apply action, and dismissal behavior.
     then:
-    - Every declared filter is reachable from its corresponding column or whole-table header; each opened form has labeled fields and an Apply action.
+    - Every declared filter is reachable from its column or the page toolbar and has labeled fields. Exactly one Apply filters action exists on the page and none exists inside the popovers.
     - Escape dismisses the popover and restores focus to its heading; controls remain usable with zero results.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
@@ -230,13 +230,12 @@ requirements:
 - id: ui.list-table-4
   category: presentation
   topic: list-table
-  rule: Opening a column filter initializes draft values from the current applied URL query. Closing the popover
-    without Apply leaves the URL and results unchanged.
+  rule: The applied URL initializes one shared page draft. Closing, reopening or switching popovers retains unsaved selections and leaves the URL and results unchanged. The page Apply action commits those drafts; explicit clear and filter-removal actions remain available.
   acceptance:
     given: Course, teacher, and section URLs apply all advanced filters to a seeded matching result.
     when: The browser opens each column filter, changes its drafts, dismisses through an outside click and Escape, then reopens it.
     then:
-    - Draft values initialize from the applied URL on every opening.
+    - Draft values initialize from the applied URL on navigation and survive outside-click and Escape dismissal.
     - Dismissing without Apply preserves both the exact URL and rendered results.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
@@ -244,16 +243,29 @@ requirements:
 - id: ui.list-table-5
   category: presentation
   topic: list-table
-  rule: Applying a column filter submits the current search query and that column's draft values, preserves other applied filters and resets pagination. Sorting from a column header preserves other query state and resets pagination. A primary search change preserves the already applied filters.
+  rule: The page Apply action submits search, all column and extra-property drafts, and sorting together, resetting pagination. Subsequent pagination retains every applied parameter, including when the current page and total page count do not change after filtering.
   acceptance:
     given: Each catalog collection has a search query and page=2 before a column filter opens.
-    when: The browser applies filters through their column forms, changes sorting, and then changes the primary search query.
+    when: The browser edits several popovers, applies once at the page level, changes sorting and then changes the primary search query.
     then:
-    - Apply retains the search, that column's draft values and other applied filters, removes the page parameter, and shows the matching seeded result.
+    - Apply retains search and every edited field, removes the page parameter, and shows the matching seeded result.
     - Primary search changes preserve every applied advanced filter and still show the matching result.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
       name: ui.list-table-5 Course
+- id: ui.table-filter-pagination
+  category: presentation
+  topic: list-table
+  rule: Filters apply before counting and pagination. Every pagination link reacts to newly applied parameters even when the page number and total page count stay unchanged. Multiple values of one field use OR, different fields use AND, and numeric ranges include both endpoints.
+  acceptance:
+    given: Two campuses each have 30 teaching sections, including 25 with three credits and five with four credits.
+    when: A browser changes campus without changing the page count, follows pagination and reloads, then selects both campuses and the three-to-three credit range.
+    then:
+    - Every pagination link retains the new campus, search, comparison and sort parameters; the second page has ten matching rows after reload.
+    - Applying both campuses and the numeric range resets the page and returns fifty matching rows across three pages, excluding four-credit sections.
+    test:
+      file: tests/e2e/src/app/sections/table-filter-semantics.test.ts
+      name: section filter drafts, multi-selection, comparisons and reactive pagination
 - id: ui.list-table-6
   category: presentation
   topic: list-table
@@ -1084,34 +1096,30 @@ requirements:
   category: presentation
   topic: workspace-filters-and-empty-states
   rule: Homework, todo, and exam status filters retain the selected value through repeated activation, empty
-    results, and completing the last pending task. Only an explicit selection, clear action (todos), or All
-    filter selection (exams and homeworks on the default incomplete empty) changes the applied filter.
+    results, and completing the last pending task. Editing controls changes only the shared draft; the single top Apply action commits it. An explicit clear action from a todo empty state may clear the applied filter.
   acceptance:
     given: Independent completed-only and pending scenarios each visit homework, todo, and exam pages at desktop
       and mobile widths, with completed records and either no pending record or one pending record.
     when: The user repeatedly clicks and keyboard-activates filters while offline; after reconnecting, the user
       completes the last pending homework or todo and leaves the resulting default-filter empty via Clear
-      filter (todos) or All (exams and homeworks).
+      filter (todos) or unrestricted completion plus Apply (exams and homeworks).
     then:
     - Homework, todo, and exam status filters retain the selected value through repeated activation, empty
-      results, and completing the last pending task. Only an explicit selection, clear action (todos), or All
-      filter selection (exams and homeworks on the default incomplete empty) changes the applied filter.
+      results, and completing the last pending task. Draft edits take effect only through the single page Apply action; empty-state recovery remains explicit.
     test:
       file: tests/e2e/src/app/workspace/task-filters.test.ts
       name: ui.workspace-filters-and-empty-states-1 (desktop, pending)
 - id: ui.workspace-filters-and-empty-states-2
   category: presentation
   topic: workspace-filters-and-empty-states
-  rule: Status-filter controls remain disabled until hydrated. Once interactive, activation updates their selected
-    visual and accessible state without waiting for the results request to finish.
+  rule: Status-filter controls remain disabled until hydrated. Once interactive, choices update the shared draft and accessible state immediately; one Apply action filters the loaded data without a network dependency.
   acceptance:
     given: A signed-in browser opens each homework, todo, and exam page while its application hydration scripts
       are held.
     when: The browser checks that the visible filter header button is disabled before releasing the scripts,
-      then opens the enabled button's three filter options and switches among all, completed, and incomplete while offline.
+      then opens the enabled controls and applies unrestricted, completed and incomplete selections while offline.
     then:
-    - Status-filter controls remain disabled until hydrated. Once interactive, activation updates their selected
-      visual and accessible state without waiting for the results request to finish.
+    - Status-filter controls remain disabled until hydrated. Choices update the draft immediately and one Apply action updates results while offline.
     test:
       file: tests/e2e/src/app/workspace/task-filter-readiness.test.ts
       name: ui.workspace-filters-and-empty-states-2 (homeworks)
@@ -1135,15 +1143,15 @@ requirements:
   topic: workspace-filters-and-empty-states
   rule: Filter-empty results explain the selection. Todos offer clear-filter from the default incomplete empty
     state; exams and homeworks hide clear-filter until a non-default filter is active and reveal completed
-    rows via the All filter instead.
+    rows by clearing the completion restriction and applying instead.
   acceptance:
     given: An isolated user has completed homework, todo, and exam records and no pending records.
     when: The browser reads each pending-filter explanation, then clears via Clear filter (todos) or selects
-      All (exams and homeworks).
+      unrestricted completion plus Apply (exams and homeworks).
     then:
     - Filter-empty results explain the selection. Todos offer clear-filter from the default incomplete empty
       state; exams and homeworks hide clear-filter until a non-default filter is active and reveal completed
-      rows via the All filter instead.
+      rows by clearing the completion restriction and applying instead.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.workspace-filters-and-empty-states-5

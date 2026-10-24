@@ -119,7 +119,7 @@ export type SectionDetailCopy = {
     tabSectionTeacher: string;
     tabWrite: string;
   };
-  common: Record<string, string> & {
+  common: {
     home: string;
     sections: string;
     signIn?: string;

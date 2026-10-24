@@ -1,9 +1,9 @@
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import type { TableFilterLabels } from "@/lib/table-filters";
 
 export type CourseListCommonLabels = {
-  allCategories: string;
-  allClassTypes: string;
-  allEducationLevels: string;
+  tableFilters: TableFilterLabels;
+
   clear: string;
   applyFilters: string;
   loading: string;
@@ -33,6 +33,9 @@ export type CourseListLabels = {
 };
 
 export type CourseListFilters = {
+  name?: string | null;
+  code?: string | null;
+
   categoryId?: string | null;
   classTypeId?: string | null;
   educationLevelId?: string | null;

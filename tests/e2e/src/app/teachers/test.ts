@@ -21,8 +21,10 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../utils/catalog-search-fixture";
 import {
+  applyCatalogFilters,
   expectCatalogTableFilters,
   openCatalogColumnFilter,
+  setCatalogFilterValue,
 } from "../../../utils/catalog-table-filters";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { visibleText } from "../../../utils/locators";
@@ -102,9 +104,7 @@ test.describe("/catalog/teachers", () => {
       );
       await expectNoPageHorizontalOverflow(page);
       await expect(
-        page.locator(
-          '[data-slot="collection-header"]:visible, [data-slot="table-controls-row"]:visible',
-        ),
+        page.locator('[data-slot="table-filter-toolbar"]:visible'),
       ).toBeVisible();
       await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
       await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
@@ -155,7 +155,7 @@ test.describe("/catalog/teachers", () => {
 
       await searchbox.fill(DEV_SEED.teacher.nameCn);
       const searchButton = page.getByRole("button", {
-        name: /^(搜索|Search)$/,
+        name: /^(应用筛选|Apply filters)$/i,
       });
       await expect(searchButton).toBeVisible();
       await searchButton.click();
@@ -195,13 +195,13 @@ test.describe("/catalog/teachers", () => {
         page,
         /院系|Department/i,
       );
-      await filterDialog
-        .getByLabel(/院系|Department/i)
-        .selectOption(String(filter.departmentId));
+      await setCatalogFilterValue(
+        filterDialog,
+        "departmentId",
+        String(filter.departmentId),
+      );
       await expect(page).not.toHaveURL(/departmentId=/);
-      await filterDialog
-        .getByRole("button", { name: /应用筛选|Apply filters/i })
-        .click();
+      await applyCatalogFilters(page);
       await expect(filterDialog).toBeHidden();
       await expect(page).toHaveURL(
         new RegExp(`departmentId=${filter.departmentId}`),

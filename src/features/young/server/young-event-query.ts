@@ -8,6 +8,7 @@ import type {
   YoungEventListInput,
   YoungEventTimeBasis,
 } from "./young-event-service";
+import { buildYoungTableWhere } from "./young-table-filter-query";
 
 export function normalizeYoungEventFilters(input: YoungEventListInput) {
   return {
@@ -115,17 +116,29 @@ function buildEventWhere(input: NormalizedYoungEventFilters) {
 
 export function buildYoungEventListQuery(input: YoungEventListInput) {
   const filters = normalizeYoungEventFilters(input);
-  const baseWhere = buildEventWhere(filters);
+  const baseWhere = input.tableFilters
+    ? buildYoungTableWhere(input.tableFilters, input.tableStatusLabels)
+    : buildEventWhere(filters);
   const dateRange = buildDateRangeWhere(input);
+  const bothTimeBases =
+    input.tableFilters != null &&
+    (!input.tableFilters.timeBasis ||
+      input.tableFilters.timeBasis.includes(","));
+  const unknown: Prisma.YoungEventWhereInput = bothTimeBases
+    ? { OR: [{ startAt: null }, { applyStartAt: null }] }
+    : dateRange.unknown;
+  const known: Prisma.YoungEventWhereInput = bothTimeBases
+    ? { OR: [{ startAt: { not: null } }, { applyStartAt: { not: null } }] }
+    : { NOT: dateRange.unknown };
   const where: Prisma.YoungEventWhereInput = input.dateUnknown
-    ? { AND: [baseWhere, dateRange.unknown] }
+    ? { AND: [baseWhere, unknown] }
     : dateRange.hasRange
       ? { AND: [baseWhere, dateRange.known] }
       : input.dateUnknown === false
-        ? { AND: [baseWhere, { NOT: dateRange.unknown }] }
+        ? { AND: [baseWhere, known] }
         : baseWhere;
   const unknownWhere: Prisma.YoungEventWhereInput = {
-    AND: [baseWhere, dateRange.unknown],
+    AND: [baseWhere, unknown],
   };
   const dateOrderBy: Prisma.YoungEventOrderByWithRelationInput[] =
     dateRange.hasRange

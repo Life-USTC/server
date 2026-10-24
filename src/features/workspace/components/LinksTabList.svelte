@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
 import TableControlsRow from "#lib/components/TableControlsRow.svelte";
+import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Table from "#lib/components/ui/table/index.js";
 import { cn } from "#lib/utils.js";
@@ -13,6 +14,7 @@ import type {
   AnonymousLinkGroup,
   WorkspaceOverviewLinkItem,
 } from "@/features/workspace/lib/workspace-controller-helpers";
+import type { TableFilterField, TableFilterLabels } from "@/lib/table-filters";
 import CatalogLinkTableCell from "./CatalogLinkTableCell.svelte";
 import WorkspaceEmptyState from "./WorkspaceEmptyState.svelte";
 
@@ -23,6 +25,10 @@ export let emptyLabel: string;
 export let groups: AnonymousLinkGroup[];
 export let linkIconLabel: (icon: string) => string;
 export let searchControls: Snippet;
+export let fields: TableFilterField[];
+export let values: Record<string, string>;
+export let onchange: (patch: Record<string, string>) => void;
+export let filterLabels: TableFilterLabels;
 export let actions: Snippet<[WorkspaceOverviewLinkItem]> | undefined =
   undefined;
 </script>
@@ -37,8 +43,8 @@ export let actions: Snippet<[WorkspaceOverviewLinkItem]> | undefined =
     <Table.Header>
       <TableControlsRow colspan={actions ? 3 : 2}>{@render searchControls()}</TableControlsRow>
       <Table.Row>
-        <Table.Head>{colName}</Table.Head>
-        <Table.Head>{colDescription}</Table.Head>
+        <Table.Head><TableFieldFilter label={colName} fields={[fields[0]]} {values} {onchange} labels={filterLabels} idPrefix="links-desktop-name" formId="links-filters" /></Table.Head>
+        <Table.Head><TableFieldFilter label={colDescription} fields={[fields[1]]} {values} {onchange} labels={filterLabels} idPrefix="links-desktop-description" formId="links-filters" /></Table.Head>
         {#if actions}<Table.Head>{colActions}</Table.Head>{/if}
       </Table.Row>
     </Table.Header>

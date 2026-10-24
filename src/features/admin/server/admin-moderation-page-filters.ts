@@ -1,7 +1,4 @@
-import {
-  type AdminCommentStatusFilter,
-  normalizeAdminCommentStatusFilter,
-} from "@/features/admin/lib/admin-moderation-filters";
+import type { AdminCommentStatusFilter } from "@/features/admin/lib/admin-moderation-filters";
 import type { CommentStatus, Prisma } from "@/generated/prisma/client";
 import { ilike } from "@/lib/query-filter-helpers";
 
@@ -12,34 +9,25 @@ const MODERATION_TABS = new Set([
   "suspensions",
 ]);
 type ModerationTab = "comments" | "descriptions" | "homeworks" | "suspensions";
-const DESCRIPTION_CONTENT_FILTERS = new Set(["withContent", "empty", "all"]);
-const DESCRIPTION_TARGET_FILTERS = new Set([
-  "homework",
-  "course",
-  "section",
-  "teacher",
-  "all",
-]);
 
 export function getModerationFilters(url: URL) {
   const tabParam = url.searchParams.get("tab") ?? "comments";
+  const tab = (
+    MODERATION_TABS.has(tabParam) ? tabParam : "comments"
+  ) as ModerationTab;
   const descriptionContentParam =
     url.searchParams.get("descriptionContent") ?? "withContent";
   const descriptionTargetParam =
     url.searchParams.get("descriptionTarget") ?? "all";
 
   return {
-    tab: (MODERATION_TABS.has(tabParam)
-      ? tabParam
-      : "comments") as ModerationTab,
+    tab,
     search: url.searchParams.get("search")?.trim() ?? "",
-    status: normalizeAdminCommentStatusFilter(url.searchParams.get("status")),
-    descriptionContent: DESCRIPTION_CONTENT_FILTERS.has(descriptionContentParam)
-      ? descriptionContentParam
-      : "withContent",
-    descriptionTarget: DESCRIPTION_TARGET_FILTERS.has(descriptionTargetParam)
-      ? descriptionTargetParam
-      : "all",
+    status:
+      url.searchParams.get("status")?.trim() ||
+      (tab === "comments" ? "active" : "all"),
+    descriptionContent: descriptionContentParam.trim() || "all",
+    descriptionTarget: descriptionTargetParam.trim() || "all",
   };
 }
 

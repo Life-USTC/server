@@ -3,7 +3,12 @@ import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-res
 import { test } from "../../../../utils/homework-fixture";
 import { homeworkDescription as description } from "../../../../utils/homework-state";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
+import {
+  applyWorkspaceTaskFilter,
+  expectWorkspaceTaskFilterSelected,
+  openWorkspaceTaskFilter,
+  workspaceTaskFilterControl,
+} from "../../../../utils/workspace-task-filters";
 
 const widths = [1280, 390];
 test.describe.configure({ mode: "parallel" });
@@ -64,11 +69,11 @@ test("homework.responsive-workspace-view", { tag: "@Homework/Web" }, async ({
           /^(全部|All)$/i,
         ]) {
           await openWorkspaceTaskFilter(page, "homeworks");
-          const filter = page.getByRole("radio", { name: label });
+          const filter = workspaceTaskFilterControl(page, label);
           await expect(filter).toBeVisible();
           await openWorkspaceTaskFilter(page, "homeworks");
-          await filter.click();
-          await expect(filter).toBeChecked();
+          await applyWorkspaceTaskFilter(page, filter);
+          await expectWorkspaceTaskFilterSelected(filter);
         }
         await expect(
           page.getByTestId("workspace-homeworks-view-menu"),

@@ -87,6 +87,10 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
       {#snippet mobile()}
         <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
           {@render filterControls("search", "mobile")}
+          {@render filterControls("author", "mobile")}
+          {@render filterControls("reason", "mobile")}
+          {@render filterControls("expiresAt", "mobile")}
+
           {@render filterControls("status", "mobile")}
         </div>
         {#if suspensions.length === 0}<CollectionEmpty variant="compact" description={copy.noSuspensions} />{:else}
@@ -102,8 +106,8 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
                     @{suspension.user.username}
                   </Item.Description>
                   {/if}
-                <Item.Description class="truncate" title={`${suspension.reason ?? copy.noReason} · ${expiresLabel(suspension)}`}>
-                  {suspension.reason ?? copy.noReason} · {expiresLabel(suspension)}
+                <Item.Description title={`${suspension.reason ?? copy.noReason} · ${expiresLabel(suspension)}`}>
+                  <TruncatedText text={`${suspension.reason ?? copy.noReason} · ${expiresLabel(suspension)}`} />
                 </Item.Description>
                 </Item.Content>
                 <Item.Actions class="flex-wrap items-center gap-2">
@@ -139,9 +143,9 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
               <Table.Header>
         <TableControlsRow colspan={5}>{@render filterControls("search", "desktop")}</TableControlsRow>
                 <Table.Row>
-                  <Table.Head class="w-[23%]">{copy.user}</Table.Head>
-                  <Table.Head class="w-[34%]">{copy.reason}</Table.Head>
-                  <Table.Head class="w-[20%] text-right">{copy.expires}</Table.Head>
+                  <Table.Head class="w-[23%]">{@render filterControls("author", "desktop")}</Table.Head>
+                  <Table.Head class="w-[34%]">{@render filterControls("reason", "desktop")}</Table.Head>
+                  <Table.Head class="w-[20%] text-right">{@render filterControls("expiresAt", "desktop")}</Table.Head>
                   <Table.Head class="w-[13%] text-center">{@render filterControls("status", "desktop")}</Table.Head>
                 <Table.Head class="w-14 min-w-14 text-right">
                   <span class="sr-only">{copy.actions}</span>

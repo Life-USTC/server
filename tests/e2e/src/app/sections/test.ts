@@ -23,7 +23,11 @@
  */
 import { expect, type Page } from "@playwright/test";
 import { test } from "../../../utils/catalog-search-fixture";
-import { openCatalogColumnFilter } from "../../../utils/catalog-table-filters";
+import {
+  applyCatalogFilters,
+  openCatalogColumnFilter,
+  setCatalogFilterValue,
+} from "../../../utils/catalog-table-filters";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { visibleText } from "../../../utils/locators";
 import {
@@ -78,7 +82,9 @@ test.describe("/catalog/sections 教学班搜索页", () => {
         ).toBeVisible();
         await expectNoPageHorizontalOverflow(page);
         await page.getByRole("searchbox").fill(DEV_SEED.section.code);
-        await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+        await page
+          .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+          .click();
         await expect(page).toHaveURL(
           (url) => url.searchParams.get("search") === DEV_SEED.section.code,
         );
@@ -127,9 +133,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
       );
       await expectNoPageHorizontalOverflow(page);
       await expect(
-        page.locator(
-          '[data-slot="collection-header"]:visible, [data-slot="table-controls-row"]:visible',
-        ),
+        page.locator('[data-slot="table-filter-toolbar"]:visible'),
       ).toBeVisible();
       await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
       await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
@@ -148,7 +152,9 @@ test.describe("/catalog/sections 教学班搜索页", () => {
       expect(bounds.x).toBeGreaterThanOrEqual(0);
       expect(bounds.x + bounds.width).toBeLessThanOrEqual(375);
       const semester = await openCatalogColumnFilter(page, /学期|Semester/i);
-      await expect(semester.getByLabel(/学期|Semester/i)).toBeVisible();
+      await expect(
+        semester.locator('[data-filter-field="semesterId"]'),
+      ).toBeVisible();
       await page.keyboard.press("Escape");
 
       const detailLink = page
@@ -225,22 +231,26 @@ test.describe("/catalog/sections 教学班搜索页", () => {
 
         const searchbox = page.getByRole("searchbox");
         await expect(searchbox).toBeVisible();
-        const searchButton = page.getByRole("button", { name: /^搜索$/ });
+        const searchButton = page.getByRole("button", { name: /^应用筛选$/ });
         const searchBounds = await searchButton.boundingBox();
         expect(searchBounds?.height ?? 0).toBeGreaterThanOrEqual(44);
         for (const [column, fields] of [
-          ["学期", ["学期"]],
-          ["教师", ["教师"]],
-          ["课程名称", ["课程代码", "课程类别", "教育层次", "课程类型"]],
-          ["教学班代码", ["教学班代码"]],
-          ["校区", ["校区"]],
-          ["院系", ["院系"]],
-          ["学分", ["学分"]],
+          ["学期", ["semesterId"]],
+          ["教师", ["teacher"]],
+          ["课程名称", ["courseName"]],
+          ["课程代码", ["courseCode"]],
+          ["课程类别", ["categoryId"]],
+          ["教育层次", ["educationLevelId"]],
+          ["课程类型", ["classTypeId"]],
+          ["教学班代码", ["sectionCode"]],
+          ["校区", ["campusId"]],
+          ["院系", ["departmentId"]],
+          ["学分", ["credits"]],
         ] as const) {
           const filter = await openCatalogColumnFilter(page, column);
           for (const label of fields)
             await expect(
-              filter.getByLabel(label, { exact: true }),
+              filter.locator(`[data-filter-field="${label}"]`),
             ).toBeVisible();
           const bounds = await filter.boundingBox();
           if (!bounds) throw new Error("Missing column filter bounds");
@@ -314,9 +324,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
         await expect(page).toHaveTitle(/教学班/);
         await expect(page.locator("vite-error-overlay")).toHaveCount(0);
         await expect(
-          page.locator(
-            '[data-slot="collection-header"]:visible, [data-slot="table-controls-row"]:visible',
-          ),
+          page.locator('[data-slot="table-filter-toolbar"]:visible'),
         ).toBeVisible();
         await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
 
@@ -536,22 +544,23 @@ test.describe("/catalog/sections 教学班搜索页", () => {
       const help = await openCatalogColumnFilter(page, "高级搜索语法");
       await expect(help.getByText("teacher:张三")).toBeVisible();
       await page.keyboard.press("Escape");
-      for (const [column, label, name, value] of [
+      for (const [column, _label, name, value] of [
         ["教师", "教师", "teacher", DEV_SEED.teacher.nameCn],
-        ["课程名称", "课程代码", "courseCode", DEV_SEED.course.code],
+        ["课程代码", "课程代码", "courseCode", DEV_SEED.course.code],
         ["教学班代码", "教学班代码", "sectionCode", DEV_SEED.section.code],
         ["学分", "学分", "credits", String(DEV_SEED.section.credits)],
       ]) {
         const filter = await openCatalogColumnFilter(page, column);
-        await filter.getByLabel(label, { exact: true }).fill(value);
-        await filter.getByRole("button", { name: "应用筛选" }).click();
+        await setCatalogFilterValue(filter, name, value);
+        await applyCatalogFilters(page);
         await expect(filter).toBeHidden();
         await expect(page).toHaveURL(
           (url) => url.searchParams.get(name) === value,
         );
       }
       const sorting = await openCatalogColumnFilter(page, "教学班代码");
-      await sorting.getByRole("link", { name: "降序" }).click();
+      await sorting.getByRole("radio", { name: "降序" }).click();
+      await applyCatalogFilters(page);
       await expect(sorting).toBeHidden();
       await expect(page).toHaveURL(
         new RegExp(`courseCode=${encodeURIComponent(DEV_SEED.course.code)}`),

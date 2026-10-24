@@ -112,6 +112,9 @@ export type YoungEventDetail = YoungEventSummary & {
 };
 
 export type YoungEventListInput = PaginationInput & {
+  /** Validated Web table presentation filters; public API inputs stay unchanged. */
+  tableFilters?: Record<string, string>;
+  tableStatusLabels?: { statusOpen: string; statusClosed: string };
   active?: boolean | null;
   dateUnknown?: boolean | null;
   category?: string | null;

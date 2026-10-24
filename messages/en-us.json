@@ -81,7 +81,25 @@
     "userNotFound": "User not found",
     "unknown": "Unknown",
     "campusServices": "Campus services",
-    "applyFilters": "Apply filters"
+    "applyFilters": "Apply filters",
+    "tableFilters": {
+      "any": "Any",
+      "operator": "Comparison",
+      "value": "Value",
+      "maximum": "Upper bound",
+      "selected": "{count} selected",
+      "operators": {
+        "eq": "Equal to",
+        "ne": "Not equal to",
+        "gt": "Greater than",
+        "gte": "At least",
+        "lt": "Less than",
+        "lte": "At most",
+        "between": "Between (inclusive)"
+      },
+      "yes": "Yes",
+      "no": "No"
+    }
   },
   "globalSearch": {
     "title": "Search",
@@ -273,6 +291,7 @@
     "remainingLabel": "{remaining} remaining",
     "tableName": "File",
     "tableSize": "Size",
+    "filterSizeDescription": "In bytes",
     "tableUploaded": "Uploaded",
     "tableActions": "Actions",
     "downloadAction": "Open",
@@ -692,7 +711,10 @@
     "importFailed": "Import failed",
     "invalidVersionId": "Invalid version id",
     "versionNotFound": "Version not found",
-    "cannotDeleteActiveVersion": "Cannot delete active version"
+    "cannotDeleteActiveVersion": "Cannot delete active version",
+    "filterEffectiveFrom": "Effective from",
+    "filterEffectiveUntil": "Effective until",
+    "filterSource": "Import note"
   },
   "adminUsers": {
     "title": "User Management",
@@ -776,7 +798,10 @@
     "tags": "Tags"
   },
   "workspace": {
-    "stack": { "urgency": "Needs attention", "upcoming": "Coming up" },
+    "stack": {
+      "urgency": "Needs attention",
+      "upcoming": "Coming up"
+    },
     "title": "Workspace",
     "description": "Hi {name}, this workspace brings together your courses, homework, and schedule.",
     "descriptionV2": "Hi, {name}",
@@ -976,7 +1001,11 @@
       },
       "empty": "No websites match this search.",
       "credit": "Some links are consolidated from ",
-      "creditSuffix": ", with thanks."
+      "creditSuffix": ", with thanks.",
+      "filterGroup": "Group",
+      "filterUrl": "URL",
+      "filterPinned": "Pinned",
+      "filterVisits": "Visits"
     },
     "todos": {
       "title": "Todos",
@@ -1316,7 +1345,9 @@
     "backToCalendar": "Back to activity calendar",
     "backToOrganizers": "Back to organizers",
     "dateKnownActivity": "Known activity date",
-    "dateKnownRegistration": "Known signup date"
+    "dateKnownRegistration": "Known signup date",
+    "dateUnknownAny": "Either date unknown",
+    "dateKnownAny": "Either date known"
   },
   "publications": {
     "title": "News & Notices",
@@ -1824,7 +1855,10 @@
       "filters": "Filters",
       "semesters": "Semesters",
       "semestersMeta": "Available terms"
-    }
+    },
+    "enrolled": "Enrolled students",
+    "enrollmentLimit": "Enrollment limit",
+    "teacherCount": "Teacher count"
   },
   "sectionDetail": {
     "basicInfo": "Section Information",
@@ -1982,7 +2016,9 @@
       "shortThursday": "Thu",
       "shortFriday": "Fri",
       "shortSaturday": "Sat"
-    }
+    },
+    "examStartTime": "Start time",
+    "examEndTime": "End time"
   },
   "notFound": {
     "title": "Page Not Found",
@@ -2383,7 +2419,8 @@
     "addButton": "Add homework",
     "sectionLabel": "Section",
     "sectionPlaceholder": "Select a section",
-    "sectionRequired": "Please select a section."
+    "sectionRequired": "Please select a section.",
+    "overdueLabel": "Overdue"
   },
   "comments": {
     "ancestryPlaceholder": "Some earlier comments in this thread are unavailable.",
@@ -2663,7 +2700,8 @@
     "deleteHomeworkAuditDescription": "This marks the homework as deleted and writes an audit entry.",
     "saveDescription": "Save description",
     "defaultBanReason": "You have been banned for your comment \"{content}\" posted on {url} at {date}.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "anonymousLabel": "Anonymous"
   },
   "todos": {
     "title": "Todos",

@@ -5,7 +5,12 @@ import {
   test,
 } from "../../../utils/calendar-presentation-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { openWorkspaceTaskFilter } from "../../../utils/workspace-task-filters";
+import {
+  applyWorkspaceTaskFilter,
+  expectWorkspaceTaskFilterSelected,
+  openWorkspaceTaskFilter,
+  workspaceTaskFilterControl,
+} from "../../../utils/workspace-task-filters";
 
 async function fixture(
   page: Page,
@@ -73,22 +78,37 @@ test("homework.mobile-status-controls", { tag: "@Homework/Web" }, async ({
       for (const width of [320, 390]) {
         await page.setViewportSize({ width, height: 844 });
         await page.goto("/workspace/homeworks");
-        await openWorkspaceTaskFilter(page, "homeworks");
+        const filterDialog = await openWorkspaceTaskFilter(page, "homeworks");
         const cards = page.getByTestId("workspace-homeworks-cards");
         for (const [label, expected] of [
           ["Incomplete", [data.homework.title]],
           ["Completed", [data.complete.title]],
           ["All", [data.homework.title, data.complete.title]],
         ] as const) {
-          const filter = page.getByRole("radio", { name: label, exact: true });
+          const dialogBox = await bounds(filterDialog);
+          expect(dialogBox.x).toBeGreaterThanOrEqual(0);
+          expect(dialogBox.y).toBeGreaterThanOrEqual(0);
+          expect(dialogBox.x + dialogBox.width).toBeLessThanOrEqual(width);
+          expect(dialogBox.y + dialogBox.height).toBeLessThanOrEqual(844);
+          const unrestricted = workspaceTaskFilterControl(page, "All");
+          const unrestrictedBox = await bounds(unrestricted);
+          expect(unrestrictedBox.y).toBeGreaterThanOrEqual(0);
+          expect(
+            unrestrictedBox.y + unrestrictedBox.height,
+          ).toBeLessThanOrEqual(844);
+          const filter = workspaceTaskFilterControl(page, label);
           await expect(filter).toBeVisible();
-          const box = await bounds(filter);
+          const box = await bounds(
+            (await filter.getAttribute("role")) === "checkbox"
+              ? filter.locator("..").locator("label")
+              : filter,
+          );
           expect(box.width).toBeGreaterThanOrEqual(44);
           expect(box.height).toBeGreaterThanOrEqual(44);
           expect(box.x).toBeGreaterThanOrEqual(0);
           expect(box.x + box.width).toBeLessThanOrEqual(width);
-          await filter.click();
-          await expect(filter).toBeChecked();
+          await applyWorkspaceTaskFilter(page, filter);
+          await expectWorkspaceTaskFilterSelected(filter);
           for (const title of [data.homework.title, data.complete.title]) {
             const button = cards.getByRole("button", {
               name: title,

@@ -527,6 +527,7 @@ capabilities:
         to the earliest; the layout stays single-column until an extra-wide viewport, where supporting browsers use
         native CSS Grid Lanes to pack tables into two columns and other browsers fall back to a row-ordered two-column
         grid
+      - Course name, section code, membership role, teachers and numeric credits are filtered through their data-column headers. A semester multi-select appears above the groups, and one Apply filters action commits all drafts across every semester table.
       - Long course names and teacher lists are visually truncated inside table rows; when truncated, their complete
         text remains available from the shared tooltip and the section details dialog
       - Each table row opens a details dialog with section metadata, a course-homepage link, and an unsubscribe action

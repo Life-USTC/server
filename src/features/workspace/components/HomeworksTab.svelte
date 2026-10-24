@@ -1,5 +1,6 @@
 <script lang="ts">
 import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
 import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import type CommentsPanelComponent from "@/features/comments/components/CommentsPanel.svelte";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
@@ -14,15 +15,18 @@ import type {
   WorkspaceMyHomeworksCopy,
   WorkspaceSectionCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
-import { filterWorkspaceHomeworks } from "@/features/workspace/lib/workspace-homework-filter";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
 import type { SubmitFunction } from "$app/forms";
+import {
+  filterHomeworkTable,
+  homeworkTableFields,
+} from "../lib/workspace-task-table-filters";
 import HomeworksCardsView from "./HomeworksCardsView.svelte";
 import HomeworksListView from "./HomeworksListView.svelte";
 import HomeworksTabDialogs from "./HomeworksTabDialogs.svelte";
 import HomeworksTabToolbar from "./HomeworksTabToolbar.svelte";
 import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
-import WorkspaceTaskToolbar from "./WorkspaceTaskToolbar.svelte";
+import WorkspaceTaskColumnFilter from "./WorkspaceTaskColumnFilter.svelte";
 import type { WorkspaceHomeworkCreateSection } from "./workspace-homework-create-types";
 
 type HomeworkDateFormatter = (
@@ -77,19 +81,39 @@ let homeworkSectionHref: HomeworkAction;
 let homeworkSectionLabel: (section: WorkspaceHomeworkCreateSection) => string;
 let homeworkStatus: HomeworkAction;
 
-$: filteredHomeworkItems = filterWorkspaceHomeworks(
+let applied: Record<string, string> = { completion: "incomplete" };
+let draft = { ...applied };
+$: fields = homeworkTableFields(
+  { homeworks: homeworksCopy, common: commonCopy },
   homeworkItems,
-  homeworkFilter,
+);
+$: filteredHomeworkItems = filterHomeworkTable(
+  homeworkItems,
+  fields,
+  applied,
   new Date(referenceDate),
 );
+function patchDraft(patch: Record<string, string>) {
+  draft = { ...draft, ...patch };
+}
+function applyFilters(event: SubmitEvent) {
+  event.preventDefault();
+  applied = { ...draft };
+}
 $: hasHomeworkItems = homeworkItems.length > 0;
 
 function clearHomeworkFilter() {
   homeworkFilter = "all";
+  draft = {};
+  applied = {};
 }
 
 $: showClearHomeworkFilter =
-  homeworkFilter !== "incomplete" && homeworkItems.length > 0;
+  (applied.completion !== "incomplete" ||
+    Object.keys(applied).some(
+      (name) => name !== "completion" && Boolean(applied[name]),
+    )) &&
+  homeworkItems.length > 0;
 
 $: ({
   fmtDate,
@@ -110,16 +134,8 @@ $: ({
 }));
 </script>
 
-{#snippet completionFilter()}
-  <WorkspaceTaskToolbar
-    ariaLabel={homeworksCopy.title}
-    columnLabel={homeworksCopy.statusLabel}
-    filter={homeworkFilter}
-    onFilterChange={(value) => { homeworkFilter = value; }}
-    filterIncompleteLabel={homeworksCopy.filterIncomplete}
-    filterCompletedLabel={homeworksCopy.filterCompleted}
-    filterAllLabel={homeworksCopy.filterAll}
-  />
+{#snippet columnFilter(names: string[], label: string, prefix: string)}
+  <WorkspaceTaskColumnFilter fields={fields.filter((field) => names.includes(field.name))} values={draft} {applied} onchange={patchDraft} {label} prefix={`${prefix}-homework-${names[0]}`} labels={commonCopy.tableFilters} formId="homework-table-filters" />
 {/snippet}
 
 <section class="grid gap-4">
@@ -144,10 +160,19 @@ $: ({
       </Alert.Root>
     {/if}
 
+    <form id="homework-table-filters" onsubmit={applyFilters} class="flex flex-wrap items-center gap-3" data-slot="table-filter-apply">
+      {#each fields.filter((field) => ["section", "publishedAt", "submissionStartAt", "description"].includes(field.name)) as field}
+        {@render columnFilter([field.name], field.label, "extra")}
+      {/each}
+      <Button type="submit">{commonCopy.applyFilters}</Button>
+    </form>
     <WorkspaceCollection>
       {#snippet mobile()}
       <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
-        {@render completionFilter()}
+        {@render columnFilter(["course", "semester"], homeworksCopy.sectionLabel, "mobile")}
+        {@render columnFilter(["title"], homeworksCopy.titleLabel, "mobile")}
+        {@render columnFilter(["submissionDueAt"], homeworksCopy.submissionDue, "mobile")}
+        {@render columnFilter(["completion", "flags"], homeworksCopy.statusLabel, "mobile")}
       </div>
         <HomeworksCardsView
           locale={locale}
@@ -170,7 +195,7 @@ $: ({
       {/snippet}
       {#snippet desktop()}
         <HomeworksListView
-        filterControls={completionFilter}
+        filterControls={columnFilter}
           locale={locale}
           unknownSemesterLabel={commonCopy.unknown}
           filteredHomeworkItems={filteredHomeworkItems}

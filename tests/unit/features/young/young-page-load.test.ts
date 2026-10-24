@@ -76,6 +76,10 @@ describe("public Young page loaders", () => {
         organizerId: "club",
         search: "run",
         category: "sport",
+        tableStatusLabels: {
+          statusOpen: "Open for signup",
+          statusClosed: "Ended",
+        },
       }),
     );
     expect(result.organizers).toEqual([{ id: "club", name: "Club" }]);

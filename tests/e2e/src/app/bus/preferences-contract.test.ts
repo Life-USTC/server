@@ -165,6 +165,10 @@ test("bus.preference-hydration-write-gate", { tag: "@Bus/Web" }, async ({
             }),
           ).not.toBeChecked();
           await end(page, "西区").click();
+          await page.keyboard.press("Escape");
+          await page
+            .getByRole("button", { name: "Apply filters", exact: true })
+            .click();
           await page.clock.runFor(750);
           const savedResponse = await saved;
           expect(savedResponse.status()).toBe(200);

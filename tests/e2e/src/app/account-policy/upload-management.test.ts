@@ -215,12 +215,66 @@ test("upload.web-list", { tag: "@Upload/Web" }, async ({
       page.getByText("other-private-file.txt", { exact: true }),
     ).toHaveCount(0);
 
-    await page.getByRole("link", { name: "Next page", exact: true }).click();
+    const filters = new URLSearchParams({
+      filename: "material",
+      size: "1024",
+      sizeOp: "between",
+      sizeMax: "1024",
+      createdAt: "2026-01-01",
+    });
+    const apply = page.getByRole("button", {
+      name: "Apply filters",
+      exact: true,
+    });
+    await expect(apply).toHaveCount(1);
+    await page.getByRole("button", { name: "File", exact: true }).click();
+    await page
+      .getByRole("dialog", { name: "File", exact: true })
+      .getByRole("textbox")
+      .fill("material");
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Size", exact: true }).click();
+    const sizeDialog = page.getByRole("dialog", { name: "Size", exact: true });
+    await expect(
+      sizeDialog.getByText("In bytes", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      sizeDialog.getByRole("button", { name: "Apply filters", exact: true }),
+    ).toHaveCount(0);
+    await sizeDialog.getByRole("combobox").selectOption("between");
+    await sizeDialog.getByRole("spinbutton").nth(0).fill("1024");
+    await sizeDialog.getByRole("spinbutton").nth(1).fill("1024");
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Uploaded", exact: true }).click();
+    await page
+      .getByRole("dialog", { name: "Uploaded", exact: true })
+      .getByLabel("Uploaded", { exact: true })
+      .fill("2026-01-01");
+    await page.keyboard.press("Escape");
+    await expect(page).toHaveURL(/\/workspace\/uploads$/);
+    await apply.click();
+    await expect(page).toHaveURL((url) =>
+      [...filters].every(([key, value]) => url.searchParams.get(key) === value),
+    );
+    await expect(visibleRows(page)).toHaveCount(20);
+    const nextPage = page.getByRole("link", { name: "Next page", exact: true });
+    const nextHref = await nextPage.getAttribute("href");
+    const nextParams = new URL(nextHref ?? "", page.url()).searchParams;
+    for (const [key, value] of filters) expect(nextParams.get(key)).toBe(value);
+    await nextPage.click();
     await expect(page).toHaveURL(/page=2$/);
     await expect(visibleRows(page)).toHaveCount(1);
     await expect(visibleRows(page).first()).toContainText("material-00.txt");
-    await page.goto("/workspace/uploads?page=900");
+    for (const [key, value] of filters)
+      expect(new URL(page.url()).searchParams.get(key)).toBe(value);
+    await page.reload();
+    await expect(visibleRows(page)).toHaveCount(1);
+    for (const [key, value] of filters)
+      expect(new URL(page.url()).searchParams.get(key)).toBe(value);
+    await page.goto(`/workspace/uploads?${filters}&page=900`);
     await expect(page).toHaveURL(/page=2$/);
+    for (const [key, value] of filters)
+      expect(new URL(page.url()).searchParams.get(key)).toBe(value);
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(page, "/workspace/overview");
     await page.getByRole("button", { name: "Menu", exact: true }).click();
@@ -392,7 +446,9 @@ test("upload.web-delete-feedback", { tag: "@Upload/Web" }, async ({
     await confirm.click();
     await expect(dialog).toHaveCount(0);
     await expect(
-      page.getByText("No uploads yet", { exact: true }),
+      page
+        .getByText("No uploads yet", { exact: true })
+        .filter({ visible: true }),
     ).toBeVisible();
     await expect(
       page.getByText(`0 B of ${owned.quotaLabel} used`, { exact: true }),
@@ -544,7 +600,7 @@ test("upload.comment-attachments-only", { tag: "@Upload/Web" }, async ({
       await expect(main.locator('input[type="file"]')).toHaveCount(0);
       await expect(
         main.getByRole("button", {
-          name: /^(Upload|Share|Create public link)/i,
+          name: /^(?:Upload|Share)(?:\s|$)|^Create public link\b/i,
         }),
       ).toHaveCount(0);
       const download = main

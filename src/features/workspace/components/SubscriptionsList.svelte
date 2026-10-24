@@ -2,11 +2,15 @@
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import Pencil from "@lucide/svelte/icons/pencil";
 import UserMinus from "@lucide/svelte/icons/user-minus";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
+import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
@@ -17,6 +21,8 @@ import type {
   WorkspaceSectionCopy,
   WorkspaceSubscriptionsCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import { matchTableFilter, type TableFilterField } from "@/lib/table-filters";
 import { page as routePage } from "$app/state";
 import SubscriptionKindDialog from "./SubscriptionKindDialog.svelte";
 import SubscriptionsCardsView from "./SubscriptionsCardsView.svelte";
@@ -62,10 +68,90 @@ let pendingRemoveSection: SubscriptionSection | null = $state(null);
 let removeDialogOpen = $state(false);
 
 let locale = $derived(routePage.data.locale ?? "zh-cn");
+const common = $derived(
+  getWorkspacePageCopy(locale === "en-us" ? "en-us" : "zh-cn").common,
+);
+let draft = $state<Record<string, string>>({});
+let applied = $state<Record<string, string>>({});
+const allSections = $derived(
+  subscriptions.flatMap((subscription) => subscription.sections),
+);
+const columns = $derived<TableFilterField[][]>([
+  [
+    { name: "course", label: subscriptionsCopy.courseName },
+    { name: "code", label: subscriptionsCopy.section },
+    {
+      name: "kind",
+      label: subscriptionsCopy.kindEditor.title,
+      options: ["regular", "auditor", "teaching_assistant"].map((value) => ({
+        value,
+        label:
+          subscriptionsCopy.kindEditor[
+            value as "regular" | "auditor" | "teaching_assistant"
+          ],
+      })),
+    },
+  ],
+  [
+    {
+      name: "teacher",
+      label: String(sectionCopy.teachers),
+      options: [
+        ...new Set(
+          allSections.flatMap((section) =>
+            section.teachers
+              .map((teacher) => teacher.namePrimary)
+              .filter((name): name is string => Boolean(name)),
+          ),
+        ),
+      ].map((value) => ({ value: encodeURIComponent(value), label: value })),
+    },
+  ],
+  [
+    {
+      name: "credits",
+      label: subscriptionsCopy.credits,
+      type: "number",
+      min: 0,
+      step: 0.5,
+    },
+  ],
+]);
+const semesterField = $derived<TableFilterField>({
+  name: "semester",
+  label: subscriptionsCopy.semester,
+  options: groupSubscribedSectionsBySemester(
+    allSections,
+    workspaceCopy.notAvailable,
+    locale,
+  ).map((group) => ({ value: group.key, label: group.label })),
+});
+function change(patch: Record<string, string>) {
+  draft = { ...draft, ...patch };
+}
+function apply(event: SubmitEvent) {
+  event.preventDefault();
+  applied = { ...draft };
+}
+function matches(section: SubscriptionSection) {
+  const values = {
+    course: courseName(section),
+    code: section.code,
+    kind: section.kind,
+    teacher: section.teachers.map((teacher) =>
+      teacher.namePrimary ? encodeURIComponent(teacher.namePrimary) : "",
+    ),
+    credits: section.credits,
+    semester: String(section.semester?.id ?? "unknown"),
+  };
+  return [...columns.flat(), semesterField].every((field) =>
+    matchTableFilter(values[field.name as keyof typeof values], field, applied),
+  );
+}
 let sectionGroups = $derived(
   subscriptions.flatMap((subscription) =>
     groupSubscribedSectionsBySemester(
-      subscription.sections,
+      subscription.sections.filter(matches),
       workspaceCopy.notAvailable,
       locale,
     ),
@@ -109,8 +195,27 @@ function handleRemoveDialogOpenChange(open: boolean) {
 }
 </script>
 
+{#snippet column(index: number, suffix: string)}
+  <TableFieldFilter label={columns[index][0].label} fields={columns[index]} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`subscriptions-${suffix}-${index}`} formId="subscriptions-filters" align={index === 2 ? "end" : "start"} />
+{/snippet}
+
 
 {#if subscriptions.length > 0}
+  <form id="subscriptions-filters" onsubmit={apply} class="flex flex-wrap items-end gap-3">
+    <TableFieldFilter label={semesterField.label} fields={[semesterField]} values={draft} onchange={change} labels={common.tableFilters} idPrefix="subscriptions-extra" formId="subscriptions-filters" />
+    <Button type="submit">{common.applyFilters}</Button>
+  </form>
+  <ResponsiveCollection>
+    {#snippet mobile()}
+      <div class="flex flex-wrap gap-3" data-slot="collection-header">{#each columns as _, index}{@render column(index, "mobile")}{/each}</div>
+    {/snippet}
+    {#snippet desktop()}
+      {#if sectionGroups.length === 0}
+        <div class="flex flex-wrap gap-3" data-slot="collection-header">{#each columns as _, index}{@render column(index, "empty")}{/each}</div>
+      {/if}
+    {/snippet}
+  </ResponsiveCollection>
+  {#if sectionGroups.length === 0}<CollectionEmpty variant="compact" description={subscriptionsCopy.noSubscriptions} />{/if}
   <div
     class="subscription-semester-groups grid min-w-0 gap-6"
     data-testid="subscription-semester-groups"
@@ -153,10 +258,10 @@ function handleRemoveDialogOpenChange(open: boolean) {
           >
             <Table.Header>
               <Table.Row>
-                <Table.Head>{subscriptionsCopy.courseName}</Table.Head>
-                <Table.Head>{sectionCopy.teachers}</Table.Head>
+                <Table.Head>{@render column(0, group.key)}</Table.Head>
+                <Table.Head>{@render column(1, group.key)}</Table.Head>
                 <Table.Head class="text-end">
-                  {subscriptionsCopy.credits}
+                  {@render column(2, group.key)}
                 </Table.Head>
                 <Table.Head>
                   <span class="sr-only">{sectionCopy.moreDetails}</span>

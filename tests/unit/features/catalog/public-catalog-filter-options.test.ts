@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => {
     department: vi.fn(async () => [{ id: 4, nameCn: "院系" }]),
     educationLevel: vi.fn(async () => [{ id: 5, nameCn: "培养层次" }]),
     semester: vi.fn(async () => [{ id: 6, nameCn: "学期" }]),
+    teacherTitle: vi.fn(async () => [{ id: 7, nameCn: "职称" }]),
   };
   return {
     options,
@@ -32,12 +33,10 @@ vi.mock("@/lib/db/prisma", () => ({ getPrisma: mocks.getPrisma }));
 vi.mock("@/features/catalog/server/catalog-detail-cache-revision", () => ({
   getCatalogDetailCacheRevision: mocks.revision,
 }));
-vi.mock("@/features/catalog/server/course-section-queries", () => ({
-  listCourseSummaries: mocks.list,
-  listSectionSummaries: mocks.list,
-}));
-vi.mock("@/features/catalog/server/academic-paginated-queries", () => ({
-  paginatedTeacherQuery: mocks.list,
+vi.mock("@/features/catalog/server/catalog-table-read-model", () => ({
+  listCourseTableSummaries: mocks.list,
+  listSectionTableSummaries: mocks.list,
+  listTeacherTableSummaries: mocks.list,
 }));
 vi.mock("@/i18n/messages.server", () => ({
   getMessages: vi.fn(async () => ({
@@ -59,7 +58,7 @@ describe("public catalog filter option reuse", () => {
   it.each([
     ["courses", getCourseListPage, 3],
     ["sections", getSectionListPage, 6],
-    ["teachers", getTeacherListPage, 1],
+    ["teachers", getTeacherListPage, 2],
   ] as const)(
     "shares %s options across filters and pages without sharing result selections",
     async (kind, load, optionQueries) => {
@@ -107,6 +106,11 @@ describe("public catalog filter option reuse", () => {
     });
     expect(mocks.options.department).toHaveBeenNthCalledWith(1, {
       where: { sections: { some: { retiredAt: null } } },
+      orderBy: { nameCn: "asc" },
+    });
+    expect(mocks.options.teacherTitle).toHaveBeenCalledWith({
+      where: { teachers: { some: {} } },
+      select: { id: true, nameCn: true, nameEn: true },
       orderBy: { nameCn: "asc" },
     });
     expect(mocks.options.department).toHaveBeenNthCalledWith(2, {

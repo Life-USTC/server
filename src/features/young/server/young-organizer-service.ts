@@ -7,6 +7,8 @@ import {
   type PaginationInput,
 } from "@/lib/pagination";
 import { getCanonicalOrigin } from "@/lib/site-url";
+import { matchTableFilter } from "@/lib/table-filters";
+import { youngOrganizerNumberFields } from "../lib/young-table-filters";
 
 export type YoungOrganizerSummary = {
   id: string;
@@ -18,6 +20,7 @@ export type YoungOrganizerSummary = {
   historyCount: number;
 };
 export type YoungOrganizerListInput = PaginationInput & {
+  tableFilters?: Record<string, string>;
   search?: string | null;
   /** Web browse ordering; API clients retain alphabetical order. */
   activeFirst?: boolean;
@@ -79,6 +82,38 @@ export async function listYoungOrganizers(input: YoungOrganizerListInput = {}) {
     ? { name: { contains: search, mode: "insensitive" } }
     : {};
   const orderBy = [{ name: "asc" as const }, { id: "asc" as const }];
+  if (youngOrganizerNumberFields.some((name) => input.tableFilters?.[name])) {
+    const identities = await cachedCatalogRuntimeData(
+      "catalog:young-organizers-list",
+      JSON.stringify({ where, shape: "all-identities" }),
+      getCanonicalOrigin(),
+      () =>
+        prisma.youngOrganizer.findMany({
+          where,
+          select: selectOrganizer,
+          orderBy,
+        }),
+    );
+    const matching = (await withEventCounts(identities)).filter((organizer) =>
+      youngOrganizerNumberFields.every((name) =>
+        matchTableFilter(
+          organizer[name],
+          { name, label: name, type: "number" },
+          input.tableFilters ?? {},
+        ),
+      ),
+    );
+    if (input.activeFirst)
+      matching.sort(
+        (a, b) => Number(b.activeCount > 0) - Number(a.activeCount > 0),
+      );
+    return buildPaginatedResponse(
+      matching.slice(skip, skip + pageSize),
+      page,
+      pageSize,
+      matching.length,
+    );
+  }
   const { total, organizers } = await cachedCatalogRuntimeData(
     "catalog:young-organizers-list",
     JSON.stringify({

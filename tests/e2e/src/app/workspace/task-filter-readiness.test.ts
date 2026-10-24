@@ -2,7 +2,12 @@ import { expect, type Page, type Route } from "@playwright/test";
 import { test as academicTest } from "../../../utils/homework-fixture";
 import { waitForUiSettled } from "../../../utils/page-ready";
 import { test as todoTest } from "../../../utils/todo-fixture";
-import { openWorkspaceTaskFilter } from "../../../utils/workspace-task-filters";
+import {
+  applyWorkspaceTaskFilter,
+  expectWorkspaceTaskFilterSelected,
+  openWorkspaceTaskFilter,
+  workspaceTaskFilterValue,
+} from "../../../utils/workspace-task-filters";
 
 academicTest.describe.configure({ mode: "parallel" });
 for (const tab of ["homeworks", "todos", "exams"] as const) {
@@ -30,8 +35,11 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
       await page.goto(`/workspace/${tab}`, { waitUntil: "commit" });
       const trigger = page
         .locator('[data-slot="table-column-header"]')
-        .getByRole("button");
-      await expect(trigger).toHaveCount(1);
+        .getByRole("button", {
+          name: tab === "exams" ? /^(日期|Date)$/i : /^(状态|Status)$/i,
+        })
+        .filter({ visible: true })
+        .first();
       await expect(trigger).toBeVisible();
       await expect(trigger).toBeDisabled();
 
@@ -39,11 +47,9 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
       await waitForUiSettled(page);
       await expect(trigger).toBeEnabled();
       await openWorkspaceTaskFilter(page, tab);
-      const group = page
-        .locator('[data-slot="toggle-group"]')
-        .filter({ has: page.locator('[data-value="incomplete"]') });
-      const options = group.getByRole("radio");
-      await expect(options).toHaveCount(3);
+      const group = page.locator('[data-filter-field="completion"]:visible');
+      const options = group.getByRole("checkbox");
+      await expect(options).toHaveCount(tab === "homeworks" ? 4 : 2);
       for (const option of await options.all()) {
         await expect(option).toBeVisible();
         await expect(option).toBeEnabled();
@@ -51,13 +57,10 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
 
       await page.context().setOffline(true);
       for (const value of ["all", "completed", "incomplete"]) {
-        const option = group.locator(`[data-value="${value}"]`);
+        const option = workspaceTaskFilterValue(page, value);
         await expect(option).toBeEnabled();
-        await option.click();
-        await expect(group.locator('[aria-checked="true"]')).toHaveAttribute(
-          "data-value",
-          value,
-        );
+        await applyWorkspaceTaskFilter(page, option);
+        await expectWorkspaceTaskFilterSelected(option);
       }
     } catch (error) {
       scriptErrors.push(error);

@@ -1,19 +1,17 @@
-import { normalizeCatalogListQuery } from "@/features/catalog/lib/catalog-list-query";
-import { paginatedTeacherQuery } from "@/features/catalog/server/academic-paginated-queries";
+import {
+  catalogTableFilterValues,
+  normalizeCatalogListQuery,
+} from "@/features/catalog/lib/catalog-list-query";
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
 import {
   cachedCatalogListRuntimeData,
   catalogListCacheNamespace,
 } from "@/features/catalog/server/catalog-runtime-cache";
 import { getTeacherListFilterOptions } from "@/features/catalog/server/public-catalog-filter-options";
-import { buildTeacherWhere } from "@/features/catalog/server/teacher-query";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages.server";
-import {
-  optionalValue,
-  parsePositivePage,
-  toLoadData,
-} from "@/lib/load-data-utils";
+import { parsePositivePage, toLoadData } from "@/lib/load-data-utils";
+import { listTeacherTableSummaries } from "./catalog-table-read-model";
 
 export async function getTeacherListPage(
   url: URL,
@@ -46,20 +44,11 @@ async function getUncachedTeacherListPage(
   locale: AppLocale = DEFAULT_LOCALE,
 ) {
   const page = parsePositivePage(searchParams.get("page"));
-  const search = optionalValue(searchParams.get("search"));
-  const departmentId = optionalValue(searchParams.get("departmentId"));
-  const where = buildTeacherWhere({ departmentId, search });
-
-  const result = await paginatedTeacherQuery(
-    page,
-    CATALOG_PAGE_SIZE,
-    where,
-    { nameCn: "asc" },
+  const filters = catalogTableFilterValues("/catalog/teachers", searchParams);
+  const result = await listTeacherTableSummaries({
+    filters,
     locale,
-  );
-
-  return toLoadData({
-    ...result,
-    filters: { search, departmentId },
+    pagination: { page, pageSize: CATALOG_PAGE_SIZE },
   });
+  return toLoadData({ ...result, filters });
 }

@@ -34,8 +34,6 @@ export let examFilter: WorkspaceTaskTabsProps["examFilter"];
 export let examMetadataLabels: WorkspaceTaskTabsProps["examMetadataLabels"];
 export let examRows: WorkspaceTaskTabsProps["examRows"];
 export let examTimeLabel: WorkspaceTaskTabsProps["examTimeLabel"];
-export let filteredExamRows: WorkspaceTaskTabsProps["filteredExamRows"];
-export let filteredTodos: WorkspaceTaskTabsProps["filteredTodos"];
 export let homeworkActionError: string;
 export let homeworkCopy: WorkspaceTaskTabsProps["homeworkCopy"];
 export let homeworkFilter: WorkspaceTaskTabsProps["homeworkFilter"];
@@ -82,7 +80,8 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
     {deleteTodo}
     {createTodoAction}
     {updateTodoAction}
-    {filteredTodos}
+    todoItems={signedData.todos ?? []}
+    {commonCopy}
     {todoActionError}
     {todoSavingById}
     {isCreatingTodo}
@@ -137,7 +136,6 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
     {examMetadataLabels}
     {namePrimary}
     {examRows}
-    {filteredExamRows}
     locale={data.locale}
     bind:examFilter
   />

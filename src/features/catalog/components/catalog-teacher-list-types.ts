@@ -1,6 +1,9 @@
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import type { TableFilterLabels } from "@/lib/table-filters";
 
 export type TeacherListCommonLabels = {
+  tableFilters: TableFilterLabels;
+
   clear: string;
   applyFilters: string;
   loading: string;
@@ -35,6 +38,14 @@ export type TeacherListLabels = {
 };
 
 export type TeacherListFilters = {
+  name?: string | null;
+  code?: string | null;
+  email?: string | null;
+  teacherTitleId?: string | null;
+  sectionCount?: string | null;
+  sectionCountOp?: string | null;
+  sectionCountMax?: string | null;
+
   departmentId?: string | null;
   search?: string | null;
 };

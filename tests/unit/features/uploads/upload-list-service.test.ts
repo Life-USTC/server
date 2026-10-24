@@ -75,4 +75,33 @@ describe("listUploads", () => {
       expect.any(Function),
     );
   });
+
+  it("applies owner and column predicates before pagination and count while usage stays unfiltered", async () => {
+    await listUploads(
+      "user-1",
+      { pageSize: 20, skip: 20 },
+      {
+        filename: "report",
+        size: "100",
+        sizeOp: "between",
+        sizeMax: "500",
+        createdAt: "2026-10-24",
+        createdAtOp: "gte",
+      },
+    );
+    const where = {
+      userId: "user-1",
+      filename: { contains: "report", mode: "insensitive" },
+      size: { gte: 100, lte: 500 },
+      createdAt: { gte: new Date("2026-10-23T16:00:00Z") },
+    };
+    expect(uploadFindManyMock).toHaveBeenCalledWith(
+      expect.objectContaining({ where, skip: 20, take: 20 }),
+    );
+    expect(uploadCountMock).toHaveBeenCalledWith({ where });
+    expect(uploadAggregateMock).toHaveBeenCalledWith({
+      where: { userId: "user-1" },
+      _sum: { size: true },
+    });
+  });
 });

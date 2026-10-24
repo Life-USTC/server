@@ -87,6 +87,19 @@ export function createBusTabPlannerController(
     scheduleBusPlannerPreferenceSave();
   }
 
+  function applyBusFilters(selection: {
+    startCampusId: number | null;
+    endCampusId: number | null;
+    dayType: BusDayType;
+    showDepartedTrips: boolean;
+  }) {
+    input.setBusStartCampusId(selection.startCampusId);
+    input.setBusEndCampusId(selection.endCampusId);
+    input.setBusDayType(selection.dayType);
+    input.setBusShowDepartedTrips(selection.showDepartedTrips);
+    scheduleBusPlannerPreferenceSave();
+  }
+
   function mount() {
     initializeBusPlanner();
     const liveNow = new Date();
@@ -107,6 +120,7 @@ export function createBusTabPlannerController(
   }
 
   return {
+    applyBusFilters,
     initializeBusPlanner,
     mount,
     reverseBusStops,

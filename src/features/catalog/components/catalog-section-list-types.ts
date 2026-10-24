@@ -1,6 +1,10 @@
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import type { TableFilterLabels } from "@/lib/table-filters";
 
 export type SectionListCommonLabels = {
+  tableFilters: TableFilterLabels;
+  applyFilters: string;
+
   clear: string;
   loading: string;
   next: string;
@@ -14,6 +18,9 @@ export type SectionListCommonLabels = {
 export type SectionListLabels = {
   campus: string;
   capacity: string;
+  enrolled: string;
+  enrollmentLimit: string;
+  teacherCount: string;
   category: string;
   classType: string;
   courseName: string;
@@ -63,6 +70,19 @@ export type SectionListLabels = {
 };
 
 export type SectionListFilters = {
+  courseName?: string | null;
+  creditsOp?: string | null;
+  creditsMax?: string | null;
+  stdCount?: string | null;
+  stdCountOp?: string | null;
+  stdCountMax?: string | null;
+  limitCount?: string | null;
+  limitCountOp?: string | null;
+  limitCountMax?: string | null;
+  teacherCount?: string | null;
+  teacherCountOp?: string | null;
+  teacherCountMax?: string | null;
+
   campusId?: string | null;
   categoryId?: string | null;
   classTypeId?: string | null;
@@ -113,7 +133,3 @@ export type SectionListResultData = {
   filters: SectionListFilters;
   pagination: SectionListPagination;
 };
-
-export type SectionListFilterUpdater = (
-  patch: Partial<SectionListFilters>,
-) => void;

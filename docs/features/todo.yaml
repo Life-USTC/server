@@ -10,6 +10,18 @@ policy_refs:
 - rendering-and-cache
 - cases.mcp-assistant-workflows
 requirements:
+- id: todo.web-table-filters
+  category: presentation
+  rule: Todo title, priority, deadline, completion and content filters apply to the full loaded owner list. Priority and completion support multiple selections with OR within a field and AND across fields; deadlines compare Shanghai calendar dates. Column and top-area controls share a draft committed by one Apply action.
+  acceptance:
+    given: Completed and incomplete todos have different priorities and dated or unknown deadlines.
+    when: Filters combine title, priority alternatives, completion and date comparisons.
+    then:
+    - Matching uses the complete list and preserves deadline ordering.
+    - An empty selection means unrestricted; unknown dates match only unrestricted date filters.
+    test:
+      file: tests/unit/features/workspace/workspace-task-table-filters.test.ts
+      name: matches title, priority alternatives, completion and Shanghai due dates together
 - id: todo.single-delete-replay
   category: consistency
   applies_to:
@@ -76,7 +88,7 @@ requirements:
       name: consumer hides foreign rows at 390px
 - id: todo.web-list-state
   category: presentation
-  rule: The Web todo list exposes completion filters from the title column header on desktop and the card collection header on mobile. The selected filter and its entry point remain available even when no rows match.
+  rule: The Web todo list filters every displayed column from its header. Completion and content filters live in the shared top filter area. All controls edit one draft and one Apply action updates the list; the applied selection remains available when no rows match.
   acceptance:
     given: An isolated temporary owner and signed session have one incomplete todo and no completed rows.
     when: Desktop and mobile views repeatedly select the empty completed filter, switch to populated filters
@@ -85,7 +97,7 @@ requirements:
     - The selected completed filter remains checked while the actual empty state is rendered and no task
       actions exist.
     - Repeated selection does not fall back to another filter.
-    - Explicitly clearing the filter selects All and restores the populated list.
+    - Explicitly clearing the filter removes the restriction and restores the populated list.
     test:
       file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts
       name: todo.web-list-state 390
@@ -174,7 +186,7 @@ requirements:
       name: todo.bounded-summary-read
 - id: todo.mobile-toolbar-priority
   category: presentation
-  rule: At mobile widths, todos use cards with completion filters in the collection header. Desktop uses the title column header for the same filters; there is no display-mode menu.
+  rule: At mobile widths, todos use cards and desktop uses a table. Completion and content share the top filter area; title, priority and due-date controls live in column or compact collection headers. One Apply action commits all draft fields; there is no display-mode menu.
   acceptance:
     given: The authenticated owner has personal todos.
     when: The actual workspace is viewed at desktop and mobile widths and each completion filter is selected.
@@ -768,7 +780,7 @@ capabilities:
         then content; completion/edit/delete stay in the footer
       - completed status action button
       - 'filter: incomplete/completed/all'
-      - mobile compact toolbar with direct completion filters
+      - shared top completion/content filters and one Apply action
     requirement_refs:
     - todo.rest-list-limit
     - todo.mcp-list-limit

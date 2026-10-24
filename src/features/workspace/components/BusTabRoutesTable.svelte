@@ -2,21 +2,26 @@
 import ChevronLeftIcon from "@lucide/svelte/icons/chevron-left";
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import { onMount, type Snippet } from "svelte";
-import TableControlsRow from "#lib/components/TableControlsRow.svelte";
+import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import * as Table from "#lib/components/ui/table/index.js";
 import { cn } from "#lib/utils.js";
 import BusRouteDescription from "@/features/bus/components/BusRouteDescription.svelte";
 import type { BusApplicableRoute } from "@/features/bus/lib/bus-client";
+import { busStopFilterFields } from "@/features/bus/lib/bus-table-filters";
 import {
   busRouteSegmentStopColumns,
   busStopTimeLabel,
   busTripStopTimeForOrder,
 } from "@/features/workspace/lib/bus";
+import type { WorkspaceBusCopy } from "@/features/workspace/lib/bus-tab-types";
 
 export let busNextTripHighlightKey: string | null;
 export let routes: BusApplicableRoute[];
 export let label: string;
-export let controls: Snippet;
+export let filterValues: Record<string, string>;
+export let onFilterChange: (patch: Record<string, string>) => void;
+export let formId: string;
+export let busCopy: WorkspaceBusCopy;
 export let empty: Snippet;
 
 let canScrollLeft = false;
@@ -68,9 +73,6 @@ onMount(() => {
   >
     <Table.Root class="min-w-[var(--table-min-width)]">
       <Table.Caption class="sr-only">{label}</Table.Caption>
-      <Table.Header class="hidden lg:table-header-group">
-        <TableControlsRow colspan={columnCount}>{@render controls()}</TableControlsRow>
-      </Table.Header>
       {#each routeGroups as { route, stopColumns } (route.route.id)}
         <Table.Body data-testid="bus-route-section">
           <Table.Row>
@@ -88,7 +90,7 @@ onMount(() => {
                 colspan={index === stopColumns.length - 1 ? columnCount - stopColumns.length + 1 : 1}
                 class={index === 0 ? "text-left" : index === stopColumns.length - 1 ? "text-right" : "text-center"}
               >
-                {stop.label}
+                <TableFieldFilter label={stop.label} fields={busStopFilterFields(route.route.stops.find((item) => item.stopOrder === stop.stopOrder)!.campus.id, stop.label, busCopy)} values={filterValues} onchange={onFilterChange} labels={busCopy.tableFilters} idPrefix={`bus-route-${route.route.id}-stop-${stop.stopOrder}`} {formId} align={index === 0 ? "start" : index === stopColumns.length - 1 ? "end" : "center"} />
               </Table.Head>
             {/each}
           </Table.Row>

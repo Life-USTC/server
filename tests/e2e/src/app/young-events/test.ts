@@ -8,7 +8,7 @@
  *
  * ## UI/UX Elements
  * - Search input (searchbox) with submit and clear buttons
- * - Signup status and category selects (native comboboxes)
+ * - Shared filter drafts with multiple choices and one Apply action
  * - Date-grouped rows with links to /catalog/young-events/{youngId}
  * - URL-driven pagination
  * - Empty state when no events match
@@ -31,6 +31,12 @@ import { visibleText } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test as privateTest } from "../../../utils/personal-preferences-fixture";
 import { test } from "../../../utils/young-public-fixture";
+import {
+  applyYoungTableFilters,
+  fillYoungTableSearch,
+  openYoungTableField,
+  setYoungTableChoices,
+} from "../../../utils/young-table-filters";
 import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/catalog/young-events 第二课堂活动", () => {
@@ -98,21 +104,16 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
           .first(),
       ).toBeVisible();
 
-      const searchbox = page.getByRole("searchbox");
-      await searchbox.fill(DEV_SEED.youngEvent.name);
-      await page.getByRole("button", { name: /^(?:搜索|Search)$/i }).click();
+      await fillYoungTableSearch(page, DEV_SEED.youngEvent.name);
+      await applyYoungTableFilters(page);
       await page.waitForURL(/[?&]search=/);
       await expect(
         visibleText(page, DEV_SEED.youngEvent.name).first(),
       ).toBeVisible();
 
-      await searchbox.fill("");
-      await page.getByRole("button", { name: /^(状态|Status)$/ }).click();
-      const status = page.getByRole("dialog", { name: /^(状态|Status)$/ });
-      await status
-        .getByRole("combobox", { name: /活动范围|Activity scope/i })
-        .selectOption("false");
-      await status.getByRole("button", { name: /^(?:搜索|Search)$/i }).click();
+      await fillYoungTableSearch(page, "");
+      await setYoungTableChoices(page, "active", ["false"]);
+      await applyYoungTableFilters(page);
       await page.waitForURL(/active=false/);
       await expect(
         page.getByRole("link", { name: /已结束活动/ }).first(),
@@ -123,13 +124,65 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
         }),
       ).toHaveCount(0);
 
-      await page.getByRole("link", { name: /^(?:清除|Clear)$/i }).click();
-      await page.waitForURL(/\/catalog\/young-events$/);
+      await page
+        .locator('[data-slot="table-filter-apply"]')
+        .getByRole("button", { name: /^(?:清除|Clear)$/i })
+        .click();
+      await applyYoungTableFilters(page);
+      await expect(page).toHaveURL(
+        (url) =>
+          url.pathname === "/catalog/young-events" &&
+          !url.searchParams.has("active"),
+      );
       await expect(
         page
           .getByRole("link", { name: new RegExp(DEV_SEED.youngEvent.name) })
           .first(),
       ).toBeVisible();
+    });
+  });
+
+  test("status column filters match localized fallback badges", {
+    tag: "@Young/Web",
+  }, async ({
+    page,
+    isolatedWorker,
+    preferenceFlow,
+    youngPublicState: _youngPublicState,
+  }) => {
+    await preferenceFlow.run(async () => {
+      for (const [locale, activeStatus, endedStatus] of [
+        ["en-us", "SIGNUP", "Ended"],
+        ["zh-cn", "报名中", "已结束"],
+      ]) {
+        await page
+          .context()
+          .addCookies([
+            { name: "NEXT_LOCALE", value: locale, url: isolatedWorker.origin },
+          ]);
+        await gotoAndWaitForReady(page, "/catalog/young-events");
+        for (const [status, active] of [
+          [activeStatus, true],
+          [endedStatus, false],
+        ] as const) {
+          const field = await openYoungTableField(page, "status");
+          await field.locator("input").fill(status);
+          await applyYoungTableFilters(page);
+          await expect(page).toHaveURL(
+            (url) => url.searchParams.get("status") === status,
+          );
+          await expect(
+            page.locator(
+              `a[href="/catalog/young-events/${DEV_SEED.youngEvent.youngId}"]:visible`,
+            ),
+          ).toHaveCount(active ? 1 : 0);
+          await expect(
+            page.locator(
+              'a[href="/catalog/young-events/dev-scenario-young-event-ended"]:visible',
+            ),
+          ).toHaveCount(active ? 0 : 1);
+        }
+      }
     });
   });
 
@@ -144,17 +197,13 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
         page,
         `/catalog/young-events?search=${search}&organizerId=dev-scenario-young-organizer`,
       );
-      const organizer = page.locator("select[name='organizerId']");
-      await expect(organizer).toBeHidden();
-      await page.getByRole("button", { name: /^(活动|Event)$/ }).click();
-      await expect(organizer).toBeVisible();
-      await expect(organizer).toHaveValue("dev-scenario-young-organizer");
+      const organizer = await openYoungTableField(page, "organizerId");
+      await expect(
+        organizer.getByRole("checkbox", { checked: true }),
+      ).toHaveCount(1);
       await page.keyboard.press("Escape");
       await expect(page.getByRole("dialog")).toBeHidden();
-      await Promise.all([
-        page.waitForURL((url) => url.searchParams.has("timeBasis")),
-        page.getByRole("button", { name: /^(搜索|Search)$/ }).click(),
-      ]);
+      await applyYoungTableFilters(page);
       await expect(page).toHaveURL(/organizerId=dev-scenario-young-organizer/);
       await expect(
         page.getByRole("group", { name: /已选条件|Applied filters/ }),
@@ -266,7 +315,10 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
       ).toBeVisible();
 
       await gotoAndWaitForReady(page, "/catalog/young-events/organizers");
-      await expect(page.getByRole("searchbox")).toBeVisible();
+      await expect(
+        (await openYoungTableField(page, "search")).locator("input"),
+      ).toBeVisible();
+      await page.keyboard.press("Escape");
       await expect(
         page
           .getByText(/学生会|Students'? Union/i)
@@ -285,7 +337,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
 });
 
 for (const width of [1280, 390]) {
-  test(`metadata column filter isolates canceled drafts and submits the current search at ${width}px`, {
+  test(`column filters retain shared drafts and apply them together at ${width}px`, {
     tag: "@Young/Web",
   }, async ({ page, preferenceFlow, youngPublicState: _youngPublicState }) => {
     await preferenceFlow.run(async () => {
@@ -295,42 +347,36 @@ for (const width of [1280, 390]) {
         "/catalog/young-events?search=applied&organizerId=dev-scenario-young-organizer&module=智",
       );
       const search = `unsubmitted-search-${width}`;
-      await page.getByRole("searchbox").fill(search);
-      const trigger = page.getByRole("button", {
-        name: /^(活动|Event)$/,
-      });
-      const sheet = page.getByRole("dialog", { name: /^(活动|Event)$/ });
-      await trigger.click();
-      await expect(sheet).toBeVisible();
-      await expect(sheet.locator('input[name="search"]')).toHaveValue(search);
-      await sheet.locator("select[id$='-module']").selectOption("体");
-      await sheet.locator("select[name='organizerId']").selectOption("");
-      await page.keyboard.press("Escape");
-      await expect(sheet).toBeHidden();
-      await expect(page.getByRole("searchbox")).toHaveValue(search);
-      await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
-      await expect(page).toHaveURL(
-        (url) => url.searchParams.get("search") === search,
-      );
+      await fillYoungTableSearch(page, search);
+      await setYoungTableChoices(page, "module", ["体", "劳"]);
+      await setYoungTableChoices(page, "organizerId", []);
+      expect(new URL(page.url()).searchParams.get("search")).toBe("applied");
       expect(new URL(page.url()).searchParams.get("module")).toBe("智");
-      expect(new URL(page.url()).searchParams.get("organizerId")).toBe(
-        "dev-scenario-young-organizer",
-      );
-      await trigger.click();
-      await expect(sheet.locator("select[id$='-module']")).toHaveValue("智");
-      await expect(sheet.locator("select[name='organizerId']")).toHaveValue(
-        "dev-scenario-young-organizer",
-      );
-      await sheet.locator("select[id$='-module']").selectOption("劳");
-      await sheet.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+      const module = await openYoungTableField(page, "module");
+      await expect(
+        module.getByRole("checkbox", { name: "体", exact: true }),
+      ).toBeChecked();
+      await expect(
+        module.getByRole("checkbox", { name: "劳", exact: true }),
+      ).toBeChecked();
+      await expect(
+        module.getByRole("checkbox", { name: "智", exact: true }),
+      ).not.toBeChecked();
+      await page.keyboard.press("Escape");
+      await expect(
+        page.getByRole("button", { name: /^(应用筛选|Apply filters)$/i }),
+      ).toHaveCount(1);
+      await applyYoungTableFilters(page);
       await expect(page).toHaveURL(
-        (url) => url.searchParams.get("module") === "劳",
+        (url) =>
+          url.searchParams.get("search") === search &&
+          url.searchParams.get("module") === "体,劳" &&
+          !url.searchParams.has("organizerId"),
       );
-      await expect(sheet).toBeHidden();
-      expect(new URL(page.url()).searchParams.get("search")).toBe(search);
-      expect(new URL(page.url()).searchParams.get("organizerId")).toBe(
-        "dev-scenario-young-organizer",
-      );
+      await expect(page.getByRole("dialog")).toBeHidden();
+      await expect(
+        (await openYoungTableField(page, "search")).locator("input"),
+      ).toHaveValue(search);
     });
   });
 }

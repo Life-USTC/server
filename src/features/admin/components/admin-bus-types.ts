@@ -17,6 +17,9 @@ export type AdminBusEnhancedAction = (
 export type AdminBusVersionFormatter = (version: AdminBusVersion) => string;
 
 export type AdminBusCopy = {
+  filterEffectiveFrom: string;
+  filterEffectiveUntil: string;
+  filterSource: string;
   activated: string;
   activateAction: string;
   activateDescription: string;

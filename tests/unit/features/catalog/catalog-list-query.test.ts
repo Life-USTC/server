@@ -10,6 +10,82 @@ import {
 } from "@/features/catalog/lib/catalog-list-query";
 
 describe("catalog list query normalization", () => {
+  test("canonicalizes bounded multi-select IDs and rejects malformed lists atomically", () => {
+    const query = normalizeCatalogListQuery(
+      "/catalog/teachers",
+      new URLSearchParams({
+        departmentId: " 03,1,03,2 ",
+        teacherTitleId: "1,nope,3",
+        name: " 王 ",
+        code: " T ",
+        email: " example.test ",
+      }),
+    );
+    expect(Object.fromEntries(query)).toEqual({
+      departmentId: "1,2,3",
+      name: "王",
+      code: "T",
+      email: "example.test",
+    });
+    expect(
+      normalizeCatalogListQuery(
+        "/catalog/courses",
+        new URLSearchParams({
+          categoryId: Array.from({ length: 101 }, (_, i) => String(i + 1)).join(
+            ",",
+          ),
+        }),
+      ).has("categoryId"),
+    ).toBe(false);
+  });
+
+  test("normalizes complete numeric comparisons and rejects malformed ranges", () => {
+    const query = normalizeCatalogListQuery(
+      "/catalog/sections",
+      new URLSearchParams({
+        credits: "02.50",
+        creditsOp: "between",
+        creditsMax: "4.00",
+        stdCount: "01",
+        stdCountOp: "gte",
+        limitCount: "3.5",
+        limitCountOp: "lt",
+        teacherCount: "2",
+        teacherCountOp: "between",
+        teacherCountMax: "1",
+        courseName: " Algebra ",
+      }),
+    );
+    expect(Object.fromEntries(query)).toEqual({
+      credits: "2.5",
+      creditsOp: "between",
+      creditsMax: "4",
+      stdCount: "1",
+      stdCountOp: "gte",
+      courseName: "Algebra",
+    });
+    for (const operator of ["eq", "ne", "gt", "gte", "lt", "lte"]) {
+      const result = normalizeCatalogListQuery(
+        "/catalog/teachers",
+        new URLSearchParams({
+          sectionCount: "0",
+          sectionCountOp: operator,
+          sectionCountMax: "99",
+        }),
+      );
+      expect(result.get("sectionCount")).toBe("0");
+      expect(result.get("sectionCountOp")).toBe(
+        operator === "eq" ? null : operator,
+      );
+      expect(result.has("sectionCountMax")).toBe(false);
+    }
+    expect(
+      normalizeCatalogListQuery(
+        "/catalog/sections",
+        new URLSearchParams("credits=3&creditsOp=invalid"),
+      ).has("credits"),
+    ).toBe(false);
+  });
   test("normalizes direct course loader input to bounded canonical values", () => {
     const search = "x".repeat(CATALOG_SEARCH_MAX_LENGTH + 20);
     const normalized = normalizeCatalogListQuery(
@@ -61,6 +137,39 @@ describe("catalog list query normalization", () => {
 });
 
 describe("catalog list shared-cache admission", () => {
+  test("admits canonical multi-selection and comparisons without merging distinct values", () => {
+    expect(
+      isCacheableCatalogListQuery(
+        "/catalog/teachers",
+        new URLSearchParams(
+          "departmentId=1,2&sectionCount=0&sectionCountOp=between&sectionCountMax=2",
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      isCacheableCatalogListQuery(
+        "/catalog/teachers",
+        new URLSearchParams("departmentId=2,1"),
+      ),
+    ).toBe(false);
+    expect(
+      isCacheableCatalogListQuery(
+        "/catalog/teachers",
+        new URLSearchParams("sectionCount=0&sectionCountOp=between"),
+      ),
+    ).toBe(false);
+    expect(
+      normalizeCatalogListQuery(
+        "/catalog/teachers",
+        new URLSearchParams("sectionCount=0&sectionCountOp=lt"),
+      ).toString(),
+    ).not.toBe(
+      normalizeCatalogListQuery(
+        "/catalog/teachers",
+        new URLSearchParams("sectionCount=0&sectionCountOp=gt"),
+      ).toString(),
+    );
+  });
   test.each([
     ["/catalog/courses", ""],
     ["/catalog/courses", "search=data+science&page=2&categoryId=7"],
@@ -107,18 +216,40 @@ describe("catalog list shared-cache admission", () => {
 });
 
 describe("catalogListPageHref", () => {
+  test("retains the existing page bound without rewriting filters", () => {
+    const url = new URL(
+      "https://example.test/catalog/sections?campusId=2,1&credits=3&creditsOp=gte",
+    );
+    const result = new URL(catalogListPageHref(url, CATALOG_MAX_PAGE + 1), url);
+    expect(Object.fromEntries(result.searchParams)).toEqual({
+      campusId: "2,1",
+      credits: "3",
+      creditsOp: "gte",
+      page: String(CATALOG_MAX_PAGE),
+    });
+  });
+  test("only changes page and preserves repeated and unknown parameters", () => {
+    const url = new URL(
+      "https://example.test/catalog/teachers?departmentId=3,1&departmentId=8&future=value&sectionCount=0&sectionCountOp=ne&page=2",
+    );
+    const result = new URL(catalogListPageHref(url, 3), url);
+    expect(result.searchParams.getAll("departmentId")).toEqual(["3,1", "8"]);
+    expect(result.searchParams.get("future")).toBe("value");
+    expect(result.searchParams.get("sectionCountOp")).toBe("ne");
+    expect(result.searchParams.get("page")).toBe("3");
+  });
   test.each([
     [
       1,
-      "/catalog/sections?order=desc&search=math&semesterId=3&sort=code&teacher=%E5%BC%A0",
+      "/catalog/sections?semesterId=3&teacher=%E5%BC%A0&sort=code&order=desc&search=math",
     ],
     [
       2,
-      "/catalog/sections?order=desc&page=2&search=math&semesterId=3&sort=code&teacher=%E5%BC%A0",
+      "/catalog/sections?page=2&semesterId=3&teacher=%E5%BC%A0&sort=code&order=desc&search=math",
     ],
     [
       9,
-      "/catalog/sections?order=desc&page=9&search=math&semesterId=3&sort=code&teacher=%E5%BC%A0",
+      "/catalog/sections?page=9&semesterId=3&teacher=%E5%BC%A0&sort=code&order=desc&search=math",
     ],
   ])(
     "preserves filters for first, middle, and last page (%s)",
@@ -143,7 +274,7 @@ describe("catalogListPageHref", () => {
     );
 
     expect(href).toBe(
-      "/catalog/sections?order=desc&page=2&search=math&semesterId=3&sort=code&teacher=%E5%BC%A0",
+      "/catalog/sections?semesterId=3&teacher=%E5%BC%A0&sort=code&order=desc&search=math&page=2",
     );
   });
 

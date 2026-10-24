@@ -3,8 +3,11 @@ import { test } from "../../../utils/catalog-search-fixture";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
+  applyWorkspaceTaskFilter,
+  expectWorkspaceTaskFilterSelected,
   openWorkspaceTaskFilter,
   test as taskFilterTest,
+  workspaceTaskFilterValue,
 } from "../../../utils/workspace-task-filters";
 
 const viewports = [
@@ -556,7 +559,7 @@ for (const [domain, tab] of [
                 await expect(clear).toHaveCount(0);
               }
               const filter = await openWorkspaceTaskFilter(page, tab);
-              await expect(filter.locator('[data-value="all"]')).toBeVisible();
+              await expect(workspaceTaskFilterValue(page, "all")).toBeVisible();
               await page.keyboard.press("Escape");
               await expect(filter).toBeHidden();
               if (viewport.width >= 1280)
@@ -605,21 +608,18 @@ for (const [domain, tab] of [
             } else {
               await expect(clear).toHaveCount(0);
               const dialog = await openWorkspaceTaskFilter(page, tab);
-              await dialog
-                .locator('[data-slot="toggle-group"]')
-                .filter({ has: page.locator('[data-value="incomplete"]') })
-                .locator('[data-value="all"]')
-                .click();
+              await applyWorkspaceTaskFilter(
+                page,
+                workspaceTaskFilterValue(page, "all"),
+              );
               await page.keyboard.press("Escape");
               await expect(dialog).toBeHidden();
             }
             // Open the header to inspect the applied filter.
-            const appliedFilter = await openWorkspaceTaskFilter(page, tab);
-            await expect(
-              appliedFilter.locator(
-                '[data-slot="toggle-group"] [aria-checked="true"]',
-              ),
-            ).toHaveAttribute("data-value", "all");
+            await openWorkspaceTaskFilter(page, tab);
+            await expectWorkspaceTaskFilterSelected(
+              workspaceTaskFilterValue(page, "all"),
+            );
             await page.keyboard.press("Escape");
             await expect(clear).toHaveCount(0);
             await expect(

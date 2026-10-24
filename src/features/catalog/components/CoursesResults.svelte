@@ -1,10 +1,8 @@
 <script lang="ts">
-import type { Snippet } from "svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
-import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
@@ -28,7 +26,6 @@ import type {
 } from "./catalog-course-list-types";
 
 interface Props {
-  controls: Snippet<[string]>;
   columnFilters: Record<string, CatalogColumnFilterProps>;
   courseEmptyDescription: () => string;
   courseLabels: CourseListLabels;
@@ -39,7 +36,6 @@ interface Props {
 }
 
 let {
-  controls,
   columnFilters,
   courseEmptyDescription,
   courseLabels,
@@ -87,7 +83,6 @@ let courseSearchSummary = $derived(
     <ResponsiveCollection>
       {#snippet mobile()}
         <div class="grid gap-3" data-slot="collection-header">
-          {@render controls("mobile")}
           <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
             {#each Object.entries(columnFilters) as [key, column] (key)}
               <CatalogColumnFilter {...column} align="start" idPrefix={"mobile-course-" + key} />
@@ -126,10 +121,9 @@ let courseSearchSummary = $derived(
       {#snippet desktop()}
         <Table.Root>
           <Table.Header>
-            <TableControlsRow colspan={5}>{@render controls("desktop")}</TableControlsRow>
             <Table.Row>
-              <Table.Head>{courseLabels.courseName}</Table.Head>
-              <Table.Head>{courseLabels.courseCode}</Table.Head>
+              <Table.Head><CatalogColumnFilter {...columnFilters.name} idPrefix="desktop-course-name" /></Table.Head>
+              <Table.Head><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-course-code" /></Table.Head>
               <Table.Head><CatalogColumnFilter {...columnFilters.educationLevel} idPrefix="desktop-course-educationLevel" /></Table.Head>
               <Table.Head><CatalogColumnFilter {...columnFilters.category} idPrefix="desktop-course-category" /></Table.Head>
               <Table.Head><CatalogColumnFilter {...columnFilters.classType} idPrefix="desktop-course-classType" /></Table.Head>

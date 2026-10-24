@@ -5,8 +5,9 @@ import ListPagination from "#lib/components/ListPagination.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
-import TableControlsRow from "#lib/components/TableControlsRow.svelte";
+import SearchField from "#lib/components/SearchField.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import { resolveStatusToken } from "#lib/ui/action-status-tokens.js";
@@ -16,8 +17,8 @@ import type {
   YoungOrganizerSummary,
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
-import type { YoungEventsPageFilters } from "@/features/young/server/young-page-load";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
+import { tableFilterValues } from "@/lib/table-filters";
 import { page as appPage } from "$app/state";
 import {
   groupYoungEventsByStartDate,
@@ -27,6 +28,7 @@ import {
   youngListTimeLabel,
 } from "../lib/young-event-display";
 import { youngDetailHref } from "../lib/young-navigation";
+import { youngEventTableFields } from "../lib/young-table-filters";
 import YoungEventFilters from "./YoungEventFilters.svelte";
 import YoungSourceNote from "./YoungSourceNote.svelte";
 
@@ -34,7 +36,7 @@ type Props = {
   categories: string[];
   copy: AppPageCopy;
   data: YoungEventSummary[];
-  filters: YoungEventsPageFilters;
+  tableFilters: Record<string, string>;
   organizers: Pick<YoungOrganizerSummary, "id" | "name">[];
   source: YoungSourceFreshness;
   pagination: {
@@ -45,10 +47,63 @@ type Props = {
   };
 };
 
-let { categories, copy, data, filters, organizers, pagination, source }: Props =
-  $props();
+let {
+  categories,
+  copy,
+  data,
+  tableFilters,
+  organizers,
+  pagination,
+  source,
+}: Props = $props();
 
-let searchDraft = $derived(filters.search ?? "");
+let draft = $derived({ ...tableFilters });
+const fields = $derived(
+  youngEventTableFields(
+    copy,
+    categories,
+    organizers,
+    draft.timeBasis,
+    draft.category,
+  ),
+);
+const appliedFields = $derived(
+  youngEventTableFields(
+    copy,
+    categories,
+    organizers,
+    tableFilters.timeBasis,
+    tableFilters.category,
+  ),
+);
+const columns = $derived([
+  { label: copy.youngEvents.eventName, names: ["search"] },
+  { label: copy.youngEvents.eventTime, names: ["startAt"] },
+  { label: copy.youngEvents.location, names: ["location"] },
+  { label: copy.youngEvents.capacity, names: ["capacity", "appliedCount"] },
+  { label: copy.youngEvents.status, names: ["status"] },
+]);
+const extras = $derived(
+  fields.filter(
+    (field) => !columns.some((column) => column.names.includes(field.name)),
+  ),
+);
+function patchDraft(patch: Record<string, string>) {
+  draft = { ...draft, ...patch };
+}
+
+function summaryValue(field: (typeof fields)[number], value: string) {
+  return field.options
+    ? value
+        .split(",")
+        .map(
+          (item) =>
+            field.options?.find((option) => option.value === item)?.label ??
+            item,
+        )
+        .join(", ")
+    : value;
+}
 const youngCopy = $derived(copy.youngEvents);
 const commonLabels = $derived(copy.common);
 
@@ -136,6 +191,10 @@ function listStatus(event: YoungEventSummary) {
   <CollectionEmpty description={youngCopy.description} title={youngCopy.noEventsFound} variant="browse" />
 {/snippet}
 
+{#snippet columnFilter(label: string, names: string[], prefix: string)}
+  <YoungEventFilters {copy} fields={fields.filter((field) => names.includes(field.name))} values={draft} applied={tableFilters} onchange={patchDraft} {label} prefix={`${prefix}-${names[0]}`} formId="young-event-filters" />
+{/snippet}
+
 <CollectionPage footer={paginationFooter} title={youngCopy.title}>
   {#snippet belowTitle()}
     {@render description()}
@@ -147,14 +206,42 @@ function listStatus(event: YoungEventSummary) {
       totalPages={pagination.totalPages}
     />
 
+      <div class="grid min-w-0 gap-3" data-slot="table-filter-toolbar">
+      <form id="young-event-filters" action="/catalog/young-events" method="get" class="flex min-w-0 flex-wrap items-center gap-3" data-slot="table-filter-apply">
+        {#each Object.entries(draft).filter(([, value]) => value) as [name, value]}
+          {#if name === "category"}
+            {#each tableFilterValues(value) as category}
+              <input type="hidden" name="category" value={decodeURIComponent(category)} />
+            {/each}
+          {:else}
+            <input type="hidden" {name} {value} />
+          {/if}
+        {/each}
+        <div class="flex w-full min-w-0 sm:w-auto sm:flex-1">
+          <SearchField id="young-event-search" label={copy.common.search} placeholder={youngCopy.searchPlaceholder} bind:value={() => draft.search ?? "", (value) => patchDraft({ search: value })} />
+        </div>
+        <Button type="submit">{copy.common.applyFilters}</Button>
+        <Button type="button" variant="ghost" onclick={() => { draft = {}; }}>{copy.common.clear}</Button>
+      </form>
+      <div class="flex flex-wrap items-center gap-3">
+        {#each extras as field}
+          <YoungEventFilters {copy} fields={[field]} values={draft} applied={tableFilters} onchange={patchDraft} label={field.label} prefix={`extra-${field.name}`} formId="young-event-filters" />
+        {/each}
+      </div>
+      </div>
+      {#if appliedFields.some((field) => tableFilters[field.name])}
+        <div class="flex flex-wrap gap-2" role="group" aria-label={youngCopy.activeFilters}>
+          {#each appliedFields.filter((field) => tableFilters[field.name]) as field}
+            <Badge variant="outline" class="h-auto max-w-full whitespace-normal [overflow-wrap:anywhere]">{field.label}: {summaryValue(field, tableFilters[field.name])}</Badge>
+          {/each}
+        </div>
+      {/if}
       <ResponsiveCollection>
         {#snippet mobile()}
-          <div class="grid gap-3" data-slot="collection-header">
-            <YoungEventFilters {copy} {filters} {organizers} {categories} mode="search" prefix="mobile-young-event" bind:searchDraft />
-            <div class="flex flex-wrap items-center gap-4">
-              <YoungEventFilters {copy} {filters} {organizers} {categories} mode="metadata" prefix="mobile-young-event" bind:searchDraft />
-              <YoungEventFilters {copy} {filters} {organizers} {categories} mode="status" prefix="mobile-young-event" bind:searchDraft />
-            </div>
+          <div class="mb-3 flex flex-wrap gap-3" data-slot="collection-header">
+            {#each columns as column}
+              {@render columnFilter(column.label, column.names, "mobile")}
+            {/each}
           </div>
           {#if data.length > 0}
           <div class="grid gap-6">
@@ -196,15 +283,12 @@ function listStatus(event: YoungEventSummary) {
         {#snippet desktop()}
           <Table.Root>
             <Table.Header>
-              <TableControlsRow colspan={5}>
-                <YoungEventFilters {copy} {filters} {organizers} {categories} mode="search" prefix="desktop-young-event" bind:searchDraft />
-              </TableControlsRow>
               <Table.Row>
-                <Table.Head><YoungEventFilters {copy} {filters} {organizers} {categories} mode="metadata" prefix="desktop-young-event" bind:searchDraft /></Table.Head>
-                <Table.Head>{youngCopy.eventTime}</Table.Head>
-                <Table.Head>{youngCopy.location}</Table.Head>
-                <Table.Head class="text-right" style="text-align: right">{youngCopy.capacity}</Table.Head>
-                <Table.Head><YoungEventFilters {copy} {filters} {organizers} {categories} mode="status" prefix="desktop-young-event" bind:searchDraft /></Table.Head>
+                <Table.Head>{@render columnFilter(youngCopy.eventName, ["search"], "desktop")}</Table.Head>
+                <Table.Head>{@render columnFilter(youngCopy.eventTime, ["startAt"], "desktop")}</Table.Head>
+                <Table.Head>{@render columnFilter(youngCopy.location, ["location"], "desktop")}</Table.Head>
+                <Table.Head class="text-right" style="text-align: right">{@render columnFilter(youngCopy.capacity, ["capacity", "appliedCount"], "desktop")}</Table.Head>
+                <Table.Head>{@render columnFilter(youngCopy.status, ["status"], "desktop")}</Table.Head>
               </Table.Row>
             </Table.Header>
             <Table.Body>

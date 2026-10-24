@@ -35,6 +35,12 @@ async function openControls(page: Page) {
   await expect(page.getByTestId("bus-start-stop-group")).toBeVisible();
 }
 
+async function applyRouteFilters(page: Page) {
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: /Apply filters|应用筛选/ }).click();
+  await openControls(page);
+}
+
 test("bus.core-filters-only", { tag: "@Bus/Web" }, async ({
   page,
   preferenceFlow,
@@ -43,10 +49,7 @@ test("bus.core-filters-only", { tag: "@Bus/Web" }, async ({
   await preferenceFlow.run(async () => {
     for (const width of [1280, 390]) {
       await openPlanner(page, width, "en-us", isolatedWorker.origin);
-      const header =
-        width >= 1024
-          ? page.locator("thead:visible")
-          : page.locator('[data-slot="collection-header"]:visible');
+      const header = page.locator('[data-slot="collection-header"]:visible');
       await expect(
         header.getByRole("button", { name: "Change route", exact: true }),
       ).toBeVisible();
@@ -89,16 +92,20 @@ test("bus.core-filters-only", { tag: "@Bus/Web" }, async ({
         exact: true,
       });
       await departed.click();
+      await applyRouteFilters(page);
       await expect(departed).toBeChecked();
       await expect(
         page.getByTestId("bus-route-section").filter({ hasText: "北区" }),
       ).toContainText("07:30");
       await departed.click();
+      await applyRouteFilters(page);
       await expect(departed).not.toBeChecked();
       await end.getByRole("radio", { name: "南区", exact: true }).click();
+      await applyRouteFilters(page);
       await expect(page.getByTestId("bus-route-section")).toHaveCount(1);
       await expect(page.getByTestId("bus-route-section")).toContainText("南区");
       await end.getByRole("radio", { name: "西区", exact: true }).click();
+      await applyRouteFilters(page);
     }
   });
 });

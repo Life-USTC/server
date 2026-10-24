@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 import type { TestPrismaClient } from "../../shared/prisma";
 import { withBrowserWorkflow } from "./browser-workflow";
@@ -18,19 +18,75 @@ export async function openWorkspaceTaskFilter(
   tab: "todos" | "homeworks" | "exams",
 ) {
   const labels = {
-    todos: /^(标题|Title)$/i,
+    todos: /^(状态|Status)$/i,
     homeworks: /^(状态|Status)$/i,
     exams: /^(日期|Date)$/i,
   };
   const dialog = page.getByRole("dialog", { name: labels[tab] });
   if (await dialog.isVisible()) return dialog;
   const trigger = page
-    .locator('[data-slot="table-column-header"]')
+    .locator('[data-slot="table-column-header"]:visible')
     .getByRole("button", { name: labels[tab] });
   await expect(trigger).toBeVisible();
   await trigger.click();
   await expect(dialog).toBeVisible();
   return dialog;
+}
+
+export function workspaceTaskFilterControl(page: Page, name: string | RegExp) {
+  const group = page.locator('[data-filter-field="completion"]:visible');
+  const all =
+    typeof name === "string"
+      ? /^(All|全部)$/i.test(name)
+      : name.test("All") || name.test("全部");
+  return all
+    ? group.getByRole("button").first()
+    : group.getByRole("checkbox", { name, exact: typeof name === "string" });
+}
+
+/** Completion choices now edit the shared draft; applying is one page action. */
+export async function applyWorkspaceTaskFilter(
+  page: Page,
+  control: Locator,
+  action: "click" | "space" = "click",
+) {
+  const group = page.locator('[data-filter-field="completion"]:visible');
+  const checkbox = (await control.getAttribute("role")) === "checkbox";
+  await group.getByRole("button").first().click();
+  if (checkbox) {
+    if (action === "space") await control.press("Space");
+    else await control.check();
+  }
+  await expectWorkspaceTaskFilterSelected(control);
+  // Closing a popover must not turn its last pointer position into an
+  // unrelated room-map hover while the offline filter scenario is running.
+  await page.mouse.move(0, 0);
+  await page.keyboard.press("Escape");
+  await page
+    .locator('[data-slot="table-filter-apply"]:visible')
+    .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+    .click();
+  const tab = new URL(page.url()).pathname.split("/").at(-1);
+  if (tab !== "todos" && tab !== "homeworks" && tab !== "exams")
+    throw new Error("Expected a task page");
+  await openWorkspaceTaskFilter(page, tab);
+}
+
+export function workspaceTaskFilterValue(page: Page, value: string) {
+  return workspaceTaskFilterControl(
+    page,
+    value === "all"
+      ? "All"
+      : value === "completed"
+        ? /^(已完成|Completed|Ended|已结束)$/i
+        : /^(未完成|Incomplete|Upcoming|未结束)$/i,
+  );
+}
+
+export async function expectWorkspaceTaskFilterSelected(control: Locator) {
+  if ((await control.getAttribute("role")) === "checkbox")
+    await expect(control).toBeChecked();
+  else await expect(control).toHaveAttribute("aria-pressed", "true");
 }
 
 /** Arrange only domain rows in the calling test's private database. */

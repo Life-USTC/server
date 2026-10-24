@@ -591,7 +591,7 @@ const ROW_HEADER_TABLES: readonly { file: string; sections: string }[] = [
   },
   {
     file: "src/features/workspace/components/BusTabRoutesTable.svelte",
-    sections: "body+header",
+    sections: "body",
   },
   {
     file: "src/features/workspace/components/TodoDetailDialog.svelte",

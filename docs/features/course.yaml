@@ -15,6 +15,19 @@ access:
   admin: Can browse course information. Does not directly modify course facts through ordinary pages.
   agent: Can read course search and detail capabilities.
 requirements:
+- id: course.web-table-filters
+  category: behavior
+  rule: Course names and codes support case-insensitive text filters; category, class type and education level accept up to 100 comma-separated positive IDs. Web filters combine before stable database pagination. REST, GraphQL and MCP retain their existing scalar query contracts.
+  acceptance:
+    given: Two courses have different categories and shared class type and education level.
+    when: The public Web table read service combines text and metadata filters and reads one result per page.
+    then:
+    - Both selected categories match as an OR within that field and intersect the other fields.
+    - Localized DTOs, stable page order, empty terminal pages and exact filtered totals are preserved.
+    - Untrusted text remains a bound SQL value.
+    test:
+      file: tests/integration/catalog-table-filters.test.ts
+      name: course.web-table-filters
 - id: course.static-course-identity
   category: consistency
   rule: Static ingestion preserves upstream Course id as Course.jwId; code, names and classifications

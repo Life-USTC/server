@@ -1,6 +1,11 @@
-import { expect, type Locator, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import type { TestPrismaClient } from "../../../../shared/prisma";
-import { openCatalogColumnFilter } from "../../../utils/catalog-table-filters";
+import {
+  applyCatalogFilters,
+  expectCatalogFilterValue,
+  openCatalogColumnFilter,
+  setCatalogFilterValue as setDraft,
+} from "../../../utils/catalog-table-filters";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../../../utils/personal-preferences-fixture";
 
@@ -114,15 +119,13 @@ async function cases(db: TestPrismaClient): Promise<FilterCase[]> {
         },
         columns: [
           { label: /^(学期|Semester)$/i, fields: ["semesterId"] },
+          { label: /^(课程代码|Course Code)$/i, fields: ["courseCode"] },
+          { label: /^(课程类别|Course Category)$/i, fields: ["categoryId"] },
           {
-            label: /^(课程名称|Course Name)$/i,
-            fields: [
-              "courseCode",
-              "categoryId",
-              "educationLevelId",
-              "classTypeId",
-            ],
+            label: /^(教育层次|Education Level)$/i,
+            fields: ["educationLevelId"],
           },
+          { label: /^(课程类型|Class Type)$/i, fields: ["classTypeId"] },
           { label: /^(教学班代码|Section Code)$/i, fields: ["sectionCode"] },
           { label: /^(教师|Teachers)$/i, fields: ["teacher"] },
           { label: /^(学分|Credits)$/i, fields: ["credits"] },
@@ -132,15 +135,6 @@ async function cases(db: TestPrismaClient): Promise<FilterCase[]> {
       },
     ];
   });
-}
-
-async function setDraft(dialog: Locator, name: string, value: string) {
-  const field = dialog.locator(`[name="${name}"]`);
-  if (await field.evaluate((element) => element.tagName === "SELECT")) {
-    await field.selectOption(value);
-  } else {
-    await field.fill(value);
-  }
 }
 
 async function resultText(page: Page) {
@@ -169,28 +163,28 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
         await expect(search).toBeVisible();
         expect(
           await search.evaluate((node) =>
-            Boolean(node.closest('thead, [data-slot="collection-header"]')),
+            Boolean(node.closest('[data-slot="table-filter-toolbar"]')),
           ),
         ).toBe(true);
         for (const column of fixture.columns) {
           const dialog = await openCatalogColumnFilter(page, column.label);
           await expect(page.getByRole("dialog")).toHaveCount(1);
-          await expect(dialog.locator("form")).toHaveCount(1);
-          const fields = dialog.locator(
-            'select[name], input:not([type="hidden"])[name]',
-          );
-          expect(
-            await fields.evaluateAll((nodes) =>
-              nodes.map((node) => node.getAttribute("name")).sort(),
-            ),
-          ).toEqual([...column.fields].sort());
-          for (const name of column.fields)
-            await expect(
-              dialog.locator(`[name="${name}"]`),
-            ).toHaveAccessibleName(/.+/);
+          await expect(dialog.locator("form")).toHaveCount(0);
+          for (const name of column.fields) {
+            const field = dialog.locator(`[data-filter-field="${name}"]`);
+            await expect(field).toBeVisible();
+            const inputs = field.locator(
+              'input:not([type="hidden"]), button[role="checkbox"]',
+            );
+            for (const input of await inputs.all())
+              await expect(input).toHaveAccessibleName(/.+/);
+          }
           await expect(
             dialog.getByRole("button", { name: /应用筛选|Apply filters/i }),
-          ).toBeVisible();
+          ).toHaveCount(0);
+          await expect(
+            page.getByRole("button", { name: /应用筛选|Apply filters/i }),
+          ).toHaveCount(1);
           await page.keyboard.press("Escape");
           await expect(dialog).toBeHidden();
           await expect(
@@ -202,7 +196,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           ).toBeFocused();
         }
         await search.fill(fixture.search);
-        await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+        await applyCatalogFilters(page);
         await expect(page.locator("#main-content")).toContainText(
           fixture.result,
         );
@@ -234,8 +228,10 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
         for (const dismissal of ["outside", "escape"]) {
           const dialog = await openCatalogColumnFilter(page, column.label);
           for (const name of column.fields) {
-            await expect(dialog.locator(`[name="${name}"]`)).toHaveValue(
-              fixture.filters[name],
+            await expectCatalogFilterValue(
+              dialog,
+              name,
+              dismissal === "outside" ? fixture.filters[name] : "",
             );
             await setDraft(dialog, name, "");
           }
@@ -248,10 +244,9 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
         }
         const restored = await openCatalogColumnFilter(page, column.label);
         for (const name of column.fields)
-          await expect(restored.locator(`[name="${name}"]`)).toHaveValue(
-            fixture.filters[name],
-          );
+          await expectCatalogFilterValue(restored, name, "");
         await page.keyboard.press("Escape");
+        await expect(restored).toBeHidden();
       }
     });
   });
@@ -277,20 +272,17 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           await setDraft(dialog, name, fixture.filters[name]);
           applied[name] = fixture.filters[name];
         }
-        await dialog
-          .getByRole("button", { name: /应用筛选|Apply filters/i })
-          .click();
+        await page.keyboard.press("Escape");
         await expect(dialog).toBeHidden();
-        await expect
-          .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
-          .toEqual(applied);
-        await expect(page.locator("#main-content")).toContainText(
-          fixture.result,
-        );
       }
+      await applyCatalogFilters(page);
+      await expect
+        .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
+        .toEqual(applied);
+      await expect(page.locator("#main-content")).toContainText(fixture.result);
       const changedSearch = fixture.result;
       await page.getByRole("searchbox").fill(changedSearch);
-      await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+      await applyCatalogFilters(page);
       await expect
         .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
         .toEqual({ ...applied, search: changedSearch });
@@ -305,7 +297,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
   });
 }
 
-test("section column sorting preserves applied filters and discards unapplied drafts", {
+test("section sorting shares the page filter draft and applies once", {
   tag: "@Section/Web",
 }, async ({ page, preferenceFlow, isolatedWorker }) => {
   await preferenceFlow.run(async () => {
@@ -333,8 +325,10 @@ test("section column sorting preserves applied filters and discards unapplied dr
         fixture.columns.find(
           (entry) => entry.label.source === column.label.source,
         )?.fields ?? [];
-      for (const name of fields) await setDraft(dialog, name, "");
-      await dialog.getByRole("link", { name: /^(降序|Descending)$/i }).click();
+      for (const name of fields)
+        await setDraft(dialog, name, fixture.filters[name]);
+      await dialog.getByRole("radio", { name: /^(降序|Descending)$/i }).click();
+      await applyCatalogFilters(page);
       await expect
         .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
         .toEqual({ ...applied, sort: column.key, order: "desc" });
@@ -345,8 +339,9 @@ test("section column sorting preserves applied filters and discards unapplied dr
         ).toHaveAttribute("aria-sort", "descending");
       const sorted = await openCatalogColumnFilter(page, column.label);
       await sorted
-        .getByRole("link", { name: /^(默认顺序|Default order)$/i })
+        .getByRole("radio", { name: /^(默认顺序|Default order)$/i })
         .click();
+      await applyCatalogFilters(page);
       await expect
         .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
         .toEqual(applied);

@@ -27,6 +27,11 @@ export let targetLabel: AdminModerationCommentFormatter;
       {#snippet mobile()}
         <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
           {@render filterControls("search", "mobile")}
+          {@render filterControls("content", "mobile")}
+          {@render filterControls("author", "mobile")}
+          {@render filterControls("target", "mobile")}
+          {@render filterControls("createdAt", "mobile")}
+
           {@render filterControls("status", "mobile")}
         </div>
         {#if comments.length === 0}<CollectionEmpty variant="compact" description={copy.noComments} />{:else}

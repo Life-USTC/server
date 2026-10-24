@@ -53,6 +53,11 @@ function creatorLabel(homework: AdminModerationHomework) {
       {#snippet mobile()}
         <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
           {@render filterControls("search", "mobile")}
+          {@render filterControls("content", "mobile")}
+          {@render filterControls("target", "mobile")}
+          {@render filterControls("createdAt", "mobile")}
+          {@render filterControls("dueAt", "mobile")}
+
           {@render filterControls("status", "mobile")}
         </div>
         {#if homeworks.length === 0}<CollectionEmpty variant="compact" description={copy.noHomeworks} />{:else}
@@ -107,10 +112,10 @@ function creatorLabel(homework: AdminModerationHomework) {
             <Table.Header>
         <TableControlsRow colspan={6}>{@render filterControls("search", "desktop")}</TableControlsRow>
               <Table.Row>
-                <Table.Head class="w-[28%]">{copy.homeworkTitle}</Table.Head>
-                <Table.Head class="w-[22%]">{copy.homeworkSection}</Table.Head>
-                <Table.Head class="w-[16%] text-right">{copy.createdAt}</Table.Head>
-                <Table.Head class="w-[16%] text-right">{copy.homeworkDue}</Table.Head>
+                <Table.Head class="w-[28%]">{@render filterControls("content", "desktop")}</Table.Head>
+                <Table.Head class="w-[22%]">{@render filterControls("target", "desktop")}</Table.Head>
+                <Table.Head class="w-[16%] text-right">{@render filterControls("createdAt", "desktop")}</Table.Head>
+                <Table.Head class="w-[16%] text-right">{@render filterControls("dueAt", "desktop")}</Table.Head>
                 <Table.Head class="w-[12%] text-center">{@render filterControls("status", "desktop")}</Table.Head>
                 <Table.Head class="w-14 min-w-14 text-right">
                   <span class="sr-only">{copy.actions}</span>

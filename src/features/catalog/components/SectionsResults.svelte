@@ -1,10 +1,8 @@
 <script lang="ts">
-import type { Snippet } from "svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
-import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
@@ -33,7 +31,6 @@ import type {
 } from "./catalog-section-list-types";
 
 interface Props {
-  controls: Snippet<[string]>;
   columnFilters: Record<string, CatalogColumnFilterProps>;
   data: SectionListResultData;
   page: number;
@@ -45,7 +42,6 @@ interface Props {
 }
 
 let {
-  controls,
   columnFilters,
   data,
   page,
@@ -106,7 +102,6 @@ let sectionSemesterSummary = $derived(
     <ResponsiveCollection>
       {#snippet mobile()}
         <div class="grid gap-3" data-slot="collection-header">
-          {@render controls("mobile")}
           <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
             {#each Object.entries(columnFilters) as [key, column] (key)}
               <CatalogColumnFilter {...column} align="start" idPrefix={"mobile-section-" + key} />
@@ -164,7 +159,6 @@ let sectionSemesterSummary = $derived(
               <col class="w-28" />
             </colgroup>
             <Table.Header class="bg-muted/30">
-            <TableControlsRow colspan={7}>{@render controls("desktop")}</TableControlsRow>
               <Table.Row>
                 <Table.Head class="w-36" aria-sort={filters.sort === "semester" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.semester} idPrefix="desktop-section-semester" /></Table.Head>
                 <Table.Head aria-sort={filters.sort === "course" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.course} idPrefix="desktop-section-course" /></Table.Head>

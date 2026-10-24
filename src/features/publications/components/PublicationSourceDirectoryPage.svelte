@@ -5,14 +5,16 @@ import PageSectionNav from "#lib/components/PageSectionNav.svelte";
 import Panel from "#lib/components/Panel.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
+import SearchField from "#lib/components/SearchField.svelte";
 import TableControlsRow from "#lib/components/TableControlsRow.svelte";
+import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import { Input } from "#lib/components/ui/input/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import { formatShanghaiDate } from "#lib/time/shanghai-format.js";
 import { publicationSourceLastPublishedLabel } from "@/features/publications/lib/publication-source-last-published";
 import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
+import { matchTableFilter, type TableFilterField } from "@/lib/table-filters";
 import type {
   PublicationPageCopy,
   PublicationSourceDirectoryPageData,
@@ -25,7 +27,39 @@ type Props = {
 };
 
 let { copy, data }: Props = $props();
-let sourceQuery = $state("");
+let draft = $state<Record<string, string>>({});
+let applied = $state<Record<string, string>>({});
+const columns = $derived<TableFilterField[][]>([
+  [
+    { name: "name", label: copy.source },
+    { name: "hosts", label: copy.sourceHosts },
+  ],
+  [
+    {
+      name: "publicationCount",
+      label: copy.sourceArticleCount,
+      type: "number",
+      min: 0,
+      step: 1,
+    },
+  ],
+  [{ name: "lastPublishedAt", label: copy.lastPublishedAt, type: "date" }],
+]);
+const levelField = $derived<TableFilterField>({
+  name: "organizationLevel",
+  label: copy.organizationLevel,
+  options: data.directory.groups.map((group) => ({
+    value: group.organizationLevel,
+    label: levelLabel(group.organizationLevel),
+  })),
+});
+function change(patch: Record<string, string>) {
+  draft = { ...draft, ...patch };
+}
+function apply(event: SubmitEvent) {
+  event.preventDefault();
+  applied = { ...draft };
+}
 
 function levelLabel(level: PublicationSourceOrganizationLevel) {
   return copy.organizationLevelLabels[level] ?? level;
@@ -88,12 +122,31 @@ function matchesQuery(source: PublicationSourceSummary, query: string) {
   return haystack.includes(query);
 }
 
-const normalizedQuery = $derived(sourceQuery.trim().toLowerCase());
+const normalizedQuery = $derived((applied.query ?? "").trim().toLowerCase());
 const filteredGroups = $derived(
   data.directory.groups
     .map((group) => {
-      const sources = group.sources.filter((source) =>
-        matchesQuery(source, normalizedQuery),
+      const sources = group.sources.filter(
+        (source) =>
+          matchesQuery(source, normalizedQuery) &&
+          matchTableFilter(group.organizationLevel, levelField, applied) &&
+          columns
+            .flat()
+            .every((field) =>
+              matchTableFilter(
+                field.name === "hosts"
+                  ? source.hosts
+                  : field.name === "lastPublishedAt"
+                    ? source.lastPublishedAt
+                      ? formatShanghaiDate(source.lastPublishedAt)
+                      : null
+                    : field.name === "publicationCount"
+                      ? source.publicationCount
+                      : source.name,
+                field,
+                applied,
+              ),
+            ),
       );
       if (sources.length === 0) return null;
       return {
@@ -110,6 +163,10 @@ const filteredGroups = $derived(
 );
 const levelIndex = $derived(filteredGroups);
 </script>
+
+{#snippet column(index: number, suffix: string)}
+  <TableFieldFilter label={columns[index][0].label} fields={columns[index]} values={draft} onchange={change} labels={data.tableFilterLabels} idPrefix={`sources-${suffix}-${index}`} formId="source-directory-filters" align={index === 1 ? "end" : "start"} />
+{/snippet}
 
 <svelte:head>
   <title>{copy.sourcesPageTitle} - Life@USTC</title>
@@ -131,6 +188,10 @@ const levelIndex = $derived(filteredGroups);
   {#if data.directory.groups.length === 0}
     <ResultsEmpty title={copy.sourcesEmptyTitle} description={copy.sourcesEmptyDescription} />
   {:else}
+    <form id="source-directory-filters" onsubmit={apply} class="flex flex-wrap items-end gap-3">
+      <TableFieldFilter label={levelField.label} fields={[levelField]} values={draft} onchange={change} labels={data.tableFilterLabels} idPrefix="sources-level" formId="source-directory-filters" />
+      <Button type="submit">{data.applyFiltersLabel}</Button>
+    </form>
     <ResultsSummary summary={totalsSummary()} />
     {#if levelIndex.length > 0}
       <PageSectionNav ariaLabel={copy.organizationLevel} items={levelIndex.map((group) => ({ href: "#level-" + group.organizationLevel, label: levelLabel(group.organizationLevel), meta: group.sourceCount }))} />
@@ -145,15 +206,15 @@ const levelIndex = $derived(filteredGroups);
         <Table.Caption class="sr-only">{copy.sourcesPageTitle}</Table.Caption>
         <Table.Header class="bg-muted/30">
           <TableControlsRow colspan={3}>
-            <div class="w-full min-w-0" data-slot="search-field">
-              <label class="sr-only" for="publication-source-directory-query">{copy.searchSources}</label>
-              <Input id="publication-source-directory-query" type="search" bind:value={sourceQuery} placeholder={copy.searchSources} maxlength={200} />
+            <div class="flex w-full min-w-0 flex-wrap items-center gap-2">
+              <SearchField id="publication-source-directory-query" form="source-directory-filters" label={copy.searchSources} placeholder={copy.searchSources} value={draft.query ?? ""} oninput={(event) => change({ query: event.currentTarget.value })} maxlength={200} />
+              <div class="flex flex-wrap gap-2 xl:hidden">{#each columns as _, index}{@render column(index, "mobile")}{/each}</div>
             </div>
           </TableControlsRow>
           <Table.Row class="hidden xl:table-row">
-            <Table.Head class="h-9">{copy.source}</Table.Head>
-            <Table.Head class="h-9 w-24 text-right">{copy.sourceArticleCount}</Table.Head>
-            <Table.Head class="h-9 w-32">{copy.lastPublishedAt}</Table.Head>
+            <Table.Head class="h-9">{@render column(0, "desktop")}</Table.Head>
+            <Table.Head class="h-9 w-24 text-right">{@render column(1, "desktop")}</Table.Head>
+            <Table.Head class="h-9 w-32">{@render column(2, "desktop")}</Table.Head>
           </Table.Row>
         </Table.Header>
         {#if levelIndex.length === 0}

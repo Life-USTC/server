@@ -2,12 +2,17 @@
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import ListPagination from "#lib/components/ListPagination.svelte";
 import {
+  catalogActiveFilters,
+  catalogFilterDraft,
+} from "@/features/catalog/lib/catalog-filter-view";
+import {
   type CatalogNamed,
-  catalogHref,
   catalogPrimaryName as primaryName,
 } from "@/features/catalog/lib/catalog-list-display";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
+import type { TableFilterField } from "@/lib/table-filters";
 import { page as routePage } from "$app/state";
+import CatalogColumnFilter from "./CatalogColumnFilter.svelte";
 import CatalogFilters from "./CatalogFilters.svelte";
 import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
 import type {
@@ -18,147 +23,119 @@ import type {
 } from "./catalog-teacher-list-types";
 import TeachersResults from "./TeachersResults.svelte";
 
-type DepartmentOption = CatalogNamed & {
-  id: number | string;
-};
+type Option = CatalogNamed & { id: number | string };
 type PageData = {
   data: TeacherListRow[];
-  filterOptions: { departments: DepartmentOption[] };
+  filterOptions: { departments: Option[]; teacherTitles: Option[] };
   filters: TeacherListFilters;
   labels: {
-    common: TeacherListCommonLabels & {
-      home: string;
-      loading: string;
-      teachers: string;
-    };
-    teachers: TeacherListLabels & {
-      allDepartments: string;
-      currentDepartment: string;
-      title: string;
-    };
+    common: TeacherListCommonLabels;
+    teachers: TeacherListLabels & { title: string };
   };
   locale: string;
   pagination: { page: number; total: number; totalPages: number };
 };
-
-interface Props {
-  data: PageData;
+let { data }: { data: PageData } = $props();
+const formId = "teacher-filters";
+let draft = $derived(catalogFilterDraft(data.filters));
+const commonLabels = $derived(data.labels.common);
+const teacherLabels = $derived(data.labels.teachers);
+const totalPages = $derived(data.pagination.totalPages);
+function update(patch: Record<string, string>) {
+  draft = { ...draft, ...patch };
 }
-
-let { data }: Props = $props();
-
-let teacherSearch = $derived(data.filters.search ?? "");
-
 function pageHref(targetPage: number) {
   return catalogListPageHref(new URL(routePage.url.href), targetPage);
 }
-
-function teacherFilterHref(overrides: Partial<TeacherListFilters>) {
-  const filters = {
-    ...data.filters,
-    ...overrides,
-  };
-  const { search, departmentId } = filters;
-  return catalogHref("/catalog/teachers", { search, departmentId });
-}
-let totalPages = $derived(data.pagination.totalPages);
-let commonLabels = $derived(data.labels.common);
-let teacherLabels = $derived(data.labels.teachers);
-let selectedDepartment = $derived(
-  data.filterOptions.departments.find(
-    (department) => data.filters.departmentId === String(department.id),
-  ) ?? null,
+const options = (items: Option[]) =>
+  items.map((item) => ({ value: String(item.id), label: primaryName(item) }));
+const showTitleColumn = $derived(
+  data.data.some((teacher) => Boolean(teacher.teacherTitle)),
 );
-let departmentOptions = $derived([
-  { value: "", label: teacherLabels.allDepartments },
-  ...data.filterOptions.departments.map((department) => ({
-    value: String(department.id),
-    label: primaryName(department),
-  })),
-]);
-let teacherActiveFilters = $derived(
-  [
-    data.filters.search
-      ? {
-          href: teacherFilterHref({ search: "" }),
-          label: `${teacherLabels.searchLabel}: ${data.filters.search}`,
-        }
-      : null,
-    data.filters.departmentId
-      ? {
-          href: teacherFilterHref({ departmentId: "" }),
-          label: `${teacherLabels.department}: ${selectedDepartment ? primaryName(selectedDepartment) : data.filters.departmentId}`,
-        }
-      : null,
-  ].filter(
-    (filter): filter is { href: string; label: string } => filter !== null,
-  ),
+const showEmailColumn = $derived(
+  data.data.some((teacher) => Boolean(teacher.email)),
 );
-let teacherHiddenFilters = $derived(
-  [{ name: "departmentId", value: data.filters.departmentId ?? "" }].filter(
-    (filter) => Boolean(filter.value),
-  ),
-);
-const columnFilters = $derived<Record<string, CatalogColumnFilterProps>>({
+const fields = $derived<Record<string, TableFilterField>>({
+  name: { name: "name", label: teacherLabels.name },
+  code: { name: "code", label: teacherLabels.code },
   department: {
-    action: "/catalog/teachers",
+    name: "departmentId",
     label: teacherLabels.department,
-    fields: [
-      {
-        name: "departmentId",
-        label: teacherLabels.department,
-        options: departmentOptions,
-      },
-    ],
-    filters: data.filters,
-    search: teacherSearch,
-    applyLabel: commonLabels.applyFilters,
-    clearLabel: commonLabels.clear,
+    options: options(data.filterOptions.departments),
+  },
+  title: {
+    name: "teacherTitleId",
+    label: teacherLabels.title_label,
+    options: options(data.filterOptions.teacherTitles),
+  },
+  email: { name: "email", label: teacherLabels.email },
+  sections: {
+    name: "sectionCount",
+    label: teacherLabels.sections,
+    type: "number",
+    min: 0,
+    step: 1,
   },
 });
+const allFilters = $derived<Record<string, CatalogColumnFilterProps>>(
+  Object.fromEntries(
+    Object.entries(fields).map(([key, field]) => [
+      key,
+      {
+        label: field.label,
+        fields: [field],
+        values: draft,
+        onchange: update,
+        labels: commonLabels.tableFilters,
+        formId,
+        align: key === "sections" ? "end" : "start",
+      },
+    ]),
+  ),
+);
+const columnFilters = $derived(
+  Object.fromEntries(
+    Object.entries(allFilters).filter(
+      ([key]) =>
+        (key !== "title" && key !== "email") ||
+        (key === "title" && showTitleColumn) ||
+        (key === "email" && showEmailColumn),
+    ),
+  ),
+);
+const extraFilters = $derived(
+  Object.entries(allFilters).filter(
+    ([key]) =>
+      (key === "title" && !showTitleColumn) ||
+      (key === "email" && !showEmailColumn),
+  ),
+);
+const activeFilters = $derived(
+  catalogActiveFilters(
+    "/catalog/teachers",
+    data.filters,
+    [
+      { name: "search", label: teacherLabels.searchLabel },
+      ...Object.values(fields),
+    ],
+    commonLabels.tableFilters,
+  ),
+);
+const selectedDepartment = $derived(
+  data.filterOptions.departments.find(
+    (department) => data.filters.departmentId === String(department.id),
+  ),
+);
 </script>
 
-
 {#snippet paginationFooter()}
-  <ListPagination
-    ariaLabel={commonLabels.pagination}
-    class="py-0"
-    nextLabel={commonLabels.next}
-    nextPageLabel={commonLabels.nextPage}
-    page={data.pagination.page}
-    pageHref={pageHref}
-    previousLabel={commonLabels.previous}
-    previousPageLabel={commonLabels.previousPage}
-    totalPages={totalPages}
-  />
+  <ListPagination ariaLabel={commonLabels.pagination} class="py-0" nextLabel={commonLabels.next} nextPageLabel={commonLabels.nextPage} page={data.pagination.page} {pageHref} previousLabel={commonLabels.previous} previousPageLabel={commonLabels.previousPage} {totalPages} />
 {/snippet}
-
-{#snippet controls(prefix: string)}
-  <CatalogFilters
-    activeFilters={teacherActiveFilters}
-    clearHref="/catalog/teachers"
-    clearLabel={commonLabels.clear}
-    filterTitle={teacherLabels.filterTitle}
-    hiddenFilters={teacherHiddenFilters}
-    searchId={prefix + "-teacher-search"}
-    searchLabel={teacherLabels.searchLabel}
-    searchPlaceholder={teacherLabels.searchNameOrCode}
-    bind:searchValue={teacherSearch}
-  />
+{#snippet controls()}
+  <CatalogFilters {activeFilters} clearHref="/catalog/teachers" clearLabel={commonLabels.clear} filterTitle={teacherLabels.filterTitle} searchLabel={teacherLabels.searchLabel} searchPlaceholder={teacherLabels.searchNameOrCode} values={draft} onchange={update} applyLabel={commonLabels.applyFilters} {formId}>
+    {#each extraFilters as [key, filter] (key)}<CatalogColumnFilter {...filter} idPrefix={"teacher-extra-" + key} />{/each}
+  </CatalogFilters>
 {/snippet}
-
-<CollectionPage description={teacherLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={teacherLabels.title}>
-  <TeachersResults
-    {controls}
-    {columnFilters}
-    commonLabels={commonLabels}
-    filters={data.filters}
-    page={data.pagination.page}
-    primaryName={primaryName}
-    selectedDepartment={selectedDepartment}
-    teacherLabels={teacherLabels}
-    teachers={data.data}
-    total={data.pagination.total}
-    totalPages={totalPages}
-  />
+<CollectionPage description={teacherLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={teacherLabels.title} toolbar={controls}>
+  <TeachersResults {columnFilters} {commonLabels} filters={data.filters} page={data.pagination.page} primaryName={primaryName} {selectedDepartment} {teacherLabels} teachers={data.data} total={data.pagination.total} {totalPages} />
 </CollectionPage>
