@@ -2,6 +2,7 @@ import { expect } from "@playwright/test";
 import { test } from "../../../../utils/homework-fixture";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
 
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
@@ -19,6 +20,7 @@ test.describe("仪表盘作业", () => {
         await page.setViewportSize({ width: 390, height: 844 });
         await gotoAndWaitForReady(page, "/workspace/homeworks");
 
+        await openWorkspaceTaskFilter(page, "homeworks");
         const incomplete = page
           .getByRole("radio", { name: /未完成|Incomplete/i })
           .first();
@@ -36,7 +38,9 @@ test.describe("仪表盘作业", () => {
         expect(filterBox?.height).toBeGreaterThanOrEqual(44);
         expect(filterBox?.width).toBeGreaterThanOrEqual(44);
 
+        await openWorkspaceTaskFilter(page, "homeworks");
         const all = page.getByRole("radio", { name: /全部|All/i }).first();
+        await openWorkspaceTaskFilter(page, "homeworks");
         await all.click();
         await expect(all).toHaveAttribute("aria-checked", "true");
 

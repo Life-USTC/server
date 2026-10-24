@@ -52,7 +52,11 @@ async function openRouteControls(page: Page) {
   const trigger = page.getByRole("button", {
     name: /Change route|调整路线/,
   });
-  if (await trigger.isVisible()) await trigger.click();
+  const dialog = page.getByRole("dialog", { name: /Change route|调整路线/ });
+  if (!(await dialog.isVisible())) {
+    await expect(trigger).toBeVisible();
+    await trigger.click();
+  }
   await expect(
     page.locator("[data-testid='bus-start-stop-group']"),
   ).toBeVisible();
@@ -165,6 +169,11 @@ test.describe("校车面板标签页", () => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus");
 
+      const header = page.locator("thead:visible");
+      await expect(
+        header.getByRole("button", { name: /Change route|调整路线/ }),
+      ).toBeVisible();
+      await openRouteControls(page);
       const summary = page.getByTestId("bus-compact-summary");
       await expect(summary).toBeHidden();
       await expect(page.getByTestId("bus-responsive-planner")).toBeVisible();
@@ -196,13 +205,15 @@ test.describe("校车面板标签页", () => {
           .getByRole("main")
           .getByRole("link", { name: /Transit map|线路图/ }),
       ).toHaveCount(0);
-      const controls = await page
-        .getByTestId("bus-start-stop-group")
-        .boundingBox();
-      const table = await page.locator("table:visible").first().boundingBox();
-      if (!controls || !table)
-        throw new Error("Missing desktop planner geometry");
-      expect(table.x).toBeGreaterThanOrEqual(controls.x + controls.width);
+      const controls = page.getByRole("dialog", {
+        name: /Change route|调整路线/,
+      });
+      await expect(controls.getByTestId("bus-start-stop-group")).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(controls).toBeHidden();
+      await expect(
+        header.getByRole("button", { name: /Change route|调整路线/ }),
+      ).toBeFocused();
       expect(await page.locator("tbody tr:visible").count()).toBeGreaterThan(0);
     }, "consume");
   });

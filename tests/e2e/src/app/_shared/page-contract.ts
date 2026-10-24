@@ -316,13 +316,16 @@ export async function assertPageContract(
       await expect(
         page.getByRole("heading", { level: 1, name: /校车|Shuttle Bus/i }),
       ).toBeVisible();
-      // Mobile-only collapsible triggers are lg:hidden; assert desktop planner.
+      await page
+        .getByRole("button", { name: /^(调整路线|Change route)$/i })
+        .click();
       await expect(
         page.locator("[data-testid='bus-start-stop-group']"),
       ).toBeVisible();
       await expect(
         page.getByRole("button", { name: /Reverse|反向/i }),
       ).toBeVisible();
+      await page.keyboard.press("Escape");
       return;
     }
 

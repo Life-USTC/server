@@ -2,6 +2,7 @@ import { expect, type Page, type Route } from "@playwright/test";
 import { test as academicTest } from "../../../utils/homework-fixture";
 import { waitForUiSettled } from "../../../utils/page-ready";
 import { test as todoTest } from "../../../utils/todo-fixture";
+import { openWorkspaceTaskFilter } from "../../../utils/workspace-task-filters";
 
 academicTest.describe.configure({ mode: "parallel" });
 for (const tab of ["homeworks", "todos", "exams"] as const) {
@@ -27,6 +28,17 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
     await page.route("**/_app/immutable/**/*.js", holdScript);
     try {
       await page.goto(`/workspace/${tab}`, { waitUntil: "commit" });
+      const trigger = page
+        .locator('[data-slot="table-column-header"]')
+        .getByRole("button");
+      await expect(trigger).toHaveCount(1);
+      await expect(trigger).toBeVisible();
+      await expect(trigger).toBeDisabled();
+
+      releaseScripts();
+      await waitForUiSettled(page);
+      await expect(trigger).toBeEnabled();
+      await openWorkspaceTaskFilter(page, tab);
       const group = page
         .locator('[data-slot="toggle-group"]')
         .filter({ has: page.locator('[data-value="incomplete"]') });
@@ -34,11 +46,9 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
       await expect(options).toHaveCount(3);
       for (const option of await options.all()) {
         await expect(option).toBeVisible();
-        await expect(option).toBeDisabled();
+        await expect(option).toBeEnabled();
       }
 
-      releaseScripts();
-      await waitForUiSettled(page);
       await page.context().setOffline(true);
       for (const value of ["all", "completed", "incomplete"]) {
         const option = group.locator(`[data-value="${value}"]`);

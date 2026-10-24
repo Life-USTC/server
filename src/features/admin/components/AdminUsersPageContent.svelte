@@ -2,7 +2,6 @@
 import ListPagination from "#lib/components/ListPagination.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import AdminUsersHeader from "./AdminUsersHeader.svelte";
-import AdminUsersSearchCard from "./AdminUsersSearchCard.svelte";
 import AdminUsersTableCard from "./AdminUsersTableCard.svelte";
 import AdminWorkspace from "./AdminWorkspace.svelte";
 import type {
@@ -46,14 +45,9 @@ export let users: AdminUserRow[];
   {#snippet feedback()}
     {#if message && messageVariant === "destructive"}<Alert.Root variant={messageVariant}><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
   {/snippet}
-  {#snippet controls()}
-    <AdminUsersSearchCard
-      {commonCopy}
-      {copy}
-      search={filters.search ?? ""}
-    />
-  {/snippet}
   <AdminUsersTableCard
+    {commonCopy}
+    search={filters.search ?? ""}
     {copy}
     {displayName}
     {formatDate}

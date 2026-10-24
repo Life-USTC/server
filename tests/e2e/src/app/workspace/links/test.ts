@@ -194,44 +194,63 @@ test.describe("仪表盘网站链接", () => {
   }) => {
     await preferenceFlow.run(async () => {
       await setLocale(page, "zh-cn", preferenceFlow);
-      await gotoAndWaitForReady(page, "/catalog/links");
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 844 });
+        await gotoAndWaitForReady(page, "/catalog/links");
 
-      const searchInput = page.getByRole("searchbox", {
-        name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
-      });
-      await expect(searchInput).toBeVisible();
-      await page.keyboard.press("ControlOrMeta+Shift+K");
-      await expect(searchInput).toBeFocused();
+        const searchInput = page.getByRole("searchbox", {
+          name: /搜索网站名称、描述或域名|Search by name, description, or domain/i,
+        });
+        const header = page.locator(
+          width >= 1280
+            ? "thead:visible"
+            : '[data-slot="collection-header"]:visible',
+        );
+        await expect(header.getByRole("searchbox")).toBeVisible();
+        await expect(page.getByRole("searchbox")).toHaveCount(1);
+        await expect(searchInput).toBeVisible();
+        await page.keyboard.press("ControlOrMeta+Shift+K");
+        await expect(searchInput).toBeFocused();
 
-      // Search for a specific link
-      await expect(async () => {
-        await searchInput.click();
+        // Search for a specific link
+        await expect(async () => {
+          await searchInput.click();
+          await searchInput.clear();
+          await searchInput.pressSequentially("邮箱");
+          await expect(
+            page.getByRole("link", { name: /邮箱/i }).first(),
+          ).toBeVisible({ timeout: 3_000 });
+          await expect(
+            page.getByRole("link", { name: /教务系统/i }).first(),
+          ).toHaveCount(0);
+        }).toPass({
+          timeout: 10_000,
+          intervals: [250, 500, 1_000],
+        });
+
+        await expect(async () => {
+          await searchInput.clear();
+          await searchInput.pressSequentially("faculty.ustc.edu.cn");
+          await expect(
+            page.getByRole("link", { name: /教师个人主页/i }).first(),
+          ).toBeVisible({ timeout: 3_000 });
+          await expect(
+            page.getByRole("link", { name: /教务系统/i }).first(),
+          ).toHaveCount(0);
+        }).toPass({
+          timeout: 10_000,
+          intervals: [250, 500, 1_000],
+        });
+        await searchInput.fill("no-matching-campus-link-1360");
+        await expect(searchInput).toBeVisible();
+        await expect(page.getByRole("link", { name: /教务系统/i })).toHaveCount(
+          0,
+        );
         await searchInput.clear();
-        await searchInput.pressSequentially("邮箱");
-        await expect(
-          page.getByRole("link", { name: /邮箱/i }).first(),
-        ).toBeVisible({ timeout: 3_000 });
         await expect(
           page.getByRole("link", { name: /教务系统/i }).first(),
-        ).toHaveCount(0);
-      }).toPass({
-        timeout: 10_000,
-        intervals: [250, 500, 1_000],
-      });
-
-      await expect(async () => {
-        await searchInput.clear();
-        await searchInput.pressSequentially("faculty.ustc.edu.cn");
-        await expect(
-          page.getByRole("link", { name: /教师个人主页/i }).first(),
-        ).toBeVisible({ timeout: 3_000 });
-        await expect(
-          page.getByRole("link", { name: /教务系统/i }).first(),
-        ).toHaveCount(0);
-      }).toPass({
-        timeout: 10_000,
-        intervals: [250, 500, 1_000],
-      });
+        ).toBeVisible();
+      }
     }, "consume");
   });
 

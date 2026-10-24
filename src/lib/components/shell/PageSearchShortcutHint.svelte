@@ -1,12 +1,12 @@
 <script lang="ts">
+import { onMount } from "svelte";
 import * as Kbd from "#lib/components/ui/kbd/index.js";
-import {
-  isApplePlatform,
-  pageSearchShortcutKeys,
-} from "@/lib/browser/page-search-shortcut";
-import { browser } from "$app/env";
+import { pageSearchShortcutKeys } from "@/lib/browser/page-search-shortcut";
 
-$: keys = pageSearchShortcutKeys(browser && isApplePlatform());
+let keys = pageSearchShortcutKeys(false);
+onMount(() => {
+  keys = pageSearchShortcutKeys();
+});
 </script>
 
 <Kbd.Group class="hidden sm:inline-flex">

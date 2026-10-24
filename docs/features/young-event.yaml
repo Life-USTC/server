@@ -406,12 +406,12 @@ requirements:
   rationale: Fixed standard choices coexist with unknown upstream facts; preserving current URL filters and unfiltered results avoids hiding those activities.
   acceptance:
     given: Source activities include unknown module and level values and a browse URL already filters by those values.
-    when: A browser opens the list filter sheet, submits unchanged filters, replaces them with standard choices or clears the active chips, and opens the calendar.
+    when: A browser opens the event-name column filter, submits unchanged filters, replaces them with standard choices or clears the active chips, and opens the calendar.
     then:
     - Selectable module and level choices remain the five standard values plus the unfiltered option.
     - Unknown values remain visible in unfiltered activity results and active filter context; they are not additional selectable taxonomy choices.
     - Unchanged primary and advanced submissions preserve unknown filters, standard choices replace them and clear links remove them explicitly.
-    - The calendar page does not offer a filter sheet.
+    - The calendar page does not offer the list column filters.
     test:
       file: tests/e2e/src/app/young-events/public-browse-contract.test.ts
       name: young-event.fixed-browse-filter-options

@@ -2,6 +2,7 @@
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+import type { Snippet } from "svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -21,6 +22,7 @@ type HomeworkOverduePredicate = (
 ) => boolean;
 type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
+export let filterControls: Snippet;
 export let locale: string;
 export let unknownSemesterLabel: string;
 export let filteredHomeworkItems: WorkspaceHomeworkItem[];
@@ -57,23 +59,13 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
 }
 </script>
 
-{#if filteredHomeworkItems.length === 0}
-  <WorkspaceTaskEmptyState
-    title={hasHomeworkItems ? homeworksCopy.filterEmptyTitle : homeworksCopy.emptyTitle}
-    description={hasHomeworkItems
-      ? homeworksCopy.filterEmptyDescription
-      : homeworksCopy.emptyDescription}
-    clearFilterLabel={homeworksCopy.clearFilter}
-    onClearFilter={showClearFilter ? onClearFilter : undefined}
-  />
-{:else}
   <Table.Root class="min-w-0 w-full" data-testid="workspace-homeworks-list">
     <Table.Header>
       <Table.Row>
         <Table.Head>{homeworksCopy.sectionLabel}</Table.Head>
         <Table.Head>{homeworksCopy.titleLabel}</Table.Head>
         <Table.Head>{homeworksCopy.submissionDue}</Table.Head>
-        <Table.Head>{homeworksCopy.statusLabel}</Table.Head>
+        <Table.Head>{@render filterControls()}</Table.Head>
         <Table.Head>
           <span class="sr-only">{homeworksCopy.markComplete}</span>
         </Table.Head>
@@ -158,7 +150,19 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
             </TableRowActions>
           </Table.Cell>
         </Table.Row>
+      {:else}
+        <Table.Row class="hover:bg-transparent">
+          <Table.Cell class="p-0" colspan={5}>
+            <WorkspaceTaskEmptyState
+              title={hasHomeworkItems ? homeworksCopy.filterEmptyTitle : homeworksCopy.emptyTitle}
+              description={hasHomeworkItems
+                ? homeworksCopy.filterEmptyDescription
+                : homeworksCopy.emptyDescription}
+              clearFilterLabel={homeworksCopy.clearFilter}
+              onClearFilter={showClearFilter ? onClearFilter : undefined}
+            />
+          </Table.Cell>
+        </Table.Row>
       {/each}
     </Table.Body>
   </Table.Root>
-{/if}

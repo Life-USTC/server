@@ -87,12 +87,12 @@ requirements:
       name: exam.completion-time-zone
 - id: exam.mobile-toolbar-priority
   category: presentation
-  rule: Mobile exam completion-status filters remain directly accessible.
+  rule: Exam completion-status filters open from the date column header on desktop and the collection header above mobile cards; empty results preserve the entry point.
   acceptance:
     given: The owner has one upcoming and one ended exam.
-    when: The mobile user directly selects Upcoming, Ended and All.
+    when: The mobile user opens the date header and selects Upcoming, Ended and All.
     then:
-    - Every filter remains visible and selects exactly the corresponding exams.
+    - Every filter is available in the header popover and selects exactly the corresponding exams.
     test:
       file: tests/e2e/src/app/workspace/exams/presentation-contract.test.ts
       name: exam.mobile-toolbar-priority
@@ -150,10 +150,10 @@ requirements:
       name: exam.mobile-display-overflow
 - id: exam.mobile-toolbar-targets
   category: presentation
-  rule: Mobile exam toolbar controls provide touch targets at least 44 by 44 CSS pixels.
+  rule: Mobile exam collection header controls and their filter choices provide touch targets at least 44 by 44 CSS pixels.
   acceptance:
     given: The exam workspace renders at 320 and 390 CSS pixels wide.
-    when: The signed user inspects every direct filter and the display overflow control.
+    when: The signed user inspects the date header trigger, every filter choice and the display overflow control.
     then:
     - Every visible toolbar control is at least 44 by 44 CSS pixels.
     test:

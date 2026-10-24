@@ -46,23 +46,44 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     });
   });
 
-  test("SSR 输出包含搜索查询", { tag: "@Young/Web" }, async ({
-    page,
-    preferenceFlow,
-    youngPublicState: _youngPublicState,
-  }) => {
-    await preferenceFlow.run(async () => {
-      const response = await preferenceFlow.http(() =>
-        page.request.get(
-          `/catalog/young-events?search=${encodeURIComponent(DEV_SEED.youngEvent.name)}`,
-        ),
-      );
-      expect(response.status()).toBe(200);
-      const html = await response.text();
-      expect(html).toContain('id="main-content"');
-      expect(html).toContain(DEV_SEED.youngEvent.name);
+  for (const { title, route, query } of [
+    {
+      title: "SSR 输出包含搜索查询",
+      route: "/catalog/young-events",
+      query: DEV_SEED.youngEvent.name,
+    },
+    {
+      title: "主办方 SSR 搜索框保留查询",
+      route: "/catalog/young-events/organizers",
+      query: DEV_SEED.youngEvent.organizer,
+    },
+  ]) {
+    test(title, { tag: "@Young/Web" }, async ({
+      page,
+      preferenceFlow,
+      youngPublicState: _youngPublicState,
+    }) => {
+      await preferenceFlow.run(async () => {
+        const response = await preferenceFlow.http(() =>
+          page.request.get(`${route}?search=${encodeURIComponent(query)}`),
+        );
+        expect(response.status()).toBe(200);
+        const html = await response.text();
+        expect(html).toContain('id="main-content"');
+        expect(html).toContain(query);
+        // DOMParser keeps the response inert; client effects cannot repair it.
+        const submittedSearch = await page.evaluate((markup) => {
+          const document = new DOMParser().parseFromString(markup, "text/html");
+          return Array.from(
+            document.querySelectorAll<HTMLInputElement>('input[name="search"]'),
+            (input) => input.value,
+          );
+        }, html);
+        expect(submittedSearch.length).toBeGreaterThan(0);
+        for (const value of submittedSearch) expect(value).toBe(query);
+      });
     });
-  });
+  }
 
   test("搜索、报名状态筛选与清除按钮", { tag: "@Young/Web" }, async ({
     page,
@@ -86,10 +107,12 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
       ).toBeVisible();
 
       await searchbox.fill("");
-      await page
+      await page.getByRole("button", { name: /^(状态|Status)$/ }).click();
+      const status = page.getByRole("dialog", { name: /^(状态|Status)$/ });
+      await status
         .getByRole("combobox", { name: /活动范围|Activity scope/i })
         .selectOption("false");
-      await page.getByRole("button", { name: /^(?:搜索|Search)$/i }).click();
+      await status.getByRole("button", { name: /^(?:搜索|Search)$/i }).click();
       await page.waitForURL(/active=false/);
       await expect(
         page.getByRole("link", { name: /已结束活动/ }).first(),
@@ -121,9 +144,9 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
         page,
         `/catalog/young-events?search=${search}&organizerId=dev-scenario-young-organizer`,
       );
-      const organizer = page.locator("#young-event-organizer");
+      const organizer = page.locator("select[name='organizerId']");
       await expect(organizer).toBeHidden();
-      await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
+      await page.getByRole("button", { name: /^(活动|Event)$/ }).click();
       await expect(organizer).toBeVisible();
       await expect(organizer).toHaveValue("dev-scenario-young-organizer");
       await page.keyboard.press("Escape");
@@ -216,7 +239,9 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
         "/catalog/young-events?search=e2e-no-matching-young-event-7f3c9a",
       );
 
-      await expect(page.getByText(/未找到活动|No events found/i)).toBeVisible();
+      await expect(
+        page.getByText(/未找到活动|No events found/i).filter({ visible: true }),
+      ).toBeVisible();
       await expect(
         page.locator(
           "#main-content a[href^='/catalog/young-events/dev-scenario-']",
@@ -260,7 +285,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
 });
 
 for (const width of [1280, 390]) {
-  test(`advanced filter sheet isolates canceled drafts and submits the current search at ${width}px`, {
+  test(`metadata column filter isolates canceled drafts and submits the current search at ${width}px`, {
     tag: "@Young/Web",
   }, async ({ page, preferenceFlow, youngPublicState: _youngPublicState }) => {
     await preferenceFlow.run(async () => {
@@ -272,14 +297,14 @@ for (const width of [1280, 390]) {
       const search = `unsubmitted-search-${width}`;
       await page.getByRole("searchbox").fill(search);
       const trigger = page.getByRole("button", {
-        name: /更多筛选|More filters/,
+        name: /^(活动|Event)$/,
       });
-      const sheet = page.getByRole("dialog", { name: /更多筛选|More filters/ });
+      const sheet = page.getByRole("dialog", { name: /^(活动|Event)$/ });
       await trigger.click();
       await expect(sheet).toBeVisible();
       await expect(sheet.locator('input[name="search"]')).toHaveValue(search);
-      await sheet.locator("#young-event-module").selectOption("体");
-      await sheet.locator("#young-event-organizer").selectOption("");
+      await sheet.locator("select[id$='-module']").selectOption("体");
+      await sheet.locator("select[name='organizerId']").selectOption("");
       await page.keyboard.press("Escape");
       await expect(sheet).toBeHidden();
       await expect(page.getByRole("searchbox")).toHaveValue(search);
@@ -292,11 +317,11 @@ for (const width of [1280, 390]) {
         "dev-scenario-young-organizer",
       );
       await trigger.click();
-      await expect(sheet.locator("#young-event-module")).toHaveValue("智");
-      await expect(sheet.locator("#young-event-organizer")).toHaveValue(
+      await expect(sheet.locator("select[id$='-module']")).toHaveValue("智");
+      await expect(sheet.locator("select[name='organizerId']")).toHaveValue(
         "dev-scenario-young-organizer",
       );
-      await sheet.locator("#young-event-module").selectOption("劳");
+      await sheet.locator("select[id$='-module']").selectOption("劳");
       await sheet.getByRole("button", { name: /^(搜索|Search)$/ }).click();
       await expect(page).toHaveURL(
         (url) => url.searchParams.get("module") === "劳",

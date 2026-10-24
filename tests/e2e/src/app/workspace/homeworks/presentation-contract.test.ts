@@ -3,6 +3,7 @@ import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-res
 import { test } from "../../../../utils/homework-fixture";
 import { homeworkDescription as description } from "../../../../utils/homework-state";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
 
 const widths = [1280, 390];
 test.describe.configure({ mode: "parallel" });
@@ -43,19 +44,36 @@ test("homework.responsive-workspace-view", { tag: "@Homework/Web" }, async ({
         await expect(
           list(page, width >= COLLECTION_DESKTOP_MIN_WIDTH_PX ? 390 : 1280),
         ).toBeHidden();
+        const header = page.locator(
+          width >= COLLECTION_DESKTOP_MIN_WIDTH_PX
+            ? "thead:visible"
+            : '[data-slot="collection-header"]:visible',
+        );
+        const trigger = header.getByRole("button", {
+          name: /^(状态|Status)$/i,
+        });
+        await expect(trigger).toBeVisible();
+        if (width < 768) {
+          const box = await trigger.boundingBox();
+          expect(box?.width).toBeGreaterThanOrEqual(44);
+          expect(box?.height).toBeGreaterThanOrEqual(44);
+        }
         for (const label of [
           /^(未完成|Incomplete)$/i,
           /^(已完成|Completed)$/i,
           /^(全部|All)$/i,
         ]) {
+          await openWorkspaceTaskFilter(page, "homeworks");
           const filter = page.getByRole("radio", { name: label });
           await expect(filter).toBeVisible();
+          await openWorkspaceTaskFilter(page, "homeworks");
           await filter.click();
           await expect(filter).toBeChecked();
         }
         await expect(
           page.getByTestId("workspace-homeworks-view-menu"),
         ).toHaveCount(0);
+        await openWorkspaceTaskFilter(page, "homeworks");
         await expect(
           page.getByRole("radio", { name: /列表|List|卡片|Cards/i }),
         ).toHaveCount(0);

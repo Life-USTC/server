@@ -5,6 +5,7 @@ import {
 } from "../../../../utils/mcp-helpers";
 import { facts } from "../../../../utils/mcp-scenario-data";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
 import { selectHomeworkAction } from "../../sections/[jwId]/_helpers";
 
 import {
@@ -220,8 +221,11 @@ for (const method of ["Web", "REST"] as const)
               `/catalog/sections/${sectionJwId}#homework`,
             ]) {
               await gotoAndWaitForReady(page, path);
-              if (path === "/workspace/homeworks")
+              if (path === "/workspace/homeworks") {
+                await openWorkspaceTaskFilter(page, "homeworks");
                 await page.getByRole("radio", { name: /^(全部|All)$/ }).click();
+                await page.keyboard.press("Escape");
+              }
               const button = page.getByRole("button", {
                 name: title,
                 exact: true,

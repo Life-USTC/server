@@ -2,6 +2,7 @@ import { expect } from "@playwright/test";
 import { test as searchTest } from "../../utils/catalog-search-fixture";
 import { DEV_SEED } from "../../utils/dev-seed";
 import { observeAction } from "../../utils/observed-action";
+import { waitForUiSettled } from "../../utils/page-ready";
 import {
   test as overlayTest,
   signInPrivateDebugUser,
@@ -383,11 +384,25 @@ overlayTest(
         await signInPrivateDebugUser(page, "/workspace");
 
         await page.goto("/catalog/bus");
-        const departed = page.getByRole("switch");
+        await waitForUiSettled(page);
+        const routeControls = page.getByRole("button", {
+          name: /^(调整路线|Change route)$/,
+        });
+        const dialog = page.getByRole("dialog", {
+          name: /^(调整路线|Change route)$/,
+        });
+        await routeControls.click();
+        const departed = dialog.getByRole("switch");
         await expect(departed).toBeChecked();
+        await page.keyboard.press("Escape");
+        await expect(dialog).toHaveCount(0);
         await page.context().clearCookies();
         await refreshIdentityOnSameRoute(page);
+        await waitForUiSettled(page);
+        await routeControls.click();
         await expect(departed).not.toBeChecked();
+        await page.keyboard.press("Escape");
+        await expect(dialog).toHaveCount(0);
       },
     );
   },

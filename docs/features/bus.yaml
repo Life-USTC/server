@@ -99,8 +99,7 @@ requirements:
 - id: bus.core-filters-only
   category: presentation
   rule: The bus planner exposes departure campus, arrival campus, direction reversal, day type and show-departed
-    controls. On mobile, route controls may use progressive disclosure while the next departure remains
-    directly visible.
+    controls in a shared table-header popover on desktop and a collection-header popover on mobile. The mobile next departure remains directly visible before the controls.
   acceptance:
     given: An anonymous viewer opens the planner on desktop and mobile.
     when: The browser changes departure and arrival, reverses direction, selects every day type, selects
@@ -120,18 +119,18 @@ requirements:
     when: Desktop and mobile planners render their primary departure presentation.
     then:
     - Mobile leads with a large next-departure time and origin/destination/route before the full timetable.
-    - Desktop highlights the first boardable trip in the first applicable route beside the selected stop controls.
+    - Desktop highlights the first boardable trip in the first applicable route; the table header opens the selected stop controls.
     test:
       file: tests/e2e/src/app/bus/presentation-contract.test.ts
       name: bus.visual-priority
 - id: bus.public-responsive-planner
   category: presentation
-  rule: Desktop bus planning presents route controls alongside a complete grouped timetable.
+  rule: Desktop bus planning presents all route controls in the header of the complete grouped timetable, including when the selected route has no results.
   acceptance:
     given: A public timetable has available routes.
     when: The desktop bus planner renders.
     then:
-    - Origin/destination controls and day/departed/reverse controls are visible beside a populated timetable.
+    - The table header opens origin/destination and day/departed/reverse controls while preserving the populated timetable.
     test:
       file: tests/e2e/src/app/bus/test.ts
       name: bus.public-responsive-planner

@@ -9,6 +9,7 @@ import {
   waitForUiSettled,
 } from "../../../utils/page-ready";
 import { expectRenderedUiQuality } from "../../../utils/ui-quality";
+import { openWorkspaceTaskFilter } from "../../../utils/workspace-task-filters";
 
 const test = workerTest.extend<{
   browserRun: (work: () => Promise<void>) => Promise<void>;
@@ -174,7 +175,9 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             ? page.getByRole("table")
             : page.getByTestId("workspace-todos-cards");
         await expect(surface).toBeVisible();
+        await openWorkspaceTaskFilter(page, "todos");
         await page.getByRole("radio", { name: text.all, exact: true }).click();
+        await page.keyboard.press("Escape");
         for (const title of [text.reading, text.outline, text.library]) {
           await expect(
             surface.getByRole("button", { name: title, exact: true }),
@@ -219,6 +222,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
           surface.getByRole("button", { name: text.reading, exact: true }),
         ).toBeFocused();
 
+        await openWorkspaceTaskFilter(page, "todos");
         await page
           .getByRole("radio", { name: text.completed, exact: true })
           .click();
@@ -242,6 +246,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             surface.getByRole("button", { name: title, exact: true }),
           ).toBeVisible();
         }
+        await page.keyboard.press("Escape");
         await expectApiSample(page, locale);
         await expectRenderedUiQuality(page);
         await expectNoPageHorizontalOverflow(page);

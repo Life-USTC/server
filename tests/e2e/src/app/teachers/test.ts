@@ -19,11 +19,11 @@
  * - Search and clear controls must be present
  */
 import { expect } from "@playwright/test";
-import {
-  expectCatalogFilterSheet,
-  openCatalogFilterSheet,
-} from "../../../utils/catalog-filter-sheet";
 import { test } from "../../../utils/catalog-search-fixture";
+import {
+  expectCatalogTableFilters,
+  openCatalogColumnFilter,
+} from "../../../utils/catalog-table-filters";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { visibleText } from "../../../utils/locators";
 import {
@@ -76,7 +76,9 @@ test.describe("/catalog/teachers", () => {
       );
 
       await expect(
-        page.getByText(/未找到教师|No teachers found/i),
+        page
+          .getByText(/未找到教师|No teachers found/i)
+          .filter({ visible: true }),
       ).toBeVisible();
       await expect(
         page.locator("#main-content a[href^='/catalog/teachers/']"),
@@ -99,11 +101,17 @@ test.describe("/catalog/teachers", () => {
         `/catalog/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
       );
       await expectNoPageHorizontalOverflow(page);
-      await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
+      await expect(
+        page.locator(
+          '[data-slot="collection-header"]:visible, [data-slot="table-controls-row"]:visible',
+        ),
+      ).toBeVisible();
       await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
       await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
-      await expect(page.locator('[data-slot="active-filters"]')).toBeVisible();
-      await expectCatalogFilterSheet(page, [/院系|Department/i]);
+      await expect(
+        page.locator('[data-slot="active-filters"]:visible'),
+      ).toBeVisible();
+      await expectCatalogTableFilters(page, [/院系|Department/i]);
 
       const detailLink = page
         .locator("#main-content a[href^='/catalog/teachers/']:visible")
@@ -119,14 +127,14 @@ test.describe("/catalog/teachers", () => {
     });
   });
 
-  test("280 至 1440 像素通过筛选面板提供教师高级筛选", {
+  test("280 至 1440 像素通过列头提供教师筛选", {
     tag: "@Teacher/Web",
   }, async ({ page, preferenceFlow, searchTeacher: _searchTeacher }) => {
     await preferenceFlow.run(async () => {
       for (const width of [280, 320, 375, 1024, 1280, 1440]) {
         await page.setViewportSize({ width, height: 900 });
         await gotoAndWaitForReady(page, "/catalog/teachers");
-        await expectCatalogFilterSheet(page, [/院系|Department/i]);
+        await expectCatalogTableFilters(page, [/院系|Department/i]);
         await expect(page.locator("vite-error-overlay")).toHaveCount(0);
         if (width === 280 || width === 375) {
         }
@@ -183,7 +191,10 @@ test.describe("/catalog/teachers", () => {
 
       await gotoAndWaitForReady(page, "/catalog/teachers");
       await page.getByRole("searchbox").fill(DEV_SEED.teacher.nameCn);
-      const filterDialog = await openCatalogFilterSheet(page);
+      const filterDialog = await openCatalogColumnFilter(
+        page,
+        /院系|Department/i,
+      );
       await filterDialog
         .getByLabel(/院系|Department/i)
         .selectOption(String(filter.departmentId));

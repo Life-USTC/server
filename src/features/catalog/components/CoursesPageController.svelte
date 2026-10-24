@@ -9,8 +9,8 @@ import {
 } from "@/features/catalog/lib/courses-page-view-model";
 import { page as routePage } from "$app/state";
 import CatalogFilters from "./CatalogFilters.svelte";
-import CoursesFilters from "./CoursesFilters.svelte";
 import CoursesResults from "./CoursesResults.svelte";
+import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
 import type {
   CourseListCommonLabels,
   CourseListFilterOptions,
@@ -119,6 +119,53 @@ let courseHiddenFilters = $derived(
     { name: "classTypeId", value: data.filters.classTypeId ?? "" },
   ].filter((filter) => Boolean(filter.value)),
 );
+const columnFilters = $derived<Record<string, CatalogColumnFilterProps>>({
+  educationLevel: {
+    action: "/catalog/courses",
+    label: courseLabels.educationLevel,
+    fields: [
+      {
+        name: "educationLevelId",
+        label: courseLabels.educationLevel,
+        options: educationLevelOptions,
+      },
+    ],
+    filters: data.filters,
+    search: courseSearch,
+    applyLabel: commonLabels.applyFilters,
+    clearLabel: commonLabels.clear,
+  },
+  category: {
+    action: "/catalog/courses",
+    label: courseLabels.category,
+    fields: [
+      {
+        name: "categoryId",
+        label: courseLabels.category,
+        options: categoryOptions,
+      },
+    ],
+    filters: data.filters,
+    search: courseSearch,
+    applyLabel: commonLabels.applyFilters,
+    clearLabel: commonLabels.clear,
+  },
+  classType: {
+    action: "/catalog/courses",
+    label: courseLabels.classType,
+    fields: [
+      {
+        name: "classTypeId",
+        label: courseLabels.classType,
+        options: classTypeOptions,
+      },
+    ],
+    filters: data.filters,
+    search: courseSearch,
+    applyLabel: commonLabels.applyFilters,
+    clearLabel: commonLabels.clear,
+  },
+});
 </script>
 
 
@@ -136,33 +183,24 @@ let courseHiddenFilters = $derived(
   />
 {/snippet}
 
+{#snippet controls(prefix: string)}
+  <CatalogFilters
+    activeFilters={courseActiveFilters}
+    clearHref="/catalog/courses"
+    clearLabel={commonLabels.clear}
+    filterTitle={courseLabels.summary.filters}
+    hiddenFilters={courseHiddenFilters}
+    searchId={prefix + "-course-search"}
+    searchLabel={commonLabels.search}
+    searchPlaceholder={courseLabels.searchPlaceholder}
+    bind:searchValue={courseSearch}
+  />
+{/snippet}
+
 <CollectionPage description={courseLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={courseLabels.title}>
-  {#snippet toolbar()}
-    <CatalogFilters
-      activeFilters={courseActiveFilters}
-      clearHref="/catalog/courses"
-      clearLabel={commonLabels.clear}
-      filterDescription={courseLabels.filterDescription}
-      filterTitle={courseLabels.summary.filters}
-      hiddenFilters={courseHiddenFilters}
-      searchId="mobile-course-search"
-      searchLabel={commonLabels.search}
-      searchPlaceholder={courseLabels.searchPlaceholder}
-      bind:searchValue={courseSearch}
-    >
-      <CoursesFilters
-        categoryOptions={categoryOptions}
-        classTypeOptions={classTypeOptions}
-        commonLabels={commonLabels}
-        courseLabels={courseLabels}
-        courseSearch={courseSearch}
-        educationLevelOptions={educationLevelOptions}
-        filters={data.filters}
-        idPrefix="mobile-course"
-      />
-    </CatalogFilters>
-  {/snippet}
   <CoursesResults
+    {controls}
+    {columnFilters}
     courseEmptyDescription={courseEmptyDescription}
     courseLabels={courseLabels}
     data={courseResultsData}

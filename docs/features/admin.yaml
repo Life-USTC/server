@@ -219,7 +219,7 @@ requirements:
       name: admin.feature-experience-retention
 - id: admin.responsive-workspace
   category: presentation
-  rule: Admin pages present the page identity, feedback or filters when applicable, then records. The
+  rule: Admin pages present the page identity and applicable feedback, then records with search and filters in their collection header. The
     page heading uses larger text than the record identity. Desktop shows tabular records; mobile presents
     compact records containing the same primary identity and available actions.
   acceptance:
@@ -233,7 +233,7 @@ requirements:
     - Users and comments expose their manage controls; OAuth exposes client-specific deletion; inactive
       bus versions expose activation and deletion.
     - The page heading appears above the records with larger text; applicable search controls appear
-      between the heading and records.
+      in the desktop table header or the mobile collection header.
     test:
       file: tests/e2e/src/app/admin/test.ts
       name: admin.responsive-workspace

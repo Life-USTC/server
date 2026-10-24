@@ -24,11 +24,11 @@ import {
   arrangeCourses,
   test as catalogTest,
 } from "../../../utils/catalog-browser-fixture";
-import {
-  expectCatalogFilterSheet,
-  openCatalogFilterSheet,
-} from "../../../utils/catalog-filter-sheet";
 import { test } from "../../../utils/catalog-search-fixture";
+import {
+  expectCatalogTableFilters,
+  openCatalogColumnFilter,
+} from "../../../utils/catalog-table-filters";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { visibleText } from "../../../utils/locators";
 import {
@@ -81,7 +81,9 @@ test.describe("/catalog/courses 课程目录", () => {
       );
 
       await expect(
-        page.getByText(/未找到课程|No courses found/i),
+        page
+          .getByText(/未找到课程|No courses found/i)
+          .filter({ visible: true }),
       ).toBeVisible();
       await expect(
         page.locator("#main-content a[href^='/catalog/courses/']"),
@@ -191,10 +193,16 @@ test.describe("/catalog/courses 课程目录", () => {
         `/catalog/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
       );
       await expectNoPageHorizontalOverflow(page);
-      await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
+      await expect(
+        page.locator(
+          '[data-slot="collection-header"]:visible, [data-slot="table-controls-row"]:visible',
+        ),
+      ).toBeVisible();
       await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
       await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
-      await expect(page.locator('[data-slot="active-filters"]')).toBeVisible();
+      await expect(
+        page.locator('[data-slot="active-filters"]:visible'),
+      ).toBeVisible();
       const courseCode = page
         .locator('[data-slot="catalog-code"]')
         .filter({ hasText: DEV_SEED.course.code })
@@ -203,7 +211,7 @@ test.describe("/catalog/courses 课程目录", () => {
       await expect(
         courseCode.locator("xpath=ancestor::*[@data-slot='badge']"),
       ).toHaveCount(0);
-      await expectCatalogFilterSheet(page, [
+      await expectCatalogTableFilters(page, [
         /培养层次|Education Level/i,
         /类别|Category/i,
         /课程类型|Class Type/i,
@@ -225,14 +233,14 @@ test.describe("/catalog/courses 课程目录", () => {
     });
   });
 
-  test("280 至 1440 像素通过筛选面板提供课程高级筛选", {
+  test("280 至 1440 像素通过列头提供课程筛选", {
     tag: "@Course/Web",
   }, async ({ page, preferenceFlow, searchCourse: _searchCourse }) => {
     await preferenceFlow.run(async () => {
       for (const width of [280, 320, 375, 1024, 1280, 1440]) {
         await page.setViewportSize({ width, height: 900 });
         await gotoAndWaitForReady(page, "/catalog/courses");
-        await expectCatalogFilterSheet(page, [
+        await expectCatalogTableFilters(page, [
           /培养层次|Education Level/i,
           /类别|Category/i,
           /课程类型|Class Type/i,
@@ -466,14 +474,20 @@ test.describe("/catalog/courses 课程目录", () => {
       await gotoAndWaitForReady(page, "/catalog/courses");
 
       await page.getByRole("searchbox").fill(DEV_SEED.course.code);
-      let filterDialog = await openCatalogFilterSheet(page);
+      let filterDialog = await openCatalogColumnFilter(
+        page,
+        /培养层次|Education Level/i,
+      );
       await filterDialog
         .getByLabel(/培养层次|Education Level/i)
         .selectOption(String(filters.educationLevelId));
       await expect(page).not.toHaveURL(/educationLevelId=/);
       await page.keyboard.press("Escape");
       await expect(filterDialog).toBeHidden();
-      filterDialog = await openCatalogFilterSheet(page);
+      filterDialog = await openCatalogColumnFilter(
+        page,
+        /培养层次|Education Level/i,
+      );
       await expect(
         filterDialog.getByLabel(/培养层次|Education Level/i),
       ).toHaveValue("");
@@ -491,7 +505,7 @@ test.describe("/catalog/courses 课程目录", () => {
         new RegExp(`search=${DEV_SEED.course.code}`),
       );
 
-      filterDialog = await openCatalogFilterSheet(page);
+      filterDialog = await openCatalogColumnFilter(page, /类别|Category/i);
       await filterDialog
         .getByLabel(/类别|Category/i)
         .selectOption(String(filters.categoryId));
@@ -500,13 +514,21 @@ test.describe("/catalog/courses 课程目录", () => {
         .click();
       await expect(filterDialog).toBeHidden();
       await expect(page).toHaveURL(
-        new RegExp(
-          `educationLevelId=${filters.educationLevelId}.*categoryId=${filters.categoryId}`,
-        ),
+        new RegExp(`categoryId=${filters.categoryId}`),
       );
+      expect(
+        Object.fromEntries(new URL(page.url()).searchParams),
+      ).toMatchObject({
+        educationLevelId: String(filters.educationLevelId),
+        categoryId: String(filters.categoryId),
+      });
 
       await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
-      await expect(page.locator('[data-slot="filter-toolbar"]')).toBeVisible();
+      await expect(
+        page.locator(
+          '[data-slot="collection-header"]:visible, [data-slot="table-controls-row"]:visible',
+        ),
+      ).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
     });
   });

@@ -5,6 +5,7 @@ import {
 } from "../../../../utils/calendar-read-observation";
 import { parseTextContent } from "../../../../utils/mcp-helpers";
 import { test } from "../../../../utils/private-calendar-fixture";
+import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
 
 for (const [domain, method, feature] of [
   ["Overview", "Web", ""],
@@ -142,6 +143,7 @@ for (const [domain, method, feature] of [
               ).toBeVisible();
             }
             if (path === "exams") {
+              await openWorkspaceTaskFilter(page, "exams");
               await page
                 .getByRole("group", { name: "Exams", exact: true })
                 .getByRole("radio", { name: "All", exact: true })

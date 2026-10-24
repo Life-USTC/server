@@ -174,9 +174,7 @@ it("ui.layout-principles-4", async () => {
     );
   }
   for (const root of [
-    "catalog/components/CoursesFilters",
-    "catalog/components/TeachersFilters",
-    "catalog/components/SectionsFilters",
+    "catalog/components/CatalogColumnFilter",
     "young/components/YoungEventFilters",
     "workspace/components/TodoFormFields",
     "workspace/components/HomeworkCreateFormFields",
@@ -204,6 +202,8 @@ it("ui.feature-interaction-ownership", async () => {
     "CollectionEmpty",
     "CollectionListShell",
     "CollectionTableShell",
+    "TableColumnHeader",
+    "TableControlsRow",
     "MobileListCard",
     "ListPagination",
   ].map((name) => `src/lib/components/${name}.svelte`);
@@ -278,19 +278,22 @@ it("ui.collection-primitive-ownership", async () => {
       root,
     ).toContain("src/lib/components/MobileListCard.svelte");
 
-  // Calendar grids and responsive actions are different roles from list/table
-  // swaps. Every other feature delegates that choice to the collection shell.
-  const nonCollectionVisibility = new Set([
+  // Calendar/action layouts do not swap collections. The grouped source table
+  // switches rows in place so its global search and canonical group anchors
+  // have a single DOM owner at every width (covered by its browser contract).
+  const featureOwnedVisibility = new Set([
+    "publications/components/PublicationSourceDirectoryPage.svelte",
     "young/components/YoungCalendar.svelte",
     "young/components/PersonalActivityCalendar.svelte",
     "workspace/components/CalendarTab.svelte",
     "workspace/components/CalendarTabToolbar.svelte",
-    "workspace/components/WorkspaceTaskToolbar.svelte",
+    "workspace/components/TodosTabToolbar.svelte",
+    "workspace/components/HomeworksTabToolbar.svelte",
     "section-detail/components/SectionDetailHeader.svelte",
     "section-detail/components/SectionDetailMainContent.svelte",
   ]);
   for (const relative of await readdir("src/features", { recursive: true })) {
-    if (!relative.endsWith(".svelte") || nonCollectionVisibility.has(relative))
+    if (!relative.endsWith(".svelte") || featureOwnedVisibility.has(relative))
       continue;
     const filename = `src/features/${relative}`;
     const ast = parse(await readFile(filename, "utf8"), {

@@ -210,7 +210,9 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
         await table.scrollIntoViewIfNeeded();
 
         const columns = await table.evaluate((element) => {
-          const headers = Array.from(element.querySelectorAll("thead th"));
+          const headers = Array.from(
+            element.querySelectorAll("thead th:not([colspan])"),
+          );
           const cells = Array.from(
             element.querySelectorAll("tbody tr:first-child td"),
           );
@@ -237,6 +239,10 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
             return {
               left: Math.min(...boxes.map((box) => box.left)),
               right: Math.max(...boxes.map((box) => box.right)),
+              centerY:
+                (Math.min(...boxes.map((box) => box.top)) +
+                  Math.max(...boxes.map((box) => box.bottom))) /
+                2,
             };
           }
           return headers.map((header, index) => ({
@@ -253,7 +259,17 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
               Math.abs(column.header[edge] - column.cell[edge]),
               `${item.name}: ${column.label} ${edge} edge`,
             )
-            .toBeLessThanOrEqual(1);
+            .toBeLessThanOrEqual(0.5);
+        }
+        if (item.name === "sections") {
+          for (const column of columns) {
+            expect
+              .soft(
+                Math.abs(column.cell.centerY - columns[1].cell.centerY),
+                `sections: ${column.label} shares the course name's vertical center`,
+              )
+              .toBeLessThanOrEqual(1);
+          }
         }
       }
     });

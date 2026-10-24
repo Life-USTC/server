@@ -187,6 +187,23 @@ requirements:
     test:
       file: tests/unit/features/publications/publication-summary.test.ts
       name: publicationSummary
+- id: publications.source-directory-global-search
+  category: presentation
+  rule: The source directory has one global name-and-host search across organization groups. Its header remains reachable after an empty result, and the same group anchors work on mobile and desktop.
+  rationale: One semantic table owns the global search and organization row groups, so each existing
+    level-* fragment has one target. Compact views keep Item cards inside those groups while reusing
+    the same header.
+  surfaces:
+  - web
+  acceptance:
+    given: Sources in university and office groups populate the public directory.
+    when: A browser follows a group anchor, searches one source and an unmatched value, then clears the search at 390 and 1280 pixels.
+    then:
+    - Exactly one search input appears in the table header and filters across all groups.
+    - The original group fragment targets the visible group, and clearing an unmatched search restores both groups without horizontal document overflow.
+    test:
+      file: tests/e2e/src/app/news/sources/test.ts
+      name: 全局表头搜索在手机与桌面保留分组锚点和空态恢复
 - id: publications.source-directory-last-published
   category: presentation
   rule: The source directory never shows the empty-state never-published label when a source already has

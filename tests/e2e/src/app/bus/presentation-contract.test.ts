@@ -21,16 +21,17 @@ async function openPlanner(
     .addCookies([{ name: "NEXT_LOCALE", value: locale, url: origin }]);
   await page.goto("/catalog/bus");
   await expect(
-    page
-      .getByRole("button", { name: /Reverse|反向/ })
-      .filter({ visible: true })
-      .first(),
+    page.getByRole("button", { name: /Change route|调整路线/ }),
   ).toBeEnabled();
   await expect(page.getByTestId("bus-route-section").first()).toBeVisible();
 }
 async function openControls(page: Page) {
   const change = page.getByRole("button", { name: /Change route|调整路线/ });
-  if (await change.isVisible()) await change.click();
+  const dialog = page.getByRole("dialog", { name: /Change route|调整路线/ });
+  if (!(await dialog.isVisible())) {
+    await expect(change).toBeVisible();
+    await change.click();
+  }
   await expect(page.getByTestId("bus-start-stop-group")).toBeVisible();
 }
 
@@ -42,6 +43,13 @@ test("bus.core-filters-only", { tag: "@Bus/Web" }, async ({
   await preferenceFlow.run(async () => {
     for (const width of [1280, 390]) {
       await openPlanner(page, width, "en-us", isolatedWorker.origin);
+      const header =
+        width >= 1024
+          ? page.locator("thead:visible")
+          : page.locator('[data-slot="collection-header"]:visible');
+      await expect(
+        header.getByRole("button", { name: "Change route", exact: true }),
+      ).toBeVisible();
       await openControls(page);
       const start = page.getByTestId("bus-start-stop-group");
       const end = page.getByTestId("bus-end-stop-group");
@@ -281,6 +289,7 @@ test("bus.visual-priority", { tag: "@Bus/Web" }, async ({
             summaryBox.y + summaryBox.height <= tableBox.y,
         ).toBe(true);
       } else {
+        await openControls(page);
         await expect(
           page
             .getByTestId("bus-start-stop-group")

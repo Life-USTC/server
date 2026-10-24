@@ -1,13 +1,13 @@
 <script lang="ts">
 import ActiveFilters from "#lib/components/ActiveFilters.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
-import FilterToolbar from "#lib/components/FilterToolbar.svelte";
 import ListPagination from "#lib/components/ListPagination.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
+import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import { toolbarControlClass } from "#lib/components/toolbar-control.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
@@ -37,6 +37,7 @@ type Props = {
 
 let { copy, data, pagination, search, source }: Props = $props();
 
+let searchDraft = $derived(search ?? "");
 const youngCopy = $derived(copy.youngEvents);
 const commonLabels = $derived(copy.common);
 
@@ -81,33 +82,24 @@ const summary = $derived(
   {/if}
 {/snippet}
 
-<CollectionPage
-  description={youngCopy.organizersDescription}
-  footer={pagination.totalPages > 1 ? paginationFooter : undefined}
-  title={youngCopy.organizersTitle}
->
-  {#snippet toolbar()}
+{#snippet controls(prefix: string)}
     <div class="grid min-w-0 gap-3">
-      <FilterToolbar>
-        {#snippet primary()}
           <form
             action="/catalog/young-events/organizers"
             method="get"
             class="flex min-w-0 flex-1 items-center gap-2"
           >
             <SearchField
-              id="young-organizer-search"
+              id={prefix + "-young-organizer-search"}
               label={commonLabels.search}
               name="search"
               placeholder={youngCopy.organizerSearchPlaceholder}
-              value={search ?? ""}
+              bind:value={searchDraft}
             />
             <Button type="submit" class={toolbarControlClass}>
               {commonLabels.search}
             </Button>
           </form>
-        {/snippet}
-      </FilterToolbar>
 
       <ActiveFilters
         items={search
@@ -124,8 +116,23 @@ const summary = $derived(
         clearLabel={commonLabels.clear}
       />
     </div>
-  {/snippet}
+{/snippet}
 
+
+{#snippet empty()}
+      <div class="py-10">
+        <ResultsEmpty
+          description={youngCopy.organizersDescription}
+          title={youngCopy.noOrganizersFound}
+        />
+      </div>
+{/snippet}
+
+<CollectionPage
+  description={youngCopy.organizersDescription}
+  footer={pagination.totalPages > 1 ? paginationFooter : undefined}
+  title={youngCopy.organizersTitle}
+>
   <section
     class="flex min-h-[calc(100dvh-16rem)] min-w-0 flex-col gap-3"
   >
@@ -135,9 +142,10 @@ const summary = $derived(
       totalPages={pagination.totalPages}
     />
 
-    {#if data.length > 0}
       <ResponsiveCollection>
         {#snippet mobile()}
+          <div class="mb-3" data-slot="collection-header">{@render controls("mobile")}</div>
+          {#if data.length > 0}
           <Item.Group class="gap-0" role="list">
             {#each data as organizer, index (organizer.id)}
               <div role="listitem">
@@ -164,10 +172,14 @@ const summary = $derived(
               </div>
             {/each}
           </Item.Group>
+          {:else}
+            {@render empty()}
+          {/if}
         {/snippet}
         {#snippet desktop()}
           <Table.Root>
             <Table.Header>
+              <TableControlsRow colspan={4}>{@render controls("desktop")}</TableControlsRow>
               <Table.Row>
                 <Table.Head>{youngCopy.organizer}</Table.Head>
                 <Table.Head
@@ -202,18 +214,12 @@ const summary = $derived(
                     <Table.Cell class="text-right tabular-nums" style="text-align: right">{organizer.historyCount}</Table.Cell>
                 </Table.Row>
               {/each}
+            {#if data.length === 0}<Table.Row><Table.Cell colspan={4}>{@render empty()}</Table.Cell></Table.Row>{/if}
             </Table.Body>
           </Table.Root>
         {/snippet}
       </ResponsiveCollection>
-    {:else}
-      <div class="py-10">
-        <ResultsEmpty
-          description={youngCopy.organizersDescription}
-          title={youngCopy.noOrganizersFound}
-        />
-      </div>
-    {/if}
+
 
     <div class="mt-auto grid justify-items-end gap-1 pt-8"><YoungSourceNote labels={youngCopy} source={source} /></div>
   </section>

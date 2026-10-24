@@ -13,6 +13,7 @@ import ExamsCardsView from "./ExamsCardsView.svelte";
 import ExamsListView from "./ExamsListView.svelte";
 import ExamsTabToolbar from "./ExamsTabToolbar.svelte";
 import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
+import WorkspaceTaskToolbar from "./WorkspaceTaskToolbar.svelte";
 import type {
   ExamMetadataLabels,
   ExamTimeLabel,
@@ -55,6 +56,18 @@ function clearExamFilter() {
 $: showClearExamFilter = examFilter !== "incomplete" && examRows.length > 0;
 </script>
 
+{#snippet completionFilter()}
+  <WorkspaceTaskToolbar
+    ariaLabel={workspaceCopy.nav.exams.title}
+    columnLabel={sectionCopy.examDate}
+    filter={examFilter}
+    onFilterChange={(value) => { examFilter = value; }}
+    filterIncompleteLabel={workspaceCopy.nav.exams.filterIncomplete}
+    filterCompletedLabel={workspaceCopy.nav.exams.filterCompleted}
+    filterAllLabel={workspaceCopy.nav.exams.filterAll}
+  />
+{/snippet}
+
 <section class="grid gap-4">
   {#if !hasWorkspaceSubscriptions(signedData)}
     <WorkspaceNoSubscriptionsState
@@ -66,18 +79,16 @@ $: showClearExamFilter = examFilter !== "incomplete" && examRows.length > 0;
       ]}
     />
   {:else}
-    <ExamsTabToolbar
-      {workspaceCopy}
-      {examFilter}
-      {mobileView}
-      onMobileViewChange={(value) => { mobileView = value; }}
-      onExamFilterChange={(value) => {
-        examFilter = value;
-      }}
-    />
-
     <WorkspaceCollection>
       {#snippet mobile()}
+        <div class="mb-3 flex items-center justify-between gap-2" data-slot="collection-header">
+          {#if mobileView === "cards"}{@render completionFilter()}{/if}
+          <ExamsTabToolbar
+            {workspaceCopy}
+            {mobileView}
+            onMobileViewChange={(value) => { mobileView = value; }}
+          />
+        </div>
         {#if mobileView === "cards"}
           <ExamsCardsView
             {locale}
@@ -97,6 +108,7 @@ $: showClearExamFilter = examFilter !== "incomplete" && examRows.length > 0;
           />
         {:else}
           <ExamsListView
+        filterControls={completionFilter}
             {examMetadataLabels}
             {locale}
             unknownSemesterLabel={signedData.copy.common.unknown}
@@ -116,6 +128,7 @@ $: showClearExamFilter = examFilter !== "incomplete" && examRows.length > 0;
       {/snippet}
       {#snippet desktop()}
         <ExamsListView
+        filterControls={completionFilter}
           {examMetadataLabels}
           {locale}
           unknownSemesterLabel={signedData.copy.common.unknown}

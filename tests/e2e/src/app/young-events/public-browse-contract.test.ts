@@ -163,7 +163,7 @@ test("young-event.web-browse-context", { tag: "@Young/Web" }, async ({
         page.locator("#main-content").getByRole("searchbox"),
       ).toHaveCount(0);
       await expect(
-        page.getByRole("button", { name: /更多筛选|More filters/ }),
+        page.getByRole("button", { name: /^(活动|Event)$/ }),
       ).toHaveCount(0);
       const listNav = await openYoungSidebar(page);
       await listNav
@@ -243,7 +243,9 @@ test("young-event.web-organizer-order", { tag: "@Young/Web" }, async ({
       );
       await expect(organizerLinks).toHaveCount(0);
       await expect(
-        page.getByText(/未找到主办方|No organizers found/),
+        page
+          .getByText(/未找到主办方|No organizers found/)
+          .filter({ visible: true }),
       ).toBeVisible();
     }
   });
@@ -283,10 +285,9 @@ test("young-event.fixed-browse-filter-options", { tag: "@Young/Web" }, async ({
       })}`,
     );
     await expect(
-      page.getByRole("button", { name: /更多筛选|More filters/ }),
+      page.getByRole("button", { name: /^(活动|Event)$/ }),
     ).toHaveCount(0);
     {
-      const prefix = "young-event";
       const path = root;
       const context = {
         search: fixture.search,
@@ -302,10 +303,10 @@ test("young-event.fixed-browse-filter-options", { tag: "@Young/Web" }, async ({
       });
       await expect(applied).toContainText("未知模块");
       await expect(applied).toContainText("未知级别");
-      await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
+      await page.getByRole("button", { name: /^(活动|Event)$/ }).click();
       const dialog = page.getByRole("dialog");
-      const module = dialog.locator(`#${prefix}-module`);
-      const level = dialog.locator(`#${prefix}-activity-level`);
+      const module = dialog.locator("select[id$='-module']");
+      const level = dialog.locator("select[id$='-activity-level']");
       await expect(module).toHaveValue("未知模块");
       await expect(level).toHaveValue("未知级别");
 
@@ -333,7 +334,7 @@ test("young-event.fixed-browse-filter-options", { tag: "@Young/Web" }, async ({
         (url) => url.searchParams.get("search") === primarySearch,
       );
       sharedContext(page, { ...context, search: primarySearch });
-      await page.getByRole("button", { name: /更多筛选|More filters/ }).click();
+      await page.getByRole("button", { name: /^(活动|Event)$/ }).click();
       await expect(dialog).toBeVisible();
       await module.selectOption("智");
       await level.selectOption("校级");

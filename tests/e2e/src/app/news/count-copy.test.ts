@@ -56,7 +56,7 @@ for (const count of [0, 1, 2]) {
           );
           await check(
             page
-              .locator('[data-slot="page-section-header"] span.text-sm')
+              .locator('tbody[id^="level-"] th[scope="rowgroup"] span.text-sm')
               .first(),
             en
               ? `${count} ${count === 1 ? "source" : "sources"} · ${count} ${count === 1 ? "publication" : "publications"}`

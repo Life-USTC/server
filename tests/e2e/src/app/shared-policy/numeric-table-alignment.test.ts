@@ -131,7 +131,7 @@ for (const [domain, names] of [
         await table.scrollIntoViewIfNeeded();
 
         const measurements = await table.evaluate((element, indices) => {
-          const headers = element.querySelectorAll("thead th");
+          const headers = element.querySelectorAll("thead th:not([colspan])");
           const cells = element.querySelectorAll("tbody tr:first-child td");
           function rightEdge(element: Element) {
             const walker = document.createTreeWalker(

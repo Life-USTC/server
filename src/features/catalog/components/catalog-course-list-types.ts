@@ -21,7 +21,6 @@ export type CourseListLabels = {
   courseCode: string;
   courseName: string;
   educationLevel: string;
-  filterDescription: string;
   noCoursesFound: string;
   searchFor: string;
   searchPlaceholder: string;
@@ -48,11 +47,6 @@ export type CourseListFilterOptions = {
   categories: CourseListOptionSource[];
   classTypes: CourseListOptionSource[];
   educationLevels: CourseListOptionSource[];
-};
-
-export type CourseListOption = {
-  label: string;
-  value: string;
 };
 
 export type CourseListRow = CatalogNamed & {

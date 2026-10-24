@@ -21,19 +21,13 @@ export type SectionListLabels = {
   credits: string;
   department: string;
   educationLevel: string;
-  filterDescription: string;
   filters: {
     any: string;
     apply: string;
-    courseDescription: string;
-    courseTitle: string;
     defaultSort: string;
     exactCredits: string;
-    order: string;
     orderAsc: string;
     orderDesc: string;
-    sectionDescription: string;
-    sectionTitle: string;
     sortBy: string;
     sortCampus: string;
     sortCapacity: string;
@@ -42,8 +36,6 @@ export type SectionListLabels = {
     sortCredits: string;
     sortSemester: string;
     sortTeacherCount: string;
-    sortingDescription: string;
-    sortingTitle: string;
   };
   inSemester: string;
   noSectionsFound: string;

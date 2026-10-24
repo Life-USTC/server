@@ -261,7 +261,7 @@ test("/admin/users 状态列对齐且平板使用可读列表", {
         await gotoAndWaitForReady(page, "/admin/users");
 
         const table = page.locator("table:visible");
-        const headers = table.locator("thead th");
+        const headers = table.locator("thead tr:last-child th");
         const firstRowCells = adminUserTableRow(
           page,
           managedUser.username,

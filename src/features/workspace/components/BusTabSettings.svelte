@@ -10,6 +10,7 @@ import type {
 } from "@/features/workspace/lib/bus-tab-types";
 import BusCampusPickerGroup from "./BusCampusPickerGroup.svelte";
 
+export let idPrefix: string;
 export let bus: WorkspaceBusData;
 export let busCopy: WorkspaceBusCopy;
 export let busDayType: "weekday" | "saturday" | "sunday";
@@ -40,6 +41,7 @@ function selectDayType(value: string) {
         onSelect={selectBusStart}
         selectedCampusId={busStartCampusId}
         testId="bus-start-stop-group"
+        idPrefix={`${idPrefix}-start`}
       />
 
       <Field.Field>
@@ -63,6 +65,7 @@ function selectDayType(value: string) {
         onSelect={selectBusEnd}
         selectedCampusId={busEndCampusId}
         testId="bus-end-stop-group"
+        idPrefix={`${idPrefix}-end`}
       />
     </Field.Group>
   </Field.Set>
@@ -72,11 +75,11 @@ function selectDayType(value: string) {
   <Field.Set>
     <Field.Group class="gap-3">
       <Field.Field>
-        <Field.Title id="bus-day-type-label">
+        <Field.Title id={`${idPrefix}-day-type-label`}>
           {busCopy.query.dayType}
         </Field.Title>
         <ToggleGroup.Root
-          aria-labelledby="bus-day-type-label"
+          aria-labelledby={`${idPrefix}-day-type-label`}
           class="grid w-full grid-cols-3"
           spacing={2}
           type="single"
@@ -114,12 +117,12 @@ function selectDayType(value: string) {
         orientation="horizontal"
       >
         <Field.Content>
-          <Field.Label for="bus-show-departed-trips">
+          <Field.Label for={`${idPrefix}-show-departed-trips`}>
             {busCopy.query.showDepartedTrips}
           </Field.Label>
         </Field.Content>
         <Switch
-          id="bus-show-departed-trips"
+          id={`${idPrefix}-show-departed-trips`}
           checked={busShowDepartedTrips}
           disabled={!busPlannerReady}
           onCheckedChange={toggleBusDepartedTrips}

@@ -9,13 +9,13 @@ import {
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import { page as routePage } from "$app/state";
 import CatalogFilters from "./CatalogFilters.svelte";
+import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
 import type {
   TeacherListCommonLabels,
   TeacherListFilters,
   TeacherListLabels,
   TeacherListRow,
 } from "./catalog-teacher-list-types";
-import TeachersFilters from "./TeachersFilters.svelte";
 import TeachersResults from "./TeachersResults.svelte";
 
 type DepartmentOption = CatalogNamed & {
@@ -99,6 +99,23 @@ let teacherHiddenFilters = $derived(
     (filter) => Boolean(filter.value),
   ),
 );
+const columnFilters = $derived<Record<string, CatalogColumnFilterProps>>({
+  department: {
+    action: "/catalog/teachers",
+    label: teacherLabels.department,
+    fields: [
+      {
+        name: "departmentId",
+        label: teacherLabels.department,
+        options: departmentOptions,
+      },
+    ],
+    filters: data.filters,
+    search: teacherSearch,
+    applyLabel: commonLabels.applyFilters,
+    clearLabel: commonLabels.clear,
+  },
+});
 </script>
 
 
@@ -116,32 +133,24 @@ let teacherHiddenFilters = $derived(
   />
 {/snippet}
 
-<CollectionPage description={teacherLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={teacherLabels.title}>
-  {#snippet toolbar()}
-    <CatalogFilters
-      activeFilters={teacherActiveFilters}
-      clearHref="/catalog/teachers"
-      clearLabel={commonLabels.clear}
-      filterDescription={teacherLabels.filterDescription}
-      filterTitle={teacherLabels.filterTitle}
-      hiddenFilters={teacherHiddenFilters}
-      searchId="mobile-teacher-search"
-      searchLabel={teacherLabels.searchLabel}
-      searchPlaceholder={teacherLabels.searchNameOrCode}
-      bind:searchValue={teacherSearch}
-    >
-      <TeachersFilters
-        commonLabels={commonLabels}
-        departmentOptions={departmentOptions}
-        filters={data.filters}
-        idPrefix="mobile-teacher"
-        teacherLabels={teacherLabels}
-        teacherSearch={teacherSearch}
-      />
-    </CatalogFilters>
-  {/snippet}
+{#snippet controls(prefix: string)}
+  <CatalogFilters
+    activeFilters={teacherActiveFilters}
+    clearHref="/catalog/teachers"
+    clearLabel={commonLabels.clear}
+    filterTitle={teacherLabels.filterTitle}
+    hiddenFilters={teacherHiddenFilters}
+    searchId={prefix + "-teacher-search"}
+    searchLabel={teacherLabels.searchLabel}
+    searchPlaceholder={teacherLabels.searchNameOrCode}
+    bind:searchValue={teacherSearch}
+  />
+{/snippet}
 
+<CollectionPage description={teacherLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={teacherLabels.title}>
   <TeachersResults
+    {controls}
+    {columnFilters}
     commonLabels={commonLabels}
     filters={data.filters}
     page={data.pagination.page}

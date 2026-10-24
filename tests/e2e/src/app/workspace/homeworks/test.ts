@@ -33,6 +33,7 @@ import {
 import { test } from "../../../../utils/homework-fixture";
 import { visibleText } from "../../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
 
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
@@ -48,6 +49,7 @@ test.describe("仪表盘作业", () => {
         await gotoAndWaitForReady(page, "/workspace/homeworks");
 
         // Switch to All to see all homeworks
+        await openWorkspaceTaskFilter(page, "homeworks");
         await page
           .getByRole("radio", { name: /全部|All/i })
           .first()
@@ -74,6 +76,7 @@ test.describe("仪表盘作业", () => {
         const detailButton = hwRow.getByRole("button", {
           name: new RegExp(homeworks[1].title),
         });
+        await page.keyboard.press("Escape");
         await detailButton.focus();
         await page.keyboard.press("Enter");
         await expect(
@@ -94,6 +97,7 @@ test.describe("仪表盘作业", () => {
       async () => {
         await gotoAndWaitForReady(page, "/workspace/homeworks");
 
+        await openWorkspaceTaskFilter(page, "homeworks");
         await page
           .getByRole("radio", { name: /全部|All/i })
           .first()
@@ -126,16 +130,20 @@ test.describe("仪表盘作业", () => {
         await expect(visibleText(page, homeworkStates[0].title)).toBeVisible();
 
         // Completed filter
+        await openWorkspaceTaskFilter(page, "homeworks");
         const completedTab = page
           .getByRole("radio", { name: /已完成|Completed/i })
           .first();
         await expect(completedTab).toBeVisible();
+        await openWorkspaceTaskFilter(page, "homeworks");
         await completedTab.click();
         await expect(visibleText(page, homeworkStates[1].title)).toBeVisible();
         await expect(visibleText(page, homeworkStates[0].title)).toHaveCount(0);
         // All filter
+        await openWorkspaceTaskFilter(page, "homeworks");
         const allTab = page.getByRole("radio", { name: /全部|All/i }).first();
         await expect(allTab).toBeVisible();
+        await openWorkspaceTaskFilter(page, "homeworks");
         await allTab.click();
         await expect(visibleText(page, homeworkStates[0].title)).toBeVisible();
       },
@@ -150,11 +158,13 @@ test.describe("仪表盘作业", () => {
       async () => {
         await gotoAndWaitForReady(page, "/workspace/homeworks");
 
+        await openWorkspaceTaskFilter(page, "homeworks");
         await page
           .getByRole("radio", { name: /全部|All/i })
           .first()
           .click();
 
+        await page.keyboard.press("Escape");
         const row = page
           .getByRole("row")
           .filter({ hasText: homeworks[1].title })
@@ -183,11 +193,13 @@ test.describe("仪表盘作业", () => {
       async () => {
         await gotoAndWaitForReady(page, "/workspace/homeworks");
 
+        await openWorkspaceTaskFilter(page, "homeworks");
         await page
           .getByRole("radio", { name: /全部|All/i })
           .first()
           .click();
 
+        await page.keyboard.press("Escape");
         const detailRow = page
           .getByRole("row")
           .filter({ hasText: homeworks[1].title })

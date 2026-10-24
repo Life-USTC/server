@@ -76,7 +76,7 @@ requirements:
       name: consumer hides foreign rows at 390px
 - id: todo.web-list-state
   category: presentation
-  rule: The Web todo list preserves the selected completion filter even when it has no matching rows.
+  rule: The Web todo list exposes completion filters from the title column header on desktop and the card collection header on mobile. The selected filter and its entry point remain available even when no rows match.
   acceptance:
     given: An isolated temporary owner and signed session have one incomplete todo and no completed rows.
     when: Desktop and mobile views repeatedly select the empty completed filter, switch to populated filters
@@ -174,15 +174,13 @@ requirements:
       name: todo.bounded-summary-read
 - id: todo.mobile-toolbar-priority
   category: presentation
-  rule: At mobile widths, completion-status filters stay directly available and todos use cards. Desktop
-    todos use the table view; there is no display-mode menu.
+  rule: At mobile widths, todos use cards with completion filters in the collection header. Desktop uses the title column header for the same filters; there is no display-mode menu.
   acceptance:
     given: The authenticated owner has personal todos.
     when: The actual workspace is viewed at desktop and mobile widths and each completion filter is selected.
     then:
     - Desktop displays a table and mobile displays cards.
-    - All completion filters remain directly visible and selectable; mobile controls have at least 44px
-      targets within the viewport.
+    - The header opens every completion filter, and each choice remains selectable; the mobile trigger and choices have at least 44px targets within the viewport.
     - No view-mode menu or list/card selector is shown, and the page does not overflow horizontally.
     test:
       file: tests/e2e/src/app/workspace/todos/presentation-contract.test.ts

@@ -41,6 +41,7 @@ describe("page-search-shortcut", () => {
   test("mountPageSearchShortcut focuses and selects the input", () => {
     const listeners = new Map<string, EventListener>();
     const input = {
+      getClientRects: () => [{ width: 200, height: 32 }],
       focus: vi.fn(),
       select: vi.fn(),
     } as unknown as HTMLInputElement;
@@ -65,4 +66,34 @@ describe("page-search-shortcut", () => {
     expect(listeners.has("keydown")).toBe(false);
     vi.unstubAllGlobals();
   });
+
+  test.each(["hidden", "disabled", "handled"])(
+    "leaves a %s search input alone",
+    (state) => {
+      let listener: EventListener | undefined;
+      const input = {
+        disabled: state === "disabled",
+        getClientRects: () =>
+          state === "hidden" ? [] : [{ width: 200, height: 32 }],
+        focus: vi.fn(),
+        select: vi.fn(),
+      } as unknown as HTMLInputElement;
+      vi.stubGlobal("window", {
+        addEventListener(_type: string, handler: EventListener) {
+          listener = handler;
+        },
+        removeEventListener: vi.fn(),
+      });
+      const unmount = mountPageSearchShortcut(() => input);
+      const event = keyEvent("k", { ctrl: true, shift: true });
+      Object.defineProperty(event, "defaultPrevented", {
+        value: state === "handled",
+      });
+      listener?.(event);
+      expect(event.preventDefault).not.toHaveBeenCalled();
+      expect(input.focus).not.toHaveBeenCalled();
+      expect(input.select).not.toHaveBeenCalled();
+      unmount();
+    },
+  );
 });

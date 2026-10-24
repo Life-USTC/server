@@ -5,6 +5,7 @@ import {
   test,
 } from "../../../utils/calendar-presentation-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { openWorkspaceTaskFilter } from "../../../utils/workspace-task-filters";
 
 async function fixture(
   page: Page,
@@ -72,6 +73,7 @@ test("homework.mobile-status-controls", { tag: "@Homework/Web" }, async ({
       for (const width of [320, 390]) {
         await page.setViewportSize({ width, height: 844 });
         await page.goto("/workspace/homeworks");
+        await openWorkspaceTaskFilter(page, "homeworks");
         const cards = page.getByTestId("workspace-homeworks-cards");
         for (const [label, expected] of [
           ["Incomplete", [data.homework.title]],
@@ -97,6 +99,7 @@ test("homework.mobile-status-controls", { tag: "@Homework/Web" }, async ({
             else await expect(button).toHaveCount(0);
           }
         }
+        await page.keyboard.press("Escape");
         const create = page.getByTestId("workspace-homeworks-add");
         await expect(create).toBeEnabled();
         const box = await bounds(create);

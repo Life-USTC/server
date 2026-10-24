@@ -97,6 +97,18 @@ requirements:
     test:
       file: tests/unit/features/catalog-links/catalog-links.test.ts
       name: catalog-link.search-fuzzy
+- id: catalog-link.web-search-header
+  category: presentation
+  rule: One visible global search control appears in the desktop grouped table header or the mobile card collection header. It searches every link group and stays available when no links match.
+  acceptance:
+    given: A signed-in viewer has the full link directory at desktop and mobile widths.
+    when: The viewer opens search with its keyboard shortcut, searches across groups, selects a query with no matches, and clears it.
+    then:
+    - The visible search is in the collection header and searches title, description and domain across all groups.
+    - Empty results preserve search and clearing restores the directory.
+    test:
+      file: tests/e2e/src/app/workspace/links/test.ts
+      name: 搜索可筛选链接
 - id: catalog-link.pin-limit
   category: validation
   rule: Currently a maximum of 4 links can be pinned; exceeding this displaces the earliest pinned link.

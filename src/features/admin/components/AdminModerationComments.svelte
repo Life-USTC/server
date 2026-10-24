@@ -9,7 +9,9 @@ import type {
   AdminModerationCommentStatusFormatter,
   AdminModerationCommentsCopy,
 } from "./admin-moderation-comment-types";
+import type { AdminModerationFilterControls } from "./admin-moderation-page-types";
 
+export let filterControls: AdminModerationFilterControls;
 export let comments: AdminModerationComment[];
 export let copy: AdminModerationCommentsCopy;
 export let commentAuthorLabel: AdminModerationCommentFormatter;
@@ -21,9 +23,13 @@ export let targetLabel: AdminModerationCommentFormatter;
 </script>
 
 <section class="grid grid-cols-[minmax(0,1fr)] gap-3">
-  {#if comments.length > 0}
     <ResponsiveCollection>
       {#snippet mobile()}
+        <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
+          {@render filterControls("search", "mobile")}
+          {@render filterControls("status", "mobile")}
+        </div>
+        {#if comments.length === 0}<CollectionEmpty variant="compact" description={copy.noComments} />{:else}
         <AdminModerationCommentsMobile
           {commentAuthorLabel}
           {comments}
@@ -33,9 +39,11 @@ export let targetLabel: AdminModerationCommentFormatter;
           {statusLabel}
           {targetLabel}
         />
+        {/if}
       {/snippet}
       {#snippet desktop()}
         <AdminModerationCommentsTable
+          {filterControls}
           {commentAuthorLabel}
           {comments}
           {copy}
@@ -47,7 +55,4 @@ export let targetLabel: AdminModerationCommentFormatter;
         />
       {/snippet}
     </ResponsiveCollection>
-  {:else}
-    <CollectionEmpty variant="compact" description={copy.noComments} />
-  {/if}
 </section>

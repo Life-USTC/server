@@ -11,6 +11,7 @@ import type { AdminModerationDescription } from "@/features/admin/components/adm
 import type {
   AdminModerationAdminCopy,
   AdminModerationCopy,
+  AdminModerationFilterKind,
   AdminModerationHomework,
   AdminModerationSuspension,
   AdminModerationTab,
@@ -192,6 +193,20 @@ function _enhanceAdminAction(action: Parameters<typeof enhanceAdminAction>[0]) {
 
 <svelte:head><title>{_copy.title} - Life@USTC</title></svelte:head>
 
+{#snippet filterControls(kind: AdminModerationFilterKind, viewport: "mobile" | "desktop")}
+  <AdminModerationFilters
+    copy={_copy}
+    {descriptionContentOptions}
+    {descriptionTargetOptions}
+    filters={data.filters}
+    bind:searchQuery={_searchQuery}
+    {statusFilterOptions}
+    tab={data.tab}
+    {kind}
+    {viewport}
+  />
+{/snippet}
+
 <AdminWorkspace>
   {#snippet header()}
     <AdminModerationHeader
@@ -204,18 +219,8 @@ function _enhanceAdminAction(action: Parameters<typeof enhanceAdminAction>[0]) {
   {#snippet feedback()}
     <AdminModerationStatusAlerts {form} refreshError={_refreshError} />
   {/snippet}
-  {#snippet controls()}
-    <AdminModerationFilters
-      copy={_copy}
-      {descriptionContentOptions}
-      {descriptionTargetOptions}
-      filters={data.filters}
-      bind:searchQuery={_searchQuery}
-      {statusFilterOptions}
-      tab={data.tab}
-    />
-  {/snippet}
   <AdminModerationTabContent
+    {filterControls}
     copy={_copy}
     {data}
     enhanceAdminAction={_enhanceAdminAction}

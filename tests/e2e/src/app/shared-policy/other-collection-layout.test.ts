@@ -206,23 +206,30 @@ for (const item of cases()) {
         await expect(record, item.name).toBeVisible();
         const heading = page.getByRole("heading", { level: 1 });
         await expect(heading).toBeVisible();
-        let previous = heading;
         if (item.filter) {
           const filter =
             item.name === "notifications"
               ? page.getByRole("group", { name: "Filter reminders" })
               : page.getByRole("searchbox");
           await expect(filter).toBeVisible();
-          await precedes(previous, filter);
-          previous = filter;
+          await precedes(heading, filter);
+          await precedes(filter, record);
+          if (item.name !== "notifications") {
+            expect(
+              await filter.evaluate((node) =>
+                Boolean(node.closest('thead, [data-slot="collection-header"]')),
+              ),
+              `${item.name}: search belongs to the collection header`,
+            ).toBe(true);
+          }
         }
         if (item.summary) {
           const resultSummary = summary(page, item.name);
           await expect(resultSummary).toBeVisible();
-          await precedes(previous, resultSummary);
-          previous = resultSummary;
+          await precedes(heading, resultSummary);
+          await precedes(resultSummary, record);
         }
-        await precedes(previous, record);
+        await precedes(heading, record);
         if (item.pagination) {
           const pagination = page.locator('[data-slot="list-pagination"]');
           await expect(pagination).toBeVisible();

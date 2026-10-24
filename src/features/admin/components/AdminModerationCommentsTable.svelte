@@ -1,5 +1,7 @@
 <script lang="ts">
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
+import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import * as Table from "#lib/components/ui/table/index.js";
 import AdminModerationCommentTableRow from "./AdminModerationCommentTableRow.svelte";
 import type {
@@ -8,7 +10,9 @@ import type {
   AdminModerationCommentStatusFormatter,
   AdminModerationCommentsCopy,
 } from "./admin-moderation-comment-types";
+import type { AdminModerationFilterControls } from "./admin-moderation-page-types";
 
+export let filterControls: AdminModerationFilterControls;
 export let comments: AdminModerationComment[];
 export let copy: AdminModerationCommentsCopy;
 export let commentAuthorLabel: AdminModerationCommentFormatter;
@@ -23,12 +27,13 @@ export let targetLabel: AdminModerationCommentFormatter;
   <CollectionTableShell label={copy.content}>
     <Table.Root class="w-full min-w-[64rem]">
       <Table.Header>
+        <TableControlsRow colspan={6}>{@render filterControls("search", "desktop")}</TableControlsRow>
         <Table.Row>
           <Table.Head class="w-[34%]">{copy.content}</Table.Head>
           <Table.Head class="w-[16%]">{copy.author}</Table.Head>
           <Table.Head class="w-[20%]">{copy.postedIn}</Table.Head>
           <Table.Head class="w-[14%] text-right">{copy.createdAt}</Table.Head>
-          <Table.Head class="w-[10%] text-center">{copy.status}</Table.Head>
+          <Table.Head class="w-[10%] text-center">{@render filterControls("status", "desktop")}</Table.Head>
           <Table.Head class="w-14 min-w-14 text-right">
             <span class="sr-only">{copy.actions}</span>
           </Table.Head>
@@ -46,6 +51,8 @@ export let targetLabel: AdminModerationCommentFormatter;
             {targetHref}
             {targetLabel}
           />
+        {:else}
+          <Table.Row><Table.Cell colspan={6}><CollectionEmpty variant="compact" description={copy.noComments} /></Table.Cell></Table.Row>
         {/each}
       </Table.Body>
     </Table.Root>

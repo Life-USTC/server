@@ -1,8 +1,10 @@
 <script lang="ts">
+import type { Snippet } from "svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
+import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
@@ -15,8 +17,10 @@ import {
   optionalCatalogFilterSummary,
 } from "@/features/catalog/lib/catalog-results-summary";
 import { page as routePage } from "$app/state";
+import CatalogColumnFilter from "./CatalogColumnFilter.svelte";
 import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
+import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
 import type {
   TeacherListCommonLabels,
   TeacherListFilters,
@@ -25,6 +29,8 @@ import type {
 } from "./catalog-teacher-list-types";
 
 interface Props {
+  controls: Snippet<[string]>;
+  columnFilters: Record<string, CatalogColumnFilterProps>;
   commonLabels: TeacherListCommonLabels;
   filters: TeacherListFilters;
   page: number;
@@ -37,6 +43,8 @@ interface Props {
 }
 
 let {
+  controls,
+  columnFilters,
   commonLabels,
   filters,
   page,
@@ -85,6 +93,15 @@ function teacherSectionsHref(teacher: TeacherListRow) {
 </script>
 
 
+{#snippet empty()}
+    <div class="py-10">
+      <ResultsEmpty
+        description={teacherLabels.emptyDescription}
+        title={teacherLabels.noTeachersFound}
+      />
+    </div>
+{/snippet}
+
 <section class="grid min-w-0 gap-3">
   <ResultsSummary
     summary={[
@@ -95,9 +112,17 @@ function teacherSectionsHref(teacher: TeacherListRow) {
     page={page}
     totalPages={totalPages}
   />
-  {#if teachers.length > 0}
     <ResponsiveCollection>
       {#snippet mobile()}
+        <div class="grid gap-3" data-slot="collection-header">
+          {@render controls("mobile")}
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+            {#each Object.entries(columnFilters) as [key, column] (key)}
+              <CatalogColumnFilter {...column} align="start" idPrefix={"mobile-teacher-" + key} />
+            {/each}
+          </div>
+        </div>
+        {#if teachers.length > 0}
         <Item.Group class="gap-0" role="list">
           {#each teachers as teacher, index}
             {@const teacherHref = `/catalog/teachers/${teacher.id}`}
@@ -148,14 +173,18 @@ function teacherSectionsHref(teacher: TeacherListRow) {
             {/if}
           {/each}
         </Item.Group>
+        {:else}
+          {@render empty()}
+        {/if}
       {/snippet}
       {#snippet desktop()}
         <Table.Root class="">
           <Table.Header>
+            <TableControlsRow colspan={4 + Number(showTitleColumn) + Number(showEmailColumn)}>{@render controls("desktop")}</TableControlsRow>
             <Table.Row>
               <Table.Head>{teacherLabels.name}</Table.Head>
               <Table.Head>{teacherLabels.code}</Table.Head>
-              <Table.Head>{teacherLabels.department}</Table.Head>
+              <Table.Head><CatalogColumnFilter {...columnFilters.department} idPrefix="desktop-teacher-department" /></Table.Head>
               {#if showTitleColumn}
                 <Table.Head>{teacherLabels.title_label}</Table.Head>
               {/if}
@@ -221,16 +250,11 @@ function teacherSectionsHref(teacher: TeacherListRow) {
               </Table.Cell>
               </Table.Row>
             {/each}
+          {#if teachers.length === 0}
+              <Table.Row><Table.Cell colspan={4 + Number(showTitleColumn) + Number(showEmailColumn)}>{@render empty()}</Table.Cell></Table.Row>
+            {/if}
           </Table.Body>
         </Table.Root>
       {/snippet}
     </ResponsiveCollection>
-  {:else}
-    <div class="py-10">
-      <ResultsEmpty
-        description={teacherLabels.emptyDescription}
-        title={teacherLabels.noTeachersFound}
-      />
-    </div>
-  {/if}
 </section>

@@ -1,6 +1,7 @@
 <script lang="ts">
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
 import { onMount } from "svelte";
+import TableColumnHeader from "#lib/components/TableColumnHeader.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Collapsible from "#lib/components/ui/collapsible/index.js";
 import * as Empty from "#lib/components/ui/empty/index.js";
@@ -40,7 +41,6 @@ let busEndCampusId: number | null = null;
 let busPlannerReady = false;
 let busShowDepartedTrips = false;
 let busStartCampusId: number | null = null;
-let routeControlsOpen = false;
 let timetableOpen = true;
 let busLoading = !bus;
 let busLoadFailed = false;
@@ -171,6 +171,28 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
 );
 </script>
 
+{#snippet plannerControls(viewport: "mobile" | "desktop")}
+  {#if loadedBus}
+    <TableColumnHeader label={busCopy.changeRoute} active={true}>
+      <BusTabSettings
+        bus={loadedBus}
+        idPrefix={`bus-${viewport}`}
+        {busCopy}
+        {busDayType}
+        {busEndCampusId}
+        {busPlannerReady}
+        {busShowDepartedTrips}
+        {busStartCampusId}
+        {reverseBusStops}
+        {selectBusEnd}
+        {selectBusStart}
+        setBusDayType={(dayType) => { onPlannerChange?.(); state.actions.setBusDayType(dayType); }}
+        toggleBusDepartedTrips={() => { onPlannerChange?.(); state.actions.toggleBusDepartedTrips(); }}
+      />
+    </TableColumnHeader>
+  {/if}
+{/snippet}
+
 <div class="grid min-w-0 gap-5">
   {#if showPageHeader}
     <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -181,125 +203,44 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
   {/if}
 
   {#if loadedBus}
-    {#if compact}
-      <div
-        data-testid="bus-responsive-planner"
-        class="grid min-w-0 gap-3 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start lg:gap-4"
-      >
-        <div class="lg:col-span-2 lg:hidden">
-          <BusTabCompactSummary
-            {busApplicableRoutes}
-            {busCopy}
-            {busPlannerReady}
-            {reverseBusStops}
-          />
+    <div data-testid="bus-responsive-planner" class="grid min-w-0 gap-3">
+      {#if compact}
+        <div class="lg:hidden">
+          <BusTabCompactSummary {busApplicableRoutes} {busCopy} {busPlannerReady} {reverseBusStops} />
         </div>
-
-        <Collapsible.Root bind:open={routeControlsOpen} class="group/route-controls">
+      {/if}
+      <div class="flex flex-wrap items-center gap-2 lg:hidden" data-slot="collection-header">
+        {@render plannerControls("mobile")}
+      </div>
+      <Collapsible.Root bind:open={timetableOpen} class="group/full-timetable">
+        {#if compact}
           <Collapsible.Trigger>
             {#snippet child({ props })}
-              <Button
-                {...props}
-                class="h-11 w-full justify-between lg:hidden"
-                variant="outline"
-              >
-                {routeControlsOpen
-                  ? busCopy.hideRouteControls
-                  : busCopy.changeRoute}
-                <ChevronDownIcon
-                  data-icon="inline-end"
-                  class="transition-transform group-data-[state=open]/route-controls:rotate-180"
-                />
-              </Button>
-            {/snippet}
-          </Collapsible.Trigger>
-          <Collapsible.Content
-            class="data-[state=closed]:hidden lg:!block"
-            forceMount
-          >
-            <div class="min-w-0 pt-3 lg:pt-0">
-              <BusTabSettings
-                bus={loadedBus}
-                {busCopy}
-                {busDayType}
-                {busEndCampusId}
-                {busPlannerReady}
-                {busShowDepartedTrips}
-                {busStartCampusId}
-                {reverseBusStops}
-                {selectBusEnd}
-                {selectBusStart}
-                setBusDayType={(dayType) => { onPlannerChange?.(); state.actions.setBusDayType(dayType); }}
-                toggleBusDepartedTrips={() => { onPlannerChange?.(); state.actions.toggleBusDepartedTrips(); }}
-              />
-            </div>
-          </Collapsible.Content>
-        </Collapsible.Root>
-
-        <Collapsible.Root bind:open={timetableOpen} class="group/full-timetable">
-          <Collapsible.Trigger>
-            {#snippet child({ props })}
-              <Button
-                {...props}
-                class="h-11 w-full justify-between lg:hidden"
-                variant="outline"
-              >
+              <Button {...props} class="h-11 w-full justify-between lg:hidden" variant="outline">
                 {timetableOpen ? busCopy.hideFullTimetable : busCopy.fullTimetable}
-                <ChevronDownIcon
-                  data-icon="inline-end"
-                  class="transition-transform group-data-[state=open]/full-timetable:rotate-180"
-                />
+                <ChevronDownIcon data-icon="inline-end" class="transition-transform group-data-[state=open]/full-timetable:rotate-180" />
               </Button>
             {/snippet}
           </Collapsible.Trigger>
-          <Collapsible.Content
-            class="data-[state=closed]:hidden lg:!block"
-            forceMount
-          >
-            <div class="min-w-0 pt-3 lg:pt-0">
-              <BusTabTimetable
-                bus={loadedBus}
-                {busApplicableRoutes}
-                {busCopy}
-                {busNextTripHighlightKey}
-                {busPlannerReady}
-                {busShowsEstimatedHint}
-                {reverseBusStops}
-                showHeader={false}
-              />
-            </div>
-          </Collapsible.Content>
-        </Collapsible.Root>
-      </div>
-    {:else}
-      <div class="grid min-w-0 gap-3 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start lg:gap-4">
-        <BusTabSettings
-          bus={loadedBus}
-          {busCopy}
-          {busDayType}
-          {busEndCampusId}
-          {busPlannerReady}
-          {busShowDepartedTrips}
-          {busStartCampusId}
-          {reverseBusStops}
-          {selectBusEnd}
-          {selectBusStart}
-          setBusDayType={(dayType) => { onPlannerChange?.(); state.actions.setBusDayType(dayType); }}
-          toggleBusDepartedTrips={() => { onPlannerChange?.(); state.actions.toggleBusDepartedTrips(); }}
-        />
-
-        <BusTabTimetable
-          bus={loadedBus}
-          {busApplicableRoutes}
-          {busCopy}
-          {busNextTripHighlightKey}
-          {busPlannerReady}
-          {busShowsEstimatedHint}
-          {reverseBusStops}
-          showHeader={false}
-        />
-      </div>
-    {/if}
+        {/if}
+        <Collapsible.Content class="data-[state=closed]:hidden lg:!block" forceMount>
+          <div class="min-w-0 pt-3 lg:pt-0">
+            <BusTabTimetable
+              bus={loadedBus}
+              {busApplicableRoutes}
+              {busCopy}
+              {busNextTripHighlightKey}
+              {busPlannerReady}
+              {busShowsEstimatedHint}
+              {reverseBusStops}
+              showHeader={false}
+            >
+              {#snippet controls()}{@render plannerControls("desktop")}{/snippet}
+            </BusTabTimetable>
+          </div>
+        </Collapsible.Content>
+      </Collapsible.Root>
+    </div>
   {:else if busLoadFailed}
     <Empty.Root>
       <Empty.Header>

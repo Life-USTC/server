@@ -1,6 +1,7 @@
 import { expect, type Locator } from "@playwright/test";
 import { test } from "../../../../utils/homework-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
 
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
@@ -14,11 +15,13 @@ test.describe("仪表盘作业", () => {
       async () => {
         await gotoAndWaitForReady(page, "/workspace/homeworks");
 
+        await openWorkspaceTaskFilter(page, "homeworks");
         await page
           .getByRole("radio", { name: /全部|All/i })
           .first()
           .click();
 
+        await openWorkspaceTaskFilter(page, "homeworks");
         await expect(
           page.getByRole("radio", { name: /列表|List|卡片|Cards/i }),
         ).toHaveCount(0);
@@ -119,6 +122,7 @@ test.describe("仪表盘作业", () => {
               }),
             );
             await gotoAndWaitForReady(page, "/workspace/homeworks");
+            await openWorkspaceTaskFilter(page, "homeworks");
             await page
               .getByRole("radio", { name: /全部|All/i })
               .first()
@@ -133,6 +137,7 @@ test.describe("仪表盘作业", () => {
               locators(surface, false).deadline_reminder,
             ).toBeVisible();
             const dueText = await locators(surface, false).due_at.textContent();
+            await page.keyboard.press("Escape");
             await surface
               .getByRole("button", {
                 name: /标记为完成|Mark as complete/i,

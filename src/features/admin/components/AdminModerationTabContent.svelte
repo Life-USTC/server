@@ -20,7 +20,9 @@ import {
 } from "@/features/admin/lib/moderation-display";
 import type { PendingModerationServerAction } from "@/features/admin/lib/moderation-page-client-actions";
 import type { SubmitFunction } from "$app/forms";
+import type { AdminModerationFilterControls } from "./admin-moderation-page-types";
 
+export let filterControls: AdminModerationFilterControls;
 export let copy: AdminModerationCopy;
 export let data: AdminModerationPageData;
 export let enhanceAdminAction: (
@@ -38,6 +40,7 @@ export let visibleComments: AdminModerationComment[];
 
 {#if data.tab === "descriptions"}
   <AdminModerationDescriptions
+    {filterControls}
     copy={copy}
     descriptions={data.descriptions}
     descriptionTargetHref={(description: AdminModerationDescription) =>
@@ -49,6 +52,7 @@ export let visibleComments: AdminModerationComment[];
   />
 {:else if data.tab === "homeworks"}
   <AdminModerationHomeworks
+    {filterControls}
     copy={copy}
     formatDate={formatDate}
     homeworks={data.homeworks}
@@ -56,6 +60,7 @@ export let visibleComments: AdminModerationComment[];
   />
 {:else if data.tab === "suspensions"}
   <AdminModerationSuspensions
+    {filterControls}
     copy={copy}
     enhanceLiftSuspension={(id) => enhanceAdminAction(`liftSuspension:${id}`)}
     formatDate={formatDate}
@@ -65,6 +70,7 @@ export let visibleComments: AdminModerationComment[];
   />
 {:else}
   <AdminModerationComments
+    {filterControls}
     commentAuthorLabel={(comment) =>
       moderationCommentAuthorLabel(comment as AdminModerationComment, copy.guestLabel)}
     comments={visibleComments}

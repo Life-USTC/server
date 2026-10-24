@@ -476,7 +476,12 @@ test("admin.responsive-workspace", { tag: "@Admin/Web" }, async ({
               recordGeometry.fontSize,
             );
             if (entry.filters) {
-              const search = page.getByRole("searchbox");
+              const header = page.locator(
+                desktop
+                  ? "thead:visible"
+                  : '[data-slot="collection-header"]:visible',
+              );
+              const search = header.getByRole("searchbox");
               await expect(search).toBeVisible();
               const filterGeometry = await search.evaluate((node) => ({
                 top: node.getBoundingClientRect().top,

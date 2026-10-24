@@ -5,6 +5,7 @@ import CollectionListShell from "#lib/components/CollectionListShell.svelte";
 import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
+import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -15,6 +16,7 @@ import * as Item from "#lib/components/ui/item/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import { enhance, type SubmitFunction } from "$app/forms";
+import type { AdminModerationFilterControls } from "./admin-moderation-page-types";
 
 type ModerationSuspension = {
   expiresAt?: string | Date | null;
@@ -44,6 +46,7 @@ type SuspensionsCopy = {
   user: string;
 };
 
+export let filterControls: AdminModerationFilterControls;
 export let copy: SuspensionsCopy;
 export let enhanceLiftSuspension: (id: string) => SubmitFunction;
 export let formatDate: (value: string | Date) => string;
@@ -80,11 +83,13 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
 </script>
 
 <section class="grid gap-3">
-  {#if suspensions.length === 0}
-    <CollectionEmpty variant="compact" description={copy.noSuspensions} />
-  {:else}
     <ResponsiveCollection>
       {#snippet mobile()}
+        <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
+          {@render filterControls("search", "mobile")}
+          {@render filterControls("status", "mobile")}
+        </div>
+        {#if suspensions.length === 0}<CollectionEmpty variant="compact" description={copy.noSuspensions} />{:else}
         <CollectionListShell>
           <Item.Group class="gap-0">
             {#each suspensions as suspension, index (suspension.id)}
@@ -124,6 +129,7 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
             {/each}
           </Item.Group>
         </CollectionListShell>
+        {/if}
       {/snippet}
       {#snippet desktop()}
 
@@ -131,11 +137,12 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
           <CollectionTableShell label={copy.user}>
             <Table.Root class="w-full min-w-[54rem]">
               <Table.Header>
+        <TableControlsRow colspan={5}>{@render filterControls("search", "desktop")}</TableControlsRow>
                 <Table.Row>
                   <Table.Head class="w-[23%]">{copy.user}</Table.Head>
                   <Table.Head class="w-[34%]">{copy.reason}</Table.Head>
                   <Table.Head class="w-[20%] text-right">{copy.expires}</Table.Head>
-                  <Table.Head class="w-[13%] text-center">{copy.status}</Table.Head>
+                  <Table.Head class="w-[13%] text-center">{@render filterControls("status", "desktop")}</Table.Head>
                 <Table.Head class="w-14 min-w-14 text-right">
                   <span class="sr-only">{copy.actions}</span>
                 </Table.Head>
@@ -186,14 +193,15 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
                       {/if}
                     </Table.Cell>
                   </Table.Row>
-                {/each}
+                {:else}
+          <Table.Row><Table.Cell colspan={5}><CollectionEmpty variant="compact" description={copy.noSuspensions} /></Table.Cell></Table.Row>
+        {/each}
               </Table.Body>
             </Table.Root>
           </CollectionTableShell>
         </div>
       {/snippet}
     </ResponsiveCollection>
-  {/if}
 </section>
 
 {#if pendingLiftSuspension}

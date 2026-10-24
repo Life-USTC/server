@@ -5,7 +5,10 @@ import {
   type Response,
 } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { test } from "../../../utils/workspace-task-filters";
+import {
+  openWorkspaceTaskFilter,
+  test,
+} from "../../../utils/workspace-task-filters";
 
 function taskTitle(
   page: Page,
@@ -42,18 +45,21 @@ async function expectSelection(group: Locator, selected: string) {
 
 test("task filters respond after navigating between workspace pages", {
   tag: "@Site/Web",
-}, async ({ page, taskFilterState, taskFilterRun }) => {
+}, async ({ page, isMobile, taskFilterState, taskFilterRun }) => {
   const fixture = await taskFilterState(true);
   await taskFilterRun(
     async () => {
       await gotoAndWaitForReady(page, "/workspace/homeworks");
       for (const tab of ["todos", "exams", "homeworks", "todos"] as const) {
+        if (isMobile)
+          await page.locator('[data-slot="sidebar-trigger"]').click();
         await page
           .locator(`a[href="/workspace/${tab}"]`)
           .filter({ visible: true })
           .first()
           .click();
         await page.waitForURL(`**/workspace/${tab}`);
+        await openWorkspaceTaskFilter(page, tab);
         const group = page
           .locator('[data-slot="toggle-group"]')
           .filter({ has: page.locator('[data-value="incomplete"]') });
@@ -65,6 +71,7 @@ test("task filters respond after navigating between workspace pages", {
             taskTitle(page, tab, fixture.completedTitle[tab]),
           ).toHaveCount(value === "incomplete" ? 0 : 1);
         }
+        await page.keyboard.press("Escape");
       }
     },
     { calendarMessages: [], calendarTokenCreated: true },
@@ -101,6 +108,7 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                 await gotoAndWaitForReady(page, `/workspace/${tab}`, {
                   browserHealth: {},
                 });
+                const filterDialog = await openWorkspaceTaskFilter(page, tab);
                 const group = page
                   .locator('[data-slot="toggle-group"]')
                   .filter({ has: page.locator('[data-value="incomplete"]') });
@@ -118,21 +126,25 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                   const clear = page
                     .getByRole("button", { name: /清除筛选|Clear filter/i })
                     .filter({ visible: true });
+                  if (!mobile) {
+                    await expect(page.getByRole("table")).toBeVisible();
+                    await expect(
+                      page.getByRole("columnheader").first(),
+                    ).toBeVisible();
+                    await expect(
+                      page
+                        .getByRole("columnheader")
+                        .locator('[data-slot="table-column-header"]')
+                        .getByRole("button"),
+                    ).toBeVisible();
+                  }
                   if (tab === "todos") {
-                    if (!mobile) {
-                      await expect(page.getByRole("table")).toBeVisible();
-                      await expect(
-                        page.getByRole("columnheader").first(),
-                      ).toBeVisible();
-                    }
+                    await page.keyboard.press("Escape");
+                    await expect(filterDialog).toBeHidden();
                     await clear.click();
+                    await openWorkspaceTaskFilter(page, tab);
                   } else {
                     await expect(clear).toHaveCount(0);
-                    if (!mobile) {
-                      await expect(page.getByRole("columnheader")).toHaveCount(
-                        0,
-                      );
-                    }
                     await group.locator('[data-value="all"]').click();
                   }
                   await expectSelection(group, "all");
@@ -180,7 +192,9 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                 }
                 await page.context().setOffline(false);
                 // A fresh page uses the default filter, even if its result is empty.
+                await page.keyboard.press("Escape");
                 await gotoAndWaitForReady(page, `/workspace/${tab}`);
+                await openWorkspaceTaskFilter(page, tab);
                 await expectSelection(group, "incomplete");
                 await expect(completed).toHaveCount(0);
                 await expect(pending).toHaveCount(includePending ? 1 : 0);
@@ -198,6 +212,7 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                   };
                   page.on("response", observeSave);
                   try {
+                    await page.keyboard.press("Escape");
                     await page
                       .getByRole("button", {
                         name: /标记为完成|Mark as complete/i,
@@ -247,14 +262,18 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                     expect(stored.completed).toBe(true);
                   }
                   await page.mouse.move(0, 0);
+                  await openWorkspaceTaskFilter(page, tab);
                   await expectSelection(group, "incomplete");
                   await expect(pending).toHaveCount(0);
                   await expect(completed).toHaveCount(0);
                   if (tab === "todos") {
+                    await page.keyboard.press("Escape");
+                    await expect(filterDialog).toBeHidden();
                     await page
                       .getByRole("button", { name: /清除筛选|Clear filter/i })
                       .filter({ visible: true })
                       .click();
+                    await openWorkspaceTaskFilter(page, tab);
                   } else {
                     await expect(
                       page
@@ -268,7 +287,9 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                   await expectSelection(group, "all");
                   await expect(pending).toHaveCount(1);
                   await expect(completed).toHaveCount(1);
+                  await page.keyboard.press("Escape");
                   await gotoAndWaitForReady(page, `/workspace/${tab}`);
+                  await openWorkspaceTaskFilter(page, tab);
                   await expectSelection(group, "incomplete");
                   await expect(pending).toHaveCount(0);
                   await group.locator('[data-value="completed"]').click();

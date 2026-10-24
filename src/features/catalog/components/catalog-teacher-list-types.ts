@@ -18,7 +18,6 @@ export type TeacherListLabels = {
   department: string;
   email: string;
   emptyDescription: string;
-  filterDescription: string;
   filterTitle: string;
   inDepartment: string;
   name: string;
@@ -38,11 +37,6 @@ export type TeacherListLabels = {
 export type TeacherListFilters = {
   departmentId?: string | null;
   search?: string | null;
-};
-
-export type TeacherListOption = {
-  label: string;
-  value: string;
 };
 
 export type TeacherListRow = CatalogNamed & {

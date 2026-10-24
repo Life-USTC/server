@@ -1,3 +1,4 @@
+import type { Snippet } from "svelte";
 import type { SubmitFunction } from "$app/forms";
 import type {
   AdminModerationComment,
@@ -140,3 +141,12 @@ export type AdminModerationEnhancedAction = SubmitFunction;
 
 export type AdminModerationDescriptionOptions =
   AdminModerationDescriptionOption[];
+
+export type AdminModerationFilterKind =
+  | "search"
+  | "status"
+  | "descriptionTarget"
+  | "descriptionContent";
+export type AdminModerationFilterControls = Snippet<
+  [AdminModerationFilterKind, "mobile" | "desktop"]
+>;

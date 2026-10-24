@@ -1,6 +1,6 @@
 <script lang="ts">
-import FilterToolbar from "#lib/components/FilterToolbar.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
+import TableColumnHeader from "#lib/components/TableColumnHeader.svelte";
 import {
   toolbarControlClass,
   toolbarSelectClass,
@@ -8,6 +8,7 @@ import {
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import * as NativeSelect from "#lib/components/ui/native-select/index.js";
+import type { AdminModerationFilterKind } from "./admin-moderation-page-types";
 
 type FilterOption = {
   label: string;
@@ -22,6 +23,8 @@ type ModerationFilters = {
 };
 
 type ModerationFilterCopy = {
+  descriptionPreview: string;
+  postedIn: string;
   descriptionContent: string;
   descriptionTarget: string;
   filterAction: string;
@@ -37,88 +40,64 @@ export let filters: ModerationFilters;
 export let searchQuery: string;
 export let statusFilterOptions: FilterOption[];
 export let tab: string;
+export let kind: AdminModerationFilterKind;
+export let viewport: "mobile" | "desktop";
 
-$: filterGroupClass =
-  tab === "descriptions"
-    ? "grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 md:grid-cols-[180px_180px_minmax(0,1fr)_auto] md:gap-3"
-    : "grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2 md:grid-cols-[180px_minmax(0,1fr)_auto] md:gap-3";
+let open = false;
+let draft = "all";
+$: if (open && kind !== "search") draft = filters[kind] ?? "all";
+
 $: searchPlaceholder =
   tab === "comments" ? copy.searchPlaceholder : copy.searchAllPlaceholder;
+$: id = `admin-moderation-${viewport}-${kind}`;
+$: label =
+  kind === "descriptionTarget"
+    ? copy.postedIn
+    : kind === "descriptionContent"
+      ? copy.descriptionPreview
+      : copy.status;
+$: options =
+  kind === "descriptionTarget"
+    ? descriptionTargetOptions
+    : kind === "descriptionContent"
+      ? descriptionContentOptions
+      : statusFilterOptions;
 </script>
 
-<FilterToolbar>
-  {#snippet primary()}
-    <form class="min-w-0 w-full" method="GET">
-      <input type="hidden" name="tab" value={tab} />
-      <Field.Group class={filterGroupClass}>
-        {#if tab === "descriptions"}
-          <Field.Field class="col-span-2 md:col-span-1">
-            <Field.Label for="admin-moderation-description-target">
-              {copy.descriptionTarget}
-            </Field.Label>
-            <NativeSelect.Root
-              class="w-full {toolbarSelectClass}"
-              id="admin-moderation-description-target"
-              name="descriptionTarget"
-              value={filters.descriptionTarget ?? "all"}
-            >
-              {#each descriptionTargetOptions as option}
-                <NativeSelect.Option value={option.value}>
-                  {option.label}
-                </NativeSelect.Option>
-              {/each}
-            </NativeSelect.Root>
-          </Field.Field>
-          <Field.Field class="col-span-2 md:col-span-1">
-            <Field.Label for="admin-moderation-description-content">
-              {copy.descriptionContent}
-            </Field.Label>
-            <NativeSelect.Root
-              class="w-full {toolbarSelectClass}"
-              id="admin-moderation-description-content"
-              name="descriptionContent"
-              value={filters.descriptionContent ?? "all"}
-            >
-              {#each descriptionContentOptions as option}
-                <NativeSelect.Option value={option.value}>
-                  {option.label}
-                </NativeSelect.Option>
-              {/each}
-            </NativeSelect.Root>
-          </Field.Field>
-          <input type="hidden" name="status" value={filters.status ?? "all"} />
-        {:else}
-          <Field.Field class="col-span-2 md:col-span-1">
-            <Field.Label for="admin-moderation-status">{copy.status}</Field.Label>
-            <NativeSelect.Root
-              class="w-full {toolbarSelectClass}"
-              id="admin-moderation-status"
-              name="status"
-              value={filters.status ?? "all"}
-            >
-              {#each statusFilterOptions as option}
-                <NativeSelect.Option value={option.value}>
-                  {option.label}
-                </NativeSelect.Option>
-              {/each}
-            </NativeSelect.Root>
-          </Field.Field>
-          <input
-            type="hidden"
-            name="descriptionTarget"
-            value={filters.descriptionTarget ?? "all"}
-          />
-          <input
-            type="hidden"
-            name="descriptionContent"
-            value={filters.descriptionContent ?? "all"}
-          />
-        {/if}
-        <SearchField id="admin-moderation-search" name="search" label={searchPlaceholder} placeholder={searchPlaceholder} bind:value={searchQuery} />
-        <Button class={toolbarControlClass} type="submit">
-          {copy.filterAction}
-        </Button>
-      </Field.Group>
-    </form>
-  {/snippet}
-</FilterToolbar>
+{#snippet filterForm()}
+  <form class="flex min-w-0 flex-1 flex-wrap items-end gap-2" method="GET">
+    <input type="hidden" name="tab" value={tab} />
+    {#each ["status", "descriptionTarget", "descriptionContent"] as field}
+      {#if field !== kind}
+        <input type="hidden" name={field} value={filters[field as "status" | "descriptionTarget" | "descriptionContent"] ?? "all"} />
+      {/if}
+    {/each}
+    {#if kind === "search"}
+      <SearchField {id} name="search" label={searchPlaceholder} placeholder={searchPlaceholder} bind:value={searchQuery} />
+    {:else}
+      <input type="hidden" name="search" value={searchQuery} />
+      <Field.Field>
+        <Field.Label for={id}>{kind === "descriptionTarget" ? copy.descriptionTarget : kind === "descriptionContent" ? copy.descriptionContent : copy.status}</Field.Label>
+        <NativeSelect.Root
+          class="w-full {toolbarSelectClass}"
+          {id}
+          name={kind}
+          bind:value={draft}
+        >
+          {#each options as option}
+            <NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
+          {/each}
+        </NativeSelect.Root>
+      </Field.Field>
+    {/if}
+    <Button class={toolbarControlClass} type="submit">{copy.filterAction}</Button>
+  </form>
+{/snippet}
+
+{#if kind === "search"}
+  {@render filterForm()}
+{:else}
+  <TableColumnHeader {label} active={Boolean(filters[kind] && filters[kind] !== "all")} align={kind === "status" && viewport === "desktop" ? "center" : "start"} bind:open>
+    {@render filterForm()}
+  </TableColumnHeader>
+{/if}

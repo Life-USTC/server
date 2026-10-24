@@ -46,7 +46,6 @@ test("bus.public-web-personal-overlay", { tag: "@Bus/Web" }, async ({
   await preferenceFlow.run(async () => {
     if (!baseURL) throw new Error("Missing Playwright baseURL");
     for (const locale of ["zh-cn", "en-us"]) {
-      let publicDestination = "";
       for (const owner of [null, ...users]) {
         const context = await preferenceFlow.newContext({
           baseURL,
@@ -88,15 +87,15 @@ test("bus.public-web-personal-overlay", { tag: "@Bus/Web" }, async ({
           const page = await preferenceFlow.newPage(context);
           await page.goto("/catalog/bus", { waitUntil: "domcontentloaded" });
           await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-          const selectedDestination = page
-            .getByTestId("bus-end-stop-group")
-            .locator('[role="radio"][aria-checked="true"]');
-          await expect(selectedDestination).toHaveCount(1);
-          const destinationLabel =
-            (await selectedDestination.textContent())?.trim() ?? "";
-          expect(destinationLabel).not.toBe("");
-          if (owner) expect(destinationLabel).toBe(publicDestination);
-          else publicDestination = destinationLabel;
+          const routeSections = page.getByTestId("bus-route-section");
+          expect(await routeSections.count()).toBeGreaterThan(0);
+          for (const routeSection of await routeSections.all()) {
+            await expect(routeSection).toBeVisible();
+            // The independent fixture's first route ends at campus 2 (西区).
+            await expect(
+              routeSection.locator('th[scope="col"]').last(),
+            ).toHaveText("西区");
+          }
           if (owner) {
             const privateResponse = await preferenceFlow.http(() =>
               context.request.get("/api/workspace/bus-preferences", {
