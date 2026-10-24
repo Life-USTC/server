@@ -72,7 +72,10 @@ function elementAttributes(source: string, filename: string) {
     }
     Object.values(node).forEach(visit);
   }
-  visit(parse(source, { modern: true, filename }));
+  // Raw HTML fragments can contain several script tags; they are markup,
+  // not the single top-level component script understood by the Svelte parser.
+  const markup = filename.endsWith(".html") ? `<div>${source}</div>` : source;
+  visit(parse(markup, { modern: true, filename }));
   return elements;
 }
 
@@ -90,6 +93,18 @@ async function collectSourceFiles(directory: string): Promise<string[]> {
 }
 
 describe("navigation preload policy", () => {
+  it("retains navigation attributes in raw HTML with multiple scripts", () => {
+    const elements = elementAttributes(
+      '<script src="/first.js"></script><script>window.ready = true;</script><a href="/catalog" data-sveltekit-preload-data="hover">Catalog</a>',
+      "fragment.html",
+    );
+    const links = elements.filter(({ element }) => element === "a");
+    expect(links).toHaveLength(1);
+    expect(links[0].attributes.get("data-sveltekit-preload-data")).toBe(
+      "hover",
+    );
+  });
+
   it("rendering-and-cache.contributor-notes-4", async () => {
     const source = await readFile(path.join(repoRoot, "src/app.html"), "utf8");
     const body = elementAttributes(source, "src/app.html").filter(

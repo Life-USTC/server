@@ -1,5 +1,8 @@
 import { type APIRequestContext, expect } from "@playwright/test";
-import { todosListResponseSchema } from "../../../../src/lib/api/schemas/misc-response-schema-core";
+import {
+  currentCalendarSubscriptionResponseSchema,
+  todosListResponseSchema,
+} from "../../../../src/lib/api/schemas/misc-response-schema-core";
 import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
 import { test } from "../../../e2e/utils/owned-worker";
 import { createSignedDemoCookie } from "../../../shared/demo-token";
@@ -52,6 +55,10 @@ test("demo production entry stays disabled without the explicit binding", {
 }, async ({ request, isolatedWorker, run }) => {
   await run(async () => {
     const before = await databaseSnapshot(isolatedWorker);
+    const signIn = await request.get("/account/sign-in");
+    expect(await signIn.text()).toContain(
+      "https://www.googletagmanager.com/gtag/js?id=G-JNK35J2Q3R",
+    );
     for (const path of [
       "/account/demo/enter",
       "/account/%64emo/enter",
@@ -120,6 +127,117 @@ test.describe("enabled demo", () => {
       const own = await actor.request.get("/api/workspace/todos");
       expect(own.status()).toBe(200);
       await own.body();
+    });
+  });
+
+  test("demo subscriptions share fixed page, API and navigation data without a feed", {
+    tag: "@Account/REST",
+  }, async ({ request, isolatedWorker, run }) => {
+    await run(async () => {
+      await enter(request, isolatedWorker.origin);
+      for (const locale of ["en-US", "zh-CN"]) {
+        const response = await request.get(
+          "/api/workspace/subscriptions/current?userId=unrelated",
+          {
+            headers: { "accept-language": locale },
+          },
+        );
+        expect(response.status()).toBe(200);
+        expect(response.headers()["cache-control"]).toBe("private, no-store");
+        const body = currentCalendarSubscriptionResponseSchema.parse(
+          await response.json(),
+        );
+        expect(body.subscription).toMatchObject({
+          userId: "demo:workspace-v1",
+          calendarPath: null,
+          calendarUrl: null,
+        });
+        expect(
+          body.subscription?.sections.map(
+            ({ jwId, kind, credits, course, teachers }) => ({
+              jwId,
+              kind,
+              credits,
+              name: course.namePrimary,
+              teachers: teachers.map(({ namePrimary }) => namePrimary),
+            }),
+          ),
+        ).toEqual(
+          locale === "en-US"
+            ? [
+                {
+                  jwId: 910001,
+                  kind: "regular",
+                  credits: 4,
+                  name: "Linear Algebra",
+                  teachers: ["Teacher Chen", "Teacher Lin"],
+                },
+                {
+                  jwId: 910002,
+                  kind: "auditor",
+                  credits: 3,
+                  name: "College Physics",
+                  teachers: ["Teacher Chen"],
+                },
+                {
+                  jwId: 910003,
+                  kind: "teaching_assistant",
+                  credits: 3.5,
+                  name: "Data Structures",
+                  teachers: ["Teacher Lin"],
+                },
+              ]
+            : [
+                {
+                  jwId: 910001,
+                  kind: "regular",
+                  credits: 4,
+                  name: "线性代数",
+                  teachers: ["陈老师", "林老师"],
+                },
+                {
+                  jwId: 910002,
+                  kind: "auditor",
+                  credits: 3,
+                  name: "大学物理",
+                  teachers: ["陈老师"],
+                },
+                {
+                  jwId: 910003,
+                  kind: "teaching_assistant",
+                  credits: 3.5,
+                  name: "数据结构",
+                  teachers: ["林老师"],
+                },
+              ],
+        );
+        const data = await request.get("/workspace/subscriptions/__data.json", {
+          headers: { "accept-language": locale },
+        });
+        expect(data.status()).toBe(200);
+        const text = await data.text();
+        for (const name of locale === "en-US"
+          ? ["Linear Algebra", "College Physics", "Data Structures"]
+          : ["线性代数", "大学物理", "数据结构"])
+          expect(text).toContain(name);
+        expect(data.headers()["x-life-public-navigation"]).toBeUndefined();
+      }
+      const bootstrap = await request.get("/_internal/shell-bootstrap");
+      expect(await bootstrap.json()).toMatchObject({
+        viewer: null,
+        demo: { fixtureVersion: "workspace-v1" },
+        navigation: { subscribedSectionCount: 3, pendingTodosCount: 2 },
+      });
+      for (const path of [
+        "/workspace/subscriptions",
+        "/workspace/subscriptions/__data.json",
+        "/api/workspace/subscriptions/current",
+      ]) {
+        const head = await request.head(path);
+        expect(head.status()).toBe(200);
+        expect(head.headers()["cache-control"]).toBe("private, no-store");
+        expect(await head.body()).toHaveLength(0);
+      }
     });
   });
 
@@ -213,6 +331,15 @@ test.describe("enabled demo", () => {
         for (const [method, path] of [
           ["POST", "/workspace/todos?/createTodo"],
           ["POST", "/api/workspace/todos"],
+          ["POST", "/workspace/subscriptions?/subscribe"],
+          ["PATCH", "/api/workspace/subscriptions"],
+          ["DELETE", "/api/workspace/subscriptions"],
+          ["PATCH", "/api/workspace/subscriptions/910001"],
+          ["POST", "/api/workspace/subscriptions/batch"],
+          ["POST", "/api/workspace/subscriptions/import-codes"],
+          ["POST", "/api/workspace/subscriptions/query"],
+          ["GET", "/workspace/subscriptions/activities"],
+          ["GET", "/catalog/sections/910001"],
           ["PATCH", `/api/workspace/todos/${todo.id}`],
           ["DELETE", `/api/workspace/todos/${todo.id}`],
           ["PATCH", "/api/workspace/todos/batch"],
@@ -251,11 +378,17 @@ test.describe("enabled demo", () => {
           "/workspace/todos",
           "/workspace/todos/__data.json",
           "/api/workspace/todos",
+          "/workspace/subscriptions",
+          "/workspace/subscriptions/__data.json",
+          "/api/workspace/subscriptions/current",
           "/_internal/shell-bootstrap",
         ]) {
           const response = await request.get(path, { headers });
           expect(response.status()).toBe(200);
-          expect(await response.text()).not.toContain(todo.title);
+          const body = await response.text();
+          expect(body).not.toContain(todo.title);
+          expect(body).not.toContain("googletagmanager.com");
+          expect(body).not.toContain('gtag("config"');
         }
         const locale = await request.post("/api/account/preferences", {
           headers,
@@ -317,22 +450,30 @@ test.describe("enabled demo", () => {
         [`${cookieHeader(valid)}; ${cookieHeader(actor.cookie)}`, 403],
         [`${cookieHeader(valid)}; ${cookieHeader(valid)}`, 401],
       ] as const) {
-        const response = await request.get("/api/workspace/todos", {
-          headers: { cookie },
+        for (const path of [
+          "/api/workspace/todos",
+          "/api/workspace/subscriptions/current",
+          "/workspace/subscriptions/__data.json",
+        ]) {
+          const response = await request.get(path, {
+            headers: { cookie },
+            maxRedirects: 0,
+          });
+          expect(response.status()).toBe(status);
+          expect(response.headers()["cache-control"]).toBe("private, no-store");
+          await response.body();
+        }
+      }
+      for (const path of ["/workspace/todos", "/workspace/subscriptions"]) {
+        const html = await request.get(path, {
+          headers: { cookie: cookieHeader(expired), accept: "text/html" },
           maxRedirects: 0,
         });
-        expect(response.status()).toBe(status);
-        expect(response.headers()["cache-control"]).toBe("private, no-store");
-        await response.body();
+        expect(html.status()).toBe(303);
+        expect(html.headers().location).toBe("/account/sign-in");
+        expect(html.headers()["set-cookie"]).toMatch(/^life-ustc\.demo=;/);
+        await html.body();
       }
-      const html = await request.get("/workspace/todos", {
-        headers: { cookie: cookieHeader(expired), accept: "text/html" },
-        maxRedirects: 0,
-      });
-      expect(html.status()).toBe(303);
-      expect(html.headers().location).toBe("/account/sign-in");
-      expect(html.headers()["set-cookie"]).toMatch(/^life-ustc\.demo=;/);
-      await html.body();
       expect(await databaseSnapshot(isolatedWorker)).toEqual(before);
     });
   });

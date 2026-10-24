@@ -17,7 +17,7 @@ export async function createSignedDemoCookie(input: {
     ),
   );
   const token = await new SignJWT({
-    fixtureVersion: input.fixtureVersion ?? "todos-v1",
+    fixtureVersion: input.fixtureVersion ?? "workspace-v1",
     ...(input.userId ? { userId: input.userId } : {}),
   })
     .setProtectedHeader({ alg: "HS256", typ: "life-ustc-demo+jwt" })

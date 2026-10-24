@@ -37,8 +37,8 @@ requirements:
   rule: A demo identity is a separately signed, purpose-bound cookie with a fifteen-minute lifetime and
     supported fixture version, never a real user ID or session. Tampered, expired, future-issued, duplicate,
     unsupported-version and mixed credentials fail closed before real authentication. An invalid unmixed
-    cookie on a top-level Todos HTML request is cleared with a fixed sign-in redirect; API and page-data
-    requests remain unauthorized. No demo identity reaches a real-user data adapter.
+    cookie on a top-level Todos or subscriptions HTML request is cleared with a fixed sign-in redirect;
+    API and page-data requests remain unauthorized. No demo identity reaches a real-user data adapter.
   acceptance:
     given: Valid, forged, expired, duplicate, unsupported-version and mixed credentials.
     when: Actual demo requests and ordinary principal resolution run.
@@ -66,6 +66,7 @@ requirements:
   category: authorization
   applies_to:
   - demo-todos
+  - demo-subscriptions
   expectation:
     kind: authorization
     surface: service
@@ -89,9 +90,10 @@ requirements:
     - database reads under a real user
     - rate limiting, object storage, calendar queues and invalidation
     - OAuth and outbound requests
-  rationale: Demo possession is not real-user authentication. The allowlist comprises Todos HTML/page-data,
-    its existing GET API, shell bootstrap and same-origin locale-cookie updates. Entry and exit are cookie
-    controls. Every other request is denied before its route runs, including visit-recording GET, uploads,
+    - browser analytics scripts and telemetry
+  rationale: Demo possession is not real-user authentication. The read allowlist comprises Todos and
+    subscriptions HTML/page-data, GET /api/workspace/todos, GET /api/workspace/subscriptions/current and
+    shell bootstrap. Same-origin locale-cookie updates are allowed. Entry and exit are cookie controls. Every other request is denied before its route runs, including visit-recording GET, uploads,
     private exports, administrator routes, GraphQL and MCP.
   acceptance:
     given: A signed demo and unrelated real private data in an isolated actual Worker.
@@ -104,7 +106,7 @@ requirements:
       name: demo requests cannot reach durable data or external side effects
 - id: demo.todos-projection
   category: consistency
-  rule: The existing Todos page, its same-origin GET API and shell navigation share version todos-v1,
+  rule: The existing Todos page, its same-origin GET API and shell navigation share version workspace-v1,
     reference time 2026-09-24T09:00:00+08:00 and one deterministic sample dataset. Locale changes presentation
     consistently; filters, ordering, counts and pagination retain the existing Todo response shapes.
     Existing desktop/mobile lists and detail views remain usable. Add, edit, completion and delete controls
@@ -119,6 +121,24 @@ requirements:
     test:
       file: tests/e2e/src/app/demo/test.ts
       name: 'demo.todos: read-only browsing zh-cn 1280'
+- id: demo.subscriptions-projection
+  category: consistency
+  rule: The existing subscriptions page, current-subscription GET API and shell navigation share fixture
+    version workspace-v1 and reference time 2026-09-24T09:00:00+08:00. Three deterministic sections span two
+    semesters and regular, auditor and teaching-assistant roles, retaining complete localized teacher lists.
+    Desktop and mobile views preserve existing filters, including applying multiple fields and clearing
+    an empty result. Quick add, import, role changes, unsubscribe, calendar feeds, activity subscriptions
+    and unimplemented catalog destinations are disabled. Demo reads never create a calendar token.
+  acceptance:
+    given: An independently signed demo in either supported locale, with ordinary account subscriptions unchanged.
+    when: The caller navigates between Todos and subscriptions, filters samples, changes language and reads the API.
+    then:
+    - Page, API and navigation agree on the three fixed sections and two pending Todos.
+    - Filters remain usable while mutations, exports and unimplemented destinations remain unavailable.
+    - Calendar path and URL are null and there are no live database or external effects.
+    test:
+      file: tests/e2e/src/app/demo/test.ts
+      name: 'demo.subscriptions: read-only browsing zh-cn 1280'
 - id: demo.cache-isolation
   category: privacy
   rule: Demo cookie presence, including invalid cookies, bypasses shared HTML admission before cache hits
@@ -184,3 +204,27 @@ capabilities:
           - todo.id
       requirement_refs:
       - demo.todos-projection
+  demo-subscriptions:
+    title: Read-only Demo Subscriptions
+    description: An enabled deployment and a valid independent demo cookie expose fixed section subscriptions
+      through the existing current-subscription API. Ordinary user permissions remain owned by the subscription
+      contract; demo supplies no OAuth or agent identity and no calendar feed.
+    auth: anon
+    web:
+      pages:
+      - /workspace/subscriptions
+    rest:
+      routes:
+      - method: GET
+        path: /api/workspace/subscriptions/current
+        reference_only: true
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Browse three sample sections across two semesters
+      - Filter course, section, subscription role, teacher, credits and semester
+      - View disabled mutation, feed and unimplemented navigation controls
+      requirement_refs:
+      - demo.subscriptions-projection

@@ -34,7 +34,7 @@ const copy = {
     heading: "Todos",
     identity: "Demo account · Read only",
     readOnly:
-      "Browse and filter sample todos. Adding, completing, editing and deleting are disabled.",
+      "Browse and filter sample todos and subscriptions. Changes and external actions are disabled.",
     unavailable: "Other features are not available in this demo yet.",
     language: "Language selector",
     all: "All",
@@ -58,7 +58,7 @@ const copy = {
     exit: "退出演示",
     heading: "待办",
     identity: "演示账户 · 只读",
-    readOnly: "你可以浏览和筛选待办样例，无法新增、完成、编辑或删除。",
+    readOnly: "你可以浏览和筛选待办及订阅样例，无法修改数据或执行外部操作。",
     unavailable: "其他功能暂未开放演示。",
     language: "语言选择",
     all: "全部",
@@ -87,6 +87,14 @@ async function enterDemo(page: Page, locale: Locale) {
     expectNoHorizontalOverflow: true,
     uiQuality: {},
   });
+  await expect(page.locator('script[src*="googletagmanager.com"]')).toHaveCount(
+    1,
+  );
+  expect(
+    await page.evaluate(
+      () => typeof (window as Window & { gtag?: unknown }).gtag,
+    ),
+  ).toBe("function");
   const [response] = await Promise.all([
     page.waitForResponse(
       (response) =>
@@ -96,11 +104,16 @@ async function enterDemo(page: Page, locale: Locale) {
     page.getByRole("button", { name: copy[locale].enter, exact: true }).click(),
   ]);
   expect(response.status()).toBe(303);
+  expect(response.request().isNavigationRequest()).toBe(true);
   await expect(page).toHaveURL(/\/workspace\/todos$/);
   await waitForUiSettled(page);
   await expect(page.getByTestId("demo-notice")).toContainText(
     copy[locale].identity,
   );
+  await expect(page.locator('script[src*="googletagmanager.com"]')).toHaveCount(
+    0,
+  );
+  expect(await page.evaluate(() => "gtag" in window)).toBe(false);
 }
 
 async function expectApiSample(page: Page, locale: Locale) {
@@ -140,10 +153,14 @@ async function expectApiSample(page: Page, locale: Locale) {
   expect(await bootstrap.json()).toMatchObject({
     viewer: null,
     demo: {
-      fixtureVersion: "todos-v1",
+      fixtureVersion: "workspace-v1",
       referenceNow: "2026-09-24T09:00:00+08:00",
     },
-    navigation: { userId: "demo:todos-v1", pendingTodosCount: 2 },
+    navigation: {
+      userId: "demo:workspace-v1",
+      pendingTodosCount: 2,
+      subscribedSectionCount: 3,
+    },
   });
 }
 
@@ -286,6 +303,339 @@ for (const locale of ["zh-cn", "en-us"] as const) {
     });
   }
 }
+
+const subscriptionCopy = {
+  "en-us": {
+    heading: "Section Subscriptions",
+    courses: ["Linear Algebra", "College Physics", "Data Structures"],
+    course: "Course Name",
+    teacher: "Teachers",
+    auditor: "Auditor",
+    teachers: ["Teacher Chen", "Teacher Lin"],
+    add: "Add Section Subscription",
+    bulk: "Bulk Add Section Subscriptions",
+    feed: "Copy iCal Link",
+    role: "Section subscription role",
+    remove: "Unsubscribe from section",
+    activities: "Activity subscriptions",
+    semester: "Semester",
+    autumn: "Fall 2026",
+    credits: "Credits",
+    apply: "Apply filters",
+    empty: "No section subscriptions yet",
+    menu: "Menu",
+  },
+  "zh-cn": {
+    heading: "教学班订阅",
+    courses: ["线性代数", "大学物理", "数据结构"],
+    course: "课程名称",
+    teacher: "教师",
+    auditor: "旁听",
+    teachers: ["陈老师", "林老师"],
+    add: "添加教学班订阅",
+    bulk: "批量添加教学班订阅",
+    feed: "复制日历链接",
+    role: "教学班订阅身份",
+    remove: "取消订阅教学班",
+    activities: "活动订阅",
+    semester: "学期",
+    autumn: "2026年秋季学期",
+    credits: "学分",
+    apply: "应用筛选",
+    empty: "暂无教学班订阅",
+    menu: "菜单",
+  },
+} as const;
+
+async function navigateDemoWorkspace(
+  page: Page,
+  locale: Locale,
+  width: number,
+  tab: "todos" | "subscriptions",
+) {
+  if (width < 1024)
+    await page
+      .getByRole("button", { name: subscriptionCopy[locale].menu, exact: true })
+      .click();
+  const link = page
+    .getByRole("link", {
+      name: new RegExp(
+        `^${tab === "todos" ? copy[locale].heading : subscriptionCopy[locale].heading}$`,
+        "i",
+      ),
+    })
+    .filter({ visible: true });
+  await expect(link).toHaveCount(1);
+  await expect(link).toBeEnabled();
+  await expect(link).toHaveAttribute("href", `/workspace/${tab}`);
+  await link.click();
+  await expect(page).toHaveURL(new RegExp(`/workspace/${tab}$`));
+  await waitForUiSettled(page);
+}
+
+async function expectSubscriptionSample(page: Page, locale: Locale) {
+  const text = subscriptionCopy[locale];
+  const response = await page.request.get(
+    "/api/workspace/subscriptions/current",
+  );
+  expect(response.status()).toBe(200);
+  expect(response.headers()["cache-control"]).toBe("private, no-store");
+  expect(await response.json()).toMatchObject({
+    subscription: {
+      userId: "demo:workspace-v1",
+      calendarPath: null,
+      calendarUrl: null,
+      sections: [
+        {
+          jwId: 910001,
+          kind: "regular",
+          credits: 4,
+          course: { namePrimary: text.courses[0] },
+          teachers: [
+            { namePrimary: text.teachers[0] },
+            { namePrimary: text.teachers[1] },
+          ],
+        },
+        {
+          jwId: 910002,
+          kind: "auditor",
+          credits: 3,
+          course: { namePrimary: text.courses[1] },
+          teachers: [{ namePrimary: text.teachers[0] }],
+        },
+        {
+          jwId: 910003,
+          kind: "teaching_assistant",
+          credits: 3.5,
+          course: { namePrimary: text.courses[2] },
+          teachers: [{ namePrimary: text.teachers[1] }],
+        },
+      ],
+    },
+  });
+  const links = page
+    .getByTestId("subscription-course-link")
+    .filter({ visible: true });
+  await expect(links).toHaveText([...text.courses]);
+  for (const link of await links.all()) {
+    await expect(link).not.toHaveRole("link");
+    await expect(link).not.toHaveAttribute("href");
+    await expect(link).toHaveAttribute("title", copy[locale].unavailable);
+  }
+  await expectApiSample(page, locale);
+}
+
+for (const locale of ["zh-cn", "en-us"] as const) {
+  for (const width of [1280, 390]) {
+    test(`demo.subscriptions: read-only browsing ${locale} ${width}`, {
+      tag: "@Account/Web",
+    }, async ({ page, isolatedWorker, browserRun }) => {
+      await browserRun(async () => {
+        const text = subscriptionCopy[locale];
+        await page.setViewportSize({ width, height: 844 });
+        await page
+          .context()
+          .addCookies([
+            { name: "NEXT_LOCALE", value: locale, url: isolatedWorker.origin },
+          ]);
+        await enterDemo(page, locale);
+        const unexpectedRequests: string[] = [];
+        page.on("request", (request) => {
+          const url = new URL(request.url());
+          if (
+            url.origin !== isolatedWorker.origin ||
+            (url.pathname.startsWith("/api/") &&
+              url.pathname !== "/api/workspace/todos") ||
+            (request.method() !== "GET" && request.method() !== "HEAD")
+          )
+            unexpectedRequests.push(`${request.method()} ${url.pathname}`);
+        });
+        await navigateDemoWorkspace(page, locale, width, "subscriptions");
+        await expect(
+          page.getByRole("heading", { name: text.heading, level: 1 }),
+        ).toBeVisible();
+        await expect(page.getByTestId("demo-notice")).toContainText(
+          copy[locale].readOnly,
+        );
+        await expectSubscriptionSample(page, locale);
+        for (const name of [text.add, text.bulk, text.feed])
+          await expect(
+            page.getByRole("button", { name, exact: true }),
+          ).toBeDisabled();
+        for (const name of [text.role, text.remove]) {
+          const actions = page
+            .getByRole("button", { name, exact: true })
+            .filter({ visible: true });
+          await expect(actions).toHaveCount(3);
+          for (const action of await actions.all())
+            await expect(action).toBeDisabled();
+        }
+        await expect(
+          page
+            .getByRole("main")
+            .getByRole("button", { name: text.activities, exact: true }),
+        ).toBeDisabled();
+        await expect(
+          page.locator('a[href^="/catalog/"]').filter({ visible: true }),
+        ).toHaveCount(0);
+        const links = page
+          .getByTestId("subscription-course-link")
+          .filter({ visible: true });
+        const apply = page.getByRole("button", {
+          name: text.apply,
+          exact: true,
+        });
+        const semesterTrigger = page
+          .locator("#subscriptions-filters")
+          .getByRole("button", { name: text.semester, exact: true });
+        await semesterTrigger.click();
+        const semester = page.locator('[data-filter-field="semester"]');
+        await semester
+          .getByRole("checkbox", { name: text.autumn, exact: true })
+          .check();
+        await page.keyboard.press("Escape");
+        const credits = page
+          .getByRole("button", { name: text.credits, exact: true })
+          .filter({ visible: true })
+          .first();
+        await credits.click();
+        const dialog = page.getByRole("dialog", {
+          name: text.credits,
+          exact: true,
+        });
+        await dialog.getByRole("combobox").selectOption("gte");
+        await dialog.getByRole("spinbutton").fill("3.5");
+        await page.keyboard.press("Escape");
+        await expect(links).toHaveCount(3);
+        await apply.click();
+        await expect(links).toHaveText([text.courses[0]]);
+        await credits.click();
+        await dialog.getByRole("combobox").selectOption("gt");
+        await dialog.getByRole("spinbutton").fill("4");
+        await page.keyboard.press("Escape");
+        await apply.click();
+        await expect(links).toHaveCount(0);
+        await expect(page.getByText(text.empty, { exact: true })).toBeVisible();
+        await credits.click();
+        await dialog.getByRole("spinbutton").fill("");
+        await page.keyboard.press("Escape");
+        await semesterTrigger.click();
+        await semester
+          .getByRole("checkbox", { name: text.autumn, exact: true })
+          .uncheck();
+        await page.keyboard.press("Escape");
+        await apply.click();
+        await expectSubscriptionSample(page, locale);
+        const teacherTrigger = page
+          .getByRole("main")
+          .getByRole("button", { name: text.teacher, exact: true })
+          .filter({ visible: true })
+          .first();
+        await teacherTrigger.click();
+        const teacher = page.locator('[data-filter-field="teacher"]');
+        await teacher
+          .getByRole("checkbox", { name: text.teachers[0], exact: true })
+          .check();
+        await page.keyboard.press("Escape");
+        const courseTrigger = page
+          .getByRole("button", { name: text.course, exact: true })
+          .filter({ visible: true })
+          .first();
+        await courseTrigger.click();
+        const course = page.getByRole("dialog", {
+          name: text.course,
+          exact: true,
+        });
+        await course
+          .getByRole("textbox", { name: text.course, exact: true })
+          .fill(text.courses[1]);
+        await course
+          .getByRole("checkbox", { name: text.auditor, exact: true })
+          .check();
+        await page.keyboard.press("Escape");
+        await expect(links).toHaveCount(3);
+        await apply.click();
+        await expect(links).toHaveText([text.courses[1]]);
+        await teacherTrigger.click();
+        await teacher
+          .getByRole("checkbox", { name: text.teachers[0], exact: true })
+          .uncheck();
+        await page.keyboard.press("Escape");
+        await courseTrigger.click();
+        await course
+          .getByRole("textbox", { name: text.course, exact: true })
+          .fill("");
+        await course
+          .getByRole("checkbox", { name: text.auditor, exact: true })
+          .uncheck();
+        await page.keyboard.press("Escape");
+        await apply.click();
+        await expectSubscriptionSample(page, locale);
+        await expectRenderedUiQuality(page);
+        await expectNoPageHorizontalOverflow(page);
+        expect(unexpectedRequests).toEqual([]);
+        await navigateDemoWorkspace(page, locale, width, "todos");
+        await expect(
+          page.getByRole("button", { name: copy[locale].reading, exact: true }),
+        ).toBeVisible();
+        await page
+          .getByRole("button", { name: copy[locale].exit, exact: true })
+          .click();
+        await expect(page).toHaveURL(/\/account\/sign-in$/);
+        expect(
+          (
+            await page.request.get("/api/workspace/subscriptions/current")
+          ).status(),
+        ).toBe(401);
+      });
+    });
+  }
+}
+
+test("demo.subscriptions: locale changes keep page, API and navigation consistent", {
+  tag: "@Account/Web",
+}, async ({ page, isolatedWorker, browserRun }) => {
+  await browserRun(async () => {
+    await page.setViewportSize({ width: 1280, height: 844 });
+    await page
+      .context()
+      .addCookies([
+        { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
+      ]);
+    await enterDemo(page, "zh-cn");
+    await navigateDemoWorkspace(page, "zh-cn", 1280, "subscriptions");
+    for (const locale of ["en-us", "zh-cn"] as const) {
+      const previous = locale === "en-us" ? "zh-cn" : "en-us";
+      await page
+        .getByRole("button", { name: copy[previous].language, exact: true })
+        .click();
+      const [response] = await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname === "/api/account/preferences" &&
+            response.request().method() === "POST",
+        ),
+        page
+          .getByRole("menuitemradio", {
+            name: locale === "en-us" ? "English" : "中文",
+            exact: true,
+          })
+          .click(),
+      ]);
+      expect(response.status()).toBe(200);
+      expect(response.request().postDataJSON()).toEqual({ locale });
+      await expect(page.locator("html")).toHaveAttribute("lang", locale);
+      await waitForUiSettled(page);
+      await expect(
+        page.getByRole("heading", {
+          name: subscriptionCopy[locale].heading,
+          level: 1,
+        }),
+      ).toBeVisible();
+      await expectSubscriptionSample(page, locale);
+    }
+  });
+});
 
 test("demo.todos: locale switching keeps the shell, list and API consistent", {
   tag: "@Account/Web",

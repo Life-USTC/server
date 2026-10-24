@@ -33,6 +33,8 @@ type SubscriptionListData = SubscriptionsData["subscriptions"];
 type SubscriptionSection = SubscriptionListData[number]["sections"][number];
 
 interface Props {
+  readOnlyReason?: string;
+  unavailableReason?: string;
   workspaceCopy: WorkspaceCopy;
   formatMessage: FormatMessage;
   removeSubscribedSection: (
@@ -47,6 +49,8 @@ interface Props {
 }
 
 let {
+  readOnlyReason = undefined,
+  unavailableReason = undefined,
   workspaceCopy,
   formatMessage,
   removeSubscribedSection,
@@ -242,6 +246,8 @@ function handleRemoveDialogOpenChange(open: boolean) {
         <WorkspaceCollection>
           {#snippet mobile()}
             <SubscriptionsCardsView
+              {readOnlyReason}
+              {unavailableReason}
               workspaceCopy={workspaceCopy}
               requestRemoveSection={requestRemoveSection}
               requestEditKind={requestEditKind}
@@ -273,13 +279,19 @@ function handleRemoveDialogOpenChange(open: boolean) {
                 <Table.Row class="group">
                   <Table.Cell>
                     <div class="flex min-w-0 flex-wrap items-center gap-1.5">
-                      <a
-                        class="block min-w-0 max-w-full overflow-hidden py-0.5 font-medium hover:underline"
-                        href={`/catalog/sections/${section.jwId}`}
-                        data-testid="subscription-course-link"
-                    >
-                      <TruncatedText text={courseName(section)} />
-                    </a>
+                      {#if readOnlyReason}
+                        <span class="block min-w-0 max-w-full overflow-hidden py-0.5 font-medium" title={unavailableReason} data-testid="subscription-course-link">
+                          <TruncatedText text={courseName(section)} />
+                        </span>
+                      {:else}
+                        <a
+                          class="block min-w-0 max-w-full overflow-hidden py-0.5 font-medium hover:underline"
+                          href={`/catalog/sections/${section.jwId}`}
+                          data-testid="subscription-course-link"
+                        >
+                          <TruncatedText text={courseName(section)} />
+                        </a>
+                      {/if}
                       {#if section.kind !== "regular"}
                         <Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>
                       {/if}
@@ -296,11 +308,12 @@ function handleRemoveDialogOpenChange(open: boolean) {
                     <TableRowActions>
                       <TableIconButton
                         label={subscriptionsCopy.kindEditor.title}
+                        disabled={Boolean(readOnlyReason)}
                         onclick={() => requestEditKind(section)}
                       ><Pencil data-icon="inline-start" /></TableIconButton>
 
                       <TableIconButton
-                        disabled={removingSectionId === section.id}
+                        disabled={Boolean(readOnlyReason) || removingSectionId === section.id}
                         label={subscriptionsCopy.unsubscribe}
                         variant="destructive"
                         onclick={() => requestRemoveSection(section)}
@@ -312,7 +325,8 @@ function handleRemoveDialogOpenChange(open: boolean) {
                         {/if}
                       </TableIconButton>
                       <TableIconButton
-                        href={`/catalog/sections/${section.jwId}`}
+                        href={readOnlyReason ? undefined : `/catalog/sections/${section.jwId}`}
+                        disabled={Boolean(readOnlyReason)}
                         label={sectionCopy.moreDetails}
                       >
                         <ArrowUpRight data-icon="inline-start" />
