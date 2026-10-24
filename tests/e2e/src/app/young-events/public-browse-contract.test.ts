@@ -238,6 +238,35 @@ test("young table numeric comparisons run before pagination and preserve choices
         checked: true,
       }),
     ).toHaveCount(2);
+    const range = await openYoungTableField(page, "capacity");
+    await range.getByRole("combobox").selectOption("between");
+    await range.getByRole("spinbutton").nth(1).fill("20");
+    await applyYoungTableFilters(page);
+    await expect(events).toHaveCount(20);
+    await expect(page).toHaveURL(
+      (url) => url.searchParams.get("capacityMax") === "20",
+    );
+    const clearedRange = await openYoungTableField(page, "capacity");
+    await clearedRange.getByRole("spinbutton").nth(0).fill("");
+    await clearedRange.getByRole("spinbutton").nth(1).fill("");
+    await applyYoungTableFilters(page);
+    await expect(events).toHaveCount(20);
+    await expect(page).toHaveURL(
+      (url) =>
+        !url.searchParams.has("capacity") &&
+        !url.searchParams.has("capacityMax") &&
+        url.searchParams.get("capacityOp") === "between",
+    );
+    expect(new URL(page.url()).searchParams.getAll("category")).toEqual(
+      categories,
+    );
+    await page.getByRole("link", { name: /^(下一页|Next page)$/i }).click();
+    await expect(events).toHaveCount(3);
+    await expect(events).toContainText([
+      "Numeric filter event 20",
+      "Numeric filter event 21",
+      "Numeric filter event low capacity",
+    ]);
   });
 });
 

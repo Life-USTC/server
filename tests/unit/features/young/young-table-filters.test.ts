@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildYoungEventListQuery } from "@/features/young/server/young-event-query";
 import { parseYoungTableFilters } from "@/features/young/server/young-table-filter-schema";
+import { matchTableFilter } from "@/lib/table-filters";
 
 describe("Young Web table filters", () => {
   it("combines alternatives within fields and independent column predicates", () => {
@@ -44,6 +45,53 @@ describe("Young Web table filters", () => {
         lte: new Date("2026-10-25T15:59:59.999Z"),
       },
     });
+  });
+
+  it.each([
+    ["events", "capacity", "20"],
+    ["events", "startAt", "2026-10-24"],
+    ["organizers", "activeCount", "20"],
+  ] as const)(
+    "treats an empty %s %s range as unrestricted",
+    (kind, field, upper) => {
+      for (const maximum of ["", upper]) {
+        const tableFilters = parseYoungTableFilters(
+          new URLSearchParams({
+            search: "Workshop",
+            [field]: "",
+            [`${field}Op`]: "between",
+            [`${field}Max`]: maximum,
+          }),
+          kind,
+        );
+        expect(tableFilters[field]).toBeUndefined();
+        expect(tableFilters.search).toBe("Workshop");
+        if (kind === "events") {
+          expect(buildYoungEventListQuery({ tableFilters }).where).toEqual({
+            name: { contains: "Workshop", mode: "insensitive" },
+          });
+        } else {
+          expect(
+            [0, 10, 100].filter((value) =>
+              matchTableFilter(
+                value,
+                { name: field, label: field, type: "number" },
+                tableFilters,
+              ),
+            ),
+          ).toEqual([0, 10, 100]);
+        }
+      }
+    },
+  );
+
+  it.each([
+    "activeCount=10&activeCountOp=between",
+    "activeCount=10&activeCountOp=between&activeCountMax=5",
+  ])("rejects incomplete or reversed nonempty organizer range %s", (query) => {
+    expect(() =>
+      parseYoungTableFilters(new URLSearchParams(query), "organizers"),
+    ).toThrow();
   });
 
   it.each([
@@ -123,6 +171,7 @@ describe("Young Web table filters", () => {
     "capacity=10&capacityOp=between",
     "capacity=10&capacityOp=between&capacityMax=2",
     "startAt=2026-02-30",
+    "startAt=2026-10-24&startAtOp=between",
     "startAt=2026-10-24&startAtOp=between&startAtMax=2026-10-23",
     "active=maybe",
     `module=${Array.from({ length: 51 }, (_, i) => i).join(",")}`,

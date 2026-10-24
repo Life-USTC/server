@@ -114,9 +114,8 @@ export function parseYoungTableFilters(
       ? [...youngEventNumberFields, ...youngEventDateFields]
       : youngOrganizerNumberFields;
   for (const name of names) {
-    if (result[`${name}Op`] !== "between") continue;
+    if (!result[name] || result[`${name}Op`] !== "between") continue;
     if (
-      !result[name] ||
       !result[`${name}Max`] ||
       (name === "startAt"
         ? result[name] > result[`${name}Max`]
