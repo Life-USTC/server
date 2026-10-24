@@ -133,7 +133,7 @@ for (const [domain, names] of [
         const measurements = await table.evaluate((element, indices) => {
           const headers = element.querySelectorAll("thead th:not([colspan])");
           const cells = element.querySelectorAll("tbody tr:first-child td");
-          function rightEdge(element: Element) {
+          function leftEdge(element: Element) {
             const walker = document.createTreeWalker(
               element,
               NodeFilter.SHOW_TEXT,
@@ -147,10 +147,10 @@ for (const [domain, names] of [
               range.setStart(walker.currentNode, start);
               range.setEnd(walker.currentNode, text.trimEnd().length);
               for (const box of range.getClientRects())
-                if (box.width > 0 && box.height > 0) edges.push(box.right);
+                if (box.width > 0 && box.height > 0) edges.push(box.left);
             }
             if (!edges.length) throw new Error("Expected numeric column text");
-            return Math.max(...edges);
+            return Math.min(...edges);
           }
           return indices.map((index) => ({
             label: headers[index].textContent?.trim(),
@@ -158,7 +158,7 @@ for (const [domain, names] of [
             headerAlign: getComputedStyle(headers[index]).textAlign,
             cellAlign: getComputedStyle(cells[index]).textAlign,
             difference: Math.abs(
-              rightEdge(headers[index]) - rightEdge(cells[index]),
+              leftEdge(headers[index]) - leftEdge(cells[index]),
             ),
           }));
         }, item.numeric);
@@ -171,10 +171,10 @@ for (const [domain, names] of [
             .toMatch(/\d/);
           expect
             .soft(column.headerAlign, `${item.name} ${column.label}: header`)
-            .toBe("right");
+            .toBe("left");
           expect
             .soft(column.cellAlign, `${item.name} ${column.label}: cell`)
-            .toBe("right");
+            .toBe("left");
           expect
             .soft(column.difference, `${item.name} ${column.label}: text edges`)
             .toBeLessThanOrEqual(1);

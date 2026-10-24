@@ -61,7 +61,7 @@ let activateDialogOpen = $state(false);
       </Button>
     </div>
   {:else}
-    <TableRowActions class="justify-end">
+    <TableRowActions>
       <TableIconButton
         disabled={Boolean(pendingAction)}
         label={copy.activateAction}

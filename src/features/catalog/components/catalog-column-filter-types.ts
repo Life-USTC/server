@@ -8,7 +8,6 @@ export type CatalogColumnFilterProps = {
   onchange: (patch: Record<string, string>) => void;
   labels: TableFilterLabels;
   formId: string;
-  align?: "start" | "end";
   sorting?: {
     key: string;
     label: string;

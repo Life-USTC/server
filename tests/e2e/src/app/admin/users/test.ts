@@ -274,27 +274,27 @@ test("/admin/users 状态列对齐且平板使用可读列表", {
           await headers
             .nth(3)
             .evaluate((node) => getComputedStyle(node).textAlign),
-        ).toBe("center");
+        ).toBe("left");
         expect(
           await headers
             .nth(4)
             .evaluate((node) => getComputedStyle(node).textAlign),
-        ).toBe("center");
+        ).toBe("left");
         expect(
           await headers
             .nth(5)
             .evaluate((node) => getComputedStyle(node).textAlign),
-        ).toBe("right");
+        ).toBe("left");
         expect(
           await firstRowCells
             .nth(4)
             .evaluate((node) => getComputedStyle(node).textAlign),
-        ).toBe("center");
+        ).toBe("left");
         expect(
           await firstRowCells
             .nth(5)
             .evaluate((node) => getComputedStyle(node).textAlign),
-        ).toBe("right");
+        ).toBe("left");
         const suspensionCell = firstRowCells.nth(4);
         const suspensionBadge = suspensionCell.locator('[data-slot="badge"]');
         const secondaryPlaceholder = suspensionCell.locator(

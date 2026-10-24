@@ -12,7 +12,6 @@ let {
   onchange,
   labels,
   formId,
-  align = "start",
   sorting,
   idPrefix,
 }: CatalogColumnFilterProps & { idPrefix: string } = $props();
@@ -26,7 +25,7 @@ const sort = $derived(
 const active = $derived(fields.some((field) => Boolean(values[field.name])));
 </script>
 
-<TableColumnHeader {label} {active} {align} {sort}>
+<TableColumnHeader {label} {active} {sort}>
   <div class="grid gap-4">
     <TableFilterFields {fields} {values} {onchange} {labels} {idPrefix} {formId} />
     {#if sorting}

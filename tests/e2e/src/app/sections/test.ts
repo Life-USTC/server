@@ -409,13 +409,10 @@ test.describe("/catalog/sections 教学班搜索页", () => {
             const targetStyle = getComputedStyle(target);
             const headerBox = header.getBoundingClientRect();
             const targetBox = target.getBoundingClientRect();
-            const rightAligned = headerStyle.textAlign === "right";
-            const headerEdge = rightAligned
-              ? headerBox.right - Number.parseFloat(headerStyle.paddingRight)
-              : headerBox.left + Number.parseFloat(headerStyle.paddingLeft);
-            const cellEdge = rightAligned
-              ? targetBox.right - Number.parseFloat(targetStyle.paddingRight)
-              : targetBox.left + Number.parseFloat(targetStyle.paddingLeft);
+            const headerEdge =
+              headerBox.left + Number.parseFloat(headerStyle.paddingLeft);
+            const cellEdge =
+              targetBox.left + Number.parseFloat(targetStyle.paddingLeft);
             return {
               alignment: headerStyle.textAlign,
               offset: Math.abs(headerEdge - cellEdge),
@@ -503,7 +500,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
         expect(geometry.cellsWithinContainer).toBe(true);
         expect(
           geometry.columnAlignment.map((column) => column.alignment),
-        ).toEqual(["left", "left", "left", "left", "right", "right", "left"]);
+        ).toEqual(["left", "left", "left", "left", "left", "left", "left"]);
         expect(
           Math.max(...geometry.columnAlignment.map((column) => column.offset)),
         ).toBeLessThanOrEqual(1);

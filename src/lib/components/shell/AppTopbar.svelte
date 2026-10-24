@@ -11,26 +11,50 @@ import type {
 import AppPreferencesMenu from "./AppPreferencesMenu.svelte";
 import GlobalSearchTrigger from "./GlobalSearchTrigger.svelte";
 
-export let closeMenus: () => void;
-export let copy: LayoutCopy;
-export let focused = false;
-export let locale: "en-us" | "zh-cn";
-export let localeMenuOpen: boolean;
-export let onOpenGlobalSearch: () => void;
-export let globalSearchShortcutLabel: string;
-export let setLocale: (locale: "en-us" | "zh-cn") => void;
-export let setLocaleMenuOpen: (open: boolean) => void;
-export let setThemeMenuOpen: (open: boolean) => void;
-export let setThemeMode: (mode: ThemeMode) => void;
-export let themeMenuOpen: boolean;
-export let themeMode: ThemeMode;
-export let user: LayoutUserSummary;
-export let viewerLoading = false;
-export let signedIn = false;
-/** Hide the Sign in control when the visitor is already on the sign-in route. */
-export let hideSignIn = false;
-export let unavailableReason: string | undefined = undefined;
-export let homeHref = "/";
+interface Props {
+  closeMenus: () => void;
+  copy: LayoutCopy;
+  focused?: boolean;
+  locale: "en-us" | "zh-cn";
+  localeMenuOpen: boolean;
+  onOpenGlobalSearch: () => void;
+  globalSearchShortcutLabel: string;
+  setLocale: (locale: "en-us" | "zh-cn") => void;
+  setLocaleMenuOpen: (open: boolean) => void;
+  setThemeMenuOpen: (open: boolean) => void;
+  setThemeMode: (mode: ThemeMode) => void;
+  themeMenuOpen: boolean;
+  themeMode: ThemeMode;
+  user: LayoutUserSummary;
+  viewerLoading?: boolean;
+  signedIn?: boolean;
+  /** Hide the Sign in control when the visitor is already on the sign-in route. */
+  hideSignIn?: boolean;
+  unavailableReason?: string | undefined;
+  homeHref?: string;
+}
+
+let {
+  closeMenus,
+  copy,
+  focused = false,
+  locale,
+  localeMenuOpen,
+  onOpenGlobalSearch,
+  globalSearchShortcutLabel,
+  setLocale,
+  setLocaleMenuOpen,
+  setThemeMenuOpen,
+  setThemeMode,
+  themeMenuOpen,
+  themeMode,
+  user,
+  viewerLoading = false,
+  signedIn = false,
+  hideSignIn = false,
+  unavailableReason = undefined,
+  homeHref = "/",
+}: Props = $props();
 </script>
 
 <header

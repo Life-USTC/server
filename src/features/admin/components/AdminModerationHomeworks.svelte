@@ -114,10 +114,10 @@ function creatorLabel(homework: AdminModerationHomework) {
               <Table.Row>
                 <Table.Head class="w-[28%]">{@render filterControls("content", "desktop")}</Table.Head>
                 <Table.Head class="w-[22%]">{@render filterControls("target", "desktop")}</Table.Head>
-                <Table.Head class="w-[16%] text-right">{@render filterControls("createdAt", "desktop")}</Table.Head>
-                <Table.Head class="w-[16%] text-right">{@render filterControls("dueAt", "desktop")}</Table.Head>
-                <Table.Head class="w-[12%] text-center">{@render filterControls("status", "desktop")}</Table.Head>
-                <Table.Head class="w-14 min-w-14 text-right">
+                <Table.Head class="w-[16%]">{@render filterControls("createdAt", "desktop")}</Table.Head>
+                <Table.Head class="w-[16%]">{@render filterControls("dueAt", "desktop")}</Table.Head>
+                <Table.Head class="w-[12%]">{@render filterControls("status", "desktop")}</Table.Head>
+                <Table.Head class="w-14 min-w-14">
                   <span class="sr-only">{copy.actions}</span>
                 </Table.Head>
               </Table.Row>
@@ -137,24 +137,24 @@ function creatorLabel(homework: AdminModerationHomework) {
                       </span>
                     </div>
                   </Table.Cell>
-                  <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
+                  <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
                     {formatDate(homework.createdAt)}
                   </Table.Cell>
-                  <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
+                  <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
                     {homework.submissionDueAt
                       ? formatDate(homework.submissionDueAt)
                       : copy.notAvailable}
                   </Table.Cell>
-                  <Table.Cell class="text-center">
+                  <Table.Cell class="text-left">
                     {#if homework.deletedAt}
                       <Badge variant="destructive">{copy.homeworkStatusDeleted}</Badge>
                     {:else}
                       <Badge>{copy.homeworkStatusActive}</Badge>
                     {/if}
                   </Table.Cell>
-                  <Table.Cell class="w-14 min-w-14 text-right">
+                  <Table.Cell class="w-14 min-w-14 text-left">
                     {#if !homework.deletedAt}
-                      <TableRowActions class="justify-end">
+                      <TableRowActions>
                         <TableIconButton
                           label={copy.deleteHomeworkAction}
                           variant="destructive"

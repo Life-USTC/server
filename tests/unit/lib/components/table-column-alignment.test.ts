@@ -6,12 +6,9 @@ import { componentTags } from "./svelte-component-tags";
 /**
  * ui.table-column-alignment
  *
- * A table column declares its alignment twice, in two different vocabularies:
- * the header says `class="text-right"`, and the body says the same thing by
- * passing `numeric` to `CatalogTableLink`, which expands to `text-right`
- * inside that component. Nothing ties the two declarations together, so adding
- * one and forgetting the other misaligns the column — and no spec-versus-page
- * requirement can see it, because each side is individually well-formed.
+ * Every table header and body cell must align left. Classes, inline styles and
+ * component props can override the shared alignment, including when both sides
+ * of a column consistently choose a different direction.
  *
  * The browser gates (`ui.catalog-table-column-alignment` and
  * `remaining-table-alignment`) measure computed geometry, which this guard
@@ -27,8 +24,7 @@ import { componentTags } from "./svelte-component-tags";
  *  - the default alignment comes from `table-head.svelte`'s own class, not from
  *    an assumption about `<th>`;
  *  - the prop-driven vocabulary is discovered by reading every component's
- *    class expressions for a prop that switches an alignment on, which is how
- *    `CatalogTableLink`'s `numeric` is found without naming it;
+ *    class expressions for a prop that switches an alignment on;
  *  - the tables come from walking the feature and route trees, and a table whose
  *    body rows live in an extracted row component are followed through the
  *    import.
@@ -51,8 +47,7 @@ const TABLE_HEAD_PRIMITIVE = "src/lib/components/ui/table/table-head.svelte";
  * CSS `text-align` keywords, normalised onto the physical directions the
  * codebase writes. Both shipped locales are left-to-right and the repo spells
  * alignment physically (`text-left`/`text-right`), so a logical `text-end` is
- * the same column intent as a physical `text-right` and must not be reported
- * as a disagreement.
+ * the same non-left alignment as a physical `text-right`.
  */
 const ALIGNMENTS: Readonly<Record<string, string>> = {
   center: "center",
@@ -72,9 +67,9 @@ const CLOSING_TAG = /<\/([A-Z][\w.]*)\s*>/g;
 /** `{#if …}`, `{:else …}`, `{/if}` — the block boundaries, not `{@const}`. */
 const BLOCK_BOUNDARY = /\{([#:/])([a-z]+)/g;
 const SCRIPT_OR_STYLE = /(<(script|style)\b[^>]*>)([\s\S]*?)(<\/\2\s*>)/g;
-/** A prop switching classes on: `numeric && "justify-end text-right"`. */
+/** A prop switching classes on: `centered && "text-center"`. */
 const PROP_AND_CLASSES = /([A-Za-z_$][\w$]*)\s*&&\s*"([^"]*)"/g;
-/** A prop choosing between classes: `numeric ? "text-right" : "text-left"`. */
+/** A prop choosing between classes: `centered ? "text-center" : "text-left"`. */
 const PROP_TERNARY_CLASSES =
   /([A-Za-z_$][\w$]*)\s*\?\s*"([^"]*)"\s*:\s*"([^"]*)"/g;
 
@@ -231,7 +226,7 @@ const DEFAULT_ALIGNMENT = await (async () => {
 /*
  * ---------------------------------------------------------------------------
  * The prop-driven alignment vocabulary, read out of every component's own
- * class expressions. This is what finds `CatalogTableLink`'s `numeric`.
+ * class expressions, including overrides introduced by future components.
  * ---------------------------------------------------------------------------
  */
 
@@ -686,17 +681,19 @@ describe("ui.table-column-alignment", () => {
     ).toBe("left");
   });
 
-  it("discovers the prop-driven alignment vocabulary from source", () => {
-    const link = aligned.get(
-      "src/features/catalog/components/CatalogTableLink.svelte",
-    );
-    const numeric = link?.find((entry) => entry.prop === "numeric");
+  it("keeps numeric link formatting from overriding left alignment", async () => {
+    const file = "src/features/catalog/components/CatalogTableLink.svelte";
+    const numericClasses = Array.from(
+      (await sourceOf(file)).matchAll(PROP_AND_CLASSES),
+    ).find(([, prop]) => prop === "numeric")?.[2];
     expect(
-      numeric,
+      numericClasses,
       "CatalogTableLink's numeric prop, found by reading its class expression",
     ).toBeDefined();
-    expect(numeric?.alignment).toBe("right");
-    expect(numeric?.classes).toContain("text-right");
+    expect(numericClasses?.split(/\s+/)).toContain("tabular-nums");
+    expect(
+      aligned.get(file)?.find((entry) => entry.prop === "numeric"),
+    ).toBeUndefined();
   });
 
   it("enumerates every table under features and routes", () => {
@@ -755,13 +752,13 @@ describe("ui.table-column-alignment", () => {
     ).toEqual([]);
   });
 
-  it("aligns each column's header and body cells", () => {
+  it("left-aligns each column's header and body cells", () => {
     const offenders: string[] = [];
     for (const { pairs, table } of matched)
       for (const { cell, head, index } of pairs) {
         const headAlignment = head.declaration?.alignment ?? DEFAULT_ALIGNMENT;
         const cellAlignment = cell.declaration?.alignment ?? DEFAULT_ALIGNMENT;
-        if (headAlignment === cellAlignment) continue;
+        if (headAlignment === "left" && cellAlignment === "left") continue;
         const headHow = head.declaration
           ? `declares ${headAlignment} via ${head.declaration.how}`
           : `declares nothing, so it keeps the shared ${DEFAULT_ALIGNMENT} default`;
@@ -770,13 +767,14 @@ describe("ui.table-column-alignment", () => {
           : `declares nothing, so it keeps the shared ${DEFAULT_ALIGNMENT} default`;
         offenders.push(
           `${table.file}:${table.line} column ${index + 1}: the header at ` +
-            `${head.file}:${head.line} ${headHow}, but the body cell at ` +
-            `${cell.file}:${cell.line} ${cellHow}. The column's text sits ` +
-            `under a heading aligned the other way. Make both sides say ` +
-            `${headAlignment === DEFAULT_ALIGNMENT ? cellAlignment : headAlignment}, ` +
-            `or neither.`,
+            `${head.file}:${head.line} ${headHow}, and the body cell at ` +
+            `${cell.file}:${cell.line} ${cellHow}. Both sides must use left ` +
+            `alignment or inherit the shared left default.`,
         );
       }
-    expect(offenders, "columns whose header and body disagree").toEqual([]);
+    expect(
+      offenders,
+      "columns whose header or body is not left-aligned",
+    ).toEqual([]);
   });
 });
