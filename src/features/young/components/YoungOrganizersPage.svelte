@@ -1,5 +1,4 @@
 <script lang="ts">
-import ActiveFilters from "#lib/components/ActiveFilters.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import ListPagination from "#lib/components/ListPagination.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
@@ -7,8 +6,7 @@ import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
-import TableControlsRow from "#lib/components/TableControlsRow.svelte";
-import { toolbarControlClass } from "#lib/components/toolbar-control.js";
+import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
@@ -19,7 +17,8 @@ import type {
 } from "@/features/young/server/young-event-service";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { page as appPage } from "$app/state";
-import { removeYoungFilter } from "../lib/young-navigation";
+import { youngOrganizerTableFields } from "../lib/young-table-filters";
+import YoungEventFilters from "./YoungEventFilters.svelte";
 import YoungSourceNote from "./YoungSourceNote.svelte";
 
 type Props = {
@@ -31,13 +30,17 @@ type Props = {
     total: number;
     totalPages: number;
   };
-  search?: string;
+  tableFilters: Record<string, string>;
   source: YoungSourceFreshness;
 };
 
-let { copy, data, pagination, search, source }: Props = $props();
+let { copy, data, pagination, tableFilters, source }: Props = $props();
 
-let searchDraft = $derived(search ?? "");
+let draft = $derived({ ...tableFilters });
+const fields = $derived(youngOrganizerTableFields(copy));
+function patchDraft(patch: Record<string, string>) {
+  draft = { ...draft, ...patch };
+}
 const youngCopy = $derived(copy.youngEvents);
 const commonLabels = $derived(copy.common);
 
@@ -82,42 +85,9 @@ const summary = $derived(
   {/if}
 {/snippet}
 
-{#snippet controls(prefix: string)}
-    <div class="grid min-w-0 gap-3">
-          <form
-            action="/catalog/young-events/organizers"
-            method="get"
-            class="flex min-w-0 flex-1 items-center gap-2"
-          >
-            <SearchField
-              id={prefix + "-young-organizer-search"}
-              label={commonLabels.search}
-              name="search"
-              placeholder={youngCopy.organizerSearchPlaceholder}
-              bind:value={searchDraft}
-            />
-            <Button type="submit" class={toolbarControlClass}>
-              {commonLabels.search}
-            </Button>
-          </form>
-
-      <ActiveFilters
-        items={search
-          ? [
-              {
-                href: removeYoungFilter(new URL(appPage.url.href), "search"),
-                label: search,
-                removeLabel: youngCopy.removeFilter.replace("{value}", () => search),
-              },
-            ]
-          : []}
-        ariaLabel={youngCopy.activeFilters}
-        clearHref="/catalog/young-events/organizers"
-        clearLabel={commonLabels.clear}
-      />
-    </div>
+{#snippet columnFilter(field: (typeof fields)[number], prefix: string)}
+  <YoungEventFilters {copy} fields={[field]} values={draft} applied={tableFilters} onchange={patchDraft} label={field.label} prefix={`${prefix}-${field.name}`} formId="young-organizer-filters" />
 {/snippet}
-
 
 {#snippet empty()}
       <div class="py-10">
@@ -142,9 +112,28 @@ const summary = $derived(
       totalPages={pagination.totalPages}
     />
 
+      <div class="grid min-w-0 gap-3" data-slot="table-filter-toolbar">
+      <form id="young-organizer-filters" action="/catalog/young-events/organizers" method="get" class="flex min-w-0 flex-wrap items-center gap-3" data-slot="table-filter-apply">
+        {#each Object.entries(draft).filter(([, value]) => value) as [name, value]}
+          <input type="hidden" {name} {value} />
+        {/each}
+        <div class="flex w-full min-w-0 sm:w-auto sm:flex-1">
+          <SearchField id="young-organizer-search" label={copy.common.search} placeholder={youngCopy.organizerSearchPlaceholder} bind:value={() => draft.search ?? "", (value) => patchDraft({ search: value })} />
+        </div>
+        <Button type="submit">{copy.common.applyFilters}</Button>
+        <Button type="button" variant="ghost" onclick={() => { draft = {}; }}>{copy.common.clear}</Button>
+      </form>
+      </div>
+      {#if fields.some((field) => tableFilters[field.name])}
+        <div class="flex flex-wrap gap-2" role="group" aria-label={youngCopy.activeFilters}>
+          {#each fields.filter((field) => tableFilters[field.name]) as field}
+            <Badge variant="outline" class="h-auto max-w-full whitespace-normal [overflow-wrap:anywhere]">{field.label}: {tableFilters[field.name]}</Badge>
+          {/each}
+        </div>
+      {/if}
       <ResponsiveCollection>
         {#snippet mobile()}
-          <div class="mb-3" data-slot="collection-header">{@render controls("mobile")}</div>
+          <div class="mb-3 flex flex-wrap gap-3" data-slot="collection-header">{#each fields as field}{@render columnFilter(field, "mobile")}{/each}</div>
           {#if data.length > 0}
           <Item.Group class="gap-0" role="list">
             {#each data as organizer, index (organizer.id)}
@@ -179,24 +168,11 @@ const summary = $derived(
         {#snippet desktop()}
           <Table.Root>
             <Table.Header>
-              <TableControlsRow colspan={4}>{@render controls("desktop")}</TableControlsRow>
               <Table.Row>
-                <Table.Head>{youngCopy.organizer}</Table.Head>
-                <Table.Head
-                  class="text-right"
-                  style="text-align: right"
-                  title={youngCopy.activeEventsTitle}
-                >{youngCopy.activeEvents}</Table.Head>
-                <Table.Head
-                  class="text-right"
-                  style="text-align: right"
-                  title={youngCopy.upcomingEventsTitle}
-                >{youngCopy.upcomingEvents}</Table.Head>
-                <Table.Head
-                  class="text-right"
-                  style="text-align: right"
-                  title={youngCopy.historyEventsTitle}
-                >{youngCopy.historyEvents}</Table.Head>
+                <Table.Head>{@render columnFilter(fields[0], "desktop")}</Table.Head>
+                <Table.Head class="text-right" style="text-align: right">{@render columnFilter(fields[1], "desktop")}</Table.Head>
+                <Table.Head class="text-right" style="text-align: right">{@render columnFilter(fields[2], "desktop")}</Table.Head>
+                <Table.Head class="text-right" style="text-align: right">{@render columnFilter(fields[3], "desktop")}</Table.Head>
               </Table.Row>
             </Table.Header>
             <Table.Body>

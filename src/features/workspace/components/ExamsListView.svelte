@@ -18,7 +18,7 @@ import type {
   WorkspaceTabHref,
 } from "./workspace-exam-component-types";
 
-export let filterControls: Snippet;
+export let filterControls: Snippet<[string[], string, string]>;
 export let locale: string;
 export let namePrimary: NamePrimary;
 export let unknownSemesterLabel: string;
@@ -38,11 +38,11 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
   <Table.Root class="min-w-0 w-full">
     <Table.Header>
       <Table.Row>
-        <Table.Head>{subscriptionsCopy.courseName}</Table.Head>
-        <Table.Head>{subscriptionsCopy.section}</Table.Head>
-        <Table.Head>{@render filterControls()}</Table.Head>
-        <Table.Head>{sectionCopy.examTime}</Table.Head>
-        <Table.Head>{sectionCopy.room}</Table.Head>
+        <Table.Head>{@render filterControls(["course"], subscriptionsCopy.courseName, "desktop")}</Table.Head>
+        <Table.Head>{@render filterControls(["section", "semester"], subscriptionsCopy.section, "desktop")}</Table.Head>
+        <Table.Head>{@render filterControls(["examDate", "completion"], sectionCopy.examDate, "desktop")}</Table.Head>
+        <Table.Head>{@render filterControls(["startTime", "endTime", "examMode"], sectionCopy.examTime, "desktop")}</Table.Head>
+        <Table.Head>{@render filterControls(["rooms"], sectionCopy.room, "desktop")}</Table.Head>
         <Table.Head
           ><span class="sr-only">{sectionCopy.moreDetails}</span></Table.Head
         >

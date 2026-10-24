@@ -1,10 +1,8 @@
 <script lang="ts">
-import type { Snippet } from "svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
-import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
@@ -29,7 +27,6 @@ import type {
 } from "./catalog-teacher-list-types";
 
 interface Props {
-  controls: Snippet<[string]>;
   columnFilters: Record<string, CatalogColumnFilterProps>;
   commonLabels: TeacherListCommonLabels;
   filters: TeacherListFilters;
@@ -43,7 +40,6 @@ interface Props {
 }
 
 let {
-  controls,
   columnFilters,
   commonLabels,
   filters,
@@ -115,7 +111,6 @@ function teacherSectionsHref(teacher: TeacherListRow) {
     <ResponsiveCollection>
       {#snippet mobile()}
         <div class="grid gap-3" data-slot="collection-header">
-          {@render controls("mobile")}
           <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
             {#each Object.entries(columnFilters) as [key, column] (key)}
               <CatalogColumnFilter {...column} align="start" idPrefix={"mobile-teacher-" + key} />
@@ -180,18 +175,17 @@ function teacherSectionsHref(teacher: TeacherListRow) {
       {#snippet desktop()}
         <Table.Root class="">
           <Table.Header>
-            <TableControlsRow colspan={4 + Number(showTitleColumn) + Number(showEmailColumn)}>{@render controls("desktop")}</TableControlsRow>
             <Table.Row>
-              <Table.Head>{teacherLabels.name}</Table.Head>
-              <Table.Head>{teacherLabels.code}</Table.Head>
+              <Table.Head><CatalogColumnFilter {...columnFilters.name} idPrefix="desktop-teacher-name" /></Table.Head>
+              <Table.Head><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-teacher-code" /></Table.Head>
               <Table.Head><CatalogColumnFilter {...columnFilters.department} idPrefix="desktop-teacher-department" /></Table.Head>
               {#if showTitleColumn}
-                <Table.Head>{teacherLabels.title_label}</Table.Head>
+                <Table.Head><CatalogColumnFilter {...columnFilters.title} idPrefix="desktop-teacher-title" /></Table.Head>
               {/if}
               {#if showEmailColumn}
-                <Table.Head>{teacherLabels.email}</Table.Head>
+                <Table.Head><CatalogColumnFilter {...columnFilters.email} idPrefix="desktop-teacher-email" /></Table.Head>
               {/if}
-              <Table.Head class="text-right">{teacherLabels.sections}</Table.Head>
+              <Table.Head class="text-right"><CatalogColumnFilter {...columnFilters.sections} idPrefix="desktop-teacher-sections" /></Table.Head>
             </Table.Row>
           </Table.Header>
           <Table.Body>

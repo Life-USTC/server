@@ -4,6 +4,84 @@ import { test } from "./presentation-fixture";
 
 const widths = [1280, 390];
 
+test("subscription.table-filters-apply-across-semesters", {
+  tag: "@Subscription/Web",
+}, async ({ page, presentation, isolatedWorker, catalogSubscriptionRun }) => {
+  const { user, sections, semesters } = presentation;
+  await catalogSubscriptionRun(
+    user,
+    { calendarMessages: [], calendarTokenCreated: true },
+    async () => {
+      await page
+        .context()
+        .addCookies([
+          (await isolatedWorker.createSession(user.id)).cookie,
+          { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
+        ]);
+      for (const width of widths) {
+        await open(page, width);
+        const links = page
+          .getByTestId("subscription-course-link")
+          .filter({ visible: true });
+        const apply = page.getByRole("button", {
+          name: "应用筛选",
+          exact: true,
+        });
+        await expect(apply).toHaveCount(1);
+        await expect(links).toHaveCount(3);
+        const semesterTrigger = page
+          .locator("#subscriptions-filters")
+          .getByRole("button", { name: "学期", exact: true });
+        await semesterTrigger.click();
+        const semester = page.locator('[data-filter-field="semester"]');
+        await semester
+          .getByRole("checkbox", { name: semesters[0].nameCn, exact: true })
+          .check();
+        await page.keyboard.press("Escape");
+        const credits = page
+          .getByRole("button", { name: "学分", exact: true })
+          .filter({ visible: true })
+          .first();
+        await credits.click();
+        const dialog = page.getByRole("dialog", { name: "学分", exact: true });
+        await dialog.getByRole("combobox").selectOption("gte");
+        await dialog.getByRole("spinbutton").fill("2.5");
+        await expect(
+          dialog.getByRole("button", { name: "应用筛选", exact: true }),
+        ).toHaveCount(0);
+        await page.keyboard.press("Escape");
+        await expect(links).toHaveCount(3);
+        await apply.click();
+        await expect(links).toHaveCount(2);
+        await expect(
+          page
+            .locator(
+              `a[data-testid="subscription-course-link"][href="/catalog/sections/${sections[2].jwId}"]`,
+            )
+            .filter({ visible: true }),
+        ).toHaveCount(0);
+        await semesterTrigger.click();
+        await semester
+          .getByRole("checkbox", { name: semesters[1].nameCn, exact: true })
+          .check();
+        await page.keyboard.press("Escape");
+        await apply.click();
+        await expect(links).toHaveCount(3);
+        await credits.click();
+        await dialog.getByRole("combobox").selectOption("gt");
+        await page.keyboard.press("Escape");
+        await apply.click();
+        await expect(links).toHaveCount(0);
+        await credits.click();
+        await dialog.getByRole("spinbutton").fill("");
+        await page.keyboard.press("Escape");
+        await apply.click();
+        await expect(links).toHaveCount(3);
+      }
+    },
+  );
+});
+
 async function open(page: Page, width: number) {
   await page.setViewportSize({ width, height: 844 });
   await gotoAndWaitForReady(page, "/workspace/subscriptions");

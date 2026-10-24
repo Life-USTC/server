@@ -16,6 +16,20 @@ access:
   admin: Can maintain bus data.
   agent: Can read bus timetable capabilities and manage own bus preferences.
 requirements:
+- id: bus.table-column-filters
+  category: behavior
+  rule: The planner supports multiple route selections and every displayed station offers segment-presence and arrival-time comparisons. Filters apply to the complete loaded timetable, including marked estimates; unknown times match no comparison. A single top Apply commits all draft filters and route preferences. Origin, destination and schedule type remain a single journey context.
+  acceptance:
+    given: Public timetable routes share some stops and contain exact, estimated and unknown times.
+    when: Desktop and mobile viewers combine route choices, station presence and arrival-time filters and apply once.
+    then:
+    - Draft changes leave the timetable and persisted preferences unchanged until Apply.
+    - The timetable and next-departure summary use the same filtered trips.
+    - Route choices combine with OR; station and time conditions intersect across fields.
+    - Empty results retain accessible top controls and Clear can reset the draft.
+    test:
+      file: tests/e2e/src/app/bus/table-filters.test.ts
+      name: bus.table-column-filters
 - id: bus.preference-owner-state
   category: authorization
   applies_to:
@@ -99,13 +113,14 @@ requirements:
 - id: bus.core-filters-only
   category: presentation
   rule: The bus planner exposes departure campus, arrival campus, direction reversal, day type and show-departed
-    controls in a shared table-header popover on desktop and a collection-header popover on mobile. The mobile next departure remains directly visible before the controls.
+    controls in one collection-header popover. All controls edit drafts and the single top Apply commits them together.
+    The mobile next departure remains directly visible before the controls.
   acceptance:
     given: An anonymous viewer opens the planner on desktop and mobile.
     when: The browser changes departure and arrival, reverses direction, selects every day type, selects
       each one a second time, and toggles departed trips.
     then:
-    - All required controls are available and change the selected route or visible timetable as requested.
+    - All required controls are available and the single Apply updates the selected route and visible timetable together.
     - The day type stays selected when it is chosen again, so the timetable always states which schedule it lists.
     test:
       file: tests/e2e/src/app/bus/presentation-contract.test.ts
@@ -119,18 +134,18 @@ requirements:
     when: Desktop and mobile planners render their primary departure presentation.
     then:
     - Mobile leads with a large next-departure time and origin/destination/route before the full timetable.
-    - Desktop highlights the first boardable trip in the first applicable route; the table header opens the selected stop controls.
+    - Desktop highlights the first boardable trip in the first applicable route; the collection header opens the selected stop controls.
     test:
       file: tests/e2e/src/app/bus/presentation-contract.test.ts
       name: bus.visual-priority
 - id: bus.public-responsive-planner
   category: presentation
-  rule: Desktop bus planning presents all route controls in the header of the complete grouped timetable, including when the selected route has no results.
+  rule: Desktop bus planning presents all route controls above the complete grouped timetable, including when the selected route has no results.
   acceptance:
     given: A public timetable has available routes.
     when: The desktop bus planner renders.
     then:
-    - The table header opens origin/destination and day/departed/reverse controls while preserving the populated timetable.
+    - The collection header opens origin/destination and day/departed/reverse controls while preserving the populated timetable.
     test:
       file: tests/e2e/src/app/bus/test.ts
       name: bus.public-responsive-planner
@@ -301,10 +316,10 @@ requirements:
     or read failures never overwrite stored preferences.
   acceptance:
     given: An isolated owner has saved preferences, and its real private read is held or replaced with a 401 or 503 response.
-    when: The browser changes the planner and advances beyond the autosave debounce before hydration, after errors and after successful hydration.
+    when: The browser edits draft choices before hydration and after errors, then explicitly applies them after successful hydration.
     then:
     - Pending or failed reads produce no preference writes and leave persisted preferences unchanged.
-    - A successful read preserves the in-progress route choice; only a subsequent explicit edit writes the new preference.
+    - A successful read preserves the in-progress route choice; only a subsequent Apply writes the new preference.
     test:
       file: tests/e2e/src/app/bus/preferences-contract.test.ts
       name: bus.preference-hydration-write-gate

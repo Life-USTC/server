@@ -1,8 +1,10 @@
 <script lang="ts">
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
+import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Table from "#lib/components/ui/table/index.js";
+import type { TableFilterField, TableFilterLabels } from "@/lib/table-filters";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
 import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
 import type {
@@ -13,6 +15,10 @@ import type {
 } from "./admin-bus-types";
 
 interface Props {
+  columns: TableFilterField[][];
+  values: Record<string, string>;
+  onchange: (patch: Record<string, string>) => void;
+  filterLabels: TableFilterLabels;
   copy: AdminBusCopy;
   enhancedAction: AdminBusEnhancedAction;
   formatEffectiveRange: AdminBusVersionFormatter;
@@ -24,6 +30,10 @@ interface Props {
 }
 
 let {
+  columns,
+  values,
+  onchange,
+  filterLabels,
   copy,
   enhancedAction,
   formatEffectiveRange,
@@ -35,17 +45,21 @@ let {
 }: Props = $props();
 </script>
 
+{#snippet column(index: number)}
+  <TableFieldFilter label={index === 3 ? copy.colEffective : columns[index][0].label} fields={columns[index]} {values} {onchange} labels={filterLabels} idPrefix={`admin-bus-desktop-${index}`} formId="admin-bus-filters" align={index === 2 || index === 4 ? "end" : index === 5 ? "center" : "start"} />
+{/snippet}
+
 <div class="min-w-0">
   <CollectionTableShell label={copy.colTitle}>
     <Table.Root class="w-full min-w-[68rem]">
       <Table.Header>
         <Table.Row>
-          <Table.Head class="w-[25%]">{copy.colTitle}</Table.Head>
-          <Table.Head class="w-[17%]">{copy.colKey}</Table.Head>
-          <Table.Head class="w-[9%] text-right">{copy.colTrips}</Table.Head>
-          <Table.Head class="w-[18%]">{copy.colEffective}</Table.Head>
-          <Table.Head class="w-[14%] text-right">{copy.colImported}</Table.Head>
-          <Table.Head class="w-[10%] text-center">{copy.colStatus}</Table.Head>
+          <Table.Head class="w-[25%]">{@render column(0)}</Table.Head>
+          <Table.Head class="w-[17%]">{@render column(1)}</Table.Head>
+          <Table.Head class="w-[9%] text-right">{@render column(2)}</Table.Head>
+          <Table.Head class="w-[18%]">{@render column(3)}</Table.Head>
+          <Table.Head class="w-[14%] text-right">{@render column(4)}</Table.Head>
+          <Table.Head class="w-[10%] text-center">{@render column(5)}</Table.Head>
           <Table.Head class="w-20 min-w-20 text-right">
             <span class="sr-only">{copy.colActions}</span>
           </Table.Head>

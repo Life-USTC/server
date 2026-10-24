@@ -82,16 +82,23 @@ export function getSectionListFilterOptions(locale: AppLocale, origin: string) {
 export function getTeacherListFilterOptions(locale: AppLocale, origin: string) {
   return cachedCatalogRuntimeData(
     `catalog:teachers-filter-options:${locale}`,
-    "options-v1",
+    "options-v2",
     origin,
     async () => {
       const prisma = getPrisma(locale);
-      const departments = await prisma.department.findMany({
-        where: { teachers: { some: {} } },
-        select: { id: true, nameCn: true, nameEn: true },
-        orderBy: { nameCn: "asc" },
-      });
-      return toLoadData({ departments });
+      const [departments, teacherTitles] = await Promise.all([
+        prisma.department.findMany({
+          where: { teachers: { some: {} } },
+          select: { id: true, nameCn: true, nameEn: true },
+          orderBy: { nameCn: "asc" },
+        }),
+        prisma.teacherTitle.findMany({
+          where: { teachers: { some: {} } },
+          select: { id: true, nameCn: true, nameEn: true },
+          orderBy: { nameCn: "asc" },
+        }),
+      ]);
+      return toLoadData({ departments, teacherTitles });
     },
   );
 }

@@ -1,11 +1,15 @@
 <script lang="ts">
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
+import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import { linkGroupColumnsClass } from "@/features/workspace/lib/link-table-layout";
 import type {
   AnonymousLinkGroup,
   WorkspaceCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import { page } from "$app/state";
+import { filterLinkGroups, linkTableFields } from "../lib/link-table-filters";
 import AnonymousLinksGroup from "./AnonymousLinksGroup.svelte";
 import LinksTabList from "./LinksTabList.svelte";
 import LinksTabToolbar from "./LinksTabToolbar.svelte";
@@ -16,16 +20,44 @@ export let linkIconLabel: (icon: string) => string;
 
 export let linkSearchQuery: string;
 export let anonymousLinkGroups: AnonymousLinkGroup[];
+let draft: Record<string, string> = { search: linkSearchQuery };
+let applied: Record<string, string> = {};
+$: common = getWorkspacePageCopy(
+  page.data.locale === "en-us" ? "en-us" : "zh-cn",
+).common;
+$: filterFields = linkTableFields(
+  workspaceCopy.linkHub,
+  common.tableFilters,
+  false,
+);
+$: filteredGroups = filterLinkGroups(
+  anonymousLinkGroups,
+  [...filterFields.columns, ...filterFields.extras],
+  applied,
+);
+function change(patch: Record<string, string>) {
+  draft = { ...draft, ...patch };
+}
+function apply(event: SubmitEvent) {
+  event.preventDefault();
+  applied = { ...draft };
+  linkSearchQuery = draft.search ?? "";
+}
 </script>
 
 <section class="grid gap-4">
+  <form id="links-filters" onsubmit={apply} class="flex flex-wrap items-end gap-3">
+    {#each filterFields.extras as field}<TableFieldFilter label={field.label} fields={[field]} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`links-extra-${field.name}`} formId="links-filters" />{/each}
+    <Button type="submit">{common.applyFilters}</Button>
+  </form>
   <ResponsiveCollection>
     {#snippet mobile()}
       <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
-        <LinksTabToolbar id="catalog-link-search-mobile" {workspaceCopy} bind:linkSearchQuery />
+        <LinksTabToolbar id="catalog-link-search-mobile" {workspaceCopy} linkSearchQuery={draft.search ?? ""} onchange={(search) => change({ search })} />
+        {#each filterFields.columns as field}<TableFieldFilter label={field.label} fields={[field]} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`links-mobile-${field.name}`} formId="links-filters" />{/each}
       </div>
   <div class={linkGroupColumnsClass}>
-    {#each anonymousLinkGroups as entry}
+    {#each filteredGroups as entry}
       <AnonymousLinksGroup
         {entry}
         {linkIconLabel}
@@ -45,11 +77,15 @@ export let anonymousLinkGroups: AnonymousLinkGroup[];
         colDescription={workspaceCopy.linkHub.colDescription}
         colActions={workspaceCopy.linkHub.colActions}
         emptyLabel={workspaceCopy.linkHub.empty}
-        groups={anonymousLinkGroups}
+        groups={filteredGroups}
+        fields={filterFields.columns}
+        values={draft}
+        onchange={change}
+        filterLabels={common.tableFilters}
         {linkIconLabel}
       >
         {#snippet searchControls()}
-          <LinksTabToolbar id="catalog-link-search-desktop" {workspaceCopy} bind:linkSearchQuery />
+          <LinksTabToolbar id="catalog-link-search-desktop" {workspaceCopy} linkSearchQuery={draft.search ?? ""} onchange={(search) => change({ search })} />
         {/snippet}
       </LinksTabList>
     {/snippet}

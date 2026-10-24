@@ -1,13 +1,17 @@
 import type { AdminModerationPrisma } from "@/features/admin/server/admin-moderation-types";
+import type { Prisma } from "@/generated/prisma/client";
 
 export function listModerationSuspensions({
   pageSize,
   prisma,
+  suspensionWhere,
 }: {
   pageSize: number;
   prisma: AdminModerationPrisma;
+  suspensionWhere: Prisma.UserSuspensionWhereInput;
 }) {
   return prisma.userSuspension.findMany({
+    where: suspensionWhere,
     select: {
       id: true,
       reason: true,

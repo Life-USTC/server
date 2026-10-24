@@ -36,6 +36,9 @@ export let targetLabel: (description: AdminModerationDescription) => string;
       {#snippet mobile()}
         <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
           {@render filterControls("search", "mobile")}
+          {@render filterControls("author", "mobile")}
+          {@render filterControls("editedAt", "mobile")}
+
           {@render filterControls("descriptionContent", "mobile")}
           {@render filterControls("descriptionTarget", "mobile")}
         </div>

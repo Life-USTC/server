@@ -3,11 +3,13 @@ import SquarePen from "@lucide/svelte/icons/square-pen";
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
 import TableControlsRow from "#lib/components/TableControlsRow.svelte";
+import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
+import { adminUserTableFields } from "../lib/admin-user-table-filters";
 import AdminUsersSearchCard from "./AdminUsersSearchCard.svelte";
 import type {
   AdminUserFormatter,
@@ -17,7 +19,9 @@ import type {
 } from "./admin-user-types";
 
 export let commonCopy: AdminUsersCommonCopy;
-export let search: string;
+export let values: Record<string, string>;
+export let onchange: (patch: Record<string, string>) => void;
+export let onapply: (event: SubmitEvent) => void;
 export let noResults: string;
 export let copy: AdminUsersCopy;
 export let displayName: AdminUserFormatter;
@@ -25,7 +29,12 @@ export let formatDate: (value: Date | string | null | undefined) => string;
 export let onSelect: (user: AdminUserRow) => void;
 export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
+$: fields = adminUserTableFields(copy);
 </script>
+
+{#snippet column(index: number)}
+  <TableFieldFilter label={fields[index].label} fields={[fields[index]]} {values} {onchange} labels={commonCopy.tableFilters} idPrefix={`admin-users-desktop-${fields[index].name}`} formId="admin-user-search-desktop-form" align={index === 5 ? "end" : index > 2 ? "center" : "start"} />
+{/snippet}
 
 <div class="min-w-0">
   <CollectionTableShell label={copy.title}>
@@ -33,15 +42,15 @@ export let users: AdminUserRow[];
       <Table.Caption class="sr-only">{copy.title}</Table.Caption>
       <Table.Header>
         <TableControlsRow colspan={7}>
-          <AdminUsersSearchCard id="admin-user-search-desktop" {commonCopy} {copy} {search} />
+          <AdminUsersSearchCard id="admin-user-search-desktop" {commonCopy} {copy} {values} {onchange} {onapply} />
         </TableControlsRow>
         <Table.Row>
-          <Table.Head class="w-[22%]">{copy.name}</Table.Head>
-          <Table.Head class="w-[18%]">{copy.username}</Table.Head>
-          <Table.Head class="w-[25%]">{copy.email}</Table.Head>
-          <Table.Head class="w-[9%] text-center">{copy.role}</Table.Head>
-          <Table.Head class="w-[14%] text-center">{copy.suspension}</Table.Head>
-          <Table.Head class="w-[12%] text-right">{copy.createdAt}</Table.Head>
+          <Table.Head class="w-[22%]">{@render column(0)}</Table.Head>
+          <Table.Head class="w-[18%]">{@render column(1)}</Table.Head>
+          <Table.Head class="w-[25%]">{@render column(2)}</Table.Head>
+          <Table.Head class="w-[9%] text-center">{@render column(3)}</Table.Head>
+          <Table.Head class="w-[14%] text-center">{@render column(4)}</Table.Head>
+          <Table.Head class="w-[12%] text-right">{@render column(5)}</Table.Head>
           <Table.Head class="w-14 min-w-14 text-right">
             <span class="sr-only">{copy.editTitle}</span>
           </Table.Head>

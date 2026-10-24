@@ -5,6 +5,7 @@ import {
 } from "@/features/admin/server/admin-page-auth";
 import { listAdminUsers } from "@/features/admin/server/admin-user-read-model";
 import { parsePositivePage, toLoadData } from "@/lib/load-data-utils";
+import { tableFilterParams } from "@/lib/table-filter-query";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 export async function getAdminUsersPage(request: Request, url: URL) {
@@ -12,11 +13,22 @@ export async function getAdminUsersPage(request: Request, url: URL) {
   const prisma = await getPrismaClient();
   const page = parsePositivePage(url.searchParams.get("page"));
   const search = url.searchParams.get("search")?.trim() ?? "";
+  const filters = tableFilterParams(url, [
+    "search",
+    "name",
+    "username",
+    "email",
+    "role",
+    "suspension",
+    "createdAt",
+    "createdAtOp",
+    "createdAtMax",
+  ]);
   const skip = (page - 1) * ADMIN_USERS_PAGE_SIZE;
 
   const { total, users } = await listAdminUsers({
     pagination: { pageSize: ADMIN_USERS_PAGE_SIZE, skip },
-    query: { search },
+    query: { search, filters },
     includeActiveSuspension: true,
     prismaClient: prisma,
   });
@@ -41,6 +53,6 @@ export async function getAdminUsersPage(request: Request, url: URL) {
         : null,
     })),
     pagination: { page, pageSize: ADMIN_USERS_PAGE_SIZE, total, totalPages },
-    filters: { search },
+    filters,
   });
 }

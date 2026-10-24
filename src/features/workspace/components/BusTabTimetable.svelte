@@ -1,5 +1,4 @@
 <script lang="ts">
-import type { Snippet } from "svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Empty from "#lib/components/ui/empty/index.js";
 import type { BusApplicableRoute } from "@/features/bus/lib/bus-client";
@@ -10,7 +9,9 @@ import type {
 import BusTabRoutesTable from "./BusTabRoutesTable.svelte";
 import BusTabTimetableNotice from "./BusTabTimetableNotice.svelte";
 
-export let controls: Snippet;
+export let filterValues: Record<string, string>;
+export let onFilterChange: (patch: Record<string, string>) => void;
+export let formId: string;
 export let bus: WorkspaceBusData;
 export let busApplicableRoutes: BusApplicableRoute[];
 export let busCopy: WorkspaceBusCopy;
@@ -40,7 +41,10 @@ export let showHeader = false;
       {busNextTripHighlightKey}
       routes={busApplicableRoutes}
       label={busCopy.workspaceTitle}
-      {controls}
+      {filterValues}
+      {onFilterChange}
+      {formId}
+      {busCopy}
     >
       {#snippet empty()}
         <Empty.Root>

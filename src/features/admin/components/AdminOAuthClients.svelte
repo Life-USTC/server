@@ -6,13 +6,19 @@ import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
+import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedBadge from "#lib/components/TruncatedBadge.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import { matchTableFilter, type TableFilterField } from "@/lib/table-filters";
+import { formatShanghaiDate } from "@/lib/time/shanghai-format";
+import { page } from "$app/state";
 import type {
   AdminOAuthClient,
   AdminOAuthCopy,
@@ -24,12 +30,103 @@ export let copy: AdminOAuthCopy;
 export let formatCreatedAt: (value: string | Date) => string;
 export let onDelete: (client: AdminOAuthClient) => void;
 export let scopeLabel: (scope: string) => string;
+let draft: Record<string, string> = {};
+let applied: Record<string, string> = {};
+$: common = getWorkspacePageCopy(
+  page.data.locale === "en-us" ? "en-us" : "zh-cn",
+).common;
+$: columns = [
+  [
+    { name: "name", label: copy.tableColumnClient },
+    { name: "clientId", label: copy.clientIdLabel },
+  ],
+  [
+    {
+      name: "tokenEndpointAuthMethod",
+      label: copy.clientType,
+      options: [
+        ...new Set(clients.map((client) => client.tokenEndpointAuthMethod)),
+      ].map((value) => ({ value, label: clientTypeLabel(value) })),
+    },
+    {
+      name: "skipConsent",
+      label: copy.clientTrustTrusted,
+      options: [
+        { value: "true", label: copy.clientTrustTrusted },
+        { value: "false", label: copy.clientTrustConsent },
+      ],
+    },
+    {
+      name: "disabled",
+      label: copy.disabled,
+      options: [
+        { value: "true", label: copy.disabled },
+        { value: "false", label: copy.enabled },
+      ],
+    },
+  ],
+  [
+    {
+      name: "scopes",
+      label: copy.tableColumnScopes,
+      options: [...new Set(clients.flatMap((client) => client.scopes))].map(
+        (value) => ({ value, label: scopeLabel(value) }),
+      ),
+    },
+  ],
+  [{ name: "createdAt", label: copy.createdAtLabel, type: "date" as const }],
+] satisfies TableFilterField[][];
+$: visibleClients = clients.filter((client) =>
+  columns
+    .flat()
+    .every((field) =>
+      matchTableFilter(
+        field.name === "createdAt"
+          ? formatShanghaiDate(client.createdAt)
+          : field.name === "skipConsent"
+            ? String(Boolean(client.skipConsent))
+            : field.name === "disabled"
+              ? String(client.disabled)
+              : client[
+                  field.name as
+                    | "name"
+                    | "clientId"
+                    | "tokenEndpointAuthMethod"
+                    | "scopes"
+                ],
+        field,
+        applied,
+      ),
+    ),
+);
+function change(patch: Record<string, string>) {
+  draft = { ...draft, ...patch };
+}
+function apply(event: SubmitEvent) {
+  event.preventDefault();
+  applied = { ...draft };
+}
 </script>
 
-<section class="flex min-w-0 flex-col gap-3">
-  <ResultsSummary summary={(clients.length === 1 ? copy.clientCountOne : copy.clientCount).replace("{count}", String(clients.length))} />
+{#snippet column(index: number, suffix: string)}
+  <TableFieldFilter label={index === 1 ? copy.tableColumnType : columns[index][0].label} fields={columns[index]} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`oauth-${suffix}-${index}`} formId="oauth-filters" align={index === 3 ? "end" : "start"} />
+{/snippet}
 
-  {#if clients.length === 0}
+<section class="flex min-w-0 flex-col gap-3">
+  <form id="oauth-filters" onsubmit={apply} class="flex flex-wrap items-center gap-3">
+    <ResponsiveCollection>
+      {#snippet mobile()}
+        <div class="flex flex-wrap gap-3" data-slot="collection-header">{#each columns as _, index}{@render column(index, "mobile")}{/each}</div>
+      {/snippet}
+      {#snippet desktop()}
+        {#if visibleClients.length === 0}<div class="flex flex-wrap gap-3" data-slot="collection-header">{#each columns as _, index}{@render column(index, "empty")}{/each}</div>{/if}
+      {/snippet}
+    </ResponsiveCollection>
+    <Button type="submit">{common.applyFilters}</Button>
+  </form>
+  <ResultsSummary summary={(visibleClients.length === 1 ? copy.clientCountOne : copy.clientCount).replace("{count}", String(visibleClients.length))} />
+
+  {#if visibleClients.length === 0}
     <div data-oauth-empty-state>
       <CollectionEmpty variant="setup" title={copy.noClients} description={copy.noClientsDescription} />
     </div>
@@ -44,17 +141,17 @@ export let scopeLabel: (scope: string) => string;
             </Table.Caption>
             <Table.Header>
               <Table.Row>
-                <Table.Head class="w-[29%]">{copy.tableColumnClient}</Table.Head>
-                <Table.Head class="w-[25%]">{copy.tableColumnType}</Table.Head>
-                <Table.Head class="w-[24%]">{copy.tableColumnScopes}</Table.Head>
-                <Table.Head class="w-[15%] text-right">{copy.createdAtLabel}</Table.Head>
+                <Table.Head class="w-[29%]">{@render column(0, "desktop")}</Table.Head>
+                <Table.Head class="w-[25%]">{@render column(1, "desktop")}</Table.Head>
+                <Table.Head class="w-[24%]">{@render column(2, "desktop")}</Table.Head>
+                <Table.Head class="w-[15%] text-right">{@render column(3, "desktop")}</Table.Head>
                 <Table.Head class="w-14 min-w-14 text-right">
                   <span class="sr-only">{copy.deleteClient}</span>
                 </Table.Head>
               </Table.Row>
             </Table.Header>
             <Table.Body>
-              {#each clients as client (client.clientId)}
+              {#each visibleClients as client (client.clientId)}
                 <Table.Row class="group">
                   <Table.Cell class="max-w-0">
                     {@const clientName = client.name ?? copy.unnamedClient}
@@ -118,7 +215,7 @@ export let scopeLabel: (scope: string) => string;
       {#snippet mobile()}
         <CollectionListShell>
           <Item.Group role="list">
-            {#each clients as client (client.clientId)}
+            {#each visibleClients as client (client.clientId)}
               <MobileListCard role="listitem" variant="outline">
                 <Item.Content class="min-w-0">
                   <Item.Title>{client.name ?? copy.unnamedClient}</Item.Title>

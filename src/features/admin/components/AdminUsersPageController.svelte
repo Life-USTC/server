@@ -5,10 +5,10 @@ import { createAdminUsersControllerDefaultState } from "@/features/admin/lib/adm
 import {
   adminUserDisplayName,
   adminUserSuspensionLabel,
-  adminUsersPageHref,
   formatAdminUserMessage,
 } from "@/features/admin/lib/admin-users-display";
 import { createAdminUsersPageActions } from "@/features/admin/lib/admin-users-page-actions";
+import { tableFilterPageHref } from "@/lib/table-filter-query";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import AdminUserDialog from "./AdminUserDialog.svelte";
 import AdminUsersPageContent from "./AdminUsersPageContent.svelte";
@@ -76,7 +76,7 @@ function inputValue(event: Event) {
 }
 
 function _pageHref(page: number) {
-  return adminUsersPageHref(page, data.filters.search);
+  return tableFilterPageHref("/admin/users", data.filters, page);
 }
 
 function _formatDate(value: Date | string | null | undefined) {

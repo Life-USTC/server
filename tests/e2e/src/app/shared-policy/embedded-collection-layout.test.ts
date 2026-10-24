@@ -1,4 +1,4 @@
-import { expect, type Locator } from "@playwright/test";
+import { expect } from "@playwright/test";
 import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-responsive-breakpoint";
 import {
   type EmbeddedTablePolicyFixture,
@@ -8,6 +8,7 @@ import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
+import { expectCollectionOrder as precedes } from "./_collection-layout";
 
 function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
   const c = fixture.catalog;
@@ -16,7 +17,10 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
       name,
       path: `/workspace/${name}?semester=${c.semester.code}`,
       heading: "main h1",
-      filter: '[data-slot="table-column-header"] button:visible',
+      filter:
+        width < COLLECTION_DESKTOP_MIN_WIDTH_PX
+          ? '[data-slot="collection-header"] [data-slot="table-column-header"] button:visible'
+          : 'table:visible thead [data-slot="table-column-header"] button:visible',
       summary: "",
       pagination: false,
       records:
@@ -85,31 +89,6 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
   ];
 }
 
-async function precedes(first: Locator, second: Locator, label: string) {
-  await expect(first).toBeVisible();
-  await expect(second).toBeVisible();
-  const handle = await second.elementHandle();
-  if (!handle) throw new Error("Missing ordered element");
-  expect
-    .soft(
-      await first.evaluate(
-        (node, following) =>
-          Boolean(
-            node.compareDocumentPosition(following) &
-              Node.DOCUMENT_POSITION_FOLLOWING,
-          ),
-        handle,
-      ),
-      label,
-    )
-    .toBe(true);
-  const a = await first.boundingBox();
-  const b = await second.boundingBox();
-  if (!a || !b) throw new Error("Missing ordered bounds");
-  const followsOnSameRow = Math.abs(a.y - b.y) <= 1 && a.x + a.width <= b.x + 1;
-  expect.soft(followsOnSameRow || a.y + a.height <= b.y + 1, label).toBe(true);
-}
-
 for (const [domain, names] of [
   ["Homework", ["homeworks", "section-homework"]],
   ["Exam", ["exams", "section-exams"]],
@@ -139,6 +118,44 @@ for (const [domain, names] of [
         const records = page.locator(item.records);
         await expect(records.first()).toBeVisible();
         let previous = page.locator(item.heading).first();
+        if (
+          ["homeworks", "exams", "todos", "subscriptions"].includes(item.name)
+        ) {
+          const toolbar = page.locator(
+            item.name === "subscriptions"
+              ? "#subscriptions-filters"
+              : '[data-slot="table-filter-apply"]',
+          );
+          await expect(
+            page.getByRole("button", {
+              name: "Apply filters",
+              exact: true,
+            }),
+          ).toHaveCount(1);
+          await expect(
+            toolbar.getByRole("button", {
+              name: "Apply filters",
+              exact: true,
+            }),
+          ).toBeVisible();
+          await precedes(
+            page.getByRole("heading", { level: 1 }),
+            toolbar,
+            `${item.name}: heading before extra filters and Apply`,
+          );
+          await precedes(
+            toolbar,
+            records.first(),
+            `${item.name}: extra filters and Apply before records`,
+          );
+          if (item.filter) {
+            await precedes(
+              toolbar,
+              page.locator(item.filter).first(),
+              `${item.name}: extra filters and Apply before column filters`,
+            );
+          }
+        }
         for (const selector of [item.filter, item.summary].filter(Boolean)) {
           const next = page.locator(selector).first();
           await precedes(
@@ -271,6 +288,13 @@ for (const [domain, names] of [
         if ((await departed.getAttribute("aria-checked")) === "false")
           await departed.click();
         await expect(departed).toHaveAttribute("aria-checked", "true");
+        await page.keyboard.press("Escape");
+        await page
+          .getByRole("button", {
+            name: "Apply filters",
+            exact: true,
+          })
+          .click();
         await expect(
           page.getByRole("button", {
             name: "Hide full timetable",

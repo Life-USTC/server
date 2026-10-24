@@ -5,7 +5,11 @@ import {
 } from "../../../../utils/mcp-helpers";
 import { facts } from "../../../../utils/mcp-scenario-data";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
+import {
+  applyWorkspaceTaskFilter,
+  openWorkspaceTaskFilter,
+  workspaceTaskFilterControl,
+} from "../../../../utils/workspace-task-filters";
 import { selectHomeworkAction } from "../../sections/[jwId]/_helpers";
 
 import {
@@ -223,7 +227,10 @@ for (const method of ["Web", "REST"] as const)
               await gotoAndWaitForReady(page, path);
               if (path === "/workspace/homeworks") {
                 await openWorkspaceTaskFilter(page, "homeworks");
-                await page.getByRole("radio", { name: /^(全部|All)$/ }).click();
+                await applyWorkspaceTaskFilter(
+                  page,
+                  workspaceTaskFilterControl(page, /^(全部|All)$/),
+                );
                 await page.keyboard.press("Escape");
               }
               const button = page.getByRole("button", {

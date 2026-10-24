@@ -18,10 +18,13 @@ import type {
   WorkspaceExamSection,
 } from "@/features/workspace/lib/exams";
 import type { MatchedSubscriptionSection } from "@/features/workspace/lib/subscriptions";
+import type { TableFilterLabels } from "@/lib/table-filters";
 
 type WorkspaceRecord = Record<string, unknown>;
 
 export type WorkspaceCommonCopy = WorkspaceRecord & {
+  tableFilters: TableFilterLabels;
+  applyFilters: string;
   courses: string;
   next: string;
   previous: string;
@@ -84,6 +87,10 @@ export type WorkspaceCopy = WorkspaceRecord & {
   stack: { urgency: string; upcoming: string };
   roomMap: RoomMapCopy;
   linkHub: {
+    filterGroup: string;
+    filterUrl: string;
+    filterPinned: string;
+    filterVisits: string;
     colActions: string;
     colDescription: string;
     colName: string;

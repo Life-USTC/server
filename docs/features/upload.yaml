@@ -18,6 +18,20 @@ access:
   agent: Can initiate and complete upload metadata workflows and manage owned upload metadata through
     registered GraphQL operations; binary object transfer remains REST/HTTP-only.
 requirements:
+- id: upload.table-column-filters
+  category: behavior
+  surfaces:
+  - web
+  rule: The owner's upload-management table filters filenames, numeric file sizes and Shanghai upload dates before counting and pagination. Page navigation retains all predicates, while usage always includes every owned upload and live reservation regardless of the current filter.
+  acceptance:
+    given: Twenty-five matching owned files, a size decoy, a next-Shanghai-day decoy, a foreign owner's matching file and a live reservation.
+    when: The restricted application service combines name, inclusive size range and date predicates and reads both pages.
+    then:
+    - The count is twenty-five and the two pages contain twenty and five distinct matching files; foreign files never appear.
+    - Usage includes unfiltered owned files and the reservation, while malformed numeric input returns zero matches.
+    test:
+      file: tests/integration/upload-table-filter-queries.test.ts
+      name: upload.table-column-filters-preserve-owner-count-pages-and-usage
 - id: upload.storage-delete-retry
   category: consistency
   applies_to:

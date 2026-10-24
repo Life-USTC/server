@@ -2,7 +2,11 @@ import { expect, type Page } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { openWorkspaceTaskFilter } from "../../../utils/workspace-task-filters";
+import {
+  applyWorkspaceTaskFilter,
+  openWorkspaceTaskFilter,
+  workspaceTaskFilterControl,
+} from "../../../utils/workspace-task-filters";
 import {
   createSemesterTerms,
   prepareSemesterObservation,
@@ -100,12 +104,10 @@ async function assertTaskSemesterLabels(
         await page.setViewportSize({ width, height: 900 });
         await gotoAndWaitForReady(page, `/workspace/${kind}`);
         await openWorkspaceTaskFilter(page, kind);
-        await page
-          .getByRole("radio", {
-            name: locale === "en-us" ? "All" : "全部",
-            exact: true,
-          })
-          .click();
+        await applyWorkspaceTaskFilter(
+          page,
+          workspaceTaskFilterControl(page, locale === "en-us" ? "All" : "全部"),
+        );
         await page.keyboard.press("Escape");
 
         for (const item of fixture.rows) {

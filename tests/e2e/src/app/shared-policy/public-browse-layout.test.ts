@@ -1,16 +1,30 @@
 import { expect, type Page } from "@playwright/test";
-import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-responsive-breakpoint";
+import {
+  expectNoPageHorizontalOverflow,
+  gotoAndWaitForReady,
+} from "../../../utils/page-ready";
 import {
   publicBrowseCases,
   test,
 } from "../../../utils/public-browse-policy-fixture";
+import { expectCollectionOrder } from "./_collection-layout";
+
+const filterCounts: Record<string, { columns: number; toolbar: number }> = {
+  courses: { columns: 5, toolbar: 0 },
+  teachers: { columns: 4, toolbar: 2 },
+  // Six extra-property filters and the existing advanced-search help.
+  sections: { columns: 7, toolbar: 7 },
+  events: { columns: 5, toolbar: 7 },
+  organizers: { columns: 4, toolbar: 0 },
+};
 
 function records(page: Page, name: string, width = 1280) {
   if (name === "news")
     return page
       .getByRole("list", { name: "Campus News & Notices" })
       .getByRole("listitem");
-  if (width < 1280)
+  if (width < COLLECTION_DESKTOP_MIN_WIDTH_PX)
     return page.locator('main [role="list"]:visible > [role="listitem"]');
   return page.locator("main table:visible tbody tr");
 }
@@ -74,12 +88,53 @@ for (const [domain, names] of [
           const search = panel.getByRole("searchbox");
           await expect(search).toBeVisible();
           if (item.name !== "news") {
+            const toolbar = panel.locator('[data-slot="table-filter-toolbar"]');
+            await expect(toolbar).toHaveCount(1);
+            await expect(toolbar.getByRole("searchbox")).toBeVisible();
+            const apply = page.getByRole("button", {
+              name: "Apply filters",
+              exact: true,
+            });
+            await expect(apply).toHaveCount(1);
+            await expect(
+              toolbar.getByRole("button", {
+                name: "Apply filters",
+                exact: true,
+              }),
+            ).toBeVisible();
             expect(
-              await search.evaluate((node) =>
+              await toolbar.evaluate((node) =>
                 Boolean(node.closest('thead, [data-slot="collection-header"]')),
               ),
-              `${item.name}: search belongs to its table or compact collection header`,
-            ).toBe(true);
+              `${item.name}: whole-page controls precede the column header`,
+            ).toBe(false);
+            const header = panel.locator(
+              width < COLLECTION_DESKTOP_MIN_WIDTH_PX
+                ? '[data-slot="collection-header"]:visible'
+                : "table:visible thead",
+            );
+            await expect(header).toHaveCount(1);
+            await expect(
+              header.locator('[data-slot="table-column-header"]'),
+            ).toHaveCount(filterCounts[item.name].columns);
+            await expect(
+              toolbar.locator('[data-slot="table-column-header"]'),
+            ).toHaveCount(filterCounts[item.name].toolbar);
+            await expectCollectionOrder(
+              frame.getByRole("heading", { level: 1 }),
+              toolbar,
+              `${item.name}: heading before whole-page controls`,
+            );
+            await expectCollectionOrder(
+              toolbar,
+              header,
+              `${item.name}: whole-page controls before column controls`,
+            );
+            await expectCollectionOrder(
+              header,
+              records(page, item.name, width).first(),
+              `${item.name}: column controls before records`,
+            );
           }
           const summary = panel.locator('[data-slot="results-summary"]');
           const rows = records(page, item.name, width);
@@ -162,6 +217,7 @@ for (const [domain, names] of [
           await gotoAndWaitForReady(page, item.path);
           const rows = records(page, item.name, width);
           await expect(rows).toHaveCount(20);
+          await expectNoPageHorizontalOverflow(page);
           expect(
             await page.evaluate(
               () => document.documentElement.scrollWidth <= innerWidth,

@@ -13,6 +13,6 @@ let { data }: { data: PageData } = $props();
   copy={data.copy}
   data={data.data}
   pagination={data.pagination}
-  search={data.search}
+  tableFilters={data.tableFilters}
   source={data.source}
 />

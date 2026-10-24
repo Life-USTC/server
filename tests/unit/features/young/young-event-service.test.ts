@@ -111,6 +111,42 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("young event service", () => {
+  it("filters organizer counts before stable page slicing and totals", async () => {
+    youngOrganizerMock.findMany.mockResolvedValue([
+      { id: "a", name: "A", normalizedName: "a" },
+      { id: "b", name: "B", normalizedName: "b" },
+      { id: "c", name: "C", normalizedName: "c" },
+    ]);
+    youngEventMock.groupBy.mockImplementation(async ({ where }) => {
+      const predicate = where.AND[1];
+      if (predicate.startAt || predicate.endAt) return [];
+      return [
+        { organizerId: "a", _count: { _all: 1 } },
+        { organizerId: "b", _count: { _all: 5 } },
+        { organizerId: "c", _count: { _all: 8 } },
+      ];
+    });
+    const result = await listYoungOrganizers({
+      activeFirst: true,
+      tableFilters: { activeCount: "4", activeCountOp: "gt" },
+      page: 2,
+      pageSize: 1,
+    });
+    expect(result.data.map((row) => row.id)).toEqual(["c"]);
+    expect(result.pagination).toEqual({
+      page: 2,
+      pageSize: 1,
+      total: 2,
+      totalPages: 2,
+    });
+    expect(youngOrganizerMock.findMany).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        skip: expect.anything(),
+        take: expect.anything(),
+      }),
+    );
+  });
+
   it("lists events with filters, ordering, and pagination metadata", async () => {
     youngEventMock.count.mockResolvedValue(21);
     youngEventMock.findMany.mockResolvedValue([RECORD]);

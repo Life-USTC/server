@@ -1,3 +1,4 @@
+import { error } from "@sveltejs/kit";
 import { CATALOG_PAGE_SIZE } from "@/features/catalog/server/catalog-page-constants";
 import {
   normalizeYoungCalendarDate,
@@ -22,6 +23,15 @@ import {
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import type { AppPageLoadEvent } from "@/lib/shell/page-load-types";
 import { listYoungOrganizerOptions } from "./young-organizer-service";
+import { parseYoungTableFilters } from "./young-table-filter-schema";
+
+function tableFiltersFromUrl(url: URL, kind: "events" | "organizers") {
+  try {
+    return parseYoungTableFilters(url.searchParams, kind);
+  } catch {
+    error(400, "Invalid table filters");
+  }
+}
 
 export type YoungEventsPageFilters = {
   dateUnknown?: boolean;
@@ -51,6 +61,8 @@ function parseActiveParam(value: string | null): boolean | undefined {
 }
 
 export async function loadYoungEventsPage({ locals, url }: AppPageLoadEvent) {
+  const tableFilters = tableFiltersFromUrl(url, "events");
+  const copy = getWorkspacePageCopy(locals.locale);
   const filters: YoungEventsPageFilters = {
     dateUnknown: parseActiveParam(url.searchParams.get("dateUnknown")),
     timeBasis: parseTimeBasis(url.searchParams.get("timeBasis")),
@@ -65,6 +77,11 @@ export async function loadYoungEventsPage({ locals, url }: AppPageLoadEvent) {
 
   const [result, categories, organizers] = await Promise.all([
     listYoungEvents({
+      tableFilters,
+      tableStatusLabels: {
+        statusOpen: copy.youngEvents.statusOpen,
+        statusClosed: copy.youngEvents.statusClosed,
+      },
       active: filters.active,
       category: filters.category,
       module: filters.module,
@@ -81,11 +98,12 @@ export async function loadYoungEventsPage({ locals, url }: AppPageLoadEvent) {
   ]);
 
   return toLoadData({
-    copy: getWorkspacePageCopy(locals.locale),
+    copy,
     locale: locals.locale,
     data: result.data,
     pagination: result.pagination,
     filters,
+    tableFilters,
     categories,
     organizers,
     source: result.source,
@@ -146,9 +164,11 @@ export async function loadYoungOrganizersPage({
 }: AppPageLoadEvent) {
   const page = parsePositivePage(url.searchParams.get("page"));
   const search = optionalValue(url.searchParams.get("search"));
+  const tableFilters = tableFiltersFromUrl(url, "organizers");
   const [result, source] = await Promise.all([
     listYoungOrganizers({
       activeFirst: true,
+      tableFilters,
       search,
       page,
       pageSize: CATALOG_PAGE_SIZE,
@@ -161,6 +181,7 @@ export async function loadYoungOrganizersPage({
     data: result.data,
     pagination: result.pagination,
     search,
+    tableFilters,
     source,
   });
 }

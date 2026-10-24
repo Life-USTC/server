@@ -1,3 +1,5 @@
+import type { TableFilterLabels } from "@/lib/table-filters";
+
 export type AdminUserRow = {
   activeSuspension?: {
     expiresAt?: string | null;
@@ -67,6 +69,8 @@ export type AdminUsersAdminCopy = {
 };
 
 export type AdminUsersCommonCopy = {
+  applyFilters: string;
+  tableFilters: TableFilterLabels;
   clear: string;
   home: string;
   next: string;
@@ -94,9 +98,7 @@ export type AdminUsersModerationCopy = {
   suspendReason: string;
 };
 
-export type AdminUsersFilters = {
-  search?: string | null;
-};
+export type AdminUsersFilters = Record<string, string>;
 
 export type AdminUsersPageCopy = AdminUsersCopy & {
   accountsDescription: string;

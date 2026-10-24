@@ -29,10 +29,10 @@ export let targetLabel: AdminModerationCommentFormatter;
       <Table.Header>
         <TableControlsRow colspan={6}>{@render filterControls("search", "desktop")}</TableControlsRow>
         <Table.Row>
-          <Table.Head class="w-[34%]">{copy.content}</Table.Head>
-          <Table.Head class="w-[16%]">{copy.author}</Table.Head>
-          <Table.Head class="w-[20%]">{copy.postedIn}</Table.Head>
-          <Table.Head class="w-[14%] text-right">{copy.createdAt}</Table.Head>
+          <Table.Head class="w-[34%]">{@render filterControls("content", "desktop")}</Table.Head>
+          <Table.Head class="w-[16%]">{@render filterControls("author", "desktop")}</Table.Head>
+          <Table.Head class="w-[20%]">{@render filterControls("target", "desktop")}</Table.Head>
+          <Table.Head class="w-[14%] text-right">{@render filterControls("createdAt", "desktop")}</Table.Head>
           <Table.Head class="w-[10%] text-center">{@render filterControls("status", "desktop")}</Table.Head>
           <Table.Head class="w-14 min-w-14 text-right">
             <span class="sr-only">{copy.actions}</span>

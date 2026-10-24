@@ -35,9 +35,9 @@ export let targetLabel: (description: AdminModerationDescription) => string;
         <TableControlsRow colspan={5}>{@render filterControls("search", "desktop")}</TableControlsRow>
         <Table.Row>
           <Table.Head class="w-[36%]">{@render filterControls("descriptionContent", "desktop")}</Table.Head>
-          <Table.Head class="w-[18%]">{copy.author}</Table.Head>
+          <Table.Head class="w-[18%]">{@render filterControls("author", "desktop")}</Table.Head>
           <Table.Head class="w-[22%]">{@render filterControls("descriptionTarget", "desktop")}</Table.Head>
-          <Table.Head class="w-[14%] text-right">{copy.editedAtLabel}</Table.Head>
+          <Table.Head class="w-[14%] text-right">{@render filterControls("editedAt", "desktop")}</Table.Head>
           <Table.Head class="w-14 min-w-14 text-right">
             <span class="sr-only">{copy.actions}</span>
           </Table.Head>

@@ -1,6 +1,8 @@
 <script lang="ts">
 import ListPagination from "#lib/components/ListPagination.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
+import { tableFilterPageHref } from "@/lib/table-filter-query";
+import { goto } from "$app/navigation";
 import AdminUsersHeader from "./AdminUsersHeader.svelte";
 import AdminUsersTableCard from "./AdminUsersTableCard.svelte";
 import AdminWorkspace from "./AdminWorkspace.svelte";
@@ -32,6 +34,15 @@ export let pageHref: AdminUsersPageHref;
 export let pagination: AdminUsersPagination;
 export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
+let draft: Record<string, string> = {};
+$: draft = { ...filters };
+function change(patch: Record<string, string>) {
+  draft = { ...draft, ...patch };
+}
+function apply(event: SubmitEvent) {
+  event.preventDefault();
+  void goto(tableFilterPageHref("/admin/users", draft));
+}
 </script>
 
 <AdminWorkspace>
@@ -47,7 +58,9 @@ export let users: AdminUserRow[];
   {/snippet}
   <AdminUsersTableCard
     {commonCopy}
-    search={filters.search ?? ""}
+    values={draft}
+    onchange={change}
+    onapply={apply}
     {copy}
     {displayName}
     {formatDate}

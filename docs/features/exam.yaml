@@ -16,6 +16,18 @@ access:
   admin: Maintains exam data through admin or import flows, not direct edits on ordinary pages.
   agent: After authorization, can read exams relevant to the current user through REST, GraphQL, and MCP.
 requirements:
+- id: exam.web-table-filters
+  category: presentation
+  rule: Workspace exam filters cover course, section, semester, date, completion, start and end time, mode, rooms, type, batch and attendance count. Choices within a field use OR and fields combine with AND. Date and time boundaries are inclusive when requested; attendance counts support numeric comparison and ranges. One top Apply action commits all draft fields.
+  acceptance:
+    given: Loaded exams have different rooms, times, modes, completion states and attendance counts.
+    when: The viewer combines room alternatives, time bounds and numeric comparisons.
+    then:
+    - Each filter operates on the full owner collection.
+    - Inclusive numeric ranges retain both boundary values.
+    test:
+      file: tests/unit/features/workspace/workspace-task-table-filters.test.ts
+      name: filters exam time, room alternatives, mode, and numeric attendance on full rows
 - id: exam.source-audience-and-monitors
   category: consistency
   rule: Exam grades, source administrative-class names, and monitor school IDs/localized names are preserved
@@ -87,10 +99,10 @@ requirements:
       name: exam.completion-time-zone
 - id: exam.mobile-toolbar-priority
   category: presentation
-  rule: Exam completion-status filters open from the date column header on desktop and the collection header above mobile cards; empty results preserve the entry point.
+  rule: Every exam data column has header filters on desktop and compact controls above mobile cards. Type, batch and attendance count live in the top filter area. Completion, course, section, room and mode support multiple choices, dates and times support comparisons, and one Apply action commits all draft fields. Empty results preserve the entry points.
   acceptance:
     given: The owner has one upcoming and one ended exam.
-    when: The mobile user opens the date header and selects Upcoming, Ended and All.
+    when: The mobile user opens the date header and selects and applies Upcoming, Ended and unrestricted choices.
     then:
     - Every filter is available in the header popover and selects exactly the corresponding exams.
     test:
@@ -266,7 +278,7 @@ capabilities:
           tertiary: []
       items:
       - 'completion filter: incomplete/completed/all'
-      - mobile compact toolbar with direct completion filters and overflow display-mode control
+      - mobile compact column filters with a shared draft, one top Apply action and overflow display-mode control
       - Filter-empty explanation and clear-filter action
   section-exam-info:
     title: Section Exam Info

@@ -81,7 +81,25 @@
     "userNotFound": "未找到用户",
     "unknown": "未知",
     "campusServices": "校园服务",
-    "applyFilters": "应用筛选"
+    "applyFilters": "应用筛选",
+    "tableFilters": {
+      "any": "不限",
+      "operator": "比较方式",
+      "value": "数值",
+      "maximum": "上限",
+      "selected": "已选 {count} 项",
+      "operators": {
+        "eq": "等于",
+        "ne": "不等于",
+        "gt": "大于",
+        "gte": "大于等于",
+        "lt": "小于",
+        "lte": "小于等于",
+        "between": "区间（含边界）"
+      },
+      "yes": "是",
+      "no": "否"
+    }
   },
   "globalSearch": {
     "title": "搜索",
@@ -273,6 +291,7 @@
     "remainingLabel": "剩余 {remaining}",
     "tableName": "文件",
     "tableSize": "大小",
+    "filterSizeDescription": "以字节为单位",
     "tableUploaded": "上传时间",
     "tableActions": "操作",
     "downloadAction": "打开",
@@ -692,7 +711,10 @@
     "importFailed": "导入失败",
     "invalidVersionId": "版本 ID 无效",
     "versionNotFound": "未找到版本",
-    "cannotDeleteActiveVersion": "不能删除当前激活版本"
+    "cannotDeleteActiveVersion": "不能删除当前激活版本",
+    "filterEffectiveFrom": "生效日期",
+    "filterEffectiveUntil": "失效日期",
+    "filterSource": "导入说明"
   },
   "adminUsers": {
     "title": "用户管理",
@@ -776,14 +798,21 @@
     "tags": "标签"
   },
   "workspace": {
-    "stack": { "urgency": "需要关注", "upcoming": "即将到来" },
+    "stack": {
+      "urgency": "需要关注",
+      "upcoming": "即将到来"
+    },
     "title": "工作区",
     "description": "你好，{name}。这里集中展示你的课程、作业与安排。",
     "descriptionV2": "你好，{name}",
     "fallbackName": "访客",
     "calendarViewSemester": "本学期",
     "calendarViewDay": "日",
-    "calendarDay": { "prev": "前一天", "next": "后一天", "label": "日期" },
+    "calendarDay": {
+      "prev": "前一天",
+      "next": "后一天",
+      "label": "日期"
+    },
     "calendarDayAgendaLabel": "每日议程",
     "calendarViewMonth": "本月",
     "calendarViewWeek": "本周",
@@ -972,7 +1001,11 @@
       },
       "empty": "没有匹配当前搜索的网站。",
       "credit": "部分链接整合自 ",
-      "creditSuffix": "，在此表示感谢。"
+      "creditSuffix": "，在此表示感谢。",
+      "filterGroup": "分组",
+      "filterUrl": "网址",
+      "filterPinned": "已固定",
+      "filterVisits": "访问次数"
     },
     "todos": {
       "title": "待办事项",
@@ -1461,7 +1494,10 @@
       "filters": "筛选",
       "semesters": "学期",
       "semestersMeta": "可用学期"
-    }
+    },
+    "enrolled": "已选人数",
+    "enrollmentLimit": "人数上限",
+    "teacherCount": "教师人数"
   },
   "sectionDetail": {
     "basicInfo": "教学班信息",
@@ -1619,7 +1655,9 @@
       "shortThursday": "四",
       "shortFriday": "五",
       "shortSaturday": "六"
-    }
+    },
+    "examStartTime": "开始时间",
+    "examEndTime": "结束时间"
   },
   "notFound": {
     "title": "页面未找到",
@@ -2020,7 +2058,8 @@
     "addButton": "添加作业",
     "sectionLabel": "教学班",
     "sectionPlaceholder": "选择教学班",
-    "sectionRequired": "请选择教学班。"
+    "sectionRequired": "请选择教学班。",
+    "overdueLabel": "已逾期"
   },
   "comments": {
     "ancestryPlaceholder": "该讨论串中的部分上级评论当前不可见。",
@@ -2300,7 +2339,8 @@
     "deleteHomeworkAuditDescription": "此操作会将作业标记为删除，并写入审计记录。",
     "saveDescription": "保存简介",
     "defaultBanReason": "您因为于 {date} 在 {url} 页面下发表的评论「{content}」被封禁",
-    "retry": "重试"
+    "retry": "重试",
+    "anonymousLabel": "匿名"
   },
   "todos": {
     "title": "待办事项",
@@ -3000,7 +3040,9 @@
     "backToCalendar": "返回活动日历",
     "backToOrganizers": "返回主办方",
     "dateKnownActivity": "活动时间已公布",
-    "dateKnownRegistration": "报名时间已公布"
+    "dateKnownRegistration": "报名时间已公布",
+    "dateUnknownAny": "任一时间未知",
+    "dateKnownAny": "任一时间已公布"
   },
   "publications": {
     "title": "新闻与通知",

@@ -1,7 +1,11 @@
 import { expect, type Locator } from "@playwright/test";
 import { test } from "../../../../utils/homework-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
+import {
+  applyWorkspaceTaskFilter,
+  openWorkspaceTaskFilter,
+  workspaceTaskFilterControl,
+} from "../../../../utils/workspace-task-filters";
 
 test.describe("仪表盘作业", () => {
   test.describe.configure({ mode: "parallel" });
@@ -16,10 +20,10 @@ test.describe("仪表盘作业", () => {
         await gotoAndWaitForReady(page, "/workspace/homeworks");
 
         await openWorkspaceTaskFilter(page, "homeworks");
-        await page
-          .getByRole("radio", { name: /全部|All/i })
-          .first()
-          .click();
+        await applyWorkspaceTaskFilter(
+          page,
+          workspaceTaskFilterControl(page, /全部|All/i),
+        );
 
         await openWorkspaceTaskFilter(page, "homeworks");
         await expect(
@@ -123,10 +127,10 @@ test.describe("仪表盘作业", () => {
             );
             await gotoAndWaitForReady(page, "/workspace/homeworks");
             await openWorkspaceTaskFilter(page, "homeworks");
-            await page
-              .getByRole("radio", { name: /全部|All/i })
-              .first()
-              .click();
+            await applyWorkspaceTaskFilter(
+              page,
+              workspaceTaskFilterControl(page, /全部|All/i),
+            );
             const surface = mobile
               ? page
                   .getByTestId("workspace-homeworks-cards")

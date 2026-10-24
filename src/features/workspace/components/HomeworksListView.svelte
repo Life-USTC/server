@@ -22,7 +22,7 @@ type HomeworkOverduePredicate = (
 ) => boolean;
 type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
-export let filterControls: Snippet;
+export let filterControls: Snippet<[string[], string, string]>;
 export let locale: string;
 export let unknownSemesterLabel: string;
 export let filteredHomeworkItems: WorkspaceHomeworkItem[];
@@ -62,10 +62,10 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
   <Table.Root class="min-w-0 w-full" data-testid="workspace-homeworks-list">
     <Table.Header>
       <Table.Row>
-        <Table.Head>{homeworksCopy.sectionLabel}</Table.Head>
-        <Table.Head>{homeworksCopy.titleLabel}</Table.Head>
-        <Table.Head>{homeworksCopy.submissionDue}</Table.Head>
-        <Table.Head>{@render filterControls()}</Table.Head>
+        <Table.Head>{@render filterControls(["course", "semester"], homeworksCopy.sectionLabel, "desktop")}</Table.Head>
+        <Table.Head>{@render filterControls(["title"], homeworksCopy.titleLabel, "desktop")}</Table.Head>
+        <Table.Head>{@render filterControls(["submissionDueAt"], homeworksCopy.submissionDue, "desktop")}</Table.Head>
+        <Table.Head>{@render filterControls(["completion", "flags"], homeworksCopy.statusLabel, "desktop")}</Table.Head>
         <Table.Head>
           <span class="sr-only">{homeworksCopy.markComplete}</span>
         </Table.Head>

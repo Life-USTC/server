@@ -14,7 +14,12 @@ export function getWorkspacePageCopy(locale: AppLocale) {
   const copy = messages[locale];
 
   return {
-    bus: copy.bus,
+    bus: {
+      ...copy.bus,
+      tableFilters: copy.common.tableFilters,
+      applyFilters: copy.common.applyFilters,
+      clear: copy.common.clear,
+    },
     CalendarEventCard: copy.CalendarEventCard,
     common: copy.common,
     comments: copy.comments,
@@ -60,7 +65,12 @@ export function getAnonymousHomePageCopy(locale: AppLocale) {
 export function getPublicBusPageCopy(locale: AppLocale) {
   const copy = messages[locale];
   return {
-    bus: copy.bus,
+    bus: {
+      ...copy.bus,
+      tableFilters: copy.common.tableFilters,
+      applyFilters: copy.common.applyFilters,
+      clear: copy.common.clear,
+    },
     workspace: {
       nav: {
         bus: copy.workspace.nav.bus,

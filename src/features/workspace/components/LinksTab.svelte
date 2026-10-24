@@ -1,4 +1,5 @@
 <script lang="ts">
+import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
@@ -9,6 +10,9 @@ import type {
   WorkspaceLinkPinSubmit,
   WorkspaceOverviewLinkItem,
 } from "@/features/workspace/lib/workspace-controller-helpers";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import { page } from "$app/state";
+import { filterLinkGroups, linkTableFields } from "../lib/link-table-filters";
 import LinksTabGroup from "./LinksTabGroup.svelte";
 import LinksTabList from "./LinksTabList.svelte";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
@@ -24,16 +28,44 @@ export let linkReturnTo: string;
 export let linkActionError: string;
 export let updatingCatalogLinkSlug: string | null;
 export let signedLinkGroups: SignedLinkGroup[];
+let draft: Record<string, string> = { search: linkSearchQuery };
+let applied: Record<string, string> = {};
+$: common = getWorkspacePageCopy(
+  page.data.locale === "en-us" ? "en-us" : "zh-cn",
+).common;
+$: filterFields = linkTableFields(
+  workspaceCopy.linkHub,
+  common.tableFilters,
+  true,
+);
+$: filteredGroups = filterLinkGroups(
+  signedLinkGroups,
+  [...filterFields.columns, ...filterFields.extras],
+  applied,
+);
+function change(patch: Record<string, string>) {
+  draft = { ...draft, ...patch };
+}
+function apply(event: SubmitEvent) {
+  event.preventDefault();
+  applied = { ...draft };
+  linkSearchQuery = draft.search ?? "";
+}
 </script>
 
 <section class="grid gap-4">
+  <form id="links-filters" onsubmit={apply} class="flex flex-wrap items-end gap-3">
+    {#each filterFields.extras as field}<TableFieldFilter label={field.label} fields={[field]} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`links-extra-${field.name}`} formId="links-filters" />{/each}
+    <Button type="submit">{common.applyFilters}</Button>
+  </form>
   <WorkspaceCollection>
     {#snippet mobile()}
       <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
-        <LinksTabToolbar id="catalog-link-search-mobile" {workspaceCopy} bind:linkSearchQuery />
+        <LinksTabToolbar id="catalog-link-search-mobile" {workspaceCopy} linkSearchQuery={draft.search ?? ""} onchange={(search) => change({ search })} />
+        {#each filterFields.columns as field}<TableFieldFilter label={field.label} fields={[field]} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`links-mobile-${field.name}`} formId="links-filters" />{/each}
       </div>
   <div class={linkGroupColumnsClass}>
-    {#each signedLinkGroups as entry}
+    {#each filteredGroups as entry}
       <LinksTabGroup
         {workspaceCopy}
         {entry}
@@ -57,11 +89,15 @@ export let signedLinkGroups: SignedLinkGroup[];
         colDescription={workspaceCopy.linkHub.colDescription}
         colActions={workspaceCopy.linkHub.colActions}
         emptyLabel={workspaceCopy.linkHub.empty}
-        groups={signedLinkGroups}
+        groups={filteredGroups}
+        fields={filterFields.columns}
+        values={draft}
+        onchange={change}
+        filterLabels={common.tableFilters}
         {linkIconLabel}
       >
         {#snippet searchControls()}
-          <LinksTabToolbar id="catalog-link-search-desktop" {workspaceCopy} bind:linkSearchQuery />
+          <LinksTabToolbar id="catalog-link-search-desktop" {workspaceCopy} linkSearchQuery={draft.search ?? ""} onchange={(search) => change({ search })} />
         {/snippet}
         {#snippet actions(link: WorkspaceOverviewLinkItem)}
           <LinksTabPinButton

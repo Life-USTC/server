@@ -342,6 +342,9 @@ test("catalog-link.pin-write-gate", { tag: "@CatalogLink/Web" }, async ({
     let release!: () => void;
     let received!: () => void;
     let cancelRequested!: (error: Error) => void;
+    let releaseRetry!: () => void;
+    let receivedRetry!: () => void;
+    let cancelRetry!: (error: Error) => void;
     const held = new Promise<void>((resolve) => {
       release = resolve;
     });
@@ -349,13 +352,27 @@ test("catalog-link.pin-write-gate", { tag: "@CatalogLink/Web" }, async ({
       received = resolve;
       cancelRequested = reject;
     });
+    const retryHeld = new Promise<void>((resolve) => {
+      releaseRetry = resolve;
+    });
+    const retryRequested = new Promise<void>((resolve, reject) => {
+      receivedRetry = resolve;
+      cancelRetry = reject;
+    });
     // Setup/navigation can fail before the callback reaches await requested.
     void requested.catch(() => undefined);
+    void retryRequested.catch(() => undefined);
     preferenceFlow.onClosing(() => {
       release();
+      releaseRetry();
       cancelRequested(
         new Error(
           "Overlay request was not observed before workflow interruption",
+        ),
+      );
+      cancelRetry(
+        new Error(
+          "Retry request was not observed before workflow interruption",
         ),
       );
     });
@@ -372,14 +389,31 @@ test("catalog-link.pin-write-gate", { tag: "@CatalogLink/Web" }, async ({
         received();
         await held;
         await route.fulfill({ status: 503, json: { error: "unavailable" } });
-      } else await route.continue();
+      } else {
+        receivedRetry();
+        await retryHeld;
+        await route.continue();
+      }
     });
+    const search = page.getByRole("searchbox");
+    const jw = page
+      .locator('a[href="/api/catalog/links/resolve?slug=jw"]')
+      .filter({ visible: true });
+    const vlab = page
+      .locator('a[href="/api/catalog/links/resolve?slug=vlab"]')
+      .filter({ visible: true });
     try {
       await page.goto("/catalog/links", { waitUntil: "domcontentloaded" });
       await requested;
-      await expect(page.getByRole("searchbox")).toBeVisible();
+      await expect(search).toBeVisible();
       await expect(page.locator(pinForms)).toHaveCount(0);
-      await page.getByRole("searchbox").fill("jw.ustc.edu.cn");
+      await search.fill("jw.ustc.edu.cn");
+      await expect(vlab.first()).toBeVisible();
+      await page
+        .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+        .click();
+      await expect(jw.first()).toBeVisible();
+      await expect(vlab).toHaveCount(0);
       expect(writes).toBe(0);
     } finally {
       release();
@@ -387,11 +421,27 @@ test("catalog-link.pin-write-gate", { tag: "@CatalogLink/Web" }, async ({
     await expect(
       page.getByRole("button", { name: /^(重试|Retry)$/ }),
     ).toBeVisible();
+    await expect(search).toHaveValue("jw.ustc.edu.cn");
+    await expect(jw.first()).toBeVisible();
+    await expect(vlab).toHaveCount(0);
     await expect(page.locator(pinForms)).toHaveCount(0);
     expect(writes).toBe(0);
     expect(await state()).toEqual(before);
     await page.getByRole("button", { name: /^(重试|Retry)$/ }).click();
+    try {
+      await retryRequested;
+      await expect(search).toHaveValue("jw.ustc.edu.cn");
+      await expect(page.locator(pinForms)).toHaveCount(0);
+      await expect(jw.first()).toBeVisible();
+      await expect(vlab).toHaveCount(0);
+    } finally {
+      releaseRetry();
+    }
     await expect(form(page, "jw").getByRole("button")).toBeEnabled();
+    await expect(search).toHaveValue("jw.ustc.edu.cn");
+    await search.fill("vlab");
+    await expect(jw.first()).toBeVisible();
+    await expect(vlab).toHaveCount(0);
     expect(reads).toBe(2);
     expect(writes).toBe(0);
     const savedResponse = preferenceFlow.waitForResponse(

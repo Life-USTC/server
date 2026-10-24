@@ -19,6 +19,16 @@ export type AdminModerationTab =
 
 export type AdminModerationCopy = AdminModerationCommentsCopy &
   AdminModerationDescriptionCopy & {
+    anonymousLabel: string;
+    descriptionContentEmpty: string;
+    descriptionTargetCourse: string;
+    descriptionTargetSection: string;
+    descriptionTargetTeacher: string;
+    descriptionTargetHomework: string;
+    statusActive: string;
+    statusSoftbanned: string;
+    statusDeleted: string;
+    filterSuspended: string;
     active: string;
     cancelButton: string;
     calendarButtonLabel: string;
@@ -86,12 +96,7 @@ export type AdminModerationAdminCopy = {
   title: string;
 };
 
-export type AdminModerationDescriptionFilters = {
-  descriptionContent?: string | null;
-  descriptionTarget?: string | null;
-  search: string;
-  status?: string | null;
-};
+export type AdminModerationDescriptionFilters = Record<string, string>;
 
 export type AdminModerationHomework = {
   createdBy?: { name?: string | null; username?: string | null } | null;
@@ -146,7 +151,15 @@ export type AdminModerationFilterKind =
   | "search"
   | "status"
   | "descriptionTarget"
-  | "descriptionContent";
+  | "descriptionContent"
+  | "content"
+  | "author"
+  | "target"
+  | "createdAt"
+  | "editedAt"
+  | "dueAt"
+  | "reason"
+  | "expiresAt";
 export type AdminModerationFilterControls = Snippet<
   [AdminModerationFilterKind, "mobile" | "desktop"]
 >;

@@ -24,8 +24,8 @@ type ModerationFixture = {
   db: TestPrismaClient;
 };
 
-// Global moderation queues are capped before browser-side search. Each case
-// therefore owns a complete Worker/database, including its audit writes.
+// Each governance case owns its complete Worker/database, including queue
+// predicates, result limits and anonymous-identity audit writes.
 export const test = adminTest.extend<{
   moderation: ModerationFixture;
   homeworkDeletionRun: (work: () => Promise<void>) => Promise<void>;

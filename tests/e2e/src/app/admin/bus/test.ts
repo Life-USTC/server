@@ -324,7 +324,9 @@ test("页面契约", { tag: "@Bus/Web" }, async ({
           page.getByRole("heading", { name: /校车管理|Bus Management/i }),
         ).toBeVisible();
         await expect(
-          page.getByRole("button", { name: /导入|Import/i }),
+          page.getByRole("button", {
+            name: /^(从 Static 导入|Import from Static)$/i,
+          }),
         ).toBeVisible();
       },
       {},

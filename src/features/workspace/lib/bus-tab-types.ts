@@ -1,4 +1,5 @@
 import type { BusTimetableData } from "@/features/bus/lib/bus-timetable-types";
+import type { TableFilterLabels } from "@/lib/table-filters";
 
 export type WorkspaceBusData = Pick<
   BusTimetableData,
@@ -12,6 +13,11 @@ export type WorkspaceBusData = Pick<
 >;
 
 export type WorkspaceBusCopy = Record<string, unknown> & {
+  applyFilters: string;
+  clear: string;
+  tableFilters: TableFilterLabels;
+  passThrough: string;
+  route: { stops: string };
   arriveAt: string;
   changeRoute: string;
   workspaceTitle: string;
@@ -28,6 +34,7 @@ export type WorkspaceBusCopy = Record<string, unknown> & {
   nextDeparture: string;
   noMoreBusToday: string;
   planner: {
+    routes: string;
     empty: string;
     emptyReverseAction: string;
     end: string;

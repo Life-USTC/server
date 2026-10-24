@@ -264,6 +264,10 @@ for (const [domain, names] of [
       await page
         .getByRole("switch", { name: "Show departed trips", exact: true })
         .click();
+      await page.keyboard.press("Escape");
+      await page
+        .getByRole("button", { name: "Apply filters", exact: true })
+        .click();
       const groups = page.getByTestId("bus-route-section");
       expect(await groups.count()).toBeGreaterThan(0);
       for (const bus of await groups.all()) {

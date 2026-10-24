@@ -142,20 +142,19 @@ test.describe("仪表盘网站链接", () => {
         page.getByRole("link", { name: /Academic Affairs System/i }).first(),
       ).toBeVisible();
 
-      await expect(async () => {
-        await searchInput.click();
-        await searchInput.clear();
-        await searchInput.pressSequentially("email");
-        await expect(
-          page.getByRole("link", { name: /USTC Email/i }).first(),
-        ).toBeVisible({ timeout: 3_000 });
-        await expect(
-          page.getByRole("link", { name: /Academic Affairs System/i }),
-        ).toHaveCount(0, { timeout: 3_000 });
-      }).toPass({
-        timeout: 10_000,
-        intervals: [250, 500, 1_000],
-      });
+      await searchInput.fill("email");
+      await expect(
+        page.getByRole("link", { name: /Academic Affairs System/i }).first(),
+      ).toBeVisible();
+      await page
+        .getByRole("button", { name: "Apply filters", exact: true })
+        .click();
+      await expect(
+        page.getByRole("link", { name: /USTC Email/i }).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /Academic Affairs System/i }),
+      ).toHaveCount(0);
     }, "consume");
   });
 
@@ -216,7 +215,10 @@ test.describe("仪表盘网站链接", () => {
         await expect(async () => {
           await searchInput.click();
           await searchInput.clear();
-          await searchInput.pressSequentially("邮箱");
+          await searchInput.fill("邮箱");
+          await page
+            .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+            .click();
           await expect(
             page.getByRole("link", { name: /邮箱/i }).first(),
           ).toBeVisible({ timeout: 3_000 });
@@ -230,7 +232,10 @@ test.describe("仪表盘网站链接", () => {
 
         await expect(async () => {
           await searchInput.clear();
-          await searchInput.pressSequentially("faculty.ustc.edu.cn");
+          await searchInput.fill("faculty.ustc.edu.cn");
+          await page
+            .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+            .click();
           await expect(
             page.getByRole("link", { name: /教师个人主页/i }).first(),
           ).toBeVisible({ timeout: 3_000 });
@@ -242,11 +247,17 @@ test.describe("仪表盘网站链接", () => {
           intervals: [250, 500, 1_000],
         });
         await searchInput.fill("no-matching-campus-link-1360");
+        await page
+          .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+          .click();
         await expect(searchInput).toBeVisible();
         await expect(page.getByRole("link", { name: /教务系统/i })).toHaveCount(
           0,
         );
         await searchInput.clear();
+        await page
+          .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+          .click();
         await expect(
           page.getByRole("link", { name: /教务系统/i }).first(),
         ).toBeVisible();
@@ -332,6 +343,9 @@ test.describe("仪表盘网站链接", () => {
         );
         for (const query of ["教务", "教务系统"]) {
           await searchInput.fill(query);
+          await page
+            .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+            .click();
           await expect(await locateJwPinButton(page)).toHaveAttribute(
             "aria-label",
             pinned ? UNPIN_LABEL : PIN_LABEL,

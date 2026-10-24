@@ -6,24 +6,27 @@ import {
   publicUploadPayload,
   uploadKeyBelongsToUser,
 } from "./upload-service-shared";
+import { uploadTableWhere } from "./upload-table-filters";
 
 export { publicUploadPayload, uploadKeyBelongsToUser };
 
 export async function listUploads(
   userId: string,
   pagination: { pageSize: number; skip: number },
+  filters: Record<string, string> = {},
 ) {
   const now = new Date();
+  const where = uploadTableWhere(userId, filters);
   return withUserDbContext(userId, async (tx) => {
     const [uploads, total, usage, pendingUsage] = await Promise.all([
       tx.upload.findMany({
-        where: { userId },
+        where,
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         skip: pagination.skip,
         take: pagination.pageSize,
         select: managedUploadSelect,
       }),
-      tx.upload.count({ where: { userId } }),
+      tx.upload.count({ where }),
       tx.upload.aggregate({
         where: { userId },
         _sum: { size: true },

@@ -16,6 +16,21 @@ access:
     and anonymous-comment identity revelation; other read-only governance access follows admin.suspended-admin-write-gate.
   agent: No admin tools are currently provided.
 requirements:
+- id: admin.table-column-filters-before-limits
+  category: behavior
+  surfaces:
+  - web
+  rule: User and moderation column filters apply in the database before list limits, totals and pagination. Values within a categorical field are ORed; separate fields are ANDed. Dates compare whole Shanghai calendar days, and invalid comparisons return no matches. User pagination preserves the complete filter set. The user name filter matches the displayed name, falling back to username, email and ID in that order when preceding values are empty.
+  acceptance:
+    given: Case-owned historical matching comments, descriptions, homeworks and suspensions each sit behind more recent records beyond the queue limit; user matches span two pages with role and date decoys.
+    when: The actual authenticated page services apply combined content, author, state and date filters and read both user pages.
+    then:
+    - Each moderation list returns its historical match even though an unfiltered capped list would omit it.
+    - User count and disjoint pages include exactly the twenty-five matches and exclude role and Shanghai-day decoys.
+    - User name filters match only the first populated display field; separate username and email filters still match their own fields.
+    test:
+      file: tests/integration/admin-table-filter-queries.test.ts
+      name: admin.table-column-filters-before-limits
 - id: admin.moderation-centralized
   category: presentation
   rule: Comment and description governance are currently centralized on the moderation page.
@@ -219,7 +234,7 @@ requirements:
       name: admin.feature-experience-retention
 - id: admin.responsive-workspace
   category: presentation
-  rule: Admin pages present the page identity and applicable feedback, then records with search and filters in their collection header. The
+  rule: Admin pages present the page identity and applicable feedback, then records with search in their collection header and data-column filters in the corresponding headers. Extra properties appear above the collection. One Apply filters action commits all draft search and filter changes; popovers never submit separately. The
     page heading uses larger text than the record identity. Desktop shows tabular records; mobile presents
     compact records containing the same primary identity and available actions.
   acceptance:

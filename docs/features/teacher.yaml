@@ -15,6 +15,19 @@ access:
   agent: Can directly read teacher lists and details; also indirectly consumes teacher information in
     course and section results.
 requirements:
+- id: teacher.web-table-filters
+  category: behavior
+  rule: The Web teacher table filters name, code, email, department, title and active Section count. Metadata supports multiple IDs; count supports eq, ne, gt, gte, lt, lte and inclusive between. All conditions apply before pagination, and zero includes teachers with only retired Sections.
+  acceptance:
+    given: Teachers have zero, one and two active Sections, including a teacher with only retired history.
+    when: The public Web table service combines display-field filters and pages through each count comparison.
+    then:
+    - Every comparison returns the exact ordered records and total across page boundaries.
+    - All displayed text and metadata filters intersect; title options cover the available teacher directory.
+    - The response retains the established public projection.
+    test:
+      file: tests/integration/catalog-table-filters.test.ts
+      name: teacher.web-table-filters
 - id: teacher.list-hides-sparse-columns
   category: presentation
   rule: The teachers browse table hides title and email columns when every row on the current page lacks

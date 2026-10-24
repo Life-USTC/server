@@ -1,21 +1,13 @@
-export type CatalogColumnField = {
-  name: string;
-  label: string;
-  options?: { label: string; value: string }[];
-  type?: "text" | "number";
-  min?: number;
-  step?: number;
-  description?: string;
-};
+import type { TableFilterField, TableFilterLabels } from "@/lib/table-filters";
 
+export type CatalogColumnField = TableFilterField;
 export type CatalogColumnFilterProps = {
-  action: string;
   label: string;
-  fields?: CatalogColumnField[];
-  filters: Record<string, string | null | undefined>;
-  search: string;
-  applyLabel: string;
-  clearLabel: string;
+  fields?: TableFilterField[];
+  values: Record<string, string>;
+  onchange: (patch: Record<string, string>) => void;
+  labels: TableFilterLabels;
+  formId: string;
   align?: "start" | "end";
   sorting?: {
     key: string;

@@ -19,6 +19,20 @@ access:
   agent: Can read section information and manage personal section-related state through OAuth-authorized
     REST / MCP endpoints.
 requirements:
+- id: section.web-table-filters
+  category: behavior
+  rule: The Web Section table filters all displayed fields plus department and course classifications. Metadata accepts multiple IDs; credits, enrolled count, capacity and teacher count support eq, ne, gt, gte, lt, lte and inclusive between before database pagination. Null numbers match no comparison, including ne. Structured controls override the equivalent advanced-search tag.
+  acceptance:
+    given: Active Sections have zero, fractional, populated and null numeric values, different teacher counts and a retired control row.
+    when: The public Web table service applies numeric comparisons, metadata and text filters with advanced search.
+    then:
+    - All seven operators return exact matching active records and totals; null values never match.
+    - Same-field metadata choices combine with OR and different fields combine with AND.
+    - Structured text and credit controls override matching search tags; other tags and stable sorting remain effective.
+    - Zero teacher counts and filtered page totals remain correct.
+    test:
+      file: tests/integration/catalog-table-filters.test.ts
+      name: section.web-table-filters
 - id: section.list-row-baselines
   category: presentation
   rule: Teaching-section list rows vertically align the linked course name with neighboring semester, teacher, credit, capacity and campus values.

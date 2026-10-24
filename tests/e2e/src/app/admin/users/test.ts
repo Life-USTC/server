@@ -168,7 +168,7 @@ test("/admin/users 搜索表单可过滤用户", { tag: "@Admin/Web" }, async ({
         await page.getByRole("searchbox").fill(managedUser.username);
         await page
           .getByTestId("admin-workspace")
-          .getByRole("button", { name: /^(搜索|Search)$/ })
+          .getByRole("button", { name: /^(应用筛选|Apply filters)$/ })
           .click();
 
         await expect(page).toHaveURL(
@@ -194,14 +194,17 @@ test("/admin/users 移动端工作区可搜索并管理首条记录", {
     adminFlow.run(
       async () => {
         await page.setViewportSize({ width: 390, height: 844 });
-        await gotoAndWaitForReady(page, "/admin/users");
+        await gotoAndWaitForReady(page, "/admin/users", {
+          uiQuality: {},
+          expectNoHorizontalOverflow: true,
+        });
 
         const workspace = page.getByTestId("admin-workspace");
         await expect(workspace).toBeVisible();
         await expect(workspace.locator("table")).toBeHidden();
         await page.getByRole("searchbox").fill(managedUser.username);
         await workspace
-          .getByRole("button", { name: /^(搜索|Search)$/ })
+          .getByRole("button", { name: /^(应用筛选|Apply filters)$/ })
           .click();
 
         const record = page
@@ -350,7 +353,7 @@ test("/admin/users 状态列对齐且平板使用可读列表", {
   );
 });
 
-test("/admin/users 分页控件可进入下一页", { tag: "@Admin/Web" }, async ({
+test("/admin/users 分页与刷新保留组合筛选", { tag: "@Admin/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -363,38 +366,54 @@ test("/admin/users 分页控件可进入下一页", { tag: "@Admin/Web" }, async
         test.setTimeout(60000);
         const prefix = managedUser.username;
         await isolatedWorker.database.owner.user.createMany({
-          data: Array.from({ length: 20 }, (_, index) => ({
+          data: Array.from({ length: 25 }, (_, index) => ({
             name: `Pagination user ${index}`,
             username: `p${crypto.randomUUID().replaceAll("-", "").slice(0, 19)}`,
             email: `${prefix}-${index}@pagination.test`,
+            createdAt: new Date("2026-09-10T00:00:00Z"),
           })),
         });
-        await gotoAndWaitForReady(page, `/admin/users?search=${prefix}`);
+        const filters = new URLSearchParams({
+          search: prefix,
+          name: "Pagination user",
+          role: "user,admin",
+          createdAt: "2026-09-01",
+          createdAtOp: "between",
+          createdAtMax: "2026-09-30",
+        });
+        await gotoAndWaitForReady(page, `/admin/users?${filters}`);
 
         const pagination = page.locator('[data-slot="list-pagination"]');
         const nextPage = pagination.getByRole("link", {
           name: /下一页|Next page/i,
         });
-        await expect(nextPage).toHaveAttribute(
-          "href",
-          new RegExp(`search=${prefix}`),
-        );
         await expect(nextPage).toHaveAttribute("href", /page=2/);
+        const nextHref = await nextPage.getAttribute("href");
+        const nextParams = new URL(nextHref ?? "", page.url()).searchParams;
+        for (const [key, value] of filters)
+          expect(nextParams.get(key)).toBe(value);
         await nextPage.click();
         await expect(page).toHaveURL(/page=2/);
-        expect(new URL(page.url()).searchParams.get("search")).toBe(prefix);
+        for (const [key, value] of filters)
+          expect(new URL(page.url()).searchParams.get(key)).toBe(value);
         await expect(page.getByRole("searchbox")).toHaveValue(prefix);
-        await expect(page.locator("tbody tr").first()).toBeVisible();
+        await expect(page.locator("tbody tr")).toHaveCount(5);
         await expect(pagination.locator('[aria-current="page"]')).toHaveText(
           "2",
         );
+        await page.reload();
+        await expect(page.locator("tbody tr")).toHaveCount(5);
+        for (const [key, value] of filters)
+          expect(new URL(page.url()).searchParams.get(key)).toBe(value);
         await pagination
           .getByRole("link", { name: /上一页|Previous page/i })
           .click();
         await expect(pagination.locator('[aria-current="page"]')).toHaveText(
           "1",
         );
-        expect(new URL(page.url()).searchParams.get("search")).toBe(prefix);
+        for (const [key, value] of filters)
+          expect(new URL(page.url()).searchParams.get(key)).toBe(value);
+        await expect(page.locator("tbody tr")).toHaveCount(20);
       },
       {},
       adminWriteChecks([]),

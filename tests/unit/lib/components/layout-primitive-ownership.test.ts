@@ -39,12 +39,13 @@ async function renderedPrimitives(root: string) {
     visited.add(filename);
     // Shared components are leaves: a feature must actually render the imported
     // primitive, not merely import another component that happens to import it.
-    // CollectionPage is the shared skeleton that renders PageLayout, PageHeader,
-    // Panel, and DetailPageLayout. Follow it so owners are credited for those primitives.
+    // CollectionPage owns page composition; TableFilterFields owns Field composition.
+    // Follow these explicit shared compositions to verify their rendered primitives.
     if (
       !filename.endsWith(".svelte") ||
       (filename.startsWith("src/lib/") &&
-        filename !== "src/lib/components/CollectionPage.svelte")
+        filename !== "src/lib/components/CollectionPage.svelte" &&
+        filename !== "src/lib/components/TableFilterFields.svelte")
     )
       continue;
     const ast = parse(await readFile(filename, "utf8"), {

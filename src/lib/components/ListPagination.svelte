@@ -6,20 +6,29 @@ import * as Pagination from "#lib/components/ui/pagination/index.js";
 import { getPaginationTokens } from "#lib/navigation/pagination.js";
 import { cn } from "#lib/utils.js";
 
-export let ariaLabel: string;
-export let nextLabel: string;
-export let nextPageLabel: string;
-export let page: number;
-export let pageHref: (targetPage: number) => string;
-export let previousLabel: string;
-export let previousPageLabel: string;
-export let totalPages: number;
+let {
+  ariaLabel,
+  nextLabel,
+  nextPageLabel,
+  page,
+  pageHref,
+  previousLabel,
+  previousPageLabel,
+  totalPages,
+  class: className = "",
+}: {
+  ariaLabel: string;
+  nextLabel: string;
+  nextPageLabel: string;
+  page: number;
+  pageHref: (targetPage: number) => string;
+  previousLabel: string;
+  previousPageLabel: string;
+  totalPages: number;
+  class?: string;
+} = $props();
 
-let className = "";
-
-export { className as class };
-
-$: pages = getPaginationTokens({ currentPage: page, totalPages });
+const pages = $derived(getPaginationTokens({ currentPage: page, totalPages }));
 </script>
 
 <!-- URL pagination needs links and page tokens, not a second client-side page state. -->

@@ -42,6 +42,7 @@ async function chooseStop(page: Page, label: RegExp, option: RegExp) {
     timeout: 10_000,
     intervals: [250, 500, 1_000],
   });
+  await applyRouteFilters(page);
 }
 
 function routeSectionRows(page: Page) {
@@ -60,6 +61,12 @@ async function openRouteControls(page: Page) {
   await expect(
     page.locator("[data-testid='bus-start-stop-group']"),
   ).toBeVisible();
+}
+
+async function applyRouteFilters(page: Page) {
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: /Apply filters|应用筛选/ }).click();
+  await openRouteControls(page);
 }
 
 async function openFullTimetable(page: Page) {
@@ -169,7 +176,7 @@ test.describe("校车面板标签页", () => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus");
 
-      const header = page.locator("thead:visible");
+      const header = page.locator('[data-slot="collection-header"]:visible');
       await expect(
         header.getByRole("button", { name: /Change route|调整路线/ }),
       ).toBeVisible();
@@ -394,11 +401,12 @@ test.describe("校车面板标签页", () => {
         }
         await expect(startWestButton).toHaveAttribute("aria-checked", "true");
         await expect(endEastButton).toHaveAttribute("aria-checked", "true");
-        await expect(routeSectionRows(page)).toHaveCount(1);
       }).toPass({
         timeout: 10_000,
         intervals: [250, 500, 1_000],
       });
+      await applyRouteFilters(page);
+      await expect(routeSectionRows(page)).toHaveCount(1);
       await expect(routeSectionRows(page).first()).toContainText(
         /高新\s*→\s*先研院\s*→\s*西区\s*→\s*东区/,
       );
@@ -438,11 +446,13 @@ test.describe("校车面板标签页", () => {
         name: /Show departed trips|显示已发车班次/,
       });
       await departedToggle.click();
+      await applyRouteFilters(page);
       await expect(page.locator("table").first()).toBeVisible();
       const expandedRows = await page.locator("tbody tr").count();
       expect(expandedRows).toBeGreaterThanOrEqual(initialRows);
 
       await departedToggle.click();
+      await applyRouteFilters(page);
       await expect(page.locator("table").first()).toBeVisible();
     }, "consume");
   });
@@ -464,6 +474,7 @@ test.describe("校车面板标签页", () => {
         .getByRole("radio", { name: /Weekday|工作日/ })
         .first()
         .click();
+      await applyRouteFilters(page);
       const weekdayRows = await page.locator("tbody tr:visible").count();
       expect(weekdayRows).toBeGreaterThan(0);
 
@@ -471,6 +482,7 @@ test.describe("校车面板标签页", () => {
         .getByRole("radio", { name: /Sunday|周日/ })
         .first()
         .click();
+      await applyRouteFilters(page);
       await expect(page.locator("tbody tr:visible").first()).toBeVisible();
       const sundayRows = await page.locator("tbody tr:visible").count();
       expect(sundayRows).toBeGreaterThan(0);
@@ -541,7 +553,7 @@ test.describe("校车面板标签页", () => {
     }, "consume");
   });
 
-  test("登录规划器自动保存到校车偏好设置", { tag: "@Bus/Web" }, async ({
+  test("登录规划器应用后保存到校车偏好设置", { tag: "@Bus/Web" }, async ({
     preferenceFlow,
     page,
     busPreferences,
@@ -567,7 +579,10 @@ test.describe("校车面板标签页", () => {
             response.url().includes("/api/workspace/bus-preferences") &&
             response.request().method() === "POST",
         ),
-        departedToggle.click(),
+        (async () => {
+          await departedToggle.click();
+          await applyRouteFilters(page);
+        })(),
       ]);
       expect(toggleSaveResponse.ok()).toBe(true);
       await expect(departedToggle).toBeChecked();
@@ -582,7 +597,10 @@ test.describe("校车面板标签页", () => {
             response.url().includes("/api/workspace/bus-preferences") &&
             response.request().method() === "POST",
         ),
-        endSouthButton.click(),
+        (async () => {
+          await endSouthButton.click();
+          await applyRouteFilters(page);
+        })(),
       ]);
       expect(stopSaveResponse.ok()).toBe(true);
       const response = await preferenceFlow.http(() =>

@@ -6,10 +6,19 @@ import {
   type CalendarFixture,
   test as calendarTest,
 } from "../../../../utils/calendar-presentation-fixture";
-import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
+import {
+  applyWorkspaceTaskFilter,
+  expectWorkspaceTaskFilterSelected,
+  openWorkspaceTaskFilter,
+  workspaceTaskFilterControl,
+} from "../../../../utils/workspace-task-filters";
 
 async function arrangeExams(db: TestPrismaClient, base: CalendarFixture) {
   const extra = await db.$transaction(async (db) => {
+    const course = await db.course.update({
+      where: { id: base.course.id },
+      data: { nameEn: "Calculus, Part A" },
+    });
     const current = await db.semester.findUniqueOrThrow({
       where: { id: base.section.semesterId ?? 0 },
     });
@@ -33,6 +42,13 @@ async function arrangeExams(db: TestPrismaClient, base: CalendarFixture) {
     await db.userSectionSubscription.create({
       data: { userId: base.users[0].id, sectionId: section.id },
     });
+    const batch = await db.examBatch.create({
+      data: {
+        jwId: base.section.jwId + 43,
+        nameCn: "Final, B",
+        nameEn: "Final, B",
+      },
+    });
     await db.exam.create({
       data: {
         jwId: base.section.jwId + 42,
@@ -42,9 +58,10 @@ async function arrangeExams(db: TestPrismaClient, base: CalendarFixture) {
         endTime: 1400,
         examType: 1,
         examTakeCount: 1,
+        examBatchId: batch.id,
       },
     });
-    return { current, past, section };
+    return { current, past, section, course, batch };
   });
   return {
     ...base,
@@ -76,11 +93,7 @@ async function open(
     "/workspace/exams?snapshotAt=2026-04-29T09%3A30%3A00%2B08%3A00",
   );
   await openWorkspaceTaskFilter(page, "exams");
-  await expect(
-    page
-      .getByRole("group", { name: "Exams", exact: true })
-      .getByRole("radio", { name: "All", exact: true }),
-  ).toBeEnabled();
+  await expect(workspaceTaskFilterControl(page, "All")).toBeEnabled();
 }
 async function waitForMenuAutofocus(page: Page) {
   // Bits UI schedules opening autofocus across animation frames. Let it settle
@@ -92,8 +105,6 @@ async function waitForMenuAutofocus(page: Page) {
       }),
   );
 }
-const filters = (page: Page) =>
-  page.getByRole("group", { name: "Exams", exact: true });
 const visibleRows = (page: Page, width: number) =>
   width < COLLECTION_DESKTOP_MIN_WIDTH_PX
     ? page.getByTestId("workspace-exams-cards").locator('[data-slot="item"]')
@@ -112,10 +123,51 @@ test("exam.attached-to-section", { tag: "@Exam/Web" }, async ({
       for (const width of [1280, 390]) {
         await open(page, data, width);
         await openWorkspaceTaskFilter(page, "exams");
-        await filters(page)
-          .getByRole("radio", { name: "All", exact: true })
-          .click();
+        await applyWorkspaceTaskFilter(
+          page,
+          workspaceTaskFilterControl(page, "All"),
+        );
         const rows = visibleRows(page, width);
+        await expect(rows).toHaveCount(2);
+        for (const [field, label, value] of [
+          ["course", "Course Name", String(data.course.nameEn)],
+          ["examBatch", "Batch", data.batch.nameCn],
+        ]) {
+          await page.keyboard.press("Escape");
+          await page
+            .locator('[data-slot="table-column-header"]:visible')
+            .getByRole("button", { name: label, exact: true })
+            .click();
+          await page
+            .locator(`[data-filter-field="${field}"]:visible`)
+            .getByRole("checkbox", { name: value, exact: true })
+            .check();
+          await expect(rows).toHaveCount(2);
+        }
+        await page.mouse.move(0, 0);
+        await page.keyboard.press("Escape");
+        const apply = page
+          .locator('[data-slot="table-filter-apply"]')
+          .getByRole("button", { name: "Apply filters", exact: true });
+        await apply.click();
+        await expect(rows).toHaveCount(1);
+        await expect(rows.getByRole("link").first()).toHaveAttribute(
+          "href",
+          `/catalog/sections/${data.section.jwId}`,
+        );
+        await page
+          .locator('[data-slot="table-column-header"]:visible')
+          .getByRole("button", { name: "Batch", exact: true })
+          .click();
+        await page
+          .locator('[data-filter-field="examBatch"]:visible')
+          .getByRole("button")
+          .first()
+          .click();
+        await expect(rows).toHaveCount(1);
+        await page.mouse.move(0, 0);
+        await page.keyboard.press("Escape");
+        await apply.click();
         await expect(rows).toHaveCount(2);
         for (const section of [data.currentSection, data.section]) {
           const row = rows.filter({
@@ -130,9 +182,10 @@ test("exam.attached-to-section", { tag: "@Exam/Web" }, async ({
           );
           await page.goBack();
           await openWorkspaceTaskFilter(page, "exams");
-          await filters(page)
-            .getByRole("radio", { name: "All", exact: true })
-            .click();
+          await applyWorkspaceTaskFilter(
+            page,
+            workspaceTaskFilterControl(page, "All"),
+          );
         }
       }
     },
@@ -150,9 +203,10 @@ test("exam.semester-required", { tag: "@Exam/Web" }, async ({
       for (const width of [1280, 390]) {
         await open(page, data, width);
         await openWorkspaceTaskFilter(page, "exams");
-        await filters(page)
-          .getByRole("radio", { name: "All", exact: true })
-          .click();
+        await applyWorkspaceTaskFilter(
+          page,
+          workspaceTaskFilterControl(page, "All"),
+        );
 
         for (const [section, semester] of [
           [data.currentSection, data.current],
@@ -181,9 +235,10 @@ test("exam.read-only", { tag: "@Exam/Web" }, async ({
       for (const width of [1280, 390]) {
         await open(page, data, width);
         await openWorkspaceTaskFilter(page, "exams");
-        await filters(page)
-          .getByRole("radio", { name: "All", exact: true })
-          .click();
+        await applyWorkspaceTaskFilter(
+          page,
+          workspaceTaskFilterControl(page, "All"),
+        );
         await expect(visibleRows(page, width)).toHaveCount(2);
         const main = page.locator("#main-content");
         await expect(
@@ -192,7 +247,7 @@ test("exam.read-only", { tag: "@Exam/Web" }, async ({
           }),
         ).toHaveCount(0);
         await expect(
-          main.locator('input,textarea,[contenteditable="true"]'),
+          main.locator('textarea,[contenteditable="true"]'),
         ).toHaveCount(0);
         await page.keyboard.press("Escape");
         await visibleRows(page, width)
@@ -237,11 +292,11 @@ test("exam.mobile-toolbar-priority", { tag: "@Exam/Web" }, async ({
         ["All", 2, data.currentSection.code],
       ] as const) {
         await openWorkspaceTaskFilter(page, "exams");
-        const control = filters(page).getByRole("radio", { name, exact: true });
+        const control = workspaceTaskFilterControl(page, name);
         await expect(control).toBeVisible();
         await openWorkspaceTaskFilter(page, "exams");
-        await control.click();
-        await expect(control).toHaveAttribute("aria-checked", "true");
+        await applyWorkspaceTaskFilter(page, control);
+        await expectWorkspaceTaskFilterSelected(control);
         await expect(rows).toHaveCount(count);
         await expect(rows.first()).toContainText(
           name === "All" ? String(data.section.code) : String(code),
@@ -261,9 +316,10 @@ test("exam.mobile-display-overflow", { tag: "@Exam/Web" }, async ({
     async () => {
       await open(page, data);
       await openWorkspaceTaskFilter(page, "exams");
-      await filters(page)
-        .getByRole("radio", { name: "All", exact: true })
-        .click();
+      await applyWorkspaceTaskFilter(
+        page,
+        workspaceTaskFilterControl(page, "All"),
+      );
 
       const trigger = page.getByTestId("workspace-exams-view-menu");
       await expect(trigger).toBeVisible();
@@ -324,7 +380,11 @@ test("exam.mobile-toolbar-targets", { tag: "@Exam/Web" }, async ({
       for (const width of [320, 390]) {
         await open(page, data, width);
         for (const control of [
-          ...(await filters(page).getByRole("radio").all()),
+          ...(await page
+            .locator(
+              '[data-filter-field="completion"]:visible [data-slot="field"]',
+            )
+            .all()),
           page
             .locator('[data-slot="collection-header"]')
             .getByRole("button", { name: /^(日期|Date)$/i }),

@@ -1,12 +1,14 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import ListPagination from "#lib/components/ListPagination.svelte";
+import {
+  catalogActiveFilters,
+  catalogFilterDraft,
+} from "@/features/catalog/lib/catalog-filter-view";
 import { catalogPrimaryName as primaryName } from "@/features/catalog/lib/catalog-list-display";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
-import {
-  buildCourseFilterOptions,
-  coursePageHref,
-} from "@/features/catalog/lib/courses-page-view-model";
+import { buildCourseFilterOptions } from "@/features/catalog/lib/courses-page-view-model";
+import type { TableFilterField } from "@/lib/table-filters";
 import { page as routePage } from "$app/state";
 import CatalogFilters from "./CatalogFilters.svelte";
 import CoursesResults from "./CoursesResults.svelte";
@@ -24,188 +26,84 @@ type PageData = {
   filterOptions: CourseListFilterOptions;
   filters: CourseListFilters;
   labels: {
-    common: CourseListCommonLabels & {
-      courses: string;
-      home: string;
-      loading: string;
-    };
+    common: CourseListCommonLabels;
     courses: CourseListLabels & { title: string };
   };
   pagination: { page: number; total: number; totalPages: number };
 };
-
-interface Props {
-  data: PageData;
+let { data }: { data: PageData } = $props();
+const formId = "course-filters";
+let draft = $derived(catalogFilterDraft(data.filters));
+const commonLabels = $derived(data.labels.common);
+const courseLabels = $derived(data.labels.courses);
+const totalPages = $derived(data.pagination.totalPages);
+function update(patch: Record<string, string>) {
+  draft = { ...draft, ...patch };
 }
-
-let { data }: Props = $props();
-
-let courseSearch = $derived(data.filters.search ?? "");
-
 function pageHref(targetPage: number) {
   return catalogListPageHref(new URL(routePage.url.href), targetPage);
 }
-
-function courseFilterHref(overrides: Partial<CourseListFilters>) {
-  return coursePageHref({
-    filters: {
-      ...data.filters,
-      ...overrides,
-    },
-    targetPage: 1,
-  });
-}
-
-function optionLabel(
-  options: Array<{ label: string; value: string }>,
-  value: string,
-) {
-  return options.find((option) => option.value === value)?.label ?? value;
-}
-
-function courseEmptyDescription() {
+const filterOptions = $derived(buildCourseFilterOptions(data.filterOptions));
+const fields = $derived<Record<string, TableFilterField>>({
+  name: { name: "name", label: courseLabels.courseName },
+  code: { name: "code", label: courseLabels.courseCode },
+  educationLevel: {
+    name: "educationLevelId",
+    label: courseLabels.educationLevel,
+    options: filterOptions.educationLevelOptions,
+  },
+  category: {
+    name: "categoryId",
+    label: courseLabels.category,
+    options: filterOptions.categoryOptions,
+  },
+  classType: {
+    name: "classTypeId",
+    label: courseLabels.classType,
+    options: filterOptions.classTypeOptions,
+  },
+});
+const columnFilters = $derived<Record<string, CatalogColumnFilterProps>>(
+  Object.fromEntries(
+    Object.entries(fields).map(([key, field]) => [
+      key,
+      {
+        label: field.label,
+        fields: [field],
+        values: draft,
+        onchange: update,
+        labels: commonLabels.tableFilters,
+        formId,
+      },
+    ]),
+  ),
+);
+const activeFilters = $derived(
+  catalogActiveFilters(
+    "/catalog/courses",
+    data.filters,
+    [{ name: "search", label: commonLabels.search }, ...Object.values(fields)],
+    commonLabels.tableFilters,
+  ),
+);
+const resultData = $derived({
+  data: data.data,
+  filters: data.filters,
+  pagination: { total: data.pagination.total },
+});
+function emptyDescription() {
   return data.filters.search
     ? courseLabels.searchFor.replace("{query}", data.filters.search)
     : courseLabels.subtitle;
 }
-let totalPages = $derived(data.pagination.totalPages);
-let commonLabels = $derived(data.labels.common);
-let courseLabels = $derived(data.labels.courses);
-let { categoryOptions, classTypeOptions, educationLevelOptions } = $derived(
-  buildCourseFilterOptions({
-    commonLabels,
-    filterOptions: data.filterOptions,
-  }),
-);
-let courseResultsData = $derived({
-  data: data.data,
-  filters: { search: data.filters.search },
-  pagination: { total: data.pagination.total },
-});
-let courseActiveFilters = $derived(
-  [
-    data.filters.search
-      ? {
-          href: courseFilterHref({ search: "" }),
-          label: `${commonLabels.search}: ${data.filters.search}`,
-        }
-      : null,
-    data.filters.educationLevelId
-      ? {
-          href: courseFilterHref({ educationLevelId: "" }),
-          label: `${courseLabels.educationLevel}: ${optionLabel(educationLevelOptions, data.filters.educationLevelId)}`,
-        }
-      : null,
-    data.filters.categoryId
-      ? {
-          href: courseFilterHref({ categoryId: "" }),
-          label: `${courseLabels.category}: ${optionLabel(categoryOptions, data.filters.categoryId)}`,
-        }
-      : null,
-    data.filters.classTypeId
-      ? {
-          href: courseFilterHref({ classTypeId: "" }),
-          label: `${courseLabels.classType}: ${optionLabel(classTypeOptions, data.filters.classTypeId)}`,
-        }
-      : null,
-  ].filter(
-    (filter): filter is { href: string; label: string } => filter !== null,
-  ),
-);
-let courseHiddenFilters = $derived(
-  [
-    { name: "educationLevelId", value: data.filters.educationLevelId ?? "" },
-    { name: "categoryId", value: data.filters.categoryId ?? "" },
-    { name: "classTypeId", value: data.filters.classTypeId ?? "" },
-  ].filter((filter) => Boolean(filter.value)),
-);
-const columnFilters = $derived<Record<string, CatalogColumnFilterProps>>({
-  educationLevel: {
-    action: "/catalog/courses",
-    label: courseLabels.educationLevel,
-    fields: [
-      {
-        name: "educationLevelId",
-        label: courseLabels.educationLevel,
-        options: educationLevelOptions,
-      },
-    ],
-    filters: data.filters,
-    search: courseSearch,
-    applyLabel: commonLabels.applyFilters,
-    clearLabel: commonLabels.clear,
-  },
-  category: {
-    action: "/catalog/courses",
-    label: courseLabels.category,
-    fields: [
-      {
-        name: "categoryId",
-        label: courseLabels.category,
-        options: categoryOptions,
-      },
-    ],
-    filters: data.filters,
-    search: courseSearch,
-    applyLabel: commonLabels.applyFilters,
-    clearLabel: commonLabels.clear,
-  },
-  classType: {
-    action: "/catalog/courses",
-    label: courseLabels.classType,
-    fields: [
-      {
-        name: "classTypeId",
-        label: courseLabels.classType,
-        options: classTypeOptions,
-      },
-    ],
-    filters: data.filters,
-    search: courseSearch,
-    applyLabel: commonLabels.applyFilters,
-    clearLabel: commonLabels.clear,
-  },
-});
 </script>
 
-
 {#snippet paginationFooter()}
-  <ListPagination
-    ariaLabel={commonLabels.pagination}
-    class="py-0"
-    nextLabel={commonLabels.next}
-    nextPageLabel={commonLabels.nextPage}
-    page={data.pagination.page}
-    pageHref={pageHref}
-    previousLabel={commonLabels.previous}
-    previousPageLabel={commonLabels.previousPage}
-    totalPages={totalPages}
-  />
+  <ListPagination ariaLabel={commonLabels.pagination} class="py-0" nextLabel={commonLabels.next} nextPageLabel={commonLabels.nextPage} page={data.pagination.page} {pageHref} previousLabel={commonLabels.previous} previousPageLabel={commonLabels.previousPage} {totalPages} />
 {/snippet}
-
-{#snippet controls(prefix: string)}
-  <CatalogFilters
-    activeFilters={courseActiveFilters}
-    clearHref="/catalog/courses"
-    clearLabel={commonLabels.clear}
-    filterTitle={courseLabels.summary.filters}
-    hiddenFilters={courseHiddenFilters}
-    searchId={prefix + "-course-search"}
-    searchLabel={commonLabels.search}
-    searchPlaceholder={courseLabels.searchPlaceholder}
-    bind:searchValue={courseSearch}
-  />
+{#snippet controls()}
+  <CatalogFilters {activeFilters} clearHref="/catalog/courses" clearLabel={commonLabels.clear} filterTitle={courseLabels.summary.filters} searchLabel={commonLabels.search} searchPlaceholder={courseLabels.searchPlaceholder} values={draft} onchange={update} applyLabel={commonLabels.applyFilters} {formId} />
 {/snippet}
-
-<CollectionPage description={courseLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={courseLabels.title}>
-  <CoursesResults
-    {controls}
-    {columnFilters}
-    courseEmptyDescription={courseEmptyDescription}
-    courseLabels={courseLabels}
-    data={courseResultsData}
-    page={data.pagination.page}
-    primaryName={primaryName}
-    totalPages={totalPages}
-  />
+<CollectionPage description={courseLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={courseLabels.title} toolbar={controls}>
+  <CoursesResults {columnFilters} courseEmptyDescription={emptyDescription} {courseLabels} data={resultData} page={data.pagination.page} primaryName={primaryName} {totalPages} />
 </CollectionPage>

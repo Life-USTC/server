@@ -12,7 +12,12 @@ import {
   readTodoCalendar,
   test,
 } from "../../../../utils/todo-fixture";
-import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
+import {
+  applyWorkspaceTaskFilter,
+  expectWorkspaceTaskFilterSelected,
+  openWorkspaceTaskFilter,
+  workspaceTaskFilterControl,
+} from "../../../../utils/workspace-task-filters";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -92,9 +97,10 @@ test.describe("仪表盘待办", () => {
         await gotoAndWaitForReady(page, "/workspace/todos");
 
         await openWorkspaceTaskFilter(page, "todos");
-        const incomplete = page
-          .getByRole("radio", { name: /未完成|Incomplete/i })
-          .first();
+        const incomplete = workspaceTaskFilterControl(
+          page,
+          /未完成|Incomplete/i,
+        ).first();
         const add = page.getByTestId("workspace-todos-add");
         await expect(incomplete).toBeVisible();
         await expect(add).toBeVisible();
@@ -105,15 +111,18 @@ test.describe("仪表盘待办", () => {
         const addBox = await add.boundingBox();
         expect(addBox?.height ?? 0).toBeGreaterThanOrEqual(44);
         expect(addBox?.width ?? 0).toBeGreaterThanOrEqual(44);
-        const filterBox = await incomplete.boundingBox();
+        const filterBox = await incomplete
+          .locator("..")
+          .locator("label")
+          .boundingBox();
         expect(filterBox?.height).toBeGreaterThanOrEqual(44);
         expect(filterBox?.width).toBeGreaterThanOrEqual(44);
 
         await openWorkspaceTaskFilter(page, "todos");
-        const all = page.getByRole("radio", { name: /全部|All/i }).first();
+        const all = workspaceTaskFilterControl(page, /全部|All/i).first();
         await openWorkspaceTaskFilter(page, "todos");
-        await all.click();
-        await expect(all).toHaveAttribute("aria-checked", "true");
+        await applyWorkspaceTaskFilter(page, all);
+        await expectWorkspaceTaskFilterSelected(all);
 
         await gotoAndWaitForReady(page, "/workspace/todos?todoView=list");
         await expect(page.getByTestId("workspace-todos-cards")).toBeVisible();
@@ -158,19 +167,17 @@ test.describe("仪表盘待办", () => {
           ]);
           await gotoAndWaitForReady(page, "/workspace/todos");
           await openWorkspaceTaskFilter(page, "todos");
-          const initial = page.getByRole("radio", {
-            name: completed
-              ? /^(已完成|Completed)$/i
-              : /^(未完成|Incomplete)$/i,
-          });
+          const initial = workspaceTaskFilterControl(
+            page,
+            completed ? /^(已完成|Completed)$/i : /^(未完成|Incomplete)$/i,
+          );
           await openWorkspaceTaskFilter(page, "todos");
-          const destination = page.getByRole("radio", {
-            name: completed
-              ? /^(未完成|Incomplete)$/i
-              : /^(已完成|Completed)$/i,
-          });
+          const destination = workspaceTaskFilterControl(
+            page,
+            completed ? /^(未完成|Incomplete)$/i : /^(已完成|Completed)$/i,
+          );
           await openWorkspaceTaskFilter(page, "todos");
-          await initial.click();
+          await applyWorkspaceTaskFilter(page, initial);
           const row = page.getByRole("row").filter({ hasText: todo.title });
           await expect(row).toBeVisible();
           await page.keyboard.press("Escape");
@@ -216,7 +223,7 @@ test.describe("仪表盘待办", () => {
             calendarMessages: [{ type: "user", userId: todoActor.id }],
           });
           await openWorkspaceTaskFilter(page, "todos");
-          await destination.click();
+          await applyWorkspaceTaskFilter(page, destination);
           await expect(destination).toBeChecked();
           await expect(visibleText(page, todo.title)).toBeVisible();
         },
@@ -235,14 +242,13 @@ test.describe("仪表盘待办", () => {
         await gotoAndWaitForReady(page, "/workspace/todos");
 
         await openWorkspaceTaskFilter(page, "todos");
-        const completedFilter = page
-          .getByRole("radio", {
-            name: /已完成|Completed/i,
-          })
-          .first();
+        const completedFilter = workspaceTaskFilterControl(
+          page,
+          /已完成|Completed/i,
+        ).first();
         const completedTodo = visibleText(page, todos.completed.title);
         await openWorkspaceTaskFilter(page, "todos");
-        await completedFilter.click();
+        await applyWorkspaceTaskFilter(page, completedFilter);
         await expect(completedTodo).toBeVisible({ timeout: 15_000 });
         await page.keyboard.press("Escape");
 
@@ -438,19 +444,21 @@ test.describe("仪表盘待办", () => {
           calendarMessages: [{ type: "user", userId: todoActor.id }],
         });
         await openWorkspaceTaskFilter(page, "todos");
-        const all = page.getByRole("radio", { name: /^(全部|All)$/i });
+        const all = workspaceTaskFilterControl(page, /^(全部|All)$/i);
         await openWorkspaceTaskFilter(page, "todos");
-        const incomplete = page.getByRole("radio", {
-          name: /^(未完成|Incomplete)$/i,
-        });
+        const incomplete = workspaceTaskFilterControl(
+          page,
+          /^(未完成|Incomplete)$/i,
+        );
         await openWorkspaceTaskFilter(page, "todos");
-        const completed = page.getByRole("radio", {
-          name: /^(已完成|Completed)$/i,
-        });
+        const completed = workspaceTaskFilterControl(
+          page,
+          /^(已完成|Completed)$/i,
+        );
         for (const filter of [all, completed, incomplete]) {
           await openWorkspaceTaskFilter(page, "todos");
-          await filter.click();
-          await expect(filter).toBeChecked();
+          await applyWorkspaceTaskFilter(page, filter);
+          await expectWorkspaceTaskFilterSelected(filter);
           await expect(
             page.getByRole("button", { name: title, exact: true }),
           ).toHaveCount(filter === completed ? 0 : 1);
@@ -529,19 +537,21 @@ test.describe("仪表盘待办", () => {
           calendarMessages: [{ type: "user", userId: todoActor.id }],
         });
         await openWorkspaceTaskFilter(page, "todos");
-        const completed = page.getByRole("radio", {
-          name: /^(已完成|Completed)$/i,
-        });
+        const completed = workspaceTaskFilterControl(
+          page,
+          /^(已完成|Completed)$/i,
+        );
         await openWorkspaceTaskFilter(page, "todos");
-        const incomplete = page.getByRole("radio", {
-          name: /^(未完成|Incomplete)$/i,
-        });
+        const incomplete = workspaceTaskFilterControl(
+          page,
+          /^(未完成|Incomplete)$/i,
+        );
         await openWorkspaceTaskFilter(page, "todos");
-        const all = page.getByRole("radio", { name: /^(全部|All)$/i });
+        const all = workspaceTaskFilterControl(page, /^(全部|All)$/i);
         for (const filter of [completed, all, incomplete]) {
           await openWorkspaceTaskFilter(page, "todos");
-          await filter.click();
-          await expect(filter).toBeChecked();
+          await applyWorkspaceTaskFilter(page, filter);
+          await expectWorkspaceTaskFilterSelected(filter);
           await expect(
             page.getByRole("button", { name: title, exact: true }),
           ).toHaveCount(0);
@@ -634,15 +644,17 @@ test.describe("仪表盘待办", () => {
         for (const absent of [todo, undated, completed])
           expect(calendar).not.toContain(`/todo/${absent.id}`);
         await openWorkspaceTaskFilter(page, "todos");
-        const incompleteFilter = page.getByRole("radio", {
-          name: /^(未完成|Incomplete)$/i,
-        });
+        const incompleteFilter = workspaceTaskFilterControl(
+          page,
+          /^(未完成|Incomplete)$/i,
+        );
         await openWorkspaceTaskFilter(page, "todos");
-        const completedFilter = page.getByRole("radio", {
-          name: /^(已完成|Completed)$/i,
-        });
+        const completedFilter = workspaceTaskFilterControl(
+          page,
+          /^(已完成|Completed)$/i,
+        );
         await openWorkspaceTaskFilter(page, "todos");
-        const allFilter = page.getByRole("radio", { name: /^(全部|All)$/i });
+        const allFilter = workspaceTaskFilterControl(page, /^(全部|All)$/i);
         for (const filter of [
           incompleteFilter,
           completedFilter,
@@ -650,8 +662,8 @@ test.describe("仪表盘待办", () => {
           completedFilter,
         ]) {
           await openWorkspaceTaskFilter(page, "todos");
-          await filter.click();
-          await expect(filter).toBeChecked();
+          await applyWorkspaceTaskFilter(page, filter);
+          await expectWorkspaceTaskFilterSelected(filter);
           await expect(
             page.getByRole("button", { name: todo.title, exact: true }),
           ).toHaveCount(filter === incompleteFilter ? 0 : 1);
@@ -681,17 +693,19 @@ test.describe("仪表盘待办", () => {
           document.documentElement.dataset.todoMutationSession = "retained";
         });
         await openWorkspaceTaskFilter(page, "todos");
-        const completedFilter = page.getByRole("radio", {
-          name: /^(已完成|Completed)$/i,
-        });
+        const completedFilter = workspaceTaskFilterControl(
+          page,
+          /^(已完成|Completed)$/i,
+        );
         await openWorkspaceTaskFilter(page, "todos");
-        const incompleteFilter = page.getByRole("radio", {
-          name: /^(未完成|Incomplete)$/i,
-        });
+        const incompleteFilter = workspaceTaskFilterControl(
+          page,
+          /^(未完成|Incomplete)$/i,
+        );
         await openWorkspaceTaskFilter(page, "todos");
-        const allFilter = page.getByRole("radio", { name: /^(全部|All)$/i });
+        const allFilter = workspaceTaskFilterControl(page, /^(全部|All)$/i);
         await openWorkspaceTaskFilter(page, "todos");
-        await completedFilter.click();
+        await applyWorkspaceTaskFilter(page, completedFilter);
         await page.keyboard.press("Escape");
         const detailTitle = page
           .getByRole("dialog", { name: title, exact: true })
@@ -752,8 +766,8 @@ test.describe("仪表盘待办", () => {
           allFilter,
         ]) {
           await openWorkspaceTaskFilter(page, "todos");
-          await filter.click();
-          await expect(filter).toBeChecked();
+          await applyWorkspaceTaskFilter(page, filter);
+          await expectWorkspaceTaskFilterSelected(filter);
           await expect(
             page.getByRole("button", { name: title, exact: true }),
           ).toHaveCount(0);

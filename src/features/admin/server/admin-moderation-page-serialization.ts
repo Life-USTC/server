@@ -12,12 +12,7 @@ type ModerationTab = "comments" | "descriptions" | "homeworks" | "suspensions";
 export function serializeAdminModerationPageData(input: {
   comments: AdminModerationCommentRecord[];
   descriptions: AdminModerationDescriptionRecord[];
-  filters: {
-    descriptionContent: string;
-    descriptionTarget: string;
-    search: string;
-    status: string;
-  };
+  filters: Record<string, string>;
   homeworks: AdminModerationHomeworkRecord[];
   suspensions: AdminModerationSuspensionRecord[];
   tab: ModerationTab;

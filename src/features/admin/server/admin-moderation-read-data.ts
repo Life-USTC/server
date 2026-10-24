@@ -10,6 +10,7 @@ export async function getAdminModerationReadData({
   commentWhere,
   descriptionWhere,
   homeworkWhere,
+  suspensionWhere,
   pageSize,
   descriptionPageSize,
   prisma,
@@ -18,6 +19,7 @@ export async function getAdminModerationReadData({
   commentWhere: Prisma.CommentWhereInput;
   descriptionWhere: Prisma.DescriptionWhereInput;
   homeworkWhere: Prisma.HomeworkWhereInput;
+  suspensionWhere: Prisma.UserSuspensionWhereInput;
   pageSize: number;
   descriptionPageSize: number;
   prisma: AdminModerationPrisma;
@@ -36,6 +38,6 @@ export async function getAdminModerationReadData({
       prisma,
     }),
     listModerationHomeworks({ homeworkWhere, pageSize, prisma }),
-    listModerationSuspensions({ pageSize, prisma }),
+    listModerationSuspensions({ pageSize, prisma, suspensionWhere }),
   ]);
 }

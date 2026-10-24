@@ -24,15 +24,15 @@ const mocks = vi.hoisted(() => {
   return {
     cacheList,
     findMany,
-    listCourseSummaries: vi.fn().mockResolvedValue({
+    listCourseTableSummaries: vi.fn().mockResolvedValue({
       data: [],
       pagination: { page: 1, total: 0, totalPages: 0 },
     }),
-    listSectionSummaries: vi.fn().mockResolvedValue({
+    listSectionTableSummaries: vi.fn().mockResolvedValue({
       data: [],
       pagination: { page: 1, total: 0, totalPages: 0 },
     }),
-    paginatedTeacherQuery: vi.fn().mockResolvedValue({
+    listTeacherTableSummaries: vi.fn().mockResolvedValue({
       data: [],
       pagination: { page: 1, total: 0, totalPages: 0 },
     }),
@@ -54,13 +54,10 @@ vi.mock("@/features/catalog/server/catalog-runtime-cache", () => ({
   ) => `${scope}:${kind}-list:${locale}`,
 }));
 
-vi.mock("@/features/catalog/server/course-section-queries", () => ({
-  listCourseSummaries: mocks.listCourseSummaries,
-  listSectionSummaries: mocks.listSectionSummaries,
-}));
-
-vi.mock("@/features/catalog/server/academic-paginated-queries", () => ({
-  paginatedTeacherQuery: mocks.paginatedTeacherQuery,
+vi.mock("@/features/catalog/server/catalog-table-read-model", () => ({
+  listCourseTableSummaries: mocks.listCourseTableSummaries,
+  listSectionTableSummaries: mocks.listSectionTableSummaries,
+  listTeacherTableSummaries: mocks.listTeacherTableSummaries,
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -71,6 +68,7 @@ vi.mock("@/lib/db/prisma", () => ({
     department: { findMany: mocks.findMany },
     educationLevel: { findMany: mocks.findMany },
     semester: { findMany: mocks.findMany },
+    teacherTitle: { findMany: mocks.findMany },
   }),
 }));
 
@@ -89,6 +87,30 @@ beforeEach(() => {
 });
 
 describe("public catalog list loaders", () => {
+  test("returns all canonical controls and forwards comparisons to the table read service", async () => {
+    const result = await getTeacherListPage(
+      new URL(
+        "https://life-ustc.test/catalog/teachers?name=Teacher&code=T&email=example.test&departmentId=3,1&teacherTitleId=2,1&sectionCount=1&sectionCountOp=between&sectionCountMax=3",
+      ),
+    );
+    const filters = {
+      name: "Teacher",
+      code: "T",
+      email: "example.test",
+      departmentId: "1,3",
+      teacherTitleId: "1,2",
+      sectionCount: "1",
+      sectionCountOp: "between",
+      sectionCountMax: "3",
+    };
+    expect(result.filters).toEqual(filters);
+    expect(result.filterOptions).toHaveProperty("teacherTitles");
+    expect(mocks.listTeacherTableSummaries).toHaveBeenCalledWith({
+      filters,
+      locale: "zh-cn",
+      pagination: { page: 1, pageSize: 20 },
+    });
+  });
   test("bounds course page/search and keys the runtime cache by normalized values", async () => {
     const search = "x".repeat(CATALOG_SEARCH_MAX_LENGTH + 20);
     const firstUrl = new URL(
@@ -101,11 +123,9 @@ describe("public catalog list loaders", () => {
     await getCourseListPage(firstUrl);
     await getCourseListPage(canonicalUrl);
 
-    expect(mocks.listCourseSummaries).toHaveBeenNthCalledWith(1, {
+    expect(mocks.listCourseTableSummaries).toHaveBeenNthCalledWith(1, {
       filters: {
         categoryId: "7",
-        classTypeId: undefined,
-        educationLevelId: undefined,
         search: "x".repeat(CATALOG_SEARCH_MAX_LENGTH),
       },
       locale: "zh-cn",
@@ -128,13 +148,14 @@ describe("public catalog list loaders", () => {
       ),
     );
 
-    expect(mocks.paginatedTeacherQuery).toHaveBeenCalledWith(
-      CATALOG_MAX_PAGE,
-      20,
-      expect.objectContaining({ departmentId: 7 }),
-      { nameCn: "asc" },
-      "zh-cn",
-    );
+    expect(mocks.listTeacherTableSummaries).toHaveBeenCalledWith({
+      filters: {
+        departmentId: "7",
+        search: "t".repeat(CATALOG_SEARCH_MAX_LENGTH),
+      },
+      pagination: { page: CATALOG_MAX_PAGE, pageSize: 20 },
+      locale: "zh-cn",
+    });
     expect(mocks.cacheList.mock.calls[0]?.[2].toString()).toContain(
       `page=${CATALOG_MAX_PAGE}`,
     );
@@ -153,18 +174,12 @@ describe("public catalog list loaders", () => {
       ),
     );
 
-    expect(mocks.listSectionSummaries).toHaveBeenCalledWith({
+    expect(mocks.listSectionTableSummaries).toHaveBeenCalledWith({
       filters: {
-        campusId: undefined,
-        categoryId: undefined,
-        classTypeId: undefined,
         courseCode: "MATH",
         credits: "2.5",
-        departmentId: undefined,
-        educationLevelId: undefined,
         order: "asc",
         search: "s".repeat(CATALOG_SEARCH_MAX_LENGTH),
-        sectionCode: undefined,
         semesterId: "3",
         sort: "credits",
         teacher: "t".repeat(CATALOG_TEXT_FILTER_MAX_LENGTH),

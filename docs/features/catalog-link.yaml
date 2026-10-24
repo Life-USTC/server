@@ -99,10 +99,10 @@ requirements:
       name: catalog-link.search-fuzzy
 - id: catalog-link.web-search-header
   category: presentation
-  rule: One visible global search control appears in the desktop grouped table header or the mobile card collection header. It searches every link group and stays available when no links match.
+  rule: One visible global search control appears in the desktop grouped table header or the mobile card collection header. Name and description filters belong to their data columns; group and URL filters appear above the collection, with pin state and numeric visit comparisons available for a confirmed signed-in viewer. All search and filter drafts are committed by one Apply filters action, operate across every link group, and stay available when no links match.
   acceptance:
     given: A signed-in viewer has the full link directory at desktop and mobile widths.
-    when: The viewer opens search with its keyboard shortcut, searches across groups, selects a query with no matches, and clears it.
+    when: The viewer opens search with its keyboard shortcut, applies searches across groups and a query with no matches, and clears and reapplies the search.
     then:
     - The visible search is in the collection header and searches title, description and domain across all groups.
     - Empty results preserve search and clearing restores the directory.
@@ -184,6 +184,7 @@ requirements:
     - Pending and failed projections expose no pin forms and send zero preference writes.
     - Retry enables actions only after the real projection succeeds; exactly one explicit unpin persists
       afterward.
+    - Applied public search text and results survive the failed projection and successful retry; editing a new draft leaves results unchanged until Apply.
     test:
       file: tests/e2e/src/app/workspace/links/transport-state-contract.test.ts
       name: catalog-link.pin-write-gate

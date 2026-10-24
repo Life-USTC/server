@@ -152,15 +152,29 @@ test("/admin/moderation 无效标签回退到评论", { tag: "@Admin/Web" }, asy
   adminFlow,
   run,
   page,
-  moderation: _moderation,
+  moderation,
 }) => {
   await run(() =>
     adminFlow.run(
       async () => {
+        const hidden = await moderation.db.comment.create({
+          data: {
+            sectionId: moderation.section.id,
+            userId: moderation.author.id,
+            body: "Hidden comment in the invalid-tab fixture",
+            status: "softbanned",
+          },
+        });
         await gotoAndWaitForReady(page, "/admin/moderation?tab=bad");
         await expect(
-          page.locator('thead:visible input[type="hidden"][name="tab"]'),
-        ).toHaveValue("comments");
+          page.getByRole("searchbox", {
+            name: /搜索评论内容或 ID|Search comment content or ID/i,
+          }),
+        ).toBeVisible();
+        await expect(visibleText(page, moderation.comment.body)).toBeVisible();
+        await expect(page.getByText(hidden.body, { exact: true })).toHaveCount(
+          0,
+        );
         await expect(page.getByText("bad", { exact: true })).toHaveCount(0);
       },
       {},
@@ -176,7 +190,10 @@ test("/admin/moderation 移动端工作区可管理首条筛选结果", {
     adminFlow.run(
       async () => {
         await page.setViewportSize({ width: 390, height: 844 });
-        await gotoAndWaitForReady(page, "/admin/moderation");
+        await gotoAndWaitForReady(page, "/admin/moderation", {
+          uiQuality: {},
+          expectNoHorizontalOverflow: true,
+        });
         const keyword = moderation.comment.body;
 
         await page
@@ -184,6 +201,12 @@ test("/admin/moderation 移动端工作区可管理首条筛选结果", {
             name: /搜索评论内容或 ID|Search comment content or ID/i,
           })
           .fill(keyword);
+        await page
+          .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+          .click();
+        await expect(page).toHaveURL(
+          (url) => url.searchParams.get("search") === keyword,
+        );
         const record = page
           .getByTestId("admin-moderation-mobile-list")
           .locator('[data-slot="item"]')
@@ -395,12 +418,9 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", {
   );
 });
 
-test("/admin/moderation 可切换状态筛选下拉", { tag: "@Comment/Web" }, async ({
-  adminFlow,
-  run,
-  page,
-  moderation: _moderation,
-}) => {
+test("/admin/moderation 状态多选在唯一应用后生效", {
+  tag: "@Comment/Web",
+}, async ({ adminFlow, run, page, moderation: _moderation }) => {
   await run(() =>
     adminFlow.run(
       async () => {
@@ -412,21 +432,39 @@ test("/admin/moderation 可切换状态筛选下拉", { tag: "@Comment/Web" }, a
         await expect(trigger).toBeVisible();
         await trigger.click();
         const dialog = page.getByRole("dialog", { name: /^(状态|Status)$/i });
-        const filter = dialog.getByRole("combobox");
-        await expect(filter).toBeVisible();
-        const option = page
-          .getByRole("option", { name: /已删除|Deleted/i })
-          .first();
-        await expect(option).toBeAttached();
-        await filter.selectOption("deleted");
-        await expect(filter).toHaveValue("deleted");
         await dialog
-          .getByRole("button", { name: /筛选|Apply|Filter/i })
-          .click();
-        await expect(page).toHaveURL(/status=deleted/);
+          .getByRole("checkbox", { name: /^(已删除|Deleted)$/i })
+          .check();
+        await expect(page).toHaveURL(/\/admin\/moderation$/);
+        await expect(
+          dialog.getByRole("button", { name: /应用筛选|Apply filters/i }),
+        ).toHaveCount(0);
+        await page.keyboard.press("Escape");
+        const apply = page.getByRole("button", {
+          name: /^(应用筛选|Apply filters)$/i,
+        });
+        await expect(apply).toHaveCount(1);
+        await apply.click();
+        await expect(page).toHaveURL(
+          (url) => url.searchParams.get("status") === "active,deleted",
+        );
         await expect(dialog).toBeHidden();
         await trigger.click();
-        await expect(dialog.getByRole("combobox")).toHaveValue("deleted");
+        await expect(
+          dialog.getByRole("checkbox", { name: /^(正常|Active)$/i }),
+        ).toBeChecked();
+        await expect(
+          dialog.getByRole("checkbox", { name: /^(已删除|Deleted)$/i }),
+        ).toBeChecked();
+        await dialog
+          .locator('[data-filter-field="status"]')
+          .getByRole("button")
+          .click();
+        await page.keyboard.press("Escape");
+        await apply.click();
+        await expect(page).toHaveURL(
+          (url) => url.searchParams.get("status") === "all",
+        );
       },
       {},
       adminWriteChecks([]),
@@ -449,6 +487,10 @@ test("/admin/moderation 简介表头筛选保留全局搜索与空结果入口",
               : '[data-slot="collection-header"]:visible',
           );
           const search = header.getByRole("searchbox");
+          const apply = page.getByRole("button", {
+            name: /^(应用筛选|Apply filters)$/i,
+          });
+          await expect(apply).toHaveCount(1);
           await search.fill(moderation.marker);
           await header
             .getByRole("button", { name: /^(发布于|Posted in)$/i })
@@ -456,23 +498,33 @@ test("/admin/moderation 简介表头筛选保留全局搜索与空结果入口",
           const target = page.getByRole("dialog", {
             name: /^(发布于|Posted in)$/i,
           });
-          await target.getByRole("combobox").selectOption("teacher");
+          await target
+            .getByRole("checkbox", { name: /^(教师|Teacher)$/i })
+            .check();
+          await target
+            .getByRole("checkbox", { name: /^(课程|Course)$/i })
+            .check();
+          await expect(page).toHaveURL(
+            (url) => url.searchParams.get("descriptionTarget") === null,
+          );
+          await expect(
+            target.getByRole("button", { name: /应用筛选|Apply filters/i }),
+          ).toHaveCount(0);
           await page.keyboard.press("Escape");
-          await header
-            .getByRole("button", { name: /^(筛选|Filter)$/i })
-            .click();
+          await apply.click();
           await expect(page).toHaveURL(
             (url) =>
-              url.searchParams.get("descriptionTarget") === "all" &&
+              url.searchParams.get("descriptionTarget") === "teacher,course" &&
               url.searchParams.get("search") === moderation.marker,
           );
           await header
             .getByRole("button", { name: /^(发布于|Posted in)$/i })
             .click();
-          await target.getByRole("combobox").selectOption("course");
           await target
-            .getByRole("button", { name: /^(筛选|Filter)$/i })
-            .click();
+            .getByRole("checkbox", { name: /^(教师|Teacher)$/i })
+            .uncheck();
+          await page.keyboard.press("Escape");
+          await apply.click();
           await expect(page).toHaveURL(
             (url) => url.searchParams.get("descriptionTarget") === "course",
           );
@@ -483,10 +535,14 @@ test("/admin/moderation 简介表头筛选保留全局搜索与空结果入口",
           const preview = page.getByRole("dialog", {
             name: /^(预览|Preview)$/i,
           });
-          await preview.getByRole("combobox").selectOption("empty");
           await preview
-            .getByRole("button", { name: /^(筛选|Filter)$/i })
-            .click();
+            .getByRole("checkbox", { name: /^(有内容|With content)$/i })
+            .uncheck();
+          await preview
+            .getByRole("checkbox", { name: /^(空|Empty)$/i })
+            .check();
+          await page.keyboard.press("Escape");
+          await apply.click();
           await expect(page).toHaveURL(
             (url) =>
               url.searchParams.get("tab") === "descriptions" &&
@@ -501,10 +557,14 @@ test("/admin/moderation 简介表头筛选保留全局搜索与空结果入口",
           ).toHaveCount(0);
           await expect(search).toHaveValue(moderation.marker);
           await previewTrigger.click();
-          await preview.getByRole("combobox").selectOption("withContent");
           await preview
-            .getByRole("button", { name: /^(筛选|Filter)$/i })
-            .click();
+            .getByRole("checkbox", { name: /^(空|Empty)$/i })
+            .uncheck();
+          await preview
+            .getByRole("checkbox", { name: /^(有内容|With content)$/i })
+            .check();
+          await page.keyboard.press("Escape");
+          await apply.click();
           await expect(
             page.getByRole("button", {
               name: /^(管理课程简介|Manage Description)$/i,

@@ -8,6 +8,7 @@ import type {
   PublicPublicationSourceDirectory,
   PublicPublicationSourceSummary,
 } from "@/features/publications/server/publication-source-directory-service";
+import type { TableFilterLabels } from "@/lib/table-filters";
 
 export type PublicationListFilters = {
   type?: "news" | "notice";
@@ -34,6 +35,8 @@ export type PublicationListPageData = {
 
 export type PublicationSourceDirectoryPageData = {
   directory: PublicPublicationSourceDirectory;
+  tableFilterLabels: TableFilterLabels;
+  applyFiltersLabel: string;
 };
 
 export type PublicationSourceSummary = PublicPublicationSourceSummary;

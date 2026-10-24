@@ -2,7 +2,11 @@ import { expect } from "@playwright/test";
 import { openCatalogColumnFilter } from "../../../utils/catalog-table-filters";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { openWorkspaceTaskFilter } from "../../../utils/workspace-task-filters";
+import {
+  applyWorkspaceTaskFilter,
+  openWorkspaceTaskFilter,
+  workspaceTaskFilterControl,
+} from "../../../utils/workspace-task-filters";
 import {
   createSemesterTerms,
   prepareSemesterObservation,
@@ -143,7 +147,7 @@ for (const domain of [
             for (const [index, { term }] of f.terms.entries())
               await expect(
                 dialog.locator(
-                  `select[name="semesterId"] option[value="${term.id}"]`,
+                  `[data-filter-field="semesterId"] label[for$="-${term.id}"]`,
                 ),
               ).toHaveText(labels[index]);
             await page.keyboard.press("Escape");
@@ -172,13 +176,14 @@ for (const domain of [
           for (const kind of ["exams", "homeworks"] as const) {
             if ((kind === "exams" ? "Exam" : "Homework") !== domain) continue;
             await gotoAndWaitForReady(page, `/workspace/${kind}`);
-            const dialog = await openWorkspaceTaskFilter(page, kind);
-            await dialog
-              .getByRole("radio", {
-                name: locale === "en-us" ? "All" : "全部",
-                exact: true,
-              })
-              .click();
+            await openWorkspaceTaskFilter(page, kind);
+            await applyWorkspaceTaskFilter(
+              page,
+              workspaceTaskFilterControl(
+                page,
+                locale === "en-us" ? "All" : "全部",
+              ),
+            );
             await page.keyboard.press("Escape");
             for (const label of labels)
               await expect(page.locator("#main-content")).toContainText(label);
