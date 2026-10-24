@@ -159,7 +159,7 @@ test("/admin/moderation 无效标签回退到评论", { tag: "@Admin/Web" }, asy
       async () => {
         await gotoAndWaitForReady(page, "/admin/moderation?tab=bad");
         await expect(
-          page.locator('input[type="hidden"][name="tab"]'),
+          page.locator('thead:visible input[type="hidden"][name="tab"]'),
         ).toHaveValue("comments");
         await expect(page.getByText("bad", { exact: true })).toHaveCount(0);
       },
@@ -402,7 +402,13 @@ test("/admin/moderation 可切换状态筛选下拉", { tag: "@Comment/Web" }, a
       async () => {
         await gotoAndWaitForReady(page, "/admin/moderation");
 
-        const filter = page.getByRole("combobox").first();
+        const trigger = page
+          .locator("thead")
+          .getByRole("button", { name: /^(状态|Status)$/i });
+        await expect(trigger).toBeVisible();
+        await trigger.click();
+        const dialog = page.getByRole("dialog", { name: /^(状态|Status)$/i });
+        const filter = dialog.getByRole("combobox");
         await expect(filter).toBeVisible();
         const option = page
           .getByRole("option", { name: /已删除|Deleted/i })
@@ -410,6 +416,98 @@ test("/admin/moderation 可切换状态筛选下拉", { tag: "@Comment/Web" }, a
         await expect(option).toBeAttached();
         await filter.selectOption("deleted");
         await expect(filter).toHaveValue("deleted");
+        await dialog
+          .getByRole("button", { name: /筛选|Apply|Filter/i })
+          .click();
+        await expect(page).toHaveURL(/status=deleted/);
+        await expect(dialog).toBeHidden();
+        await trigger.click();
+        await expect(dialog.getByRole("combobox")).toHaveValue("deleted");
+      },
+      {},
+      adminWriteChecks([]),
+    ),
+  );
+});
+
+test("/admin/moderation 简介表头筛选保留全局搜索与空结果入口", {
+  tag: "@Description/Web",
+}, async ({ adminFlow, run, page, moderation }) => {
+  await run(() =>
+    adminFlow.run(
+      async () => {
+        for (const width of [1440, 390]) {
+          await page.setViewportSize({ width, height: 900 });
+          await gotoAndWaitForReady(page, "/admin/moderation?tab=descriptions");
+          const header = page.locator(
+            width >= 1280
+              ? "thead:visible"
+              : '[data-slot="collection-header"]:visible',
+          );
+          const search = header.getByRole("searchbox");
+          await search.fill(moderation.marker);
+          await header
+            .getByRole("button", { name: /^(发布于|Posted in)$/i })
+            .click();
+          const target = page.getByRole("dialog", {
+            name: /^(发布于|Posted in)$/i,
+          });
+          await target.getByRole("combobox").selectOption("teacher");
+          await page.keyboard.press("Escape");
+          await header
+            .getByRole("button", { name: /^(筛选|Filter)$/i })
+            .click();
+          await expect(page).toHaveURL(
+            (url) =>
+              url.searchParams.get("descriptionTarget") === "all" &&
+              url.searchParams.get("search") === moderation.marker,
+          );
+          await header
+            .getByRole("button", { name: /^(发布于|Posted in)$/i })
+            .click();
+          await target.getByRole("combobox").selectOption("course");
+          await target
+            .getByRole("button", { name: /^(筛选|Filter)$/i })
+            .click();
+          await expect(page).toHaveURL(
+            (url) => url.searchParams.get("descriptionTarget") === "course",
+          );
+          const previewTrigger = header.getByRole("button", {
+            name: /^(预览|Preview)$/i,
+          });
+          await previewTrigger.click();
+          const preview = page.getByRole("dialog", {
+            name: /^(预览|Preview)$/i,
+          });
+          await preview.getByRole("combobox").selectOption("empty");
+          await preview
+            .getByRole("button", { name: /^(筛选|Filter)$/i })
+            .click();
+          await expect(page).toHaveURL(
+            (url) =>
+              url.searchParams.get("tab") === "descriptions" &&
+              url.searchParams.get("search") === moderation.marker &&
+              url.searchParams.get("descriptionTarget") === "course" &&
+              url.searchParams.get("descriptionContent") === "empty",
+          );
+          await expect(
+            page.getByRole("button", {
+              name: /^(管理课程简介|Manage Description)$/i,
+            }),
+          ).toHaveCount(0);
+          await expect(search).toHaveValue(moderation.marker);
+          await previewTrigger.click();
+          await preview.getByRole("combobox").selectOption("withContent");
+          await preview
+            .getByRole("button", { name: /^(筛选|Filter)$/i })
+            .click();
+          await expect(
+            page.getByRole("button", {
+              name: /^(管理课程简介|Manage Description)$/i,
+            }),
+          ).toBeVisible();
+          await expect(search).toHaveValue(moderation.marker);
+        }
       },
       {},
       adminWriteChecks([]),

@@ -22,6 +22,7 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../../utils/academic-events";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
 
 test.describe("仪表盘考试", () => {
   test.describe.configure({ mode: "parallel" });
@@ -40,10 +41,12 @@ test.describe("仪表盘考试", () => {
         // Filter toolbar (exam.yml cross-section-exam-list.display.fields: completion filter)
         // In English locale: "Upcoming" / "Ended" / "All"
         const filterTabs = page.getByRole("group", { name: /考试|Exams/i });
+        await openWorkspaceTaskFilter(page, "exams");
         await expect(
           filterTabs.getByRole("radio", { name: /全部|All/i }),
         ).toBeVisible();
         // "Ended" in English, "已结束" or "已完成" in Chinese
+        await openWorkspaceTaskFilter(page, "exams");
         await expect(
           filterTabs.getByRole("radio", { name: /Ended|已结束|已完成/i }),
         ).toBeVisible();
@@ -56,6 +59,7 @@ test.describe("仪表盘考试", () => {
             .getByText(/当前筛选下暂无考试|No exams under this filter/i)
             .filter({ visible: true }),
         ).toBeVisible();
+        await openWorkspaceTaskFilter(page, "exams");
         await filterTabs.getByRole("radio", { name: /全部|All/i }).click();
         await expect(
           page
@@ -83,8 +87,10 @@ test.describe("仪表盘考试", () => {
 
         // Switch to "all" to see all exams regardless of completion
         const filterTabs = page.getByRole("group", { name: /考试|Exams/i });
+        await openWorkspaceTaskFilter(page, "exams");
         const allTab = filterTabs.getByRole("radio", { name: /全部|All/i });
         if ((await allTab.getAttribute("aria-checked")) !== "true") {
+          await openWorkspaceTaskFilter(page, "exams");
           await allTab.click();
         }
         await expect(allTab).toHaveAttribute("aria-checked", "true");
@@ -143,10 +149,12 @@ test.describe("仪表盘考试", () => {
       async () => {
         await gotoAndWaitForReady(page, "/workspace/exams");
 
+        await openWorkspaceTaskFilter(page, "exams");
         const allTab = page
           .getByRole("group", { name: /考试|Exams/i })
           .getByRole("radio", { name: /全部|All/i });
         if ((await allTab.getAttribute("aria-checked")) !== "true") {
+          await openWorkspaceTaskFilter(page, "exams");
           await allTab.click();
         }
 
@@ -155,6 +163,7 @@ test.describe("仪表盘考试", () => {
           .locator('a[href^="/catalog/sections/"]')
           .first();
         await expect(sectionLink).toBeVisible();
+        await page.keyboard.press("Escape");
         await sectionLink.click();
 
         await expect(page).toHaveURL(/\/catalog\/sections\/\d+/);
@@ -173,9 +182,11 @@ test.describe("仪表盘考试", () => {
         const filterTabs = page.getByRole("group", { name: /考试|Exams/i });
 
         // Switch to completed/ended filter
+        await openWorkspaceTaskFilter(page, "exams");
         const completedTab = filterTabs.getByRole("radio", {
           name: /Ended|已结束|已完成/i,
         });
+        await openWorkspaceTaskFilter(page, "exams");
         await completedTab.click();
         await expect(completedTab).toHaveAttribute("aria-checked", "true");
         const endedExamRows = page
@@ -192,9 +203,11 @@ test.describe("仪表盘考试", () => {
             .first(),
         ).toHaveText(/.+/);
         // Switching back to upcoming retains an empty selection.
+        await openWorkspaceTaskFilter(page, "exams");
         const incompleteTab = filterTabs.getByRole("radio", {
           name: /Upcoming|即将|即将考试|待完成|未结束/i,
         });
+        await openWorkspaceTaskFilter(page, "exams");
         await incompleteTab.click();
         await expect(incompleteTab).toHaveAttribute("aria-checked", "true");
         await expect(endedExamRows).toHaveCount(0);

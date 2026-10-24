@@ -70,10 +70,51 @@ test.describe("/news/sources 来源目录", () => {
       await expect(universityGroup).toHaveCount(0);
       await expect(officeRow).toHaveCount(1);
       await search.fill("no-matching-source");
-      await expect(page.getByRole("row")).toHaveCount(0);
+      await expect(page.locator("tr[data-publication-source]")).toHaveCount(0);
+      await expect(search).toBeVisible();
       await search.fill("");
       await expect(universityGroup).toBeVisible();
       await expect(officeGroup).toBeVisible();
+    });
+  });
+
+  test("全局表头搜索在手机与桌面保留分组锚点和空态恢复", {
+    tag: "@Publication/Web",
+  }, async ({ browseRun, page, publication: fixture }) => {
+    await browseRun(async () => {
+      for (const width of [390, 1280]) {
+        await page.setViewportSize({ width, height: 844 });
+        await gotoAndWaitForReady(page, "/news/sources");
+        const search = page.getByRole("searchbox", {
+          name: /搜索来源名称|Search source names/i,
+        });
+        await expect(search).toHaveCount(1);
+        expect(
+          await search.evaluate((input) => Boolean(input.closest("thead"))),
+        ).toBe(true);
+        await page.locator('a[href="#level-office"]').click();
+        await expect(page).toHaveURL(/#level-office$/);
+        const group = page.locator("#level-office");
+        await expect(group).toBeInViewport();
+        const heading = group.getByRole("heading", { level: 2 });
+        await expect(heading).toBeVisible();
+        await search.fill(fixture.officeSourceName);
+        await expect(page.locator("#level-university")).toHaveCount(0);
+        await expect(group).toContainText(fixture.officeSourceName);
+        await search.fill("no-matching-source");
+        await expect(search).toBeVisible();
+        await expect(page.locator("tr[data-publication-source]")).toHaveCount(
+          0,
+        );
+        await search.fill("");
+        await expect(page.locator("#level-university")).toBeVisible();
+        await expect(group).toBeVisible();
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+          ),
+        ).toBe(true);
+      }
     });
   });
 

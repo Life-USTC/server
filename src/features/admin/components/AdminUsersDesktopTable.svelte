@@ -1,17 +1,24 @@
 <script lang="ts">
 import SquarePen from "@lucide/svelte/icons/square-pen";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
+import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
+import AdminUsersSearchCard from "./AdminUsersSearchCard.svelte";
 import type {
   AdminUserFormatter,
   AdminUserRow,
+  AdminUsersCommonCopy,
   AdminUsersCopy,
 } from "./admin-user-types";
 
+export let commonCopy: AdminUsersCommonCopy;
+export let search: string;
+export let noResults: string;
 export let copy: AdminUsersCopy;
 export let displayName: AdminUserFormatter;
 export let formatDate: (value: Date | string | null | undefined) => string;
@@ -25,6 +32,9 @@ export let users: AdminUserRow[];
     <Table.Root class="w-full min-w-[56rem]">
       <Table.Caption class="sr-only">{copy.title}</Table.Caption>
       <Table.Header>
+        <TableControlsRow colspan={7}>
+          <AdminUsersSearchCard id="admin-user-search-desktop" {commonCopy} {copy} {search} />
+        </TableControlsRow>
         <Table.Row>
           <Table.Head class="w-[22%]">{copy.name}</Table.Head>
           <Table.Head class="w-[18%]">{copy.username}</Table.Head>
@@ -90,6 +100,8 @@ export let users: AdminUserRow[];
               </TableRowActions>
             </Table.Cell>
           </Table.Row>
+        {:else}
+          <Table.Row><Table.Cell colspan={7}><CollectionEmpty variant="compact" description={noResults} /></Table.Cell></Table.Row>
         {/each}
       </Table.Body>
     </Table.Root>

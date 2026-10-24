@@ -19,6 +19,19 @@ access:
   agent: Can read section information and manage personal section-related state through OAuth-authorized
     REST / MCP endpoints.
 requirements:
+- id: section.list-row-baselines
+  category: presentation
+  rule: Teaching-section list rows vertically align the linked course name with neighboring semester, teacher, credit, capacity and campus values.
+  surfaces:
+  - web
+  acceptance:
+    given: A populated teaching-section list displays a linked course name alongside single-line text and numeric values.
+    when: A desktop browser measures the visible text in the first row at 1280 and 1440 pixels.
+    then:
+    - The course-name text and neighboring non-monospace values share a vertical center within one pixel.
+    test:
+      file: tests/e2e/src/app/sections/test.ts
+      name: 中文目录在桌面宽度下不裁切或横向溢出
 - id: section.source-planning-metadata
   category: consistency
   rule: Required teaching weeks and catalog admin-class localized names are preserved. Catalog names without

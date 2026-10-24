@@ -1,3 +1,4 @@
+import { expect, type Page } from "@playwright/test";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 import type { TestPrismaClient } from "../../shared/prisma";
 import { withBrowserWorkflow } from "./browser-workflow";
@@ -11,6 +12,26 @@ import type { IsolatedWorker } from "./isolated-worker";
 import { test as workerTest } from "./owned-worker";
 
 const DAY_MS = 24 * 60 * 60 * 1_000;
+
+export async function openWorkspaceTaskFilter(
+  page: Page,
+  tab: "todos" | "homeworks" | "exams",
+) {
+  const labels = {
+    todos: /^(标题|Title)$/i,
+    homeworks: /^(状态|Status)$/i,
+    exams: /^(日期|Date)$/i,
+  };
+  const dialog = page.getByRole("dialog", { name: labels[tab] });
+  if (await dialog.isVisible()) return dialog;
+  const trigger = page
+    .locator('[data-slot="table-column-header"]')
+    .getByRole("button", { name: labels[tab] });
+  await expect(trigger).toBeVisible();
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
 
 /** Arrange only domain rows in the calling test's private database. */
 export async function createWorkspaceTaskFilterState(

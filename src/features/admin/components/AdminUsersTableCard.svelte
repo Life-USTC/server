@@ -4,13 +4,17 @@ import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import AdminUsersDesktopTable from "./AdminUsersDesktopTable.svelte";
 import AdminUsersMobileList from "./AdminUsersMobileList.svelte";
+import AdminUsersSearchCard from "./AdminUsersSearchCard.svelte";
 import type {
   AdminUserFormatter,
   AdminUserRow,
+  AdminUsersCommonCopy,
   AdminUsersCopy,
   AdminUsersPagination,
 } from "./admin-user-types";
 
+export let commonCopy: AdminUsersCommonCopy;
+export let search: string;
 export let copy: AdminUsersCopy & {
   accountsDescription: string;
   accountsTitle: string;
@@ -38,11 +42,12 @@ export let users: AdminUserRow[];
       })}
   />
 
-  {#if users.length === 0}
-    <CollectionEmpty variant="compact" description={copy.noResults} />
-  {:else}
     <ResponsiveCollection>
       {#snippet mobile()}
+        <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
+          <AdminUsersSearchCard id="admin-user-search-mobile" {commonCopy} {copy} {search} />
+        </div>
+        {#if users.length === 0}<CollectionEmpty variant="compact" description={copy.noResults} />{:else}
         <AdminUsersMobileList
           {copy}
           {displayName}
@@ -51,9 +56,13 @@ export let users: AdminUserRow[];
           {suspensionLabel}
           {users}
         />
+        {/if}
       {/snippet}
       {#snippet desktop()}
         <AdminUsersDesktopTable
+          {commonCopy}
+          {search}
+          noResults={copy.noResults}
           {copy}
           {displayName}
           {formatDate}
@@ -63,5 +72,4 @@ export let users: AdminUserRow[];
         />
       {/snippet}
     </ResponsiveCollection>
-  {/if}
 </section>

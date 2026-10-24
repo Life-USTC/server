@@ -500,8 +500,15 @@ async function tablesOf(file: string): Promise<Table[]> {
       for (const row of descendants(section, roleOf)) {
         if (roleOf(row.tag) !== "row") continue;
         if (roleOf(section.tag) === "header") {
+          const columns = columnsOf(row, file, source);
+          if (
+            columns.some((column) =>
+              /(^|\s)colspan[=\s]/.test(column.element.attributes),
+            )
+          )
+            continue;
           headerRows += 1;
-          heads.push(...columnsOf(row, file, source));
+          heads.push(...columns);
           continue;
         }
         const cells = columnsOf(row, file, source);
@@ -515,7 +522,7 @@ async function tablesOf(file: string): Promise<Table[]> {
         });
       }
     // A table whose body rows are an extracted row component: follow it.
-    if (headerRows === 1 && !rows.length)
+    if (headerRows === 1)
       for (const section of sections) {
         if (roleOf(section.tag) === "header") continue;
         for (const child of descendants(section, roleOf)) {
@@ -528,7 +535,7 @@ async function tablesOf(file: string): Promise<Table[]> {
             if (rowImports.get(namespace) !== TABLE_BARREL) return undefined;
             return ROLE_BY_EXPORT.get(member ?? namespace);
           };
-          for (const element of everyElement(parse(rowSource))) {
+          for (const element of descendants(parse(rowSource), rowRoleOf)) {
             if (rowRoleOf(element.tag) !== "row") continue;
             const cells = [...descendants(element, rowRoleOf)]
               .filter((node) =>
@@ -584,7 +591,7 @@ const ROW_HEADER_TABLES: readonly { file: string; sections: string }[] = [
   },
   {
     file: "src/features/workspace/components/BusTabRoutesTable.svelte",
-    sections: "body",
+    sections: "body+header",
   },
   {
     file: "src/features/workspace/components/TodoDetailDialog.svelte",
@@ -741,9 +748,11 @@ describe("ui.table-column-alignment", () => {
       [],
     );
     expect(
-      matched.length,
-      "body rows paired column-for-column with a header row",
-    ).toBeGreaterThan(22);
+      columnTables
+        .filter((table) => !matched.some((match) => match.table === table))
+        .map((table) => `${table.file}:${table.line}`),
+      "every column table has body rows paired column-for-column with its header, including tables with spanning controls or empty-state rows",
+    ).toEqual([]);
   });
 
   it("aligns each column's header and body cells", () => {

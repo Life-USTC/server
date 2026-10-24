@@ -166,13 +166,13 @@ for (const locale of ["zh-cn", "en-us"] as const)
                     },
                     tertiary: { "route.id": { value: String(f.route.id) } },
                   });
-                  await main
-                    .getByRole("button", {
-                      name: copy.bus.changeRoute,
-                      exact: true,
-                    })
-                    .click();
                 }
+                await main
+                  .getByRole("button", {
+                    name: copy.bus.changeRoute,
+                    exact: true,
+                  })
+                  .click();
                 await assertPriorityView({
                   scope: main,
                   identity: routeTitle,

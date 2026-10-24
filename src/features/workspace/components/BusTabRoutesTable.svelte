@@ -1,7 +1,8 @@
 <script lang="ts">
 import ChevronLeftIcon from "@lucide/svelte/icons/chevron-left";
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
-import { onMount } from "svelte";
+import { onMount, type Snippet } from "svelte";
+import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import * as Table from "#lib/components/ui/table/index.js";
 import { cn } from "#lib/utils.js";
 import BusRouteDescription from "@/features/bus/components/BusRouteDescription.svelte";
@@ -15,6 +16,8 @@ import {
 export let busNextTripHighlightKey: string | null;
 export let routes: BusApplicableRoute[];
 export let label: string;
+export let controls: Snippet;
+export let empty: Snippet;
 
 let canScrollLeft = false;
 let canScrollRight = false;
@@ -65,6 +68,9 @@ onMount(() => {
   >
     <Table.Root class="min-w-[var(--table-min-width)]">
       <Table.Caption class="sr-only">{label}</Table.Caption>
+      <Table.Header class="hidden lg:table-header-group">
+        <TableControlsRow colspan={columnCount}>{@render controls()}</TableControlsRow>
+      </Table.Header>
       {#each routeGroups as { route, stopColumns } (route.route.id)}
         <Table.Body data-testid="bus-route-section">
           <Table.Row>
@@ -108,6 +114,8 @@ onMount(() => {
             </Table.Row>
           {/each}
         </Table.Body>
+      {:else}
+        <Table.Body><Table.Row><Table.Cell colspan={columnCount}>{@render empty()}</Table.Cell></Table.Row></Table.Body>
       {/each}
     </Table.Root>
     {#if canScrollLeft}

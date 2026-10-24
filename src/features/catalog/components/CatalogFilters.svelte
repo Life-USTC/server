@@ -1,7 +1,6 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
 import ActiveFilters from "#lib/components/ActiveFilters.svelte";
-import FilterToolbar from "#lib/components/FilterToolbar.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
 import { toolbarControlClass } from "#lib/components/toolbar-control.js";
 import { Button } from "#lib/components/ui/button/index.js";
@@ -10,10 +9,8 @@ let {
   activeFilters = [],
   clearHref,
   clearLabel,
-  filterDescription,
   filterTitle,
   hiddenFilters = [],
-  open = $bindable(false),
   searchId,
   searchLabel,
   searchPlaceholder,
@@ -23,27 +20,23 @@ let {
   activeFilters?: { href: string; label: string }[];
   clearHref: string;
   clearLabel: string;
-  filterDescription?: string;
   filterTitle: string;
   hiddenFilters?: { name: string; value: string }[];
-  open?: boolean;
   searchId: string;
   searchLabel: string;
   searchPlaceholder: string;
   searchValue?: string;
-  children: Snippet;
+  children?: Snippet;
 } = $props();
 </script>
-<div class="grid min-w-0 gap-3">
-  <FilterToolbar {filterTitle} {filterDescription} activeCount={activeFilters.length} bind:open>
-    {#snippet primary()}
-      <form method="get" class="flex min-w-0 flex-1 items-center gap-2">
+<div class="grid w-full min-w-0 gap-3">
+  <div class="flex min-w-0 flex-wrap items-center gap-2">
+      <form method="get" class="flex w-full min-w-0 flex-none items-center gap-2 xl:w-auto xl:flex-1">
         <SearchField id={searchId} name="search" label={searchLabel} placeholder={searchPlaceholder} bind:value={searchValue} />
         {#each hiddenFilters as filter}{#if filter.value}<input type="hidden" name={filter.name} value={filter.value} />{/if}{/each}
         <Button type="submit" class={toolbarControlClass}>{searchLabel}</Button>
       </form>
-    {/snippet}
-    {#snippet advanced()}{@render children()}{/snippet}
-  </FilterToolbar>
+    {@render children?.()}
+  </div>
   <ActiveFilters items={activeFilters} ariaLabel={filterTitle} {clearHref} {clearLabel} />
 </div>

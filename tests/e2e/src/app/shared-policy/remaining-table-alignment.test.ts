@@ -8,7 +8,7 @@ async function checkColumns(
   table: Locator,
   expected: Alignment[],
   name: string,
-  headers = "thead th",
+  headers = "thead th:not([colspan])",
   rows = "tbody tr",
 ) {
   await expect(table).toBeVisible();
@@ -254,6 +254,9 @@ for (const [domain, names] of [
     }
     if (domain === "Bus") {
       await gotoAndWaitForReady(page, "/catalog/bus");
+      await page
+        .getByRole("button", { name: "Change route", exact: true })
+        .click();
       // The seeded routes have weekday trips; layout checks must not depend on today.
       const weekday = page.getByRole("radio", { name: "Weekday", exact: true });
       await weekday.click();

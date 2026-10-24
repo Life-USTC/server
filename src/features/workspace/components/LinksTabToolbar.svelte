@@ -1,19 +1,15 @@
 <script lang="ts">
-import FilterToolbar from "#lib/components/FilterToolbar.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
 import type { WorkspaceCopy } from "@/features/workspace/lib/workspace-controller-helpers";
 
 export let workspaceCopy: Pick<WorkspaceCopy, "linkHub">;
 export let linkSearchQuery: string;
+export let id: string;
 </script>
 
-<FilterToolbar>
-  {#snippet primary()}
     <SearchField
-      id="catalog-link-search"
+      {id}
       label={workspaceCopy.linkHub.searchPlaceholder}
       placeholder={workspaceCopy.linkHub.searchPlaceholder}
       bind:value={linkSearchQuery}
     />
-  {/snippet}
-</FilterToolbar>

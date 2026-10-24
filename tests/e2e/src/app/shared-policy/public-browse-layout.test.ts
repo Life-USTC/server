@@ -71,17 +71,25 @@ for (const [domain, names] of [
             ':scope > [data-slot="page-layout-content"] > [data-slot="page-section"]',
           );
           await expect(panel).toHaveCount(1);
-          const filters = panel.locator('[data-slot="page-section-header"]');
-          await expect(filters.getByRole("searchbox").first()).toBeVisible();
+          const search = panel.getByRole("searchbox");
+          await expect(search).toBeVisible();
+          if (item.name !== "news") {
+            expect(
+              await search.evaluate((node) =>
+                Boolean(node.closest('thead, [data-slot="collection-header"]')),
+              ),
+              `${item.name}: search belongs to its table or compact collection header`,
+            ).toBe(true);
+          }
           const summary = panel.locator('[data-slot="results-summary"]');
           const rows = records(page, item.name, width);
           await expect(rows).toHaveCount(20);
           const pagination = panel.locator('[data-slot="list-pagination"]');
           await expect(pagination).toHaveCount(1);
           const ordered = await panel.evaluate((element) => {
-            const filter = element.querySelector(
-              '[data-slot="page-section-header"]',
-            );
+            const filter = Array.from(
+              element.querySelectorAll('input[type="search"]'),
+            ).find((node) => node.getClientRects().length > 0);
             const summary = element.querySelector(
               '[data-slot="results-summary"]',
             );
@@ -91,7 +99,7 @@ for (const [domain, names] of [
             if (!filter || !summary || !footer) return false;
             return (
               Boolean(
-                filter.compareDocumentPosition(summary) &
+                filter.compareDocumentPosition(footer) &
                   Node.DOCUMENT_POSITION_FOLLOWING,
               ) &&
               Boolean(

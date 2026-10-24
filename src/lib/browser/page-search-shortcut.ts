@@ -33,9 +33,9 @@ export function mountPageSearchShortcut(
   getInput: () => HTMLInputElement | null | undefined,
 ) {
   function handleShortcut(event: KeyboardEvent) {
-    if (!isPageSearchShortcut(event)) return;
+    if (event.defaultPrevented || !isPageSearchShortcut(event)) return;
     const input = getInput();
-    if (!input) return;
+    if (!input || input.disabled || !input.getClientRects().length) return;
     event.preventDefault();
     input.focus();
     input.select();

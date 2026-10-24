@@ -5,6 +5,7 @@ import ListPagination from "#lib/components/ListPagination.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
+import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
@@ -47,6 +48,7 @@ type Props = {
 let { categories, copy, data, filters, organizers, pagination, source }: Props =
   $props();
 
+let searchDraft = $derived(filters.search ?? "");
 const youngCopy = $derived(copy.youngEvents);
 const commonLabels = $derived(copy.common);
 
@@ -130,17 +132,13 @@ function listStatus(event: YoungEventSummary) {
   </p>
 {/snippet}
 
+{#snippet empty()}
+  <CollectionEmpty description={youngCopy.description} title={youngCopy.noEventsFound} variant="browse" />
+{/snippet}
+
 <CollectionPage footer={paginationFooter} title={youngCopy.title}>
   {#snippet belowTitle()}
     {@render description()}
-  {/snippet}
-  {#snippet toolbar()}
-    <YoungEventFilters
-      copy={copy}
-      filters={filters}
-      organizers={organizers}
-      categories={categories}
-    />
   {/snippet}
   <section class="grid min-w-0 gap-3">
     <ResultsSummary
@@ -149,9 +147,16 @@ function listStatus(event: YoungEventSummary) {
       totalPages={pagination.totalPages}
     />
 
-    {#if data.length > 0}
       <ResponsiveCollection>
         {#snippet mobile()}
+          <div class="grid gap-3" data-slot="collection-header">
+            <YoungEventFilters {copy} {filters} {organizers} {categories} mode="search" prefix="mobile-young-event" bind:searchDraft />
+            <div class="flex flex-wrap items-center gap-4">
+              <YoungEventFilters {copy} {filters} {organizers} {categories} mode="metadata" prefix="mobile-young-event" bind:searchDraft />
+              <YoungEventFilters {copy} {filters} {organizers} {categories} mode="status" prefix="mobile-young-event" bind:searchDraft />
+            </div>
+          </div>
+          {#if data.length > 0}
           <div class="grid gap-6">
             {#each groups as group (group.key || "unknown")}
               <section class="grid gap-1">
@@ -184,16 +189,22 @@ function listStatus(event: YoungEventSummary) {
               </section>
             {/each}
           </div>
+          {:else}
+            {@render empty()}
+          {/if}
         {/snippet}
         {#snippet desktop()}
           <Table.Root>
             <Table.Header>
+              <TableControlsRow colspan={5}>
+                <YoungEventFilters {copy} {filters} {organizers} {categories} mode="search" prefix="desktop-young-event" bind:searchDraft />
+              </TableControlsRow>
               <Table.Row>
-                <Table.Head>{youngCopy.eventName}</Table.Head>
+                <Table.Head><YoungEventFilters {copy} {filters} {organizers} {categories} mode="metadata" prefix="desktop-young-event" bind:searchDraft /></Table.Head>
                 <Table.Head>{youngCopy.eventTime}</Table.Head>
                 <Table.Head>{youngCopy.location}</Table.Head>
                 <Table.Head class="text-right" style="text-align: right">{youngCopy.capacity}</Table.Head>
-                <Table.Head>{youngCopy.status}</Table.Head>
+                <Table.Head><YoungEventFilters {copy} {filters} {organizers} {categories} mode="status" prefix="desktop-young-event" bind:searchDraft /></Table.Head>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -211,16 +222,11 @@ function listStatus(event: YoungEventSummary) {
                   <Table.Cell>{@render statusBadge(event)}</Table.Cell>
                 </Table.Row>
               {/each}
+            {#if data.length === 0}<Table.Row><Table.Cell colspan={5}>{@render empty()}</Table.Cell></Table.Row>{/if}
             </Table.Body>
           </Table.Root>
         {/snippet}
       </ResponsiveCollection>
-    {:else}
-      <CollectionEmpty
-        description={youngCopy.description}
-        title={youngCopy.noEventsFound}
-        variant="browse"
-      />
-    {/if}
+
   </section>
 </CollectionPage>

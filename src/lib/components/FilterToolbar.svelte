@@ -12,7 +12,6 @@ let {
   advanced,
   actions,
   filterTitle = "",
-  filterDescription,
   activeCount = 0,
   open = $bindable(false),
 }: {
@@ -20,7 +19,6 @@ let {
   advanced?: Snippet;
   actions?: Snippet;
   filterTitle?: string;
-  filterDescription?: string;
   activeCount?: number;
   open?: boolean;
 } = $props();
@@ -60,7 +58,7 @@ onMount(() => {
       <Sheet.Content side={narrow ? "bottom" : "right"} class={narrow ? "max-h-[85dvh] gap-0 overflow-hidden rounded-t-xl p-0" : "gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-lg"}>
         <Sheet.Header class="shrink-0 border-b pr-12">
           <Sheet.Title>{filterTitle}</Sheet.Title>
-          <Sheet.Description class={filterDescription ? undefined : "sr-only"}>{filterDescription || filterTitle}</Sheet.Description>
+          <Sheet.Description class="sr-only">{filterTitle}</Sheet.Description>
         </Sheet.Header>
         <div class="min-h-0 flex-1 overflow-y-auto p-4">{@render advanced()}</div>
       </Sheet.Content>

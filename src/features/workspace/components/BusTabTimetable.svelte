@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { Snippet } from "svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Empty from "#lib/components/ui/empty/index.js";
 import type { BusApplicableRoute } from "@/features/bus/lib/bus-client";
@@ -9,6 +10,7 @@ import type {
 import BusTabRoutesTable from "./BusTabRoutesTable.svelte";
 import BusTabTimetableNotice from "./BusTabTimetableNotice.svelte";
 
+export let controls: Snippet;
 export let bus: WorkspaceBusData;
 export let busApplicableRoutes: BusApplicableRoute[];
 export let busCopy: WorkspaceBusCopy;
@@ -34,30 +36,23 @@ export let showHeader = false;
       </div>
     {/if}
 
-    {#if busApplicableRoutes.length > 0}
-      <BusTabRoutesTable
-        {busNextTripHighlightKey}
-        routes={busApplicableRoutes}
-        label={busCopy.workspaceTitle}
-      />
-    {:else}
-      <Empty.Root>
-        <Empty.Header>
-          <Empty.Description>{busCopy.planner.empty}</Empty.Description>
-        </Empty.Header>
-        <Empty.Content>
-          <Button
-            class="h-11 md:h-8"
-            disabled={!busPlannerReady}
-            type="button"
-            variant="outline"
-            onclick={reverseBusStops}
-          >
-            {busCopy.planner.emptyReverseAction}
-          </Button>
-        </Empty.Content>
-      </Empty.Root>
-    {/if}
+    <BusTabRoutesTable
+      {busNextTripHighlightKey}
+      routes={busApplicableRoutes}
+      label={busCopy.workspaceTitle}
+      {controls}
+    >
+      {#snippet empty()}
+        <Empty.Root>
+          <Empty.Header><Empty.Description>{busCopy.planner.empty}</Empty.Description></Empty.Header>
+          <Empty.Content>
+            <Button class="h-11 md:h-8" disabled={!busPlannerReady} type="button" variant="outline" onclick={reverseBusStops}>
+              {busCopy.planner.emptyReverseAction}
+            </Button>
+          </Empty.Content>
+        </Empty.Root>
+      {/snippet}
+    </BusTabRoutesTable>
 
     <BusTabTimetableNotice
       {bus}

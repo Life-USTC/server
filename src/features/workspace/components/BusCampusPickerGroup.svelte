@@ -9,6 +9,7 @@ export let label: string;
 export let onSelect: (campusId: number) => void;
 export let selectedCampusId: number | null;
 export let testId: string;
+export let idPrefix: string;
 
 function selectCampus(value: string) {
   if (!value) return;
@@ -21,9 +22,9 @@ function selectCampus(value: string) {
 </script>
 
 <Field.Field data-disabled={disabled ? "true" : undefined} data-testid={testId}>
-  <Field.Title id={`${testId}-label`}>{label}</Field.Title>
+  <Field.Title id={`${idPrefix}-label`}>{label}</Field.Title>
   <ToggleGroup.Root
-    aria-labelledby={`${testId}-label`}
+    aria-labelledby={`${idPrefix}-label`}
     class="grid w-full grid-cols-3"
     spacing={2}
     type="single"

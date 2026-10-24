@@ -5,6 +5,7 @@ import CollectionListShell from "#lib/components/CollectionListShell.svelte";
 import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
+import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -12,7 +13,10 @@ import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
-import type { AdminModerationHomework } from "./admin-moderation-page-types";
+import type {
+  AdminModerationFilterControls,
+  AdminModerationHomework,
+} from "./admin-moderation-page-types";
 
 type HomeworksCopy = {
   actions: string;
@@ -29,6 +33,7 @@ type HomeworksCopy = {
   status: string;
 };
 
+export let filterControls: AdminModerationFilterControls;
 export let copy: HomeworksCopy;
 export let formatDate: (value: string | Date) => string;
 export let homeworks: AdminModerationHomework[];
@@ -44,11 +49,13 @@ function creatorLabel(homework: AdminModerationHomework) {
 </script>
 
 <section class="grid gap-3">
-  {#if homeworks.length === 0}
-    <CollectionEmpty variant="compact" description={copy.noHomeworks} />
-  {:else}
     <ResponsiveCollection>
       {#snippet mobile()}
+        <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
+          {@render filterControls("search", "mobile")}
+          {@render filterControls("status", "mobile")}
+        </div>
+        {#if homeworks.length === 0}<CollectionEmpty variant="compact" description={copy.noHomeworks} />{:else}
         <CollectionListShell>
           <Item.Group class="gap-0">
           {#each homeworks as homework, index (homework.id)}
@@ -90,6 +97,7 @@ function creatorLabel(homework: AdminModerationHomework) {
           {/each}
           </Item.Group>
         </CollectionListShell>
+        {/if}
       {/snippet}
       {#snippet desktop()}
 
@@ -97,12 +105,13 @@ function creatorLabel(homework: AdminModerationHomework) {
           <CollectionTableShell label={copy.homeworkTitle}>
             <Table.Root class="w-full min-w-[62rem]">
             <Table.Header>
+        <TableControlsRow colspan={6}>{@render filterControls("search", "desktop")}</TableControlsRow>
               <Table.Row>
                 <Table.Head class="w-[28%]">{copy.homeworkTitle}</Table.Head>
                 <Table.Head class="w-[22%]">{copy.homeworkSection}</Table.Head>
                 <Table.Head class="w-[16%] text-right">{copy.createdAt}</Table.Head>
                 <Table.Head class="w-[16%] text-right">{copy.homeworkDue}</Table.Head>
-                <Table.Head class="w-[12%] text-center">{copy.status}</Table.Head>
+                <Table.Head class="w-[12%] text-center">{@render filterControls("status", "desktop")}</Table.Head>
                 <Table.Head class="w-14 min-w-14 text-right">
                   <span class="sr-only">{copy.actions}</span>
                 </Table.Head>
@@ -152,12 +161,13 @@ function creatorLabel(homework: AdminModerationHomework) {
                     {/if}
                   </Table.Cell>
                 </Table.Row>
-              {/each}
+              {:else}
+          <Table.Row><Table.Cell colspan={6}><CollectionEmpty variant="compact" description={copy.noHomeworks} /></Table.Cell></Table.Row>
+        {/each}
             </Table.Body>
             </Table.Root>
           </CollectionTableShell>
         </div>
       {/snippet}
     </ResponsiveCollection>
-  {/if}
 </section>

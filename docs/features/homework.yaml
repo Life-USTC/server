@@ -506,14 +506,13 @@ requirements:
       name: homework.oauth-write-gates
 - id: homework.responsive-workspace-view
   category: presentation
-  rule: Workspace homework displays cards on mobile and lists on desktop, with directly available completion
-    filters and no view-mode control.
+  rule: Workspace homework displays cards on mobile and lists on desktop. Completion filters open from the desktop status column header or the mobile collection header, including when no records match. There is no view-mode control.
   acceptance:
     given: An authenticated owner subscribes to a section with actual homework records.
     when: The workspace renders at desktop and mobile widths and the viewer selects every completion filter.
     then:
     - Desktop displays the homework list and mobile displays cards.
-    - Completion filters stay directly visible and selection works.
+    - The visible status header opens completion filters and selection works, including recovery from empty results.
     - There is no display-mode selector or menu and no horizontal page overflow.
     test:
       file: tests/e2e/src/app/workspace/homeworks/presentation-contract.test.ts

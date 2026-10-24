@@ -1,5 +1,4 @@
 <script lang="ts">
-import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import { linkGroupSectionClass } from "@/features/workspace/lib/link-table-layout";
 import type {
   SignedLinkGroup,
@@ -9,7 +8,6 @@ import type {
   WorkspaceOverviewLinkItem,
 } from "@/features/workspace/lib/workspace-controller-helpers";
 import LinksTabGrid from "./LinksTabGrid.svelte";
-import LinksTabList from "./LinksTabList.svelte";
 
 export let workspaceCopy: WorkspaceCopy;
 export let entry: SignedLinkGroup;
@@ -33,8 +31,6 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
   <h3 class="font-medium text-muted-foreground text-sm">
     {entry.label}
   </h3>
-  <WorkspaceCollection>
-    {#snippet mobile()}
       <LinksTabGrid
         links={entry.links}
         {linkIconLabel}
@@ -44,20 +40,4 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
         {submitWorkspaceLinkPin}
         {updatingCatalogLinkSlug}
       />
-    {/snippet}
-    {#snippet desktop()}
-      <LinksTabList
-        colActions={workspaceCopy.linkHub.colActions}
-        colDescription={workspaceCopy.linkHub.colDescription}
-        colName={workspaceCopy.linkHub.colName}
-        links={entry.links}
-        {linkIconLabel}
-        {linkReturnTo}
-        {pinAction}
-        {pinLabel}
-        {submitWorkspaceLinkPin}
-        {updatingCatalogLinkSlug}
-      />
-    {/snippet}
-  </WorkspaceCollection>
 </section>

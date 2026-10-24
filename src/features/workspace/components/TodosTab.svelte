@@ -16,6 +16,7 @@ import TodosCardsView from "./TodosCardsView.svelte";
 import TodosListView from "./TodosListView.svelte";
 import TodosTabDialogs from "./TodosTabDialogs.svelte";
 import TodosTabToolbar from "./TodosTabToolbar.svelte";
+import WorkspaceTaskToolbar from "./WorkspaceTaskToolbar.svelte";
 
 type TodoDateFormatter = (value: Date | string | null | undefined) => string;
 type TodoAction = (todo: WorkspaceTodoItem) => string;
@@ -74,15 +75,23 @@ function clearTodoFilter() {
 }
 </script>
 
+{#snippet completionFilter()}
+  <WorkspaceTaskToolbar
+    ariaLabel={String(todosCopy.title)}
+    columnLabel={todosCopy.titleLabel}
+    filter={todoFilter}
+    onFilterChange={(value) => { todoFilter = value; }}
+    filterIncompleteLabel={String(todosCopy.filterIncomplete)}
+    filterCompletedLabel={String(todosCopy.filterCompleted)}
+    filterAllLabel={String(todosCopy.filterAll)}
+  />
+{/snippet}
+
 <section class="grid gap-4">
   <TodosTabToolbar
     {readOnlyReason}
     bind:createTodoError
     bind:showCreateTodo
-    todoFilter={todoFilter}
-    onTodoFilterChange={(value) => {
-      todoFilter = value;
-    }}
     todosCopy={todosCopy}
   />
 
@@ -94,6 +103,9 @@ function clearTodoFilter() {
 
   <WorkspaceCollection>
     {#snippet mobile()}
+      <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
+        {@render completionFilter()}
+      </div>
       <TodosCardsView
         {readOnlyReason}
         filteredTodos={filteredTodos}
@@ -111,6 +123,7 @@ function clearTodoFilter() {
     {/snippet}
     {#snippet desktop()}
       <TodosListView
+        filterControls={completionFilter}
         {readOnlyReason}
         filteredTodos={filteredTodos}
         hasTodoItems={hasTodoItems}

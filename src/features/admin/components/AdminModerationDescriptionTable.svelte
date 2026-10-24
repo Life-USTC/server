@@ -1,6 +1,8 @@
 <script lang="ts">
 import SquarePen from "@lucide/svelte/icons/square-pen";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
+import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -13,7 +15,9 @@ import type {
   AdminModerationDescription,
   AdminModerationDescriptionCopy,
 } from "./admin-moderation-description-types";
+import type { AdminModerationFilterControls } from "./admin-moderation-page-types";
 
+export let filterControls: AdminModerationFilterControls;
 export let copy: AdminModerationDescriptionCopy;
 export let descriptions: AdminModerationDescription[];
 export let descriptionTargetHref: (
@@ -28,10 +32,11 @@ export let targetLabel: (description: AdminModerationDescription) => string;
   <CollectionTableShell label={copy.descriptionPreview}>
     <Table.Root class="w-full min-w-[54rem]">
       <Table.Header>
+        <TableControlsRow colspan={5}>{@render filterControls("search", "desktop")}</TableControlsRow>
         <Table.Row>
-          <Table.Head class="w-[36%]">{copy.descriptionPreview}</Table.Head>
+          <Table.Head class="w-[36%]">{@render filterControls("descriptionContent", "desktop")}</Table.Head>
           <Table.Head class="w-[18%]">{copy.author}</Table.Head>
-          <Table.Head class="w-[22%]">{copy.postedIn}</Table.Head>
+          <Table.Head class="w-[22%]">{@render filterControls("descriptionTarget", "desktop")}</Table.Head>
           <Table.Head class="w-[14%] text-right">{copy.editedAtLabel}</Table.Head>
           <Table.Head class="w-14 min-w-14 text-right">
             <span class="sr-only">{copy.actions}</span>
@@ -80,6 +85,8 @@ export let targetLabel: (description: AdminModerationDescription) => string;
               </TableRowActions>
             </Table.Cell>
           </Table.Row>
+        {:else}
+          <Table.Row><Table.Cell colspan={5}><CollectionEmpty variant="compact" description={copy.noDescriptions} /></Table.Cell></Table.Row>
         {/each}
       </Table.Body>
     </Table.Root>

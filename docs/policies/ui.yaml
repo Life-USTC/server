@@ -161,38 +161,40 @@ requirements:
 - id: ui.list-table-1
   category: presentation
   topic: list-table
-  rule: Public course, teacher, section, Young event, Young organizer and news browse collections use PageLayout, PageHeader and Panel, with visible filters before the result summary and records, followed by pagination.
+  rule: Public course, teacher, section, Young event, Young organizer and news browse collections use PageLayout, PageHeader and Panel. Headings and summaries precede records and pagination follows them. Data-table search, filters and sorting live in the table header; compact card views expose the same controls in their collection header. News retains its title-led list and existing filter toolbar.
   rationale: Administrative and personal workspaces deliberately use their shared workspace structures; ui.layout-principles-4 owns primitive reuse. Their applicable collection ordering remains in ui.other-collection-order.
   acceptance:
     given: Isolated data provides more than one page of results for each of the six public browse collections.
     when: A browser opens the filtered first page at mobile and desktop widths.
     then:
-    - The shared page frame contains its heading and panel; visible filters precede the result summary and records, and pagination follows in the panel footer.
+    - The shared page frame contains its heading and panel; summaries and header controls precede records, and pagination follows in the panel footer.
+    - Table search controls belong to the visible table header on desktop and the compact collection header on mobile.
     test:
       file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
       name: ui.list-table-1 Course
 - id: ui.other-collection-order
   category: presentation
   topic: list-table
-  rule: Link and publication-source directories, workspace uploads, the three activity-reminder views, and administrative users, bus, OAuth and four moderation lists put their page heading before the applicable filters, result summary and records; available pagination follows the records. Their layout uses the shared primitives required by ui.layout-principles-4.
+  rule: Link and publication-source directories, workspace uploads, the three activity-reminder views, and administrative users, bus, OAuth and four moderation lists put their page heading before summaries and records; available pagination follows the records. Existing table filters and search belong to column headers or a spanning header row for controls that apply to several columns or groups. Compact card views retain these controls in their collection header. Their layout uses the shared primitives required by ui.layout-principles-4.
   acceptance:
     given: Isolated uploads, subscriptions, notifications, accounts and moderation records populate the thirteen directory/workspace/administrative views alongside the application link registry and publication source fixture.
     when: A browser opens each view at mobile and desktop widths.
     then:
-    - The visible page heading precedes applicable filters and summaries, which precede records; every available pagination region follows the final record.
+    - The visible page heading precedes applicable header controls and summaries, which precede records; every available pagination region follows the final record.
+    - Shared group searches keep their whole-collection scope and remain available when no groups match.
     test:
       file: tests/e2e/src/app/shared-policy/other-collection-layout.test.ts
       name: ui.other-collection-order
 - id: ui.embedded-collection-order
   category: presentation
   topic: list-table
-  rule: Collection surfaces outside the public browse pages in ui.list-table-1 and the directory/workspace/administrative views in ui.other-collection-order, including embedded workspace task and detail collections, put their heading before applicable filters, result summary and records; available pagination follows the records.
+  rule: Collection surfaces outside the public browse pages in ui.list-table-1 and the directory/workspace/administrative views in ui.other-collection-order, including embedded workspace task and detail collections, put their heading before result summaries and records; applicable filters live in the table or compact collection header and available pagination follows the records.
   rationale: These embedded collection ordering obligations remain separate from verified top-level browse layouts. A heading and its summary may share a row in reading order.
   acceptance:
     given: Isolated records populate workspace homework/exam/todo/subscription collections, course/teacher offering history, organizer activity history and section homework/calendar/exam collections.
     when: A browser opens all ten collections at 390, 1024 and 1280 pixels and measures their DOM and visual order.
     then:
-    - Headings precede applicable filters and result summaries, followed by populated records; course, teacher and organizer pagination follows the final record.
+    - Headings precede applicable header controls and result summaries, followed by populated records; course, teacher and organizer pagination follows the final record.
     test:
       file: tests/e2e/src/app/shared-policy/embedded-collection-layout.test.ts
       name: ui.embedded-collection-order Course
@@ -215,25 +217,24 @@ requirements:
 - id: ui.list-table-3
   category: presentation
   topic: list-table
-  rule: Advanced list filters use one labeled Sheet containing the complete declared filter form and explicit
-    Apply and dismiss actions.
+  rule: Data-table filters and sorting open from the corresponding column heading in labeled popovers. Whole-table search and filters without a displayed column belong to a spanning header row. Each catalog column filter retains an explicit Apply action; Escape or clicking outside dismisses without applying. Empty results retain the header controls.
   acceptance:
     given: The seeded course, teacher, and section collections expose their declared advanced filters.
-    when: An anonymous browser opens each advanced-filter sheet and inspects its accessible name, form fields, Apply action, and explicit Close action.
+    when: An anonymous browser opens each column filter at desktop and mobile widths and inspects its accessible name, form fields, Apply action, and dismissal behavior.
     then:
-    - Exactly one named sheet contains every declared advanced field and one form.
-    - Apply is visible and Close dismisses the sheet.
+    - Every declared filter is reachable from its corresponding column or whole-table header; each opened form has labeled fields and an Apply action.
+    - Escape dismisses the popover and restores focus to its heading; controls remain usable with zero results.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
       name: ui.list-table-3 Course
 - id: ui.list-table-4
   category: presentation
   topic: list-table
-  rule: Opening advanced filters initializes draft values from the current applied URL query. Closing the sheet
+  rule: Opening a column filter initializes draft values from the current applied URL query. Closing the popover
     without Apply leaves the URL and results unchanged.
   acceptance:
     given: Course, teacher, and section URLs apply all advanced filters to a seeded matching result.
-    when: The browser opens each sheet, changes every draft, dismisses through Close and Escape, then reopens it.
+    when: The browser opens each column filter, changes its drafts, dismisses through an outside click and Escape, then reopens it.
     then:
     - Draft values initialize from the applied URL on every opening.
     - Dismissing without Apply preserves both the exact URL and rendered results.
@@ -243,13 +244,12 @@ requirements:
 - id: ui.list-table-5
   category: presentation
   topic: list-table
-  rule: Applying advanced filters submits the current search query and all draft filter values and resets pagination.
-    A primary search change preserves the already applied advanced filters.
+  rule: Applying a column filter submits the current search query and that column's draft values, preserves other applied filters and resets pagination. Sorting from a column header preserves other query state and resets pagination. A primary search change preserves the already applied filters.
   acceptance:
-    given: Each catalog collection has a search query and page=2 before the advanced sheet opens.
-    when: The browser fills every advanced field, applies the form, and then changes the primary search query.
+    given: Each catalog collection has a search query and page=2 before a column filter opens.
+    when: The browser applies filters through their column forms, changes sorting, and then changes the primary search query.
     then:
-    - Apply retains the search and every draft value, removes the page parameter, and shows the matching seeded result.
+    - Apply retains the search, that column's draft values and other applied filters, removes the page parameter, and shows the matching seeded result.
     - Primary search changes preserve every applied advanced filter and still show the matching result.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
@@ -379,12 +379,13 @@ requirements:
 - id: ui.catalog-table-column-alignment
   category: presentation
   topic: data-table-cells
-  rule: Course, teacher and section collection tables and course/teacher offering-history tables align each header with its cell content. Text and categorical columns use their left edge; section counts, credits and capacity values use their right edge.
+  rule: Course, teacher and section collection tables and course/teacher offering-history tables align each header with its cell content. Text and categorical columns use their left edge; section counts, credits and capacity values use their right edge. Teaching-section course links and the other values in each row share vertical alignment.
   acceptance:
     given: Isolated catalog fixtures populate all text columns and numeric section-count, credit and capacity columns.
     when: A desktop browser measures rendered text edges in all three collection tables and both offering-history tables.
     then:
     - Text headers and values share a left edge, and each numeric header and value shares a right edge.
+    - A teaching-section course link and the other single-line values in its row have matching vertical centers.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
       name: ui.catalog-table-column-alignment Course
@@ -456,7 +457,7 @@ requirements:
     given: Every table under src/features and src/routes, the ui/table barrel's own primitives, and every
       component whose class expression lets a prop switch an alignment on.
     when: Walk the feature and route trees, resolve each table's element roles through the barrel, pair column N
-      of the single header row with column N of each body row, following an extracted row component through its
+      of the column header row with column N of each body row, excluding spanning controls/group rows and following an extracted row component through its
       import, and compare the alignment each side declares.
     then:
     - No column's header and body cells disagree, once logical start and end are normalised onto the physical
@@ -1118,18 +1119,14 @@ requirements:
   category: presentation
   topic: workspace-filters-and-empty-states
   rule: Homework, todo, and exam filtered-empty states share compact left-aligned text with no decorative icon
-    or filled background. Exams and homeworks hide table headers when there are zero rows and hide clear-filter
-    on the default incomplete filter; todos retain desktop headers and an outline clear-filter below the
-    explanation.
+    or filled background. All three retain their table or compact collection header filters when there are zero rows. Exams and homeworks hide clear-filter on the default incomplete filter; todos retain an outline clear-filter below the explanation.
   acceptance:
     given: An isolated user has completed homework, todo, and exam records and no pending records.
     when: The browser loads each page’s pending filter at desktop and mobile widths and inspects empty-state
       geometry, colors, icon, action, and table header visibility.
     then:
-    - Homework, todo, and exam filtered-empty states share compact left-aligned text with no decorative icon
-      or filled background. Exams and homeworks hide table headers when there are zero rows and hide clear-filter
-      on the default incomplete filter; todos retain desktop headers and an outline clear-filter below the
-      explanation.
+    - Homework, todo, and exam filtered-empty states share compact left-aligned text with no decorative icon or filled background and retain reachable header filters.
+    - Exams and homeworks hide clear-filter on the default incomplete filter; todos retain an outline clear-filter below the explanation.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.workspace-filters-and-empty-states-3

@@ -2,7 +2,10 @@ import { expect, type Page } from "@playwright/test";
 import { test } from "../../../utils/catalog-search-fixture";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
-import { test as taskFilterTest } from "../../../utils/workspace-task-filters";
+import {
+  openWorkspaceTaskFilter,
+  test as taskFilterTest,
+} from "../../../utils/workspace-task-filters";
 
 const viewports = [
   { width: 1280, height: 900 },
@@ -549,15 +552,17 @@ for (const [domain, tab] of [
                     Number.parseFloat(getComputedStyle(node).borderTopWidth),
                   ),
                 ).toBeGreaterThan(0);
-                if (viewport.width >= 768)
-                  await expect(
-                    page.getByRole("columnheader").first(),
-                  ).toBeVisible();
               } else {
                 await expect(clear).toHaveCount(0);
-                if (viewport.width >= 768)
-                  await expect(page.getByRole("columnheader")).toHaveCount(0);
               }
+              const filter = await openWorkspaceTaskFilter(page, tab);
+              await expect(filter.locator('[data-value="all"]')).toBeVisible();
+              await page.keyboard.press("Escape");
+              await expect(filter).toBeHidden();
+              if (viewport.width >= 1280)
+                await expect(
+                  page.getByRole("columnheader").first(),
+                ).toBeVisible();
             }
           }
         },
@@ -599,15 +604,22 @@ for (const [domain, tab] of [
               await clear.click();
             } else {
               await expect(clear).toHaveCount(0);
-              await page
+              const dialog = await openWorkspaceTaskFilter(page, tab);
+              await dialog
                 .locator('[data-slot="toggle-group"]')
                 .filter({ has: page.locator('[data-value="incomplete"]') })
                 .locator('[data-value="all"]')
                 .click();
             }
+            // Open the header to inspect the applied filter after navigation.
+            await page.keyboard.press("Escape");
+            const appliedFilter = await openWorkspaceTaskFilter(page, tab);
             await expect(
-              page.locator('[data-slot="toggle-group"] [aria-checked="true"]'),
+              appliedFilter.locator(
+                '[data-slot="toggle-group"] [aria-checked="true"]',
+              ),
             ).toHaveAttribute("data-value", "all");
+            await page.keyboard.press("Escape");
             await expect(clear).toHaveCount(0);
             await expect(
               page

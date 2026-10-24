@@ -8,7 +8,9 @@ import type {
   AdminModerationDescription,
   AdminModerationDescriptionCopy,
 } from "./admin-moderation-description-types";
+import type { AdminModerationFilterControls } from "./admin-moderation-page-types";
 
+export let filterControls: AdminModerationFilterControls;
 export let copy: AdminModerationDescriptionCopy;
 export let descriptions: AdminModerationDescription[];
 export let descriptionTargetHref: (
@@ -30,9 +32,14 @@ export let targetLabel: (description: AdminModerationDescription) => string;
     {formatMessage}
   />
 
-  {#if descriptions.length > 0}
     <ResponsiveCollection>
       {#snippet mobile()}
+        <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
+          {@render filterControls("search", "mobile")}
+          {@render filterControls("descriptionContent", "mobile")}
+          {@render filterControls("descriptionTarget", "mobile")}
+        </div>
+        {#if descriptions.length === 0}<CollectionEmpty variant="compact" description={copy.noDescriptions} />{:else}
         <AdminModerationDescriptionCards
           {copy}
           {descriptions}
@@ -42,9 +49,11 @@ export let targetLabel: (description: AdminModerationDescription) => string;
           {onManage}
           {targetLabel}
         />
+        {/if}
       {/snippet}
       {#snippet desktop()}
         <AdminModerationDescriptionTable
+          {filterControls}
           {copy}
           {descriptionTargetHref}
           {descriptions}
@@ -54,7 +63,4 @@ export let targetLabel: (description: AdminModerationDescription) => string;
         />
       {/snippet}
     </ResponsiveCollection>
-  {:else}
-    <CollectionEmpty variant="compact" description={copy.noDescriptions} />
-  {/if}
 </section>

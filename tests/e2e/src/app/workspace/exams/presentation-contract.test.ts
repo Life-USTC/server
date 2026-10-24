@@ -6,6 +6,7 @@ import {
   type CalendarFixture,
   test as calendarTest,
 } from "../../../../utils/calendar-presentation-fixture";
+import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
 
 async function arrangeExams(db: TestPrismaClient, base: CalendarFixture) {
   const extra = await db.$transaction(async (db) => {
@@ -74,6 +75,7 @@ async function open(
   await page.goto(
     "/workspace/exams?snapshotAt=2026-04-29T09%3A30%3A00%2B08%3A00",
   );
+  await openWorkspaceTaskFilter(page, "exams");
   await expect(
     page
       .getByRole("group", { name: "Exams", exact: true })
@@ -109,6 +111,7 @@ test("exam.attached-to-section", { tag: "@Exam/Web" }, async ({
     async () => {
       for (const width of [1280, 390]) {
         await open(page, data, width);
+        await openWorkspaceTaskFilter(page, "exams");
         await filters(page)
           .getByRole("radio", { name: "All", exact: true })
           .click();
@@ -120,11 +123,13 @@ test("exam.attached-to-section", { tag: "@Exam/Web" }, async ({
           });
           await expect(row).toContainText(String(data.course.nameEn));
           await expect(row).toContainText(String(section.code));
+          await page.keyboard.press("Escape");
           await row.getByRole("link").first().click();
           await expect(page).toHaveURL(
             new RegExp(`/catalog/sections/${section.jwId}`),
           );
           await page.goBack();
+          await openWorkspaceTaskFilter(page, "exams");
           await filters(page)
             .getByRole("radio", { name: "All", exact: true })
             .click();
@@ -144,6 +149,7 @@ test("exam.semester-required", { tag: "@Exam/Web" }, async ({
     async () => {
       for (const width of [1280, 390]) {
         await open(page, data, width);
+        await openWorkspaceTaskFilter(page, "exams");
         await filters(page)
           .getByRole("radio", { name: "All", exact: true })
           .click();
@@ -174,6 +180,7 @@ test("exam.read-only", { tag: "@Exam/Web" }, async ({
     async () => {
       for (const width of [1280, 390]) {
         await open(page, data, width);
+        await openWorkspaceTaskFilter(page, "exams");
         await filters(page)
           .getByRole("radio", { name: "All", exact: true })
           .click();
@@ -187,6 +194,7 @@ test("exam.read-only", { tag: "@Exam/Web" }, async ({
         await expect(
           main.locator('input,textarea,[contenteditable="true"]'),
         ).toHaveCount(0);
+        await page.keyboard.press("Escape");
         await visibleRows(page, width)
           .first()
           .getByRole("link")
@@ -228,8 +236,10 @@ test("exam.mobile-toolbar-priority", { tag: "@Exam/Web" }, async ({
         ["Ended", 1, data.section.code],
         ["All", 2, data.currentSection.code],
       ] as const) {
+        await openWorkspaceTaskFilter(page, "exams");
         const control = filters(page).getByRole("radio", { name, exact: true });
         await expect(control).toBeVisible();
+        await openWorkspaceTaskFilter(page, "exams");
         await control.click();
         await expect(control).toHaveAttribute("aria-checked", "true");
         await expect(rows).toHaveCount(count);
@@ -250,12 +260,14 @@ test("exam.mobile-display-overflow", { tag: "@Exam/Web" }, async ({
   await calendarRun(
     async () => {
       await open(page, data);
+      await openWorkspaceTaskFilter(page, "exams");
       await filters(page)
         .getByRole("radio", { name: "All", exact: true })
         .click();
 
       const trigger = page.getByTestId("workspace-exams-view-menu");
       await expect(trigger).toBeVisible();
+      await page.keyboard.press("Escape");
       await trigger.focus();
       await page.keyboard.press("Enter");
       const list = page.getByRole("menuitemradio", { name: /list/i });
@@ -313,6 +325,9 @@ test("exam.mobile-toolbar-targets", { tag: "@Exam/Web" }, async ({
         await open(page, data, width);
         for (const control of [
           ...(await filters(page).getByRole("radio").all()),
+          page
+            .locator('[data-slot="collection-header"]')
+            .getByRole("button", { name: /^(日期|Date)$/i }),
           page.getByTestId("workspace-exams-view-menu"),
         ]) {
           await expect(control).toBeVisible();

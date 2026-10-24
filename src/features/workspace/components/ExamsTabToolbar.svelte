@@ -5,25 +5,11 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import type { WorkspaceCardView } from "@/features/workspace/lib/view-preferences";
 import type { WorkspaceCopy } from "@/features/workspace/lib/workspace-controller-types";
-import WorkspaceTaskToolbar from "./WorkspaceTaskToolbar.svelte";
-import type { WorkspaceExamFilter } from "./workspace-exam-component-types";
 
 export let workspaceCopy: WorkspaceCopy;
 export let mobileView: WorkspaceCardView;
 export let onMobileViewChange: (value: WorkspaceCardView) => void;
-export let examFilter: WorkspaceExamFilter;
-export let onExamFilterChange: (value: WorkspaceExamFilter) => void;
 </script>
-
-<div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 md:block">
-<WorkspaceTaskToolbar
-  ariaLabel={workspaceCopy.nav.exams.title}
-  filter={examFilter}
-  onFilterChange={onExamFilterChange}
-  filterIncompleteLabel={workspaceCopy.nav.exams.filterIncomplete}
-  filterCompletedLabel={workspaceCopy.nav.exams.filterCompleted}
-  filterAllLabel={workspaceCopy.nav.exams.filterAll}
-/>
 
   <div class={collectionCompactClass}>
     <DropdownMenu.Root>
@@ -56,4 +42,3 @@ export let onExamFilterChange: (value: WorkspaceExamFilter) => void;
       </DropdownMenu.Content>
     </DropdownMenu.Root>
   </div>
-</div>

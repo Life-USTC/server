@@ -16,7 +16,7 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
       name,
       path: `/workspace/${name}?semester=${c.semester.code}`,
       heading: "main h1",
-      filter: '[data-slot="toggle-group"]',
+      filter: '[data-slot="table-column-header"] button:visible',
       summary: "",
       pagination: false,
       records:

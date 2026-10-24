@@ -1,5 +1,6 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import type { Snippet } from "svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -17,6 +18,7 @@ import type {
   WorkspaceTabHref,
 } from "./workspace-exam-component-types";
 
+export let filterControls: Snippet;
 export let locale: string;
 export let namePrimary: NamePrimary;
 export let unknownSemesterLabel: string;
@@ -33,20 +35,12 @@ export let sectionCopy: ExamsCopyProps["sectionCopy"];
 export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
 </script>
 
-{#if exams.length === 0}
-  <WorkspaceTaskEmptyState
-    title={hasExamRows ? workspaceCopy.nav.exams.filterEmpty : workspaceCopy.nav.exams.empty}
-    description={hasExamRows ? workspaceCopy.nav.exams.filterEmptyDescription : workspaceCopy.nav.exams.emptyDescription}
-    clearFilterLabel={workspaceCopy.nav.exams.clearFilter}
-    onClearFilter={showClearFilter ? onClearFilter : undefined}
-  />
-{:else}
   <Table.Root class="min-w-0 w-full">
     <Table.Header>
       <Table.Row>
         <Table.Head>{subscriptionsCopy.courseName}</Table.Head>
         <Table.Head>{subscriptionsCopy.section}</Table.Head>
-        <Table.Head>{sectionCopy.examDate}</Table.Head>
+        <Table.Head>{@render filterControls()}</Table.Head>
         <Table.Head>{sectionCopy.examTime}</Table.Head>
         <Table.Head>{sectionCopy.room}</Table.Head>
         <Table.Head
@@ -105,7 +99,17 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
             </TableRowActions>
           </Table.Cell>
         </Table.Row>
+      {:else}
+        <Table.Row class="hover:bg-transparent">
+          <Table.Cell class="p-0" colspan={6}>
+            <WorkspaceTaskEmptyState
+              title={hasExamRows ? workspaceCopy.nav.exams.filterEmpty : workspaceCopy.nav.exams.empty}
+              description={hasExamRows ? workspaceCopy.nav.exams.filterEmptyDescription : workspaceCopy.nav.exams.emptyDescription}
+              clearFilterLabel={workspaceCopy.nav.exams.clearFilter}
+              onClearFilter={showClearFilter ? onClearFilter : undefined}
+            />
+          </Table.Cell>
+        </Table.Row>
       {/each}
     </Table.Body>
   </Table.Root>
-{/if}

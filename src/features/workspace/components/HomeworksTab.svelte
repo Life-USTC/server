@@ -22,6 +22,7 @@ import HomeworksListView from "./HomeworksListView.svelte";
 import HomeworksTabDialogs from "./HomeworksTabDialogs.svelte";
 import HomeworksTabToolbar from "./HomeworksTabToolbar.svelte";
 import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
+import WorkspaceTaskToolbar from "./WorkspaceTaskToolbar.svelte";
 import type { WorkspaceHomeworkCreateSection } from "./workspace-homework-create-types";
 
 type HomeworkDateFormatter = (
@@ -109,6 +110,18 @@ $: ({
 }));
 </script>
 
+{#snippet completionFilter()}
+  <WorkspaceTaskToolbar
+    ariaLabel={homeworksCopy.title}
+    columnLabel={homeworksCopy.statusLabel}
+    filter={homeworkFilter}
+    onFilterChange={(value) => { homeworkFilter = value; }}
+    filterIncompleteLabel={homeworksCopy.filterIncomplete}
+    filterCompletedLabel={homeworksCopy.filterCompleted}
+    filterAllLabel={homeworksCopy.filterAll}
+  />
+{/snippet}
+
 <section class="grid gap-4">
   {#if !signedData.homeworks || !hasWorkspaceSubscriptions(signedData)}
     <WorkspaceNoSubscriptionsState
@@ -122,10 +135,6 @@ $: ({
   {:else}
     <HomeworksTabToolbar
       homeworksCopy={homeworksCopy}
-      homeworkFilter={homeworkFilter}
-      onHomeworkFilterChange={(value) => {
-        homeworkFilter = value;
-      }}
       openCreateHomeworkDialog={openCreateHomeworkDialog}
     />
 
@@ -137,6 +146,9 @@ $: ({
 
     <WorkspaceCollection>
       {#snippet mobile()}
+      <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
+        {@render completionFilter()}
+      </div>
         <HomeworksCardsView
           locale={locale}
           unknownSemesterLabel={commonCopy.unknown}
@@ -158,6 +170,7 @@ $: ({
       {/snippet}
       {#snippet desktop()}
         <HomeworksListView
+        filterControls={completionFilter}
           locale={locale}
           unknownSemesterLabel={commonCopy.unknown}
           filteredHomeworkItems={filteredHomeworkItems}

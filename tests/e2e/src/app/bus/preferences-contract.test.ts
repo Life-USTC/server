@@ -20,11 +20,27 @@ async function open(
       ...(owner ? [owner.cookie] : []),
     ]);
   await page.goto("/catalog/bus");
+  await openControls(page);
   await expect(
     page
       .getByTestId("bus-end-stop-group")
       .getByRole("radio", { name: "西区", exact: true }),
   ).toBeEnabled();
+}
+async function openControls(page: Page) {
+  const dialog = page.getByRole("dialog", {
+    name: "Change route",
+    exact: true,
+  });
+  if (!(await dialog.isVisible())) {
+    const trigger = page.getByRole("button", {
+      name: "Change route",
+      exact: true,
+    });
+    await expect(trigger).toBeVisible();
+    await trigger.click();
+  }
+  await expect(dialog.getByTestId("bus-end-stop-group")).toBeVisible();
 }
 const end = (page: Page, name: string) =>
   page
@@ -179,6 +195,7 @@ test("bus.preference-hydration-write-gate", { tag: "@Bus/Web" }, async ({
               response.request().method() === "GET",
           );
           await page.reload();
+          await openControls(page);
           const reloadedResponse = await reloaded;
           expect(reloadedResponse.status()).toBe(200);
           await reloadedResponse.body();
@@ -253,6 +270,7 @@ test("bus.recent-route-precedence", { tag: "@Bus/Web" }, async ({
         key,
       );
       await page.reload();
+      await openControls(page);
       await expect(end(page, "高新")).toHaveAttribute("aria-checked", "true");
       await open(page, isolatedWorker.origin, owner);
       await expect(end(page, "南区")).toHaveAttribute("aria-checked", "true");

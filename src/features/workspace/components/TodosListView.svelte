@@ -2,6 +2,7 @@
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import Pencil from "@lucide/svelte/icons/pencil";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+import type { Snippet } from "svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -18,6 +19,7 @@ type TodoDateFormatter = (value: Date | string | null | undefined) => string;
 type TodoAction = (todo: WorkspaceTodoItem) => string;
 type TodoCompletionToggle = (todo: WorkspaceTodoItem) => void | Promise<void>;
 
+export let filterControls: Snippet;
 export let hasTodoItems: boolean;
 export let onClearFilter: () => void;
 export let filteredTodos: WorkspaceTodoItem[];
@@ -34,7 +36,7 @@ export let readOnlyReason: string | undefined = undefined;
 <Table.Root class="min-w-0 w-full">
   <Table.Header>
     <Table.Row>
-      <Table.Head>{todosCopy.titleLabel}</Table.Head>
+      <Table.Head>{@render filterControls()}</Table.Head>
       <Table.Head>{todosCopy.priorityLabel}</Table.Head>
       <Table.Head>{todosCopy.dueAtLabel}</Table.Head>
       <Table.Head>

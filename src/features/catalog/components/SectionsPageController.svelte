@@ -1,6 +1,8 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import ListPagination from "#lib/components/ListPagination.svelte";
+import TableColumnHeader from "#lib/components/TableColumnHeader.svelte";
+import * as Item from "#lib/components/ui/item/index.js";
 import {
   catalogHref,
   catalogPrimaryName as primaryName,
@@ -8,7 +10,9 @@ import {
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page as routePage } from "$app/state";
+import CatalogColumnFilter from "./CatalogColumnFilter.svelte";
 import CatalogFilters from "./CatalogFilters.svelte";
+import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
 import type {
   SectionListCommonLabels,
   SectionListFilters,
@@ -18,7 +22,6 @@ import type {
   SectionListRow,
   SectionListSemester,
 } from "./catalog-section-list-types";
-import SectionsFilters from "./SectionsFilters.svelte";
 import SectionsResults from "./SectionsResults.svelte";
 
 type SemesterOption = SectionListSemester & SectionListOptionSource;
@@ -51,7 +54,6 @@ interface Props {
 
 let { data }: Props = $props();
 
-let isSectionFilterOpen = $state(false);
 let sectionSearch = $derived(data.filters.search ?? "");
 
 function pageHref(targetPage: number) {
@@ -257,6 +259,112 @@ let sectionHiddenFilters = $derived(
     )
     .map(([name, value]) => ({ name, value })),
 );
+function sorting(key: string) {
+  return {
+    key,
+    label: sortLabel(key),
+    ascending: sectionLabels.filters.orderAsc,
+    descending: sectionLabels.filters.orderDesc,
+    default: sectionLabels.filters.defaultSort,
+  };
+}
+const columnDefaults = $derived({
+  action: "/catalog/sections",
+  filters: sectionFilterParams(data.filters),
+  search: sectionSearch,
+  applyLabel: sectionLabels.filters.apply,
+  clearLabel: commonLabels.clear,
+});
+const columnFilters = $derived<Record<string, CatalogColumnFilterProps>>({
+  semester: {
+    ...columnDefaults,
+    label: sectionLabels.semester,
+    sorting: sorting("semester"),
+    fields: [
+      {
+        name: "semesterId",
+        label: sectionLabels.semester,
+        options: semesterOptions,
+      },
+    ],
+  },
+  course: {
+    ...columnDefaults,
+    label: sectionLabels.courseName,
+    sorting: sorting("course"),
+    fields: [
+      { name: "courseCode", label: sectionLabels.courseCode },
+      {
+        name: "categoryId",
+        label: sectionLabels.category,
+        options: categoryOptions,
+      },
+      {
+        name: "educationLevelId",
+        label: sectionLabels.educationLevel,
+        options: educationLevelOptions,
+      },
+      {
+        name: "classTypeId",
+        label: sectionLabels.classType,
+        options: classTypeOptions,
+      },
+    ],
+  },
+  code: {
+    ...columnDefaults,
+    label: sectionLabels.sectionCode,
+    sorting: sorting("code"),
+    fields: [{ name: "sectionCode", label: sectionLabels.sectionCode }],
+  },
+  teacher: {
+    ...columnDefaults,
+    label: sectionLabels.teachers,
+    sorting: sorting("teacher"),
+    fields: [{ name: "teacher", label: sectionLabels.teachers }],
+  },
+  credits: {
+    ...columnDefaults,
+    label: sectionLabels.credits,
+    align: "end",
+    sorting: sorting("credits"),
+    fields: [
+      {
+        name: "credits",
+        label: sectionLabels.credits,
+        type: "number",
+        min: 0,
+        step: 0.5,
+        description: sectionLabels.filters.exactCredits,
+      },
+    ],
+  },
+  capacity: {
+    ...columnDefaults,
+    label: sectionLabels.capacity,
+    align: "end",
+    sorting: sorting("capacity"),
+  },
+  campus: {
+    ...columnDefaults,
+    label: sectionLabels.campus,
+    sorting: sorting("campus"),
+    fields: [
+      { name: "campusId", label: sectionLabels.campus, options: campusOptions },
+    ],
+  },
+});
+const departmentFilter = $derived<CatalogColumnFilterProps>({
+  ...columnDefaults,
+  label: sectionLabels.department,
+  fields: [
+    {
+      name: "departmentId",
+      label: sectionLabels.department,
+      options: departmentOptions,
+    },
+  ],
+});
 </script>
 
 
@@ -274,41 +382,40 @@ let sectionHiddenFilters = $derived(
   />
 {/snippet}
 
-<CollectionPage description={sectionLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={sectionLabels.title}>
-  {#snippet toolbar()}
-    <CatalogFilters
-      activeFilters={sectionActiveFilters}
-      clearHref="/catalog/sections"
-      clearLabel={commonLabels.clear}
-      filterDescription={sectionLabels.filterDescription}
-      filterTitle={sectionLabels.summary.filters}
-      hiddenFilters={sectionHiddenFilters}
-      bind:open={isSectionFilterOpen}
-      searchId="mobile-section-search"
-      searchLabel={commonLabels.search}
-      searchPlaceholder={sectionLabels.searchPlaceholder}
-      bind:searchValue={sectionSearch}
-    >
-      <SectionsFilters
-        campusOptions={campusOptions}
-        categoryOptions={categoryOptions}
-        classTypeOptions={classTypeOptions}
-        clearHref="/catalog/sections"
-        commonLabels={commonLabels}
-        departmentOptions={departmentOptions}
-        educationLevelOptions={educationLevelOptions}
-        filters={{ ...data.filters, search: sectionSearch }}
-        idPrefix="mobile-section"
-        onSubmit={() => {
-          isSectionFilterOpen = false;
-        }}
-        sectionLabels={sectionLabels}
-        semesterOptions={semesterOptions}
-      />
-    </CatalogFilters>
-  {/snippet}
+{#snippet controls(prefix: string)}
+  <CatalogFilters
+    activeFilters={sectionActiveFilters}
+    clearHref="/catalog/sections"
+    clearLabel={commonLabels.clear}
+    filterTitle={sectionLabels.summary.filters}
+    hiddenFilters={sectionHiddenFilters}
+    searchId={prefix + "-section-search"}
+    searchLabel={commonLabels.search}
+    searchPlaceholder={sectionLabels.searchPlaceholder}
+    bind:searchValue={sectionSearch}
+  >
+    <CatalogColumnFilter {...departmentFilter} idPrefix={prefix + "-section-department"} />
+    <TableColumnHeader label={sectionLabels.searchHelpTitle}>
+      <p class="mb-3 text-sm text-muted-foreground">{sectionLabels.searchHelpDescription}</p>
+      <Item.Group>
+        {#each sectionLabels.searchHelpExamples as example}
+          <Item.Root size="sm">
+            <Item.Content>
+              <Item.Title class="line-clamp-none break-all"><code>{example.syntax}</code></Item.Title>
+              <Item.Description class="line-clamp-none">{example.description}</Item.Description>
+              <Item.Description class="line-clamp-none break-all"><code>{example.example}</code></Item.Description>
+            </Item.Content>
+          </Item.Root>
+        {/each}
+      </Item.Group>
+    </TableColumnHeader>
+  </CatalogFilters>
+{/snippet}
 
+<CollectionPage description={sectionLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={sectionLabels.title}>
   <SectionsResults
+    {controls}
+    {columnFilters}
     data={sectionResultsData}
     page={data.pagination.page}
     primaryName={primaryName}
