@@ -1,3 +1,6 @@
+import type { DemoIdentity } from "@/features/demo/lib/demo-types";
+import { getDemoSubscription } from "@/features/demo/server/demo-subscriptions";
+import type { AppLocale } from "@/i18n/config";
 import {
   badRequest,
   handleRouteError,
@@ -6,6 +9,7 @@ import {
   parseInteger,
   parseRouteJsonBody,
 } from "@/lib/api/helpers";
+import { privateSessionJson } from "@/lib/api/internal-session-response";
 import { parseSectionMatchCodesRequest } from "@/lib/api/routes/academic-section-route-request";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import {
@@ -30,6 +34,17 @@ import {
 import { registerOAuthRequestUsage } from "@/lib/oauth/grant-usage";
 import { hasRequiredFeatureScope } from "@/lib/oauth/scope-registry";
 import { getPublicOrigin } from "@/lib/site-url";
+
+export function getDemoCurrentCalendarSubscriptionRoute(
+  identity: DemoIdentity,
+  locale: AppLocale,
+) {
+  return privateSessionJson(
+    currentCalendarSubscriptionResponseSchema.parse({
+      subscription: getDemoSubscription(identity, locale),
+    }),
+  );
+}
 
 export async function getCurrentCalendarSubscriptionRoute(request: Request) {
   try {

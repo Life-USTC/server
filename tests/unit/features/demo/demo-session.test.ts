@@ -24,14 +24,14 @@ afterEach(() => vi.useRealTimers());
 it("signs a fifteen-minute fixture identity without an account identifier", async () => {
   const token = await createDemoSession(now);
   expect(decodeJwt(token)).toEqual({
-    fixtureVersion: "todos-v1",
+    fixtureVersion: "workspace-v1",
     iss: "life-ustc-demo",
     aud: "life-ustc-web-demo",
     iat: now.getTime() / 1000,
     exp: now.getTime() / 1000 + 900,
   });
   expect(await readDemoSession(cookieHeaders(token), now)).toEqual({
-    fixtureVersion: "todos-v1",
+    fixtureVersion: "workspace-v1",
     expiresAt: now.getTime() + 900_000,
   });
   expect(
@@ -68,7 +68,7 @@ it("rejects malformed, duplicated and tampered cookies", async () => {
 });
 
 it("rejects a JWT signed directly with the real authentication secret", async () => {
-  const token = await new SignJWT({ fixtureVersion: "todos-v1" })
+  const token = await new SignJWT({ fixtureVersion: "workspace-v1" })
     .setProtectedHeader({ alg: "HS256", typ: "life-ustc-demo+jwt" })
     .setIssuer("life-ustc-demo")
     .setAudience("life-ustc-web-demo")
@@ -102,7 +102,8 @@ it("fails closed for old fixture versions and account claims even with a valid s
   );
   for (const claims of [
     { fixtureVersion: "todos-v0" },
-    { fixtureVersion: "todos-v1", userId: "victim" },
+    { fixtureVersion: "todos-v1" },
+    { fixtureVersion: "workspace-v1", userId: "victim" },
   ]) {
     const token = await new SignJWT(claims)
       .setProtectedHeader({ alg: "HS256", typ: "life-ustc-demo+jwt" })

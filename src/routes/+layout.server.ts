@@ -1,4 +1,4 @@
-import { getDemoView } from "@/features/demo/server/demo-todos";
+import { getDemoView } from "@/features/demo/server/demo-workspace";
 import { isViewerIndependentPublicPath } from "@/lib/cloudflare/public-ssr-gateway";
 import {
   buildLayoutCopy,

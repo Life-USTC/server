@@ -69,12 +69,15 @@ it.each([
   "/workspace/todos",
   "/workspace/todos/__data.json",
   "/api/workspace/todos",
+  "/workspace/subscriptions",
+  "/workspace/subscriptions/__data.json",
+  "/api/workspace/subscriptions/current",
   "/_internal/shell-bootstrap",
 ])("serves only demo locals and overrides caches at %s", async (path) => {
   const result = await request(path);
   expect(result.response.status).toBe(200);
   expect(result.locals.demo).toEqual({
-    fixtureVersion: "todos-v1",
+    fixtureVersion: "workspace-v1",
     expiresAt: Date.now() + 900_000,
   });
   expect(result.locals.authUser).toBeNull();
@@ -95,6 +98,13 @@ it.each([
 it.each([
   ["POST", "/workspace/todos?/createTodo"],
   ["POST", "/api/workspace/todos"],
+  ["POST", "/workspace/subscriptions?/subscribe"],
+  ["PATCH", "/api/workspace/subscriptions"],
+  ["DELETE", "/api/workspace/subscriptions"],
+  ["POST", "/api/workspace/subscriptions/query"],
+  ["POST", "/api/workspace/subscriptions/batch"],
+  ["GET", "/workspace/subscriptions/activities"],
+  ["GET", "/catalog/sections/910001"],
   ["PATCH", "/api/workspace/todos/real-id"],
   ["DELETE", "/api/workspace/todos/real-id"],
   ["POST", "/api/workspace/todos/batch"],

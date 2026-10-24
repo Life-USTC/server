@@ -10,18 +10,19 @@ const repoRoot = path.resolve(
 
 describe("Google Analytics tag", () => {
   it("loads and configures the requested GA4 measurement exactly once", async () => {
-    const appHtml = await readFile(path.join(repoRoot, "src/app.html"), "utf8");
+    const layout = await readFile(
+      path.join(repoRoot, "src/routes/+layout.svelte"),
+      "utf8",
+    );
 
     expect(
-      appHtml.match(
+      layout.match(
         /https:\/\/www\.googletagmanager\.com\/gtag\/js\?id=G-JNK35J2Q3R/g,
       ),
     ).toHaveLength(1);
     expect(
-      appHtml.match(/window\.dataLayer\s*=\s*window\.dataLayer\s*\|\|\s*\[\]/g),
+      layout.match(/window\.dataLayer\s*=\s*window\.dataLayer\s*\|\|\s*\[\]/g),
     ).toHaveLength(1);
-    expect(appHtml.match(/gtag\("config",\s*"G-JNK35J2Q3R"\)/g)).toHaveLength(
-      1,
-    );
+    expect(layout.match(/gtag\("config",\s*"G-JNK35J2Q3R"\)/g)).toHaveLength(1);
   });
 });

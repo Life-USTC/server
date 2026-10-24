@@ -1,6 +1,6 @@
 import { type Cookies, fail, redirect } from "@sveltejs/kit";
 import { isDemoEnabled } from "@/features/demo/server/demo-session";
-import { getDemoCopy } from "@/features/demo/server/demo-todos";
+import { getDemoCopy } from "@/features/demo/server/demo-workspace";
 import { allowDebugAuth } from "@/lib/auth/auth-config";
 import {
   resolveSignInCallbackUrl,

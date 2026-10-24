@@ -74,7 +74,7 @@ export async function resolveDemoBoundary(
   if (!identity) {
     if (
       request.method === "GET" &&
-      url.pathname === "/workspace/todos" &&
+      ["/workspace/todos", "/workspace/subscriptions"].includes(url.pathname) &&
       request.headers.get("accept")?.includes("text/html")
     ) {
       const response = new Response(null, {
@@ -102,6 +102,9 @@ export async function resolveDemoBoundary(
       "/workspace/todos",
       "/workspace/todos/__data.json",
       "/api/workspace/todos",
+      "/workspace/subscriptions",
+      "/workspace/subscriptions/__data.json",
+      "/api/workspace/subscriptions/current",
       "/_internal/shell-bootstrap",
     ].includes(url.pathname)
   ) {
