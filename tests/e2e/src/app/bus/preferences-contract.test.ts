@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
+import { waitForUiSettled } from "../../../utils/page-ready";
 import {
   busContractState,
   expectBusContractEffectsEmpty,
@@ -11,6 +12,7 @@ async function open(
   page: Page,
   origin: string,
   owner?: Awaited<ReturnType<IsolatedWorker["createActor"]>>,
+  waitForPreferences = true,
 ) {
   await page.context().clearCookies();
   await page
@@ -20,6 +22,7 @@ async function open(
       ...(owner ? [owner.cookie] : []),
     ]);
   await page.goto("/catalog/bus");
+  if (waitForPreferences) await waitForUiSettled(page);
   await openControls(page);
   await expect(
     page
@@ -120,7 +123,7 @@ test("bus.preference-hydration-write-gate", { tag: "@Bus/Web" }, async ({
               });
           },
         );
-        await open(page, isolatedWorker.origin, owner);
+        await open(page, isolatedWorker.origin, owner, false);
         await intercepted;
         await end(page, "高新").click();
         await page.clock.runFor(750);
@@ -195,13 +198,14 @@ test("bus.preference-hydration-write-gate", { tag: "@Bus/Web" }, async ({
               response.request().method() === "GET",
           );
           await page.reload();
-          await openControls(page);
           const reloadedResponse = await reloaded;
           expect(reloadedResponse.status()).toBe(200);
           await reloadedResponse.body();
           expect(await reloadedResponse.json()).toEqual({
             preference: expectedReadPreference,
           });
+          await waitForUiSettled(page);
+          await openControls(page);
           await expect(end(page, "西区")).toHaveAttribute(
             "aria-checked",
             "true",
@@ -270,6 +274,7 @@ test("bus.recent-route-precedence", { tag: "@Bus/Web" }, async ({
         key,
       );
       await page.reload();
+      await waitForUiSettled(page);
       await openControls(page);
       await expect(end(page, "高新")).toHaveAttribute("aria-checked", "true");
       await open(page, isolatedWorker.origin, owner);

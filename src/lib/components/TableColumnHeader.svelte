@@ -12,6 +12,7 @@ import { afterNavigate } from "$app/navigation";
 let {
   label,
   active = false,
+  disabled = false,
   align = "start",
   sort = null,
   open = $bindable(false),
@@ -19,6 +20,7 @@ let {
 }: {
   label: string;
   active?: boolean;
+  disabled?: boolean;
   align?: "start" | "center" | "end";
   sort?: "asc" | "desc" | null;
   open?: boolean;
@@ -47,7 +49,7 @@ afterNavigate(({ shallow, type }) => {
   <Popover.Root bind:open>
     <Popover.Trigger>
       {#snippet child({ props })}
-        <Button {...props} variant="ghost" class="-mx-2.5" data-active={active || sort ? "true" : undefined}>
+        <Button {...props} {disabled} variant="ghost" class="-mx-[11px]" data-active={active || sort ? "true" : undefined}>
           {#if align === "end"}{@render indicator()}{/if}
           <span>{label}</span>
           {#if align !== "end"}{@render indicator()}{/if}

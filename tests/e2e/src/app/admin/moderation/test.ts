@@ -180,7 +180,9 @@ test("/admin/moderation 移动端工作区可管理首条筛选结果", {
         const keyword = moderation.comment.body;
 
         await page
-          .getByPlaceholder(/搜索评论内容或 ID|Search comment content or ID/i)
+          .getByRole("searchbox", {
+            name: /搜索评论内容或 ID|Search comment content or ID/i,
+          })
           .fill(keyword);
         const record = page
           .getByTestId("admin-moderation-mobile-list")
@@ -233,7 +235,9 @@ test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", {
             `/admin/moderation?search=${encodeURIComponent(keyword)}`,
           );
           await page
-            .getByPlaceholder(/搜索评论内容或 ID|Search comment content or ID/i)
+            .getByRole("searchbox", {
+              name: /搜索评论内容或 ID|Search comment content or ID/i,
+            })
             .fill(keyword);
 
           const record = page
@@ -609,7 +613,9 @@ test("/admin/moderation 可从评论弹窗封禁用户", { tag: "@Admin/Web" }, 
         const body = moderation.comment.body;
         await gotoAndWaitForReady(page, "/admin/moderation");
         await page
-          .getByPlaceholder(/搜索评论内容或 ID|Search comment content or ID/i)
+          .getByRole("searchbox", {
+            name: /搜索评论内容或 ID|Search comment content or ID/i,
+          })
           .fill(body);
         await expect(visibleText(page, body)).toBeVisible();
         await openModerationCommentDialog(page, body);

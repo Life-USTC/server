@@ -753,9 +753,14 @@ for (const locale of ["zh-cn", "en-us"] as const)
                   exact: true,
                 });
                 await expect(pin).toBeVisible();
-                const group = row
-                  .locator("xpath=ancestor::section[1]")
-                  .getByRole("heading", { level: 3 });
+                const group =
+                  width === 1280
+                    ? row
+                        .locator("xpath=ancestor::tbody[1]")
+                        .getByRole("rowheader")
+                    : row
+                        .locator("xpath=ancestor::section[1]")
+                        .getByRole("heading", { level: 3 });
                 await assertPriorityView({
                   scope: row,
                   identity: actualIdentity,

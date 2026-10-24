@@ -1107,8 +1107,8 @@ requirements:
   acceptance:
     given: A signed-in browser opens each homework, todo, and exam page while its application hydration scripts
       are held.
-    when: The browser checks all three filter controls before releasing the scripts, then switches among all,
-      completed, and incomplete while offline.
+    when: The browser checks that the visible filter header button is disabled before releasing the scripts,
+      then opens the enabled button's three filter options and switches among all, completed, and incomplete while offline.
     then:
     - Status-filter controls remain disabled until hydrated. Once interactive, activation updates their selected
       visual and accessible state without waiting for the results request to finish.

@@ -374,6 +374,7 @@ for (const width of widths) {
           "Edit order later",
           "Edit order undated",
         ]);
+        await page.keyboard.press("Escape");
         await list
           .getByRole("button", { name: todo.title, exact: true })
           .click();

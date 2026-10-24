@@ -259,7 +259,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
               Math.abs(column.header[edge] - column.cell[edge]),
               `${item.name}: ${column.label} ${edge} edge`,
             )
-            .toBeLessThanOrEqual(1);
+            .toBeLessThanOrEqual(0.5);
         }
         if (item.name === "sections") {
           for (const column of columns) {

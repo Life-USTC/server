@@ -22,7 +22,7 @@ onMount(() => {
 });
 </script>
 
-<TableColumnHeader label={columnLabel} active={filter !== "all"}>
+<TableColumnHeader label={columnLabel} active={filter !== "all"} disabled={!ready}>
     <ToggleGroup.Root
       aria-label={ariaLabel}
       class="w-full min-w-0 md:w-fit"

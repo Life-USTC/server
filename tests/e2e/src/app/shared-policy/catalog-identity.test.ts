@@ -4,6 +4,7 @@ import { test as subscriptionTest } from "../../../utils/catalog-subscription-fi
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../../../utils/personal-preferences-fixture";
 import { observeSectionDetailNavigation } from "../../../utils/section-detail-navigation";
+import { openWorkspaceTaskFilter } from "../../../utils/workspace-task-filters";
 
 async function createFixture(db: TestPrismaClient) {
   const suffix = crypto.randomUUID().slice(0, 8);
@@ -1097,7 +1098,9 @@ for (const [domain, method] of [
         ]);
       if (method === "Web") {
         await gotoAndWaitForReady(page, "/workspace/homeworks");
+        await openWorkspaceTaskFilter(page, "homeworks");
         await page.getByRole("radio", { name: /^(全部|All)$/i }).click();
+        await page.keyboard.press("Escape");
         const row = page.getByRole("row").filter({ hasText: homework.title });
         await expect(row).toBeVisible();
         await expect(row).toContainText(/日期待定|Date TBD/i);

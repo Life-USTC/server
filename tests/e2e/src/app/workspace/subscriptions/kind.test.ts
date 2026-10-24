@@ -1,6 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { test } from "../../../../utils/homework-fixture";
 import { waitForUiSettled } from "../../../../utils/page-ready";
+import { openWorkspaceTaskFilter } from "../../../../utils/workspace-task-filters";
 
 async function openKindDialog(page: Page, jwId: number, width: number) {
   await waitForUiSettled(page);
@@ -161,10 +162,12 @@ for (const viewport of [
         page.on("pageerror", (error) => errors.push(error.message));
         await page.setViewportSize(viewport);
         await page.goto("/workspace/homeworks");
+        await openWorkspaceTaskFilter(page, "homeworks");
         await page
           .getByRole("radio", { name: /全部|All/i })
           .first()
           .click();
+        await page.keyboard.press("Escape");
         for (const title of [homeworks[0].title, homeworks[1].title]) {
           const homework = page
             .locator(viewport.width < 1280 ? '[data-slot="item"]' : "tr")
