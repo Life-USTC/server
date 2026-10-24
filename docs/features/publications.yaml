@@ -131,7 +131,7 @@ requirements:
   category: presentation
   rule: Public detail returns renderedBodyHtml from the shared sanitized Markdown renderer and revision image
     annotation. Web and native readers use this same result, preserving source block order, captions, tables
-    and formulas. The field is empty when bodyMarkdown is unavailable; lists do not include rendered bodies.
+    and formulas without losing literal clock times or ordinary colon text. The field is empty when bodyMarkdown is unavailable; lists do not include rendered bodies.
   acceptance:
     given: A current publication has verified Markdown with an inline image, revision metadata, a table and a formula;
       another publication has bodyText but no Markdown.
@@ -139,6 +139,7 @@ requirements:
     then:
     - Detail retains bodyMarkdown and returns sanitized HTML with the inline image and plain-text caption in source order.
     - Tables and formulas are rendered, and unavailable Markdown produces an empty renderedBodyHtml without using bodyText.
+    - Clock ranges, seconds and ordinary colon text remain literal text in the rendered body.
     - List rows do not include rendered bodies.
     test:
       file: tests/integration/rest/publications/read.test.ts
@@ -154,6 +155,7 @@ requirements:
     when: Open both detail pages in desktop and mobile browsers.
     then:
     - Body blocks preserve source order; image metadata and captions render as plain text without active HTML.
+    - Schedule table cells retain their complete clock ranges on desktop and mobile.
     - Structured attribution and the attachment name and object URL are visible.
     - Missing Markdown never falls back to bodyText, and rendering raises no page errors.
     test:

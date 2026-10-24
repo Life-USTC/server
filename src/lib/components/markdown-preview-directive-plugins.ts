@@ -1,4 +1,5 @@
 import type { Root as MdastRoot } from "mdast";
+import type { Transformer } from "unified";
 import { visit } from "unist-util-visit";
 import type { DirectiveNode } from "./markdown-preview-types";
 
@@ -23,10 +24,29 @@ function directiveClass(name: string) {
   return "markdown-directive";
 }
 
-export function remarkCalloutDirectives() {
-  return (tree: unknown) => {
-    visit(tree as MdastRoot, (node) => {
+export function remarkCalloutDirectives(): Transformer<MdastRoot> {
+  return (tree, file) => {
+    const source = String(file);
+    visit(tree, (node, index, parent) => {
       if (!isDirectiveNode(node)) return;
+
+      const start = node.position?.start.offset;
+      const end = node.position?.end.offset;
+      if (
+        node.type === "textDirective" &&
+        typeof start === "number" &&
+        typeof end === "number" &&
+        source.slice(start, end) === `:${node.name}` &&
+        parent &&
+        typeof index === "number"
+      ) {
+        parent.children[index] = {
+          type: "text",
+          value: source.slice(start, end),
+          position: node.position,
+        };
+        return;
+      }
 
       const tagName = node.type === "textDirective" ? "span" : "div";
       node.data = {

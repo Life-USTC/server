@@ -11,6 +11,50 @@ import {
 } from "@/lib/components/markdown-preview-renderer";
 
 describe("markdown 渲染器", () => {
+  it("preserves clock times in ordinary text and table cells", () => {
+    const times = ["8:30~9:30", "9:30~10:00", "10:00~10:20", "08:30:00"];
+    const markdown = `| 时间 |\n| --- |\n${times.map((time) => `| ${time} |`).join("\n")}`;
+
+    for (const render of [renderMarkdown, renderEmbeddedMarkdown]) {
+      for (const time of times) {
+        expect(render(time)).toBe(`<p>${time}</p>`);
+        expect(render(markdown)).toContain(`<td>${time}</td>`);
+      }
+    }
+  });
+
+  it("preserves bare colon words without turning them into directives", () => {
+    for (const text of [":widget", ":tip", "note:morning", "地点:教五楼"]) {
+      expect(renderEmbeddedMarkdown(text)).toBe(`<p>${text}</p>`);
+    }
+  });
+
+  it("retains explicit inline directives with empty labels or attributes", () => {
+    for (const markdown of [":widget[]", ":widget{}"]) {
+      expect(renderEmbeddedMarkdown(markdown)).toBe(
+        '<p><span class="markdown-directive"></span></p>',
+      );
+    }
+    expect(renderEmbeddedMarkdown(":widget[label]")).toBe(
+      '<p><span class="markdown-directive">label</span></p>',
+    );
+    const attributed = renderEmbeddedMarkdown(":widget{title=notice}");
+    expect(attributed).toContain('<span title="notice"');
+    expect(attributed).toContain('class="markdown-directive"');
+    expect(attributed).not.toContain(":widget");
+  });
+
+  it("retains named container and leaf callouts", () => {
+    for (const name of ["center", "tip", "warning", "error"]) {
+      expect(renderEmbeddedMarkdown(`:::${name}\nCallout\n:::`)).toContain(
+        `<div class="markdown-directive markdown-directive-${name}"><p>Callout</p></div>`,
+      );
+    }
+    expect(renderEmbeddedMarkdown("::tip[Callout]")).toContain(
+      '<div class="markdown-directive markdown-directive-tip">Callout</div>',
+    );
+  });
+
   it("preserves inline image order and loads images lazily on every render path", () => {
     const markdown =
       "第一段。\n\n![示意图](/api/publications/images/example)\n\n第二段。";

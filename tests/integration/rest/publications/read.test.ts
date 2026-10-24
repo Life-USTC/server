@@ -16,7 +16,8 @@ test("publication detail returns canonical rendered Markdown over HTTP", {
       "Before the image.",
       `![Original alt](${fixture.imageUrl})`,
       "After the image.",
-      "| Session | Room |\n| --- | --- |\n| Workshop | East 101 |",
+      "| Session | Room | Time |\n| --- | --- | --- |\n| Workshop | East 101 | 8:30~9:30 |\n| Seminar | West 102 | 9:30~10:00 |\n| Discussion | East 103 | 10:00~10:20 |",
+      "Start:08:30:00; note:morning.",
       "$x^2$",
       "[Unsafe link](javascript:alert(1))",
     ].join("\n\n");
@@ -78,6 +79,9 @@ test("publication detail returns canonical rendered Markdown over HTTP", {
     );
     expect(html).toContain("<table>");
     expect(html).toContain("<td>East 101</td>");
+    for (const time of ["8:30~9:30", "9:30~10:00", "10:00~10:20"])
+      expect(html).toContain(`<td>${time}</td>`);
+    expect(html).toContain("Start:08:30:00; note:morning.");
     expect(html).toContain('class="katex"');
     expect(html).not.toContain("<script>");
     expect(html).not.toContain("javascript:");
