@@ -19,21 +19,6 @@ let documentTitle = $derived(socialMetadata?.title ?? "Life@USTC");
 
 
 <svelte:head>
-  {#if !data.demo}
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=G-JNK35J2Q3R"
-    ></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        // biome-ignore lint/complexity/noArguments: Keep Google's canonical gtag bootstrap.
-        dataLayer.push(arguments);
-      }
-      gtag("js", new Date());
-      gtag("config", "G-JNK35J2Q3R");
-    </script>
-  {/if}
   <title>{documentTitle}</title>
   <link
     rel="icon"
