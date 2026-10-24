@@ -1,7 +1,7 @@
 import {
   getDemoNavigation,
   getDemoView,
-} from "@/features/demo/server/demo-todos";
+} from "@/features/demo/server/demo-workspace";
 import { getWorkspaceNavigationSummary } from "@/features/workspace/server/workspace-navigation-summary";
 import {
   privateSessionJson,

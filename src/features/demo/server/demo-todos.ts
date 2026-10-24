@@ -1,35 +1,10 @@
-import type { DemoIdentity, DemoView } from "@/features/demo/lib/demo-types";
+import { DEMO_REFERENCE_NOW as REFERENCE_NOW } from "@/features/demo/lib/demo-types";
 import type { TodoListFilters } from "@/features/todos/server/todo-service";
-import { getWorkspacePageCopy } from "@/features/workspace/server/workspace-page-copy";
 import type { TodoItem } from "@/features/workspace/server/workspace-tab-data";
 import type { AppLocale } from "@/i18n/config";
 import { buildPaginatedResponse, normalizePagination } from "@/lib/pagination";
-import type { WorkspaceNavigationSummary } from "@/lib/shell/shell-bootstrap";
-import enUs from "../../../../messages/en-us.json";
-import zhCn from "../../../../messages/zh-cn.json";
 
-const REFERENCE_NOW = "2026-09-24T09:00:00+08:00";
 const CREATED_AT = "2026-09-22T09:00:00+08:00";
-
-export function getDemoCopy(locale: AppLocale) {
-  return (locale === "en-us" ? enUs : zhCn).demo;
-}
-
-export function getDemoView(
-  identity: DemoIdentity,
-  locale: AppLocale,
-): DemoView {
-  const copy = getDemoCopy(locale);
-  return {
-    ...identity,
-    referenceNow: REFERENCE_NOW,
-    displayName: copy.displayName,
-    readOnlyReason: copy.readOnlyReason,
-    exitLabel: copy.exit,
-    unavailableReason: copy.unavailableReason,
-    referenceTimeLabel: copy.referenceTime,
-  };
-}
 
 export function getDemoTodos(locale: AppLocale): TodoItem[] {
   const english = locale === "en-us";
@@ -80,49 +55,6 @@ function demoCounts(todos: TodoItem[]) {
         todo.dueAt &&
         Date.parse(todo.dueAt) < Date.parse(REFERENCE_NOW),
     ).length,
-  };
-}
-
-export function getDemoNavigation(
-  identity: DemoIdentity,
-): WorkspaceNavigationSummary {
-  return {
-    userId: `demo:${identity.fixtureVersion}`,
-    pendingTodosCount: demoCounts(getDemoTodos("zh-cn")).incomplete,
-    unreadActivityNotificationsCount: 0,
-    calendarItemsCount: 0,
-    examsCount: 0,
-    pendingHomeworksCount: 0,
-    subscribedSectionCount: 0,
-  };
-}
-
-export function getDemoTodosPage(identity: DemoIdentity, locale: AppLocale) {
-  const demo = getDemoView(identity, locale);
-  const copy = getWorkspacePageCopy(locale);
-  const { userId, subscribedSectionCount, ...counts } =
-    getDemoNavigation(identity);
-  return {
-    copy,
-    locale,
-    demo,
-    referenceNow: REFERENCE_NOW,
-    signedIn: true,
-    tab: "todos" as const,
-    mainContentLabel: copy.workspace.nav.todos.title,
-    navStats: {
-      ...counts,
-      highlightPendingHomeworks: false,
-      user: { id: userId, name: demo.displayName, username: null },
-    },
-    subscribedSectionCount,
-    overview: null,
-    links: null,
-    homeworks: null,
-    subscriptions: null,
-    calendarSubscriptionUrl: null,
-    todos: getDemoTodos(locale),
-    bus: null,
   };
 }
 

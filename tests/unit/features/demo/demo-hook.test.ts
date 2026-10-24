@@ -35,7 +35,7 @@ async function request(
 ) {
   const url = new URL(path, "https://life.test");
   const locals = {} as App.Locals;
-  const resolve = vi.fn(async () =>
+  const resolve = vi.fn<Parameters<Handle>[0]["resolve"]>(async () =>
     Response.json(
       { accepted: true },
       {
@@ -69,12 +69,15 @@ it.each([
   "/workspace/todos",
   "/workspace/todos/__data.json",
   "/api/workspace/todos",
+  "/workspace/subscriptions",
+  "/workspace/subscriptions/__data.json",
+  "/api/workspace/subscriptions/current",
   "/_internal/shell-bootstrap",
 ])("serves only demo locals and overrides caches at %s", async (path) => {
   const result = await request(path);
   expect(result.response.status).toBe(200);
   expect(result.locals.demo).toEqual({
-    fixtureVersion: "todos-v1",
+    fixtureVersion: "workspace-v1",
     expiresAt: Date.now() + 900_000,
   });
   expect(result.locals.authUser).toBeNull();
@@ -95,6 +98,13 @@ it.each([
 it.each([
   ["POST", "/workspace/todos?/createTodo"],
   ["POST", "/api/workspace/todos"],
+  ["POST", "/workspace/subscriptions?/subscribe"],
+  ["PATCH", "/api/workspace/subscriptions"],
+  ["DELETE", "/api/workspace/subscriptions"],
+  ["POST", "/api/workspace/subscriptions/query"],
+  ["POST", "/api/workspace/subscriptions/batch"],
+  ["GET", "/workspace/subscriptions/activities"],
+  ["GET", "/catalog/sections/910001"],
   ["PATCH", "/api/workspace/todos/real-id"],
   ["DELETE", "/api/workspace/todos/real-id"],
   ["POST", "/api/workspace/todos/batch"],
@@ -161,3 +171,38 @@ it("allows only same-origin locale-cookie updates", async () => {
   expect(session).not.toHaveBeenCalled();
   expect(persist).not.toHaveBeenCalled();
 });
+
+it.each([false, true])(
+  "transforms the first head chunk with analytics disabled=%s",
+  async (demo) => {
+    const result = await request(
+      demo ? "/workspace/subscriptions" : "/account/sign-in",
+      "GET",
+      demo ? {} : { cookie: "" },
+    );
+    const transform = result.resolve.mock.calls[0][1]?.transformPageChunk;
+    expect(transform).toBeTypeOf("function");
+    if (!transform) throw new Error("Missing page transform");
+    const head = await transform({
+      html: '<!doctype html><html lang="zh-CN"><head>%life.analytics%',
+      done: false,
+    });
+    const tail = await transform({
+      html: "</head><body><script>window.ready = true;</script></body></html>",
+      done: true,
+    });
+    expect(head).not.toContain("%life.analytics%");
+    expect(tail).not.toContain("googletagmanager.com");
+    expect(tail).toMatch(/<script nonce="[^"]+">window.ready/);
+    if (demo) {
+      expect(head).not.toContain("<script");
+      expect(head).not.toContain("googletagmanager.com");
+    } else {
+      expect(head).toContain(
+        "https://www.googletagmanager.com/gtag/js?id=G-JNK35J2Q3R",
+      );
+      expect(head?.match(/<script nonce="[^"]+"/g)).toHaveLength(2);
+      expect(new Set(`${head}${tail}`.match(/nonce="[^"]+"/g)).size).toBe(1);
+    }
+  },
+);

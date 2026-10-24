@@ -1,5 +1,5 @@
 import { error, redirect } from "@sveltejs/kit";
-import { getDemoTodosPage } from "@/features/demo/server/demo-todos";
+import { getDemoWorkspacePage } from "@/features/demo/server/demo-workspace";
 import { isWorkspaceTab } from "@/features/workspace/lib/workspace-nav";
 import { workspacePageActions } from "@/features/workspace/server/workspace-page-actions";
 import { loadSignedWorkspacePage } from "@/features/workspace/server/workspace-page-load";
@@ -16,7 +16,11 @@ export const load: PageServerLoad = async (event) => {
     error(404, "Workspace page not found");
   }
   if (event.locals.demo && event.params.tab === "todos") {
-    return getDemoTodosPage(event.locals.demo, event.locals.locale);
+    return getDemoWorkspacePage(
+      event.locals.demo,
+      event.locals.locale,
+      "todos",
+    );
   }
   if (!event.locals.authUser?.id) {
     throw redirect(

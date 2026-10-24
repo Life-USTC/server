@@ -49,6 +49,7 @@ export let matchedSections: MatchedImportSection[];
 export let unmatchedSectionCodes: string[];
 
 let isQuickAddOpen = false;
+$: readOnlyReason = signedData.demo?.readOnlyReason;
 
 function openQuickAddDialog() {
   isQuickAddOpen = true;
@@ -93,11 +94,12 @@ $: bulkImportSections = matchedSections.map<BulkImportSectionView>(
   }),
 );
 </script>
-<Button class="justify-self-start" href="/workspace/subscriptions/activities" variant="outline">{getWorkspacePageCopy(signedData.locale === "en-us" ? "en-us" : "zh-cn").youngEvents.workspace.manage}</Button>
+<Button class="justify-self-start" href={readOnlyReason ? undefined : "/workspace/subscriptions/activities"} disabled={Boolean(readOnlyReason)} title={signedData.demo?.unavailableReason} variant="outline">{getWorkspacePageCopy(signedData.locale === "en-us" ? "en-us" : "zh-cn").youngEvents.workspace.manage}</Button>
 
 <section class="grid gap-4">
   {#if signedData.subscriptions.subscriptions.length > 0}
     <SubscriptionsTabToolbar
+      {readOnlyReason}
       calendarSubscriptionUrl={signedData.subscriptions.calendarSubscriptionUrl ?? null}
       {openBulkImportDialog}
       {openQuickAddDialog}
@@ -113,6 +115,8 @@ $: bulkImportSections = matchedSections.map<BulkImportSectionView>(
   />
 
   <SubscriptionsList
+    {readOnlyReason}
+    unavailableReason={signedData.demo?.unavailableReason}
     {workspaceCopy}
     {formatMessage}
     {removeSubscribedSection}
@@ -124,6 +128,7 @@ $: bulkImportSections = matchedSections.map<BulkImportSectionView>(
     {openQuickAddDialog}
   />
 
+  {#if !readOnlyReason}
   <SubscriptionsQuickAddDialog
     bind:open={isQuickAddOpen}
     {formatMessage}
@@ -166,4 +171,5 @@ $: bulkImportSections = matchedSections.map<BulkImportSectionView>(
     setSectionSelection={setImportSectionSelection}
     unmatchedCodes={unmatchedSectionCodes}
   />
+  {/if}
 </section>

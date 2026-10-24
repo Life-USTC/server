@@ -59,6 +59,7 @@ import {
   classifyPageSsrClass,
   resolvePageCatalogDetailTab,
 } from "@/lib/metrics/page-request-attribution";
+import googleAnalyticsHead from "@/lib/metrics/server/google-analytics.html?raw";
 import {
   OAUTH_DEVICE_AUTHORIZATION_ENDPOINT_PATH,
   OAUTH_TOKEN_ENDPOINT_PATH,
@@ -389,7 +390,12 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
         resolve(event, {
           transformPageChunk: ({ html }) =>
             addScriptNonce(
-              html.replace('<html lang="zh-CN">', `<html lang="${locale}">`),
+              html
+                .replace(
+                  "%life.analytics%",
+                  demoRequest ? "" : googleAnalyticsHead,
+                )
+                .replace('<html lang="zh-CN">', `<html lang="${locale}">`),
               nonce,
             ),
         }),
