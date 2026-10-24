@@ -46,7 +46,7 @@ let {
 </script>
 
 {#snippet column(index: number)}
-  <TableFieldFilter label={index === 3 ? copy.colEffective : columns[index][0].label} fields={columns[index]} {values} {onchange} labels={filterLabels} idPrefix={`admin-bus-desktop-${index}`} formId="admin-bus-filters" align={index === 2 || index === 4 ? "end" : index === 5 ? "center" : "start"} />
+  <TableFieldFilter label={index === 3 ? copy.colEffective : columns[index][0].label} fields={columns[index]} {values} {onchange} labels={filterLabels} idPrefix={`admin-bus-desktop-${index}`} formId="admin-bus-filters" />
 {/snippet}
 
 <div class="min-w-0">
@@ -56,11 +56,11 @@ let {
         <Table.Row>
           <Table.Head class="w-[25%]">{@render column(0)}</Table.Head>
           <Table.Head class="w-[17%]">{@render column(1)}</Table.Head>
-          <Table.Head class="w-[9%] text-right">{@render column(2)}</Table.Head>
+          <Table.Head class="w-[9%] text-left">{@render column(2)}</Table.Head>
           <Table.Head class="w-[18%]">{@render column(3)}</Table.Head>
-          <Table.Head class="w-[14%] text-right">{@render column(4)}</Table.Head>
-          <Table.Head class="w-[10%] text-center">{@render column(5)}</Table.Head>
-          <Table.Head class="w-20 min-w-20 text-right">
+          <Table.Head class="w-[14%] text-left">{@render column(4)}</Table.Head>
+          <Table.Head class="w-[10%] text-left">{@render column(5)}</Table.Head>
+          <Table.Head class="w-20 min-w-20 text-left">
             <span class="sr-only">{copy.colActions}</span>
           </Table.Head>
         </Table.Row>
@@ -84,17 +84,17 @@ let {
                 {version.key}
               </span>
             </Table.Cell>
-            <Table.Cell class="text-right tabular-nums">{version.tripCount}</Table.Cell>
+            <Table.Cell class="text-left tabular-nums">{version.tripCount}</Table.Cell>
             <Table.Cell class="text-muted-foreground">
               {formatEffectiveRange(version)}
             </Table.Cell>
-            <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
+            <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
               {formatImportedAt(version.importedAt)}
             </Table.Cell>
-            <Table.Cell class="text-center">
+            <Table.Cell class="text-left">
               <AdminBusVersionStatusBadge {copy} {version} />
             </Table.Cell>
-            <Table.Cell class="w-20 min-w-20 text-right">
+            <Table.Cell class="w-20 min-w-20 text-left">
               <AdminBusVersionActions
                 {copy}
                 {enhancedAction}

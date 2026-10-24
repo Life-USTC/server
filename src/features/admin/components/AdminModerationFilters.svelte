@@ -19,5 +19,5 @@ $: id = `admin-moderation-${viewport}-${kind}`;
     <SearchField {id} form="moderation-filters" label={searchPlaceholder} placeholder={searchPlaceholder} value={filters.search ?? ""} oninput={(event) => onchange({ search: event.currentTarget.value })} />
   </div>
 {:else}
-  <TableFieldFilter label={fields[0].label} {fields} values={filters} {onchange} {labels} idPrefix={id} formId="moderation-filters" align={kind === "status" && viewport === "desktop" ? "center" : ["createdAt", "editedAt", "dueAt", "expiresAt"].includes(kind) && viewport === "desktop" ? "end" : "start"} />
+  <TableFieldFilter label={fields[0].label} {fields} values={filters} {onchange} {labels} idPrefix={id} formId="moderation-filters" />
 {/if}

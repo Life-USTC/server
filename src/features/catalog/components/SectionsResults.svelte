@@ -104,7 +104,7 @@ let sectionSemesterSummary = $derived(
         <div class="grid gap-3" data-slot="collection-header">
           <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
             {#each Object.entries(columnFilters) as [key, column] (key)}
-              <CatalogColumnFilter {...column} align="start" idPrefix={"mobile-section-" + key} />
+              <CatalogColumnFilter {...column} idPrefix={"mobile-section-" + key} />
             {/each}
           </div>
         </div>
@@ -164,8 +164,8 @@ let sectionSemesterSummary = $derived(
                 <Table.Head aria-sort={filters.sort === "course" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.course} idPrefix="desktop-section-course" /></Table.Head>
                 <Table.Head class="w-36" aria-sort={filters.sort === "code" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-section-code" /></Table.Head>
                 <Table.Head class="w-36" aria-sort={filters.sort === "teacher" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.teacher} idPrefix="desktop-section-teacher" /></Table.Head>
-                <Table.Head class="w-20 text-right" aria-sort={filters.sort === "credits" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.credits} idPrefix="desktop-section-credits" /></Table.Head>
-                <Table.Head class="w-24 text-right" aria-sort={filters.sort === "capacity" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.capacity} idPrefix="desktop-section-capacity" /></Table.Head>
+                <Table.Head class="w-20 text-left" aria-sort={filters.sort === "credits" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.credits} idPrefix="desktop-section-credits" /></Table.Head>
+                <Table.Head class="w-24 text-left" aria-sort={filters.sort === "capacity" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.capacity} idPrefix="desktop-section-capacity" /></Table.Head>
                 <Table.Head class="w-28" aria-sort={filters.sort === "campus" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.campus} idPrefix="desktop-section-campus" /></Table.Head>
               </Table.Row>
             </Table.Header>
@@ -197,10 +197,10 @@ let sectionSemesterSummary = $derived(
                       text={catalogLocalizedNames(section.teachers, locale) || "-"}
                     />
                   </Table.Cell>
-              <Table.Cell class="text-right tabular-nums">
+              <Table.Cell class="text-left tabular-nums">
                 {section.credits ?? "-"}
               </Table.Cell>
-              <Table.Cell class="text-right tabular-nums">
+              <Table.Cell class="text-left tabular-nums">
                 {section.stdCount ?? 0} / {section.limitCount ?? "-"}
               </Table.Cell>
               <Table.Cell >

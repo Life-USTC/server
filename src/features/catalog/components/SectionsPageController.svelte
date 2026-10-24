@@ -174,7 +174,6 @@ const columnFilters = $derived<Record<string, CatalogColumnFilterProps>>(
         ...defaults,
         label: columnLabels[key as keyof typeof columnLabels],
         fields: columnFields,
-        align: key === "credits" || key === "capacity" ? "end" : "start",
         sorting: {
           key,
           label: sortLabels[key as keyof typeof sortLabels],

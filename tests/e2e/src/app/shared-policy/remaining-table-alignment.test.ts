@@ -2,7 +2,7 @@ import { expect, type Locator } from "@playwright/test";
 import { test } from "../../../utils/embedded-table-policy-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
-type Alignment = "left" | "right" | "center" | null;
+type Alignment = "left" | null;
 
 async function checkColumns(
   table: Locator,
@@ -160,7 +160,7 @@ for (const [domain, names] of [
       {
         name: "subscriptions",
         path: "/workspace/subscriptions",
-        columns: ["left", "left", "right", "left"],
+        columns: ["left", "left", "left", "left"],
       },
       {
         name: "signed-links",
@@ -170,42 +170,42 @@ for (const [domain, names] of [
       {
         name: "sources",
         path: "/news/sources",
-        columns: ["left", "right", "left"],
+        columns: ["left", "left", "left"],
       },
       {
         name: "admin-users",
         path: `/admin/users?search=${f.catalog.marker}`,
-        columns: ["left", "left", "left", "center", "center", "right", "right"],
+        columns: ["left", "left", "left", "left", "left", "left", "left"],
       },
       {
         name: "admin-comments",
         path: `/admin/moderation?tab=comments&search=${f.catalog.marker}`,
-        columns: ["left", "left", "left", "right", "center", "right"],
+        columns: ["left", "left", "left", "left", "left", "left"],
       },
       {
         name: "admin-descriptions",
         path: `/admin/moderation?tab=descriptions&search=${f.catalog.marker}`,
-        columns: ["left", "left", "left", "right", "right"],
+        columns: ["left", "left", "left", "left", "left"],
       },
       {
         name: "admin-homeworks",
         path: "/admin/moderation?tab=homeworks&search=Embedded",
-        columns: ["left", "left", "right", "right", "center", "right"],
+        columns: ["left", "left", "left", "left", "left", "left"],
       },
       {
         name: "admin-suspensions",
         path: "/admin/moderation?tab=suspensions",
-        columns: ["left", "left", "right", "center", "right"],
+        columns: ["left", "left", "left", "left", "left"],
       },
       {
         name: "admin-oauth",
         path: "/admin/oauth",
-        columns: ["left", "left", "left", "right", "right"],
+        columns: ["left", "left", "left", "left", "left"],
       },
       {
         name: "admin-bus",
         path: "/admin/bus",
-        columns: ["left", "left", "right", "left", "right", "center", "right"],
+        columns: ["left", "left", "left", "left", "left", "left", "left"],
       },
     ];
     let currentPath: string | undefined;
@@ -275,9 +275,7 @@ for (const [domain, names] of [
         expect(count).toBeGreaterThanOrEqual(2);
         await checkColumns(
           bus,
-          Array.from({ length: count }, (_, index) =>
-            index === 0 ? "left" : index === count - 1 ? "right" : "center",
-          ),
+          Array.from({ length: count }, () => "left"),
           "bus-stops",
           'th[scope="col"]',
           "tr:has(td[headers])",

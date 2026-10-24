@@ -27,7 +27,7 @@ export let teacher: TeacherDetailTeacher;
         <Table.Row>
           <Table.Head>{copy.teacherDetail.semester}</Table.Head>
           <Table.Head>{copy.teacherDetail.sectionCode}</Table.Head>
-          <Table.Head class="text-right">{copy.teacherDetail.credits}</Table.Head>
+          <Table.Head class="text-left">{copy.teacherDetail.credits}</Table.Head>
           <Table.Head>{copy.teacherDetail.courseName}</Table.Head>
         </Table.Row>
       </Table.Header>

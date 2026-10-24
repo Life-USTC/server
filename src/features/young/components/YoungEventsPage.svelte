@@ -287,7 +287,7 @@ function listStatus(event: YoungEventSummary) {
                 <Table.Head>{@render columnFilter(youngCopy.eventName, ["search"], "desktop")}</Table.Head>
                 <Table.Head>{@render columnFilter(youngCopy.eventTime, ["startAt"], "desktop")}</Table.Head>
                 <Table.Head>{@render columnFilter(youngCopy.location, ["location"], "desktop")}</Table.Head>
-                <Table.Head class="text-right" style="text-align: right">{@render columnFilter(youngCopy.capacity, ["capacity", "appliedCount"], "desktop")}</Table.Head>
+                <Table.Head class="text-left">{@render columnFilter(youngCopy.capacity, ["capacity", "appliedCount"], "desktop")}</Table.Head>
                 <Table.Head>{@render columnFilter(youngCopy.status, ["status"], "desktop")}</Table.Head>
               </Table.Row>
             </Table.Header>
@@ -302,7 +302,7 @@ function listStatus(event: YoungEventSummary) {
                   </Table.Cell>
                   <Table.Cell>{listTime(event)}</Table.Cell>
                   <Table.Cell><span>{event.location ?? ""}</span></Table.Cell>
-                    <Table.Cell class="text-right tabular-nums" style="text-align: right">{event.appliedCount != null && event.appliedCount > 0 ? youngCapacity(event.appliedCount, event.capacity, youngCopy.unknownValue) : ""}</Table.Cell>
+                    <Table.Cell class="text-left tabular-nums">{event.appliedCount != null && event.appliedCount > 0 ? youngCapacity(event.appliedCount, event.capacity, youngCopy.unknownValue) : ""}</Table.Cell>
                   <Table.Cell>{@render statusBadge(event)}</Table.Cell>
                 </Table.Row>
               {/each}

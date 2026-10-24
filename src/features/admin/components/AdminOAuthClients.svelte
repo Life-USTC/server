@@ -109,7 +109,7 @@ function apply(event: SubmitEvent) {
 </script>
 
 {#snippet column(index: number, suffix: string)}
-  <TableFieldFilter label={index === 1 ? copy.tableColumnType : columns[index][0].label} fields={columns[index]} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`oauth-${suffix}-${index}`} formId="oauth-filters" align={index === 3 ? "end" : "start"} />
+  <TableFieldFilter label={index === 1 ? copy.tableColumnType : columns[index][0].label} fields={columns[index]} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`oauth-${suffix}-${index}`} formId="oauth-filters" />
 {/snippet}
 
 <section class="flex min-w-0 flex-col gap-3">
@@ -144,8 +144,8 @@ function apply(event: SubmitEvent) {
                 <Table.Head class="w-[29%]">{@render column(0, "desktop")}</Table.Head>
                 <Table.Head class="w-[25%]">{@render column(1, "desktop")}</Table.Head>
                 <Table.Head class="w-[24%]">{@render column(2, "desktop")}</Table.Head>
-                <Table.Head class="w-[15%] text-right">{@render column(3, "desktop")}</Table.Head>
-                <Table.Head class="w-14 min-w-14 text-right">
+                <Table.Head class="w-[15%] text-left">{@render column(3, "desktop")}</Table.Head>
+                <Table.Head class="w-14 min-w-14 text-left">
                   <span class="sr-only">{copy.deleteClient}</span>
                 </Table.Head>
               </Table.Row>
@@ -190,11 +190,11 @@ function apply(event: SubmitEvent) {
                         : copy.notAvailable}
                     />
                   </Table.Cell>
-                  <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
+                  <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
                     {formatCreatedAt(client.createdAt)}
                   </Table.Cell>
-                  <Table.Cell class="w-14 min-w-14 text-right">
-                    <TableRowActions class="justify-end">
+                  <Table.Cell class="w-14 min-w-14 text-left">
+                    <TableRowActions>
                       <TableIconButton
                         label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
                         variant="destructive"

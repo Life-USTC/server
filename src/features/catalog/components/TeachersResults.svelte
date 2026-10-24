@@ -113,7 +113,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
         <div class="grid gap-3" data-slot="collection-header">
           <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
             {#each Object.entries(columnFilters) as [key, column] (key)}
-              <CatalogColumnFilter {...column} align="start" idPrefix={"mobile-teacher-" + key} />
+              <CatalogColumnFilter {...column} idPrefix={"mobile-teacher-" + key} />
             {/each}
           </div>
         </div>
@@ -185,7 +185,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
               {#if showEmailColumn}
                 <Table.Head><CatalogColumnFilter {...columnFilters.email} idPrefix="desktop-teacher-email" /></Table.Head>
               {/if}
-              <Table.Head class="text-right"><CatalogColumnFilter {...columnFilters.sections} idPrefix="desktop-teacher-sections" /></Table.Head>
+              <Table.Head class="text-left"><CatalogColumnFilter {...columnFilters.sections} idPrefix="desktop-teacher-sections" /></Table.Head>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -226,7 +226,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
                   <TruncatedText text={teacher.email ?? "-"} />
                 </Table.Cell>
               {/if}
-              <Table.Cell class="p-0 whitespace-nowrap text-right tabular-nums">
+              <Table.Cell class="p-0 whitespace-nowrap text-left tabular-nums">
                 {#if sectionCount > 0}
                   <CatalogTableLink
                     class="tabular-nums"
@@ -237,7 +237,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
                   </CatalogTableLink>
                 {:else}
                   <span
-                    class="flex h-full min-h-12 min-w-0 w-full items-center justify-end px-3 tabular-nums"
+                    class="flex h-full min-h-12 min-w-0 w-full items-center px-3 tabular-nums"
                     data-testid="teacher-section-count"
                   >0</span>
                 {/if}

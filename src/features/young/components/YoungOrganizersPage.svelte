@@ -170,9 +170,9 @@ const summary = $derived(
             <Table.Header>
               <Table.Row>
                 <Table.Head>{@render columnFilter(fields[0], "desktop")}</Table.Head>
-                <Table.Head class="text-right" style="text-align: right">{@render columnFilter(fields[1], "desktop")}</Table.Head>
-                <Table.Head class="text-right" style="text-align: right">{@render columnFilter(fields[2], "desktop")}</Table.Head>
-                <Table.Head class="text-right" style="text-align: right">{@render columnFilter(fields[3], "desktop")}</Table.Head>
+                <Table.Head class="text-left">{@render columnFilter(fields[1], "desktop")}</Table.Head>
+                <Table.Head class="text-left">{@render columnFilter(fields[2], "desktop")}</Table.Head>
+                <Table.Head class="text-left">{@render columnFilter(fields[3], "desktop")}</Table.Head>
               </Table.Row>
             </Table.Header>
             <Table.Body>
@@ -183,11 +183,11 @@ const summary = $derived(
                         {organizer.name}
                       </a>
                   </Table.Cell>
-                    <Table.Cell class="text-right tabular-nums" style="text-align: right">
+                    <Table.Cell class="text-left tabular-nums">
                       <a class="underline underline-offset-4" href={eventsHref(organizer.id)}>{organizer.activeCount}</a>
                   </Table.Cell>
-                    <Table.Cell class="text-right tabular-nums" style="text-align: right">{organizer.upcomingCount}</Table.Cell>
-                    <Table.Cell class="text-right tabular-nums" style="text-align: right">{organizer.historyCount}</Table.Cell>
+                    <Table.Cell class="text-left tabular-nums">{organizer.upcomingCount}</Table.Cell>
+                    <Table.Cell class="text-left tabular-nums">{organizer.historyCount}</Table.Cell>
                 </Table.Row>
               {/each}
             {#if data.length === 0}<Table.Row><Table.Cell colspan={4}>{@render empty()}</Table.Cell></Table.Row>{/if}

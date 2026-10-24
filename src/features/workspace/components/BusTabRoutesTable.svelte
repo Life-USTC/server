@@ -88,9 +88,9 @@ onMount(() => {
                 id={`bus-route-${route.route.id}-stop-${stop.stopOrder}`}
                 scope="col"
                 colspan={index === stopColumns.length - 1 ? columnCount - stopColumns.length + 1 : 1}
-                class={index === 0 ? "text-left" : index === stopColumns.length - 1 ? "text-right" : "text-center"}
+                class="text-left"
               >
-                <TableFieldFilter label={stop.label} fields={busStopFilterFields(route.route.stops.find((item) => item.stopOrder === stop.stopOrder)!.campus.id, stop.label, busCopy)} values={filterValues} onchange={onFilterChange} labels={busCopy.tableFilters} idPrefix={`bus-route-${route.route.id}-stop-${stop.stopOrder}`} {formId} align={index === 0 ? "start" : index === stopColumns.length - 1 ? "end" : "center"} />
+                <TableFieldFilter label={stop.label} fields={busStopFilterFields(route.route.stops.find((item) => item.stopOrder === stop.stopOrder)!.campus.id, stop.label, busCopy)} values={filterValues} onchange={onFilterChange} labels={busCopy.tableFilters} idPrefix={`bus-route-${route.route.id}-stop-${stop.stopOrder}`} {formId} />
               </Table.Head>
             {/each}
           </Table.Row>
@@ -108,7 +108,7 @@ onMount(() => {
                 <Table.Cell
                   headers={`bus-route-${route.route.id}-stop-${stop.stopOrder}`}
                   colspan={index === stopColumns.length - 1 ? columnCount - stopColumns.length + 1 : 1}
-                  class={index === 0 ? "text-left" : index === stopColumns.length - 1 ? "text-right" : "text-center"}
+                  class="text-left"
                 >
                   <span class="font-mono tabular-nums">{busStopTimeLabel(stopTime)}</span>
                 </Table.Cell>
