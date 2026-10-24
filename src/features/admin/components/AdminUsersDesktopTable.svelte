@@ -33,7 +33,7 @@ $: fields = adminUserTableFields(copy);
 </script>
 
 {#snippet column(index: number)}
-  <TableFieldFilter label={fields[index].label} fields={[fields[index]]} {values} {onchange} labels={commonCopy.tableFilters} idPrefix={`admin-users-desktop-${fields[index].name}`} formId="admin-user-search-desktop-form" align={index === 5 ? "end" : index > 2 ? "center" : "start"} />
+  <TableFieldFilter label={fields[index].label} fields={[fields[index]]} {values} {onchange} labels={commonCopy.tableFilters} idPrefix={`admin-users-desktop-${fields[index].name}`} formId="admin-user-search-desktop-form" />
 {/snippet}
 
 <div class="min-w-0">
@@ -48,10 +48,10 @@ $: fields = adminUserTableFields(copy);
           <Table.Head class="w-[22%]">{@render column(0)}</Table.Head>
           <Table.Head class="w-[18%]">{@render column(1)}</Table.Head>
           <Table.Head class="w-[25%]">{@render column(2)}</Table.Head>
-          <Table.Head class="w-[9%] text-center">{@render column(3)}</Table.Head>
-          <Table.Head class="w-[14%] text-center">{@render column(4)}</Table.Head>
-          <Table.Head class="w-[12%] text-right">{@render column(5)}</Table.Head>
-          <Table.Head class="w-14 min-w-14 text-right">
+          <Table.Head class="w-[9%]">{@render column(3)}</Table.Head>
+          <Table.Head class="w-[14%]">{@render column(4)}</Table.Head>
+          <Table.Head class="w-[12%]">{@render column(5)}</Table.Head>
+          <Table.Head class="w-14 min-w-14">
             <span class="sr-only">{copy.editTitle}</span>
           </Table.Head>
         </Table.Row>
@@ -77,13 +77,13 @@ $: fields = adminUserTableFields(copy);
                 <TruncatedText text={email} />
               </span>
             </Table.Cell>
-            <Table.Cell class="text-center">
+            <Table.Cell class="text-left">
               <Badge variant={user.isAdmin ? "secondary" : "ghost"}>
                 {user.isAdmin ? copy.adminRole : copy.userRole}
               </Badge>
             </Table.Cell>
-            <Table.Cell class="text-center">
-              <div class="grid min-w-0 justify-items-center gap-1">
+            <Table.Cell class="text-left">
+              <div class="grid min-w-0 justify-items-start gap-1">
                 {#if user.activeSuspension}
                   <Badge class="w-fit" variant="destructive">{copy.suspendedStatus}</Badge>
                 {:else}
@@ -95,11 +95,11 @@ $: fields = adminUserTableFields(copy);
                 />
               </div>
             </Table.Cell>
-            <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
+            <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
               {formatDate(user.createdAt)}
             </Table.Cell>
-            <Table.Cell class="w-14 min-w-14 text-right">
-              <TableRowActions class="justify-end">
+            <Table.Cell class="w-14 min-w-14 text-left">
+              <TableRowActions>
                 <TableIconButton
                   label={copy.editTitle}
                   onclick={() => onSelect(user)}

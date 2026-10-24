@@ -200,7 +200,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
 </script>
 
 {#snippet column(index: number, suffix: string)}
-  <TableFieldFilter label={columns[index][0].label} fields={columns[index]} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`subscriptions-${suffix}-${index}`} formId="subscriptions-filters" align={index === 2 ? "end" : "start"} />
+  <TableFieldFilter label={columns[index][0].label} fields={columns[index]} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`subscriptions-${suffix}-${index}`} formId="subscriptions-filters" />
 {/snippet}
 
 
@@ -266,7 +266,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
               <Table.Row>
                 <Table.Head>{@render column(0, group.key)}</Table.Head>
                 <Table.Head>{@render column(1, group.key)}</Table.Head>
-                <Table.Head class="text-end">
+                <Table.Head class="text-left">
                   {@render column(2, group.key)}
                 </Table.Head>
                 <Table.Head>
@@ -302,7 +302,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
                   </Table.Cell>
 
                   <Table.Cell>{teacherNames(section)}</Table.Cell>
-                  <Table.Cell class="text-end">{section.credits ?? workspaceCopy.notAvailable}</Table.Cell>
+                  <Table.Cell class="text-left">{section.credits ?? workspaceCopy.notAvailable}</Table.Cell>
 
                   <Table.Cell>
                     <TableRowActions>

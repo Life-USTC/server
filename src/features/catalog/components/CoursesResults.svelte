@@ -85,7 +85,7 @@ let courseSearchSummary = $derived(
         <div class="grid gap-3" data-slot="collection-header">
           <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
             {#each Object.entries(columnFilters) as [key, column] (key)}
-              <CatalogColumnFilter {...column} align="start" idPrefix={"mobile-course-" + key} />
+              <CatalogColumnFilter {...column} idPrefix={"mobile-course-" + key} />
             {/each}
           </div>
         </div>

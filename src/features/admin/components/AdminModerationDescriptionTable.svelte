@@ -37,8 +37,8 @@ export let targetLabel: (description: AdminModerationDescription) => string;
           <Table.Head class="w-[36%]">{@render filterControls("descriptionContent", "desktop")}</Table.Head>
           <Table.Head class="w-[18%]">{@render filterControls("author", "desktop")}</Table.Head>
           <Table.Head class="w-[22%]">{@render filterControls("descriptionTarget", "desktop")}</Table.Head>
-          <Table.Head class="w-[14%] text-right">{@render filterControls("editedAt", "desktop")}</Table.Head>
-          <Table.Head class="w-14 min-w-14 text-right">
+          <Table.Head class="w-[14%]">{@render filterControls("editedAt", "desktop")}</Table.Head>
+          <Table.Head class="w-14 min-w-14">
             <span class="sr-only">{copy.actions}</span>
           </Table.Head>
         </Table.Row>
@@ -69,11 +69,11 @@ export let targetLabel: (description: AdminModerationDescription) => string;
                 <TruncatedText text={targetLabel(description)} />
               </a>
             </Table.Cell>
-            <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
+            <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
               {formatDate(adminModerationDescriptionEditedAt(description))}
             </Table.Cell>
-            <Table.Cell class="w-14 min-w-14 text-right">
-              <TableRowActions class="justify-end">
+            <Table.Cell class="w-14 min-w-14 text-left">
+              <TableRowActions>
                 <TableIconButton
                   label={copy.manageDescription}
                   onclick={() => {

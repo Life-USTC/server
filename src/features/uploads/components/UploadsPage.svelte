@@ -55,8 +55,8 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
 );
 </script>
 
-{#snippet column(field: TableFilterField, suffix: string, align: "start" | "end" = "start")}
-  <TableFieldFilter label={field.label} fields={[field]} values={draft} onchange={change} labels={data.copy.common.tableFilters} idPrefix={`uploads-${suffix}-${field.name}`} formId="uploads-filters" {align} />
+{#snippet column(field: TableFilterField, suffix: string)}
+  <TableFieldFilter label={field.label} fields={[field]} values={draft} onchange={change} labels={data.copy.common.tableFilters} idPrefix={`uploads-${suffix}-${field.name}`} formId="uploads-filters" />
 {/snippet}
 
 <svelte:head><title>{copy.title} - Life@USTC</title></svelte:head>
@@ -84,12 +84,12 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
       <ResponsiveCollection>
         {#snippet desktop()}
           <Table.Root>
-            <Table.Header><Table.Row><Table.Head>{@render column(fields[0], "desktop")}</Table.Head><Table.Head class="text-right">{@render column(fields[1], "desktop", "end")}</Table.Head><Table.Head>{@render column(fields[2], "desktop")}</Table.Head><Table.Head>{copy.tableActions}</Table.Head></Table.Row></Table.Header>
+            <Table.Header><Table.Row><Table.Head>{@render column(fields[0], "desktop")}</Table.Head><Table.Head>{@render column(fields[1], "desktop")}</Table.Head><Table.Head>{@render column(fields[2], "desktop")}</Table.Head><Table.Head>{copy.tableActions}</Table.Head></Table.Row></Table.Header>
             <Table.Body>
               {#each data.uploads as upload (upload.id)}
                 <Table.Row>
                   <Table.Cell class="max-w-64"><TruncatedText class="font-medium" text={upload.filename} /></Table.Cell>
-                  <Table.Cell class="text-right tabular-nums">{formatBytes(upload.size)}</Table.Cell>
+                  <Table.Cell class="text-left tabular-nums">{formatBytes(upload.size)}</Table.Cell>
                   <Table.Cell><time datetime={upload.createdAt}>{formatter.format(new Date(upload.createdAt))}</time></Table.Cell>
                   <Table.Cell>{@render actions(upload)}</Table.Cell>
                 </Table.Row>

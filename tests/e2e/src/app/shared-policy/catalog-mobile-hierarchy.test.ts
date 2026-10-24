@@ -175,31 +175,26 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           name: "courses",
           path: "/catalog/courses?search=ALIGN-COURSE",
           selector: "table",
-          numeric: [],
         },
         {
           name: "teachers",
           path: "/catalog/teachers?search=ALIGN-TEACHER",
           selector: "table",
-          numeric: [5],
         },
         {
           name: "sections",
           path: "/catalog/sections?courseCode=ALIGN-COURSE",
           selector: "table",
-          numeric: [4, 5],
         },
         {
           name: "course-history",
           path: `/catalog/courses/${fixture.course.jwId}`,
           selector: "#sections table",
-          numeric: [3],
         },
         {
           name: "teacher-history",
           path: `/catalog/teachers/${fixture.teacher.id}`,
           selector: "#sections table",
-          numeric: [2],
         },
       ]) {
         if (!item.path.startsWith(`/catalog/${domain.toLowerCase()}s`))
@@ -238,7 +233,6 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
             if (!boxes.length) throw new Error("Missing table text");
             return {
               left: Math.min(...boxes.map((box) => box.left)),
-              right: Math.max(...boxes.map((box) => box.right)),
               centerY:
                 (Math.min(...boxes.map((box) => box.top)) +
                   Math.max(...boxes.map((box) => box.bottom))) /
@@ -252,12 +246,11 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           }));
         });
         expect(columns.length).toBeGreaterThan(0);
-        for (const [index, column] of columns.entries()) {
-          const edge = item.numeric.includes(index) ? "right" : "left";
+        for (const column of columns) {
           expect
             .soft(
-              Math.abs(column.header[edge] - column.cell[edge]),
-              `${item.name}: ${column.label} ${edge} edge`,
+              Math.abs(column.header.left - column.cell.left),
+              `${item.name}: ${column.label} left edge`,
             )
             .toBeLessThanOrEqual(0.5);
         }

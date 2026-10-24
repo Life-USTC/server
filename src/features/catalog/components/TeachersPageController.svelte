@@ -88,7 +88,6 @@ const allFilters = $derived<Record<string, CatalogColumnFilterProps>>(
         onchange: update,
         labels: commonLabels.tableFilters,
         formId,
-        align: key === "sections" ? "end" : "start",
       },
     ]),
   ),

@@ -25,6 +25,6 @@ let {
 } = $props();
 </script>
 
-<TableColumnHeader {label} align={fields.every((field) => field.type === "number") ? "end" : "start"} active={fields.some((field) => Boolean(applied[field.name]))}>
+<TableColumnHeader {label} active={fields.some((field) => Boolean(applied[field.name]))}>
   <TableFilterFields {fields} {values} {onchange} labels={copy.common.tableFilters} idPrefix={prefix} {formId} />
 </TableColumnHeader>

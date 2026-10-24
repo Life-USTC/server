@@ -145,9 +145,9 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
                 <Table.Row>
                   <Table.Head class="w-[23%]">{@render filterControls("author", "desktop")}</Table.Head>
                   <Table.Head class="w-[34%]">{@render filterControls("reason", "desktop")}</Table.Head>
-                  <Table.Head class="w-[20%] text-right">{@render filterControls("expiresAt", "desktop")}</Table.Head>
-                  <Table.Head class="w-[13%] text-center">{@render filterControls("status", "desktop")}</Table.Head>
-                <Table.Head class="w-14 min-w-14 text-right">
+                  <Table.Head class="w-[20%]">{@render filterControls("expiresAt", "desktop")}</Table.Head>
+                  <Table.Head class="w-[13%]">{@render filterControls("status", "desktop")}</Table.Head>
+                <Table.Head class="w-14 min-w-14">
                   <span class="sr-only">{copy.actions}</span>
                 </Table.Head>
                 </Table.Row>
@@ -173,19 +173,19 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
                         text={suspension.reason ?? copy.noReason}
                       />
                     </Table.Cell>
-                  <Table.Cell class="whitespace-nowrap text-right tabular-nums text-muted-foreground">
+                  <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
                     {expiresLabel(suspension)}
                   </Table.Cell>
-                    <Table.Cell class="text-center">
+                    <Table.Cell class="text-left">
                       {#if suspension.liftedAt}
                         <Badge variant="ghost">{copy.lifted}</Badge>
                       {:else}
                         <Badge variant="destructive">{copy.active}</Badge>
                       {/if}
                     </Table.Cell>
-                    <Table.Cell class="w-14 min-w-14 text-right">
+                    <Table.Cell class="w-14 min-w-14 text-left">
                       {#if !suspension.liftedAt}
-                        <TableRowActions class="justify-end">
+                        <TableRowActions>
                           <TableIconButton
                             disabled={Boolean(liftingSuspensionId)}
                             label={liftingSuspensionId === suspension.id ? copy.saving : copy.liftSuspensionAction}

@@ -165,7 +165,7 @@ const levelIndex = $derived(filteredGroups);
 </script>
 
 {#snippet column(index: number, suffix: string)}
-  <TableFieldFilter label={columns[index][0].label} fields={columns[index]} values={draft} onchange={change} labels={data.tableFilterLabels} idPrefix={`sources-${suffix}-${index}`} formId="source-directory-filters" align={index === 1 ? "end" : "start"} />
+  <TableFieldFilter label={columns[index][0].label} fields={columns[index]} values={draft} onchange={change} labels={data.tableFilterLabels} idPrefix={`sources-${suffix}-${index}`} formId="source-directory-filters" />
 {/snippet}
 
 <svelte:head>
@@ -213,7 +213,7 @@ const levelIndex = $derived(filteredGroups);
           </TableControlsRow>
           <Table.Row class="hidden xl:table-row">
             <Table.Head class="h-9">{@render column(0, "desktop")}</Table.Head>
-            <Table.Head class="h-9 w-24 text-right">{@render column(1, "desktop")}</Table.Head>
+            <Table.Head class="h-9 w-24">{@render column(1, "desktop")}</Table.Head>
             <Table.Head class="h-9 w-32">{@render column(2, "desktop")}</Table.Head>
           </Table.Row>
         </Table.Header>
@@ -267,7 +267,7 @@ const levelIndex = $derived(filteredGroups);
                   <a class="font-medium text-sm text-foreground hover:underline [overflow-wrap:anywhere]" href={sourceHref(source.id)}>{source.name}</a>
                   <p class="text-xs text-muted-foreground [overflow-wrap:anywhere]">{source.hosts.join(" · ")}</p>
                 </Table.Cell>
-                <Table.Cell class="py-2 align-middle text-right tabular-nums text-muted-foreground">{source.publicationCount}</Table.Cell>
+                <Table.Cell class="py-2 align-middle text-left tabular-nums text-muted-foreground">{source.publicationCount}</Table.Cell>
                 <Table.Cell class="py-2 align-middle whitespace-nowrap tabular-nums text-muted-foreground">{lastPublished ?? "—"}</Table.Cell>
               </Table.Row>
             {/each}
