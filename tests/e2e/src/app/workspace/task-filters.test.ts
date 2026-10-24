@@ -108,7 +108,7 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                 await gotoAndWaitForReady(page, `/workspace/${tab}`, {
                   browserHealth: {},
                 });
-                await openWorkspaceTaskFilter(page, tab);
+                const filterDialog = await openWorkspaceTaskFilter(page, tab);
                 const group = page
                   .locator('[data-slot="toggle-group"]')
                   .filter({ has: page.locator('[data-value="incomplete"]') });
@@ -140,6 +140,7 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                   }
                   if (tab === "todos") {
                     await page.keyboard.press("Escape");
+                    await expect(filterDialog).toBeHidden();
                     await clear.click();
                     await openWorkspaceTaskFilter(page, tab);
                   } else {
@@ -267,6 +268,7 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                   await expect(completed).toHaveCount(0);
                   if (tab === "todos") {
                     await page.keyboard.press("Escape");
+                    await expect(filterDialog).toBeHidden();
                     await page
                       .getByRole("button", { name: /清除筛选|Clear filter/i })
                       .filter({ visible: true })

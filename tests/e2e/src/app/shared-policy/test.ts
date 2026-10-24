@@ -610,9 +610,10 @@ for (const [domain, tab] of [
                 .filter({ has: page.locator('[data-value="incomplete"]') })
                 .locator('[data-value="all"]')
                 .click();
+              await page.keyboard.press("Escape");
+              await expect(dialog).toBeHidden();
             }
-            // Open the header to inspect the applied filter after navigation.
-            await page.keyboard.press("Escape");
+            // Open the header to inspect the applied filter.
             const appliedFilter = await openWorkspaceTaskFilter(page, tab);
             await expect(
               appliedFilter.locator(
