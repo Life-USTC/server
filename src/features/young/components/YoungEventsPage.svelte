@@ -287,7 +287,7 @@ function listStatus(event: YoungEventSummary) {
                 <Table.Head>{@render columnFilter(youngCopy.eventName, ["search"], "desktop")}</Table.Head>
                 <Table.Head>{@render columnFilter(youngCopy.eventTime, ["startAt"], "desktop")}</Table.Head>
                 <Table.Head>{@render columnFilter(youngCopy.location, ["location"], "desktop")}</Table.Head>
-                <Table.Head class="text-left">{@render columnFilter(youngCopy.capacity, ["capacity", "appliedCount"], "desktop")}</Table.Head>
+                <Table.Head>{@render columnFilter(youngCopy.capacity, ["capacity", "appliedCount"], "desktop")}</Table.Head>
                 <Table.Head>{@render columnFilter(youngCopy.status, ["status"], "desktop")}</Table.Head>
               </Table.Row>
             </Table.Header>

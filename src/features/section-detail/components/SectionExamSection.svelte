@@ -43,7 +43,7 @@ export let sectionCopy: SectionExamCopy;
           <Table.Head scope="col">{sectionCopy.examTime}</Table.Head>
           <Table.Head scope="col">{sectionCopy.location}</Table.Head>
           <Table.Head scope="col">{sectionCopy.examMode}</Table.Head>
-          <Table.Head scope="col" class="text-left">{sectionCopy.examCount}</Table.Head>
+          <Table.Head scope="col">{sectionCopy.examCount}</Table.Head>
         </Table.Row>
       </Table.Header>
       <Table.Body>

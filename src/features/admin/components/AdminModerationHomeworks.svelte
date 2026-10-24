@@ -114,10 +114,10 @@ function creatorLabel(homework: AdminModerationHomework) {
               <Table.Row>
                 <Table.Head class="w-[28%]">{@render filterControls("content", "desktop")}</Table.Head>
                 <Table.Head class="w-[22%]">{@render filterControls("target", "desktop")}</Table.Head>
-                <Table.Head class="w-[16%] text-left">{@render filterControls("createdAt", "desktop")}</Table.Head>
-                <Table.Head class="w-[16%] text-left">{@render filterControls("dueAt", "desktop")}</Table.Head>
-                <Table.Head class="w-[12%] text-left">{@render filterControls("status", "desktop")}</Table.Head>
-                <Table.Head class="w-14 min-w-14 text-left">
+                <Table.Head class="w-[16%]">{@render filterControls("createdAt", "desktop")}</Table.Head>
+                <Table.Head class="w-[16%]">{@render filterControls("dueAt", "desktop")}</Table.Head>
+                <Table.Head class="w-[12%]">{@render filterControls("status", "desktop")}</Table.Head>
+                <Table.Head class="w-14 min-w-14">
                   <span class="sr-only">{copy.actions}</span>
                 </Table.Head>
               </Table.Row>

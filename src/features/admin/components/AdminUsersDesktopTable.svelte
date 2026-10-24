@@ -48,10 +48,10 @@ $: fields = adminUserTableFields(copy);
           <Table.Head class="w-[22%]">{@render column(0)}</Table.Head>
           <Table.Head class="w-[18%]">{@render column(1)}</Table.Head>
           <Table.Head class="w-[25%]">{@render column(2)}</Table.Head>
-          <Table.Head class="w-[9%] text-left">{@render column(3)}</Table.Head>
-          <Table.Head class="w-[14%] text-left">{@render column(4)}</Table.Head>
-          <Table.Head class="w-[12%] text-left">{@render column(5)}</Table.Head>
-          <Table.Head class="w-14 min-w-14 text-left">
+          <Table.Head class="w-[9%]">{@render column(3)}</Table.Head>
+          <Table.Head class="w-[14%]">{@render column(4)}</Table.Head>
+          <Table.Head class="w-[12%]">{@render column(5)}</Table.Head>
+          <Table.Head class="w-14 min-w-14">
             <span class="sr-only">{copy.editTitle}</span>
           </Table.Head>
         </Table.Row>

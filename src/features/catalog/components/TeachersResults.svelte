@@ -185,7 +185,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
               {#if showEmailColumn}
                 <Table.Head><CatalogColumnFilter {...columnFilters.email} idPrefix="desktop-teacher-email" /></Table.Head>
               {/if}
-              <Table.Head class="text-left"><CatalogColumnFilter {...columnFilters.sections} idPrefix="desktop-teacher-sections" /></Table.Head>
+              <Table.Head><CatalogColumnFilter {...columnFilters.sections} idPrefix="desktop-teacher-sections" /></Table.Head>
             </Table.Row>
           </Table.Header>
           <Table.Body>

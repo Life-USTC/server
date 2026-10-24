@@ -213,7 +213,7 @@ const levelIndex = $derived(filteredGroups);
           </TableControlsRow>
           <Table.Row class="hidden xl:table-row">
             <Table.Head class="h-9">{@render column(0, "desktop")}</Table.Head>
-            <Table.Head class="h-9 w-24 text-left">{@render column(1, "desktop")}</Table.Head>
+            <Table.Head class="h-9 w-24">{@render column(1, "desktop")}</Table.Head>
             <Table.Head class="h-9 w-32">{@render column(2, "desktop")}</Table.Head>
           </Table.Row>
         </Table.Header>

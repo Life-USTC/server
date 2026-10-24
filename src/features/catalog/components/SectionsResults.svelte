@@ -164,8 +164,8 @@ let sectionSemesterSummary = $derived(
                 <Table.Head aria-sort={filters.sort === "course" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.course} idPrefix="desktop-section-course" /></Table.Head>
                 <Table.Head class="w-36" aria-sort={filters.sort === "code" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-section-code" /></Table.Head>
                 <Table.Head class="w-36" aria-sort={filters.sort === "teacher" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.teacher} idPrefix="desktop-section-teacher" /></Table.Head>
-                <Table.Head class="w-20 text-left" aria-sort={filters.sort === "credits" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.credits} idPrefix="desktop-section-credits" /></Table.Head>
-                <Table.Head class="w-24 text-left" aria-sort={filters.sort === "capacity" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.capacity} idPrefix="desktop-section-capacity" /></Table.Head>
+                <Table.Head class="w-20" aria-sort={filters.sort === "credits" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.credits} idPrefix="desktop-section-credits" /></Table.Head>
+                <Table.Head class="w-24" aria-sort={filters.sort === "capacity" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.capacity} idPrefix="desktop-section-capacity" /></Table.Head>
                 <Table.Head class="w-28" aria-sort={filters.sort === "campus" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.campus} idPrefix="desktop-section-campus" /></Table.Head>
               </Table.Row>
             </Table.Header>

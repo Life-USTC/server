@@ -30,25 +30,21 @@ afterNavigate(({ shallow, type }) => {
 });
 </script>
 
-{#snippet indicator()}
-  {#if sort === "asc"}
-    <ArrowUpIcon data-icon="inline-end" aria-hidden="true" />
-  {:else if sort === "desc"}
-    <ArrowDownIcon data-icon="inline-end" aria-hidden="true" />
-  {:else if active}
-    <FilterIcon data-icon="inline-end" aria-hidden="true" />
-  {:else}
-    <ChevronDownIcon data-icon="inline-end" aria-hidden="true" />
-  {/if}
-{/snippet}
-
 <div class="flex min-w-0" data-slot="table-column-header">
   <Popover.Root bind:open>
     <Popover.Trigger>
       {#snippet child({ props })}
         <Button {...props} {disabled} variant="ghost" class="-mx-[11px]" data-active={active || sort ? "true" : undefined}>
           <span>{label}</span>
-          {@render indicator()}
+          {#if sort === "asc"}
+            <ArrowUpIcon data-icon="inline-end" aria-hidden="true" />
+          {:else if sort === "desc"}
+            <ArrowDownIcon data-icon="inline-end" aria-hidden="true" />
+          {:else if active}
+            <FilterIcon data-icon="inline-end" aria-hidden="true" />
+          {:else}
+            <ChevronDownIcon data-icon="inline-end" aria-hidden="true" />
+          {/if}
         </Button>
       {/snippet}
     </Popover.Trigger>

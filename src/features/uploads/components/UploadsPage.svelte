@@ -84,7 +84,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
       <ResponsiveCollection>
         {#snippet desktop()}
           <Table.Root>
-            <Table.Header><Table.Row><Table.Head>{@render column(fields[0], "desktop")}</Table.Head><Table.Head class="text-left">{@render column(fields[1], "desktop")}</Table.Head><Table.Head>{@render column(fields[2], "desktop")}</Table.Head><Table.Head>{copy.tableActions}</Table.Head></Table.Row></Table.Header>
+            <Table.Header><Table.Row><Table.Head>{@render column(fields[0], "desktop")}</Table.Head><Table.Head>{@render column(fields[1], "desktop")}</Table.Head><Table.Head>{@render column(fields[2], "desktop")}</Table.Head><Table.Head>{copy.tableActions}</Table.Head></Table.Row></Table.Header>
             <Table.Body>
               {#each data.uploads as upload (upload.id)}
                 <Table.Row>

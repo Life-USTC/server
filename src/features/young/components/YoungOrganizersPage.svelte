@@ -170,9 +170,9 @@ const summary = $derived(
             <Table.Header>
               <Table.Row>
                 <Table.Head>{@render columnFilter(fields[0], "desktop")}</Table.Head>
-                <Table.Head class="text-left">{@render columnFilter(fields[1], "desktop")}</Table.Head>
-                <Table.Head class="text-left">{@render columnFilter(fields[2], "desktop")}</Table.Head>
-                <Table.Head class="text-left">{@render columnFilter(fields[3], "desktop")}</Table.Head>
+                <Table.Head>{@render columnFilter(fields[1], "desktop")}</Table.Head>
+                <Table.Head>{@render columnFilter(fields[2], "desktop")}</Table.Head>
+                <Table.Head>{@render columnFilter(fields[3], "desktop")}</Table.Head>
               </Table.Row>
             </Table.Header>
             <Table.Body>

@@ -144,8 +144,8 @@ function apply(event: SubmitEvent) {
                 <Table.Head class="w-[29%]">{@render column(0, "desktop")}</Table.Head>
                 <Table.Head class="w-[25%]">{@render column(1, "desktop")}</Table.Head>
                 <Table.Head class="w-[24%]">{@render column(2, "desktop")}</Table.Head>
-                <Table.Head class="w-[15%] text-left">{@render column(3, "desktop")}</Table.Head>
-                <Table.Head class="w-14 min-w-14 text-left">
+                <Table.Head class="w-[15%]">{@render column(3, "desktop")}</Table.Head>
+                <Table.Head class="w-14 min-w-14">
                   <span class="sr-only">{copy.deleteClient}</span>
                 </Table.Head>
               </Table.Row>
