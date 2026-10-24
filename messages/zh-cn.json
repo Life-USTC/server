@@ -1775,6 +1775,15 @@
     "schedule": "课程安排",
     "textbooks": "参考教材"
   },
+  "demo": {
+    "enter": "进入演示",
+    "description": "无需注册，浏览只读待办样例。",
+    "displayName": "演示账户 · 只读",
+    "readOnlyReason": "你可以浏览和筛选待办样例，无法新增、完成、编辑或删除。",
+    "exit": "退出演示",
+    "unavailableReason": "其他功能暂未开放演示。",
+    "referenceTime": "样例时间（上海）"
+  },
   "signIn": {
     "title": "登录",
     "description": "选择一个服务提供商登录您的账户",

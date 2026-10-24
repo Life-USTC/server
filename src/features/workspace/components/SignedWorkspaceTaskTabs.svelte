@@ -68,6 +68,7 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
 
 {#if activeTab === "todos"}
   <TodosTab
+    readOnlyReason={signedData.demo?.readOnlyReason}
     hasTodoItems={(signedData.todos?.length ?? 0) > 0}
     {todosCopy}
     {workspaceCopy}

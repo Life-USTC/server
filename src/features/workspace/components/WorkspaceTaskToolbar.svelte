@@ -18,6 +18,7 @@ export let filterCompletedLabel: string;
 export let filterAllLabel: string;
 export let addButtonLabel: string | undefined = undefined;
 export let addTestId: string | undefined = undefined;
+export let addDisabledReason: string | undefined = undefined;
 export let onAdd: (() => void) | undefined = undefined;
 
 let ready = false;
@@ -75,8 +76,9 @@ onMount(() => {
         aria-label={addButtonLabel}
         class={cn(toolbarControlClass, "w-11 md:w-auto md:min-w-28")}
         data-testid={addTestId}
+        title={addDisabledReason}
         type="button"
-        disabled={!ready}
+        disabled={!ready || Boolean(addDisabledReason)}
         onclick={onAdd}
       >
         <Plus class="md:hidden" data-icon="inline-start" />

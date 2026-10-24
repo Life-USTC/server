@@ -47,6 +47,7 @@ import {
   type ShellViewerState,
 } from "#lib/shell/shell-viewer.js";
 import { cn } from "#lib/utils.js";
+import type { DemoView } from "@/features/demo/lib/demo-types";
 import { afterNavigate, goto } from "$app/navigation";
 import { navigating, page as routePage } from "$app/state";
 import {
@@ -90,6 +91,7 @@ if (typeof window !== "undefined") {
 }
 
 type AppShellData = {
+  demo?: DemoView | null;
   copy: LayoutCopy;
   locale: "en-us" | "zh-cn";
   resolveViewerOnClient: boolean;
@@ -117,6 +119,10 @@ let viewerLoading = $state(
   untrack(() => data.resolveViewerOnClient && !data.user),
 );
 let viewerUser = $state.raw(untrack(() => data.user));
+let viewerDemo = $state.raw(untrack(() => data.demo ?? null));
+let viewerOwnerId = $derived(
+  viewerDemo ? `demo:${viewerDemo.fixtureVersion}` : viewerUser?.id,
+);
 let viewerFailed = $state(false);
 const shellViewer = writable<ShellViewerState>(
   untrack(() => ({
@@ -126,9 +132,7 @@ const shellViewer = writable<ShellViewerState>(
 );
 setContext(SHELL_VIEWER_CONTEXT, shellViewer);
 let workspaceNavigation: WorkspaceNavigationSummary | null = $state.raw(
-  untrack(() =>
-    workspaceNavigationFromPageData(routePage.data, viewerUser?.id),
-  ),
+  untrack(() => workspaceNavigationFromPageData(routePage.data, viewerOwnerId)),
 );
 let shellBootstrapAbortController: AbortController | null = null;
 let shellBootstrapGeneration = 0;
@@ -143,6 +147,7 @@ async function ensureGlobalSearchDialog() {
 }
 
 async function openGlobalSearch() {
+  if (viewerDemo) return;
   await ensureGlobalSearchDialog();
   globalSearchOpen = true;
 }
@@ -234,7 +239,7 @@ async function resolveClientShell(
 ) {
   const serverNavigation = workspaceNavigationFromPageData(
     routePage.data,
-    viewerUser?.id,
+    viewerOwnerId,
   );
   if (serverNavigation) {
     workspaceNavigation = serverNavigation;
@@ -248,7 +253,7 @@ async function resolveClientShell(
       navigationUserId: serverNavigation?.userId,
       resolveViewerOnClient: data.resolveViewerOnClient,
       shellResolved,
-      viewerUserId: viewerUser?.id,
+      viewerUserId: viewerOwnerId,
     })
   ) {
     return;
@@ -270,9 +275,12 @@ async function resolveClientShell(
       return;
     }
     viewerUser = bootstrap.viewer;
+    viewerDemo = bootstrap.demo ?? null;
     workspaceNavigation = bootstrap.navigation;
-    shellResolved =
-      !bootstrap.viewer || bootstrap.navigation?.userId === bootstrap.viewer.id;
+    shellResolved = viewerDemo
+      ? bootstrap.navigation?.userId === `demo:${viewerDemo.fixtureVersion}`
+      : !bootstrap.viewer ||
+        bootstrap.navigation?.userId === bootstrap.viewer.id;
     viewerLoading = false;
     viewerFailed = false;
     if (
@@ -292,9 +300,9 @@ async function resolveClientShell(
     if (controller.signal.aborted || generation !== shellBootstrapGeneration) {
       return;
     }
-    viewerFailed = !viewerUser;
+    viewerFailed = !viewerUser && !viewerDemo;
     viewerLoading = false;
-    if (!viewerUser) workspaceNavigation = null;
+    if (!viewerUser && !viewerDemo) workspaceNavigation = null;
   } finally {
     if (shellBootstrapAbortController === controller) {
       shellBootstrapAbortController = null;
@@ -358,13 +366,20 @@ afterNavigate(({ from, to, type, shallow }) => {
   resetContentScroll();
 });
 $effect.pre(() => {
-  if (!data.resolveViewerOnClient || data.user) {
-    if (viewerUser?.id !== data.user?.id) {
+  if (!data.resolveViewerOnClient || data.user || data.demo) {
+    if (
+      viewerUser?.id !== data.user?.id ||
+      viewerDemo?.fixtureVersion !== data.demo?.fixtureVersion ||
+      viewerDemo?.expiresAt !== data.demo?.expiresAt
+    ) {
       cancelShellBootstrap();
       shellResolved = false;
       workspaceNavigation = null;
+      globalSearchOpen = false;
+      closeMenus();
     }
     viewerUser = data.user;
+    viewerDemo = data.demo ?? null;
     viewerLoading = false;
     viewerFailed = false;
   }
@@ -377,7 +392,7 @@ $effect.pre(() => {
   untrack(() => shellViewer.set(snapshot));
 });
 let pageWorkspaceNavigation = $derived(
-  workspaceNavigationFromPageData(routePage.data, viewerUser?.id),
+  workspaceNavigationFromPageData(routePage.data, viewerOwnerId),
 );
 $effect.pre(() => {
   if (pageWorkspaceNavigation) {
@@ -410,14 +425,18 @@ let adminRoute = $derived(
     routePage.url.pathname.startsWith("/admin/"),
 );
 let navViewer = $derived(
-  viewerUser ? { signedIn: true, isAdmin: viewerUser.isAdmin } : null,
+  viewerDemo
+    ? { signedIn: true, isAdmin: false }
+    : viewerUser
+      ? { signedIn: true, isAdmin: viewerUser.isAdmin }
+      : null,
 );
 let navContext = $derived({
   pathname: routePage.url.pathname,
   pageData: routePage.data,
   navigation: workspaceNavigation,
 });
-let navGroups = $derived(
+let fullNavGroups = $derived(
   settingsSidebar
     ? buildSettingsNavGroups(data.copy)
     : youngSidebar
@@ -425,6 +444,18 @@ let navGroups = $derived(
       : adminRoute
         ? buildAdminNavGroups(data.copy, navViewer, navContext)
         : buildShellNavGroups(data.copy, navViewer, navContext),
+);
+let navGroups = $derived(
+  viewerDemo
+    ? fullNavGroups.map((group) => ({
+        ...group,
+        links: group.links.map((link) =>
+          link.href === "/workspace/todos"
+            ? link
+            : { ...link, disabledReason: viewerDemo?.unavailableReason },
+        ),
+      }))
+    : fullNavGroups,
 );
 let sectionSidebar = $derived(
   settingsSidebar
@@ -459,9 +490,12 @@ let sectionSidebar = $derived(
 let detailWorkspace = $derived(isDetailWorkspacePath(routePage.url.pathname));
 let youngEventBanner = $derived(isYoungEventDetailPath(routePage.url.pathname));
 let focusedShell = $derived(shouldUseFocusedShell(routePage.url.pathname));
-let hideSignIn = $derived(isSignInPath(routePage.url.pathname));
+let hideSignIn = $derived(
+  Boolean(viewerDemo) || isSignInPath(routePage.url.pathname),
+);
 let showFooter = $derived(
-  shouldShowAppFooter(routePage.url.pathname, Boolean(viewerUser)),
+  !viewerDemo &&
+    shouldShowAppFooter(routePage.url.pathname, Boolean(viewerUser)),
 );
 let mainContentLabel = $derived(resolveMainContentLabel(routePage.data));
 let globalSearchShortcutLabel = $derived(
@@ -490,6 +524,8 @@ let globalSearchShortcutLabel = $derived(
       copy={data.copy}
       focused
       globalSearchShortcutLabel={globalSearchShortcutLabel}
+      unavailableReason={viewerDemo?.unavailableReason}
+      homeHref={viewerDemo ? "/workspace/todos" : "/"}
       hideSignIn={hideSignIn}
       locale={data.locale}
       localeMenuOpen={localeMenuOpen}
@@ -532,9 +568,10 @@ let globalSearchShortcutLabel = $derived(
         isActiveLink={isActiveLink}
         isAncestorLink={isAncestorLink}
         navGroups={navGroups}
+        homeHref={viewerDemo ? "/workspace/todos" : "/"}
         profileHref={profileHref}
         setUserMenuOpen={setUserMenuOpen}
-        showAccountFooter={!showFooter}
+        showAccountFooter={!showFooter && !viewerDemo}
         user={viewerUser}
         userMenuOpen={userMenuOpen}
         viewerLoading={viewerLoading}
@@ -550,6 +587,8 @@ let globalSearchShortcutLabel = $derived(
           closeMenus={closeMenus}
           copy={data.copy}
           globalSearchShortcutLabel={globalSearchShortcutLabel}
+          unavailableReason={viewerDemo?.unavailableReason}
+          homeHref={viewerDemo ? "/workspace/todos" : "/"}
           hideSignIn={hideSignIn}
           locale={data.locale}
           localeMenuOpen={localeMenuOpen}
@@ -608,7 +647,7 @@ let globalSearchShortcutLabel = $derived(
       />
     {/if}
 
-    {#if GlobalSearchDialog}
+    {#if GlobalSearchDialog && !viewerDemo}
       <GlobalSearchDialog
         copy={data.copy.globalSearch}
         locale={data.locale}

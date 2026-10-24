@@ -1,3 +1,7 @@
+import {
+  DEMO_FIXTURE_VERSION,
+  type DemoView,
+} from "@/features/demo/lib/demo-types";
 import { SHELL_BOOTSTRAP_PATH } from "@/lib/navigation/internal-routes";
 import type { LayoutUserSummary } from "@/lib/shell/layout-server-data";
 
@@ -12,9 +16,39 @@ export type WorkspaceNavigationSummary = {
 };
 
 export type ShellBootstrapPayload = {
+  demo?: DemoView | null;
   viewer: LayoutUserSummary;
   navigation: WorkspaceNavigationSummary | null;
 };
+
+function parseDemoView(value: unknown): DemoView | null {
+  if (!value || typeof value !== "object") return null;
+  const view = value as Record<string, unknown>;
+  if (
+    view.fixtureVersion !== DEMO_FIXTURE_VERSION ||
+    typeof view.expiresAt !== "number" ||
+    !Number.isSafeInteger(view.expiresAt) ||
+    view.expiresAt <= 0 ||
+    typeof view.referenceNow !== "string" ||
+    !Number.isFinite(Date.parse(view.referenceNow)) ||
+    typeof view.displayName !== "string" ||
+    typeof view.readOnlyReason !== "string" ||
+    typeof view.exitLabel !== "string" ||
+    typeof view.unavailableReason !== "string" ||
+    typeof view.referenceTimeLabel !== "string"
+  )
+    return null;
+  return {
+    fixtureVersion: DEMO_FIXTURE_VERSION,
+    expiresAt: view.expiresAt,
+    referenceNow: view.referenceNow,
+    displayName: view.displayName,
+    readOnlyReason: view.readOnlyReason,
+    exitLabel: view.exitLabel,
+    unavailableReason: view.unavailableReason,
+    referenceTimeLabel: view.referenceTimeLabel,
+  };
+}
 
 function parseLayoutUserSummary(value: unknown): LayoutUserSummary {
   if (!value || typeof value !== "object") return null;
@@ -107,6 +141,19 @@ export function parseShellBootstrapPayload(
     throw new TypeError("Invalid shell bootstrap payload");
   }
   const payload = value as Record<string, unknown>;
+  if (payload.demo != null) {
+    const demo = parseDemoView(payload.demo);
+    const navigation = demo
+      ? parseWorkspaceNavigationSummary(
+          payload.navigation,
+          `demo:${demo.fixtureVersion}`,
+        )
+      : null;
+    if (!demo || !navigation || payload.viewer !== null) {
+      throw new TypeError("Invalid demo shell bootstrap payload");
+    }
+    return { demo, viewer: null, navigation };
+  }
   if (payload.viewer === null && payload.navigation === null) {
     return { viewer: null, navigation: null };
   }

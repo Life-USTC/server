@@ -12,6 +12,7 @@ import {
   resolveSectionDetailTabQueryRedirect,
   resolveSectionDetailTabRedirect,
 } from "@/features/section-detail/lib/section-detail-tab";
+import { hasDemoCookie } from "@/lib/auth/demo-request-signal";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import { INTERNAL_ROUTE_PREFIX } from "@/lib/navigation/internal-routes";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
@@ -249,7 +250,12 @@ export function shouldRoutePublicSsrCache(
   request: Request,
   mode: PublicSsrMode | null,
 ): mode is PublicSsrMode {
-  if (mode === null || request.headers.has("authorization")) return false;
+  if (
+    mode === null ||
+    request.headers.has("authorization") ||
+    hasDemoCookie(request.headers)
+  )
+    return false;
   return (
     !hasRequestAuthSignal(request.headers) ||
     (mode === "page" &&
@@ -261,6 +267,7 @@ export function resolvePublicSsrMode(
   request: Request,
   resolveFeatureRoute?: PublicSsrRouteResolver,
 ): PublicSsrMode | null {
+  if (hasDemoCookie(request.headers)) return null;
   if (request.method !== "GET" && request.method !== "HEAD") return null;
   if (!acceptsHtml(request)) return null;
   if (request.headers.has("authorization")) return null;

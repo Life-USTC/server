@@ -121,12 +121,16 @@ describe("Structured presentation declarations", () => {
       }
     }
     expect(declarations.length).toBeGreaterThan(0);
-    expect(new Set(declarations.map(({ kind }) => kind))).toEqual(
-      new Set(["fields", "interaction", "protocol", "unavailable"]),
-    );
-    expect(validateSpecificationShapes([specimen(fields)], validators)).toEqual(
-      [],
-    );
+    for (const value of [
+      fields,
+      { kind: "interaction", items: ["Open the dialog"] },
+      { kind: "protocol", items: ["Return the documented response"] },
+      { kind: "unavailable", items: ["The capability is not available"] },
+    ])
+      expect(
+        validateSpecificationShapes([specimen(value)], validators),
+        JSON.stringify(value),
+      ).toEqual([]);
     const invalid = [
       { items: ["course name"] },
       { kind: "fields" },

@@ -1,9 +1,48 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import type {
   ExecutionContext,
   KVNamespace,
   MessageBatch,
   Queue,
 } from "@cloudflare/workers-types";
+
+type IoObservation = {
+  bindings: { binding: string; method: string }[];
+  outbound: { method: string; origin: string }[];
+};
+const requestIo = new AsyncLocalStorage<IoObservation>();
+const originalFetch = globalThis.fetch;
+globalThis.fetch = (input, init) => {
+  const io = requestIo.getStore();
+  if (io) {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    io.outbound.push({
+      method: init?.method ?? (input instanceof Request ? input.method : "GET"),
+      origin: url.origin,
+    });
+  }
+  return originalFetch(input, init);
+};
+const IO_METHODS: Record<string, readonly string[]> = {
+  R2_UPLOADS: [
+    "get",
+    "head",
+    "list",
+    "put",
+    "delete",
+    "createMultipartUpload",
+    "resumeMultipartUpload",
+  ],
+  R2_PUBLICATIONS: ["get", "head", "list", "put", "delete"],
+  WEATHER: ["get", "getWithMetadata", "put", "delete", "list"],
+  CALENDAR_EXPORTS: ["get", "getWithMetadata", "put", "delete", "list"],
+  CATALOG_DETAIL_CORE: ["get", "getWithMetadata", "put", "delete", "list"],
+  AUDIT_LOG_WRITES: ["send", "sendBatch"],
+  CALENDAR_EXPORT_REBUILD: ["send", "sendBatch"],
+  USER_WRITE_RATE_LIMITER: ["limit"],
+  USER_BATCH_WRITE_RATE_LIMITER: ["limit"],
+  ANALYTICS: ["writeDataPoint"],
+};
 
 type Effect = {
   outcome: "pending" | "fulfilled" | "rejected";
@@ -12,6 +51,7 @@ type Effect = {
   error?: string;
 };
 type Probe = {
+  io?: IoObservation;
   tasks: Promise<unknown>[];
   backgroundErrors: string[];
   purges: Effect[];
@@ -273,6 +313,9 @@ export async function handleCommunityEffectProbe(
     if (probes.has(id))
       return new Response("Probe already exists", { status: 409 });
     probes.set(id, {
+      ...(url.searchParams.get("io") === "1"
+        ? { io: { bindings: [], outbound: [] } }
+        : {}),
       tasks: [],
       backgroundErrors: [],
       purges: [],
@@ -290,6 +333,7 @@ export async function handleCommunityEffectProbe(
   }
   if (request.method !== "GET") return new Response(null, { status: 405 });
   return Response.json({
+    ...(probe.io ? { io: probe.io } : {}),
     purges: probe.purges,
     messages: probe.messages,
     backgroundErrors: probe.backgroundErrors,
@@ -314,7 +358,9 @@ export function observeCommunityEffects<
   const probe =
     authorized(request, env) && validId.test(id) ? probes.get(id) : undefined;
   const fetch = (forward: () => Response | Promise<Response>) => {
-    const operation = Promise.resolve().then(forward);
+    const operation = Promise.resolve().then(() =>
+      probe?.io ? requestIo.run(probe.io, forward) : forward(),
+    );
     if (!probe) return operation;
     const requestState: Effect = {
       outcome: "pending",
@@ -418,7 +464,7 @@ export function observeCommunityEffects<
       throw error;
     }
   }
-  const observedEnv = env.CALENDAR_EXPORT_REBUILD
+  let observedEnv = env.CALENDAR_EXPORT_REBUILD
     ? {
         ...env,
         CALENDAR_EXPORT_REBUILD: new Proxy(env.CALENDAR_EXPORT_REBUILD, {
@@ -434,6 +480,29 @@ export function observeCommunityEffects<
         }),
       }
     : env;
+  if (probe.io) {
+    const io = probe.io;
+    observedEnv = { ...observedEnv };
+    for (const [binding, methods] of Object.entries(IO_METHODS)) {
+      const target = Reflect.get(observedEnv, binding);
+      if (!target || typeof target !== "object") continue;
+      Reflect.set(
+        observedEnv,
+        binding,
+        new Proxy(target, {
+          get(target, property) {
+            const value = Reflect.get(target, property);
+            if (typeof value !== "function") return value;
+            return (...args: unknown[]) => {
+              if (methods.includes(String(property)))
+                io.bindings.push({ binding, method: String(property) });
+              return Reflect.apply(value, target, args);
+            };
+          },
+        }),
+      );
+    }
+  }
   const observedContext = new Proxy(context, {
     get(target, property) {
       if (property === "waitUntil")

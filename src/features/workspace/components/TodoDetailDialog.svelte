@@ -4,6 +4,7 @@ import Pencil from "@lucide/svelte/icons/pencil";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import Trash2 from "@lucide/svelte/icons/trash-2";
 import MarkdownPreview from "#lib/components/MarkdownPreview.svelte";
+import * as Alert from "#lib/components/ui/alert/index.js";
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button, buttonVariants } from "#lib/components/ui/button/index.js";
@@ -31,6 +32,7 @@ export let todoSavingById: Record<string, boolean>;
 export let todosCopy: WorkspaceTodosCopy;
 export let todoStatus: (todo: WorkspaceTodoItem) => string;
 export let toggleTodoCompletion: (todo: WorkspaceTodoItem) => void;
+export let readOnlyReason: string | undefined = undefined;
 
 let deleteConfirmOpen = false;
 let deletePending = false;
@@ -44,7 +46,8 @@ function deleteDescription(todo: WorkspaceTodoItem) {
 
 async function confirmDelete(event: MouseEvent) {
   event.preventDefault();
-  if (!todo || deletePending || todoSavingById[todo.id]) return;
+  if (readOnlyReason || !todo || deletePending || todoSavingById[todo.id])
+    return;
   deletePending = true;
   try {
     await deleteTodo(todo);
@@ -77,6 +80,11 @@ async function confirmDelete(event: MouseEvent) {
       </Dialog.Header>
       <ScrollArea class="h-0 min-h-0 flex-1">
         <div class="grid min-w-0 gap-4 px-5 py-4">
+          {#if readOnlyReason}
+            <Alert.Root>
+              <Alert.Description>{readOnlyReason}</Alert.Description>
+            </Alert.Root>
+          {/if}
           <div class="min-w-0" data-testid="todo-detail-summary">
             <p class="text-muted-foreground text-sm">{todosCopy.dueAtLabel}</p>
             <p class="mt-1 text-xl font-semibold tracking-tight">
@@ -150,7 +158,7 @@ async function confirmDelete(event: MouseEvent) {
             <AlertDialog.Trigger
               aria-label={todosCopy.deleteAriaLabel}
               class={cn(buttonVariants({ variant: "destructive" }), "w-full sm:w-auto")}
-              disabled={todoSavingById[todo.id] || deletePending}
+              disabled={Boolean(readOnlyReason) || todoSavingById[todo.id] || deletePending}
               type="button"
             >
               <Trash2 data-icon="inline-start" />
@@ -182,7 +190,7 @@ async function confirmDelete(event: MouseEvent) {
           </AlertDialog.Root>
           <Button
             class="w-full sm:w-auto"
-            disabled={todoSavingById[todo.id]}
+            disabled={Boolean(readOnlyReason) || todoSavingById[todo.id]}
             type="button"
             onclick={() => {
               toggleTodoCompletion(todo);
@@ -197,7 +205,7 @@ async function confirmDelete(event: MouseEvent) {
           </Button>
           <Button
             class="w-full sm:ml-auto sm:w-auto"
-            disabled={todoSavingById[todo.id]}
+            disabled={Boolean(readOnlyReason) || todoSavingById[todo.id]}
             type="button"
             variant="outline"
             onclick={() => {

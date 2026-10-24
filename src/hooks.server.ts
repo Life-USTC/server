@@ -6,6 +6,10 @@ import type { Handle, HandleServerError } from "@sveltejs/kit/hooks";
  * public-SSR headers, and API/page observability for the Cloudflare Worker.
  */
 import { getOptionalTrimmedEnv, loadEnv } from "@/app-env";
+import {
+  resolveDemoBoundary,
+  setDemoPrivateHeaders,
+} from "@/features/demo/server/demo-request-boundary";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
 import {
   getCloudflareRequestContext,
@@ -16,6 +20,11 @@ import {
   setCloudflareRequestContext,
 } from "@/lib/adapters/cloudflare-runtime";
 import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/auth-routing";
+import {
+  DEMO_COOKIE_NAME,
+  hasDemoCookie,
+  isDemoRequest,
+} from "@/lib/auth/demo-request-signal";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import {
   PUBLIC_SSR_HEADER,
@@ -213,15 +222,19 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
   });
   const startMs = monotonicNowMs();
   const isMetricsRequest = event.url.pathname === "/metrics";
+  const demoRequest = isDemoRequest(event.request);
   const hasAuthSignal =
     !isMetricsRequest && hasRequestAuthSignal(event.request.headers);
-  event.locals.publicSsr = publicSsr && !hasAuthSignal;
-  const apiObservability = prepareApiObservability(
-    event.request,
-    event.url.pathname,
-    requestId,
-    startMs,
-  );
+  event.locals.publicSsr =
+    publicSsr && !hasAuthSignal && !hasDemoCookie(event.request.headers);
+  const apiObservability = demoRequest
+    ? null
+    : prepareApiObservability(
+        event.request,
+        event.url.pathname,
+        requestId,
+        startMs,
+      );
   let appStartMs: number | undefined;
   let appIoObservedDurationMs = 0;
   let authIoObservedDurationMs = 0;
@@ -246,7 +259,13 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     ssrClass: classifyPageSsrClass(event.locals.publicSsr),
   });
   const recordPageFinish = (status: number, responseBytes?: number) => {
-    if (isMetricsRequest || apiObservability || pageObservationRecorded) return;
+    if (
+      demoRequest ||
+      isMetricsRequest ||
+      apiObservability ||
+      pageObservationRecorded
+    )
+      return;
     pageObservationRecorded = true;
     recordPageRequestFinish({
       attribution: pageAttribution(),
@@ -261,7 +280,13 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     });
   };
   const recordPageError = (error: unknown) => {
-    if (isMetricsRequest || apiObservability || pageObservationRecorded) return;
+    if (
+      demoRequest ||
+      isMetricsRequest ||
+      apiObservability ||
+      pageObservationRecorded
+    )
+      return;
     pageObservationRecorded = true;
     recordPageRequestError({
       attribution: pageAttribution(),
@@ -277,13 +302,37 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
 
   try {
     loadEnv();
-    const nonce = publicSsr
+    const nonce = event.locals.publicSsr
       ? PUBLIC_SSR_NONCE_PLACEHOLDER
       : createScriptNonce();
+    event.locals.authUser = null;
+    event.locals.demo = null;
+    if (demoRequest) {
+      const boundary = await resolveDemoBoundary(event.request);
+      if (boundary.response) {
+        const response = responseWithSecurityHeaders(boundary.response);
+        // An early hook response never reaches resolve's cookie finalizer.
+        if (boundary.clearCookie) {
+          response.headers.append(
+            "set-cookie",
+            event.cookies.serialize(DEMO_COOKIE_NAME, "", {
+              path: "/",
+              maxAge: 0,
+              httpOnly: true,
+              sameSite: "lax",
+              secure: event.url.protocol === "https:",
+            }),
+          );
+        }
+        response.headers.set("x-request-id", requestId);
+        return response;
+      }
+      event.locals.demo = boundary.identity;
+    }
     const csrfResponse = crossSiteFormResponse(event);
     if (csrfResponse) {
       const response = responseWithSecurityHeaders(csrfResponse);
-      if (apiObservability) {
+      if (apiObservability && !demoRequest) {
         recordObservedApiResponse(event.request, response.status);
       } else {
         recordPageFinish(response.status, contentLength(response));
@@ -293,17 +342,20 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     }
 
     const authStartMs = monotonicNowMs();
-    const sessionResult = hasAuthSignal
-      ? await runCloudflareTraceSpan(
-          "app.auth.session",
-          { "app.auth.signal_present": true },
-          () =>
-            import("@/lib/auth/core").then(
-              ({ getSessionFromHeadersWithResponseHeaders }) =>
-                getSessionFromHeadersWithResponseHeaders(event.request.headers),
-            ),
-        )
-      : null;
+    const sessionResult =
+      hasAuthSignal && !demoRequest
+        ? await runCloudflareTraceSpan(
+            "app.auth.session",
+            { "app.auth.signal_present": true },
+            () =>
+              import("@/lib/auth/core").then(
+                ({ getSessionFromHeadersWithResponseHeaders }) =>
+                  getSessionFromHeadersWithResponseHeaders(
+                    event.request.headers,
+                  ),
+              ),
+          )
+        : null;
     const session = sessionResult?.session ?? null;
     authIoObservedDurationMs = elapsedMs(authStartMs);
     event.locals.authUser = session?.user ?? null;
@@ -347,12 +399,14 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     const shouldSetCsp = isHtmlResponse(response);
 
     const mutableResponse = responseWithSecurityHeaders(response);
+    if (demoRequest) setDemoPrivateHeaders(mutableResponse.headers);
     appendSessionCookies(mutableResponse.headers, sessionResult?.headers);
     // Unlike browser fetch, the server can see all Set-Cookie headers here,
     // including cookies emitted by SvelteKit resolve and session refresh.
     mutableResponse.headers.delete(PUBLIC_NAVIGATION_HEADER);
     if (
       event.isDataRequest &&
+      !demoRequest &&
       event.request.method === "GET" &&
       isPublicNavigationPath(event.url.pathname) &&
       mutableResponse.ok &&
@@ -362,7 +416,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     ) {
       mutableResponse.headers.set(PUBLIC_NAVIGATION_HEADER, "1");
     }
-    if (apiObservability) {
+    if (apiObservability && !demoRequest) {
       recordObservedApiResponse(event.request, mutableResponse.status);
       mutableResponse.headers.set("x-request-id", apiObservability.requestId);
     } else {
@@ -391,7 +445,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     recordPageFinish(mutableResponse.status, contentLength(mutableResponse));
     return mutableResponse;
   } catch (error) {
-    if (apiObservability) {
+    if (apiObservability && !demoRequest) {
       if (isRedirect(error)) {
         recordObservedApiResponse(event.request, error.status);
       } else {
@@ -446,16 +500,18 @@ export const handle: Handle = async (input) => {
   return await runWithCloudflareRuntimeEnv(
     platform?.env ?? workers?.env,
     () =>
-      runWithObservability(
-        () =>
-          getCloudflareRequestContext() ||
-          getTrustedRequestId(input.event.request)
-            ? handleWithRuntimeEnv(input)
-            : observeHttpFeature(input.event.request, undefined, () =>
-                handleWithRuntimeEnv(input),
-              ),
-        getCloudflareRuntimeTaskScheduler(),
-      ),
+      isDemoRequest(input.event.request)
+        ? handleWithRuntimeEnv(input)
+        : runWithObservability(
+            () =>
+              getCloudflareRequestContext() ||
+              getTrustedRequestId(input.event.request)
+                ? handleWithRuntimeEnv(input)
+                : observeHttpFeature(input.event.request, undefined, () =>
+                    handleWithRuntimeEnv(input),
+                  ),
+            getCloudflareRuntimeTaskScheduler(),
+          ),
     platform?.ctx ?? platform?.context,
   );
 };

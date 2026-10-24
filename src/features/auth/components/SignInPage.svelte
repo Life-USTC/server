@@ -3,6 +3,7 @@ import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import CircleUserRound from "@lucide/svelte/icons/circle-user-round";
 import Fingerprint from "@lucide/svelte/icons/fingerprint";
 import { onMount } from "svelte";
+import { DEMO_ENTER_PATH } from "#lib/auth/demo-request-signal.js";
 import {
   isPasskeySupported,
   passkeyAuthClient,
@@ -19,7 +20,10 @@ import SignInProviderMark from "./SignInProviderMark.svelte";
 
 type PageData = {
   callbackUrl: string;
+  demoEnabled: boolean;
   copy: {
+    demoEnter: string;
+    demoDescription: string;
     errorAccountNotLinked: string;
     errorGeneric: string;
     devDebugHint: string;
@@ -227,6 +231,24 @@ function signInAction(providerId: string): SubmitFunction {
           {data.copy.termsNotice.beforeTerms}<a class="text-primary-text underline" href="/terms">{data.copy.termsNotice.terms}</a>{data.copy.termsNotice.between}<a class="text-primary-text underline" href="/privacy">{data.copy.termsNotice.privacy}</a>{data.copy.termsNotice.afterPrivacy}
         </p>
       </Card.Content>
+      {#if data.demoEnabled}
+        <Card.Footer class="flex-col items-stretch gap-2">
+          <form method="POST" action={DEMO_ENTER_PATH}>
+            <Button
+              class="w-full"
+              type="submit"
+              variant="secondary"
+              aria-describedby="demo-description"
+              disabled={Boolean(pendingProviderId) || passkeyPending}
+            >
+              {data.copy.demoEnter}
+            </Button>
+          </form>
+          <p id="demo-description" class="text-muted-foreground text-sm">
+            {data.copy.demoDescription}
+          </p>
+        </Card.Footer>
+      {/if}
     </Card.Root>
   </div>
 </section>

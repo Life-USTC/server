@@ -28,6 +28,7 @@ export let todoActionLabel: TodoAction;
 export let todoSavingById: Record<string, boolean>;
 export let todosCopy: WorkspaceTodosCopy;
 export let toggleTodoCompletion: TodoCompletionToggle;
+export let readOnlyReason: string | undefined = undefined;
 </script>
 
 <Table.Root class="min-w-0 w-full">
@@ -73,7 +74,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
         <Table.Cell>
           <TableRowActions>
             <TableIconButton
-              disabled={todoSavingById[todo.id]}
+              disabled={Boolean(readOnlyReason) || todoSavingById[todo.id]}
               label={todoSavingById[todo.id]
                 ? todosCopy.saving
                 : todoActionLabel(todo)}
@@ -90,6 +91,7 @@ export let toggleTodoCompletion: TodoCompletionToggle;
             </TableIconButton>
             <TableIconButton
               label={todosCopy.editTitle}
+              disabled={Boolean(readOnlyReason)}
               variant="outline"
               onclick={() => openTodoEditor(todo)}
             >

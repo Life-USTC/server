@@ -1,3 +1,5 @@
+import { readDemoTodos } from "@/features/demo/server/demo-todos";
+import type { AppLocale } from "@/i18n/config";
 import {
   badRequest,
   handleRouteError,
@@ -5,6 +7,7 @@ import {
   parseRouteJsonBody,
   parseRouteSearchParams,
 } from "@/lib/api/helpers";
+import { privateSessionJson } from "@/lib/api/internal-session-response";
 import {
   createTodoAction,
   deleteTodoAction,
@@ -20,6 +23,15 @@ import {
 } from "@/lib/api/schemas/request-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
 import { parseDateInput } from "@/lib/time/parse-date-input";
+
+export function getDemoTodosRoute(request: Request, locale: AppLocale) {
+  const query = parseTodosQuery(request);
+  if (query instanceof Response) return query;
+  const { limit, page, pageSize, ...filters } = query;
+  return privateSessionJson(
+    readDemoTodos({ locale, filters, limit, page, pageSize }),
+  );
+}
 
 export type TodoIdParams = { id: string };
 
