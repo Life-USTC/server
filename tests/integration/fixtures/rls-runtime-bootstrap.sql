@@ -6,3 +6,5 @@ SELECT current_database() AS database_name \gset
 \set auth_password 'auth-runtime-test-password'
 \set maintenance_password 'maintenance-runtime-test-password'
 \ir ../../../prisma/roles/production-runtime-bootstrap.sql
+
+ALTER ROLE life_ustc_importer LOGIN PASSWORD 'importer-test-password';

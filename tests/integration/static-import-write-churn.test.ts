@@ -29,9 +29,10 @@ async function tupleId(
 describe("static import write churn", () => {
   it("syncs production-sized join sets within PostgreSQL stack limits", {
     tags: ["@StaticImport/Service"],
-  }, async ({ importer, protocolRuntime, expect }) => {
+  }, async ({ isolatedDatabase: { owner }, protocolRuntime, expect }) => {
     await protocolRuntime.run(async () => {
-      await importer.$transaction(async (tx) => {
+      // Synthetic SQL algorithm stress only: TEMP and max_stack_depth require owner.
+      await owner.$transaction(async (tx) => {
         await tx.$executeRawUnsafe(
           `CREATE TEMP TABLE "StaticJoinPairProbe" (
             "A" int NOT NULL,
