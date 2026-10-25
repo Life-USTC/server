@@ -23,7 +23,17 @@ describe("complete personal calendar page contract", () => {
         type: "young_event",
         at,
         endsAt,
-        payload: { youngId: "42", name: "Workshop", location: "Lab" },
+        conflictIntervals: [{ startAt: at, endAt: endsAt }],
+        payload: {
+          youngId: "42",
+          name: "Workshop",
+          location: "Lab",
+          startAt: at,
+          endAt: endsAt,
+          categoryCode: "0",
+          formCode: "0",
+          places: null,
+        },
       },
       {
         type: "todo_due",
@@ -58,6 +68,7 @@ describe("complete personal calendar page contract", () => {
           id: 1,
           sectionId: 2,
           startTime: 1000,
+          endTime: 1100,
           customPlace: "Custom room",
           teacherParticipations: [{ teacher: { nameCn: "教师" } }],
           room: { nameCn: "东区" },
@@ -91,6 +102,7 @@ describe("complete personal calendar page contract", () => {
       ["exam", "/workspace/exams"],
     ]);
     expect(result.data[0]).toMatchObject({
+      conflictIntervals: [{ startAt: at, endAt: endsAt }],
       id: "young-42",
       type: "young_event",
       youngId: "42",
@@ -137,6 +149,7 @@ describe("complete personal calendar page contract", () => {
           id,
           sectionId: id,
           startTime: 1000,
+          endTime: 1100,
           customPlace: null,
           teacherParticipations: [],
           room: null,
@@ -186,6 +199,7 @@ describe("complete personal calendar page contract", () => {
           id: 1,
           sectionId: 2,
           startTime: 1000,
+          endTime: 1100,
           customPlace: null,
           teacherParticipations: [
             { teacher: { nameCn: "教师", nameEn: "Teacher" } },

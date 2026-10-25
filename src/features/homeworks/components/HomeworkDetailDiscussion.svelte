@@ -8,6 +8,7 @@ import type {
 export let CommentsPanel: HomeworkDetailCommentsPanel;
 export let copy: HomeworkDetailCopy;
 export let homework: HomeworkDetailModel;
+export let readOnlyReason: string | undefined = undefined;
 export let permalinkBaseHref: string | null = null;
 </script>
 
@@ -16,6 +17,7 @@ export let permalinkBaseHref: string | null = null;
     <CommentsPanel
       heading={copy.commentsTitle}
       {permalinkBaseHref}
+      {readOnlyReason}
       targetId={homework.id}
       targetType="homework"
     />

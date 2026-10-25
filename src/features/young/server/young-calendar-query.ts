@@ -1,5 +1,6 @@
 import { withRuntimeDatabaseAdapter } from "@/lib/db/prisma-adapter";
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
+import { youngEventConflictIntervals } from "../lib/young-event-conflict-intervals";
 import type { buildYoungEventListQuery } from "./young-event-query";
 import type { YoungCalendarEvent } from "./young-event-service";
 
@@ -13,6 +14,9 @@ type CalendarRow = [
   string | null,
   string | null,
   boolean,
+  string | null,
+  string | null,
+  string | null,
 ];
 
 function timestamp(value: string): Date {
@@ -74,7 +78,7 @@ export function readYoungCalendarFacts({ filters, dateRange }: EventQuery) {
     ? `${start} ASC, "youngId" ASC`
     : '"isActive" DESC, "startAt" DESC NULLS LAST, "youngId" ASC';
   const events = {
-    sql: `SELECT "youngId", "name", "startAt", "endAt", "applyStartAt", "applyEndAt", "location", "sourceMissing" FROM "YoungEvent"${known.length ? ` WHERE ${known.join(" AND ")}` : ""} ORDER BY ${order}`,
+    sql: `SELECT "youngId", "name", "startAt", "endAt", "applyStartAt", "applyEndAt", "location", "sourceMissing", "categoryCode", "formCode", "places" FROM "YoungEvent"${known.length ? ` WHERE ${known.join(" AND ")}` : ""} ORDER BY ${order}`,
     args,
     argTypes,
   };
@@ -96,6 +100,9 @@ export function readYoungCalendarFacts({ filters, dateRange }: EventQuery) {
         applyEndAt,
         location,
         sourceMissing,
+        categoryCode,
+        formCode,
+        places,
       ]) => ({
         youngId,
         name,
@@ -105,6 +112,13 @@ export function readYoungCalendarFacts({ filters, dateRange }: EventQuery) {
         applyEndAt: calendarDate(applyEndAt),
         location,
         sourceMissing,
+        conflictIntervals: youngEventConflictIntervals({
+          startAt: calendarDate(startAt),
+          endAt: calendarDate(endAt),
+          categoryCode,
+          formCode,
+          places: places == null ? null : JSON.parse(places),
+        }),
       }),
     );
     return { data, unknownDateCount };

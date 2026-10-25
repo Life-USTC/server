@@ -556,6 +556,12 @@ test(
         result.data.map((row: { type: string }) => [row.type, row]),
       );
       expect(rows.schedule).toMatchObject({
+        conflictIntervals: [
+          {
+            startAt: "2035-09-15T10:00:00+08:00",
+            endAt: "2035-09-15T11:00:00+08:00",
+          },
+        ],
         location: "Custom room",
         teachers: [teacher.nameCn],
         sectionCode: section.code,
@@ -564,6 +570,7 @@ test(
       });
       expect(rows.exam).toMatchObject({
         hasTime: false,
+        conflictIntervals: [],
         location: "Room A",
         subscriptionKind: "auditor",
         target: { kind: "exam", id: expect.any(String) },
@@ -579,12 +586,14 @@ test(
         content: "Read chapter",
       });
       expect(rows.young_event).toMatchObject({
+        conflictIntervals: [],
         target: { kind: "young_event", id: "calendar-young" },
         location: null,
       });
       expect(Object.keys(rows.schedule).sort()).toEqual([
         "at",
         "completionRequired",
+        "conflictIntervals",
         "content",
         "endsAt",
         "examMode",

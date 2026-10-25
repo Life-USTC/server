@@ -15,11 +15,14 @@ export const load: PageServerLoad = async (event) => {
   if (!isWorkspaceTab(event.params.tab)) {
     error(404, "Workspace page not found");
   }
-  if (event.locals.demo && event.params.tab === "todos") {
+  if (
+    event.locals.demo &&
+    (event.params.tab === "todos" || event.params.tab === "homeworks")
+  ) {
     return getDemoWorkspacePage(
       event.locals.demo,
       event.locals.locale,
-      "todos",
+      event.params.tab,
     );
   }
   if (!event.locals.authUser?.id) {

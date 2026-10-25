@@ -1155,7 +1155,7 @@
     "conflictLoading": "Checking your calendar…",
     "conflictSignin": "Sign in to check calendar conflicts",
     "conflictUnavailable": "Your calendar could not be checked. Refresh to retry.",
-    "conflictScope": "Conflicts use synced classes, exams, and subscribed activities only; they do not determine signup eligibility.",
+    "conflictScope": "Conflicts use known occupied times from synced classes, exams, and subscribed activities. Confirm unknown times and broad activity windows separately; no warning does not establish availability or signup eligibility.",
     "organizersDescription": "Organizers with activities in the current signup list appear first. Search by organizer name.",
     "description": "Signup events from the USTC second classroom platform.",
     "platformName": "USTC second classroom platform",
@@ -2154,7 +2154,7 @@
     "enter": "Enter demo",
     "description": "Browse read-only sample todos and subscriptions without creating an account.",
     "displayName": "Demo account · Read only",
-    "readOnlyReason": "Browse sample todos, subscriptions and catalog details. Changes and external actions are disabled.",
+    "readOnlyReason": "Browse sample todos, homework, subscriptions and catalog details. Changes and external actions are disabled.",
     "exit": "Exit demo",
     "unavailableReason": "Other features are not available in this demo yet.",
     "referenceTime": "Sample time (Shanghai)"

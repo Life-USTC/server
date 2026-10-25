@@ -1,5 +1,6 @@
 import { withUserDbContext } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
+import { youngEventConflictIntervals } from "../lib/young-event-conflict-intervals";
 import { toYoungEventSummary, YOUNG_EVENT_SELECT } from "./young-event-service";
 
 export async function listSubscribedYoungCalendarEvents(
@@ -29,6 +30,13 @@ export async function listSubscribedYoungCalendarEvents(
     filterStart: event.startAt,
     filterEnd: event.endAt,
     sortKey: event.startAt?.getTime() ?? Number.MAX_SAFE_INTEGER,
+    conflictIntervals: youngEventConflictIntervals({
+      startAt: event.startAt ? toShanghaiIsoString(event.startAt) : null,
+      endAt: event.endAt ? toShanghaiIsoString(event.endAt) : null,
+      categoryCode: event.categoryCode,
+      formCode: event.formCode,
+      places: event.places,
+    }),
     payload: toYoungEventSummary(event),
   }));
 }

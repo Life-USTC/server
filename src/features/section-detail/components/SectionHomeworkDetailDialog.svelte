@@ -25,6 +25,8 @@ import type {
   SectionHomeworkTimestampAction,
 } from "./section-homework-display-types";
 
+export let readOnlyReason: string | null | undefined = null;
+export let referenceDate: string | undefined = undefined;
 export let CommentsPanel: HomeworkDetailCommentsPanel;
 export let _applyEditDueAtSemesterEnd: SectionHomeworkTimestampAction;
 export let _applyEditDueInMonth: SectionHomeworkTimestampAction;
@@ -78,6 +80,9 @@ $: permalinkBaseHref = _selectedHomework
 </script>
 
 <HomeworkDetailDialog
+  {readOnlyReason}
+  {referenceDate}
+  freezeReferenceTime={Boolean(readOnlyReason)}
   {CommentsPanel}
   completionSaving={_completionSaving}
   copy={_homeworkCopy}
@@ -100,7 +105,7 @@ $: permalinkBaseHref = _selectedHomework
     )}
   contextLabel={sectionLabel}
   showContextActions={_canWriteHomework || _canManageSelectedHomework}
-  showCompletion={_canWriteHomework}
+  showCompletion={_canWriteHomework || Boolean(readOnlyReason)}
 >
   {#snippet editingContent()}
     {#if _selectedHomework}

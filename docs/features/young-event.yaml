@@ -355,7 +355,7 @@ requirements:
 - id: young-event.calendar-compact-facts
   category: consistency
   rule: Public calendar reads return the complete selected range using only event identity, name, activity
-    and registration start/end times, location and source-missing status. Range reads do not truncate at
+    and registration start/end times, location, source-missing status and known conflict intervals. Range reads do not truncate at
     list pagination boundaries or expose unused contact/detail fields. Filters, selected time basis,
     Shanghai date overlap, stable start-time/identity ordering, unknown-date counts and personal conflict
     calculations retain the same meaning as the public event list, including case-insensitive SQL search
@@ -366,13 +366,33 @@ requirements:
     when: Read calendar facts for one Shanghai day, vary filters and time basis, compute conflicts, and then
       read the full paginated list after the calendar cache is warm.
     then:
-    - Every matching event appears in stable order with exactly the eight calendar fields, including late-day and overlapping events.
+    - Every matching event appears in stable order with exactly the nine calendar fields, including late-day and overlapping events.
     - Unknown-date counts follow the selected filters and time basis; private conflicts are computed separately.
     - Full list pagination and contact/detail fields remain intact and cannot reuse the compact calendar shape.
     - Search percent, underscore, backslash, Unicode and quoted values agree with the public list; committed revisions refresh calendar and source facts.
     test:
       file: tests/integration/young-calendar-projection.test.ts
       name: preserves more than two list pages, overlap, Shanghai end-of-day and stable ordering
+- id: young-event.known-calendar-conflicts
+  category: consistency
+  rule: Conflict hints compare only complete, valid occupied intervals, using strict overlap and excluding
+    the same subscribed event. Schedules and exams require known source clock times. Activity display and
+    registration windows do not themselves establish occupancy. Complete explicit venue slots take
+    priority, including overnight slots contained in the activity envelope. Without timed slots, only
+    same-Shanghai-day, single-project on-site activity times establish occupancy. Invalid, incomplete or
+    contradictory timed slots never fall back to the envelope. Missing hints do not establish availability.
+  acceptance:
+    given: Two isolated owners have different classes and exams, a shared submission campaign and timed
+      workshop, one owner's explicit overnight session, and a date-only exam alongside public activities.
+    when: The real personal calendar API supplies the actual desktop and mobile activity calendar.
+    then:
+    - Definite class, exam, workshop and overnight-session overlaps render after the private fetch completes.
+    - Campaign and series windows, touching endpoints, missing end times, self-subscriptions and unknown exam times do not create definite conflicts.
+    - Each owner receives only their own calendar; registration view never uses registration windows for conflicts.
+    - Public SQL and private ORM projections preserve the same explicit venue slots and reject contradictory slots.
+    test:
+      file: tests/e2e/src/app/young-events/calendar-conflicts.test.ts
+      name: young-event.known-calendar-conflicts desktop owner 0
 - id: young-event.web-calendar-density
   category: presentation
   rule: Month and week grids start on Sunday. Day cells show the date number; weekday names stay in the column header. Month and week grids list events that start that day. The day view lists continuing overlaps after events that start that day.

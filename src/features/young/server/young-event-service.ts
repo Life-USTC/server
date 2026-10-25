@@ -1,3 +1,4 @@
+import type { CalendarConflictInterval } from "@/features/calendar/lib/calendar-conflict-interval";
 import { cachedCatalogRuntimeData } from "@/features/catalog/server/catalog-runtime-cache";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
@@ -102,7 +103,7 @@ export type YoungCalendarEvent = Pick<
   | "applyEndAt"
   | "location"
   | "sourceMissing"
->;
+> & { conflictIntervals?: CalendarConflictInterval[] };
 
 export type YoungEventDetail = YoungEventSummary & {
   /** Sanitized upstream HTML with inline images pointed at our own proxy. */
@@ -379,7 +380,7 @@ export async function listYoungCalendarEvents(
     cachedCatalogRuntimeData(
       "catalog:young-events-list",
       JSON.stringify({
-        shape: "calendar-v1",
+        shape: "calendar-v2",
         where,
         unknownWhere,
         dateOrderBy,

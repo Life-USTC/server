@@ -2,6 +2,11 @@ import { type APIRequestContext, expect } from "@playwright/test";
 import { sectionDetailSchema } from "../../../../src/lib/api/schemas/academic-section-detail-response-schemas";
 import { commentsListResponseSchema } from "../../../../src/lib/api/schemas/comments-response-schemas";
 import {
+  homeworkDetailResponseSchema,
+  homeworksListResponseSchema,
+  subscribedHomeworksResponseSchema,
+} from "../../../../src/lib/api/schemas/homeworks-response-schemas";
+import {
   currentCalendarSubscriptionResponseSchema,
   todosListResponseSchema,
 } from "../../../../src/lib/api/schemas/misc-response-schema-core";
@@ -133,6 +138,107 @@ test.describe("enabled demo", () => {
     });
   });
 
+  test("demo homework reads preserve states, pagination and section context", {
+    tag: "@Homework/REST",
+  }, async ({ request, isolatedWorker, run }) => {
+    await run(async () => {
+      const cookie = await enter(request, isolatedWorker.origin);
+      const headers = { cookie: `${cookieHeader(cookie)}; NEXT_LOCALE=en-us` };
+      const workspace = await request.get(
+        "/api/workspace/homeworks?page=2&pageSize=2",
+        { headers },
+      );
+      expect(workspace.status()).toBe(200);
+      expect(
+        subscribedHomeworksResponseSchema.parse(await workspace.json()),
+      ).toMatchObject({
+        data: [
+          {
+            id: "demo-homework-matrices",
+            completionRequired: true,
+            completion: { completedAt: "2026-09-23T16:00:00+08:00" },
+          },
+          {
+            id: "demo-homework-project",
+            isMajor: true,
+            requiresTeam: true,
+            submissionDueAt: null,
+          },
+        ],
+        pagination: { page: 2, pageSize: 2, total: 6 },
+      });
+      const list = await request.get(
+        "/api/community/section-homeworks?sectionId=101&sectionJwId=910001",
+        { headers },
+      );
+      expect(list.status()).toBe(200);
+      const body = homeworksListResponseSchema.parse(await list.json());
+      expect(body.data.map((homework) => homework.id)).toEqual([
+        "demo-homework-determinants",
+        "demo-homework-vectors",
+        "demo-homework-matrices",
+        "demo-homework-project",
+      ]);
+      expect(body.data[1]).not.toHaveProperty("description");
+      expect(body.meta.viewer).toMatchObject({
+        userId: null,
+        isAuthenticated: false,
+      });
+      const detail = await request.get(
+        "/api/community/section-homeworks/demo-homework-vectors",
+        { headers },
+      );
+      expect(detail.status()).toBe(200);
+      const homework = homeworkDetailResponseSchema.parse(
+        await detail.json(),
+      ).homework;
+      expect(homework).toMatchObject({
+        id: "demo-homework-vectors",
+        title: "Vector spaces exercises",
+        completionRequired: true,
+        submissionDueAt: "2026-09-25T18:00:00+08:00",
+        section: { id: 101, jwId: 910001, course: { jwId: 920001 } },
+        description: {
+          content:
+            "Read the course notes and explain your reasoning for each exercise.",
+        },
+      });
+      const focused = await request.get(
+        "/_internal/catalog/sections/910001/viewer?homeworkId=demo-homework-vectors",
+        { headers },
+      );
+      expect(focused.status()).toBe(200);
+      expect((await focused.json()).homeworkData.homeworks[1]).toMatchObject({
+        id: homework.id,
+        description: homework.description,
+      });
+      for (const [id, sectionId] of [
+        ["demo-homework-physics", 102],
+        ["demo-homework-structures", 103],
+      ] as const) {
+        const advisory = await request.get(
+          `/api/community/section-homeworks/${id}`,
+          { headers },
+        );
+        expect(
+          homeworkDetailResponseSchema.parse(await advisory.json()).homework,
+        ).toMatchObject({
+          id,
+          sectionId,
+          completionRequired: false,
+          completion: null,
+        });
+      }
+      const head = await request.head(
+        "/api/community/section-homeworks/demo-homework-vectors",
+        { headers },
+      );
+      expect(head.status()).toBe(200);
+      expect(await head.body()).toHaveLength(0);
+      expect(head.headers()["cache-control"]).toBe("private, no-store");
+    });
+  });
+
   test("demo subscriptions share fixed page, API and navigation data without a feed", {
     tag: "@Account/REST",
   }, async ({ request, isolatedWorker, run }) => {
@@ -233,6 +339,7 @@ test.describe("enabled demo", () => {
       });
       for (const path of [
         "/workspace/subscriptions",
+        "/workspace/homeworks",
         "/workspace/subscriptions/__data.json",
         "/api/workspace/subscriptions/current",
       ]) {
@@ -410,7 +517,15 @@ test.describe("enabled demo", () => {
         );
         expect(await personal.json()).toMatchObject({
           viewer: { signedIn: false, isSubscribed: true },
-          homeworkData: { homeworks: [], auditLogs: [] },
+          homeworkData: {
+            homeworks: [
+              { id: "demo-homework-determinants" },
+              { id: "demo-homework-vectors" },
+              { id: "demo-homework-matrices" },
+              { id: "demo-homework-project" },
+            ],
+            auditLogs: [],
+          },
         });
         for (const path of [
           "/catalog/sections/910001",
@@ -475,6 +590,15 @@ test.describe("enabled demo", () => {
           ["POST", "/api/community/descriptions"],
           ["POST", "/api/community/comments"],
           ["POST", "/api/workspace/homeworks"],
+          ["POST", "/api/community/section-homeworks"],
+          ["POST", "/workspace/homeworks?/createHomework"],
+          ["PATCH", "/api/community/section-homeworks/demo-homework-vectors"],
+          ["DELETE", "/api/community/section-homeworks/demo-homework-vectors"],
+          [
+            "POST",
+            "/api/community/section-homeworks/demo-homework-vectors/completion",
+          ],
+          ["POST", "/api/community/section-homeworks/completion/batch"],
           ["PATCH", `/api/workspace/todos/${todo.id}`],
           ["DELETE", `/api/workspace/todos/${todo.id}`],
           ["PATCH", "/api/workspace/todos/batch"],
@@ -514,10 +638,20 @@ test.describe("enabled demo", () => {
           "/workspace/todos/__data.json",
           "/api/workspace/todos",
           "/workspace/subscriptions",
+          "/workspace/homeworks",
           "/workspace/subscriptions/__data.json",
           "/api/workspace/subscriptions/current",
           "/_internal/shell-bootstrap",
-          "/catalog/sections/910001?homeworkId=private",
+          "/workspace/homeworks",
+          "/workspace/homeworks/__data.json",
+          "/api/workspace/homeworks",
+          "/api/community/section-homeworks?sectionId=101",
+          "/api/community/section-homeworks?sectionJwId=910001&sectionIds=101",
+          "/api/community/section-homeworks/demo-homework-vectors",
+          "/api/community/section-homeworks/audit?sectionId=101",
+          "/_internal/catalog/sections/910001/viewer?homeworkId=demo-homework-vectors",
+          "/api/community/comments?targetType=homework&targetId=demo-homework-vectors",
+          "/catalog/sections/910001?homeworkId=demo-homework-vectors",
           "/catalog/sections/910001/__data.json",
           "/catalog/courses/920001",
           "/catalog/courses/920001/__data.json",
@@ -551,6 +685,15 @@ test.describe("enabled demo", () => {
         }
         for (const path of [
           "/catalog/sections/999999",
+          "/catalog/sections/910001?homeworkId=private",
+          "/catalog/sections/910001?homeworkId=demo-homework-physics",
+          "/_internal/catalog/sections/910001/viewer?homeworkId=demo-homework-physics",
+          "/api/community/section-homeworks?sectionIds=101,999",
+          "/api/community/section-homeworks?sectionId=101&sectionJwId=910002",
+          "/api/community/section-homeworks/private",
+          "/api/community/section-homeworks/audit?sectionId=999",
+          "/api/community/comments?targetType=homework&targetId=private",
+          "/api/community/comments?targetType=homework&targetId=demo-homework-vectors&homeworkId=demo-homework-physics",
           "/catalog/courses/999999",
           "/catalog/teachers/999999",
           "/api/catalog/sections/999999",
@@ -641,6 +784,8 @@ test.describe("enabled demo", () => {
           "/api/workspace/todos",
           "/api/workspace/subscriptions/current",
           "/workspace/subscriptions/__data.json",
+          "/workspace/homeworks/__data.json",
+          "/api/workspace/homeworks",
           "/api/catalog/sections/910001",
           "/catalog/sections/910001/__data.json",
           "/catalog/courses/920001/__data.json",
@@ -661,6 +806,7 @@ test.describe("enabled demo", () => {
       for (const path of [
         "/workspace/todos",
         "/workspace/subscriptions",
+        "/workspace/homeworks",
         "/catalog/sections/910001",
         "/catalog/courses/920001",
         "/catalog/teachers/401",

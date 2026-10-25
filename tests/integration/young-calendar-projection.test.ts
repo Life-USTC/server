@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { listPersonalCalendarPage } from "@/features/calendar/server/personal-calendar-page";
 import { youngCalendarDays } from "@/features/young/lib/young-calendar";
 import { youngCalendarConflicts } from "@/features/young/lib/young-calendar-conflicts";
+import { youngEventConflictIntervals } from "@/features/young/lib/young-event-conflict-intervals";
 import {
   getYoungSourceFreshness,
   listYoungCalendarEvents,
@@ -72,6 +74,8 @@ beforeAll(async () => {
       name: row.youngId,
       organizerId: marker,
       category: "Reading",
+      categoryCode: "0",
+      formCode: "0",
       module: "智",
       activityLevel: "校级",
       location: "Library",
@@ -145,8 +149,9 @@ describe("compact public calendar projection", () => {
       endAt: "2035-09-15T01:00:00+08:00",
       applyStartAt: null,
       applyEndAt: null,
+      conflictIntervals: [],
     });
-    expect(result.data.every((event) => Object.keys(event).length === 8)).toBe(
+    expect(result.data.every((event) => Object.keys(event).length === 9)).toBe(
       true,
     );
     const days = youngCalendarDays(
@@ -167,10 +172,139 @@ describe("compact public calendar projection", () => {
         type: "schedule",
         at: "2035-09-15T11:00:00+08:00",
         endsAt: "2035-09-15T11:30:00+08:00",
+        hasTime: true,
+        conflictIntervals: [
+          {
+            startAt: "2035-09-15T11:00:00+08:00",
+            endAt: "2035-09-15T11:30:00+08:00",
+          },
+        ],
       },
     ]);
     expect(conflicts.size).toBe(205);
     expect(conflicts.has(id("overnight"))).toBe(false);
+  });
+
+  it("projects the same known intervals through public SQL and private calendar reads", {
+    tags: ["@Young/Service"],
+  }, async () => {
+    const ownerId = id("owner");
+    const otherId = id("other");
+    await db.user.createMany({
+      data: [
+        { id: ownerId, name: ownerId, email: `${ownerId}@example.test` },
+        { id: otherId, name: otherId, email: `${otherId}@example.test` },
+      ],
+    });
+    try {
+      const rows = [
+        {
+          youngId: id("slots"),
+          categoryCode: "1",
+          startAt: date("14T00:00:00"),
+          endAt: date("16T00:00:00"),
+          places: [
+            { placeSt: "2035-09-14 23:00:00", placeEt: "2035-09-15 01:00:00" },
+            { placeSt: "2035-09-15 11:00:00", placeEt: "2035-09-15 12:00:00" },
+          ],
+        },
+        {
+          youngId: id("outside-slot"),
+          places: [
+            { placeSt: "2035-09-15 09:00:00", placeEt: "2035-09-15 11:00:00" },
+          ],
+        },
+        {
+          youngId: id("campaign"),
+          formCode: "1",
+          startAt: date("14T00:00:00"),
+          endAt: date("16T00:00:00"),
+        },
+        {
+          youngId: id("end-only"),
+          places: [{ placeEt: "2035-09-15 11:00:00" }],
+        },
+        {
+          youngId: id("invalid-slot"),
+          places: [{ placeSt: 1000, placeEt: 1100 }],
+        },
+        { youngId: id("known") },
+        { youngId: id("series"), categoryCode: "1" },
+      ];
+      for (const row of rows) {
+        await db.youngEvent.create({
+          data: {
+            name: row.youngId,
+            organizerId: marker,
+            category: "Intervals",
+            categoryCode: "0",
+            formCode: "0",
+            isActive: true,
+            rawJson: {},
+            startAt: date("15T10:00:00"),
+            endAt: date("15T12:00:00"),
+            ...row,
+          },
+        });
+        await db.userYoungEventSubscription.create({
+          data: { userId: ownerId, youngId: row.youngId, observedState: "{}" },
+        });
+      }
+      const filters = { dateFrom: input.dateFrom, dateTo: input.dateTo };
+      const publicRows = (
+        await listYoungCalendarEvents({
+          ...filters,
+          organizerId: marker,
+          category: "Intervals",
+        })
+      ).data;
+      const privateRows = (await listPersonalCalendarPage(ownerId, filters))
+        .data;
+      expect(publicRows).toHaveLength(rows.length);
+      expect(privateRows).toHaveLength(rows.length);
+      for (const row of publicRows)
+        expect(
+          privateRows.find((item) => item.youngId === row.youngId)
+            ?.conflictIntervals,
+        ).toEqual(row.conflictIntervals);
+      expect(
+        publicRows.find((row) => row.youngId === id("slots"))
+          ?.conflictIntervals,
+      ).toEqual([
+        {
+          startAt: "2035-09-14T23:00:00+08:00",
+          endAt: "2035-09-15T01:00:00+08:00",
+        },
+        {
+          startAt: "2035-09-15T11:00:00+08:00",
+          endAt: "2035-09-15T12:00:00+08:00",
+        },
+      ]);
+      expect(
+        publicRows.find((row) => row.youngId === id("known"))
+          ?.conflictIntervals,
+      ).toEqual([
+        {
+          startAt: "2035-09-15T10:00:00+08:00",
+          endAt: "2035-09-15T12:00:00+08:00",
+        },
+      ]);
+      for (const key of [
+        "outside-slot",
+        "campaign",
+        "series",
+        "end-only",
+        "invalid-slot",
+      ])
+        expect(
+          publicRows.find((row) => row.youngId === id(key))?.conflictIntervals,
+        ).toEqual([]);
+      expect((await listPersonalCalendarPage(otherId, filters)).data).toEqual(
+        [],
+      );
+    } finally {
+      await db.user.deleteMany({ where: { id: { in: [ownerId, otherId] } } });
+    }
   });
 
   it("keeps registration filters and unknown dates separate from activity dates", {
@@ -266,6 +400,9 @@ describe("compact public calendar projection", () => {
             applyEndAt,
             location,
             sourceMissing,
+            categoryCode,
+            formCode,
+            places,
           }) => ({
             youngId,
             name,
@@ -275,6 +412,13 @@ describe("compact public calendar projection", () => {
             applyEndAt,
             location,
             sourceMissing,
+            conflictIntervals: youngEventConflictIntervals({
+              startAt,
+              endAt,
+              categoryCode,
+              formCode,
+              places,
+            }),
           }),
         ),
       );

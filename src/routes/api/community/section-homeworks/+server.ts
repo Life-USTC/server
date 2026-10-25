@@ -1,7 +1,9 @@
+import { getDemoHomeworksRoute } from "@/lib/api/routes/demo-homework-read-routes";
 import { getHomeworksRoute } from "@/lib/api/routes/homework-list-read-route";
 import { postHomeworkRoute } from "@/lib/api/routes/homework-mutation-routes";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * List shared section homeworks.
@@ -13,7 +15,10 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @anonymous
  * @oauthScope community.section-homework:read
  */
-export const GET = svelteRequestHandler(observedApiRoute(getHomeworksRoute));
+export const GET: RequestHandler = (event) =>
+  event.locals.demo
+    ? getDemoHomeworksRoute(event.request, event.locals.locale)
+    : svelteRequestHandler(observedApiRoute(getHomeworksRoute))(event);
 
 /**
  * Create one shared section homework.

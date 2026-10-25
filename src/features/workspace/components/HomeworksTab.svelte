@@ -39,6 +39,7 @@ type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 type HomeworkCopy = WorkspaceMyHomeworksCopy;
 type HomeworksCopy = WorkspaceHomeworksCopy;
 
+export let readOnlyReason: string | null | undefined = null;
 export let CommentsPanel: typeof CommentsPanelComponent;
 
 export let commonCopy: WorkspaceCommonCopy;
@@ -150,6 +151,7 @@ $: ({
     />
   {:else}
     <HomeworksTabToolbar
+      {readOnlyReason}
       homeworksCopy={homeworksCopy}
       openCreateHomeworkDialog={openCreateHomeworkDialog}
     />
@@ -175,6 +177,7 @@ $: ({
         {@render columnFilter(["completion", "flags"], homeworksCopy.statusLabel, "mobile")}
       </div>
         <HomeworksCardsView
+      {readOnlyReason}
           locale={locale}
           unknownSemesterLabel={commonCopy.unknown}
           filteredHomeworkItems={filteredHomeworkItems}
@@ -195,6 +198,7 @@ $: ({
       {/snippet}
       {#snippet desktop()}
         <HomeworksListView
+      {readOnlyReason}
         filterControls={columnFilter}
           locale={locale}
           unknownSemesterLabel={commonCopy.unknown}
@@ -217,6 +221,7 @@ $: ({
     </WorkspaceCollection>
 
     <HomeworksTabDialogs
+      {readOnlyReason}
       CommentsPanel={CommentsPanel}
       applyHomeworkDueAtSemesterEnd={applyHomeworkDueAtSemesterEnd}
       applyHomeworkStartNow={applyHomeworkStartNow}

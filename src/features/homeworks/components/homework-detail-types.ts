@@ -27,6 +27,7 @@ export type HomeworkDetailCopy = {
 
 export type HomeworkDetailCommentsPanel = Component<{
   heading?: string | null;
+  readOnlyReason?: string;
   permalinkBaseHref?: string | null;
   targetId: string;
   targetType: "homework";
@@ -46,6 +47,8 @@ export type HomeworkDetailActionsSnippet = Snippet;
 export type HomeworkDetailProps = {
   CommentsPanel: HomeworkDetailCommentsPanel;
   completionSaving?: boolean;
+  readOnlyReason?: string;
+  freezeReferenceTime?: boolean;
   contextActions?: HomeworkDetailActionsSnippet;
   additionalContent?: HomeworkDetailActionsSnippet;
   contextHref?: string | null;

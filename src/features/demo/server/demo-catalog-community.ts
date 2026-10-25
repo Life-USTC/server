@@ -1,5 +1,6 @@
 import type { AppLocale } from "@/i18n/config";
 import { parseInteger } from "@/lib/integers";
+import { getDemoHomework } from "./demo-homeworks";
 import { getDemoSubscribedSections } from "./demo-subscriptions";
 
 type TargetInput = {
@@ -23,6 +24,7 @@ export function resolveDemoCatalogTarget(
   locale: AppLocale,
 ) {
   const allowedSelectors: Record<string, readonly string[]> = {
+    homework: ["targetId", "homeworkId"],
     section: ["targetId", "sectionJwId"],
     course: ["targetId", "courseJwId"],
     teacher: ["targetId", "teacherId"],
@@ -42,6 +44,18 @@ export function resolveDemoCatalogTarget(
   ] as const) {
     if (input[key] !== undefined && !allowed.includes(key)) return null;
   }
+  const homeworkId = input.homeworkId ?? input.targetId;
+  const homework =
+    input.targetType === "homework" && homeworkId
+      ? getDemoHomework(homeworkId, locale)
+      : null;
+  if (
+    input.targetType === "homework" &&
+    (!homework ||
+      (input.targetId !== undefined && input.targetId !== homework.id) ||
+      (input.homeworkId !== undefined && input.homeworkId !== homework.id))
+  )
+    return null;
   const samples = getDemoSubscribedSections(locale);
   const type = input.targetType;
   const section =
@@ -86,7 +100,9 @@ export function resolveDemoCatalogTarget(
     (type === "course" && !course) ||
     (type === "teacher" && !teacher) ||
     (type === "section-teacher" && (!section || !teacher)) ||
-    !["section", "course", "teacher", "section-teacher"].includes(type)
+    !["section", "course", "teacher", "section-teacher", "homework"].includes(
+      type,
+    )
   )
     return null;
   return {
@@ -103,7 +119,7 @@ export function resolveDemoCatalogTarget(
     sectionId: section?.id ?? null,
     teacherId: teacher?.id ?? null,
     sectionTeacherId: null,
-    homeworkId: null,
+    homeworkId: homework?.id ?? null,
     youngEventId: null,
     youngId: null,
     sectionTeacherSectionId:
@@ -120,9 +136,9 @@ export function resolveDemoCatalogTarget(
       type === "section-teacher" ? (course?.jwId ?? null) : null,
     sectionTeacherCourseName:
       type === "section-teacher" ? (course?.namePrimary ?? null) : null,
-    homeworkTitle: null,
-    homeworkSectionJwId: null,
-    homeworkSectionCode: null,
+    homeworkTitle: homework?.title ?? null,
+    homeworkSectionJwId: homework?.section.jwId ?? null,
+    homeworkSectionCode: homework?.section.code ?? null,
     sectionJwId: section?.jwId ?? null,
     sectionCode: section?.code ?? null,
     courseJwId: course?.jwId ?? null,
