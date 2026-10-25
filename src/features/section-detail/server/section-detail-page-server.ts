@@ -3,6 +3,8 @@ import {
   buildSectionStructuredData,
   serializeStructuredData,
 } from "@/features/catalog/lib/catalog-structured-data";
+import { DEMO_REFERENCE_NOW } from "@/features/demo/lib/demo-types";
+import { getDemoCatalogSectionPage } from "@/features/demo/server/demo-catalog";
 import {
   formatMessage,
   primaryName,
@@ -44,13 +46,18 @@ async function loadSectionDetailPageData({
 
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
-  const focusedHomeworkId = url.searchParams.get("homeworkId");
+  const focusedHomeworkId = locals.demo
+    ? null
+    : url.searchParams.get("homeworkId");
   const userId = null;
   const [pageData, viewer] = await Promise.all([
     runCloudflareTraceSpan(
       "catalog.detail.core",
       { "catalog.detail.kind": "section" },
-      () => getSectionPage(jwId, locals.locale),
+      () =>
+        locals.demo
+          ? getDemoCatalogSectionPage(jwId, locals.locale)
+          : getSectionPage(jwId, locals.locale),
     ),
     runCloudflareTraceSpan(
       "catalog.detail.viewer",
@@ -97,7 +104,9 @@ async function loadSectionDetailPageData({
   return {
     section,
     locale: locals.locale,
-    todayCalendarKey: requireCampusDateKeyForValue(new Date()),
+    todayCalendarKey: requireCampusDateKeyForValue(
+      locals.demo ? new Date(DEMO_REFERENCE_NOW) : new Date(),
+    ),
     copy,
     descriptionData,
     commentsData: null,
@@ -107,7 +116,9 @@ async function loadSectionDetailPageData({
     homeworkView:
       url.searchParams.get("homeworkView") === "list" ? "list" : "cards",
     showSubscribeDialog:
-      section.retiredAt === null && url.searchParams.get("subscribe") === "1",
+      !locals.demo &&
+      section.retiredAt === null &&
+      url.searchParams.get("subscribe") === "1",
     socialMetadata,
     structuredDataJson: serializeStructuredData(
       buildSectionStructuredData({

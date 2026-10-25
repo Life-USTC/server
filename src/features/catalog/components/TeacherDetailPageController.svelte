@@ -6,6 +6,8 @@ import {
 } from "@/features/catalog/lib/catalog-list-display";
 import LazyCommentsPanel from "@/features/comments/components/LazyCommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
+import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
+import type { DemoView } from "@/features/demo/lib/demo-types";
 import LazyDescriptionCard from "@/features/descriptions/components/LazyDescriptionCard.svelte";
 import type {
   EndlessScrollLabels,
@@ -45,6 +47,7 @@ type TeacherDetailData = CatalogNamed & {
 };
 
 type PageData = {
+  demo?: DemoView | null;
   commentsData: CatalogDetailCommentsData;
   copy: {
     comments: { loadFailed: string; retry: string; title: string };
@@ -80,7 +83,7 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
 
 <svelte:head>
   <title>{formatMessage(copy.metadata.pages.teacherDetail, { name: displayName })} - Life@USTC</title>
-  {@html `<script type="application/ld+json">${data.structuredDataJson}</script>`}
+  {#if !data.demo}{@html `<script type="application/ld+json">${data.structuredDataJson}</script>`}{/if}
 </svelte:head>
 
 <CollectionPage
@@ -88,6 +91,9 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
   density="detail"
   title={catalogPrimaryName(data.teacher) || displayName}
 >
+  {#snippet lead()}
+    {#if data.demo}<DemoNotice demo={data.demo} locale={data.locale} />{/if}
+  {/snippet}
   {#snippet titleExtra()}
     {#if data.locale === "en-us" && catalogSecondaryName(data.teacher) && catalogSecondaryName(data.teacher) !== catalogPrimaryName(data.teacher)}{" "}<span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({catalogSecondaryName(data.teacher)})</span>{/if}
   {/snippet}
@@ -105,6 +111,7 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
               locale={data.locale as "en-us" | "zh-cn"}
               copy={copy.descriptions}
               heading={copy.descriptions.title}
+              readOnlyReason={data.demo?.readOnlyReason}
             />
           {/key}
         </section>
@@ -138,6 +145,7 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
               targetId={data.teacher.id}
               heading={copy.comments.title}
               copy={copy.comments}
+              readOnlyReason={data.demo?.readOnlyReason}
             />
           {/key}
         </section>

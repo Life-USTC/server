@@ -528,7 +528,7 @@ onMount(() => {
   code={data.section.code}
   courseName={_courseName}
   formatMessage={_formatMessage}
-  structuredDataJson={data.structuredDataJson}
+  structuredDataJson={data.demo ? "" : data.structuredDataJson}
   titleTemplate={_copy.metadata.pages.sectionDetail}
 />
 

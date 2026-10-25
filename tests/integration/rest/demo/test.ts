@@ -1,8 +1,11 @@
 import { type APIRequestContext, expect } from "@playwright/test";
+import { sectionDetailSchema } from "../../../../src/lib/api/schemas/academic-section-detail-response-schemas";
+import { commentsListResponseSchema } from "../../../../src/lib/api/schemas/comments-response-schemas";
 import {
   currentCalendarSubscriptionResponseSchema,
   todosListResponseSchema,
 } from "../../../../src/lib/api/schemas/misc-response-schema-core";
+import { descriptionsResponseSchema } from "../../../../src/lib/api/schemas/response-schemas";
 import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
 import { test } from "../../../e2e/utils/owned-worker";
 import { createSignedDemoCookie } from "../../../shared/demo-token";
@@ -297,6 +300,133 @@ test.describe("enabled demo", () => {
     });
   });
 
+  test("demo catalog details share localized samples and existing read schemas", {
+    tag: "@Account/REST",
+  }, async ({ request, isolatedWorker, run }) => {
+    await run(async () => {
+      const cookie = await enter(request, isolatedWorker.origin);
+      for (const [locale, courseName, teacherName, description] of [
+        ["zh-CN", "线性代数", "陈老师", "这份样例介绍课程内容。"],
+        [
+          "en-US",
+          "Linear Algebra",
+          "Teacher Chen",
+          "This sample introduces the course topics.",
+        ],
+      ]) {
+        const headers = {
+          "accept-language": locale,
+          cookie: `${cookieHeader(cookie)}; NEXT_LOCALE=${locale.toLowerCase()}`,
+        };
+        const response = await request.get(
+          `/api/catalog/sections/910001?locale=${locale.toLowerCase()}`,
+          {
+            headers,
+          },
+        );
+        expect(response.status()).toBe(200);
+        const section = sectionDetailSchema.parse(await response.json());
+        expect(section).toMatchObject({
+          id: 101,
+          jwId: 910001,
+          course: { id: 201, jwId: 920001, namePrimary: courseName },
+        });
+        expect(section.teachers).toMatchObject([
+          { id: 401, namePrimary: teacherName },
+          { id: 402 },
+        ]);
+        expect(section.schedules).toMatchObject([
+          {
+            date: "2026-09-24T00:00:00+08:00",
+            startTime: "800",
+            endTime: "945",
+          },
+        ]);
+        expect(section.exams).toMatchObject([
+          {
+            examDate: "2027-01-08T00:00:00+08:00",
+            startTime: 1400,
+            endTime: 1600,
+          },
+        ]);
+        for (const [query, exams, schedules] of [
+          ["includeExams=true", 1, 0],
+          ["includeSchedules=true", 0, 1],
+          ["includeTeacherDepartments=true", 0, 0],
+        ] as const) {
+          const partial = await request.get(
+            `/api/catalog/sections/910001?${query}&locale=${locale.toLowerCase()}`,
+            { headers },
+          );
+          const body = sectionDetailSchema.parse(await partial.json());
+          expect(body.exams).toHaveLength(exams);
+          expect(body.schedules).toHaveLength(schedules);
+          expect(body.teachers).toHaveLength(2);
+        }
+        for (const [type, id] of [
+          ["section", 101],
+          ["course", 201],
+          ["teacher", 401],
+        ] as const) {
+          const response = await request.get(
+            `/api/community/descriptions?targetType=${type}&targetId=${id}`,
+            { headers },
+          );
+          expect(response.status()).toBe(200);
+          const body = descriptionsResponseSchema.parse(await response.json());
+          expect(body).toMatchObject({
+            description: { id: `demo-description-${type}-${id}` },
+            history: [],
+            viewer: { userId: null, isAuthenticated: false },
+          });
+          if (type !== "teacher")
+            expect(body.description.content).toContain(description);
+        }
+        for (const query of [
+          "targetType=section&targetId=101",
+          "targetType=course&courseJwId=920001",
+          "targetType=teacher&teacherId=401",
+          "targetType=section-teacher&sectionId=101&teacherId=401",
+        ]) {
+          const response = await request.get(
+            `/api/community/comments?${query}&page=2&pageSize=5`,
+            { headers },
+          );
+          expect(response.status()).toBe(200);
+          expect(
+            commentsListResponseSchema.parse(await response.json()),
+          ).toMatchObject({
+            data: [],
+            pagination: { page: 2, pageSize: 5, total: 0 },
+            meta: {
+              hiddenCount: 0,
+              viewer: { userId: null, isAuthenticated: false },
+            },
+          });
+        }
+        const personal = await request.get(
+          "/_internal/catalog/sections/910001/viewer",
+          { headers },
+        );
+        expect(await personal.json()).toMatchObject({
+          viewer: { signedIn: false, isSubscribed: true },
+          homeworkData: { homeworks: [], auditLogs: [] },
+        });
+        for (const path of [
+          "/catalog/sections/910001",
+          "/catalog/courses/920001",
+          "/catalog/teachers/401",
+        ]) {
+          const page = await request.get(path, { headers });
+          expect(page.status()).toBe(200);
+          expect(await page.text()).toContain(
+            path.includes("teachers") ? teacherName : courseName,
+          );
+        }
+      }
+    });
+  });
+
   test("demo requests cannot reach durable data or external side effects", {
     tag: "@Account/REST",
   }, async ({ request, isolatedWorker, run }) => {
@@ -339,7 +469,12 @@ test.describe("enabled demo", () => {
           ["POST", "/api/workspace/subscriptions/import-codes"],
           ["POST", "/api/workspace/subscriptions/query"],
           ["GET", "/workspace/subscriptions/activities"],
-          ["GET", "/catalog/sections/910001"],
+          ["GET", "/catalog/sections/910001/homework"],
+          ["GET", "/api/catalog/sections/910001/calendar.ics"],
+          ["POST", "/catalog/sections/910001?/subscribe"],
+          ["POST", "/api/community/descriptions"],
+          ["POST", "/api/community/comments"],
+          ["POST", "/api/workspace/homeworks"],
           ["PATCH", `/api/workspace/todos/${todo.id}`],
           ["DELETE", `/api/workspace/todos/${todo.id}`],
           ["PATCH", "/api/workspace/todos/batch"],
@@ -382,13 +517,65 @@ test.describe("enabled demo", () => {
           "/workspace/subscriptions/__data.json",
           "/api/workspace/subscriptions/current",
           "/_internal/shell-bootstrap",
+          "/catalog/sections/910001?homeworkId=private",
+          "/catalog/sections/910001/__data.json",
+          "/catalog/courses/920001",
+          "/catalog/courses/920001/__data.json",
+          "/catalog/teachers/401",
+          "/catalog/teachers/401/__data.json",
+          "/api/catalog/sections/910001",
+          "/api/catalog/sections/910001?includeTeacherDepartments=true",
+          "/_internal/catalog/sections/910001/viewer",
+          "/api/community/descriptions?targetType=section&targetId=101",
+          "/api/community/descriptions?targetType=course&targetId=201",
+          "/api/community/descriptions?targetType=teacher&targetId=401",
+          "/api/community/comments?targetType=section&targetId=101",
+          "/api/community/comments?targetType=course&courseJwId=920001",
+          "/api/community/comments?targetType=teacher&teacherId=401",
+          "/api/community/comments?targetType=section-teacher&sectionJwId=910001&teacherId=401",
         ]) {
           const response = await request.get(path, { headers });
           expect(response.status()).toBe(200);
+          expect(response.headers()["cache-control"]).toBe("private, no-store");
+          expect(response.headers()["x-robots-tag"]).toBe(
+            "noindex, nofollow, noarchive",
+          );
+          expect(
+            response.headers()["x-life-public-navigation"],
+          ).toBeUndefined();
           const body = await response.text();
+          expect(body).not.toContain("application/ld+json");
           expect(body).not.toContain(todo.title);
           expect(body).not.toContain("googletagmanager.com");
           expect(body).not.toContain('gtag("config"');
+        }
+        for (const path of [
+          "/catalog/sections/999999",
+          "/catalog/courses/999999",
+          "/catalog/teachers/999999",
+          "/api/catalog/sections/999999",
+          "/_internal/catalog/sections/999999/viewer",
+          "/api/community/comments?targetType=section-teacher&sectionId=102&teacherId=402",
+          ...["comments", "descriptions"].flatMap((kind) => [
+            `/api/community/${kind}?targetType=section&targetId=999`,
+            `/api/community/${kind}?targetType=section&targetId=101&sectionJwId=910002`,
+            `/api/community/${kind}?targetType=course&targetId=201&courseJwId=920002`,
+            `/api/community/${kind}?targetType=teacher&targetId=401&teacherId=402`,
+            `/api/community/${kind}?targetType=section&targetId=101&teacherId=401`,
+          ]),
+        ]) {
+          const response = await request.get(path, { headers });
+          expect(response.status(), path).toBe(404);
+          await response.body();
+        }
+        for (const path of [
+          "/api/community/descriptions?targetType=section-teacher&sectionId=101&teacherId=401",
+          "/api/community/descriptions?targetType=section&targetId=101&sectionId=101",
+          "/api/community/comments?targetType=section&targetId=101&unrelated=1",
+        ]) {
+          const response = await request.get(path, { headers });
+          expect(response.status(), path).toBe(400);
+          await response.body();
         }
         const locale = await request.post("/api/account/preferences", {
           headers,
@@ -454,6 +641,13 @@ test.describe("enabled demo", () => {
           "/api/workspace/todos",
           "/api/workspace/subscriptions/current",
           "/workspace/subscriptions/__data.json",
+          "/api/catalog/sections/910001",
+          "/catalog/sections/910001/__data.json",
+          "/catalog/courses/920001/__data.json",
+          "/catalog/teachers/401/__data.json",
+          "/_internal/catalog/sections/910001/viewer",
+          "/api/community/comments?targetType=course&targetId=201",
+          "/api/community/descriptions?targetType=teacher&targetId=401",
         ]) {
           const response = await request.get(path, {
             headers: { cookie },
@@ -464,7 +658,13 @@ test.describe("enabled demo", () => {
           await response.body();
         }
       }
-      for (const path of ["/workspace/todos", "/workspace/subscriptions"]) {
+      for (const path of [
+        "/workspace/todos",
+        "/workspace/subscriptions",
+        "/catalog/sections/910001",
+        "/catalog/courses/920001",
+        "/catalog/teachers/401",
+      ]) {
         const html = await request.get(path, {
           headers: { cookie: cookieHeader(expired), accept: "text/html" },
           maxRedirects: 0,

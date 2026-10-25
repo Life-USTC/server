@@ -14,6 +14,7 @@ export let locale: CardProps["locale"];
 export let copy: CardProps["copy"] & { retry: string };
 export let heading: string;
 export let resolveViewer = false;
+export let readOnlyReason: string | undefined = undefined;
 
 let DescriptionCard: typeof DescriptionCardComponent | null = null;
 let loadError = false;
@@ -42,6 +43,7 @@ onMount(() => {
     {locale}
     {copy}
     {heading}
+    {readOnlyReason}
     showTitle={false}
   />
 {:else if initialData.description.renderedHtml}

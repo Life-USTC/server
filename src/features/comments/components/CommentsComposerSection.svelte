@@ -16,6 +16,7 @@ type CommentsComposerSectionProps = {
   commentCopy: CommentsCopy;
   /** When set, renders page-style h2 + primary action; collapsed trigger moves into that row. */
   heading?: string | null;
+  readOnlyReason?: string;
   handleEditorDrop: (event: DragEvent) => void;
   handleSubmitShortcut: (event: KeyboardEvent) => void;
   isAnonymous: boolean;
@@ -41,6 +42,7 @@ let {
   body = $bindable(),
   commentCopy,
   heading = null,
+  readOnlyReason = undefined,
   handleEditorDrop,
   handleSubmitShortcut,
   isAnonymous = $bindable(),
@@ -72,7 +74,12 @@ function openComposer() {
 }
 </script>
 
-{#if loading && !viewerResolved}
+{#if readOnlyReason}
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    {#if heading}<h2 class="text-lg font-semibold tracking-tight">{heading}</h2>{/if}
+    <Button type="button" variant="outline" disabled title={readOnlyReason}>{commentCopy.postAction}</Button>
+  </div>
+{:else if loading && !viewerResolved}
   {#if heading}
     <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
       <h2 class="text-lg font-semibold tracking-tight">{heading}</h2>

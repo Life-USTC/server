@@ -34,7 +34,7 @@ const copy = {
     heading: "Todos",
     identity: "Demo account · Read only",
     readOnly:
-      "Browse and filter sample todos and subscriptions. Changes and external actions are disabled.",
+      "Browse sample todos, subscriptions and catalog details. Changes and external actions are disabled.",
     unavailable: "Other features are not available in this demo yet.",
     language: "Language selector",
     all: "All",
@@ -58,7 +58,8 @@ const copy = {
     exit: "退出演示",
     heading: "待办",
     identity: "演示账户 · 只读",
-    readOnly: "你可以浏览和筛选待办及订阅样例，无法修改数据或执行外部操作。",
+    readOnly:
+      "你可以浏览待办、订阅和课程目录详情样例，无法修改数据或执行外部操作。",
     unavailable: "其他功能暂未开放演示。",
     language: "语言选择",
     all: "全部",
@@ -417,10 +418,12 @@ async function expectSubscriptionSample(page: Page, locale: Locale) {
     .getByTestId("subscription-course-link")
     .filter({ visible: true });
   await expect(links).toHaveText([...text.courses]);
-  for (const link of await links.all()) {
-    await expect(link).not.toHaveRole("link");
-    await expect(link).not.toHaveAttribute("href");
-    await expect(link).toHaveAttribute("title", copy[locale].unavailable);
+  for (const [index, link] of (await links.all()).entries()) {
+    await expect(link).toHaveRole("link");
+    await expect(link).toHaveAttribute(
+      "href",
+      `/catalog/sections/${910001 + index}`,
+    );
   }
   await expectApiSample(page, locale);
 }
@@ -477,7 +480,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         ).toBeDisabled();
         await expect(
           page.locator('a[href^="/catalog/"]').filter({ visible: true }),
-        ).toHaveCount(0);
+        ).toHaveCount(6);
         const links = page
           .getByTestId("subscription-course-link")
           .filter({ visible: true });
@@ -885,3 +888,183 @@ test("demo.session: late real-account responses cannot restore the previous view
       throw new AggregateError(errors, "Previous account response failed");
   });
 });
+
+for (const locale of ["zh-cn", "en-us"] as const) {
+  for (const width of [1280, 390]) {
+    test(`demo.catalog: linked read-only details ${locale} ${width}`, {
+      tag: "@Account/Web",
+    }, async ({ page, isolatedWorker, browserRun }) => {
+      await browserRun(async () => {
+        await page.setViewportSize({ width, height: 844 });
+        await page
+          .context()
+          .addCookies([
+            { name: "NEXT_LOCALE", value: locale, url: isolatedWorker.origin },
+          ]);
+        await enterDemo(page, locale);
+        const unexpected: string[] = [];
+        const errors: string[] = [];
+        const reads = new Set<string>();
+        page.on("pageerror", (error) => errors.push(error.message));
+        page.on("request", (request) => {
+          const url = new URL(request.url());
+          if (
+            url.origin !== isolatedWorker.origin ||
+            !["GET", "HEAD"].includes(request.method())
+          )
+            unexpected.push(`${request.method()} ${url.pathname}`);
+          if (
+            url.pathname.startsWith("/api/") ||
+            url.pathname.startsWith("/_internal/")
+          )
+            reads.add(`${url.pathname}${url.search}`);
+        });
+        page.on("response", (response) => {
+          if (response.status() >= 400)
+            errors.push(
+              `${response.status()} ${new URL(response.url()).pathname}`,
+            );
+        });
+        await gotoAndWaitForReady(page, "/workspace/subscriptions");
+        await page
+          .getByTestId("subscription-course-link")
+          .filter({ visible: true })
+          .first()
+          .click();
+        await expect(page).toHaveURL(/\/catalog\/sections\/910001$/);
+        await waitForUiSettled(page);
+        const sectionName = locale === "zh-cn" ? "线性代数" : "Linear Algebra";
+        const teacherName = locale === "zh-cn" ? "陈老师" : "Teacher Chen";
+        const sampleDescription =
+          locale === "zh-cn"
+            ? "这份样例介绍课程内容。"
+            : "This sample introduces the course topics.";
+        await expect(page.getByRole("heading", { level: 1 })).toContainText(
+          sectionName,
+        );
+        await expect(page.getByTestId("demo-notice")).toContainText(
+          copy[locale].readOnly,
+        );
+        await expect(page.locator("#introduction")).toContainText(
+          sampleDescription,
+        );
+        for (const [selector, name] of [
+          ["#introduction", /编辑|Edit/i],
+          ["#calendar", /添加到日历|Add to Calendar/i],
+          ["#homework", /^(新建|Create)$/i],
+          ["#comments", /发布评论|Post comment/i],
+        ] as const) {
+          const section = page.locator(selector);
+          await section.scrollIntoViewIfNeeded();
+          await expect(section.getByRole("button", { name })).toBeDisabled();
+        }
+        await expect(page.locator("#exams")).toContainText("2027");
+        await expect(page.locator("#exams")).toContainText("14:00");
+        await expect(page.locator("#calendar")).toContainText(
+          locale === "zh-cn" ? "演示教室" : "Demo classroom",
+        );
+        await expect(
+          page.getByRole("main").locator('a[href^="/account/sign-in"]'),
+        ).toHaveCount(0);
+        await expect(
+          page.locator('script[type="application/ld+json"]'),
+        ).toHaveCount(0);
+        await expect(page.locator("#comments")).not.toContainText(
+          locale === "zh-cn" ? "登录后" : "Sign in to share",
+        );
+        await expectRenderedUiQuality(page);
+        await expectNoPageHorizontalOverflow(page);
+        expect(
+          [...reads].some((url) =>
+            url.startsWith("/_internal/catalog/sections/910001/viewer"),
+          ),
+        ).toBe(true);
+        const loadDiscussion = page
+          .locator("#comments")
+          .getByRole("button", { name: /: (加载评论|Load comments)$/ });
+        await expect(loadDiscussion).toHaveCount(2);
+        await loadDiscussion.first().click();
+        await expect(loadDiscussion).toHaveCount(1);
+        await loadDiscussion.first().click();
+        await expect(loadDiscussion).toHaveCount(0);
+        expect(
+          [...reads].some((url) => url.includes("targetType=section-teacher")),
+        ).toBe(true);
+
+        const courseLink = page
+          .locator('a[href="/catalog/courses/920001"]')
+          .filter({ visible: true })
+          .first();
+        await courseLink.scrollIntoViewIfNeeded();
+        await courseLink.click();
+        await expect(page).toHaveURL(/\/catalog\/courses\/920001$/);
+        await waitForUiSettled(page);
+        await expect(page.getByRole("heading", { level: 1 })).toContainText(
+          sectionName,
+        );
+        await expect(page.getByTestId("demo-notice")).toContainText(
+          copy[locale].readOnly,
+        );
+        await expect(page.locator("#introduction")).toContainText(
+          sampleDescription,
+        );
+        await page.locator("#comments").scrollIntoViewIfNeeded();
+        await expect(
+          page
+            .locator("#comments")
+            .getByRole("button", { name: /发布评论|Post comment/i }),
+        ).toBeDisabled();
+        await expect(
+          page.locator('script[type="application/ld+json"]'),
+        ).toHaveCount(0);
+        await expectRenderedUiQuality(page);
+        await expectNoPageHorizontalOverflow(page);
+
+        const sectionLink = page
+          .locator('#sections a[href="/catalog/sections/910001"]')
+          .filter({ visible: true })
+          .first();
+        await sectionLink.scrollIntoViewIfNeeded();
+        await sectionLink.click();
+        await expect(page).toHaveURL(/\/catalog\/sections\/910001$/);
+        await waitForUiSettled(page);
+        const teacherLink = page
+          .locator('a[href="/catalog/teachers/401"]')
+          .filter({ visible: true })
+          .first();
+        await teacherLink.scrollIntoViewIfNeeded();
+        await teacherLink.click();
+        await expect(page).toHaveURL(/\/catalog\/teachers\/401$/);
+        await waitForUiSettled(page);
+        await expect(page.getByRole("heading", { level: 1 })).toContainText(
+          teacherName,
+        );
+        await expect(page.getByTestId("demo-notice")).toContainText(
+          copy[locale].readOnly,
+        );
+        await page.locator("#comments").scrollIntoViewIfNeeded();
+        await expect(
+          page
+            .locator("#comments")
+            .getByRole("button", { name: /发布评论|Post comment/i }),
+        ).toBeDisabled();
+        await expect(
+          page.locator('script[type="application/ld+json"]'),
+        ).toHaveCount(0);
+        await expectRenderedUiQuality(page);
+        await expectNoPageHorizontalOverflow(page);
+        await page.reload();
+        await waitForUiSettled(page);
+        await expect(page.getByRole("heading", { level: 1 })).toContainText(
+          teacherName,
+        );
+        await page.goBack();
+        await expect(page).toHaveURL(/\/catalog\/sections\/910001$/);
+        await waitForUiSettled(page);
+        await expect(page.getByTestId("demo-notice")).toBeVisible();
+        expect(unexpected).toEqual([]);
+        expect(errors).toEqual([]);
+      });
+    });
+  }
+}

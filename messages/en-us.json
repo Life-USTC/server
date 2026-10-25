@@ -2154,7 +2154,7 @@
     "enter": "Enter demo",
     "description": "Browse read-only sample todos and subscriptions without creating an account.",
     "displayName": "Demo account · Read only",
-    "readOnlyReason": "Browse and filter sample todos and subscriptions. Changes and external actions are disabled.",
+    "readOnlyReason": "Browse sample todos, subscriptions and catalog details. Changes and external actions are disabled.",
     "exit": "Exit demo",
     "unavailableReason": "Other features are not available in this demo yet.",
     "referenceTime": "Sample time (Shanghai)"

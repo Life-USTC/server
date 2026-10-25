@@ -1,3 +1,4 @@
+import { getDemoCatalogPersonal } from "@/features/demo/server/demo-catalog";
 import { parseSectionJwId } from "@/features/section-detail/server/section-detail-params";
 import { getSectionPersonalData } from "@/features/section-detail/server/section-personal-data";
 import {
@@ -13,11 +14,13 @@ export const GET: RequestHandler = async ({ locals, params, request, url }) => {
   if (jwId === null)
     return privateSessionJson({ error: "Invalid section" }, { status: 400 });
   try {
-    const data = await getSectionPersonalData({
-      jwId,
-      userId: locals.authUser?.id ?? null,
-      focusedHomeworkId: url.searchParams.get("homeworkId"),
-    });
+    const data = locals.demo
+      ? getDemoCatalogPersonal(jwId, locals.locale)
+      : await getSectionPersonalData({
+          jwId,
+          userId: locals.authUser?.id ?? null,
+          focusedHomeworkId: url.searchParams.get("homeworkId"),
+        });
     return data
       ? privateSessionJson(data)
       : privateSessionJson({ error: "Section not found" }, { status: 404 });

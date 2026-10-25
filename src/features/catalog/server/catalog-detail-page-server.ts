@@ -12,6 +12,11 @@ import {
 import { PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT } from "@/features/catalog/server/academic-query-includes";
 import { getCoursePage } from "@/features/catalog/server/course-page-data";
 import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
+import {
+  buildDemoCatalogDescription,
+  getDemoCatalogCourse,
+  getDemoCatalogTeacher,
+} from "@/features/demo/server/demo-catalog";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { buildPaginatedResponse } from "@/lib/pagination";
 import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
@@ -68,7 +73,10 @@ async function loadCourseDetailPageData({
     runCloudflareTraceSpan(
       "catalog.detail.core",
       { "catalog.detail.kind": "course" },
-      () => getCoursePage(jwId, locals.locale, sectionsPage),
+      () =>
+        locals.demo
+          ? getDemoCatalogCourse(jwId, locals.locale, sectionsPage)
+          : getCoursePage(jwId, locals.locale, sectionsPage),
     ),
     runCloudflareTraceSpan(
       "catalog.detail.viewer",
@@ -93,13 +101,22 @@ async function loadCourseDetailPageData({
     "catalog.detail.comments",
     { "catalog.detail.kind": "course" },
     () =>
-      loadCatalogDetailCommentsData({
-        includeDescription: true,
-        includeDescriptionHistory: false,
-        targetId: course.id,
-        type: "course",
-        viewer,
-      }),
+      locals.demo
+        ? {
+            commentsData: null,
+            descriptionData: buildDemoCatalogDescription(
+              "course",
+              course.id,
+              locals.locale,
+            ),
+          }
+        : loadCatalogDetailCommentsData({
+            includeDescription: true,
+            includeDescriptionHistory: false,
+            targetId: course.id,
+            type: "course",
+            viewer,
+          }),
   );
   const socialMetadata = buildSocialMetadata({
     canonicalPath: `/catalog/courses/${course.jwId}`,
@@ -174,7 +191,10 @@ async function loadTeacherDetailPageData({
     runCloudflareTraceSpan(
       "catalog.detail.core",
       { "catalog.detail.kind": "teacher" },
-      () => getTeacherPage(id, locals.locale, sectionsPage),
+      () =>
+        locals.demo
+          ? getDemoCatalogTeacher(id, locals.locale, sectionsPage)
+          : getTeacherPage(id, locals.locale, sectionsPage),
     ),
     runCloudflareTraceSpan(
       "catalog.detail.viewer",
@@ -191,13 +211,22 @@ async function loadTeacherDetailPageData({
     "catalog.detail.comments",
     { "catalog.detail.kind": "teacher" },
     () =>
-      loadCatalogDetailCommentsData({
-        includeDescription: true,
-        includeDescriptionHistory: false,
-        targetId: teacher.id,
-        type: "teacher",
-        viewer,
-      }),
+      locals.demo
+        ? {
+            commentsData: null,
+            descriptionData: buildDemoCatalogDescription(
+              "teacher",
+              teacher.id,
+              locals.locale,
+            ),
+          }
+        : loadCatalogDetailCommentsData({
+            includeDescription: true,
+            includeDescriptionHistory: false,
+            targetId: teacher.id,
+            type: "teacher",
+            viewer,
+          }),
   );
   const socialMetadata = buildSocialMetadata({
     canonicalPath: `/catalog/teachers/${teacher.id}`,

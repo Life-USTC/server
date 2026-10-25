@@ -1,7 +1,9 @@
+import { getDemoDescriptionRoute } from "@/lib/api/routes/demo-catalog-read-routes";
 import { getDescriptionRoute } from "@/lib/api/routes/description-read-route";
 import { postDescriptionRoute } from "@/lib/api/routes/description-upsert-route";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * Get description history.
@@ -13,7 +15,10 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @anonymous
  * @oauthScope community.description:read
  */
-export const GET = svelteRequestHandler(observedApiRoute(getDescriptionRoute));
+export const GET: RequestHandler = (event) =>
+  event.locals.demo
+    ? getDemoDescriptionRoute(event.request, event.locals.locale)
+    : svelteRequestHandler(observedApiRoute(getDescriptionRoute))(event);
 /**
  * Upsert description.
  * @body descriptionUpsertRequestSchema

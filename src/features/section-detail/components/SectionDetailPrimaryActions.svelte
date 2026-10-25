@@ -18,6 +18,7 @@ type SectionActionsCopy = {
 export let onOpenCalendar: () => void;
 export let onOpenSubscribe: () => void;
 export let retired = false;
+export let readOnlyReason: string | undefined = undefined;
 export let sectionCopy: SectionActionsCopy;
 export let stretched = false;
 export let subscriptionAction: (
@@ -43,6 +44,8 @@ export let viewer: {
     variant="outline"
     type="button"
     onclick={onOpenCalendar}
+    disabled={Boolean(readOnlyReason)}
+    title={readOnlyReason}
   >
     <CalendarIcon data-icon="inline-start" />
     {sectionCopy.addToCalendar}
@@ -60,7 +63,8 @@ export let viewer: {
         class={stretched ? "w-full" : undefined}
         variant="outline"
         type="submit"
-        disabled={subscriptionPendingAction === "unsubscribe"}
+        disabled={Boolean(readOnlyReason) || subscriptionPendingAction === "unsubscribe"}
+        title={readOnlyReason}
       >
         <CheckCircleIcon data-icon="inline-start" />
         {subscriptionPendingAction === "unsubscribe"
@@ -75,6 +79,8 @@ export let viewer: {
         class={stretched ? "w-full" : undefined}
         aria-haspopup="dialog"
         type="submit"
+        disabled={Boolean(readOnlyReason)}
+        title={readOnlyReason}
         onclick={(event) => {
           // Keep the GET form as a no-JavaScript deep-link fallback, but avoid
           // reloading the page when the local subscribe dialog is available.

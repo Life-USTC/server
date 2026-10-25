@@ -6,6 +6,7 @@ import { Button } from "#lib/components/ui/button/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { cn } from "#lib/utils.js";
+import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import type { SectionDetailSection } from "@/features/section-detail/lib/section-detail-controller-types";
 import type { SubmitFunction } from "$app/forms";
@@ -106,6 +107,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
         subscriptionAction={subscriptionAction}
         subscriptionPendingAction={subscriptionPendingAction}
         viewer={viewer}
+        readOnlyReason={data.demo?.readOnlyReason}
       />
     </div>
   </div>
@@ -115,6 +117,9 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
     aria-busy={streamLoading}
     data-detail-scroll-container
   >
+    {#if data.demo}
+      <div class="page-frame page-frame-content"><DemoNotice demo={data.demo} locale={data.locale} /></div>
+    {/if}
     {#if streamLoading}
       <div
         class="page-frame page-frame-content text-muted-foreground flex items-center justify-center gap-2 px-2 py-6 text-sm"
@@ -167,6 +172,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
                 copy={data.copy.descriptions}
                 heading={data.copy.descriptions.title}
                 showTitle={false}
+                readOnlyReason={data.demo?.readOnlyReason}
               />
             {:else if descriptionData.description.renderedHtml}
               <h2 class="mb-3 text-lg font-semibold tracking-tight">
@@ -177,6 +183,9 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
               </div>
             {/if}
           {/key}
+          {#if data.demo}
+            <a class="mt-3 inline-flex text-sm underline underline-offset-4" href={`/catalog/courses/${data.section.course.jwId}`}>{data.copy.comments.viewCourse}</a>
+          {/if}
         </section>
 
         <section id="calendar" class="min-w-0 scroll-mt-4">
@@ -184,7 +193,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
             <h2 class="text-lg font-semibold tracking-tight">
               {sectionCopy.tabs.calendar}
             </h2>
-            <Button variant="outline" type="button" onclick={openCalendarDialog}>
+            <Button variant="outline" type="button" onclick={openCalendarDialog} disabled={Boolean(data.demo)} title={data.demo?.readOnlyReason}>
               <CalendarIcon data-icon="inline-start" />
               {sectionCopy.addToCalendar}
             </Button>
@@ -220,7 +229,9 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
             <h2 class="text-lg font-semibold tracking-tight">
               {sectionCopy.tabs.homeworks}
             </h2>
-            {#if canWriteHomework}
+            {#if data.demo}
+              <Button type="button" disabled title={data.demo.readOnlyReason}>{homeworkCopy.showCreate}</Button>
+            {:else if canWriteHomework}
               <Button type="button" onclick={openCreateHomeworkDialog}>
                 {homeworkCopy.showCreate}
               </Button>
@@ -255,6 +266,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
                 targets={commentTargets}
                 showAllTargets
                 heading={sectionCopy.tabs.comments}
+                readOnlyReason={data.demo?.readOnlyReason}
               />
             {/if}
           {/key}
@@ -291,6 +303,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
         subscriptionAction={subscriptionAction}
         subscriptionPendingAction={subscriptionPendingAction}
         viewer={viewer}
+        readOnlyReason={data.demo?.readOnlyReason}
       />
     </div>
   </div>

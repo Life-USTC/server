@@ -1,7 +1,9 @@
 import { postCommentRoute } from "@/lib/api/routes/comments-create-route";
 import { getCommentsRoute } from "@/lib/api/routes/comments-list-route";
+import { getDemoCommentsRoute } from "@/lib/api/routes/demo-catalog-read-routes";
 import { svelteRequestHandler } from "@/lib/api/svelte-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
+import type { RequestHandler } from "./$types";
 
 /**
  * List comments.
@@ -13,7 +15,10 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @anonymous
  * @oauthScope community.comment:read
  */
-export const GET = svelteRequestHandler(observedApiRoute(getCommentsRoute));
+export const GET: RequestHandler = (event) =>
+  event.locals.demo
+    ? getDemoCommentsRoute(event.request, event.locals.locale)
+    : svelteRequestHandler(observedApiRoute(getCommentsRoute))(event);
 /**
  * Create one comment.
  * @body commentCreateRequestSchema

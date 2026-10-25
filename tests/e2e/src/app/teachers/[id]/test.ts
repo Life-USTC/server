@@ -47,6 +47,7 @@ import {
   waitForUiSettled,
 } from "../../../../utils/page-ready";
 import { observeSectionDetailNavigation } from "../../../../utils/section-detail-navigation";
+import { expectRenderedUiQuality } from "../../../../utils/ui-quality";
 import { assertPageContract } from "../../_shared/page-contract";
 
 async function navigateToSeedTeacher(
@@ -384,11 +385,17 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   test("移动端教师标题与流式区块保持紧凑", { tag: "@Teacher/Web" }, async ({
     page,
+    isolatedWorker,
     preferenceFlow,
     detailCatalog: _detailCatalog,
   }) => {
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
+      await page
+        .context()
+        .addCookies([
+          { name: "NEXT_LOCALE", value: "en-us", url: isolatedWorker.origin },
+        ]);
       await navigateToSeedTeacher(page);
 
       const heading = page.getByRole("heading", { level: 1 }).first();
@@ -399,6 +406,15 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
       await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
       await expect(page.locator("#comments")).toBeVisible();
+      const section = page
+        .locator("#sections a")
+        .filter({ visible: true })
+        .first();
+      await section.hover();
+      await expect(
+        section.locator('[data-slot="entity-secondary-name"]'),
+      ).toBeVisible();
+      await expectRenderedUiQuality(page);
     });
   });
 

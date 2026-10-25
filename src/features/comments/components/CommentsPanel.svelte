@@ -62,6 +62,7 @@ interface Props {
   youngId?: string | null;
   /** When set, composer primary action sits on the same row as this heading. */
   heading?: string | null;
+  readOnlyReason?: string;
 }
 
 let {
@@ -75,6 +76,7 @@ let {
   teacherId = null,
   youngId = null,
   heading = null,
+  readOnlyReason = undefined,
 }: Props = $props();
 
 const reactionOptions = COMMENT_REACTION_OPTIONS;
@@ -550,6 +552,7 @@ let _editUploading = $derived(
     bind:body={_body}
     commentCopy={_commentCopy}
     heading={heading}
+    {readOnlyReason}
     handleEditorDrop={_handleEditorDrop}
     handleSubmitShortcut={_handleSubmitShortcut}
     bind:isAnonymous={_isAnonymous}
@@ -576,7 +579,7 @@ let _editUploading = $derived(
     authorName={_authorName}
     cancelEdit={_cancelEdit}
     cancelReply={_cancelReply}
-    commentCopy={_commentCopy}
+    commentCopy={readOnlyReason ? { ..._commentCopy, emptyDescription: readOnlyReason } : _commentCopy}
     commentTarget={_commentTarget}
     comments={_comments}
     copyCommentLink={_copyCommentLink}

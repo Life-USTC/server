@@ -13,5 +13,5 @@ $: pageTitle = formatMessage(titleTemplate, { code, name: courseName });
 
 <svelte:head>
   <title>{pageTitle} - Life@USTC</title>
-  {@html `<script type="application/ld+json">${structuredDataJson}</script>`}
+  {#if structuredDataJson}{@html `<script type="application/ld+json">${structuredDataJson}</script>`}{/if}
 </svelte:head>

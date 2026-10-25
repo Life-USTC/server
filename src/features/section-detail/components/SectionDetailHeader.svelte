@@ -28,6 +28,7 @@ type SectionHeaderViewer = {
 type SubscriptionActionKey = "subscribe" | "unsubscribe";
 
 export let courseName: string;
+export let readOnlyReason: string | undefined = undefined;
 export let courseSecondaryName: string;
 export let formError: string | null | undefined;
 export let onOpenCalendar: () => void;
@@ -62,6 +63,7 @@ export let viewer: SectionHeaderViewer;
       subscriptionAction={subscriptionAction}
       subscriptionPendingAction={subscriptionPendingAction}
       viewer={viewer}
+      {readOnlyReason}
     />
   {/snippet}
   {#snippet after()}
