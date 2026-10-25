@@ -129,7 +129,10 @@ export async function withHomeworkEffects(
   });
   const collect = calendarEffects.collect;
 
-  function assertServerReads(producer: ProducerObservation) {
+  function assertServerReads(
+    producer: ProducerObservation,
+    { allowPendingRetired = false } = {},
+  ) {
     if (observeReads) {
       expect(producer.requests.length).toBeGreaterThan(0);
       for (const request of producer.requests) {
@@ -166,6 +169,15 @@ export async function withHomeworkEffects(
         // finishes an obsolete read. collect() still drains every dispatched
         // request; cancellation never manufactures a successful browser result.
         if (owned.canceled && index === -1) continue;
+        // A replaced document can cancel before dispatch but keep response()
+        // pending until page.close(). The final observation still checks it.
+        if (
+          allowPendingRetired &&
+          owned.retiredBy &&
+          !owned.settled &&
+          index === -1
+        )
+          continue;
         expect(
           index,
           `Worker completed ${owned.method} ${owned.path}${status === undefined ? " (no browser response)" : ` (${status})`}`,
@@ -284,7 +296,10 @@ export async function withHomeworkEffects(
     expect(actualActions).toEqual(expectedActions);
   }
 
-  async function settleReads(expectedMessages: number) {
+  async function settleReads(
+    expectedMessages: number,
+    { allowPendingRetired = false } = {},
+  ) {
     // Route continuations/writes settle independently of response() promises
     // that Chromium can strand when their originating document is replaced.
     while (pending.size) await Promise.allSettled(pending);
@@ -304,7 +319,9 @@ export async function withHomeworkEffects(
       // A retired browser request may reach its native handler after navigation.
       // Retry only this read-only observation; missing completion still fails.
       await expect(async () => {
-        assertServerReads((await collect(expectedMessages)).producer);
+        assertServerReads((await collect(expectedMessages)).producer, {
+          allowPendingRetired,
+        });
       }).toPass({ timeout: 15_000 });
     }
   }
@@ -456,7 +473,7 @@ export async function withHomeworkEffects(
     try {
       // Preserve native read/redirect completion while the page is open. Full
       // business expectations may depend on a callback released by page.close.
-      await settleReads(0);
+      await settleReads(0, { allowPendingRetired: true });
       if (observeReads && registered) {
         browserReads.prepareRetiredClose();
       }
