@@ -67,7 +67,7 @@ describe("Young fixed calendar queries", () => {
     expect(count.sql).not.toContain("::timestamp");
   });
 
-  it("decodes only the eight public fields with nullable UTC timestamps", async () => {
+  it("decodes compact public fields and derives intervals from raw JSON venue slots", async () => {
     queryRaw.mockResolvedValueOnce({
       rows: [
         [
@@ -79,6 +79,9 @@ describe("Young fixed calendar queries", () => {
           "2035-09-14T03:00:00+00:00",
           null,
           true,
+          "0",
+          "0",
+          null,
         ],
       ],
     });
@@ -98,6 +101,7 @@ describe("Young fixed calendar queries", () => {
         applyEndAt: "2035-09-14T11:00:00+08:00",
         location: null,
         sourceMissing: true,
+        conflictIntervals: [],
       },
     ]);
   });

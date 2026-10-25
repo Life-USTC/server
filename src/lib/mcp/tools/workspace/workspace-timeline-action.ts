@@ -8,6 +8,7 @@ import {
   resolveMcpMode,
 } from "@/lib/mcp/tools/_shared/helpers";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
+import { fullCalendarEvent } from "./event-summary-collections";
 
 type ToolExtra = { http?: { authInfo?: Parameters<typeof getUserId>[0] } };
 
@@ -41,7 +42,7 @@ export async function getMySevenDaysTimelineAction(
         to: toShanghaiIsoString(windowEnd),
       },
       total: events.length,
-      events,
+      events: events.map(fullCalendarEvent),
     },
     { mode: resolvedMode },
   );

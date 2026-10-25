@@ -24,6 +24,15 @@ type BusDeparture = NonNullable<
   Awaited<ReturnType<typeof getNextBusDepartures>>
 >["departures"][number];
 
+export function fullCalendarEvent({
+  type,
+  at,
+  endsAt,
+  payload,
+}: CalendarEvent) {
+  return { type, at, endsAt, payload };
+}
+
 export function summarizeCalendarEvent(value: SummarizableCalendarEvent) {
   const base = {
     type: value.type,

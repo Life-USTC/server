@@ -37,6 +37,7 @@ function item(
     examMode: null,
     hasTime: time !== null,
     completionRequired: null,
+    conflictIntervals: [],
   };
 }
 function project(

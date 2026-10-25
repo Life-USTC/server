@@ -455,13 +455,54 @@ describe("Young workspace owner subscriptions and reminders", () => {
           expect(inbox.data[0].kind).toBeTruthy();
           expect(inbox.data[0].title).toBeTruthy();
         }
-        const events = await client.call<{ events: Array<{ type: string }> }>(
-          "workspace_calendar_event_list",
-          { dateFrom: "2030-09-15", dateTo: "2030-09-15", mode: "full" },
-        );
-        expect(events.events.some((row) => row.type === "young_event")).toBe(
-          true,
-        );
+        const otherClient = await createMcpHarness(young.otherId);
+        try {
+          for (const [tool, input] of [
+            [
+              "workspace_calendar_event_list",
+              { dateFrom: "2030-09-15", dateTo: "2030-09-15", mode: "full" },
+            ],
+            [
+              "workspace_calendar_timeline_get",
+              { atTime: "2030-09-15T00:00:00+08:00", mode: "full" },
+            ],
+            [
+              "workspace_snapshot_get",
+              { atTime: "2030-09-15T00:00:00+08:00", mode: "full" },
+            ],
+          ] as const) {
+            type CalendarResult = {
+              events?: Array<{ type: string }>;
+              upcomingEvents?: { items: Array<{ type: string }> };
+            };
+            const result = await client.call<CalendarResult>(tool, input);
+            const events = result.events ?? result.upcomingEvents?.items ?? [];
+            const activity = events.find((row) => row.type === "young_event");
+            expect(activity).toMatchObject({
+              type: "young_event",
+              at: "2030-09-15T10:30:00+08:00",
+              endsAt: "2030-09-15T12:00:00+08:00",
+              payload: {
+                youngId,
+                name: "[integration-test] Young workshop",
+                location: "East",
+                startAt: "2030-09-15T10:30:00+08:00",
+                endAt: "2030-09-15T12:00:00+08:00",
+                sourceMissing: false,
+              },
+            });
+            expect(Object.keys(activity ?? {}).sort()).toEqual([
+              "at",
+              "endsAt",
+              "payload",
+              "type",
+            ]);
+            const other = await otherClient.call<CalendarResult>(tool, input);
+            expect(other.events ?? other.upcomingEvents?.items).toEqual([]);
+          }
+        } finally {
+          await otherClient.close();
+        }
       } finally {
         await client.close();
       }

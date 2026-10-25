@@ -113,11 +113,11 @@ function formatTime(event: YoungCalendarEvent) {
   return `${start ? formatter.format(new Date(start)) : "?"} – ${end ? formatter.format(new Date(end)) : "?"}`;
 }
 
-function eventMeta(event: YoungCalendarEvent) {
+function eventMeta(event: YoungCalendarEvent, conflicts: Set<string>) {
   return [
     formatTime(event),
     event.location,
-    conflictIds.has(event.youngId) ? conflictLabel : null,
+    conflicts.has(event.youngId) ? conflictLabel : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -148,7 +148,7 @@ function eventMeta(event: YoungCalendarEvent) {
                     <time class="tabular-nums text-muted-foreground">{formatClock(event) || "–"}</time>
                     <span class="min-w-0">
                       <span class="block truncate font-medium" data-slot="item-title">{event.name}</span>
-                      <span class="block truncate text-muted-foreground text-xs" data-slot="item-description">{eventMeta(event)}</span>
+                      <span class="block truncate text-muted-foreground text-xs" data-slot="item-description">{eventMeta(event, conflictIds)}</span>
                       {#if event.sourceMissing}
                         <span class="block truncate text-muted-foreground text-xs" data-slot="item-description">{labels.sourceMissing}</span>
                       {/if}
@@ -213,7 +213,7 @@ function eventMeta(event: YoungCalendarEvent) {
           {#each day.events as event (event.youngId)}
             <a class="grid gap-1 rounded-md px-2 py-2 text-sm hover:bg-muted" href={eventHref(event)}>
               <div class="font-medium">{event.name}</div>
-              <div class="truncate text-muted-foreground text-xs">{eventMeta(event)}</div>
+              <div class="truncate text-muted-foreground text-xs">{eventMeta(event, conflictIds)}</div>
               <div class="truncate text-muted-foreground text-xs">{event.sourceMissing ? labels.sourceMissing : ""}</div>
             </a>
           {/each}
