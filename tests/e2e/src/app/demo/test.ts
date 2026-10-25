@@ -963,6 +963,19 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         await expect(page.locator("#calendar")).toContainText(
           locale === "zh-cn" ? "演示教室" : "Demo classroom",
         );
+        const calendarTeachers = page.locator(
+          '#calendar a[href^="/catalog/teachers/"]',
+        );
+        await expect(calendarTeachers).toHaveText(
+          locale === "zh-cn"
+            ? ["陈老师", "林老师"]
+            : ["Teacher Chen", "Teacher Lin"],
+        );
+        for (const link of await calendarTeachers.all()) {
+          const bounds = await link.boundingBox();
+          expect(bounds?.width).toBeGreaterThanOrEqual(24);
+          expect(bounds?.height).toBeGreaterThanOrEqual(24);
+        }
         await expect(
           page.getByRole("main").locator('a[href^="/account/sign-in"]'),
         ).toHaveCount(0);
