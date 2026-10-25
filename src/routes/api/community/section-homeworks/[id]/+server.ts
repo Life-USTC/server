@@ -1,3 +1,4 @@
+import { getDemoHomeworkDetailRoute } from "@/lib/api/routes/demo-homework-read-routes";
 import { getHomeworkDetailRoute } from "@/lib/api/routes/homework-detail-read-route";
 import {
   deleteHomeworkRoute,
@@ -16,10 +17,12 @@ import type { RequestHandler } from "./$types";
  * @anonymous
  * @oauthScope community.section-homework:read
  */
-export const GET: RequestHandler = ({ request, params }) =>
-  observedApiRoute(() => getHomeworkDetailRoute(request, { id: params.id }))(
-    request,
-  );
+export const GET: RequestHandler = ({ request, params, locals }) =>
+  locals.demo
+    ? getDemoHomeworkDetailRoute(request, params.id, locals.locale)
+    : observedApiRoute(() =>
+        getHomeworkDetailRoute(request, { id: params.id }),
+      )(request);
 
 /**
  * Update one shared section homework.

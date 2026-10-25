@@ -27,6 +27,8 @@ import type {
 export let CommentsPanel: HomeworkDetailCommentsPanel;
 export let additionalContent: Snippet | undefined = undefined;
 export let completionSaving = false;
+export let readOnlyReason: string | null | undefined = null;
+export let freezeReferenceTime = false;
 export let contextActions: Snippet | undefined = undefined;
 export let contextHref: string | null = null;
 export let contextLabel: string | null = null;
@@ -61,7 +63,7 @@ $: if (homework) {
 
 onMount(() => {
   const timer = window.setInterval(() => {
-    liveReferenceDate = new Date();
+    if (!freezeReferenceTime) liveReferenceDate = new Date();
   }, 60_000);
   return () => window.clearInterval(timer);
 });
@@ -106,7 +108,7 @@ onMount(() => {
               deadlineState={resolvedDeadlineState}
               {fmtDate}
               {homework}
-              referenceDate={liveReferenceDate}
+              referenceDate={freezeReferenceTime ? referenceDate : liveReferenceDate}
               {relativeEtaLabel}
             />
             <HomeworkDetailSecondaryDetails {copy} {fmtDate} {homework} />
@@ -118,6 +120,7 @@ onMount(() => {
             {copy}
             {homework}
             {permalinkBaseHref}
+            readOnlyReason={readOnlyReason ?? undefined}
           />
 
           {#if additionalContent}
@@ -132,7 +135,8 @@ onMount(() => {
             {#if showCompletion && homework.completionRequired && onToggleCompletion}
               <Button
                 class="order-1 min-h-11 min-w-0 flex-1 sm:order-2 sm:min-h-9 sm:flex-none md:min-h-9"
-                disabled={completionSaving}
+                disabled={completionSaving || Boolean(readOnlyReason)}
+                title={readOnlyReason ?? undefined}
                 type="button"
                 onclick={() => void onToggleCompletion?.()}
               >

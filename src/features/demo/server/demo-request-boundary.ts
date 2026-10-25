@@ -89,9 +89,11 @@ export async function resolveDemoBoundary(
   if (!identity) {
     if (
       request.method === "GET" &&
-      (["/workspace/todos", "/workspace/subscriptions"].includes(
-        url.pathname,
-      ) ||
+      ([
+        "/workspace/todos",
+        "/workspace/subscriptions",
+        "/workspace/homeworks",
+      ].includes(url.pathname) ||
         isDemoCatalogPage(url.pathname)) &&
       request.headers.get("accept")?.includes("text/html")
     ) {
@@ -123,9 +125,15 @@ export async function resolveDemoBoundary(
       "/workspace/subscriptions",
       "/workspace/subscriptions/__data.json",
       "/api/workspace/subscriptions/current",
+      "/workspace/homeworks",
+      "/workspace/homeworks/__data.json",
+      "/api/workspace/homeworks",
+      "/api/community/section-homeworks",
+      "/api/community/section-homeworks/audit",
       "/_internal/shell-bootstrap",
     ].includes(url.pathname) &&
-      !isDemoCatalogRead(url.pathname))
+      !isDemoCatalogRead(url.pathname) &&
+      !/^\/api\/community\/section-homeworks\/[^/]+$/.test(url.pathname))
   ) {
     return reject(403, "DEMO_READ_ONLY");
   }

@@ -55,7 +55,12 @@ describe("demo catalog projections", () => {
       expect(getDemoCatalogPersonal(910001, locale)).toMatchObject({
         viewer: { signedIn: false, isSubscribed: true },
         homeworkData: {
-          homeworks: [],
+          homeworks: [
+            { id: "demo-homework-determinants" },
+            { id: "demo-homework-vectors" },
+            { id: "demo-homework-matrices" },
+            { id: "demo-homework-project" },
+          ],
           auditLogs: [],
           viewer: { userId: null, isAuthenticated: false },
         },

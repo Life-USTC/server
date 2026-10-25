@@ -20,6 +20,7 @@ type HomeworkOverduePredicate = (
 ) => boolean;
 type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
+export let readOnlyReason: string | null | undefined = null;
 export let locale: string;
 export let unknownSemesterLabel: string;
 export let filteredHomeworkItems: WorkspaceHomeworkItem[];
@@ -116,7 +117,7 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
             {#if homework.completionRequired !== false}
               <TableIconButton
                 className="size-11"
-                disabled={homeworkSavingById[homework.id]}
+                disabled={Boolean(readOnlyReason) || homeworkSavingById[homework.id]}
                 label={homeworkSavingById[homework.id]
                   ? homeworksCopy.saving
                   : homeworkCompletionActionLabel(homework)}

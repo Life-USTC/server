@@ -450,7 +450,11 @@ let navGroups = $derived(
     ? fullNavGroups.map((group) => ({
         ...group,
         links: group.links.map((link) =>
-          ["/workspace/todos", "/workspace/subscriptions"].includes(link.href)
+          [
+            "/workspace/todos",
+            "/workspace/subscriptions",
+            "/workspace/homeworks",
+          ].includes(link.href)
             ? link
             : { ...link, disabledReason: viewerDemo?.unavailableReason },
         ),

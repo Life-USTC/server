@@ -8,6 +8,7 @@ import type { AppLocale } from "@/i18n/config";
 import type { WorkspaceNavigationSummary } from "@/lib/shell/shell-bootstrap";
 import enUs from "../../../../messages/en-us.json";
 import zhCn from "../../../../messages/zh-cn.json";
+import { getDemoHomeworks, getDemoHomeworksTabData } from "./demo-homeworks";
 import {
   getDemoSubscribedSections,
   getDemoSubscriptionsTabData,
@@ -44,7 +45,9 @@ export function getDemoNavigation(
     unreadActivityNotificationsCount: 0,
     calendarItemsCount: 0,
     examsCount: 0,
-    pendingHomeworksCount: 0,
+    pendingHomeworksCount: getDemoHomeworks("zh-cn").filter(
+      (homework) => homework.completionRequired && !homework.completion,
+    ).length,
     subscribedSectionCount: getDemoSubscribedSections("zh-cn").length,
   };
 }
@@ -52,7 +55,7 @@ export function getDemoNavigation(
 export function getDemoWorkspacePage(
   identity: DemoIdentity,
   locale: AppLocale,
-  tab: "todos" | "subscriptions",
+  tab: "todos" | "subscriptions" | "homeworks",
 ) {
   const demo = getDemoView(identity, locale);
   const copy = getWorkspacePageCopy(locale);
@@ -74,7 +77,7 @@ export function getDemoWorkspacePage(
     subscribedSectionCount,
     overview: null,
     links: null,
-    homeworks: null,
+    homeworks: tab === "homeworks" ? getDemoHomeworksTabData(locale) : null,
     subscriptions:
       tab === "subscriptions"
         ? getDemoSubscriptionsTabData(identity, locale)
