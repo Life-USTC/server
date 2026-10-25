@@ -11,6 +11,7 @@ import {
 } from "@/lib/pagination";
 import { getCanonicalOrigin } from "@/lib/site-url";
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
+import { youngEventConflictIntervals } from "../lib/young-event-conflict-intervals";
 import {
   readYoungCalendarFacts,
   readYoungSyncedAt,
@@ -66,6 +67,7 @@ export type YoungEventSummary = {
   appliedCount: number | null;
   startAt: string | null;
   endAt: string | null;
+  conflictIntervals?: CalendarConflictInterval[];
   applyStartAt: string | null;
   applyEndAt: string | null;
   isActive: boolean;
@@ -99,11 +101,12 @@ export type YoungCalendarEvent = Pick<
   | "name"
   | "startAt"
   | "endAt"
+  | "conflictIntervals"
   | "applyStartAt"
   | "applyEndAt"
   | "location"
   | "sourceMissing"
-> & { conflictIntervals?: CalendarConflictInterval[] };
+>;
 
 export type YoungEventDetail = YoungEventSummary & {
   /** Sanitized upstream HTML with inline images pointed at our own proxy. */
@@ -234,6 +237,8 @@ function toYoungEventPlaces(
 export function toYoungEventSummary(
   record: YoungEventRecord,
 ): YoungEventSummary {
+  const startAt = toShanghaiIso(record.startAt);
+  const endAt = toShanghaiIso(record.endAt);
   return {
     youngId: record.youngId,
     name: record.name,
@@ -265,8 +270,15 @@ export function toYoungEventSummary(
     hours: record.hours,
     capacity: record.capacity,
     appliedCount: record.appliedCount,
-    startAt: toShanghaiIso(record.startAt),
-    endAt: toShanghaiIso(record.endAt),
+    startAt,
+    endAt,
+    conflictIntervals: youngEventConflictIntervals({
+      startAt,
+      endAt,
+      categoryCode: record.categoryCode,
+      formCode: record.formCode,
+      places: record.places,
+    }),
     applyStartAt: toShanghaiIso(record.applyStartAt),
     applyEndAt: toShanghaiIso(record.applyEndAt),
     isActive: record.isActive,
@@ -320,7 +332,14 @@ export async function listYoungEvents(
   const [result, source] = await Promise.all([
     cachedCatalogRuntimeData(
       "catalog:young-events-list",
-      JSON.stringify({ where, unknownWhere, dateOrderBy, page, pageSize }),
+      JSON.stringify({
+        shape: "summary-v2",
+        where,
+        unknownWhere,
+        dateOrderBy,
+        page,
+        pageSize,
+      }),
       getCanonicalOrigin(),
       async () => {
         const [total, records, unknownDateCount] = await Promise.all([
@@ -398,7 +417,7 @@ export async function getYoungEvent(
 ): Promise<YoungEventDetail | null> {
   return cachedCatalogRuntimeData(
     "catalog:young-event-detail",
-    youngId,
+    JSON.stringify({ shape: "summary-v2", youngId }),
     getCanonicalOrigin(),
     async () => {
       const record = await prisma.youngEvent.findUnique({

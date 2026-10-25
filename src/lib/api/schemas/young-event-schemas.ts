@@ -116,6 +116,12 @@ export const youngEventSummarySchema = z.strictObject({
   appliedCount: z.number().int().nullable(),
   startAt: dateTimeSchema.nullable(),
   endAt: dateTimeSchema.nullable(),
+  conflictIntervals: z
+    .array(z.strictObject({ startAt: dateTimeSchema, endAt: dateTimeSchema }))
+    .optional()
+    .describe(
+      "Known occupied intervals; an absent or empty array does not establish availability.",
+    ),
   applyStartAt: dateTimeSchema.nullable(),
   applyEndAt: dateTimeSchema.nullable(),
   isActive: z.boolean(),
