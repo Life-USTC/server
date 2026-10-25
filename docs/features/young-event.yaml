@@ -393,6 +393,40 @@ requirements:
     test:
       file: tests/e2e/src/app/young-events/calendar-conflicts.test.ts
       name: young-event.known-calendar-conflicts desktop owner 0
+- id: young-event.public-conflict-projection
+  category: consistency
+  applies_to:
+  - young-event
+  surfaces:
+  - rest
+  expectation:
+    kind: public_projection
+    operation:
+      module: src/features/young/server/young-event-service.ts
+      export: toYoungEventSummary
+    response:
+      schema: paginatedYoungEventResponseSchema
+      path: data/items
+    fields:
+    - youngId
+    - conflictIntervals
+    nested_fields:
+      conflictIntervals/items:
+      - startAt
+      - endAt
+    preserves:
+      youngId: true
+    concealed_source_values: true
+  acceptance:
+    given: Isolated imported activities have a known on-site time, a campaign envelope, incomplete or invalid slots, missing or zero-length ends and explicit overnight series slots.
+    when: REST public list, detail and personal subscription reads serialize shared event summaries.
+    then:
+    - The optional conflictIntervals field is emitted as an array following young-event.known-calendar-conflicts, including an empty array when no occupancy is known.
+    - Valid explicit slots preserve their Shanghai instants without filling the gaps between them; an absent or empty array does not establish availability.
+    - Summary cache shapes cannot reuse records from before this projection.
+    test:
+      file: tests/integration/rest/young-events/conflict-intervals.test.ts
+      name: public list returns known conflict intervals instead of display envelopes
 - id: young-event.web-calendar-density
   category: presentation
   rule: Month and week grids start on Sunday. Day cells show the date number; weekday names stay in the column header. Month and week grids list events that start that day. The day view lists continuing overlaps after events that start that day.

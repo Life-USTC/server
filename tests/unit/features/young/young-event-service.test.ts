@@ -113,6 +113,105 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("young event service", () => {
+  it.each([
+    {
+      name: "known single on-site event",
+      fields: {},
+      expected: [
+        {
+          startAt: "2026-09-15T10:00:00+08:00",
+          endAt: "2026-09-15T12:00:00+08:00",
+        },
+      ],
+    },
+    {
+      name: "campaign envelope",
+      fields: {
+        categoryCode: "1",
+        startAt: new Date("2026-09-01T00:00:00+08:00"),
+        endAt: new Date("2026-09-30T23:59:00+08:00"),
+      },
+      expected: [],
+    },
+    { name: "missing end", fields: { endAt: null }, expected: [] },
+    {
+      name: "zero-length interval",
+      fields: { endAt: new Date("2026-09-15T10:00:00+08:00") },
+      expected: [],
+    },
+    {
+      name: "invalid timed slot",
+      fields: {
+        places: [
+          {
+            placeInfo: "Lab",
+            placeSt: "2026-09-15 11:00:00",
+            placeEt: "2026-09-15 10:00:00",
+          },
+        ],
+      },
+      expected: [],
+    },
+    {
+      name: "incomplete timed slot",
+      fields: {
+        places: [
+          { placeInfo: "Lab", placeSt: "2026-09-15 11:00:00", placeEt: null },
+        ],
+      },
+      expected: [],
+    },
+    {
+      name: "series slots including overnight",
+      fields: {
+        categoryCode: "1",
+        startAt: new Date("2026-09-14T00:00:00+08:00"),
+        endAt: new Date("2026-09-16T00:00:00+08:00"),
+        places: [
+          {
+            placeInfo: "Lab",
+            placeSt: "2026-09-14 23:00:00",
+            placeEt: "2026-09-15 01:00:00",
+          },
+          {
+            placeInfo: "Lab",
+            placeSt: "2026-09-15 13:00:00",
+            placeEt: "2026-09-15 14:00:00",
+          },
+        ],
+      },
+      expected: [
+        {
+          startAt: "2026-09-14T23:00:00+08:00",
+          endAt: "2026-09-15T01:00:00+08:00",
+        },
+        {
+          startAt: "2026-09-15T13:00:00+08:00",
+          endAt: "2026-09-15T14:00:00+08:00",
+        },
+      ],
+    },
+  ])(
+    "projects canonical conflict intervals for $name",
+    async ({ fields, expected }) => {
+      youngEventMock.count.mockResolvedValue(1);
+      youngEventMock.findMany.mockResolvedValue([
+        {
+          ...RECORD,
+          categoryCode: "0",
+          formCode: "0",
+          startAt: new Date("2026-09-15T10:00:00+08:00"),
+          endAt: new Date("2026-09-15T12:00:00+08:00"),
+          places: null,
+          ...fields,
+        },
+      ]);
+      expect((await listYoungEvents()).data[0]?.conflictIntervals).toEqual(
+        expected,
+      );
+    },
+  );
+
   it("filters organizer counts before stable page slicing and totals", async () => {
     youngOrganizerMock.findMany.mockResolvedValue([
       { id: "a", name: "A", normalizedName: "a" },
@@ -496,6 +595,37 @@ describe("young event service", () => {
 });
 
 describe("young public runtime cache", () => {
+  it("does not reuse list or detail summaries cached before conflict intervals", async () => {
+    const { where, unknownWhere, dateOrderBy } = buildYoungEventListQuery({});
+    await cachedCatalogRuntimeData(
+      "catalog:young-events-list",
+      JSON.stringify({
+        where,
+        unknownWhere,
+        dateOrderBy,
+        page: 1,
+        pageSize: 20,
+      }),
+      "https://test.example",
+      async () => ({ data: [{ youngId: "42" }], unknownDateCount: 0 }),
+    );
+    await cachedCatalogRuntimeData(
+      "catalog:young-event-detail",
+      "42",
+      "https://test.example",
+      async () => ({ youngId: "42" }),
+    );
+    youngEventMock.count.mockResolvedValue(1);
+    youngEventMock.findMany.mockResolvedValue([RECORD]);
+    youngEventMock.findUnique.mockResolvedValue({ ...RECORD, rawJson: {} });
+    expect(
+      (await listYoungEvents({ pageSize: 20 })).data[0]?.conflictIntervals,
+    ).toEqual([]);
+    expect((await getYoungEvent("42"))?.conflictIntervals).toEqual([]);
+    expect(youngEventMock.findMany).toHaveBeenCalledOnce();
+    expect(youngEventMock.findUnique).toHaveBeenCalledOnce();
+  });
+
   it("coalesces equivalent event filters and separates date, pagination and revision keys", async () => {
     youngEventMock.count.mockResolvedValue(1);
     youngEventMock.findMany.mockResolvedValue([RECORD]);

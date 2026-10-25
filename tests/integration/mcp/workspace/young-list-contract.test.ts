@@ -340,6 +340,7 @@ for (const method of ["REST", "GraphQL", "MCP"] as const) {
                 tagIds: [],
                 signupDepartmentIds: [],
                 allowedAttachmentTypes: [],
+                conflictIntervals: [],
                 sourceMissing: false,
                 createdAt: timestamp(state.created[index]),
               });
