@@ -22,6 +22,7 @@ import type {
 
 type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
+export let readOnlyReason: string | null | undefined = null;
 export let CommentsPanel: HomeworkDetailCommentsPanel;
 export let applyHomeworkDueAtSemesterEnd: WorkspaceHomeworkDateShortcut;
 export let applyHomeworkStartNow: WorkspaceHomeworkDateShortcut;
@@ -65,6 +66,7 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
   : null;
 </script>
 
+{#if !readOnlyReason}
 <HomeworkCreateDialog
   locale={locale}
   applyHomeworkDueAtSemesterEnd={applyHomeworkDueAtSemesterEnd}
@@ -89,7 +91,11 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
   createHomeworkError={createHomeworkError}
 />
 
+{/if}
+
 <HomeworkDetailDialog
+  {readOnlyReason}
+  freezeReferenceTime={Boolean(readOnlyReason)}
   CommentsPanel={CommentsPanel}
   completionSaving={selectedHomework ? homeworkSavingById[selectedHomework.id] : false}
   contextHref={selectedHomeworkDetail?.contextHref}

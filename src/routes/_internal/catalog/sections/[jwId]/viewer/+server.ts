@@ -15,7 +15,11 @@ export const GET: RequestHandler = async ({ locals, params, request, url }) => {
     return privateSessionJson({ error: "Invalid section" }, { status: 400 });
   try {
     const data = locals.demo
-      ? getDemoCatalogPersonal(jwId, locals.locale)
+      ? getDemoCatalogPersonal(
+          jwId,
+          locals.locale,
+          url.searchParams.get("homeworkId"),
+        )
       : await getSectionPersonalData({
           jwId,
           userId: locals.authUser?.id ?? null,

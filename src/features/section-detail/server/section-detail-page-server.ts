@@ -4,7 +4,10 @@ import {
   serializeStructuredData,
 } from "@/features/catalog/lib/catalog-structured-data";
 import { DEMO_REFERENCE_NOW } from "@/features/demo/lib/demo-types";
-import { getDemoCatalogSectionPage } from "@/features/demo/server/demo-catalog";
+import {
+  getDemoCatalogPersonal,
+  getDemoCatalogSectionPage,
+} from "@/features/demo/server/demo-catalog";
 import {
   formatMessage,
   primaryName,
@@ -46,9 +49,12 @@ async function loadSectionDetailPageData({
 
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
-  const focusedHomeworkId = locals.demo
-    ? null
-    : url.searchParams.get("homeworkId");
+  const focusedHomeworkId = url.searchParams.get("homeworkId");
+  if (
+    locals.demo &&
+    !getDemoCatalogPersonal(jwId, locals.locale, focusedHomeworkId)
+  )
+    error(404, "Homework or section not found");
   const userId = null;
   const [pageData, viewer] = await Promise.all([
     runCloudflareTraceSpan(

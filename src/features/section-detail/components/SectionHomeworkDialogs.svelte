@@ -10,6 +10,8 @@ import type {
 } from "./section-detail-component-types";
 import type { SectionDetailHomeworkDialogsProps } from "./section-detail-dialog-types";
 
+export let readOnlyReason: string | null | undefined = null;
+export let referenceDate: string | undefined = undefined;
 export let applyCreateDueAtSemesterEnd: SectionDetailHomeworkDialogsProps["applyCreateDueAtSemesterEnd"];
 export let applyCreateDueInMonth: SectionDetailHomeworkDialogsProps["applyCreateDueInMonth"];
 export let applyCreateDueInWeek: SectionDetailHomeworkDialogsProps["applyCreateDueInWeek"];
@@ -90,6 +92,8 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
 />
 
 <SectionHomeworkDetailDialog
+  {readOnlyReason}
+  {referenceDate}
   {CommentsPanel}
   _applyEditDueAtSemesterEnd={applyEditDueAtSemesterEnd}
   _applyEditDueInMonth={applyEditDueInMonth}

@@ -34,7 +34,7 @@ const copy = {
     heading: "Todos",
     identity: "Demo account · Read only",
     readOnly:
-      "Browse sample todos, subscriptions and catalog details. Changes and external actions are disabled.",
+      "Browse sample todos, homework, subscriptions and catalog details. Changes and external actions are disabled.",
     unavailable: "Other features are not available in this demo yet.",
     language: "Language selector",
     all: "All",
@@ -59,7 +59,7 @@ const copy = {
     heading: "待办",
     identity: "演示账户 · 只读",
     readOnly:
-      "你可以浏览待办、订阅和课程目录详情样例，无法修改数据或执行外部操作。",
+      "你可以浏览待办、作业、订阅和课程目录详情样例，无法修改数据或执行外部操作。",
     unavailable: "其他功能暂未开放演示。",
     language: "语言选择",
     all: "全部",

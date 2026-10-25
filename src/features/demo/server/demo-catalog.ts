@@ -4,6 +4,7 @@ import type { SectionDetailSection } from "@/features/section-detail/lib/section
 import type { AppLocale } from "@/i18n/config";
 import type { SectionDetailDto } from "@/lib/api/schemas/academic-section-detail-response-schemas";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
+import { demoHomeworkSummary, getDemoHomeworks } from "./demo-homeworks";
 import { getDemoSubscribedSections } from "./demo-subscriptions";
 
 export function getDemoCatalogViewer(): ViewerContext {
@@ -138,12 +139,30 @@ export function getDemoCatalogSectionPage(jwId: number, locale: AppLocale) {
   };
 }
 
-export function getDemoCatalogPersonal(jwId: number, locale: AppLocale) {
-  if (!getDemoCatalogSection(jwId, locale)) return null;
+export function getDemoCatalogPersonal(
+  jwId: number,
+  locale: AppLocale,
+  focusedHomeworkId: string | null = null,
+) {
+  const section = getDemoCatalogSection(jwId, locale);
+  if (!section) return null;
+  const homeworks = getDemoHomeworks(locale).filter(
+    (homework) => homework.sectionId === section.id,
+  );
+  if (
+    focusedHomeworkId !== null &&
+    !homeworks.some((homework) => homework.id === focusedHomeworkId)
+  )
+    return null;
   return {
     viewer: { signedIn: false, isSubscribed: true },
     homeworkData: {
-      homeworks: [],
+      homeworks: homeworks.map((homework) => {
+        if (homework.id !== focusedHomeworkId)
+          return demoHomeworkSummary(homework);
+        const { section: _section, ...detail } = homework;
+        return detail;
+      }),
       auditLogs: [],
       viewer: {
         isAdmin: false,

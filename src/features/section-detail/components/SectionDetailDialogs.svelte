@@ -111,6 +111,8 @@ $: if (isCalendarDialogOpen) {
 {#if SectionHomeworkDialogs}
   <svelte:component
     this={SectionHomeworkDialogs}
+    readOnlyReason={data.demo?.readOnlyReason}
+    referenceDate={data.demo?.referenceNow}
   {applyCreateDueAtSemesterEnd}
   {applyCreateDueInMonth}
   {applyCreateDueInWeek}

@@ -68,6 +68,7 @@ requirements:
   - demo-todos
   - demo-subscriptions
   - demo-catalog-details
+  - demo-homeworks
   expectation:
     kind: authorization
     surface: service
@@ -92,10 +93,10 @@ requirements:
     - rate limiting, object storage, calendar queues and invalidation
     - OAuth and outbound requests
     - browser analytics scripts and telemetry
-  rationale: Demo possession is not real-user authentication. The read allowlist comprises Todos and
+  rationale: Demo possession is not real-user authentication. The read allowlist comprises Todos, homeworks and
     subscriptions HTML/page-data, the three supported catalog-detail pages and their page-data,
     GET /api/workspace/todos, GET /api/workspace/subscriptions/current, section detail/personal reads,
-    fixture descriptions/comments and shell bootstrap. Same-origin locale-cookie updates are allowed. Entry and exit are cookie controls. Every other request is denied before its route runs, including visit-recording GET, uploads,
+    fixture descriptions/comments, homework list/detail/audit reads and shell bootstrap. Same-origin locale-cookie updates are allowed. Entry and exit are cookie controls. Every other request is denied before its route runs, including visit-recording GET, uploads,
     private exports, administrator routes, GraphQL and MCP.
   acceptance:
     given: A signed demo and unrelated real private data in an isolated actual Worker.
@@ -148,7 +149,7 @@ requirements:
     dates; descriptions and empty discussions retain existing response shapes and an anonymous viewer.
     Only fixture identifiers and matching target aliases resolve; unknown or mixed targets cannot access
     ordinary data. Calendar exports, subscriptions, homework creation, description edits and comments are
-    visibly disabled. Catalog collection pages and homework details remain unavailable.
+    visibly disabled. Catalog collection pages remain unavailable; fixture homework details are read-only.
   acceptance:
     given: A valid demo in either supported locale on desktop or mobile.
     when: The visitor follows subscription, course and teacher links and reads detail sections and lazy data.
@@ -159,6 +160,24 @@ requirements:
     test:
       file: tests/e2e/src/app/demo/test.ts
       name: 'demo.catalog: linked read-only details zh-cn 1280'
+- id: demo.homework-projection
+  category: consistency
+  rule: The existing workspace homework list, detail dialog and section context share six fixed workspace-v1
+    assignments and reference time 2026-09-24T09:00:00+08:00, including after the dialog timer runs.
+    Three regular incomplete assignments contribute to navigation counts; completed and auditor/teaching-assistant
+    assignments retain their academic completion semantics. Filters remain usable. Creation, completion,
+    editing and discussion writes are unavailable with visible read-only copy. Only known and consistently
+    scoped fixture identifiers resolve; unknown or mixed targets never fall through to live services.
+  acceptance:
+    given: A valid demo in either supported locale on desktop or mobile.
+    when: The visitor filters workspace homework, opens details and follows a section context or focused link.
+    then:
+    - Workspace, section, detail API, comments and navigation project the same six sample assignments.
+    - Fixed deadlines and completion/advisory states remain consistent after a timer tick and navigation.
+    - Write controls stay disabled and no live database or external effects occur.
+    test:
+      file: tests/e2e/src/app/demo/homeworks.test.ts
+      name: 'demo.homeworks: read-only browsing zh-cn 1280'
 - id: demo.cache-isolation
   category: privacy
   rule: Demo cookie presence, including invalid cookies, bypasses shared HTML admission before cache hits
@@ -280,3 +299,34 @@ capabilities:
       - View disabled mutation and export controls
       requirement_refs:
       - demo.catalog-projection
+  demo-homeworks:
+    title: Read-only Demo Homework
+    description: Existing workspace and section homework views project fixed samples without a real user or agent identity.
+    auth: anon
+    web:
+      pages:
+      - /workspace/homeworks
+    rest:
+      routes:
+      - method: GET
+        path: /api/workspace/homeworks
+        reference_only: true
+      - method: GET
+        path: /api/community/section-homeworks
+        reference_only: true
+      - method: GET
+        path: /api/community/section-homeworks/{id}
+        reference_only: true
+      - method: GET
+        path: /api/community/section-homeworks/audit
+        reference_only: true
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Filter sample homework and open existing detail dialogs
+      - Follow teaching section and course context
+      - Read fixed completion and advisory states with disabled writes
+      requirement_refs:
+      - demo.homework-projection
