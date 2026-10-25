@@ -99,52 +99,47 @@ for (const [domain, names] of [
         const rows = page.locator(item.rows);
         await expect(rows).toHaveCount(20);
         const first = await identities(rows, item.text);
-        const pagination = page.locator('[data-slot="list-pagination"]');
-        await expect(pagination).toHaveCount(1);
-        for (const link of await pagination.getByRole("link").all()) {
-          const href = await link.getAttribute("href");
-          if (!href) throw new Error("Expected URL pagination");
-          expect(queryState(href, page.url(), key), item.name).toEqual(
-            original,
-          );
-        }
-        await pagination.locator('[data-value="2"]').press("Enter");
-        await expect(page).toHaveURL(
-          (url) => url.searchParams.get(key) === "2",
+        const originalUrl = page.url();
+        const continuation = page.locator('[data-slot="endless-scroll"]');
+        const more = continuation.getByRole("link", {
+          name: "Load more",
+          exact: true,
+        });
+        await expect(continuation).toHaveCount(1);
+        await expect(page.locator('[data-slot="list-pagination"]')).toHaveCount(
+          0,
         );
+        const href = await more.getAttribute("href");
+        if (!href) throw new Error("Expected the next batch destination");
+        expect(queryState(href, page.url(), key), item.name).toEqual(original);
+        expect(new URL(href, page.url()).searchParams.get(key)).toBe("2");
+        // Keyboard activation must work independently of the scroll observer.
+        await more.evaluate((element) =>
+          (element as HTMLElement).focus({ preventScroll: true }),
+        );
+        await page.keyboard.press("Enter");
+        await expect(rows).toHaveCount(25);
+        await expect(page).toHaveURL(originalUrl);
+        const accumulated = await identities(rows, item.text);
+        expect(accumulated.slice(0, 20), item.name).toEqual(first);
+        expect(new Set(accumulated).size, item.name).toBe(25);
+        await expect(continuation).toHaveCount(0);
+
+        await page
+          .locator('a[href="/"]')
+          .filter({ visible: true })
+          .first()
+          .click();
+        await expect(page).toHaveURL(new URL("/", baseURL).toString());
         await waitForUiSettled(page);
-        expect(queryState(page.url(), baseURL, key), item.name).toEqual(
-          original,
-        );
-        await expect(pagination.locator('[aria-current="page"]')).toHaveText(
-          "2",
-        );
-        await expect(rows).toHaveCount(5);
-        const second = await identities(rows, item.text);
-        expect(
-          second.every((value) => !first.includes(value)),
-          item.name,
-        ).toBe(true);
         await page.goBack();
-        await expect(pagination.locator('[aria-current="page"]')).toHaveText(
-          "1",
-        );
-        expect(queryState(page.url(), baseURL, key), item.name).toEqual(
-          original,
-        );
+        await expect(page).toHaveURL(originalUrl);
+        await waitForUiSettled(page);
+        await expect(rows).toHaveCount(25);
         await expect
           .poll(() => identities(rows, item.text), { message: item.name })
-          .toEqual(first);
-        await page.goForward();
-        await expect(pagination.locator('[aria-current="page"]')).toHaveText(
-          "2",
-        );
-        expect(queryState(page.url(), baseURL, key), item.name).toEqual(
-          original,
-        );
-        await expect
-          .poll(() => identities(rows, item.text), { message: item.name })
-          .toEqual(second);
+          .toEqual(accumulated);
+        await expect(continuation).toHaveCount(0);
       }
     });
   });

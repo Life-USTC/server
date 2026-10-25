@@ -353,7 +353,7 @@ test("/admin/users 状态列对齐且平板使用可读列表", {
   );
 });
 
-test("/admin/users 分页与刷新保留组合筛选", { tag: "@Admin/Web" }, async ({
+test("/admin/users 连续加载与刷新保留组合筛选", { tag: "@Admin/Web" }, async ({
   adminFlow,
   run,
   page,
@@ -383,37 +383,36 @@ test("/admin/users 分页与刷新保留组合筛选", { tag: "@Admin/Web" }, as
         });
         await gotoAndWaitForReady(page, `/admin/users?${filters}`);
 
-        const pagination = page.locator('[data-slot="list-pagination"]');
-        const nextPage = pagination.getByRole("link", {
-          name: /下一页|Next page/i,
+        const endless = page.locator('[data-slot="endless-scroll"]');
+        const nextPage = endless.getByRole("link", {
+          name: /加载更多|Load more/i,
         });
         await expect(nextPage).toHaveAttribute("href", /page=2/);
         const nextHref = await nextPage.getAttribute("href");
         const nextParams = new URL(nextHref ?? "", page.url()).searchParams;
         for (const [key, value] of filters)
           expect(nextParams.get(key)).toBe(value);
-        await nextPage.click();
-        await expect(page).toHaveURL(/page=2/);
+        await page.getByRole("searchbox").fill(`${prefix} unsubmitted`);
+        await endless.scrollIntoViewIfNeeded();
+        await expect(page).toHaveURL((url) => !url.searchParams.has("page"));
+        for (const [key, value] of filters)
+          expect(new URL(page.url()).searchParams.get(key)).toBe(value);
+        await expect(page.locator("tbody tr")).toHaveCount(25);
+        await expect(page.getByRole("searchbox")).toHaveValue(
+          `${prefix} unsubmitted`,
+        );
+        await expect(endless).toHaveCount(0);
+        await expect(page.locator('[data-slot="list-pagination"]')).toHaveCount(
+          0,
+        );
+        await page.reload();
+        await expect(page.locator("tbody tr")).toHaveCount(20);
         for (const [key, value] of filters)
           expect(new URL(page.url()).searchParams.get(key)).toBe(value);
         await expect(page.getByRole("searchbox")).toHaveValue(prefix);
-        await expect(page.locator("tbody tr")).toHaveCount(5);
-        await expect(pagination.locator('[aria-current="page"]')).toHaveText(
-          "2",
-        );
-        await page.reload();
-        await expect(page.locator("tbody tr")).toHaveCount(5);
-        for (const [key, value] of filters)
-          expect(new URL(page.url()).searchParams.get(key)).toBe(value);
-        await pagination
-          .getByRole("link", { name: /上一页|Previous page/i })
-          .click();
-        await expect(pagination.locator('[aria-current="page"]')).toHaveText(
-          "1",
-        );
-        for (const [key, value] of filters)
-          expect(new URL(page.url()).searchParams.get(key)).toBe(value);
-        await expect(page.locator("tbody tr")).toHaveCount(20);
+        await endless.scrollIntoViewIfNeeded();
+        await expect(page.locator("tbody tr")).toHaveCount(25);
+        await expect(page).toHaveURL((url) => !url.searchParams.has("page"));
       },
       {},
       adminWriteChecks([]),
@@ -463,23 +462,26 @@ test("/admin/users 用户名非法保存返回 400", { tag: "@Admin/Web" }, asyn
   );
 });
 
-test("/admin/users 可打开管理弹窗并保存姓名", { tag: "@Admin/Web" }, async ({
-  adminFlow,
-  run,
-  page,
-  managedUser,
-  isolatedWorker,
-}) => {
+test("/admin/users 保存姓名后连续加载与刷新保留更新", {
+  tag: "@Admin/Web",
+}, async ({ adminFlow, run, page, managedUser, isolatedWorker }) => {
   await run(() =>
     adminFlow.run(
       async () => {
         test.setTimeout(60000);
-
-        await gotoAndWaitForReady(page, "/admin/users");
+        await isolatedWorker.database.owner.user.createMany({
+          data: Array.from({ length: 20 }, (_, index) => ({
+            name: `Independent listed user ${index}`,
+            username: `p${crypto.randomUUID().replaceAll("-", "").slice(0, 19)}`,
+            email: `${managedUser.username}-${index}@managed-list.test`,
+            createdAt: new Date("2026-01-01T00:00:00Z"),
+          })),
+        });
         await gotoAndWaitForReady(
           page,
           `/admin/users?search=${encodeURIComponent(managedUser.username)}`,
         );
+        await expect(page.locator("tbody tr")).toHaveCount(20);
 
         const dialog = await openAdminUserDialog(page, managedUser.username);
 
@@ -509,13 +511,25 @@ test("/admin/users 可打开管理弹窗并保存姓名", { tag: "@Admin/Web" },
             .locator("[data-sonner-toast]")
             .filter({ hasText: /更新成功|Updated successfully/i }),
         ).toBeVisible();
-        await gotoAndWaitForReady(
-          page,
-          `/admin/users?search=${encodeURIComponent(managedUser.username)}`,
-        );
+        await page
+          .locator('[data-slot="endless-scroll"]')
+          .scrollIntoViewIfNeeded();
+        await expect(page.locator("tbody tr")).toHaveCount(21);
+        await expect(
+          adminUserTableRow(page, managedUser.username),
+        ).toContainText(newName);
+        await page.reload();
+        await expect(page.locator("tbody tr")).toHaveCount(20);
         await expect(
           page.locator("tr:visible").filter({ hasText: newName }),
         ).toBeVisible();
+        await page
+          .locator('[data-slot="endless-scroll"]')
+          .scrollIntoViewIfNeeded();
+        await expect(page.locator("tbody tr")).toHaveCount(21);
+        await expect(
+          adminUserTableRow(page, managedUser.username),
+        ).toContainText(newName);
       },
       { auditActions: { admin_user_profile_update: 1 } },
       adminWriteChecks([["PATCH", `/api/admin/users/${managedUser.id}`, 200]]),

@@ -1,15 +1,14 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
-import ListPagination from "#lib/components/ListPagination.svelte";
+import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import {
   catalogActiveFilters,
   catalogFilterDraft,
 } from "@/features/catalog/lib/catalog-filter-view";
 import { catalogPrimaryName as primaryName } from "@/features/catalog/lib/catalog-list-display";
-import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import { buildCourseFilterOptions } from "@/features/catalog/lib/courses-page-view-model";
+import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import type { TableFilterField } from "@/lib/table-filters";
-import { page as routePage } from "$app/state";
 import CatalogFilters from "./CatalogFilters.svelte";
 import CoursesResults from "./CoursesResults.svelte";
 import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
@@ -31,17 +30,15 @@ type PageData = {
   };
   pagination: { page: number; total: number; totalPages: number };
 };
-let { data }: { data: PageData } = $props();
+let { data, endless }: { data: PageData; endless: EndlessScrollState } =
+  $props();
 const formId = "course-filters";
-let draft = $derived(catalogFilterDraft(data.filters));
+const appliedFilters = $derived(data.filters);
+let draft = $derived(catalogFilterDraft(appliedFilters));
 const commonLabels = $derived(data.labels.common);
 const courseLabels = $derived(data.labels.courses);
-const totalPages = $derived(data.pagination.totalPages);
 function update(patch: Record<string, string>) {
   draft = { ...draft, ...patch };
-}
-function pageHref(targetPage: number) {
-  return catalogListPageHref(new URL(routePage.url.href), targetPage);
 }
 const filterOptions = $derived(buildCourseFilterOptions(data.filterOptions));
 const fields = $derived<Record<string, TableFilterField>>({
@@ -89,7 +86,6 @@ const activeFilters = $derived(
 const resultData = $derived({
   data: data.data,
   filters: data.filters,
-  pagination: { total: data.pagination.total },
 });
 function emptyDescription() {
   return data.filters.search
@@ -99,11 +95,11 @@ function emptyDescription() {
 </script>
 
 {#snippet paginationFooter()}
-  <ListPagination ariaLabel={commonLabels.pagination} class="py-0" nextLabel={commonLabels.next} nextPageLabel={commonLabels.nextPage} page={data.pagination.page} {pageHref} previousLabel={commonLabels.previous} previousPageLabel={commonLabels.previousPage} {totalPages} />
+  <EndlessScroll state={endless} labels={commonLabels.endlessScroll} />
 {/snippet}
 {#snippet controls()}
   <CatalogFilters {activeFilters} clearHref="/catalog/courses" clearLabel={commonLabels.clear} filterTitle={courseLabels.summary.filters} searchLabel={commonLabels.search} searchPlaceholder={courseLabels.searchPlaceholder} values={draft} onchange={update} applyLabel={commonLabels.applyFilters} {formId} />
 {/snippet}
-<CollectionPage description={courseLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={courseLabels.title} toolbar={controls}>
-  <CoursesResults {columnFilters} courseEmptyDescription={emptyDescription} {courseLabels} data={resultData} page={data.pagination.page} primaryName={primaryName} {totalPages} />
+<CollectionPage description={courseLabels.subtitle} footer={endless.hasMore ? paginationFooter : undefined} title={courseLabels.title} toolbar={controls}>
+  <CoursesResults {columnFilters} courseEmptyDescription={emptyDescription} {courseLabels} data={resultData} primaryName={primaryName} />
 </CollectionPage>

@@ -22,7 +22,7 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
           ? '[data-slot="collection-header"] [data-slot="table-column-header"] button:visible'
           : 'table:visible thead [data-slot="table-column-header"] button:visible',
       summary: "",
-      pagination: false,
+      continuation: false,
       records:
         width < COLLECTION_DESKTOP_MIN_WIDTH_PX
           ? `[data-testid="workspace-${name}-cards"] [data-slot="item"]`
@@ -35,7 +35,7 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
       filter: "",
       summary:
         '[data-testid="subscription-semester-groups"] section > div:first-child > span',
-      pagination: false,
+      continuation: false,
       records:
         width < COLLECTION_DESKTOP_MIN_WIDTH_PX
           ? '[data-testid="subscription-semester-cards"] [data-slot="item"]'
@@ -49,8 +49,8 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
           : `/catalog/teachers/${c.teachers[0].id}`,
       heading: "#sections h2",
       filter: "",
-      summary: '#sections [data-slot="results-summary"]',
-      pagination: true,
+      summary: "",
+      continuation: true,
       records:
         width < COLLECTION_DESKTOP_MIN_WIDTH_PX
           ? '#sections [data-slot="item"]:visible'
@@ -61,8 +61,8 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
       path: `/catalog/young-events/organizers/${c.organizers[0].id}`,
       heading: "main h2",
       filter: "",
-      summary: 'main [data-slot="results-summary"]',
-      pagination: true,
+      summary: "",
+      continuation: true,
       records: 'main [role="list"] > [role="listitem"]',
     },
     {
@@ -71,7 +71,7 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
       heading: "#homework h2",
       filter: "",
       summary: "",
-      pagination: false,
+      continuation: false,
       records:
         width < COLLECTION_DESKTOP_MIN_WIDTH_PX
           ? '#homework [data-slot="item"]:visible'
@@ -83,7 +83,7 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
       heading: `#${name} h2`,
       filter: "",
       summary: "",
-      pagination: false,
+      continuation: false,
       records: `#${name} table tbody tr`,
     })),
   ];
@@ -170,11 +170,14 @@ for (const [domain, names] of [
           records.first(),
           `${item.name}: records after context`,
         );
-        if (item.pagination) {
+        await expect(page.locator('[data-slot="list-pagination"]')).toHaveCount(
+          0,
+        );
+        if (item.continuation) {
           await precedes(
             records.last(),
-            page.locator('[data-slot="list-pagination"]'),
-            `${item.name}: pagination after records`,
+            page.locator('[data-slot="endless-scroll"]'),
+            `${item.name}: continuation after records`,
           );
         }
       }

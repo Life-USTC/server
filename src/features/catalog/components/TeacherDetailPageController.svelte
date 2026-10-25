@@ -7,6 +7,10 @@ import {
 import LazyCommentsPanel from "@/features/comments/components/LazyCommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import LazyDescriptionCard from "@/features/descriptions/components/LazyDescriptionCard.svelte";
+import type {
+  EndlessScrollLabels,
+  EndlessScrollState,
+} from "@/lib/navigation/endless-list.svelte";
 import type { PaginatedResponse } from "@/lib/pagination";
 import {
   type CatalogNamed,
@@ -45,9 +49,8 @@ type PageData = {
   copy: {
     comments: { loadFailed: string; retry: string; title: string };
     common: {
+      endlessScroll: EndlessScrollLabels;
       home: string;
-      next: string;
-      previous: string;
       teachers: string;
     };
     descriptions: CatalogDetailDescriptionCopy;
@@ -67,6 +70,7 @@ type PageData = {
 };
 
 export let data: PageData;
+export let endless: EndlessScrollState;
 
 $: copy = data.copy;
 $: detailCopy = copy satisfies TeacherDetailCopy;
@@ -112,14 +116,7 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
           <p class="mb-4 text-sm text-muted-foreground">
             {copy.teacherDetail.teachingSectionsDescription}
           </p>
-          <CatalogSectionHistory
-            pagination={data.sectionsPagination}
-            shown={data.teacher.sections.length}
-            summaryTemplate={copy.teacherDetail.sectionHistorySummary}
-            ariaLabel={copy.teacherDetail.sectionHistoryPagination}
-            nextLabel={copy.common.next}
-            previousLabel={copy.common.previous}
-          >
+          <CatalogSectionHistory state={endless} labels={copy.common.endlessScroll}>
             <TeacherDetailSections
               copy={detailCopy}
               locale={data.locale}

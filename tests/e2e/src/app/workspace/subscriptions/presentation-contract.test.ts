@@ -1,86 +1,319 @@
 import { expect, type Page } from "@playwright/test";
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import {
+  expectNoPageHorizontalOverflow,
+  gotoAndWaitForReady,
+} from "../../../../utils/page-ready";
+import { expectRenderedUiQuality } from "../../../../utils/ui-quality";
 import { test } from "./presentation-fixture";
 
 const widths = [1280, 390];
 
-test("subscription.table-filters-apply-across-semesters", {
-  tag: "@Subscription/Web",
-}, async ({ page, presentation, isolatedWorker, catalogSubscriptionRun }) => {
-  const { user, sections, semesters } = presentation;
-  await catalogSubscriptionRun(
-    user,
-    { calendarMessages: [], calendarTokenCreated: true },
-    async () => {
-      await page
-        .context()
-        .addCookies([
-          (await isolatedWorker.createSession(user.id)).cookie,
-          { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
-        ]);
-      for (const width of widths) {
-        await open(page, width);
-        const links = page
-          .getByTestId("subscription-course-link")
-          .filter({ visible: true });
-        const apply = page.getByRole("button", {
-          name: "应用筛选",
-          exact: true,
-        });
-        await expect(apply).toHaveCount(1);
-        await expect(links).toHaveCount(3);
-        const semesterTrigger = page
-          .locator("#subscriptions-filters")
-          .getByRole("button", { name: "学期", exact: true });
-        await semesterTrigger.click();
-        const semester = page.locator('[data-filter-field="semester"]');
-        await semester
-          .getByRole("checkbox", { name: semesters[0].nameCn, exact: true })
-          .check();
-        await page.keyboard.press("Escape");
-        const credits = page
-          .getByRole("button", { name: "学分", exact: true })
-          .filter({ visible: true })
-          .first();
-        await credits.click();
-        const dialog = page.getByRole("dialog", { name: "学分", exact: true });
-        await dialog.getByRole("combobox").selectOption("gte");
-        await dialog.getByRole("spinbutton").fill("2.5");
-        await expect(
-          dialog.getByRole("button", { name: "应用筛选", exact: true }),
-        ).toHaveCount(0);
-        await page.keyboard.press("Escape");
-        await expect(links).toHaveCount(3);
-        await apply.click();
-        await expect(links).toHaveCount(2);
-        await expect(
-          page
-            .locator(
-              `a[data-testid="subscription-course-link"][href="/catalog/sections/${sections[2].jwId}"]`,
-            )
-            .filter({ visible: true }),
-        ).toHaveCount(0);
-        await semesterTrigger.click();
-        await semester
-          .getByRole("checkbox", { name: semesters[1].nameCn, exact: true })
-          .check();
-        await page.keyboard.press("Escape");
-        await apply.click();
-        await expect(links).toHaveCount(3);
-        await credits.click();
-        await dialog.getByRole("combobox").selectOption("gt");
-        await page.keyboard.press("Escape");
-        await apply.click();
-        await expect(links).toHaveCount(0);
-        await credits.click();
-        await dialog.getByRole("spinbutton").fill("");
-        await page.keyboard.press("Escape");
-        await apply.click();
-        await expect(links).toHaveCount(3);
-      }
-    },
-  );
-});
+for (const locale of ["zh-cn", "en-us"] as const) {
+  for (const width of widths) {
+    test(`subscription.table-filters-apply-across-semesters ${locale} ${width}`, {
+      tag: "@Subscription/Web",
+    }, async ({
+      page,
+      presentation,
+      isolatedWorker,
+      catalogSubscriptionRun,
+      run,
+    }) => {
+      test.setTimeout(60_000);
+      const { user, sections, semesters, course, teacher } = presentation;
+      const englishCourseName = course.nameEn;
+      const englishTeacherName = teacher.nameEn;
+      if (!englishCourseName || !englishTeacherName)
+        throw new Error("Expected bilingual subscription filter fixtures");
+      await run(async () => {
+        for (const [section, kind] of [
+          [sections[1], "auditor"],
+          [sections[2], "teaching_assistant"],
+        ] as const) {
+          await isolatedWorker.database.owner.userSectionSubscription.update({
+            where: {
+              userId_sectionId: { userId: user.id, sectionId: section.id },
+            },
+            data: { kind },
+          });
+        }
+      });
+      const text =
+        locale === "zh-cn"
+          ? {
+              apply: "应用筛选",
+              semester: "学期",
+              course: "课程名称",
+              code: "教学班",
+              teacher: "教师",
+              credits: "学分",
+              regular: "普通",
+              assistant: "助教",
+              maximum: "上限",
+              semesters: semesters.map(({ nameCn }) => nameCn),
+              courseName: course.nameCn,
+              teacherName: teacher.nameCn,
+            }
+          : {
+              apply: "Apply filters",
+              semester: "Semester",
+              course: "Course Name",
+              code: "Section",
+              teacher: "Teachers",
+              credits: "Credits",
+              regular: "Regular",
+              assistant: "Teaching assistant",
+              maximum: "Upper bound",
+              semesters: ["Spring 2026", "Fall 2025"],
+              courseName: englishCourseName,
+              teacherName: englishTeacherName,
+            };
+      await catalogSubscriptionRun(
+        user,
+        { calendarMessages: [], calendarTokenCreated: true },
+        async () => {
+          await page.context().addCookies([
+            (await isolatedWorker.createSession(user.id)).cookie,
+            {
+              name: "NEXT_LOCALE",
+              value: locale,
+              url: isolatedWorker.origin,
+            },
+          ]);
+          await open(page, width);
+          const filters = page.locator("#subscriptions-filters");
+          const groups = page
+            .getByTestId("subscription-semester-groups")
+            .locator(":scope > section");
+          const links = page
+            .getByTestId("subscription-course-link")
+            .filter({ visible: true });
+          const apply = page.getByRole("button", {
+            name: text.apply,
+            exact: true,
+          });
+          await expect(filters).toHaveCount(1);
+          await expect(apply).toHaveCount(1);
+          for (const name of [
+            text.semester,
+            text.course,
+            text.teacher,
+            text.credits,
+          ]) {
+            await expect(
+              page.getByRole("button", { name, exact: true }),
+            ).toHaveCount(1);
+            await expect(
+              filters.getByRole("button", { name, exact: true }),
+            ).toBeVisible();
+          }
+          const buttons = await filters
+            .getByRole("button")
+            .evaluateAll((nodes) =>
+              nodes.map((node) => {
+                const { left, right, top, bottom } =
+                  node.getBoundingClientRect();
+                return {
+                  label: node.textContent?.trim(),
+                  left,
+                  right,
+                  top,
+                  bottom,
+                };
+              }),
+            );
+          for (const [index, first] of buttons.entries()) {
+            for (const second of buttons.slice(index + 1)) {
+              expect(
+                first.right <= second.left ||
+                  second.right <= first.left ||
+                  first.bottom <= second.top ||
+                  second.bottom <= first.top,
+                `Filter buttons ${first.label} and ${second.label} must not overlap`,
+              ).toBe(true);
+            }
+          }
+          await expect(
+            groups.locator('form, [data-slot="table-column-header"]'),
+          ).toHaveCount(0);
+          await expect(
+            page
+              .getByTestId("subscription-semester-table")
+              .locator("thead button"),
+          ).toHaveCount(0);
+          await expect(groups).toHaveCount(2);
+          const toolbarBox = await filters.boundingBox();
+          const groupBox = await groups.first().boundingBox();
+          if (!toolbarBox || !groupBox)
+            throw new Error("Expected visible filters and semester groups");
+          expect(toolbarBox.y + toolbarBox.height).toBeLessThanOrEqual(
+            groupBox.y,
+          );
+          await expect(links).toHaveCount(3);
+          const semesterTrigger = filters.getByRole("button", {
+            name: text.semester,
+            exact: true,
+          });
+          await semesterTrigger.click();
+          const semester = page.locator('[data-filter-field="semester"]');
+          await semester
+            .getByRole("checkbox", { name: text.semesters[0], exact: true })
+            .check();
+          await page.keyboard.press("Escape");
+          const credits = filters.getByRole("button", {
+            name: text.credits,
+            exact: true,
+          });
+          await credits.click();
+          const dialog = page.getByRole("dialog", {
+            name: text.credits,
+            exact: true,
+          });
+          await dialog.getByRole("combobox").selectOption("gte");
+          await dialog.getByRole("spinbutton").fill("2.5");
+          await expect(
+            dialog.getByRole("button", { name: text.apply, exact: true }),
+          ).toHaveCount(0);
+          await page.keyboard.press("Escape");
+          await expect(links).toHaveCount(3);
+          await apply.click();
+          await expect(links).toHaveCount(2);
+          await expect(groups).toHaveCount(1);
+          await expect(
+            page
+              .locator(
+                `a[data-testid="subscription-course-link"][href="/catalog/sections/${sections[2].jwId}"]`,
+              )
+              .filter({ visible: true }),
+          ).toHaveCount(0);
+          await semesterTrigger.click();
+          await semester
+            .getByRole("checkbox", { name: text.semesters[1], exact: true })
+            .check();
+          await page.keyboard.press("Escape");
+          await apply.click();
+          await expect(links).toHaveCount(3);
+          await expect(groups).toHaveCount(2);
+
+          const teacherTrigger = filters.getByRole("button", {
+            name: text.teacher,
+            exact: true,
+          });
+          await teacherTrigger.click();
+          const teacherField = page.locator('[data-filter-field="teacher"]');
+          await teacherField
+            .getByRole("checkbox", { name: text.teacherName, exact: true })
+            .check();
+          await page.keyboard.press("Escape");
+          const courseTrigger = filters.getByRole("button", {
+            name: text.course,
+            exact: true,
+          });
+          await courseTrigger.click();
+          const courseDialog = page.getByRole("dialog", {
+            name: text.course,
+            exact: true,
+          });
+          await courseDialog
+            .getByRole("textbox", { name: text.course, exact: true })
+            .fill(text.courseName);
+          await courseDialog
+            .getByRole("checkbox", { name: text.regular, exact: true })
+            .check();
+          await courseDialog
+            .getByRole("checkbox", { name: text.assistant, exact: true })
+            .check();
+          await page.keyboard.press("Escape");
+          await expect(links).toHaveCount(3);
+          await apply.click();
+          await expect(links).toHaveCount(2);
+          expect(
+            await links.evaluateAll((items) =>
+              items.map((item) => item.getAttribute("href")),
+            ),
+          ).toEqual([
+            `/catalog/sections/${sections[0].jwId}`,
+            `/catalog/sections/${sections[2].jwId}`,
+          ]);
+          await expect(groups).toHaveCount(2);
+          await courseTrigger.click();
+          await courseDialog
+            .getByRole("textbox", { name: text.code, exact: true })
+            .fill(sections[2].code);
+          await page.keyboard.press("Escape");
+          await apply.click();
+          await expect(links).toHaveCount(1);
+          await expect(links).toHaveAttribute(
+            "href",
+            `/catalog/sections/${sections[2].jwId}`,
+          );
+          await expect(groups).toHaveCount(1);
+
+          await credits.click();
+          await dialog.getByRole("combobox").selectOption("between");
+          await dialog
+            .getByRole("spinbutton", { name: text.credits, exact: true })
+            .fill("2.5");
+          await dialog
+            .getByRole("spinbutton", { name: text.maximum, exact: true })
+            .fill("2.5");
+          await page.keyboard.press("Escape");
+          await apply.click();
+          await expect(links).toHaveCount(1);
+          await credits.click();
+          await dialog.getByRole("combobox").selectOption("gt");
+          await page.keyboard.press("Escape");
+          await apply.click();
+          await expect(links).toHaveCount(0);
+          await expect(groups).toHaveCount(0);
+          for (const name of [
+            text.semester,
+            text.course,
+            text.teacher,
+            text.credits,
+          ])
+            await expect(
+              filters.getByRole("button", { name, exact: true }),
+            ).toBeVisible();
+          await credits.click();
+          await dialog.getByRole("spinbutton").fill("");
+          await page.keyboard.press("Escape");
+          await courseTrigger.click();
+          await courseDialog
+            .getByRole("textbox", { name: text.course, exact: true })
+            .fill("");
+          await courseDialog
+            .getByRole("textbox", { name: text.code, exact: true })
+            .fill("");
+          await courseDialog
+            .getByRole("checkbox", { name: text.regular, exact: true })
+            .uncheck();
+          await courseDialog
+            .getByRole("checkbox", { name: text.assistant, exact: true })
+            .uncheck();
+          await page.keyboard.press("Escape");
+          await teacherTrigger.click();
+          await teacherField
+            .getByRole("checkbox", { name: text.teacherName, exact: true })
+            .uncheck();
+          await page.keyboard.press("Escape");
+          await semesterTrigger.click();
+          for (const name of text.semesters)
+            await semester
+              .getByRole("checkbox", { name, exact: true })
+              .uncheck();
+          await page.keyboard.press("Escape");
+          await expect(links).toHaveCount(0);
+          await apply.click();
+          await expect(links).toHaveCount(3);
+          await expect(groups).toHaveCount(2);
+          await expectRenderedUiQuality(page);
+          await expectNoPageHorizontalOverflow(page);
+        },
+      );
+    });
+  }
+}
 
 async function open(page: Page, width: number) {
   await page.setViewportSize({ width, height: 844 });

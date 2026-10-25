@@ -2,10 +2,9 @@
 import SearchIcon from "@lucide/svelte/icons/search";
 import ActiveFilters from "#lib/components/ActiveFilters.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
+import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import FilterToolbar from "#lib/components/FilterToolbar.svelte";
-import ListPagination from "#lib/components/ListPagination.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
 import { toolbarControlClass } from "#lib/components/toolbar-control.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
@@ -22,6 +21,7 @@ import {
   publicationListSummary,
   publicationListSummaryIsUrlHeavy,
 } from "@/features/publications/lib/publication-summary";
+import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import { goto } from "$app/navigation";
 import PublicationTypeBadge from "./PublicationTypeBadge.svelte";
 import type {
@@ -32,9 +32,15 @@ import type {
 let {
   copy,
   data,
-}: { copy: PublicationPageCopy; data: PublicationListPageData } = $props();
+  endless,
+}: {
+  copy: PublicationPageCopy;
+  data: PublicationListPageData;
+  endless: EndlessScrollState;
+} = $props();
 let filtersOpen = $state(false);
-let query = $derived(data.filters.query ?? "");
+const appliedFilters = $derived(data.filters);
+let query = $derived(appliedFilters.query ?? "");
 let sourceDraft = $state<string[]>([]);
 let levelsDraft = $state<PublicationSourceOrganizationLevel[]>([]);
 let foldDraft = $state(false);
@@ -97,13 +103,6 @@ const activeFilters = $derived([
       ]
     : []),
 ]);
-const resultsCount = $derived(
-  (data.publications.pagination.total === 1
-    ? copy.resultsCountOne
-    : copy.resultsCount
-  ).replace("{count}", String(data.publications.pagination.total)),
-);
-
 function changeType(value: string) {
   if (!value) return;
   void goto(
@@ -119,10 +118,10 @@ function changeType(value: string) {
 <svelte:head><title>{copy.pageTitle} - Life@USTC</title></svelte:head>
 
 {#snippet pagination()}
-  <ListPagination page={data.publications.pagination.page} totalPages={data.publications.pagination.totalPages} pageHref={(page) => publicationListHref(data.filters, page)} previousLabel={copy.previousPage} previousPageLabel={copy.previousPage} nextLabel={copy.nextPage} nextPageLabel={copy.nextPage} ariaLabel={copy.pagination} />
+  <EndlessScroll state={endless} labels={copy.endlessScroll} />
 {/snippet}
 
-<CollectionPage description={copy.pageDescription} footer={data.publications.pagination.totalPages > 1 ? pagination : undefined} title={copy.pageTitle}>
+<CollectionPage description={copy.pageDescription} footer={endless.hasMore ? pagination : undefined} title={copy.pageTitle}>
   {#snippet toolbar()}
       <div class="grid min-w-0 gap-3">
         <ToggleGroup.Root type="single" variant="outline" bind:value={() => data.filters.type ?? "all", changeType} aria-label={copy.publicationType}>
@@ -155,7 +154,6 @@ function changeType(value: string) {
       </div>
   {/snippet}
 
-    <ResultsSummary summary={resultsCount} page={data.publications.pagination.page} totalPages={data.publications.pagination.totalPages} />
     {#if data.publications.data.length === 0}
       <ResultsEmpty title={copy.emptyTitle} description={copy.emptyDescription} />
     {:else}

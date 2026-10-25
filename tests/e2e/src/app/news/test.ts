@@ -294,61 +294,44 @@ test.describe("/news 新闻与通知预览", () => {
     });
   });
 
-  test("分页使用键盘链接导航并保留筛选条件", {
+  test("连续加载支持键盘并在详情返回后保留列表和筛选", {
     tag: "@Publication/Web",
   }, async ({ browseRun, page, publication: fixture }) => {
     await browseRun(async () => {
       const sourceQuery = `source=${encodeURIComponent(fixture.sourceId)}`;
       await gotoAndWaitForReady(page, `/news?${sourceQuery}`);
-
-      await expect(
-        page
-          .getByRole("list", { name: /校园新闻与通知|Campus News & Notices/i })
-          .getByRole("listitem"),
-      ).toHaveCount(20);
-      const nextPage = page.getByRole("link", { name: /下一页|Next page/i });
+      const listUrl = page.url();
+      const items = page
+        .getByRole("list", { name: /校园新闻与通知|Campus News & Notices/i })
+        .getByRole("listitem");
+      await expect(items).toHaveCount(20);
+      const nextPage = page.getByRole("link", { name: /加载更多|Load more/i });
       await expect(nextPage).toHaveAttribute(
         "href",
         `/news?${sourceQuery}&page=2`,
       );
-      await nextPage.focus();
+      await page.getByRole("searchbox").fill("Unsubmitted search");
+      await nextPage.evaluate((node) =>
+        (node as HTMLElement).focus({ preventScroll: true }),
+      );
       await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(listUrl);
+      await expect(items).toHaveCount(fixture.total);
+      await expect(page.getByRole("searchbox")).toHaveValue(
+        "Unsubmitted search",
+      );
+      await expect(nextPage).toHaveCount(0);
+      await expect(page.locator('[data-slot="list-pagination"]')).toHaveCount(
+        0,
+      );
 
-      await expect(page).toHaveURL(
-        new RegExp(`/news\\?${sourceQuery}&page=2$`),
-      );
-      await expect(
-        page
-          .getByRole("list", { name: /校园新闻与通知|Campus News & Notices/i })
-          .getByRole("listitem"),
-      ).toHaveCount(fixture.total - 20);
-      const previousPage = page.getByRole("link", {
-        name: /上一页|Previous page/i,
-      });
-      await expect(previousPage).toHaveAttribute(
-        "href",
-        `/news?${sourceQuery}`,
-      );
-      const disabledNext = page.getByRole("button", {
-        name: /下一页|Next page/i,
-      });
-      await expect(disabledNext).toHaveAttribute(
-        "aria-label",
-        /下一页|Next page/i,
-      );
-      await expect(disabledNext).toBeDisabled();
-
-      await previousPage.focus();
-      await page.keyboard.press("Enter");
-      await expect(page).toHaveURL(new RegExp(`/news\\?${sourceQuery}$`));
-
-      const secondPage = page.locator(
-        '[data-slot="list-pagination"] a[data-value="2"]',
-      );
-      await secondPage.focus();
-      await page.keyboard.press("Enter");
-      await expect(page).toHaveURL(
-        new RegExp(`/news\\?${sourceQuery}&page=2$`),
+      await items.last().getByRole("heading").getByRole("link").click();
+      await expect(page).toHaveURL((url) => url.pathname.startsWith("/news/"));
+      await page.goBack();
+      await expect(page).toHaveURL(listUrl);
+      await expect(items).toHaveCount(fixture.total);
+      expect(new URL(page.url()).searchParams.get("source")).toBe(
+        fixture.sourceId,
       );
     });
   });
@@ -521,9 +504,10 @@ test.describe("/news 新闻与通知预览", () => {
           .getByRole("list", { name: /校园新闻与通知|Campus News & Notices/i })
           .getByRole("listitem"),
       ).toHaveCount(fixture.total - 20);
-      await expect(
-        page.getByRole("link", { name: /上一页|Previous page/i }),
-      ).toHaveAttribute("href", `/news?${sourceQuery}`);
+      await expect(page.locator('[data-slot="list-pagination"]')).toHaveCount(
+        0,
+      );
+      await expect(page.locator('[data-slot="endless-scroll"]')).toHaveCount(0);
     });
   });
 

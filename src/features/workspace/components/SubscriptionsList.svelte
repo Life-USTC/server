@@ -3,7 +3,6 @@ import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import Pencil from "@lucide/svelte/icons/pencil";
 import UserMinus from "@lucide/svelte/icons/user-minus";
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
-import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
@@ -199,26 +198,14 @@ function handleRemoveDialogOpenChange(open: boolean) {
 }
 </script>
 
-{#snippet column(index: number, suffix: string)}
-  <TableFieldFilter label={columns[index][0].label} fields={columns[index]} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`subscriptions-${suffix}-${index}`} formId="subscriptions-filters" />
-{/snippet}
-
-
 {#if subscriptions.length > 0}
-  <form id="subscriptions-filters" onsubmit={apply} class="flex flex-wrap items-end gap-3">
+  <form id="subscriptions-filters" onsubmit={apply} class="flex flex-wrap items-end gap-3 [&_[data-slot=table-column-header]_button]:mx-0">
     <TableFieldFilter label={semesterField.label} fields={[semesterField]} values={draft} onchange={change} labels={common.tableFilters} idPrefix="subscriptions-extra" formId="subscriptions-filters" />
+    {#each columns as fields, index}
+      <TableFieldFilter label={fields[0].label} {fields} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`subscriptions-column-${index}`} formId="subscriptions-filters" />
+    {/each}
     <Button type="submit">{common.applyFilters}</Button>
   </form>
-  <ResponsiveCollection>
-    {#snippet mobile()}
-      <div class="flex flex-wrap gap-3" data-slot="collection-header">{#each columns as _, index}{@render column(index, "mobile")}{/each}</div>
-    {/snippet}
-    {#snippet desktop()}
-      {#if sectionGroups.length === 0}
-        <div class="flex flex-wrap gap-3" data-slot="collection-header">{#each columns as _, index}{@render column(index, "empty")}{/each}</div>
-      {/if}
-    {/snippet}
-  </ResponsiveCollection>
   {#if sectionGroups.length === 0}<CollectionEmpty variant="compact" description={subscriptionsCopy.noSubscriptions} />{/if}
   <div
     class="subscription-semester-groups grid min-w-0 gap-6"
@@ -264,10 +251,10 @@ function handleRemoveDialogOpenChange(open: boolean) {
           >
             <Table.Header>
               <Table.Row>
-                <Table.Head>{@render column(0, group.key)}</Table.Head>
-                <Table.Head>{@render column(1, group.key)}</Table.Head>
+                <Table.Head>{subscriptionsCopy.courseName}</Table.Head>
+                <Table.Head>{sectionCopy.teachers}</Table.Head>
                 <Table.Head class="text-left">
-                  {@render column(2, group.key)}
+                  {subscriptionsCopy.credits}
                 </Table.Head>
                 <Table.Head>
                   <span class="sr-only">{sectionCopy.moreDetails}</span>

@@ -16,8 +16,6 @@ export type CourseDetailCopy = {
     emptySectionsDescription: string;
     noSections: string;
     sectionCode: string;
-    sectionHistorySummary: string;
-    sectionHistoryPagination: string;
     semester: string;
     teachers: string;
   };
@@ -37,8 +35,6 @@ export type TeacherDetailCopy = {
     noDepartment: string;
     noSections: string;
     sectionCode: string;
-    sectionHistorySummary: string;
-    sectionHistoryPagination: string;
     semester: string;
     telephone: string;
     title: string;

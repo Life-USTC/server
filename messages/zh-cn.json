@@ -52,10 +52,13 @@
     "search": "搜索",
     "clear": "清除",
     "previous": "上一页",
-    "previousPage": "上一页",
     "next": "下一页",
-    "nextPage": "下一页",
-    "pagination": "分页",
+    "endlessScroll": {
+      "loading": "加载中…",
+      "loadMore": "加载更多",
+      "retry": "重试",
+      "failed": "加载失败，请重试。"
+    },
     "primaryNavigation": "主导航",
     "footerNavigation": "页脚导航",
     "profileMenu": "个人菜单",
@@ -741,8 +744,6 @@
     "adminRole": "管理员",
     "userRole": "用户",
     "createdAt": "创建时间",
-    "showing": "显示 {count} / 共 {total} 位用户",
-    "showingOne": "显示 {count} / 共 {total} 位用户",
     "noResults": "没有找到结果",
     "noVerifiedEmail": "无已验证邮箱",
     "noUsername": "无 ID",
@@ -1326,8 +1327,6 @@
     "title": "所有课程",
     "subtitle": "浏览和搜索所有可用课程",
     "searchPlaceholder": "按课程名称或代码搜索...",
-    "showing": "显示 {total} 门课程中的 {count} 门",
-    "showingOne": "显示 {total} 门课程中的 {count} 门",
     "searchFor": "关于 \"{query}\"",
     "noCoursesFound": "未找到课程",
     "courseName": "课程名称",
@@ -1378,9 +1377,7 @@
       "description": "简介",
       "comments": "评论",
       "sections": "教学班"
-    },
-    "sectionHistorySummary": "第 {from}–{to} 条，共 {total} 条历史教学班（含已退役）",
-    "sectionHistoryPagination": "历史教学班分页"
+    }
   },
   "sections": {
     "title": "所有教学班",
@@ -1452,10 +1449,7 @@
         "example": "order:desc"
       }
     ],
-    "showing": "显示 {total} 个教学班中的 {count} 个",
-    "showingOne": "显示 {total} 个教学班中的 {count} 个",
     "searchFor": "关于 \"{query}\"",
-    "inSemester": "在 {semester}",
     "noSectionsFound": "未找到教学班",
     "courseName": "课程名称",
     "sectionCode": "教学班代码",
@@ -1835,10 +1829,6 @@
     "title": "所有教师",
     "subtitle": "浏览和搜索所有教师",
     "searchPlaceholder": "按教师姓名搜索...",
-    "showing": "显示 {total} 位教师中的 {count} 位",
-    "showingOne": "显示 {total} 位教师中的 {count} 位",
-    "searchFor": "关于 \"{query}\"",
-    "inDepartment": "在 {department}",
     "noTeachersFound": "未找到教师",
     "name": "姓名",
     "department": "院系",
@@ -1854,7 +1844,6 @@
     "code": "工号",
     "noDepartment": "无院系",
     "emptyDescription": "请尝试其他搜索词，或清除院系筛选。",
-    "pageOf": "第 {page} 页 / 共 {totalPages} 页",
     "summary": {
       "matches": "匹配",
       "matchesMeta": "当前查询中的教师",
@@ -1901,9 +1890,7 @@
     "semester": "学期",
     "courseName": "课程名称",
     "sectionCode": "教学班代码",
-    "credits": "学分",
-    "sectionHistorySummary": "第 {from}–{to} 条，共 {total} 条历史教学班（含已退役）",
-    "sectionHistoryPagination": "历史教学班分页"
+    "credits": "学分"
   },
   "descriptions": {
     "title": "简介",
@@ -2854,8 +2841,6 @@
     "description": "来自第二课堂平台的报名活动。",
     "platformName": "第二课堂平台",
     "searchPlaceholder": "按活动名称搜索...",
-    "showing": "显示 {total} 个活动中的 {count} 个",
-    "showingOne": "显示 {total} 个活动中的 {count} 个",
     "searchFor": "关于 \"{query}\"",
     "noEventsFound": "未找到活动",
     "signupStatus": "活动范围",
@@ -3030,8 +3015,6 @@
     "poster": "活动海报",
     "earlierDates": "查看此前日期",
     "organizerSearchPlaceholder": "按主办方名称搜索…",
-    "organizersShowing": "显示 {total} 个主办方中的 {count} 个",
-    "organizersShowingOne": "显示 {total} 个主办方中的 {count} 个",
     "dateUnknownActivity": "活动时间未知",
     "dateUnknownRegistration": "报名时间未知",
     "timeBasis": "日历依据",
@@ -3058,8 +3041,6 @@
     "searchPlaceholder": "输入标题、摘要或来源网址…",
     "applyFilters": "筛选",
     "clearFilters": "清除筛选",
-    "resultsCount": "共 {count} 条",
-    "resultsCountOne": "共 {count} 条",
     "emptyTitle": "暂无公开内容",
     "emptyDescription": "换一个筛选条件，或稍后再来看看。",
     "publishedAt": "发布时间",
@@ -3074,9 +3055,6 @@
     "notFoundTitle": "未找到内容",
     "notFoundDescription": "这条新闻或通知不存在，或已不再公开。",
     "missingDate": "日期未知",
-    "previousPage": "上一页",
-    "nextPage": "下一页",
-    "pagination": "新闻与通知分页",
     "foldToggle": "合并同一篇文章的多栏目转载",
     "foldSiblingCount": "另有 {count} 个栏目转载",
     "foldSiblingCountOne": "另有 {count} 个栏目转载",

@@ -2,7 +2,6 @@
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
@@ -10,10 +9,6 @@ import {
   type CatalogNamed,
   catalogLocalizedDisplayName,
 } from "@/features/catalog/lib/catalog-list-display";
-import {
-  catalogShowingSummary,
-  optionalCatalogFilterSummary,
-} from "@/features/catalog/lib/catalog-results-summary";
 import { page as routePage } from "$app/state";
 import CatalogColumnFilter from "./CatalogColumnFilter.svelte";
 import CatalogEntityName from "./CatalogEntityName.svelte";
@@ -21,60 +16,27 @@ import CatalogTableLink from "./CatalogTableLink.svelte";
 import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
 import type {
   TeacherListCommonLabels,
-  TeacherListFilters,
   TeacherListLabels,
   TeacherListRow,
 } from "./catalog-teacher-list-types";
 
 interface Props {
-  columnFilters: Record<string, CatalogColumnFilterProps>;
   commonLabels: TeacherListCommonLabels;
-  filters: TeacherListFilters;
-  page: number;
+  columnFilters: Record<string, CatalogColumnFilterProps>;
   primaryName: (item: CatalogNamed | null | undefined) => string;
-  selectedDepartment: CatalogNamed | null | undefined;
   teacherLabels: TeacherListLabels;
   teachers: TeacherListRow[];
-  total: number;
-  totalPages: number;
 }
 
 let {
-  columnFilters,
   commonLabels,
-  filters,
-  page,
+  columnFilters,
   primaryName,
-  selectedDepartment,
   teacherLabels,
   teachers,
-  total,
-  totalPages,
 }: Props = $props();
 
 let locale = $derived(routePage.data.locale ?? "zh-cn");
-let teacherSummaryBase = $derived(
-  catalogShowingSummary(
-    total === 1 ? teacherLabels.showingOne : teacherLabels.showing,
-    teachers.length,
-    total,
-  ),
-);
-let teacherSearchSummary = $derived(
-  optionalCatalogFilterSummary(
-    filters.search,
-    teacherLabels.searchFor,
-    "{query}",
-  ),
-);
-let teacherDepartmentSummary = $derived(
-  selectedDepartment
-    ? teacherLabels.inDepartment.replace(
-        "{department}",
-        primaryName(selectedDepartment),
-      )
-    : "",
-);
 /** Hide columns that are entirely empty or unknown on the current page. */
 let showTitleColumn = $derived(
   teachers.some((teacher) => Boolean(teacher.teacherTitle)),
@@ -99,15 +61,6 @@ function teacherSectionsHref(teacher: TeacherListRow) {
 {/snippet}
 
 <section class="grid min-w-0 gap-3">
-  <ResultsSummary
-    summary={[
-      teacherSummaryBase,
-      teacherSearchSummary,
-      teacherDepartmentSummary
-    ].filter(Boolean).join(" ")}
-    page={page}
-    totalPages={totalPages}
-  />
     <ResponsiveCollection>
       {#snippet mobile()}
         <div class="grid gap-3" data-slot="collection-header">

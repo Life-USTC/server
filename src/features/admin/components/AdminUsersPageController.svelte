@@ -5,10 +5,9 @@ import { createAdminUsersControllerDefaultState } from "@/features/admin/lib/adm
 import {
   adminUserDisplayName,
   adminUserSuspensionLabel,
-  formatAdminUserMessage,
 } from "@/features/admin/lib/admin-users-display";
 import { createAdminUsersPageActions } from "@/features/admin/lib/admin-users-page-actions";
-import { tableFilterPageHref } from "@/lib/table-filter-query";
+import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import AdminUserDialog from "./AdminUserDialog.svelte";
 import AdminUsersPageContent from "./AdminUsersPageContent.svelte";
@@ -38,6 +37,9 @@ type AdminUsersPageData = {
 };
 
 export let data: AdminUsersPageData;
+export let loadedUsers: AdminUserRow[];
+export let endless: EndlessScrollState;
+export let onUserUpdate: (user: AdminUserRow) => void;
 
 let {
   editIsAdmin,
@@ -54,10 +56,10 @@ let {
   suspendReason,
   users,
 } = createAdminUsersControllerDefaultState<AdminUser>({
-  users: data.users,
+  users: loadedUsers,
 });
 
-$: if (data.users) users = data.users;
+$: users = loadedUsers;
 $: _copy = data.copy.adminUsers;
 $: _commonCopy = data.copy.common;
 $: _adminCopy = data.copy.admin;
@@ -73,10 +75,6 @@ $: suspendDurationOptions = SUSPENSION_DURATION_OPTIONS.map((option) => ({
 
 function inputValue(event: Event) {
   return (event.currentTarget as HTMLInputElement).value;
-}
-
-function _pageHref(page: number) {
-  return tableFilterPageHref("/admin/users", data.filters, page);
 }
 
 function _formatDate(value: Date | string | null | undefined) {
@@ -107,8 +105,9 @@ function replaceUser(updated: AdminUser) {
   users = users.map((user: AdminUser) =>
     user.id === updated.id ? { ...user, ...updated } : user,
   );
-  selectedUser =
-    users.find((user: AdminUser) => user.id === updated.id) ?? selectedUser;
+  const merged = users.find((user: AdminUser) => user.id === updated.id);
+  selectedUser = merged ?? selectedUser;
+  if (merged) onUserUpdate(merged);
 }
 
 const {
@@ -167,12 +166,10 @@ const {
   displayName={adminUserDisplayName}
   filters={data.filters}
   formatDate={_formatDate}
-  formatMessage={formatAdminUserMessage}
   message={_message}
   messageVariant={_messageVariant}
   onSelect={_openDialog}
-  pageHref={_pageHref}
-  pagination={data.pagination}
+  {endless}
   suspensionLabel={_suspensionLabel}
   {users}
 />

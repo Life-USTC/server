@@ -34,13 +34,28 @@ for (const count of [0, 1, 2]) {
         const en = locale === "en-us";
         const check = countCopyCheck(locale, count);
         await gotoAndWaitForReady(page, `/news?query=${f.marker}`);
-        await check(
-          page.locator('[data-slot="results-summary"] > p'),
-          en
-            ? `${count} ${count === 1 ? "result" : "results"}`
-            : `共 ${count} 条`,
-          "news",
+        await expect(page.locator('[data-slot="results-summary"]')).toHaveCount(
+          0,
         );
+        const publications = page
+          .getByRole("list", { name: /校园新闻与通知|Campus News & Notices/ })
+          .getByRole("listitem");
+        await expect(publications).toHaveCount(count);
+        if (count === 0) {
+          await expect(
+            page.getByText(en ? "No public publications" : "暂无公开内容", {
+              exact: true,
+            }),
+          ).toBeVisible();
+        } else {
+          for (let index = 0; index < count; index++)
+            await expect(
+              page.getByRole("link", {
+                name: `${f.marker} publication ${index}`,
+                exact: true,
+              }),
+            ).toBeVisible();
+        }
         await gotoAndWaitForReady(page, "/news/sources");
         if (count === 0) {
           await expect(

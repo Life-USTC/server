@@ -752,10 +752,10 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
         await page
           .context()
           .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
-        for (const [route, code, singular, plural, chinese] of [
-          ["courses", "COURSE", "course", "courses", "门课程"],
-          ["teachers", "TEACHER", "teacher", "teachers", "位教师"],
-          ["sections", "SECTION", "section", "sections", "个教学班"],
+        for (const [route, code, emptyEn, emptyCn] of [
+          ["courses", "COURSE", "No courses found", "未找到课程"],
+          ["teachers", "TEACHER", "No teachers found", "未找到教师"],
+          ["sections", "SECTION", "No sections found", "未找到教学班"],
         ] as const) {
           if (route !== `${domain.toLowerCase()}s`) continue;
           for (const count of [0, 1, 2]) {
@@ -764,21 +764,36 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
               page,
               `/catalog/${route}?search=${query}`,
             );
-            const summary = page
-              .locator('[data-slot="results-summary"]')
-              .first();
-
-            await expect
-              .soft(summary.locator("p"))
-              .toHaveText(
-                locale === "en-us"
-                  ? new RegExp(
-                      `^Showing ${count} of ${count} ${count === 1 ? singular : plural}(?:\\s|$)`,
-                    )
-                  : new RegExp(
-                      `^显示 ${count} ${chinese}中的 ${count} ${chinese[0]}`,
-                    ),
-              );
+            await expect(
+              page.locator('[data-slot="results-summary"]'),
+            ).toHaveCount(0);
+            await expect(
+              page.locator('[data-slot="list-pagination"]'),
+            ).toHaveCount(0);
+            await expect(
+              page.locator('[data-slot="endless-scroll"]'),
+            ).toHaveCount(0);
+            const rows = page.locator("main table:visible tbody tr");
+            const links = page.locator(
+              `main a[href^="/catalog/${route}/"]:not([href*="#"]):visible`,
+            );
+            await expect(links).toHaveCount(count);
+            if (count === 0) {
+              await expect(
+                page
+                  .getByText(locale === "en-us" ? emptyEn : emptyCn, {
+                    exact: true,
+                  })
+                  .filter({ visible: true }),
+              ).toBeVisible();
+            } else {
+              await expect(rows).toHaveCount(count);
+              for (let index = 0; index < count; index++) {
+                await expect(
+                  rows.filter({ hasText: `COUNT-${code}-${index}` }),
+                ).toHaveCount(1);
+              }
+            }
           }
         }
       }

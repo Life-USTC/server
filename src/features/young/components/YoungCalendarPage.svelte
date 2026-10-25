@@ -1,7 +1,5 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
-import ResultsSummary from "#lib/components/ResultsSummary.svelte";
-import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import YoungCalendar from "@/features/young/components/YoungCalendar.svelte";
 import {
   fetchPersonalCalendar,
@@ -123,13 +121,6 @@ function unknownDatesHref() {
   return `/catalog/young-events?${params}`;
 }
 
-const summary = $derived(
-  catalogShowingSummary(
-    data.length === 1 ? youngCopy.showingOne : youngCopy.showing,
-    data.length,
-    data.length,
-  ),
-);
 const calendarLabels = $derived({
   agenda: youngCopy.agenda,
   earlierDates: youngCopy.earlierDates,
@@ -155,16 +146,13 @@ const calendarLabels = $derived({
   title={youngCopy.calendarTitle}
 >
     <div class="grid gap-3">
-    <ResultsSummary {summary}>
       {#if unknownDateCount > 0}
-        <span data-testid="young-calendar-unknown-dates">
-          ·
+        <p class="text-sm text-muted-foreground" data-testid="young-calendar-unknown-dates">
           <a class="underline underline-offset-4" href={unknownDatesHref()}>
             {unknownDateCount} {youngCopy.unknownDates}
           </a>
-        </span>
+        </p>
       {/if}
-    </ResultsSummary>
     <YoungCalendar
       {conflictIds}
       conflictLabel={youngCopy.workspace.conflict}

@@ -12,7 +12,7 @@ type PageTemplateLayout = "stack" | "detail";
 /**
  * Page skeleton for every content page. Copy it and fill the slots:
  *
- * <CollectionPage title description footer={pagination}>
+ * <CollectionPage title description footer={loadMore}>
  *   {#snippet actions()}header buttons{/snippet}
  *   {#snippet before()}optional note above the body{/snippet}
  *   {#snippet toolbar()}filters{/snippet}

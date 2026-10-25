@@ -1,17 +1,14 @@
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import type { EndlessScrollLabels } from "@/lib/navigation/endless-list.svelte";
 import type { TableFilterLabels } from "@/lib/table-filters";
 
 export type CourseListCommonLabels = {
   tableFilters: TableFilterLabels;
+  endlessScroll: EndlessScrollLabels;
 
   clear: string;
   applyFilters: string;
   loading: string;
-  next: string;
-  nextPage: string;
-  pagination: string;
-  previous: string;
-  previousPage: string;
   search: string;
 };
 
@@ -24,8 +21,6 @@ export type CourseListLabels = {
   noCoursesFound: string;
   searchFor: string;
   searchPlaceholder: string;
-  showing: string;
-  showingOne: string;
   subtitle: string;
   summary: {
     filters: string;
@@ -63,9 +58,6 @@ export type CourseListRow = CatalogNamed & {
 export type CourseListResultData = {
   data: CourseListRow[];
   filters: Pick<CourseListFilters, "search">;
-  pagination: {
-    total: number;
-  };
 };
 
 export type CourseListFilterUpdater = (

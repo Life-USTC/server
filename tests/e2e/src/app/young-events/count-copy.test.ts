@@ -78,9 +78,6 @@ for (const count of [0, 1, 2]) {
           .addCookies([{ name: "NEXT_LOCALE", value: locale, url: baseURL }]);
         const en = locale === "en-us";
         const check = countCopyCheck(locale, count);
-        const eventSummary = en
-          ? `Showing ${count} of ${count} ${count === 1 ? "event" : "events"}`
-          : `显示 ${count} 个活动中的 ${count} 个`;
         for (const item of [
           {
             name: "events",
@@ -96,22 +93,16 @@ for (const count of [0, 1, 2]) {
           },
         ]) {
           await gotoAndWaitForReady(page, item.path);
-          await check(
-            page.locator('[data-slot="results-summary"] > p'),
-            eventSummary,
-            item.name,
-          );
+          await expect(
+            page.locator('[data-slot="results-summary"]'),
+          ).toHaveCount(0);
         }
         await gotoAndWaitForReady(
           page,
           `/catalog/young-events/organizers?search=${f.marker}`,
         );
-        await check(
-          page.locator('[data-slot="results-summary"] > p'),
-          en
-            ? `Showing ${count} of ${count} ${count === 1 ? "organizer" : "organizers"}`
-            : `显示 ${count} 个主办方中的 ${count} 个`,
-          "organizers",
+        await expect(page.locator('[data-slot="results-summary"]')).toHaveCount(
+          0,
         );
 
         await page.context().addCookies([actor.cookie]);

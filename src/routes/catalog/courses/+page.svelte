@@ -1,8 +1,17 @@
 <script lang="ts">
 import CoursesPageController from "@/features/catalog/components/CoursesPageController.svelte";
+import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
+import { createEndlessList } from "@/lib/navigation/endless-list.svelte";
+import { page } from "$app/state";
 import type { PageData } from "./$types";
 
-export let data: PageData;
+let { data }: { data: PageData } = $props();
+const endless = createEndlessList({
+  source: () => data,
+  select: (value) => ({ items: value.data, ...value.pagination }),
+  key: (row) => row.jwId,
+  pageHref: (next) => catalogListPageHref(new URL(page.url.href), next),
+});
 </script>
 
-<CoursesPageController {data} />
+<CoursesPageController data={{ ...data, data: endless.items }} {endless} />

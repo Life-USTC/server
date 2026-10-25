@@ -1,17 +1,14 @@
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import type { EndlessScrollLabels } from "@/lib/navigation/endless-list.svelte";
 import type { TableFilterLabels } from "@/lib/table-filters";
 
 export type TeacherListCommonLabels = {
   tableFilters: TableFilterLabels;
+  endlessScroll: EndlessScrollLabels;
 
   clear: string;
   applyFilters: string;
   loading: string;
-  next: string;
-  nextPage: string;
-  pagination: string;
-  previous: string;
-  previousPage: string;
   search: string;
   unknown: string;
 };
@@ -22,17 +19,12 @@ export type TeacherListLabels = {
   email: string;
   emptyDescription: string;
   filterTitle: string;
-  inDepartment: string;
   name: string;
   noDepartment: string;
   noTeachersFound: string;
-  pageOf: string;
-  searchFor: string;
   searchLabel: string;
   searchNameOrCode: string;
   sections: string;
-  showing: string;
-  showingOne: string;
   subtitle: string;
   title_label: string;
 };

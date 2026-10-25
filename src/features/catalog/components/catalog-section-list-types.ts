@@ -1,17 +1,14 @@
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import type { EndlessScrollLabels } from "@/lib/navigation/endless-list.svelte";
 import type { TableFilterLabels } from "@/lib/table-filters";
 
 export type SectionListCommonLabels = {
   tableFilters: TableFilterLabels;
+  endlessScroll: EndlessScrollLabels;
   applyFilters: string;
 
   clear: string;
   loading: string;
-  next: string;
-  nextPage: string;
-  pagination: string;
-  previous: string;
-  previousPage: string;
   search: string;
 };
 
@@ -44,7 +41,6 @@ export type SectionListLabels = {
     sortSemester: string;
     sortTeacherCount: string;
   };
-  inSemester: string;
   noSectionsFound: string;
   noSemester: string;
   searchFor: string;
@@ -59,8 +55,6 @@ export type SectionListLabels = {
   searchPlaceholder: string;
   sectionCode: string;
   semester: string;
-  showing: string;
-  showingOne: string;
   subtitle: string;
   summary: {
     filters: string;
@@ -108,10 +102,6 @@ export type SectionListOptionSource = CatalogNamed & {
   nameCn: string;
 };
 
-export type SectionListPagination = {
-  total: number;
-};
-
 export type SectionListSemester = {
   nameCn: string;
 };
@@ -131,5 +121,4 @@ export type SectionListRow = {
 export type SectionListResultData = {
   data: SectionListRow[];
   filters: SectionListFilters;
-  pagination: SectionListPagination;
 };

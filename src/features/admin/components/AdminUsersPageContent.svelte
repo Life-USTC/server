@@ -1,6 +1,7 @@
 <script lang="ts">
-import ListPagination from "#lib/components/ListPagination.svelte";
+import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
+import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import { tableFilterPageHref } from "@/lib/table-filter-query";
 import { goto } from "$app/navigation";
 import AdminUsersHeader from "./AdminUsersHeader.svelte";
@@ -13,8 +14,6 @@ import type {
   AdminUsersCommonCopy,
   AdminUsersFilters,
   AdminUsersPageCopy,
-  AdminUsersPageHref,
-  AdminUsersPagination,
 } from "./admin-user-types";
 
 export let adminCopy: AdminUsersAdminCopy;
@@ -23,15 +22,10 @@ export let copy: AdminUsersPageCopy;
 export let displayName: AdminUserFormatter;
 export let filters: AdminUsersFilters;
 export let formatDate: (value: Date | string | null | undefined) => string;
-export let formatMessage: (
-  template: string,
-  values: Record<string, string>,
-) => string;
 export let message: string | null;
 export let messageVariant: "destructive" | "default";
 export let onSelect: (user: AdminUserRow) => void;
-export let pageHref: AdminUsersPageHref;
-export let pagination: AdminUsersPagination;
+export let endless: EndlessScrollState;
 export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
 let draft: Record<string, string> = {};
@@ -64,21 +58,10 @@ function apply(event: SubmitEvent) {
     {copy}
     {displayName}
     {formatDate}
-    {formatMessage}
     {onSelect}
-    {pagination}
     {suspensionLabel}
     {users}
   />
 
-  <ListPagination
-    ariaLabel={commonCopy.pagination}
-    nextLabel={commonCopy.next}
-    nextPageLabel={commonCopy.nextPage}
-    previousLabel={commonCopy.previous}
-    previousPageLabel={commonCopy.previousPage}
-    page={pagination.page}
-    totalPages={pagination.totalPages}
-    {pageHref}
-  />
+  <EndlessScroll state={endless} labels={commonCopy.endlessScroll} />
 </AdminWorkspace>

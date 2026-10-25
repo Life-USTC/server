@@ -161,13 +161,13 @@ requirements:
 - id: ui.list-table-1
   category: presentation
   topic: list-table
-  rule: Public course, teacher, section, Young event, Young organizer and news browse collections use PageLayout, PageHeader and Panel. Headings and summaries precede records and pagination follows them. Data-column filters and sorting live in the corresponding table header; compact card views expose the same controls in their collection header. Whole-page search, extra properties without a displayed column, and the single Apply filters action appear in the page toolbar. News retains its title-led list and existing filter toolbar.
+  rule: Public course, teacher, section, Young event, Young organizer and news browse collections use PageLayout, PageHeader and Panel. Headings and applicable summaries precede records; paginated collections append results when their final loading control enters the viewport. They do not show page-number controls or shown-of-total summaries. Data-column filters and sorting live in the corresponding table header; compact card views expose the same controls in their collection header. Whole-page search, extra properties without a displayed column, and the single Apply filters action appear in the page toolbar. News retains its title-led list and existing filter toolbar.
   rationale: Administrative and personal workspaces deliberately use their shared workspace structures; ui.layout-principles-4 owns primitive reuse. Their applicable collection ordering remains in ui.other-collection-order.
   acceptance:
     given: Isolated data provides more than one page of results for each of the six public browse collections.
     when: A browser opens the filtered first page at mobile and desktop widths.
     then:
-    - The shared page frame contains its heading and panel; summaries and header controls precede records, and pagination follows in the panel footer.
+    - The shared page frame contains its heading and panel; header controls precede records and the endless-scroll control follows them in the panel footer. Page numbers and shown-of-total summaries are absent.
     - Whole-page search and the single Apply filters action precede the table or compact collection; column controls remain in the applicable header.
     test:
       file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
@@ -175,12 +175,12 @@ requirements:
 - id: ui.other-collection-order
   category: presentation
   topic: list-table
-  rule: Link and publication-source directories, workspace uploads, the three activity-reminder views, and administrative users, bus, OAuth and four moderation lists put their page heading before summaries and records; available pagination follows the records. Data-column filters belong to their column headers; extra properties without displayed columns and the single Apply filters action belong to the page toolbar. Shared searches retain their whole-collection scope. Compact card views retain these controls in their collection header. Their layout uses the shared primitives required by ui.layout-principles-4.
+  rule: Link and publication-source directories, workspace uploads, the three activity-reminder views, and administrative users, bus, OAuth and four moderation lists put their page heading before summaries and records; available endless-scroll controls follow the records. Data-column filters belong to their column headers; extra properties without displayed columns and the single Apply filters action belong to the page toolbar. Shared searches retain their whole-collection scope. Compact card views retain these controls in their collection header. Their layout uses the shared primitives required by ui.layout-principles-4.
   acceptance:
     given: Isolated uploads, subscriptions, notifications, accounts and moderation records populate the thirteen directory/workspace/administrative views alongside the application link registry and publication source fixture.
     when: A browser opens each view at mobile and desktop widths.
     then:
-    - The visible page heading precedes applicable header controls and summaries, which precede records; every available pagination region follows the final record.
+    - The visible page heading precedes applicable header controls and summaries, which precede records; every available endless-scroll control follows the final record.
     - Shared group searches keep their whole-collection scope and remain available when no groups match.
     test:
       file: tests/e2e/src/app/shared-policy/other-collection-layout.test.ts
@@ -188,13 +188,13 @@ requirements:
 - id: ui.embedded-collection-order
   category: presentation
   topic: list-table
-  rule: Collection surfaces outside the public browse pages in ui.list-table-1 and the directory/workspace/administrative views in ui.other-collection-order, including embedded workspace task and detail collections, put their heading before result summaries and records; column filters live in the table or compact collection header, extra-property filters and the single Apply filters action precede the collection, and available pagination follows the records.
+  rule: Collection surfaces outside the public browse pages in ui.list-table-1 and the directory/workspace/administrative views in ui.other-collection-order, including embedded workspace task and detail collections, put their heading before result summaries and records; column filters live in the table or compact collection header, extra-property filters and the single Apply filters action precede the collection, and available endless-scroll controls follow the records. Teaching-section subscriptions grouped by semester keep all filters in one toolbar above the groups; group tables use plain column headings.
   rationale: These embedded collection ordering obligations remain separate from verified top-level browse layouts. A heading and its summary may share a row in reading order.
   acceptance:
     given: Isolated records populate workspace homework/exam/todo/subscription collections, course/teacher offering history, organizer activity history and section homework/calendar/exam collections.
     when: A browser opens all ten collections at 390, 1024 and 1280 pixels and measures their DOM and visual order.
     then:
-    - Headings precede applicable header controls and result summaries, followed by populated records; course, teacher and organizer pagination follows the final record.
+    - Headings precede applicable header controls and result summaries, followed by populated records; course, teacher and organizer endless-scroll controls follow the final record.
     test:
       file: tests/e2e/src/app/shared-policy/embedded-collection-layout.test.ts
       name: ui.embedded-collection-order Course
@@ -243,7 +243,7 @@ requirements:
 - id: ui.list-table-5
   category: presentation
   topic: list-table
-  rule: The page Apply action submits search, all column and extra-property drafts, and sorting together, resetting pagination. Subsequent pagination retains every applied parameter, including when the current page and total page count do not change after filtering.
+  rule: The page Apply action submits search, all column and extra-property drafts, and sorting together, resetting the accumulated rows. Subsequent incremental reads retain every applied parameter, including when the first page and total page count do not change after filtering.
   acceptance:
     given: Each catalog collection has a search query and page=2 before a column filter opens.
     when: The browser edits several popovers, applies once at the page level, changes sorting and then changes the primary search query.
@@ -256,13 +256,13 @@ requirements:
 - id: ui.table-filter-pagination
   category: presentation
   topic: list-table
-  rule: Filters apply before counting and pagination. Every pagination link reacts to newly applied parameters even when the page number and total page count stay unchanged. Multiple values of one field use OR, different fields use AND, and numeric ranges include both endpoints.
+  rule: Filters apply before server pagination. Every incremental read reacts to newly applied parameters even when the initial page number and total page count stay unchanged. Multiple values of one field use OR, different fields use AND, and numeric ranges include both endpoints.
   acceptance:
     given: Two campuses each have 30 teaching sections, including 25 with three credits and five with four credits.
-    when: A browser changes campus without changing the page count, follows pagination and reloads, then selects both campuses and the three-to-three credit range.
+    when: A browser changes campus without changing the page count, scrolls through the results and reloads, then selects both campuses and the three-to-three credit range.
     then:
-    - Every pagination link retains the new campus, search, comparison and sort parameters; the second page has ten matching rows after reload.
-    - Applying both campuses and the numeric range resets the page and returns fifty matching rows across three pages, excluding four-credit sections.
+    - Incremental reads retain the new campus, search, comparison and sort parameters; the thirty matching rows accumulate without duplicates, and reloading retains the applied filter URL.
+    - Applying both campuses and the numeric range resets accumulated rows and yields fifty matching rows after loading all batches, excluding four-credit sections.
     test:
       file: tests/e2e/src/app/sections/table-filter-semantics.test.ts
       name: section filter drafts, multi-selection, comparisons and reactive pagination
@@ -300,7 +300,7 @@ requirements:
     given: Isolated long-name records populate the first page of each of the six public browse collections.
     when: A browser opens each filtered collection at 320 and 390 pixels and scrolls every record into view.
     then:
-    - Twenty compact records remain rendered and fit within the viewport; the document has no horizontal overflow and the active pagination page remains identified.
+    - The initial twenty compact records remain rendered and fit within the viewport; the document has no horizontal overflow or page-number controls.
     test:
       file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
       name: ui.public-browse-responsive-lists Course
@@ -1478,7 +1478,7 @@ requirements:
 - id: ui.news-count-copy
   category: presentation
   topic: localized-count-copy
-  rule: News results, source totals/groups and folded sibling badges report actual counts with independent
+  rule: News lists show matching records or the localized empty state without result-count summaries or page-number badges. Source totals/groups and folded sibling badges report actual counts with independent
     singular/plural English grammar for each noun. Chinese and count-neutral labels may keep unchanged
     templates; nonempty-only notices may be absent at zero.
   rationale: The linked count=1 case represents this domain; count=0 and count=2 cases complete the matrix, each in both languages.
@@ -1486,7 +1486,8 @@ requirements:
     given: Independent fixtures provide zero, one and two sources/publications, folded siblings and sources with no publications.
     when: English and Chinese browsers open news and source directories, fold publications and revisit changed publication totals.
     then:
-    - Result and sibling badges use actual counts; source and publication totals choose grammar independently, including zero publications.
+    - News lists contain exactly the matching zero, one or two records and omit result-count summaries and page-number badges; zero records show the localized empty state.
+    - Sibling badges use actual counts; source and publication totals choose grammar independently, including zero publications.
     - Source group labels retain correct localized counts; an empty source directory omits its inapplicable summary.
     test:
       file: tests/e2e/src/app/news/count-copy.test.ts
@@ -1555,12 +1556,12 @@ requirements:
 - id: ui.catalog-count-copy
   category: presentation
   topic: localized-count-copy
-  rule: Course, teacher and section result summaries use singular English entity names when the total is one and plural names for zero or multiple results; Chinese summaries retain their natural classifiers.
+  rule: Course, teacher and section collections display the matching records or localized empty state without a shown-of-total summary or page-number badge.
   acceptance:
     given: Two isolated course, teacher and section fixtures can each be queried as zero, one or two matching results.
     when: English and Chinese desktop browsers open all three result collections for each count.
     then:
-    - The rendered summary reports the actual shown and total counts with correct singular, plural or Chinese classifier wording.
+    - The rendered list contains exactly the matching zero, one or two records; empty results show the localized empty state, and no result-count summary or page-number badge is rendered.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
       name: ui.catalog-count-copy Course
@@ -1678,29 +1679,100 @@ requirements:
 - id: ui.list-pagination-filter-state
   category: presentation
   topic: list-table
-  rule: Outside the six public browse collections covered by ui.public-browse-pagination-state, collection pagination links preserve the applied search query and filters while changing only pagination
-    state; browser back/forward restores the corresponding query and results.
+  rule: Outside the six public browse collections covered by ui.public-browse-pagination-state, endless scrolling appends results under the applied query without changing the current URL. Its keyboard-accessible loading link preserves all filters; browser history restores the accumulated records and scroll position.
   rationale: The remaining current paginated collections are uploads, administrative users, activity subscriptions, followed organizers, unread/all notifications, organizer activity history, and course/teacher section histories. Directories without pagination are outside this pagination requirement.
   acceptance:
     given: Isolated fixtures provide twenty-five records for each remaining paginated collection and real signed-in administrative access where required.
-    when: The browser checks every pagination href, activates the second page with the keyboard, and traverses back and forward under supported search, view and unread filters.
+    when: The browser scrolls or uses the keyboard to load the next batch, then visits a detail and returns under supported search, view and unread filters.
     then:
-    - Links change only page or sectionsPage while preserving the collection query; second-page records are disjoint, and history restores the exact records and active-page state for both pages.
+    - Loading URLs change only page or sectionsPage while preserving the query; the current URL stays unchanged, appended records are unique, and history restores the accumulated records and scroll position.
     test:
       file: tests/e2e/src/app/shared-policy/other-collection-pagination.test.ts
       name: ui.list-pagination-filter-state Course
 - id: ui.public-browse-pagination-state
   category: presentation
   topic: list-table
-  rule: Pagination links in public course, teacher, section, Young event, Young organizer and news browse collections preserve all applied search/filter values while changing only the page. Browser back and forward restore that query and its corresponding records.
+  rule: Public course, teacher, section, Young event, Young organizer and news collections append results when scrolled to the loading control, preserving all applied search/filter values. Loading has a keyboard-accessible link and does not navigate or replace existing records. Browser history restores that query, accumulated records and scroll position.
   acceptance:
     given: Each public collection has two result pages under its supported search and filters.
-    when: The browser inspects every pagination link, activates page two with the keyboard, and traverses back and forward.
+    when: The browser checks the loading URL, loads the next batch by scrolling or keyboard, visits a detail and traverses history.
     then:
-    - Every link preserves the applied query apart from page; the two pages show disjoint records and browser history restores each page's query, records and active page marker.
+    - The loading link preserves the query apart from page; records accumulate once without changing the current URL, and history restores the accumulated records and scroll position.
     test:
       file: tests/e2e/src/app/shared-policy/public-browse-layout.test.ts
       name: ui.public-browse-pagination-state Course
+- id: ui.endless-scroll-discards-stale-batches
+  category: behavior
+  topic: list-table
+  rule: A collection allows only one pending incremental request. Changes to its applied query or viewer discard responses from the previous collection.
+  acceptance:
+    given: A filtered course collection has two result batches and the first query's second batch is delayed.
+    when: The browser re-enters the loading area, applies a different query, then releases the original response.
+    then:
+    - Only one request runs for the original batch; its late response does not alter the new collection. The new query can load its own next batch.
+    test:
+      file: tests/e2e/src/app/shared-policy/endless-scroll.test.ts
+      name: ui.endless-scroll-discards-stale-batches
+- id: ui.endless-scroll-retries-failed-batches
+  category: behavior
+  topic: list-table
+  rule: An incremental read failure preserves existing rows and the current URL, exposes a retry action and stops automatic requests until that action is used.
+  acceptance:
+    given: A collection has twenty-five matches and its second-batch request fails once.
+    when: The browser scrolls away and back after failure, then activates Retry.
+    then:
+    - The original twenty records remain, scrolling makes no repeated request, and one explicit retry appends the five remaining records.
+    test:
+      file: tests/e2e/src/app/shared-policy/endless-scroll.test.ts
+      name: ui.endless-scroll-retries-failed-batches
+- id: ui.endless-scroll-preserves-filter-drafts
+  category: behavior
+  topic: list-table
+  rule: Appending records does not discard unapplied filter edits. Drafts change the query only when the page Apply action is used.
+  acceptance:
+    given: A course collection has a pending second batch.
+    when: The browser edits a column filter, lets the batch complete, then applies the draft.
+    then:
+    - The draft and original URL survive the append; applying it resets the collection to the exact matching record.
+    test:
+      file: tests/e2e/src/app/shared-policy/endless-scroll.test.ts
+      name: ui.endless-scroll-preserves-filter-drafts
+- id: ui.endless-scroll-refreshes-redirected-batches
+  category: behavior
+  topic: list-table
+  rule: If an incremental read redirects because the result set or session changed, the client follows the server destination with a fresh route load and replaces the stale history entry.
+  acceptance:
+    given: A private upload collection shrinks from twenty-five records to five after its initial twenty rows are displayed.
+    when: The browser scrolls to request the now-invalid second batch.
+    then:
+    - The server redirect refreshes the valid first batch, displays the five remaining uploads, removes the loading control and avoids an error/retry loop or added history entry.
+    test:
+      file: tests/e2e/src/app/shared-policy/endless-scroll-redirect.test.ts
+      name: endless uploads refresh the valid page after the dataset shrinks
+- id: ui.endless-scroll-isolates-viewers
+  category: behavior
+  topic: list-table
+  rule: If an incremental route response belongs to a different viewer, refresh the current collection instead of combining records from both sessions.
+  acceptance:
+    given: Two independent accounts each own twenty-five uploads.
+    when: Another tab changes the shared session before the current document requests its second batch.
+    then:
+    - The current list refreshes to the new viewer's first batch without changing its URL; further loading contains only that viewer's uploads.
+    test:
+      file: tests/e2e/src/app/shared-policy/endless-scroll-freshness.test.ts
+      name: endless uploads refresh instead of mixing viewers after a session changes
+- id: ui.endless-scroll-reload-freshness
+  category: behavior
+  topic: list-table
+  rule: A full reload uses fresh server records; accumulated history snapshots restore only during browser history traversal.
+  acceptance:
+    given: A browser has loaded twenty-five uploads and another actor renames one and removes another.
+    when: The document reloads and hydrates.
+    then:
+    - The list retains the freshly fetched first batch, including the new name and excluding the removed upload and old name.
+    test:
+      file: tests/e2e/src/app/shared-policy/endless-scroll-freshness.test.ts
+      name: endless uploads keep fresh server rows after a full reload
 - id: ui.action-status-tokens
   category: presentation
   topic: chrome-tokens
@@ -1919,7 +1991,7 @@ rationale:
 - REST may expose fuller records for application clients.
 - May still appear on workspace surfaces that switch distinct task contexts (for example workspace calendar/homework
   branches).
-- 'Course and teacher offering history, 20-item pagination, retired-record inclusion and #sections navigation
+- 'Course and teacher offering history, 20-item incremental reads, retired-record inclusion and #sections navigation
   are owned by course.bounded-detail-history and teacher.bounded-detail-history; repeating the same behavior
   here would create a second acceptance owner.'
 - Detail orientation requires recognizable entity identity and a route back to its owning collection. Persistent

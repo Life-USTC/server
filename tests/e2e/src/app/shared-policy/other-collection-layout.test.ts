@@ -92,7 +92,7 @@ function cases() {
       path: "/catalog/links",
       filter: true,
       summary: false,
-      pagination: false,
+      continuation: false,
     },
     {
       name: "sources",
@@ -100,7 +100,7 @@ function cases() {
       path: "/news/sources",
       filter: true,
       summary: true,
-      pagination: false,
+      continuation: false,
     },
     {
       name: "uploads",
@@ -108,7 +108,7 @@ function cases() {
       path: "/workspace/uploads",
       filter: false,
       summary: true,
-      pagination: true,
+      continuation: true,
     },
     {
       name: "users",
@@ -116,16 +116,16 @@ function cases() {
       path: (fixture: OtherCollectionPolicyFixture) =>
         `/admin/users?search=${fixture.catalog.marker}-member`,
       filter: true,
-      summary: true,
-      pagination: true,
+      summary: false,
+      continuation: true,
     },
     ...["events", "organizers", "notifications"].map((view) => ({
       name: view,
       domain: "Young",
       path: `/workspace/subscriptions/activities?view=${view}${view === "notifications" ? "&unread=true" : ""}`,
       filter: view === "notifications",
-      summary: true,
-      pagination: true,
+      summary: false,
+      continuation: true,
     })),
     ...["comments", "descriptions", "homeworks", "suspensions"].map((tab) => ({
       name: tab,
@@ -134,7 +134,7 @@ function cases() {
         `/admin/moderation?tab=${tab}${tab === "suspensions" ? "" : `&search=${fixture.catalog.marker}`}`,
       filter: true,
       summary: tab === "descriptions",
-      pagination: false,
+      continuation: false,
     })),
     {
       name: "bus",
@@ -142,7 +142,7 @@ function cases() {
       path: "/admin/bus",
       filter: false,
       summary: false,
-      pagination: false,
+      continuation: false,
     },
     {
       name: "oauth",
@@ -150,7 +150,7 @@ function cases() {
       path: "/admin/oauth",
       filter: false,
       summary: true,
-      pagination: false,
+      continuation: false,
     },
   ];
 }
@@ -230,10 +230,16 @@ for (const item of cases()) {
           await precedes(resultSummary, record);
         }
         await precedes(heading, record);
-        if (item.pagination) {
-          const pagination = page.locator('[data-slot="list-pagination"]');
-          await expect(pagination).toBeVisible();
-          await precedes(rows(page, item.name, width).last(), pagination);
+        await expect(page.locator('[data-slot="list-pagination"]')).toHaveCount(
+          0,
+        );
+        if (item.continuation) {
+          const continuation = page.locator('[data-slot="endless-scroll"]');
+          await expect(continuation).toBeVisible();
+          await expect(
+            continuation.getByRole("link", { name: "Load more", exact: true }),
+          ).toHaveCount(1);
+          await precedes(rows(page, item.name, width).last(), continuation);
         }
       });
     });

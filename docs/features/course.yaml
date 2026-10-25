@@ -142,16 +142,15 @@ requirements:
 - id: course.bounded-detail-history
   category: consistency
   rule: Web course history exposes all Section offerings, including retired offerings, through stable
-    20-row pages with the complete count and entity-root canonical URL. Page reload and navigation preserve
-    the selected history page.
+    20-row batches and an entity-root canonical URL. Web appends batches on scroll without page controls or shown-of-total summaries; direct sectionsPage URLs and reloads remain supported.
   surfaces:
   - web
   acceptance:
     given: A course has 23 offerings with equal non-unique sort values and the last three are retired.
-    when: A visitor opens page 2, reloads it, and returns to page 1 on desktop and mobile.
+    when: A visitor scrolls from 20 to 23 offerings, then opens and reloads page 2 on desktop and mobile.
     then:
     - All 23 offerings are reachable without duplicates.
-    - The total stays 23 and the entity-root canonical URL is preserved.
+    - All 23 offerings remain visible after loading, no range summary is rendered, and the entity-root canonical URL is preserved.
     - The page-2 reload is no-store and retains the retired offerings.
     test:
       file: tests/e2e/src/app/courses/history-pagination.test.ts

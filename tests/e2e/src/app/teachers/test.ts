@@ -107,7 +107,9 @@ test.describe("/catalog/teachers", () => {
         page.locator('[data-slot="table-filter-toolbar"]:visible'),
       ).toBeVisible();
       await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
-      await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
+      await expect(page.locator('[data-slot="results-summary"]')).toHaveCount(
+        0,
+      );
       await expect(
         page.locator('[data-slot="active-filters"]:visible'),
       ).toBeVisible();

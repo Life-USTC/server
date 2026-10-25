@@ -196,7 +196,7 @@ export async function listAdminUsers({
     prismaClient.user.findMany({
       where,
       select: buildAdminUserListSelect(includeActiveSuspension),
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       skip: pagination.skip,
       take: pagination.pageSize,
     }) as Promise<AdminUserListRow[]>,

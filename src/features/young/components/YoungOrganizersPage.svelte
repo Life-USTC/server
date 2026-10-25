@@ -1,22 +1,20 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
-import ListPagination from "#lib/components/ListPagination.svelte";
+import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
-import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import type {
   YoungOrganizerSummary,
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
+import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
-import { page as appPage } from "$app/state";
 import { youngOrganizerTableFields } from "../lib/young-table-filters";
 import YoungEventFilters from "./YoungEventFilters.svelte";
 import YoungSourceNote from "./YoungSourceNote.svelte";
@@ -24,17 +22,12 @@ import YoungSourceNote from "./YoungSourceNote.svelte";
 type Props = {
   copy: AppPageCopy;
   data: YoungOrganizerSummary[];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
+  endless: EndlessScrollState;
   tableFilters: Record<string, string>;
   source: YoungSourceFreshness;
 };
 
-let { copy, data, pagination, tableFilters, source }: Props = $props();
+let { copy, data, endless, tableFilters, source }: Props = $props();
 
 let draft = $derived({ ...tableFilters });
 const fields = $derived(youngOrganizerTableFields(copy));
@@ -44,12 +37,6 @@ function patchDraft(patch: Record<string, string>) {
 const youngCopy = $derived(copy.youngEvents);
 const commonLabels = $derived(copy.common);
 
-function pageHref(targetPage: number) {
-  const params = new URLSearchParams(appPage.url.search);
-  params.set("page", String(targetPage));
-  return `${appPage.url.pathname}?${params}`;
-}
-
 function organizerHref(id: string) {
   return `/catalog/young-events/organizers/${id}`;
 }
@@ -57,32 +44,10 @@ function organizerHref(id: string) {
 function eventsHref(id: string) {
   return `/catalog/young-events?active=true&organizerId=${encodeURIComponent(id)}`;
 }
-
-const summary = $derived(
-  catalogShowingSummary(
-    pagination.total === 1
-      ? youngCopy.organizersShowingOne
-      : youngCopy.organizersShowing,
-    data.length,
-    pagination.total,
-  ),
-);
 </script>
 
 {#snippet paginationFooter()}
-  {#if pagination.totalPages > 1}
-    <ListPagination
-      ariaLabel={commonLabels.pagination}
-      class="py-0"
-      nextLabel={commonLabels.next}
-      nextPageLabel={commonLabels.nextPage}
-      page={pagination.page}
-      pageHref={pageHref}
-      previousLabel={commonLabels.previous}
-      previousPageLabel={commonLabels.previousPage}
-      totalPages={pagination.totalPages}
-    />
-  {/if}
+  <EndlessScroll state={endless} labels={commonLabels.endlessScroll} />
 {/snippet}
 
 {#snippet columnFilter(field: (typeof fields)[number], prefix: string)}
@@ -100,18 +65,12 @@ const summary = $derived(
 
 <CollectionPage
   description={youngCopy.organizersDescription}
-  footer={pagination.totalPages > 1 ? paginationFooter : undefined}
+  footer={endless.hasMore ? paginationFooter : undefined}
   title={youngCopy.organizersTitle}
 >
   <section
     class="flex min-h-[calc(100dvh-16rem)] min-w-0 flex-col gap-3"
   >
-    <ResultsSummary
-      summary={summary}
-      page={pagination.page}
-      totalPages={pagination.totalPages}
-    />
-
       <div class="grid min-w-0 gap-3" data-slot="table-filter-toolbar">
       <form id="young-organizer-filters" action="/catalog/young-events/organizers" method="get" class="flex min-w-0 flex-wrap items-center gap-3" data-slot="table-filter-apply">
         {#each Object.entries(draft).filter(([, value]) => value) as [name, value]}

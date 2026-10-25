@@ -28,7 +28,6 @@ test("ui.navigation-landmarks-7", { tag: "@Young/Web" }, async ({
     await page.setViewportSize({ width: 1280, height: 900 });
     const browse = youngBrowseCase(fixture);
     const list = new URL(browse.path, baseURL);
-    list.searchParams.set("page", "2");
     const cases = [
       { url: list, view: "events", calendarView: null as string | null },
     ];
@@ -48,6 +47,14 @@ test("ui.navigation-landmarks-7", { tag: "@Young/Web" }, async ({
     }
     for (const item of cases) {
       await gotoAndWaitForReady(page, item.url.toString());
+      const rows = page.locator("main table:visible tbody tr");
+      if (!item.calendarView) {
+        await expect(rows).toHaveCount(20);
+        await page
+          .locator('[data-slot="endless-scroll"]')
+          .scrollIntoViewIfNeeded();
+        await expect(rows).toHaveCount(25);
+      }
       const expected = destination(item.url.toString());
       const nav = page.getByTestId("young-sidebar");
       const active = nav.locator('[aria-current="page"]');
@@ -66,11 +73,12 @@ test("ui.navigation-landmarks-7", { tag: "@Young/Web" }, async ({
           item.calendarView[0].toUpperCase() + item.calendarView.slice(1),
         );
       }
-      const event = page
-        .locator(
-          `main a[href^="/catalog/young-events/${fixture.marker}"]:visible`,
-        )
-        .first();
+      const events = page.locator(
+        `main a[href^="/catalog/young-events/${fixture.marker}"]:visible`,
+      );
+      const event = item.calendarView
+        ? events.first()
+        : rows.last().locator("a").first();
       const href = await event.getAttribute("href");
       if (!href) throw new Error("Expected an event detail link");
       const detail = new URL(href, baseURL);
@@ -107,9 +115,11 @@ test("ui.navigation-landmarks-7", { tag: "@Young/Web" }, async ({
           item.calendarView[0].toUpperCase() + item.calendarView.slice(1),
         );
       } else {
-        await expect(
-          page.locator('[data-slot="list-pagination"] [aria-current="page"]'),
-        ).toHaveText("2");
+        await expect(rows).toHaveCount(25);
+        await expect(page.locator('[data-slot="endless-scroll"]')).toHaveCount(
+          0,
+        );
+        await expect(rows.last()).toBeInViewport();
       }
     }
   });

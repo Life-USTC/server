@@ -7,6 +7,10 @@ import {
 import LazyCommentsPanel from "@/features/comments/components/LazyCommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import LazyDescriptionCard from "@/features/descriptions/components/LazyDescriptionCard.svelte";
+import type {
+  EndlessScrollLabels,
+  EndlessScrollState,
+} from "@/lib/navigation/endless-list.svelte";
 import type { PaginatedResponse } from "@/lib/pagination";
 import type { CatalogNamed } from "../lib/catalog-list-display";
 import {
@@ -45,10 +49,9 @@ type PageData = {
   copy: {
     comments: { loadFailed: string; retry: string };
     common: {
+      endlessScroll: EndlessScrollLabels;
       courses: string;
       home: string;
-      next: string;
-      previous: string;
     };
     course: CourseDetailCopy["course"];
     courseDetail: CourseDetailCopy["courseDetail"] & {
@@ -79,6 +82,7 @@ type PageData = {
 };
 
 export let data: PageData;
+export let endless: EndlessScrollState;
 
 $: copy = data.copy;
 $: detailCopy = copy satisfies CourseDetailCopy;
@@ -128,14 +132,7 @@ $: displayName =
           <p class="mb-4 text-sm text-muted-foreground">
             {copy.courseDetail.teachingSectionsDescription}
           </p>
-          <CatalogSectionHistory
-            pagination={data.sectionsPagination}
-            shown={data.course.sections.length}
-            summaryTemplate={copy.courseDetail.sectionHistorySummary}
-            ariaLabel={copy.courseDetail.sectionHistoryPagination}
-            nextLabel={copy.common.next}
-            previousLabel={copy.common.previous}
-          >
+          <CatalogSectionHistory state={endless} labels={copy.common.endlessScroll}>
             <CourseDetailSections
               copy={detailCopy}
               course={data.course}

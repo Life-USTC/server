@@ -115,16 +115,16 @@ requirements:
 - id: teacher.bounded-detail-history
   category: consistency
   rule: 'Detail returns 20 Section offerings per page and the full count, including retired offerings.
-    Web shows the total and sectionsPage=N pagination with #sections. Ordering ends in unique jwId. Paginated
+    Web appends each batch using sectionsPage=N and #sections, without page controls or count summaries. Ordering ends in unique jwId. Paginated
     HTML bypasses shared SSR caching; page-core cache keys include the page; canonical URLs remain the
     entity root.'
   acceptance:
     given: An isolated teacher has 23 equal-sort-value offerings including three retired offerings.
-    when: Desktop and mobile viewers navigate both history pages, reload page two and follow a retired
+    when: Desktop and mobile viewers scroll through both history batches, directly load and reload page two, and follow a retired
       Section.
     then:
-    - Pages contain 20 then 3 distinct offerings and the full count.
-    - 'Pagination uses sectionsPage and #sections; a page-two reload stays on page two with no-store.'
+    - The initial 20 offerings remain visible while the next 3 append once, including retired offerings.
+    - 'Incremental reads use sectionsPage and #sections without changing the current URL; a direct page-two reload still returns 3 rows with no-store.'
     - Canonical URLs omit pagination and retired details remain reachable.
     test:
       file: tests/e2e/src/app/courses/history-pagination.test.ts

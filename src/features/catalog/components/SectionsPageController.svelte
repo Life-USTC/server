@@ -1,6 +1,6 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
-import ListPagination from "#lib/components/ListPagination.svelte";
+import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import TableColumnHeader from "#lib/components/TableColumnHeader.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
 import {
@@ -11,7 +11,7 @@ import {
   catalogHref,
   catalogPrimaryName as primaryName,
 } from "@/features/catalog/lib/catalog-list-display";
-import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
+import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import type { TableFilterField } from "@/lib/table-filters";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page as routePage } from "$app/state";
@@ -45,23 +45,16 @@ type PageData = {
   };
   pagination: { page: number; total: number; totalPages: number };
 };
-let { data }: { data: PageData } = $props();
+let { data, endless }: { data: PageData; endless: EndlessScrollState } =
+  $props();
 const formId = "section-filters";
-let draft = $derived(catalogFilterDraft(data.filters));
+const appliedFilters = $derived(data.filters);
+let draft = $derived(catalogFilterDraft(appliedFilters));
 const locale = $derived(routePage.data.locale ?? "zh-cn");
 const commonLabels = $derived(data.labels.common);
 const sectionLabels = $derived(data.labels.sections);
-const totalPages = $derived(data.pagination.totalPages);
-const selectedSemester = $derived(
-  data.filterOptions.semesters.find(
-    (semester) => data.filters.semesterId === String(semester.id),
-  ),
-);
 function update(patch: Record<string, string>) {
   draft = { ...draft, ...patch };
-}
-function pageHref(targetPage: number) {
-  return catalogListPageHref(new URL(routePage.url.href), targetPage);
 }
 const options = (items: SectionListOptionSource[]) =>
   items.map((item) => ({ value: String(item.id), label: primaryName(item) }));
@@ -213,7 +206,6 @@ const activeFilters = $derived([
 const resultData = $derived({
   data: data.data,
   filters: data.filters,
-  pagination: { total: data.pagination.total },
 });
 function emptyDescription() {
   return data.filters.search
@@ -223,7 +215,7 @@ function emptyDescription() {
 </script>
 
 {#snippet paginationFooter()}
-  <ListPagination ariaLabel={commonLabels.pagination} class="py-0" nextLabel={commonLabels.next} nextPageLabel={commonLabels.nextPage} page={data.pagination.page} {pageHref} previousLabel={commonLabels.previous} previousPageLabel={commonLabels.previousPage} {totalPages} />
+  <EndlessScroll state={endless} labels={commonLabels.endlessScroll} />
 {/snippet}
 {#snippet controls()}
   <CatalogFilters {activeFilters} clearHref="/catalog/sections" clearLabel={commonLabels.clear} filterTitle={sectionLabels.summary.filters} searchLabel={commonLabels.search} searchPlaceholder={sectionLabels.searchPlaceholder} values={draft} onchange={update} applyLabel={commonLabels.applyFilters} {formId}>
@@ -238,6 +230,6 @@ function emptyDescription() {
     </TableColumnHeader>
   </CatalogFilters>
 {/snippet}
-<CollectionPage description={sectionLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={sectionLabels.title} toolbar={controls}>
-  <SectionsResults {columnFilters} data={resultData} page={data.pagination.page} primaryName={primaryName} sectionEmptyDescription={emptyDescription} {sectionLabels} {selectedSemester} {totalPages} />
+<CollectionPage description={sectionLabels.subtitle} footer={endless.hasMore ? paginationFooter : undefined} title={sectionLabels.title} toolbar={controls}>
+  <SectionsResults {columnFilters} data={resultData} primaryName={primaryName} sectionEmptyDescription={emptyDescription} {sectionLabels} />
 </CollectionPage>

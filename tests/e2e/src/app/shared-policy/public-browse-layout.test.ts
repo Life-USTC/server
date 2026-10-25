@@ -3,6 +3,7 @@ import { COLLECTION_DESKTOP_MIN_WIDTH_PX } from "@/lib/components/collection-res
 import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
+  waitForUiSettled,
 } from "../../../utils/page-ready";
 import {
   publicBrowseCases,
@@ -47,8 +48,8 @@ function withoutPage(value: string) {
   };
 }
 
-async function rowLinks(page: Page, name: string) {
-  return records(page, name).evaluateAll((rows) =>
+async function rowLinks(page: Page, name: string, width: number) {
+  return records(page, name, width).evaluateAll((rows) =>
     rows.map((row) => {
       const href = row.querySelector("a")?.getAttribute("href");
       if (!href) throw new Error("Expected a primary record link");
@@ -136,60 +137,45 @@ for (const [domain, names] of [
               `${item.name}: column controls before records`,
             );
           }
-          const summary = panel.locator('[data-slot="results-summary"]');
+          await expect(
+            panel.locator('[data-slot="results-summary"]'),
+          ).toHaveCount(0);
           const rows = records(page, item.name, width);
           await expect(rows).toHaveCount(20);
-          const pagination = panel.locator('[data-slot="list-pagination"]');
-          await expect(pagination).toHaveCount(1);
+          const continuation = panel.locator('[data-slot="endless-scroll"]');
+          await expect(continuation).toHaveCount(1);
+          await expect(
+            page.locator('[data-slot="list-pagination"]'),
+          ).toHaveCount(0);
           const ordered = await panel.evaluate((element) => {
             const filter = Array.from(
               element.querySelectorAll('input[type="search"]'),
             ).find((node) => node.getClientRects().length > 0);
-            const summary = element.querySelector(
-              '[data-slot="results-summary"]',
-            );
             const footer = element.querySelector(
               '[data-slot="page-section-footer"]',
             );
-            if (!filter || !summary || !footer) return false;
-            return (
-              Boolean(
-                filter.compareDocumentPosition(footer) &
-                  Node.DOCUMENT_POSITION_FOLLOWING,
-              ) &&
-              Boolean(
-                summary.compareDocumentPosition(footer) &
-                  Node.DOCUMENT_POSITION_FOLLOWING,
-              )
+            if (!filter || !footer) return false;
+            return Boolean(
+              filter.compareDocumentPosition(footer) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
             );
           });
           expect(ordered, item.name).toBe(true);
           expect(
-            await summary.evaluate((node) =>
-              Boolean(node.closest('[data-slot="page-section-body"]')),
-            ),
-          ).toBe(true);
-          expect(
-            await rows.first().evaluate((node) => {
+            await rows.last().evaluate((node) => {
               const content = node.closest('[data-slot="page-section-body"]');
-              const summary = content?.querySelector(
-                '[data-slot="results-summary"]',
-              );
               const footer = content?.parentElement?.querySelector(
                 '[data-slot="page-section-footer"]',
               );
               return Boolean(
-                summary &&
-                  footer &&
-                  summary.compareDocumentPosition(node) &
-                    Node.DOCUMENT_POSITION_FOLLOWING &&
+                footer &&
                   node.compareDocumentPosition(footer) &
                     Node.DOCUMENT_POSITION_FOLLOWING,
               );
             }),
           ).toBe(true);
           expect(
-            await pagination.evaluate((node) =>
+            await continuation.evaluate((node) =>
               Boolean(node.closest('[data-slot="page-section-footer"]')),
             ),
           ).toBe(true);
@@ -212,6 +198,9 @@ for (const [domain, names] of [
     await browseRun(async () => {
       for (const width of [320, 390]) {
         await prepare(page, baseURL, width);
+        // Each viewport starts a new browse entry; reloading the same URL at
+        // its old bottom would immediately request the next batch.
+        await gotoAndWaitForReady(page, "/");
         for (const item of publicBrowseCases(fixture)) {
           if (!names.some((name) => name === item.name)) continue;
           await gotoAndWaitForReady(page, item.path);
@@ -224,6 +213,10 @@ for (const [domain, names] of [
             ),
             item.name,
           ).toBe(true);
+          await page
+            .locator('[data-slot="endless-scroll"]')
+            .scrollIntoViewIfNeeded();
+          await expect(rows).toHaveCount(item.total);
           for (const row of await rows.all()) {
             await row.scrollIntoViewIfNeeded();
             const box = await row.boundingBox();
@@ -232,8 +225,12 @@ for (const [domain, names] of [
             expect(box.x + box.width, item.name).toBeLessThanOrEqual(width);
           }
           await expect(
-            page.locator('[data-slot="list-pagination"] [aria-current="page"]'),
-          ).toHaveText("1");
+            page.locator('[data-slot="endless-scroll"]'),
+          ).toHaveCount(0);
+          expect(withoutPage(page.url()), item.name).toEqual(
+            withoutPage(item.path),
+          );
+          expect(new URL(page.url()).searchParams.has("page")).toBe(false);
         }
       }
     });
@@ -251,45 +248,54 @@ for (const [domain, names] of [
     tag: `@${domain}/Web`,
   }, async ({ browseRun, page, baseURL, browse: fixture }) => {
     await browseRun(async () => {
-      await prepare(page, baseURL, 1280);
-      for (const item of publicBrowseCases(fixture)) {
-        if (!names.some((name) => name === item.name)) continue;
-        await gotoAndWaitForReady(page, item.path);
-        await expect(records(page, item.name)).toHaveCount(20);
-        const original = withoutPage(page.url());
-        expect(original).toEqual(withoutPage(item.path));
-        const first = await rowLinks(page, item.name);
-        const pagination = page.locator('[data-slot="list-pagination"]');
-        for (const link of await pagination.getByRole("link").all()) {
-          const href = await link.getAttribute("href");
-          if (!href) throw new Error("Expected URL pagination");
+      for (const width of [1280, 390]) {
+        await prepare(page, baseURL, width);
+        await gotoAndWaitForReady(page, "/");
+        for (const item of publicBrowseCases(fixture)) {
+          if (!names.some((name) => name === item.name)) continue;
+          await gotoAndWaitForReady(page, item.path);
+          await expect(records(page, item.name, width)).toHaveCount(20);
+          const original = withoutPage(page.url());
+          expect(original).toEqual(withoutPage(item.path));
+          const first = await rowLinks(page, item.name, width);
+          const originalUrl = page.url();
+          const continuation = page.locator('[data-slot="endless-scroll"]');
+          const more = continuation.getByRole("link", {
+            name: "Load more",
+            exact: true,
+          });
+          const href = await more.getAttribute("href");
+          if (!href) throw new Error("Expected the next batch destination");
           expect(withoutPage(href), item.name).toEqual(original);
+          expect(new URL(href, page.url()).searchParams.get("page")).toBe("2");
+          await continuation.scrollIntoViewIfNeeded();
+          await expect(records(page, item.name, width)).toHaveCount(item.total);
+          await expect(page).toHaveURL(originalUrl);
+          const accumulated = await rowLinks(page, item.name, width);
+          expect(accumulated.slice(0, 20), item.name).toEqual(first);
+          expect(new Set(accumulated).size, item.name).toBe(item.total);
+          await expect(continuation).toHaveCount(0);
+
+          const last = records(page, item.name, width)
+            .last()
+            .locator("a")
+            .first();
+          const detailHref = await last.getAttribute("href");
+          if (!detailHref)
+            throw new Error("Expected an appended record destination");
+          await last.click();
+          await expect(page).toHaveURL(
+            new URL(detailHref, originalUrl).toString(),
+          );
+          await page.goBack();
+          await expect(page).toHaveURL(originalUrl);
+          await waitForUiSettled(page);
+          await expect
+            .poll(() => rowLinks(page, item.name, width))
+            .toEqual(accumulated);
+          await expect(continuation).toHaveCount(0);
+          await expect(records(page, item.name, width).last()).toBeInViewport();
         }
-        await pagination.locator('[data-value="2"]').focus();
-        await page.keyboard.press("Enter");
-        await expect(page).toHaveURL(/[?&]page=2(?:&|$)/);
-        await expect(
-          page.locator('[data-slot="list-pagination"] [aria-current="page"]'),
-        ).toHaveText("2");
-        expect(withoutPage(page.url()), item.name).toEqual(original);
-        await expect(records(page, item.name)).toHaveCount(item.total - 20);
-        const second = await rowLinks(page, item.name);
-        expect(
-          second.every((href) => !first.includes(href)),
-          item.name,
-        ).toBe(true);
-        await page.goBack();
-        await expect(
-          page.locator('[data-slot="list-pagination"] [aria-current="page"]'),
-        ).toHaveText("1");
-        expect(withoutPage(page.url()), item.name).toEqual(original);
-        expect(await rowLinks(page, item.name), item.name).toEqual(first);
-        await page.goForward();
-        await expect(
-          page.locator('[data-slot="list-pagination"] [aria-current="page"]'),
-        ).toHaveText("2");
-        expect(withoutPage(page.url()), item.name).toEqual(original);
-        expect(await rowLinks(page, item.name), item.name).toEqual(second);
       }
     });
   });

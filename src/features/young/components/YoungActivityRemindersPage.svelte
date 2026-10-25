@@ -1,8 +1,8 @@
 <script lang="ts">
 import { toast } from "svelte-sonner";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
+import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import FilterToolbar from "#lib/components/FilterToolbar.svelte";
-import ListPagination from "#lib/components/ListPagination.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import { toolbarControlClass } from "#lib/components/toolbar-control.js";
@@ -14,11 +14,13 @@ import YoungSubscriptionControl from "@/features/young/components/YoungSubscript
 import { youngDateTime } from "@/features/young/lib/young-event-display";
 import { youngNotificationDescription } from "@/features/young/lib/young-notification-display";
 import { youngNotificationReadSchema } from "@/lib/api/schemas/young-workspace-schemas";
+import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import { goto, invalidateAll } from "$app/navigation";
 import { page } from "$app/state";
 import type { PageData } from "../../../routes/workspace/subscriptions/activities/$types";
 
-let { data }: { data: PageData } = $props();
+let { data, endless }: { data: PageData; endless: EndlessScrollState } =
+  $props();
 const copy = $derived(data.copy.youngEvents.workspace);
 const result = $derived(data.events ?? data.organizers ?? data.notifications);
 /**
@@ -74,28 +76,12 @@ async function markRead(id: string) {
     reading = null;
   }
 }
-function pageHref(number: number) {
-  const query = new URLSearchParams(page.url.search);
-  query.set("page", String(number));
-  return `${page.url.pathname}?${query}`;
-}
 </script>
 
 <svelte:head><title>{viewLabel} - Life@USTC</title></svelte:head>
 
 {#snippet paginationFooter()}
-  {#if result}
-    <ListPagination
-      ariaLabel={data.copy.common.pagination}
-      nextLabel={data.copy.common.next}
-      nextPageLabel={data.copy.common.nextPage}
-      previousLabel={data.copy.common.previous}
-      previousPageLabel={data.copy.common.previousPage}
-      page={result.pagination.page}
-      totalPages={result.pagination.totalPages}
-      pageHref={pageHref}
-    />
-  {/if}
+  <EndlessScroll state={endless} labels={data.copy.common.endlessScroll} />
 {/snippet}
 
 {#snippet filtersHeader()}
@@ -120,7 +106,7 @@ function pageHref(number: number) {
 
 <CollectionPage
   description={description}
-  footer={result && result.pagination.totalPages > 1 ? paginationFooter : undefined}
+  footer={endless.hasMore ? paginationFooter : undefined}
   title={viewLabel}
   toolbar={data.events || data.notifications ? filtersHeader : undefined}
 >
@@ -130,7 +116,7 @@ function pageHref(number: number) {
   {/snippet}
 
   <div class="grid gap-3">
-      <ResultsSummary summary={`${viewLabel} · ${result?.pagination.total ?? 0}`} page={result?.pagination.page} totalPages={result?.pagination.totalPages} />
+      <ResultsSummary summary={`${viewLabel} · ${result?.pagination.total ?? 0}`} />
     <Item.Group class="gap-3">
       {#if data.events}
         {#each data.events.data as row (row.youngId)}

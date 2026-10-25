@@ -206,7 +206,7 @@ it("ui.feature-interaction-ownership", async () => {
     "TableColumnHeader",
     "TableControlsRow",
     "MobileListCard",
-    "ListPagination",
+    "EndlessScroll",
   ].map((name) => `src/lib/components/${name}.svelte`);
   for (const name of await readdir("src/lib/components/ui/field"))
     if (name.endsWith(".svelte"))
