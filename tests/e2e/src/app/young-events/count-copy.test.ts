@@ -20,14 +20,17 @@ async function createYoungCountFixture(
       normalizedName: `${marker}-context`,
     },
   });
+  const organizers = [];
+  const events = [];
   for (let index = 0; index < count; index++) {
-    await db.youngOrganizer.create({
+    const organizer = await db.youngOrganizer.create({
       data: {
         name: `${marker} organizer ${index}`,
         normalizedName: `${marker}-organizer-${index}`,
       },
     });
-    await db.youngEvent.create({
+    organizers.push(organizer);
+    const event = await db.youngEvent.create({
       data: {
         youngId: `${marker}-event-${index}`,
         name: `${marker} event ${index}`,
@@ -38,6 +41,7 @@ async function createYoungCountFixture(
         rawJson: {},
       },
     });
+    events.push(event);
     await db.youngNotification.create({
       data: {
         userId: owner.id,
@@ -50,7 +54,7 @@ async function createYoungCountFixture(
       },
     });
   }
-  return { ...identity, contextOrganizer };
+  return { ...identity, contextOrganizer, organizers, events };
 }
 for (const count of [0, 1, 2]) {
   test(`young.localized-count-copy count=${count}`, {
@@ -64,6 +68,14 @@ for (const count of [0, 1, 2]) {
       const f = await db.$transaction((tx) =>
         createYoungCountFixture(tx, count),
       );
+      const eventLinks = f.events.map(({ youngId, name }) => ({
+        href: `/catalog/young-events/${youngId}`,
+        name,
+      }));
+      const organizerLinks = f.organizers.map(({ id, name }) => ({
+        href: `/catalog/young-events/organizers/${id}`,
+        name,
+      }));
       const actor = await isolatedWorker.createSession(f.owner.id);
       await io.observeCalendar(f.owner, [], { calendar: "absent" });
       const observation = await prepareCountObservation(
@@ -82,28 +94,60 @@ for (const count of [0, 1, 2]) {
           {
             name: "events",
             path: `/catalog/young-events?search=${f.marker}`,
+            links: page.locator("main table:visible tbody tr td:first-child a"),
+            expected: eventLinks,
+            empty: en ? "No events found" : "未找到活动",
           },
           {
             name: "calendar",
             path: `/catalog/young-events/calendar?search=${f.marker}&view=day&date=2035-09-15`,
+            links: page.getByTestId("young-calendar-grid").getByRole("link"),
+            expected: eventLinks,
+            empty: en
+              ? "No dated events in this range"
+              : "此范围内没有日期明确的活动",
           },
           {
             name: "organizer-history",
             path: `/catalog/young-events/organizers/${f.contextOrganizer.id}`,
+            links: page.locator('main [role="list"] > [role="listitem"] a'),
+            expected: eventLinks,
+            empty: en ? "No events found" : "未找到活动",
+          },
+          {
+            name: "organizer-directory",
+            path: `/catalog/young-events/organizers?search=${f.marker}`,
+            links: page.locator("main table:visible tbody tr td:first-child a"),
+            expected: organizerLinks,
+            empty: en ? "No organizers found" : "未找到主办方",
           },
         ]) {
           await gotoAndWaitForReady(page, item.path);
           await expect(
-            page.locator('[data-slot="results-summary"]'),
+            page.locator(
+              '[data-slot="results-summary"], [data-slot="list-pagination"]',
+            ),
           ).toHaveCount(0);
+          await expect(item.links, item.name).toHaveCount(count);
+          expect(
+            await item.links.evaluateAll((links) =>
+              links.map((link) => link.getAttribute("href")).sort(),
+            ),
+            item.name,
+          ).toEqual(item.expected.map(({ href }) => href).sort());
+          if (count === 0) {
+            await expect(
+              page
+                .getByText(item.empty, { exact: true })
+                .filter({ visible: true }),
+            ).toBeVisible();
+          } else {
+            for (const expected of item.expected)
+              await expect(
+                item.links.filter({ hasText: expected.name }),
+              ).toHaveAttribute("href", expected.href);
+          }
         }
-        await gotoAndWaitForReady(
-          page,
-          `/catalog/young-events/organizers?search=${f.marker}`,
-        );
-        await expect(page.locator('[data-slot="results-summary"]')).toHaveCount(
-          0,
-        );
 
         await page.context().addCookies([actor.cookie]);
         await gotoAndWaitForReady(

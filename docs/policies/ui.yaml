@@ -1463,14 +1463,15 @@ requirements:
 - id: ui.young-count-copy
   category: presentation
   topic: localized-count-copy
-  rule: Activity and organizer summaries and digest notices report actual counts with singular/plural English
+  rule: Activity and organizer collections show matching records or the localized empty state without partial-result summaries or page-number badges. Digest notices report actual counts with singular/plural English
     grammar. Chinese and count-neutral labels may keep unchanged templates; nonempty-only notices may be absent at zero.
   rationale: The linked count=1 case represents this domain; count=0 and count=2 cases complete the matrix, each in both languages.
   acceptance:
     given: Independent fixtures provide zero, one and two matching activities, organizers and notifications.
     when: English and Chinese browsers open the activity list, day calendar, organizer history/directory and authenticated notifications.
     then:
-    - Summaries report actual shown/total counts and digests report the actual activity count with natural localized grammar.
+    - Activity lists, day calendars, organizer histories and organizer directories contain exactly the matching zero, one or two records and omit partial-result summaries and page-number badges; zero records show the localized empty state.
+    - Digests report the actual activity count with natural localized grammar.
     - Notification rows match the prepared count; an empty notification list requires no digest notice.
     test:
       file: tests/e2e/src/app/young-events/count-copy.test.ts
@@ -1495,7 +1496,7 @@ requirements:
 - id: ui.account-count-copy
   category: presentation
   topic: localized-count-copy
-  rule: Hidden-comment notices, administrative user/client/description counts and security repetition badges
+  rule: Administrative user lists show matching records or the localized empty state without partial-result summaries or page-number badges. Hidden-comment notices, administrative client/description counts and security repetition badges
     use actual counts and singular/plural English grammar. Chinese and count-neutral labels may keep unchanged
     templates; nonempty-only notices may be absent at zero. Repetition badges appear only for groups larger than one.
   rationale: The linked count=1 case is representative; count=0 and count=2 cases include empty and repeated-event branches, each in both languages.
@@ -1504,7 +1505,8 @@ requirements:
     when: English and Chinese anonymous browsers open course comments, then the administrator opens security, users, OAuth clients and description moderation.
     then:
     - Hidden-comment notices use correct counts and localized noun/verb/pronoun agreement; zero hidden comments produce no notice.
-    - Administrative summaries use actual counts and natural grammar; repetition badges are absent at zero/one and report the actual repeated count otherwise.
+    - User lists contain exactly the matching zero, one or two users and omit partial-result summaries and page-number badges; zero users show the localized empty state.
+    - Client and description summaries use actual counts and natural grammar; repetition badges are absent at zero/one and report the actual repeated count otherwise.
     test:
       file: tests/e2e/src/app/account-policy/count-copy.test.ts
       name: account.localized-count-copy count=1
