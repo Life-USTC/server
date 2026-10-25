@@ -1,3 +1,4 @@
+import { fullCalendarEvent } from "./event-summary-collections";
 import {
   compactSectionList,
   compactWorkspaceCurrentSemester,
@@ -71,7 +72,7 @@ export function buildFullWorkspaceSnapshot(snapshot: WorkspaceSnapshot) {
     },
     upcomingEvents: {
       total: snapshot.upcomingEvents.length,
-      items: snapshot.upcomingEvents,
+      items: snapshot.upcomingEvents.map(fullCalendarEvent),
     },
     todos: snapshot.todos,
     bus: {

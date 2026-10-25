@@ -3,6 +3,10 @@ import type { TodoPriority } from "@/generated/prisma/client";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { localizedNamePrimary } from "@/lib/localized-name";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
+import {
+  type CalendarConflictInterval,
+  calendarConflictInterval,
+} from "../lib/calendar-conflict-interval";
 import type { listUserCalendarEvents } from "./calendar-events";
 
 export type PersonalCalendarItem = {
@@ -26,6 +30,7 @@ export type PersonalCalendarItem = {
   content: string | null;
   examMode: string | null;
   hasTime: boolean;
+  conflictIntervals: CalendarConflictInterval[];
   completionRequired: boolean | null;
 };
 
@@ -43,6 +48,7 @@ function emptyContext() {
     content: null,
     examMode: null,
     hasTime: true,
+    conflictIntervals: [],
     completionRequired: null,
   };
 }
@@ -125,6 +131,7 @@ export function personalCalendarItem(
         url: `/catalog/young-events/${encodeURIComponent(event.payload.youngId)}`,
         target: { kind: "young_event", id: event.payload.youngId },
         hasTime: event.at !== null,
+        conflictIntervals: event.conflictIntervals,
       };
     case "todo_due":
       return todoCalendarItem(event.payload);
@@ -157,6 +164,13 @@ export function personalCalendarItem(
         ),
         subscriptionKind: kinds.get(event.payload.sectionId) ?? null,
         hasTime: event.payload.startTime !== null,
+        conflictIntervals:
+          event.payload.startTime != null && event.payload.endTime != null
+            ? [calendarConflictInterval(event.at, event.endsAt)].filter(
+                (interval): interval is CalendarConflictInterval =>
+                  interval !== null,
+              )
+            : [],
       };
     case "exam":
       return {
@@ -179,6 +193,13 @@ export function personalCalendarItem(
         subscriptionKind: kinds.get(event.payload.sectionId) ?? null,
         examMode: event.payload.examMode,
         hasTime: event.payload.startTime !== null,
+        conflictIntervals:
+          event.payload.startTime != null && event.payload.endTime != null
+            ? [calendarConflictInterval(event.at, event.endsAt)].filter(
+                (interval): interval is CalendarConflictInterval =>
+                  interval !== null,
+              )
+            : [],
       };
   }
   throw new Error("Unsupported calendar event type");

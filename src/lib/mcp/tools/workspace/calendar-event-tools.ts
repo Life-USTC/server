@@ -9,6 +9,7 @@ import {
   mcpModeInputSchema,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_shared/helpers";
+import { fullCalendarEvent } from "./event-summary-collections";
 
 export function registerCalendarEventTools(server: McpServer) {
   server.registerTool(
@@ -55,7 +56,7 @@ export function registerCalendarEventTools(server: McpServer) {
       );
       return jsonToolResult(
         {
-          events,
+          events: events.map(fullCalendarEvent),
         },
         { mode: resolvedMode },
       );

@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from "vitest";
+import { cachedCatalogRuntimeData } from "@/features/catalog/server/catalog-runtime-cache";
+import { buildYoungEventListQuery } from "@/features/young/server/young-event-query";
 
 const { youngEventMock, youngOrganizerMock, sourceReadMock, calendarReadMock } =
   vi.hoisted(() => ({
@@ -761,6 +763,28 @@ describe("compact public Young calendar facts", () => {
     applyStartAt: null,
     applyEndAt: null,
   };
+  it("does not reuse cached calendar facts without occupied intervals", async () => {
+    const { where, unknownWhere, dateOrderBy } =
+      buildYoungEventListQuery(input);
+    await cachedCatalogRuntimeData(
+      "catalog:young-events-list",
+      JSON.stringify({
+        shape: "calendar-v1",
+        where,
+        unknownWhere,
+        dateOrderBy,
+      }),
+      "https://test.example",
+      async () => ({ data: [event], unknownDateCount: 0 }),
+    );
+    const current = { ...event, conflictIntervals: [] };
+    calendarReadMock.mockResolvedValue({
+      data: [current],
+      unknownDateCount: 0,
+    });
+    expect((await listYoungCalendarEvents(input)).data).toEqual([current]);
+    expect(calendarReadMock).toHaveBeenCalledOnce();
+  });
   it("returns every calendar row without constructing a Prisma read", async () => {
     const data = Array.from({ length: 205 }, (_, index) => ({
       ...event,

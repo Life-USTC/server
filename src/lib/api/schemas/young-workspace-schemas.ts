@@ -111,6 +111,14 @@ export const personalCalendarItemSchema = z.strictObject({
   content: z.string().nullable().optional(),
   examMode: z.string().nullable().optional(),
   hasTime: z.boolean().optional(),
+  conflictIntervals: z
+    .array(
+      z.strictObject({
+        startAt: dateTimeSchema,
+        endAt: dateTimeSchema,
+      }),
+    )
+    .optional(),
   completionRequired: z.boolean().nullable().optional(),
 });
 export const personalCalendarPageSchema = createPaginatedSchema(

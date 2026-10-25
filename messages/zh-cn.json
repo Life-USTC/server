@@ -2836,7 +2836,7 @@
     "conflictLoading": "正在核对个人日程…",
     "conflictSignin": "登录后可查看与个人日程的冲突",
     "conflictUnavailable": "暂时无法核对个人日程，请稍后刷新重试。",
-    "conflictScope": "冲突提示仅基于已同步的课程、考试及已订阅活动；不代表报名资格。",
+    "conflictScope": "冲突提示仅核对已同步课程、考试和已订阅活动中可确定的占用时段；时间未知或仅有整体活动范围时需自行确认，无提示不代表空闲或具备报名资格。",
     "organizersDescription": "优先展示有当前报名列表活动的主办方，也可按名称查找。",
     "description": "来自第二课堂平台的报名活动。",
     "platformName": "第二课堂平台",
