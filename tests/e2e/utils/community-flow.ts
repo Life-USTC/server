@@ -109,6 +109,32 @@ export async function withCommunityFlow(
   const remember = (error: unknown) => {
     if (!errors.includes(error)) errors.push(error);
   };
+  const analyticsMatch = (url: URL) =>
+    url.href === "https://www.googletagmanager.com/gtag/js?id=G-JNK35J2Q3R";
+  const analyticsHandler = async (route: Route) => {
+    const task = Promise.resolve()
+      .then(() =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/javascript",
+          body: "",
+        }),
+      )
+      .catch(async (error) => {
+        remember(error);
+        try {
+          await route.abort("aborted");
+        } catch (abortError) {
+          remember(abortError);
+        }
+      });
+    pending.add(task);
+    try {
+      await task;
+    } finally {
+      pending.delete(task);
+    }
+  };
   const sdk = ownHttpMcp({ origin, headers, remember });
   const open = () => {
     if (closing) throw new Error("Community workflow is closing");
@@ -381,6 +407,14 @@ export async function withCommunityFlow(
         }
       }
       await sdk.settle();
+      for (const context of [page.context(), ...contexts]) {
+        if (context.isClosed()) continue;
+        try {
+          await context.unroute(analyticsMatch, analyticsHandler);
+        } catch (error) {
+          remember(error);
+        }
+      }
       while (pending.size) await Promise.allSettled([...pending]);
       for (const reader of reads.values()) {
         while (reader.pendingReads.size || reader.pendingNavigations.size)
@@ -520,6 +554,7 @@ export async function withCommunityFlow(
     // Establish native fixture use before run can register its effect probe.
     await withBrowserWorkflow(page, async (workflow) => {
       try {
+        await page.context().route(analyticsMatch, analyticsHandler);
         await use({
           assertAnonymousNoEffects,
           async mcp(identity, accessToken) {
@@ -590,6 +625,11 @@ export async function withCommunityFlow(
                 extraHTTPHeaders: { ...options.extraHTTPHeaders, ...headers },
               });
               contexts.push(context);
+              if (closing) {
+                await context.close();
+                open();
+              }
+              await context.route(analyticsMatch, analyticsHandler);
               if (closing) {
                 await context.close();
                 open();
