@@ -127,15 +127,36 @@ for (const count of [0, 1, 2]) {
                 "security-repeated",
               );
           }
+          if (consumer === "User") {
+            await gotoAndWaitForReady(
+              page,
+              `/admin/users?search=${f.marker}-member`,
+            );
+            await expect(
+              page.locator('main [data-slot="results-summary"]'),
+            ).toHaveCount(0);
+            const table = page.getByRole("table");
+            await expect(table).toBeVisible();
+            await expect(table.locator("tbody tr")).toHaveCount(
+              Math.max(count, 1),
+            );
+            for (let index = 0; index < count; index++) {
+              await expect(
+                table.getByRole("cell", {
+                  name: `${f.marker}-member-${index}`,
+                  exact: true,
+                }),
+              ).toBeVisible();
+            }
+            if (count === 0) {
+              await expect(
+                table.getByText(en ? "No results found" : "没有找到结果", {
+                  exact: true,
+                }),
+              ).toBeVisible();
+            }
+          }
           for (const item of [
-            {
-              name: "users",
-              domain: "User",
-              path: `/admin/users?search=${f.marker}-member`,
-              expected: en
-                ? `Showing ${count} of ${count} ${count === 1 ? "user" : "users"}`
-                : `显示 ${count} / 共 ${count} 位用户`,
-            },
             {
               name: "clients",
               domain: "OAuth",

@@ -1,8 +1,8 @@
 <script lang="ts">
-import CourseDetailPageController from "@/features/catalog/components/CourseDetailPageController.svelte";
+import CourseDetailPage from "../+page.svelte";
 import type { PageData } from "./$types";
 
 export let data: PageData;
 </script>
 
-<CourseDetailPageController {data} />
+<CourseDetailPage {data} />

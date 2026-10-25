@@ -21,7 +21,7 @@ Shared UI primitives and layout components.
   primitive - a wrapper in this directory, or the feature component that uses
   it.
 - Content pages copy `CollectionPage`. List pages fill title, actions, an
-  optional note, toolbar, results, and pagination. Set `panel={false}` when
+  optional note, toolbar, results, and incremental loading. Set `panel={false}` when
   the body is several `Panel` sections. Set `layout="detail"` and fill `aside`
   for a two-column detail page. Do not wrap a page in a card.
 - Keep icons in one system. Add a local icon only when the library icon cannot

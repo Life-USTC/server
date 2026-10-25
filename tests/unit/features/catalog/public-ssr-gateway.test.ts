@@ -319,7 +319,7 @@ describe("public SSR gateway", () => {
     "/catalog/courses?unknown=value",
     "/catalog/courses?__life_locale=en-us",
     "/catalog/courses?page=1",
-    "/catalog/courses?page=5001",
+    "/catalog/courses?page=100001",
     "/catalog/courses?page=2&page=3",
     "/catalog/courses?search=%20math",
     "/catalog/courses?categoryId=01",

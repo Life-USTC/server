@@ -42,7 +42,7 @@ it("ui.list-table-8", async () => {
     "Panel",
     "PageSectionNav",
     "SearchField",
-    "ListPagination",
+    "EndlessScroll",
   ].map((component) => `src/lib/components/${component}.svelte`);
   for (const filename of [...routes, ...primitives]) {
     const ast = await scriptAst(filename);

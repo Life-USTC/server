@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
-  CATALOG_MAX_PAGE,
   CATALOG_SEARCH_MAX_LENGTH,
   CATALOG_TEXT_FILTER_MAX_LENGTH,
+  CATALOG_WEB_MAX_PAGE,
 } from "@/features/catalog/lib/catalog-list-query";
 import { getCourseListPage } from "@/features/catalog/server/public-course-list-data";
 import { getSectionListPage } from "@/features/catalog/server/public-section-list-data";
@@ -117,7 +117,7 @@ describe("public catalog list loaders", () => {
       `https://life-ustc.test/catalog/courses?page=999999&search=%20${search}%20&categoryId=0007&unknown=value`,
     );
     const canonicalUrl = new URL(
-      `https://life-ustc.test/catalog/courses?categoryId=7&page=${CATALOG_MAX_PAGE}&search=${"x".repeat(CATALOG_SEARCH_MAX_LENGTH)}`,
+      `https://life-ustc.test/catalog/courses?categoryId=7&page=${CATALOG_WEB_MAX_PAGE}&search=${"x".repeat(CATALOG_SEARCH_MAX_LENGTH)}`,
     );
 
     await getCourseListPage(firstUrl);
@@ -129,7 +129,7 @@ describe("public catalog list loaders", () => {
         search: "x".repeat(CATALOG_SEARCH_MAX_LENGTH),
       },
       locale: "zh-cn",
-      pagination: { page: CATALOG_MAX_PAGE, pageSize: 20 },
+      pagination: { page: CATALOG_WEB_MAX_PAGE, pageSize: 20 },
     });
     expect(mocks.cacheList.mock.calls[0]?.[0]).toBe("page:courses-list:zh-cn");
     expect(mocks.cacheList.mock.calls[0]?.[2].toString()).toBe(
@@ -153,11 +153,11 @@ describe("public catalog list loaders", () => {
         departmentId: "7",
         search: "t".repeat(CATALOG_SEARCH_MAX_LENGTH),
       },
-      pagination: { page: CATALOG_MAX_PAGE, pageSize: 20 },
+      pagination: { page: CATALOG_WEB_MAX_PAGE, pageSize: 20 },
       locale: "zh-cn",
     });
     expect(mocks.cacheList.mock.calls[0]?.[2].toString()).toContain(
-      `page=${CATALOG_MAX_PAGE}`,
+      `page=${CATALOG_WEB_MAX_PAGE}`,
     );
     expect(mocks.cacheList.mock.calls[0]?.[2].toString()).toContain(
       `search=${"t".repeat(CATALOG_SEARCH_MAX_LENGTH)}`,
@@ -185,7 +185,7 @@ describe("public catalog list loaders", () => {
         teacher: "t".repeat(CATALOG_TEXT_FILTER_MAX_LENGTH),
       },
       locale: "zh-cn",
-      pagination: { page: CATALOG_MAX_PAGE, pageSize: 20 },
+      pagination: { page: CATALOG_WEB_MAX_PAGE, pageSize: 20 },
     });
     expect(mocks.cacheList.mock.calls[0]?.[0]).toBe("page:sections-list:zh-cn");
     expect(mocks.cacheList.mock.calls[0]?.[2].toString()).not.toContain(

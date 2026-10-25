@@ -82,38 +82,44 @@ async function verifyHistory(
         await page.setViewportSize(viewport);
         const response = await gotoAndWaitForReady(page, route);
         const history = page.getByTestId("section-history");
-        await expect(history).toContainText(/共 23 条|total: 23/);
+        await expect(
+          history.locator('[data-slot="results-summary"]'),
+        ).toHaveCount(0);
         const rows = page.locator(
-          '#sections a[href^="/catalog/sections/"]:visible',
+          '#sections table:visible tbody tr td:first-child a, #sections a[data-slot="item"]:visible',
         );
         const firstPageIds = new Set(
           await rows.evaluateAll((links) =>
             links.map((link) => link.getAttribute("href")),
           ),
         );
+        await expect(rows).toHaveCount(20);
         expect(firstPageIds.size).toBe(20);
-        await history
-          .getByRole("link", { name: /下一页|Next/i, exact: true })
-          .click();
-        await expect(page).toHaveURL(
-          new RegExp(`${route}\\?sectionsPage=2#sections$`),
+        const loading = history.locator('[data-slot="endless-scroll"]');
+        await expect(loading.getByRole("link")).toHaveAttribute(
+          "href",
+          `${route}?sectionsPage=2#sections`,
         );
-        await expect(history).toContainText(/21–23/);
-        const secondPageIds = new Set(
-          await rows.evaluateAll((links) =>
-            links.map((link) => link.getAttribute("href")),
-          ),
+        await loading.scrollIntoViewIfNeeded();
+        await expect(rows).toHaveCount(23);
+        await expect(page).toHaveURL(new RegExp(`${route}$`));
+        const allIds = await rows.evaluateAll((links) =>
+          links.map((link) => link.getAttribute("href")),
         );
-        expect(secondPageIds.size).toBe(3);
-        expect(new Set([...firstPageIds, ...secondPageIds]).size).toBe(23);
+        expect(new Set(allIds).size).toBe(23);
+        for (const id of firstPageIds) expect(allIds).toContain(id);
+        await expect(loading).toHaveCount(0);
         await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
           "href",
           new RegExp(`${route}$`),
         );
         // A direct reload must retain page 2 even after root HTML warmed its cache.
-        const pagedResponse = await page.reload();
+        const pagedResponse = await gotoAndWaitForReady(
+          page,
+          `${route}?sectionsPage=2#sections`,
+        );
         expect(pagedResponse?.headers()["cache-control"]).toContain("no-store");
-        await expect(history).toContainText(/21–23/);
+        await expect(rows).toHaveCount(3);
         await expect(
           page
             .locator(
@@ -121,11 +127,11 @@ async function verifyHistory(
             )
             .first(),
         ).toBeVisible();
-        await history
-          .getByRole("link", { name: /上一页|Previous/i, exact: true })
-          .click();
-        await expect(page).toHaveURL(new RegExp(`${route}#sections$`));
-        await expect(history).toContainText(/1–20/);
+        await page.reload();
+        await expect(rows).toHaveCount(3);
+        await expect(page).toHaveURL(
+          new RegExp(`${route}\\?sectionsPage=2#sections$`),
+        );
         expect(response?.status()).toBe(200);
       }
       await gotoAndWaitForReady(page, `${route}?sectionsPage=2#sections`);

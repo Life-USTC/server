@@ -217,17 +217,15 @@ test("young table numeric comparisons run before pagination and preserve choices
       ).toContainText(category);
     }
     await expect(events).toHaveCount(20);
-    await page.getByRole("link", { name: /^(下一页|Next page)$/i }).click();
-    await expect(page).toHaveURL((url) => url.searchParams.get("page") === "2");
-    sharedContext(page, { ...expected, page: "2" });
+    await page.locator('[data-slot="endless-scroll"]').scrollIntoViewIfNeeded();
+    await expect(page).toHaveURL((url) => !url.searchParams.has("page"));
+    sharedContext(page, expected);
     expect(new URL(page.url()).searchParams.getAll("category")).toEqual(
       categories,
     );
-    await expect(events).toHaveCount(2);
-    await expect(events).toContainText([
-      "Numeric filter event 20",
-      "Numeric filter event 21",
-    ]);
+    await expect(events).toHaveCount(22);
+    await expect(events.nth(20)).toContainText("Numeric filter event 20");
+    await expect(events.nth(21)).toContainText("Numeric filter event 21");
     await expect(
       (await openYoungTableField(page, "module")).getByRole("checkbox", {
         checked: true,
@@ -260,13 +258,13 @@ test("young table numeric comparisons run before pagination and preserve choices
     expect(new URL(page.url()).searchParams.getAll("category")).toEqual(
       categories,
     );
-    await page.getByRole("link", { name: /^(下一页|Next page)$/i }).click();
-    await expect(events).toHaveCount(3);
-    await expect(events).toContainText([
-      "Numeric filter event 20",
-      "Numeric filter event 21",
+    await page.locator('[data-slot="endless-scroll"]').scrollIntoViewIfNeeded();
+    await expect(events).toHaveCount(23);
+    await expect(events.nth(20)).toContainText("Numeric filter event 20");
+    await expect(events.nth(21)).toContainText("Numeric filter event 21");
+    await expect(events.nth(22)).toContainText(
       "Numeric filter event low capacity",
-    ]);
+    );
   });
 });
 
@@ -413,13 +411,14 @@ test("young-event.web-organizer-order", { tag: "@Young/Web" }, async ({
           ),
         );
       expect(await ids()).toEqual(webOrder.slice(0, 20));
-      await page.getByRole("link", { name: /下一页|Next page/ }).click();
-      await expect(page).toHaveURL(
-        (url) => url.searchParams.get("page") === "2",
-      );
+      await page
+        .locator('[data-slot="endless-scroll"]')
+        .scrollIntoViewIfNeeded();
+      await expect(page).toHaveURL((url) => !url.searchParams.has("page"));
       sharedContext(page, { search: fixture.marker });
-      expect(await ids()).toEqual(webOrder.slice(20));
-      await organizerLinks.first().click();
+      await expect(organizerLinks).toHaveCount(webOrder.length);
+      expect(await ids()).toEqual(webOrder);
+      await organizerLinks.nth(20).click();
       await expect(page).toHaveURL(`${root}/organizers/${webOrder[20]}`);
       await gotoAndWaitForReady(
         page,

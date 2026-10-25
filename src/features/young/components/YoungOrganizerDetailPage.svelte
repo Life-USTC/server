@@ -1,20 +1,19 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import DetailDefinitionList from "#lib/components/DetailDefinitionList.svelte";
-import ListPagination from "#lib/components/ListPagination.svelte";
+import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import Panel from "#lib/components/Panel.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import type {
   YoungEventPage,
   YoungEventSummary,
   YoungOrganizerSummary,
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
+import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { youngDateRange } from "../lib/young-event-display";
 import { youngDetailHref } from "../lib/young-navigation";
@@ -26,18 +25,12 @@ type Props = {
   organizer: YoungOrganizerSummary;
   source: YoungSourceFreshness;
   events: YoungEventPage;
+  endless: EndlessScrollState;
 };
 
-let { copy, organizer, source, events }: Props = $props();
+let { copy, organizer, source, events, endless }: Props = $props();
 
 const youngCopy = $derived(copy.youngEvents);
-const summary = $derived(
-  catalogShowingSummary(
-    events.pagination.total === 1 ? youngCopy.showingOne : youngCopy.showing,
-    events.data.length,
-    events.pagination.total,
-  ),
-);
 
 function formatRange(event: YoungEventSummary) {
   return (
@@ -45,14 +38,10 @@ function formatRange(event: YoungEventSummary) {
     youngCopy.unknownTime
   );
 }
-
-function pageHref(page: number) {
-  return `?page=${page}`;
-}
 </script>
 
 {#snippet paginationFooter()}
-      <ListPagination ariaLabel={copy.common.pagination} nextLabel={copy.common.next} nextPageLabel={copy.common.nextPage} previousLabel={copy.common.previous} previousPageLabel={copy.common.previousPage} page={events.pagination.page} totalPages={events.pagination.totalPages} {pageHref} />
+  <EndlessScroll state={endless} labels={copy.common.endlessScroll} />
 {/snippet}
 
 <CollectionPage
@@ -65,12 +54,11 @@ function pageHref(page: number) {
           {youngCopy.organizerEvents}
         </Button>
   {/snippet}
-      <Panel footer={events.pagination.totalPages > 1 ? paginationFooter : undefined}>
+      <Panel footer={endless.hasMore ? paginationFooter : undefined}>
         {#snippet header()}
           <h2 class="font-medium text-base">{youngCopy.organizerEvents}</h2>
         {/snippet}
         <div class="grid gap-3">
-        <ResultsSummary {summary} page={events.pagination.page} totalPages={events.pagination.totalPages} />
         {#if events.data.length > 0}
           <Item.Group class="gap-0" role="list">
             {#each events.data as event, index (event.youngId)}

@@ -52,10 +52,13 @@
     "search": "Search",
     "clear": "Clear",
     "previous": "Previous",
-    "previousPage": "Previous page",
     "next": "Next",
-    "nextPage": "Next page",
-    "pagination": "Pagination",
+    "endlessScroll": {
+      "loading": "Loading…",
+      "loadMore": "Load more",
+      "retry": "Retry",
+      "failed": "Could not load more results. Please retry."
+    },
     "primaryNavigation": "Primary navigation",
     "footerNavigation": "Footer navigation",
     "profileMenu": "Profile menu",
@@ -741,8 +744,6 @@
     "adminRole": "Admin",
     "userRole": "User",
     "createdAt": "Created",
-    "showing": "Showing {count} of {total} users",
-    "showingOne": "Showing {count} of {total} user",
     "noResults": "No results found",
     "noVerifiedEmail": "No verified email",
     "noUsername": "No ID",
@@ -1159,8 +1160,6 @@
     "description": "Signup events from the USTC second classroom platform.",
     "platformName": "USTC second classroom platform",
     "searchPlaceholder": "Search by event name...",
-    "showing": "Showing {count} of {total} events",
-    "showingOne": "Showing {count} of {total} event",
     "searchFor": "for \"{query}\"",
     "noEventsFound": "No events found",
     "signupStatus": "Activity scope",
@@ -1335,8 +1334,6 @@
     "poster": "Activity poster",
     "earlierDates": "Show earlier dates",
     "organizerSearchPlaceholder": "Search organizer names…",
-    "organizersShowing": "Showing {count} of {total} organizers",
-    "organizersShowingOne": "Showing {count} of {total} organizer",
     "dateUnknownActivity": "Unknown activity date",
     "dateUnknownRegistration": "Unknown signup date",
     "timeBasis": "Calendar dates",
@@ -1363,8 +1360,6 @@
     "searchPlaceholder": "Search titles, summaries, or source URLs…",
     "applyFilters": "Filter",
     "clearFilters": "Clear filters",
-    "resultsCount": "{count} results",
-    "resultsCountOne": "{count} result",
     "emptyTitle": "No public publications",
     "emptyDescription": "Try a different filter, or check back later.",
     "publishedAt": "Published",
@@ -1379,9 +1374,6 @@
     "notFoundTitle": "Publication not found",
     "notFoundDescription": "This news item or notice does not exist or is no longer public.",
     "missingDate": "Unknown date",
-    "previousPage": "Previous page",
-    "nextPage": "Next page",
-    "pagination": "News and notices pagination",
     "foldToggle": "Group reprints of the same article",
     "foldSiblingCount": "+{count} more sections",
     "foldSiblingCountOne": "+{count} more section",
@@ -1687,8 +1679,6 @@
     "title": "All Courses",
     "subtitle": "Browse and search through all available courses",
     "searchPlaceholder": "Search by course name or code...",
-    "showing": "Showing {count} of {total} courses",
-    "showingOne": "Showing {count} of {total} course",
     "searchFor": "for \"{query}\"",
     "noCoursesFound": "No courses found",
     "courseName": "Course Name",
@@ -1739,9 +1729,7 @@
       "description": "Description",
       "comments": "Comments",
       "sections": "Sections"
-    },
-    "sectionHistorySummary": "Showing {from}–{to}; total: {total} (retired sections included)",
-    "sectionHistoryPagination": "Historical offerings pagination"
+    }
   },
   "sections": {
     "title": "All Sections",
@@ -1813,10 +1801,7 @@
         "example": "order:desc"
       }
     ],
-    "showing": "Showing {count} of {total} sections",
-    "showingOne": "Showing {count} of {total} section",
     "searchFor": "for \"{query}\"",
-    "inSemester": "in {semester}",
     "noSectionsFound": "No sections found",
     "courseName": "Course Name",
     "sectionCode": "Section Code",
@@ -2196,10 +2181,6 @@
     "title": "All Teachers",
     "subtitle": "Browse and search through all teachers",
     "searchPlaceholder": "Search by teacher name...",
-    "showing": "Showing {count} of {total} teachers",
-    "showingOne": "Showing {count} of {total} teacher",
-    "searchFor": "for \"{query}\"",
-    "inDepartment": "in {department}",
     "noTeachersFound": "No teachers found",
     "name": "Name",
     "department": "Department",
@@ -2215,7 +2196,6 @@
     "code": "Code",
     "noDepartment": "No department",
     "emptyDescription": "Try a different search term or clear the department filter.",
-    "pageOf": "Page {page} of {totalPages}",
     "summary": {
       "matches": "Matches",
       "matchesMeta": "Teachers in current query",
@@ -2262,9 +2242,7 @@
     "semester": "Semester",
     "courseName": "Course Name",
     "sectionCode": "Section Code",
-    "credits": "Credits",
-    "sectionHistorySummary": "Showing {from}–{to}; total: {total} (retired sections included)",
-    "sectionHistoryPagination": "Historical offerings pagination"
+    "credits": "Credits"
   },
   "descriptions": {
     "title": "Description",

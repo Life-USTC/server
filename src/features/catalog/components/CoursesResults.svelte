@@ -2,7 +2,6 @@
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
@@ -11,10 +10,6 @@ import {
   type CatalogNamed,
   catalogLocalizedDisplayName,
 } from "@/features/catalog/lib/catalog-list-display";
-import {
-  catalogShowingSummary,
-  optionalCatalogFilterSummary,
-} from "@/features/catalog/lib/catalog-results-summary";
 import { page as routePage } from "$app/state";
 import CatalogColumnFilter from "./CatalogColumnFilter.svelte";
 import CatalogEntityName from "./CatalogEntityName.svelte";
@@ -30,9 +25,7 @@ interface Props {
   courseEmptyDescription: () => string;
   courseLabels: CourseListLabels;
   data: CourseListResultData;
-  page: number;
   primaryName: (item: CatalogNamed | null | undefined) => string;
-  totalPages: number;
 }
 
 let {
@@ -40,28 +33,10 @@ let {
   courseEmptyDescription,
   courseLabels,
   data,
-  page,
   primaryName,
-  totalPages,
 }: Props = $props();
 
 let locale = $derived(routePage.data.locale ?? "zh-cn");
-let courseSummaryBase = $derived(
-  catalogShowingSummary(
-    data.pagination.total === 1
-      ? courseLabels.showingOne
-      : courseLabels.showing,
-    data.data.length,
-    data.pagination.total,
-  ),
-);
-let courseSearchSummary = $derived(
-  optionalCatalogFilterSummary(
-    data.filters.search,
-    courseLabels.searchFor,
-    "{query}",
-  ),
-);
 </script>
 
 
@@ -75,11 +50,6 @@ let courseSearchSummary = $derived(
 {/snippet}
 
 <section class="grid min-w-0 gap-3">
-  <ResultsSummary
-    summary={[courseSummaryBase, courseSearchSummary].filter(Boolean).join(" ")}
-    page={page}
-    totalPages={totalPages}
-  />
     <ResponsiveCollection>
       {#snippet mobile()}
         <div class="grid gap-3" data-slot="collection-header">

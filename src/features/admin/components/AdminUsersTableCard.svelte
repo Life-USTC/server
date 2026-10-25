@@ -1,7 +1,6 @@
 <script lang="ts">
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
-import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import { adminUserTableFields } from "../lib/admin-user-table-filters";
 import AdminUsersDesktopTable from "./AdminUsersDesktopTable.svelte";
@@ -12,7 +11,6 @@ import type {
   AdminUserRow,
   AdminUsersCommonCopy,
   AdminUsersCopy,
-  AdminUsersPagination,
 } from "./admin-user-types";
 
 export let commonCopy: AdminUsersCommonCopy;
@@ -23,30 +21,16 @@ export let copy: AdminUsersCopy & {
   accountsDescription: string;
   accountsTitle: string;
   noResults: string;
-  showing: string;
-  showingOne: string;
 };
 export let displayName: AdminUserFormatter;
 export let formatDate: (value: Date | string | null | undefined) => string;
-export let formatMessage: (
-  template: string,
-  values: Record<string, string>,
-) => string;
 export let onSelect: (user: AdminUserRow) => void;
-export let pagination: AdminUsersPagination;
 export let suspensionLabel: AdminUserFormatter;
 export let users: AdminUserRow[];
 $: fields = adminUserTableFields(copy);
 </script>
 
 <section class="grid min-w-0 gap-3">
-  <ResultsSummary
-    summary={formatMessage(pagination.total === 1 ? copy.showingOne : copy.showing, {
-        count: String(users.length),
-        total: String(pagination.total),
-      })}
-  />
-
     <ResponsiveCollection>
       {#snippet mobile()}
         <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">

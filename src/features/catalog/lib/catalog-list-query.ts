@@ -1,4 +1,6 @@
 export const CATALOG_MAX_PAGE = 100;
+/** Web collections can scroll beyond the catalog API page window. */
+export const CATALOG_WEB_MAX_PAGE = 100_000;
 /** Shared bound for the `ids` / `jwIds` catalog filters across transports. */
 export const CATALOG_ID_LIST_MAX_ITEMS = 100;
 export const CATALOG_MAX_ID = 2_147_483_647;
@@ -160,7 +162,7 @@ function boundedPage(value: string | null) {
 
   const parsed = Number(trimmed);
   if (!Number.isSafeInteger(parsed) || parsed < 1) return undefined;
-  return String(Math.min(parsed, CATALOG_MAX_PAGE));
+  return String(Math.min(parsed, CATALOG_WEB_MAX_PAGE));
 }
 
 function boundedText(value: string | null, maximumLength: number) {

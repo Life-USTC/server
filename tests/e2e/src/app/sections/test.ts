@@ -136,7 +136,9 @@ test.describe("/catalog/sections 教学班搜索页", () => {
         page.locator('[data-slot="table-filter-toolbar"]:visible'),
       ).toBeVisible();
       await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
-      await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
+      await expect(page.locator('[data-slot="results-summary"]')).toHaveCount(
+        0,
+      );
       await expect(
         page.locator('[data-slot="active-filters"]:visible'),
       ).toBeVisible();
@@ -516,7 +518,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
         expect(geometry.resultsBorderWidth).toBe(0);
         expect(geometry.resultsOverflowX).toBe("visible");
         expect(geometry.resultsOverflowY).toBe("visible");
-        expect(geometry.summaryIsDirectChild).toBe(true);
+        expect(geometry.summaryIsDirectChild).toBe(false);
         expect(geometry.overflowingCells).toEqual([]);
         expect(
           Math.max(...geometry.rowTextCenters) -

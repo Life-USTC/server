@@ -257,20 +257,40 @@ test("upload.web-list", { tag: "@Upload/Web" }, async ({
       [...filters].every(([key, value]) => url.searchParams.get(key) === value),
     );
     await expect(visibleRows(page)).toHaveCount(20);
-    const nextPage = page.getByRole("link", { name: "Next page", exact: true });
+    const nextPage = page.getByRole("link", { name: "Load more", exact: true });
     const nextHref = await nextPage.getAttribute("href");
     const nextParams = new URL(nextHref ?? "", page.url()).searchParams;
     for (const [key, value] of filters) expect(nextParams.get(key)).toBe(value);
-    await nextPage.click();
-    await expect(page).toHaveURL(/page=2$/);
-    await expect(visibleRows(page)).toHaveCount(1);
-    await expect(visibleRows(page).first()).toContainText("material-00.txt");
+    await page.getByRole("button", { name: "File", exact: true }).click();
+    await page
+      .getByRole("dialog", { name: "File", exact: true })
+      .getByRole("textbox")
+      .fill("material-20");
+    await page.keyboard.press("Escape");
+    await page.locator('[data-slot="endless-scroll"]').scrollIntoViewIfNeeded();
+    await expect(page).toHaveURL((url) => !url.searchParams.has("page"));
+    await expect(visibleRows(page)).toHaveCount(21);
+    await page.getByRole("button", { name: "File", exact: true }).click();
+    await expect(
+      page
+        .getByRole("dialog", { name: "File", exact: true })
+        .getByRole("textbox"),
+    ).toHaveValue("material-20");
+    await page.keyboard.press("Escape");
+    await expect(visibleRows(page).last()).toContainText("material-00.txt");
     for (const [key, value] of filters)
       expect(new URL(page.url()).searchParams.get(key)).toBe(value);
     await page.reload();
-    await expect(visibleRows(page)).toHaveCount(1);
+    await expect(visibleRows(page)).toHaveCount(20);
+    await expect(visibleRows(page).first()).toContainText("material-20.txt");
     for (const [key, value] of filters)
       expect(new URL(page.url()).searchParams.get(key)).toBe(value);
+    await page.locator('[data-slot="endless-scroll"]').scrollIntoViewIfNeeded();
+    await expect(visibleRows(page)).toHaveCount(21);
+    await expect(visibleRows(page).last()).toContainText("material-00.txt");
+    await expect(
+      page.getByText("other-private-file.txt", { exact: true }),
+    ).toHaveCount(0);
     await page.goto(`/workspace/uploads?${filters}&page=900`);
     await expect(page).toHaveURL(/page=2$/);
     for (const [key, value] of filters)

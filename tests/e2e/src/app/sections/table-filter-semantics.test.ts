@@ -4,13 +4,13 @@ import {
   openCatalogColumnFilter,
   setCatalogFilterValue,
 } from "../../../utils/catalog-table-filters";
-import { test } from "../../../utils/owned-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { test } from "../../../utils/personal-preferences-fixture";
 
 test("section filter drafts, multi-selection, comparisons and reactive pagination", {
   tag: "@Section/Web",
-}, async ({ page, isolatedWorker, run }) => {
-  await run(async () => {
+}, async ({ page, isolatedWorker, preferenceFlow }) => {
+  await preferenceFlow.run(async () => {
     const db = isolatedWorker.database.owner;
     const campuses = await db.$transaction(async (tx) => {
       const campuses = await Promise.all(
@@ -56,11 +56,15 @@ test("section filter drafts, multi-selection, comparisons and reactive paginatio
       page,
       `/catalog/sections?${new URLSearchParams(query)}`,
     );
-    const pagination = page.locator('[data-slot="list-pagination"]');
-    const next = pagination.getByRole("link", { name: /下一页|Next page/i });
-    await expect(
-      pagination.locator('[data-slot="pagination-link"]'),
-    ).toHaveCount(2);
+    const continuation = page.locator('[data-slot="endless-scroll"]');
+    const next = continuation.getByRole("link", {
+      name: /加载更多|Load more/i,
+    });
+    const rows = page.locator(
+      '#main-content a[href^="/catalog/sections/"]:visible',
+    );
+    await expect(rows).toHaveCount(20);
+    await expect(continuation).toHaveCount(1);
     await expect(next).toHaveAttribute(
       "href",
       new RegExp(`campusId=${campuses[0].id}(?:&|$)`),
@@ -89,31 +93,42 @@ test("section filter drafts, multi-selection, comparisons and reactive paginatio
     await expect
       .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
       .toEqual(applied);
-    // Both filters have 30 rows: page and totalPages remain 1 and 2. The mounted
-    // pagination must still rebuild links from the newly applied URL.
-    await expect(
-      pagination.locator('[data-slot="pagination-link"]'),
-    ).toHaveCount(2);
+    // Both filters have 30 rows. The next batch must use the newly applied
+    // parameters even though the page and total page count have not changed.
+    await expect(rows).toHaveCount(20);
+    await expect(continuation).toHaveCount(1);
     await expect(next).toHaveAttribute(
       "href",
       new RegExp(`campusId=${campuses[1].id}(?:&|$)`),
     );
-    for (const link of await pagination.getByRole("link").all()) {
-      const href = await link.getAttribute("href");
-      if (!href) throw new Error("Pagination link is missing its destination");
-      const target = new URL(href, page.url());
-      for (const [key, value] of Object.entries(applied))
-        expect(target.searchParams.get(key)).toBe(value);
-    }
-    await next.click();
+    const href = await next.getAttribute("href");
+    if (!href) throw new Error("Next batch is missing its destination");
+    const target = new URL(href, page.url());
+    for (const [key, value] of Object.entries(applied))
+      expect(target.searchParams.get(key)).toBe(value);
+    expect(target.searchParams.get("page")).toBe("2");
+    await continuation.scrollIntoViewIfNeeded();
     await expect
       .poll(() => Object.fromEntries(new URL(page.url()).searchParams))
-      .toEqual({ ...applied, page: "2" });
-    await expect(
-      page.locator('#main-content a[href^="/catalog/sections/"]:visible'),
-    ).toHaveCount(10);
+      .toEqual(applied);
+    await expect(rows).toHaveCount(30);
+    expect(
+      await rows.evaluateAll((links) =>
+        links.map((link) => link.getAttribute("href")),
+      ),
+    ).toEqual(
+      Array.from(
+        { length: 30 },
+        (_, index) => `/catalog/sections/${1_600_000_030 + index}`,
+      ),
+    );
+    await expect(continuation).toHaveCount(0);
+
+    // A bookmarked batch retains the same server-side filter contract.
+    await gotoAndWaitForReady(page, target.toString());
+    await expect(rows).toHaveCount(10);
     await page.reload();
-    await expect(pagination.locator('[aria-current="page"]')).toHaveText("2");
+    await expect(rows).toHaveCount(10);
     expect(Object.fromEntries(new URL(page.url()).searchParams)).toEqual({
       ...applied,
       page: "2",
@@ -143,24 +158,24 @@ test("section filter drafts, multi-selection, comparisons and reactive paginatio
         creditsOp: "between",
         creditsMax: "3",
       });
-    await expect(
-      pagination.locator('[data-slot="pagination-link"]'),
-    ).toHaveCount(3);
-    await pagination
-      .getByRole("link", { name: /分页 3|Pagination 3/i })
-      .click();
-    await expect(
-      page.locator('#main-content a[href^="/catalog/sections/"]:visible'),
-    ).toHaveCount(10);
-    await expect(
-      page.locator(
-        '#main-content a[href="/catalog/sections/1600000054"]:visible',
+    await expect(rows).toHaveCount(20);
+    await continuation.scrollIntoViewIfNeeded();
+    await expect(rows).toHaveCount(40);
+    await continuation.scrollIntoViewIfNeeded();
+    await expect(rows).toHaveCount(50);
+    expect(
+      await rows.evaluateAll((links) =>
+        links.map((link) => link.getAttribute("href")),
       ),
-    ).toHaveCount(1);
-    await expect(
-      page.locator(
-        '#main-content a[href="/catalog/sections/1600000055"]:visible',
+    ).toEqual(
+      [0, 30].flatMap((offset) =>
+        Array.from(
+          { length: 25 },
+          (_, index) => `/catalog/sections/${1_600_000_000 + offset + index}`,
+        ),
       ),
-    ).toHaveCount(0);
+    );
+    await expect(continuation).toHaveCount(0);
+    expect(new URL(page.url()).searchParams.has("page")).toBe(false);
   });
 });

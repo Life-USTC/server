@@ -2,7 +2,6 @@
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
-import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
@@ -12,10 +11,6 @@ import {
   catalogLocalizedDisplayName,
   catalogLocalizedNames,
 } from "@/features/catalog/lib/catalog-list-display";
-import {
-  catalogShowingSummary,
-  optionalCatalogFilterSummary,
-} from "@/features/catalog/lib/catalog-results-summary";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page as routePage } from "$app/state";
 import CatalogColumnFilter from "./CatalogColumnFilter.svelte";
@@ -25,58 +20,27 @@ import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
 import type {
   SectionListFilters,
   SectionListLabels,
-  SectionListPagination,
   SectionListResultData,
-  SectionListSemester,
 } from "./catalog-section-list-types";
 
 interface Props {
   columnFilters: Record<string, CatalogColumnFilterProps>;
   data: SectionListResultData;
-  page: number;
   primaryName: (item: CatalogNamed | null | undefined) => string;
   sectionEmptyDescription: () => string;
   sectionLabels: SectionListLabels;
-  selectedSemester: SectionListSemester | null | undefined;
-  totalPages: number;
 }
 
 let {
   columnFilters,
   data,
-  page,
   primaryName,
   sectionEmptyDescription,
   sectionLabels,
-  selectedSemester,
-  totalPages,
 }: Props = $props();
 
 let filters = $derived(data.filters as SectionListFilters);
 let locale = $derived(routePage.data.locale ?? "zh-cn");
-let pagination = $derived(data.pagination as SectionListPagination);
-let sectionSummaryBase = $derived(
-  catalogShowingSummary(
-    pagination.total === 1 ? sectionLabels.showingOne : sectionLabels.showing,
-    data.data.length,
-    pagination.total,
-  ),
-);
-let sectionSearchSummary = $derived(
-  optionalCatalogFilterSummary(
-    filters.search,
-    sectionLabels.searchFor,
-    "{query}",
-  ),
-);
-let sectionSemesterSummary = $derived(
-  selectedSemester
-    ? sectionLabels.inSemester.replace(
-        "{semester}",
-        formatSemesterName(locale, selectedSemester.nameCn),
-      )
-    : "",
-);
 </script>
 
 
@@ -90,15 +54,6 @@ let sectionSemesterSummary = $derived(
 {/snippet}
 
 <section class="grid min-w-0 gap-3">
-  <ResultsSummary
-    summary={[
-      sectionSummaryBase,
-      sectionSearchSummary,
-      sectionSemesterSummary
-    ].filter(Boolean).join(" ")}
-    page={page}
-    totalPages={totalPages}
-  />
     <ResponsiveCollection>
       {#snippet mobile()}
         <div class="grid gap-3" data-slot="collection-header">

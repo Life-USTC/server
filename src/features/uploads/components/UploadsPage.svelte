@@ -1,5 +1,5 @@
 <script lang="ts">
-import ListPagination from "#lib/components/ListPagination.svelte";
+import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import PageHeader from "#lib/components/PageHeader.svelte";
 import PageLayout from "#lib/components/PageLayout.svelte";
 import Panel from "#lib/components/Panel.svelte";
@@ -11,6 +11,7 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import { createShanghaiDateTimeFormatter } from "#lib/time/shanghai-format.js";
+import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import { tableFilterPageHref } from "@/lib/table-filter-query";
 import type { TableFilterField } from "@/lib/table-filters";
 import { formatBytes } from "@/shared/lib/format-bytes";
@@ -18,11 +19,13 @@ import { goto } from "$app/navigation";
 import type { PageData } from "../../../routes/workspace/uploads/$types";
 import UploadManageDialog from "./UploadManageDialog.svelte";
 
-let { data }: { data: PageData } = $props();
+let { data, endless }: { data: PageData; endless: EndlessScrollState } =
+  $props();
 const copy = $derived(data.copy.uploads);
+const appliedFilters = $derived(data.filters);
 let draft = $state<Record<string, string>>({});
 $effect(() => {
-  draft = { ...data.filters };
+  draft = { ...appliedFilters };
 });
 const fields = $derived<TableFilterField[]>([
   { name: "filename", label: copy.tableName },
@@ -117,7 +120,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
         {/snippet}
       </ResponsiveCollection>
     {#snippet footer()}
-      <ListPagination ariaLabel={data.copy.common.pagination} nextLabel={data.copy.common.next} nextPageLabel={data.copy.common.nextPage} previousLabel={data.copy.common.previous} previousPageLabel={data.copy.common.previousPage} page={data.page} totalPages={data.totalPages} pageHref={(page) => tableFilterPageHref("/workspace/uploads", data.filters, page)} />
+      <EndlessScroll state={endless} labels={data.copy.common.endlessScroll} />
     {/snippet}
   </Panel>
 </PageLayout>

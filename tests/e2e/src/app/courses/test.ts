@@ -1,5 +1,5 @@
 /**
- * E2E tests for /courses — Paginated Course Catalog
+ * E2E tests for /courses — Course Catalog
  *
  * ## Data Represented
  * - Courses with nameCn/nameEn, code, educationLevel, category, classType
@@ -10,7 +10,7 @@
  * - Filter dropdowns: education level, category, class type
  * - Table with columns: Course Name, Code, Education Level, Category, Class Type
  * - Clickable rows navigating to /courses/{jwId}
- * - URL-driven Previous / page-number / Next pagination
+ * - Incremental loading with applied filters and browser-history restoration
  * - DataState empty state when no results
  *
  * ## Edge Cases
@@ -37,6 +37,7 @@ import { visibleText } from "../../../utils/locators";
 import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
+  waitForUiSettled,
 } from "../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../utils/request-url";
 import { assertPageContract } from "../_shared/page-contract";
@@ -200,7 +201,9 @@ test.describe("/catalog/courses 课程目录", () => {
         page.locator('[data-slot="table-filter-toolbar"]:visible'),
       ).toBeVisible();
       await expect(page.getByTestId("catalog-filter-sidebar")).toHaveCount(0);
-      await expect(page.locator('[data-slot="results-summary"]')).toBeVisible();
+      await expect(page.locator('[data-slot="results-summary"]')).toHaveCount(
+        0,
+      );
       await expect(
         page.locator('[data-slot="active-filters"]:visible'),
       ).toBeVisible();
@@ -351,7 +354,7 @@ test.describe("/catalog/courses 课程目录", () => {
   );
 
   catalogTest(
-    "分页提供上一页、页码和下一页并写入浏览历史",
+    "滚动追加课程并在返回后恢复完整列表",
     { tag: "@Course/Web" },
     async ({ page, isolatedWorker, catalogFlow }, testInfo) => {
       await catalogFlow.run(
@@ -366,53 +369,57 @@ test.describe("/catalog/courses 课程目录", () => {
           const searchPath = `/catalog/courses?search=${prefix}`;
           await gotoAndWaitForReady(page, searchPath);
 
-          let pagination = page.locator('[data-slot="list-pagination"]');
-          await expect(pagination).toBeVisible();
-          await expect(pagination.locator('[aria-current="page"]')).toHaveText(
-            "1",
-          );
-          const page2Link = pagination.getByRole("link", {
-            name: /分页 2|Pagination 2/i,
-          });
-          await expect(page2Link).toHaveAttribute("href", /[?&]page=2(?:&|$)/);
-          await expect(page2Link).toHaveAttribute(
+          const records = page.locator("table:visible tbody tr");
+          await expect(records).toHaveCount(20);
+          const loader = page.locator('[data-slot="endless-scroll"]');
+          await expect(loader.getByRole("link")).toHaveAttribute(
             "href",
             new RegExp(`[?&]search=${prefix}(?:&|$)`),
           );
-
-          const nextLink = pagination.getByRole("link", {
-            name: /下一页|Next page/i,
-          });
-          await expect(nextLink).toHaveAttribute("href", /[?&]page=2(?:&|$)/);
-          await expect(nextLink).toHaveAttribute(
+          await expect(loader.getByRole("link")).toHaveAttribute(
             "href",
-            new RegExp(`[?&]search=${prefix}(?:&|$)`),
+            /[?&]page=2(?:&|$)/,
           );
-          await nextLink.click();
-          await expect(page).toHaveURL((url) => {
-            return (
-              url.pathname === "/catalog/courses" &&
-              url.searchParams.get("search") === prefix &&
-              url.searchParams.get("page") === "2"
+          await loader.scrollIntoViewIfNeeded();
+          await expect(records).toHaveCount(25);
+          await expect(page).toHaveURL(
+            (url) => url.pathname + url.search === searchPath,
+          );
+          const ids = await records
+            .locator("a")
+            .evaluateAll((links) =>
+              links.map((link) => link.getAttribute("href")),
             );
-          });
-
-          pagination = page.locator('[data-slot="list-pagination"]');
-          await expect(pagination.locator('[aria-current="page"]')).toHaveText(
-            "2",
-          );
-          await expect(
-            pagination.getByRole("link", { name: /上一页|Previous page/i }),
-          ).toHaveAttribute("href", searchPath);
+          expect(new Set(ids).size).toBe(25);
+          await expect(loader).toHaveCount(0);
+          const skipLink = page.locator('a[href="#main-content"]');
+          await skipLink.focus();
+          await page.keyboard.press("Enter");
+          await expect(page).toHaveURL((url) => url.hash === "#main-content");
+          await waitForUiSettled(page);
+          await expect(records).toHaveCount(25);
+          expect(
+            await records
+              .locator("a")
+              .evaluateAll((links) =>
+                links.map((link) => link.getAttribute("href")),
+              ),
+          ).toEqual(ids);
+          await records.last().locator("a").click();
+          await expect(page).toHaveURL(new RegExp(`${ids.at(-1)}$`));
+          await waitForUiSettled(page);
           await page.goBack();
-          await expect(page).toHaveURL((url) => {
-            return (
-              url.pathname === "/catalog/courses" &&
-              url.searchParams.get("search") === prefix &&
-              (url.searchParams.get("page") == null ||
-                url.searchParams.get("page") === "1")
-            );
-          });
+          await expect(page).toHaveURL(
+            (url) => url.pathname + url.search === searchPath,
+          );
+          await expect(records).toHaveCount(25);
+          expect(
+            await records
+              .locator("a")
+              .evaluateAll((links) =>
+                links.map((link) => link.getAttribute("href")),
+              ),
+          ).toEqual(ids);
         },
         { anonymousCourseCount: 25 },
       );

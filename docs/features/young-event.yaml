@@ -18,7 +18,7 @@ access:
 requirements:
 - id: young-event.web-table-filters
   category: presentation
-  rule: Activity and organizer tables expose filters for every displayed data column. Existing category, module, level, organizer, source-list membership and unknown-date controls share the top area. One page Apply action submits the shared draft, resets pagination, and subsequent pages preserve every applied query. Choices within a field use OR and independent fields use AND; quantities and Shanghai dates support equality, inequality, bounds and inclusive ranges. Empty choices display only the unrestricted label. Organizer count predicates run before totals and page slicing.
+  rule: Activity and organizer tables expose filters for every displayed data column. Existing category, module, level, organizer, source-list membership and unknown-date controls share the top area. One page Apply action submits the shared draft and resets the accumulated list. Continuous loading appends matches while preserving every applied query and unsubmitted filter draft. Choices within a field use OR and independent fields use AND; quantities and Shanghai dates support equality, inequality, bounds and inclusive ranges. Empty choices display only the unrestricted label. Organizer count predicates run before totals and page slicing.
   surfaces:
   - web
   rationale: These Web table presentation queries are validated separately before shared service execution. Repeated category parameters are limited to the Web table; a single legacy Web category parameter and public REST, GraphQL and MCP category inputs retain their scalar semantics.
@@ -27,7 +27,7 @@ requirements:
     when: Web queries combine multiple choices with date and quantity comparisons.
     then:
     - Independent predicates combine before event counts and page slicing.
-    - Repeated category parameters preserve multi-selection across pagination, while a single category parameter preserves literal commas and percent signs.
+    - Repeated category parameters preserve multi-selection when loading more, while a single category parameter preserves literal commas and percent signs.
     - An unrestricted or multi-selected Web time basis matches either activity or signup dates; the existing API default remains the activity date.
     - Organizer count filtering determines both the matching total and returned page.
     - Invalid operators, oversized selections, invalid dates and reversed ranges are rejected.
@@ -297,10 +297,10 @@ requirements:
     Source-active does not imply registration is open.
   acceptance:
     given: Twenty-four isolated organizers include six source-active organizers and equal-name records inserted in reverse ID order.
-    when: Desktop and mobile browsers follow organizer pagination across the active and inactive group boundary.
+    when: Desktop and mobile browsers load more organizers across the active and inactive group boundary.
     then:
     - Source-active organizers precede other organizers, with alphabetical name and stable ID order within each group.
-    - The second page continues the exact sequence and retains search; a page beyond the result set is empty.
+    - Loading more appends the exact remaining sequence without changing the list URL or search; a direct page URL beyond the result set is empty.
     - Organizer links resolve to the exact local organizer identity.
     test:
       file: tests/e2e/src/app/young-events/public-browse-contract.test.ts

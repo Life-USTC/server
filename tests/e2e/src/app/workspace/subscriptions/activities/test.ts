@@ -67,6 +67,117 @@ test("活动、主办方订阅和提醒入口可用", { tag: "@Young/Web" }, asy
   });
 });
 
+for (const view of ["events", "organizers", "notifications"] as const) {
+  test(`activity ${view} append in order and reset with the view`, {
+    tag: "@Young/Web",
+  }, async ({ page, account, activity, activityDb, activityRun }) => {
+    const rows = Array.from({ length: 21 }, (_, index) => ({
+      id: `${activity.youngId}-${index}`,
+      title: `Continuous ${view} ${String(index).padStart(2, "0")}`,
+      createdAt: new Date(Date.UTC(2026, 0, 1, 0, 21 - index)),
+    }));
+    await activityDb((db) =>
+      db.$transaction(async (tx) => {
+        if (view === "events") {
+          await tx.youngEvent.createMany({
+            data: rows.map((row) => ({
+              youngId: row.id,
+              name: row.title,
+              isActive: true,
+              rawJson: {},
+            })),
+          });
+          await tx.userYoungEventSubscription.createMany({
+            data: rows.map((row) => ({
+              userId: account.id,
+              youngId: row.id,
+              observedState: JSON.stringify([
+                row.title,
+                null,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+              ]),
+              createdAt: row.createdAt,
+            })),
+          });
+        } else if (view === "organizers") {
+          await tx.youngOrganizer.createMany({
+            data: rows.map((row) => ({
+              id: row.id,
+              name: row.title,
+              normalizedName: row.id,
+            })),
+          });
+          await tx.userYoungOrganizerSubscription.createMany({
+            data: rows.map((row) => ({
+              userId: account.id,
+              organizerId: row.id,
+              createdAt: row.createdAt,
+            })),
+          });
+        } else {
+          await tx.youngNotification.createMany({
+            data: rows.map((row, index) => ({
+              id: row.id,
+              userId: account.id,
+              youngId: activity.youngId,
+              kind: "event_changed",
+              title: row.title,
+              body: "Independent reminder fixture",
+              dedupeKey: row.id,
+              createdAt: row.createdAt,
+              readAt: index === 0 ? row.createdAt : null,
+            })),
+          });
+        }
+      }),
+    );
+    await activityRun(async () => {
+      const listHref = `/workspace/subscriptions/activities?view=${view}`;
+      await gotoAndWaitForReady(page, listHref);
+      const links = page.locator("main").getByRole("link", {
+        name: new RegExp(`^Continuous ${view} `),
+      });
+      await expect(links).toHaveText(rows.slice(0, 20).map((row) => row.title));
+      const endless = page.locator('[data-slot="endless-scroll"]');
+      await expect(
+        endless.getByRole("link", { name: /加载更多|Load more/ }),
+      ).toHaveAttribute("href", `${listHref}&page=2`);
+      await endless.scrollIntoViewIfNeeded();
+      await expect(links).toHaveText(rows.map((row) => row.title));
+      await expect(page).toHaveURL(listHref);
+      await expect(endless).toHaveCount(0);
+
+      if (view === "notifications") {
+        await page
+          .getByRole("radio", { name: /^(仅未读|Unread only)$/ })
+          .click();
+        await expect(page).toHaveURL(`${listHref}&unread=true`);
+        await expect(links).toHaveText(rows.slice(1).map((row) => row.title));
+        await expect(endless).toHaveCount(0);
+      }
+      const nextView = view === "events" ? "organizers" : "events";
+      await page
+        .locator('[data-shell-navigation="desktop"]')
+        .locator(
+          `a[href="/workspace/subscriptions/activities?view=${nextView}"]`,
+        )
+        .first()
+        .click();
+      await expect(page).toHaveURL(
+        `/workspace/subscriptions/activities?view=${nextView}`,
+      );
+      await expect(links).toHaveCount(0);
+      await expect(endless).toHaveCount(0);
+    });
+  });
+}
+
 for (const viewport of [
   { width: 1280, height: 800 },
   { width: 390, height: 844 },

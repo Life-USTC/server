@@ -22,7 +22,7 @@ requirements:
   category: behavior
   surfaces:
   - web
-  rule: The owner's upload-management table filters filenames, numeric file sizes and Shanghai upload dates before counting and pagination. Page navigation retains all predicates, while usage always includes every owned upload and live reservation regardless of the current filter.
+  rule: The owner's upload-management table filters filenames, numeric file sizes and Shanghai upload dates before counting and page slicing. Continuous loading appends matches while retaining all applied predicates and unsubmitted filter drafts. Usage always includes every owned upload and live reservation regardless of the current filter.
   acceptance:
     given: Twenty-five matching owned files, a size decoy, a next-Shanghai-day decoy, a foreign owner's matching file and a live reservation.
     when: The restricted application service combines name, inclusive size range and date predicates and reads both pages.

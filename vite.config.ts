@@ -109,10 +109,10 @@ export default defineConfig(({ command }) => ({
             codeSplitting: {
               groups: [
                 {
-                  // Reusing thin collection wrappers must not add an initial
-                  // request per wrapper; their shared UI dependencies load together.
+                  // Collection pages share these layout and filter wrappers;
+                  // bundle them together to avoid a request per small component.
                   name: "collection-primitives",
-                  test: /[\\/]src[\\/]lib[\\/]components[\\/](?:CollectionEmpty\.svelte|MobileListCard\.svelte|ResponsiveCollection\.svelte|collection-responsive-breakpoint\.ts)$/,
+                  test: /[\\/]src[\\/]lib[\\/]components[\\/](?:CollectionEmpty\.svelte|MobileListCard\.svelte|ResponsiveCollection\.svelte|collection-responsive-breakpoint\.ts|PageLayout\.svelte|SearchField\.svelte|FilterToolbar\.svelte)$/,
                 },
               ],
             },

@@ -1,9 +1,9 @@
 import { describe, expect, test } from "vitest";
 import {
   CATALOG_MAX_ID,
-  CATALOG_MAX_PAGE,
   CATALOG_SEARCH_MAX_LENGTH,
   CATALOG_TEXT_FILTER_MAX_LENGTH,
+  CATALOG_WEB_MAX_PAGE,
   catalogListPageHref,
   isCacheableCatalogListQuery,
   normalizeCatalogListQuery,
@@ -95,7 +95,7 @@ describe("catalog list query normalization", () => {
       ),
     );
 
-    expect(normalized.get("page")).toBe(String(CATALOG_MAX_PAGE));
+    expect(normalized.get("page")).toBe(String(CATALOG_WEB_MAX_PAGE));
     expect(normalized.get("search")).toBe(
       "x".repeat(CATALOG_SEARCH_MAX_LENGTH),
     );
@@ -191,7 +191,7 @@ describe("catalog list shared-cache admission", () => {
     ["/catalog/courses", "unknown=value"],
     ["/catalog/courses", "page=1"],
     ["/catalog/courses", "page=01"],
-    ["/catalog/courses", "page=101"],
+    ["/catalog/courses", "page=100001"],
     ["/catalog/courses", "search=%20math"],
     ["/catalog/courses", `search=${"x".repeat(CATALOG_SEARCH_MAX_LENGTH + 1)}`],
     ["/catalog/courses", "categoryId=01"],
@@ -216,16 +216,36 @@ describe("catalog list shared-cache admission", () => {
 });
 
 describe("catalogListPageHref", () => {
-  test("retains the existing page bound without rewriting filters", () => {
+  test("continues beyond page one hundred with the applied filters", () => {
+    const current = new URL(
+      "https://example.test/catalog/sections?campusId=1,32&credits=3&creditsOp=gte&page=100",
+    );
+    const next = new URL(catalogListPageHref(current, 101), current);
+    expect(next.searchParams.get("page")).toBe("101");
+    expect(
+      Object.fromEntries(
+        normalizeCatalogListQuery("/catalog/sections", next.searchParams),
+      ),
+    ).toEqual({
+      campusId: "1,32",
+      credits: "3",
+      creditsOp: "gte",
+      page: "101",
+    });
+  });
+  test("bounds the Web page without rewriting filters", () => {
     const url = new URL(
       "https://example.test/catalog/sections?campusId=2,1&credits=3&creditsOp=gte",
     );
-    const result = new URL(catalogListPageHref(url, CATALOG_MAX_PAGE + 1), url);
+    const result = new URL(
+      catalogListPageHref(url, CATALOG_WEB_MAX_PAGE + 1),
+      url,
+    );
     expect(Object.fromEntries(result.searchParams)).toEqual({
       campusId: "2,1",
       credits: "3",
       creditsOp: "gte",
-      page: String(CATALOG_MAX_PAGE),
+      page: String(CATALOG_WEB_MAX_PAGE),
     });
   });
   test("only changes page and preserves repeated and unknown parameters", () => {

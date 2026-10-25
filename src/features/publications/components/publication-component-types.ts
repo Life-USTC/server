@@ -8,6 +8,7 @@ import type {
   PublicPublicationSourceDirectory,
   PublicPublicationSourceSummary,
 } from "@/features/publications/server/publication-source-directory-service";
+import type { EndlessScrollLabels } from "@/lib/navigation/endless-list.svelte";
 import type { TableFilterLabels } from "@/lib/table-filters";
 
 export type PublicationListFilters = {
@@ -48,6 +49,7 @@ export type PublicationDetailPageData = {
 export type PublicationObject = PublicPublicationObject;
 
 export type PublicationPageCopy = {
+  endlessScroll: EndlessScrollLabels;
   title: string;
   pageTitle: string;
   pageDescription: string;
@@ -61,8 +63,6 @@ export type PublicationPageCopy = {
   searchPlaceholder: string;
   applyFilters: string;
   clearFilters: string;
-  resultsCount: string;
-  resultsCountOne: string;
   emptyTitle: string;
   emptyDescription: string;
   author: string;
@@ -84,9 +84,6 @@ export type PublicationPageCopy = {
   notFoundTitle: string;
   notFoundDescription: string;
   missingDate: string;
-  previousPage: string;
-  nextPage: string;
-  pagination: string;
   objectLabels: Record<string, string>;
   foldToggle: string;
   foldSiblingCount: string;

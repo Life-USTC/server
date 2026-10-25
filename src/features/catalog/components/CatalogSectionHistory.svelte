@@ -1,62 +1,23 @@
 <script lang="ts">
 import type { Snippet } from "svelte";
-import ListPagination from "#lib/components/ListPagination.svelte";
-import ResultsSummary from "#lib/components/ResultsSummary.svelte";
-import type { PaginatedResponse } from "@/lib/pagination";
-import { page as currentPage } from "$app/state";
+import EndlessScroll from "#lib/components/EndlessScroll.svelte";
+import type {
+  EndlessScrollLabels,
+  EndlessScrollState,
+} from "@/lib/navigation/endless-list.svelte";
 
 let {
-  pagination,
-  shown,
-  summaryTemplate,
-  ariaLabel,
-  nextLabel,
-  previousLabel,
+  state,
+  labels,
   children,
 }: {
-  pagination: PaginatedResponse<unknown>["pagination"];
-  shown: number;
-  summaryTemplate: string;
-  ariaLabel: string;
-  nextLabel: string;
-  previousLabel: string;
+  state: EndlessScrollState;
+  labels: EndlessScrollLabels;
   children: Snippet;
 } = $props();
-
-const { page, pageSize, total, totalPages } = $derived(pagination);
-const summary = $derived(
-  summaryTemplate
-    .replace("{from}", String(shown ? (page - 1) * pageSize + 1 : 0))
-    .replace("{to}", String(shown ? (page - 1) * pageSize + shown : 0))
-    .replace("{total}", String(total)),
-);
-
-function pageHref(targetPage: number) {
-  const params = new URLSearchParams(currentPage.url.search);
-
-  if (targetPage === 1) params.delete("sectionsPage");
-  else params.set("sectionsPage", String(targetPage));
-
-  return `${currentPage.url.pathname}${params.size ? `?${params}` : ""}#sections`;
-}
 </script>
 
 <div class="grid gap-4" data-testid="section-history">
-  <ResultsSummary
-    summary={summary}
-    page={page}
-    totalPages={totalPages}
-  />
-
   {@render children()}
-  <ListPagination
-    page={page}
-    totalPages={totalPages}
-    pageHref={pageHref}
-    ariaLabel={ariaLabel}
-    nextLabel={nextLabel}
-    nextPageLabel={nextLabel}
-    previousLabel={previousLabel}
-    previousPageLabel={previousLabel}
-  />
+  <EndlessScroll {state} {labels} />
 </div>

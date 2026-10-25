@@ -1,22 +1,21 @@
 <script lang="ts">
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
-import ListPagination from "#lib/components/ListPagination.svelte";
+import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
-import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import { resolveStatusToken } from "#lib/ui/action-status-tokens.js";
-import { catalogShowingSummary } from "@/features/catalog/lib/catalog-results-summary";
 import type {
   YoungEventSummary,
   YoungOrganizerSummary,
   YoungSourceFreshness,
 } from "@/features/young/server/young-event-service";
+import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { tableFilterValues } from "@/lib/table-filters";
 import { page as appPage } from "$app/state";
@@ -39,12 +38,7 @@ type Props = {
   tableFilters: Record<string, string>;
   organizers: Pick<YoungOrganizerSummary, "id" | "name">[];
   source: YoungSourceFreshness;
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
+  endless: EndlessScrollState;
 };
 
 let {
@@ -53,7 +47,7 @@ let {
   data,
   tableFilters,
   organizers,
-  pagination,
+  endless,
   source,
 }: Props = $props();
 
@@ -107,25 +101,11 @@ function summaryValue(field: (typeof fields)[number], value: string) {
 const youngCopy = $derived(copy.youngEvents);
 const commonLabels = $derived(copy.common);
 
-function pageHref(targetPage: number) {
-  const params = new URLSearchParams(appPage.url.search);
-  params.set("page", String(targetPage));
-  return `${appPage.url.pathname}?${params}`;
-}
-
 const descriptionParts = $derived(
   youngCopy.description.split(youngCopy.platformName),
 );
 const locale = $derived(appPage.data.locale === "en-us" ? "en-us" : "zh-cn");
 const groups = $derived(groupYoungEventsByStartDate(data));
-const summary = $derived(
-  catalogShowingSummary(
-    pagination.total === 1 ? youngCopy.showingOne : youngCopy.showing,
-    data.length,
-    pagination.total,
-  ),
-);
-
 function listTime(event: YoungEventSummary) {
   return youngListTimeLabel(event.startAt, event.isActive, youngCopy);
 }
@@ -162,19 +142,7 @@ function listStatus(event: YoungEventSummary) {
 
 {#snippet paginationFooter()}
   <div class="grid w-full gap-3">
-    {#if pagination.totalPages > 1}
-      <ListPagination
-        ariaLabel={commonLabels.pagination}
-        class="py-0"
-        nextLabel={commonLabels.next}
-        nextPageLabel={commonLabels.nextPage}
-        page={pagination.page}
-        pageHref={pageHref}
-        previousLabel={commonLabels.previous}
-        previousPageLabel={commonLabels.previousPage}
-        totalPages={pagination.totalPages}
-      />
-    {/if}
+    <EndlessScroll state={endless} labels={commonLabels.endlessScroll} />
     <YoungSourceNote labels={youngCopy} source={source} />
   </div>
 {/snippet}
@@ -200,12 +168,6 @@ function listStatus(event: YoungEventSummary) {
     {@render description()}
   {/snippet}
   <section class="grid min-w-0 gap-3">
-    <ResultsSummary
-      summary={summary}
-      page={pagination.page}
-      totalPages={pagination.totalPages}
-    />
-
       <div class="grid min-w-0 gap-3" data-slot="table-filter-toolbar">
       <form id="young-event-filters" action="/catalog/young-events" method="get" class="flex min-w-0 flex-wrap items-center gap-3" data-slot="table-filter-apply">
         {#each Object.entries(draft).filter(([, value]) => value) as [name, value]}

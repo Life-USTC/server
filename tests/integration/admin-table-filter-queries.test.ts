@@ -3,6 +3,47 @@ import { getAdminModerationPage } from "@/features/admin/server/admin-moderation
 import { getAdminUsersPage } from "@/features/admin/server/admin-users-page-data";
 import { adminGovernanceTest as it } from "../shared/admin-governance-fixture";
 
+it("admin.user-pages-stay-disjoint-for-equal-created-at", {
+  tags: ["@Admin/Web"],
+}, async ({ governance }) => {
+  const { db, run, request } = governance;
+  const users = Array.from({ length: 21 }, (_, index) => ({
+    id: `stable-page-${String(index).padStart(2, "0")}`,
+    name: `Stable pagination member ${index}`,
+    email: `stable-page-${index}@example.test`,
+    createdAt: new Date(index === 0 ? "2026-01-01" : "2020-01-01"),
+  }));
+  await db.user.createMany({ data: users });
+  const expectedIds = users.map((user) => user.id);
+  let initialOrder: string[] = [];
+  for (const updated of [false, true]) {
+    if (updated)
+      await db.user.update({
+        where: { id: users[0].id },
+        data: { name: "Stable pagination member updated" },
+      });
+    const pages = [];
+    for (const page of [1, 2]) {
+      const req = request(
+        `/admin/users?search=Stable+pagination+member&page=${page}`,
+      );
+      pages.push(await run(() => getAdminUsersPage(req, new URL(req.url))));
+    }
+    expect(pages.map((page) => page.users.length)).toEqual([20, 1]);
+    const ids = pages.flatMap((page) => page.users.map((user) => user.id));
+    expect([...ids].sort()).toEqual(expectedIds);
+    if (updated) {
+      expect([...initialOrder.slice(0, 20), ...ids.slice(20)].sort()).toEqual(
+        expectedIds,
+      );
+      expect(ids).toEqual(initialOrder);
+    } else initialOrder = ids;
+    expect(pages[0].users[0].name).toBe(
+      updated ? "Stable pagination member updated" : users[0].name,
+    );
+  }
+});
+
 it("admin.table-column-filters-before-limits", {
   tags: ["@Admin/Web"],
 }, async ({ governance }) => {

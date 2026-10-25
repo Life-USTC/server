@@ -10,7 +10,7 @@
  * - Search input (searchbox) with submit and clear buttons
  * - Shared filter drafts with multiple choices and one Apply action
  * - Date-grouped rows with links to /catalog/young-events/{youngId}
- * - URL-driven pagination
+ * - Continuous loading with URL-preserved filters
  * - Empty state when no events match
  *
  * ## Edge Cases

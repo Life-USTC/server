@@ -8,5 +8,8 @@ const messages = {
 } as const;
 
 export function getPublicationPageCopy(locale: AppLocale) {
-  return messages[locale].publications;
+  return {
+    ...messages[locale].publications,
+    endlessScroll: messages[locale].common.endlessScroll,
+  };
 }

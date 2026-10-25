@@ -1,6 +1,6 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
-import ListPagination from "#lib/components/ListPagination.svelte";
+import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import {
   catalogActiveFilters,
   catalogFilterDraft,
@@ -9,9 +9,8 @@ import {
   type CatalogNamed,
   catalogPrimaryName as primaryName,
 } from "@/features/catalog/lib/catalog-list-display";
-import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
+import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import type { TableFilterField } from "@/lib/table-filters";
-import { page as routePage } from "$app/state";
 import CatalogColumnFilter from "./CatalogColumnFilter.svelte";
 import CatalogFilters from "./CatalogFilters.svelte";
 import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
@@ -35,17 +34,15 @@ type PageData = {
   locale: string;
   pagination: { page: number; total: number; totalPages: number };
 };
-let { data }: { data: PageData } = $props();
+let { data, endless }: { data: PageData; endless: EndlessScrollState } =
+  $props();
 const formId = "teacher-filters";
-let draft = $derived(catalogFilterDraft(data.filters));
+const appliedFilters = $derived(data.filters);
+let draft = $derived(catalogFilterDraft(appliedFilters));
 const commonLabels = $derived(data.labels.common);
 const teacherLabels = $derived(data.labels.teachers);
-const totalPages = $derived(data.pagination.totalPages);
 function update(patch: Record<string, string>) {
   draft = { ...draft, ...patch };
-}
-function pageHref(targetPage: number) {
-  return catalogListPageHref(new URL(routePage.url.href), targetPage);
 }
 const options = (items: Option[]) =>
   items.map((item) => ({ value: String(item.id), label: primaryName(item) }));
@@ -120,21 +117,16 @@ const activeFilters = $derived(
     commonLabels.tableFilters,
   ),
 );
-const selectedDepartment = $derived(
-  data.filterOptions.departments.find(
-    (department) => data.filters.departmentId === String(department.id),
-  ),
-);
 </script>
 
 {#snippet paginationFooter()}
-  <ListPagination ariaLabel={commonLabels.pagination} class="py-0" nextLabel={commonLabels.next} nextPageLabel={commonLabels.nextPage} page={data.pagination.page} {pageHref} previousLabel={commonLabels.previous} previousPageLabel={commonLabels.previousPage} {totalPages} />
+  <EndlessScroll state={endless} labels={commonLabels.endlessScroll} />
 {/snippet}
 {#snippet controls()}
   <CatalogFilters {activeFilters} clearHref="/catalog/teachers" clearLabel={commonLabels.clear} filterTitle={teacherLabels.filterTitle} searchLabel={teacherLabels.searchLabel} searchPlaceholder={teacherLabels.searchNameOrCode} values={draft} onchange={update} applyLabel={commonLabels.applyFilters} {formId}>
     {#each extraFilters as [key, filter] (key)}<CatalogColumnFilter {...filter} idPrefix={"teacher-extra-" + key} />{/each}
   </CatalogFilters>
 {/snippet}
-<CollectionPage description={teacherLabels.subtitle} footer={totalPages > 1 ? paginationFooter : undefined} title={teacherLabels.title} toolbar={controls}>
-  <TeachersResults {columnFilters} {commonLabels} filters={data.filters} page={data.pagination.page} primaryName={primaryName} {selectedDepartment} {teacherLabels} teachers={data.data} total={data.pagination.total} {totalPages} />
+<CollectionPage description={teacherLabels.subtitle} footer={endless.hasMore ? paginationFooter : undefined} title={teacherLabels.title} toolbar={controls}>
+  <TeachersResults {commonLabels} {columnFilters} primaryName={primaryName} {teacherLabels} teachers={data.data} />
 </CollectionPage>

@@ -1,3 +1,4 @@
+import type { EndlessScrollLabels } from "@/lib/navigation/endless-list.svelte";
 import type { TableFilterLabels } from "@/lib/table-filters";
 
 export type AdminUserRow = {
@@ -69,15 +70,13 @@ export type AdminUsersAdminCopy = {
 };
 
 export type AdminUsersCommonCopy = {
+  endlessScroll: EndlessScrollLabels;
   applyFilters: string;
   tableFilters: TableFilterLabels;
   clear: string;
   home: string;
   next: string;
-  nextPage: string;
-  pagination: string;
   previous: string;
-  previousPage: string;
   search: string;
 };
 
@@ -106,13 +105,9 @@ export type AdminUsersPageCopy = AdminUsersCopy & {
   liftFailed: string;
   liftSuccess: string;
   noResults: string;
-  showing: string;
-  showingOne: string;
   suspendFailed: string;
   suspendSuccess: string;
   until: string;
   updateFailed: string;
   updateSuccess: string;
 };
-
-export type AdminUsersPageHref = (page: number) => string;

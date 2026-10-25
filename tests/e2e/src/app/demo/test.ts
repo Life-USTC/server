@@ -485,19 +485,32 @@ for (const locale of ["zh-cn", "en-us"] as const) {
           name: text.apply,
           exact: true,
         });
-        const semesterTrigger = page
-          .locator("#subscriptions-filters")
-          .getByRole("button", { name: text.semester, exact: true });
+        const filters = page.locator("#subscriptions-filters");
+        await expect(filters).toHaveCount(1);
+        await expect(apply).toHaveCount(1);
+        for (const name of [
+          text.semester,
+          text.course,
+          text.teacher,
+          text.credits,
+        ])
+          await expect(
+            page.getByRole("main").getByRole("button", { name, exact: true }),
+          ).toHaveCount(1);
+        const semesterTrigger = filters.getByRole("button", {
+          name: text.semester,
+          exact: true,
+        });
         await semesterTrigger.click();
         const semester = page.locator('[data-filter-field="semester"]');
         await semester
           .getByRole("checkbox", { name: text.autumn, exact: true })
           .check();
         await page.keyboard.press("Escape");
-        const credits = page
-          .getByRole("button", { name: text.credits, exact: true })
-          .filter({ visible: true })
-          .first();
+        const credits = filters.getByRole("button", {
+          name: text.credits,
+          exact: true,
+        });
         await credits.click();
         const dialog = page.getByRole("dialog", {
           name: text.credits,
@@ -526,21 +539,20 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         await page.keyboard.press("Escape");
         await apply.click();
         await expectSubscriptionSample(page, locale);
-        const teacherTrigger = page
-          .getByRole("main")
-          .getByRole("button", { name: text.teacher, exact: true })
-          .filter({ visible: true })
-          .first();
+        const teacherTrigger = filters.getByRole("button", {
+          name: text.teacher,
+          exact: true,
+        });
         await teacherTrigger.click();
         const teacher = page.locator('[data-filter-field="teacher"]');
         await teacher
           .getByRole("checkbox", { name: text.teachers[0], exact: true })
           .check();
         await page.keyboard.press("Escape");
-        const courseTrigger = page
-          .getByRole("button", { name: text.course, exact: true })
-          .filter({ visible: true })
-          .first();
+        const courseTrigger = filters.getByRole("button", {
+          name: text.course,
+          exact: true,
+        });
         await courseTrigger.click();
         const course = page.getByRole("dialog", {
           name: text.course,
