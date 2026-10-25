@@ -11,6 +11,19 @@ policy_refs:
 - rendering-and-cache
 - audit
 requirements:
+- id: description.database-write-boundary
+  category: authorization
+  rule: PostgreSQL forces row security on Description and DescriptionEdit while keeping content and history public. Collaborative inserts and updates require an existing, unsuspended transaction actor and matching editor attribution. Runtime writers cannot reassign an existing description target, delete descriptions, or rewrite or delete history. Account deletion preserves content and history while clearing the deleted user's attribution.
+  acceptance:
+    given: An isolated production-role database has public descriptions, ordinary collaborators, missing and suspended actors, and a fresh deletion-authorizing session.
+    when: Direct runtime transactions attempt content and history writes, Homework services collaborate, and the account-deletion service removes an editor.
+    then:
+    - Missing, empty, nonexistent and actively suspended identities cannot write; another editor or null attribution is rejected.
+    - Active collaborators and users with expired or lifted suspensions can write with their own attribution; successful and failed transactions do not retain actor context.
+    - Targets and existing history remain immutable to runtime writers, while anonymous reads and account-deletion SetNull behavior remain available.
+    test:
+      file: tests/integration/description-rls.test.ts
+      name: allows collaborative editors but rejects forged attribution and immutable targets
 - id: description.scoped-rest-viewer
   category: authorization
   rule: Description REST reads preserve public content and edit history while projecting current session or explicitly scoped OAuth viewer permissions. A supplied Bearer token requires a valid REST audience, active grant and community.description read or write scope; rejected credentials return 401 without session or anonymous fallback. Reads report current suspension, do not change description history and remain private and non-cacheable.

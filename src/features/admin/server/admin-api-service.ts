@@ -387,7 +387,7 @@ export async function moderateDescription(
     return { ok: false as const, reason: "invalid_content" as const };
   }
 
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await withUserDbContext(adminUserId, async (tx) => {
     const existing = await tx.description.findUnique({
       where: { id },
       select: { id: true, content: true },

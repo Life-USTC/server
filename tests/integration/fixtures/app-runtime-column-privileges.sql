@@ -8,6 +8,10 @@ SELECT string_agg(
 )
 FROM (
   VALUES
+    ('public.Description.content:UPDATE'),
+    ('public.Description.lastEditedAt:UPDATE'),
+    ('public.Description.lastEditedById:UPDATE'),
+    ('public.Description.updatedAt:UPDATE'),
     ('public.SectionTeacher.retiredAt:UPDATE'),
     ('public.SectionTeacher.updatedAt:UPDATE'),
     ('public.User.calendarFeedToken:UPDATE'),

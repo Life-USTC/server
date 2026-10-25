@@ -1,6 +1,6 @@
 import { scheduleInvalidateCalendarExportsForSection } from "@/features/calendar/server/calendar-export-invalidation";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import {
   type HomeworkAuditContext,
   homeworkAuditAttribution,
@@ -70,7 +70,7 @@ export async function createHomeworkForSection(
 
   const sectionId = sectionResolution.sectionId;
 
-  const homework = await prisma.$transaction(async (tx) => {
+  const homework = await withUserDbContext(userId, async (tx) => {
     const homework = await tx.homework.create({
       data: {
         sectionId,
