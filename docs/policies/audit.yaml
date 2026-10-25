@@ -39,7 +39,7 @@ requirements:
     corresponding audit row in the same transaction.
   acceptance:
     given: A static-import scope contains a missing active section and a reappearing retired section.
-    when: The actual migrator-connected reconciler encounters invalid JSON in its final audit write, then
+    when: The actual restricted importer-connected reconciler encounters invalid JSON in its final audit write, then
       retries.
     then:
     - Failure rolls back both lifecycle changes and every audit row.
@@ -47,6 +47,20 @@ requirements:
     test:
       file: tests/integration/audit-section-lifecycle.test.ts
       name: audit.writer-3
+- id: audit.importer-identity
+  category: privacy
+  topic: writer
+  rule: The dedicated static-import database role is restricted to catalog facts and lifecycle audit insertion. It cannot read private or authentication data, impersonate audit actors, perform DDL, or assume privileged roles.
+  acceptance:
+    given: The production role bootstrap is applied to an isolated PostgreSQL database with independent importer credentials.
+    when: The importer exercises its actual privileges, forges a user context, and appends lifecycle audit records.
+    then:
+    - Catalog imports and their audit-trigger side effects work through the restricted role.
+    - Private reads, unrelated audit actions or targets, attributed audit insertion, DDL and role escalation fail.
+    - Existing application and authentication audit insertion remains valid.
+    test:
+      file: tests/integration/static-importer-rls.test.ts
+      name: only appends lifecycle audit rows without private attribution
 - id: audit.writer-4
   category: privacy
   topic: writer

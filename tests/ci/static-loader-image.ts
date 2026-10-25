@@ -9,6 +9,11 @@ assert.ok(
   databaseUrl,
   "DATABASE_URL must point to a disposable PostgreSQL service",
 );
+const importerUrl = process.env.IMPORTER_DATABASE_URL;
+assert.ok(
+  importerUrl,
+  "IMPORTER_DATABASE_URL must use the restricted importer role",
+);
 const image = "life-ustc-static-loader:check";
 
 const directory = mkdtempSync(join(tmpdir(), "static-loader-image-"));
@@ -17,29 +22,26 @@ try {
   execFileSync("bun", ["tests/fixtures/static-loader-snapshot.ts", snapshot], {
     stdio: "inherit",
   });
-  execFileSync(
-    "docker",
-    [
-      "run",
-      "--rm",
-      "--network",
-      "host",
-      "--volume",
-      `${directory}:/tmp/static-loader-report:Z`,
-      "--volume",
-      `${snapshot}:/tmp/static-loader-fixture.sqlite:ro,Z`,
-      "--env",
-      "DATABASE_URL",
-      "--env",
-      "STATIC_SNAPSHOT_PATH=/tmp/static-loader-fixture.sqlite",
-      "--env",
-      "STATIC_LOADER_DRY_RUN=true",
-      "--env",
-      "STATIC_LOADER_STATS_FILE=/tmp/static-loader-report/report.json",
-      image,
-    ],
-    { stdio: "inherit" },
-  );
+  const dockerArguments = [
+    "run",
+    "--rm",
+    "--network",
+    "host",
+    "--volume",
+    `${directory}:/tmp/static-loader-report:Z`,
+    "--volume",
+    `${snapshot}:/tmp/static-loader-fixture.sqlite:ro,Z`,
+    "--env",
+    "DATABASE_URL",
+    "--env",
+    "STATIC_SNAPSHOT_PATH=/tmp/static-loader-fixture.sqlite",
+    "--env",
+    "STATIC_LOADER_DRY_RUN=true",
+    "--env",
+    "STATIC_LOADER_STATS_FILE=/tmp/static-loader-report/report.json",
+    image,
+  ];
+  execFileSync("docker", dockerArguments, { stdio: "inherit" });
 
   const report = JSON.parse(
     readFileSync(join(directory, "report.json"), "utf8"),
@@ -74,6 +76,54 @@ try {
     );
   }
 
+  // The default image entrypoint above still verifies migration plus dry-run.
+  // Apply the exact role bootstrap, then exercise its loader with no DDL rights.
+  execFileSync(
+    "psql",
+    [
+      databaseUrl,
+      "-X",
+      "--quiet",
+      "--single-transaction",
+      "--file=tests/integration/fixtures/rls-runtime-bootstrap.sql",
+    ],
+    { stdio: "inherit" },
+  );
+  const importerRole = execFileSync(
+    "psql",
+    [
+      importerUrl,
+      "-X",
+      "-qAt",
+      "--set=ON_ERROR_STOP=1",
+      "--command",
+      "SELECT current_user",
+    ],
+    { encoding: "utf8" },
+  ).trim();
+  assert.equal(importerRole, "life_ustc_importer");
+  const restrictedArguments = [
+    ...dockerArguments.slice(0, -1),
+    "--entrypoint",
+    "scripts/load-static-sqlite.sh",
+    image,
+  ];
+  rmSync(join(directory, "report.json"));
+  execFileSync("docker", restrictedArguments, {
+    stdio: "inherit",
+    env: { ...process.env, DATABASE_URL: importerUrl },
+  });
+  const restrictedReport = JSON.parse(
+    readFileSync(join(directory, "report.json"), "utf8"),
+  );
+  assert.equal(restrictedReport.mode, "dry-run");
+  assert.equal(restrictedReport.outcome, "rolled-back");
+  assert.deepEqual(
+    restrictedReport.plannedRecordCounts,
+    report.plannedRecordCounts,
+  );
+  assert.deepEqual(restrictedReport.reconciliation, report.reconciliation);
+
   const remainingRows = execFileSync(
     "psql",
     [
@@ -98,7 +148,9 @@ try {
     "0",
     "Dry-run must leave the real database empty",
   );
-  console.log("Static loader image and dry-run rollback passed.");
+  console.log(
+    "Static loader image, restricted importer and dry-run rollback passed.",
+  );
 } finally {
   rmSync(directory, { recursive: true, force: true });
 }

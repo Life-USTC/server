@@ -65,11 +65,15 @@ if (mode === "prepare") {
   }
 } else {
   const [snapshotPath, reportPath] = [firstPath, secondPath];
-  // Static sync runs with the migrator role. The parent owns a separate observer.
-  const importerUrl = process.env.FUNCTION_OWNER_DATABASE_URL;
-  if (!importerUrl) throw new Error("FUNCTION_OWNER_DATABASE_URL is required");
+  const importerUrl = process.env.IMPORTER_DATABASE_URL;
+  if (!importerUrl) throw new Error("IMPORTER_DATABASE_URL is required");
   const importer = createTestPrisma(importerUrl);
   try {
+    const [role] = await importer.$queryRaw<
+      Array<{ currentUser: string }>
+    >`SELECT current_user AS "currentUser"`;
+    if (role.currentUser !== "life_ustc_importer")
+      throw new Error("Static import requires the restricted importer role");
     const report = await runImport(importer, {
       snapshotPath,
       snapshotSha256: createHash("sha256")

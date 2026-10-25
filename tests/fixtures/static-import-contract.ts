@@ -13,9 +13,9 @@ const scenario = process.argv[2];
 const path = process.argv[3];
 if (!path) throw new Error("Expected a test-owned snapshot path");
 const fixture = createFixturePrisma();
-// The production static-sync job uses MIGRATOR_DATABASE_URL. Keep its
-// privileged importer connection separate from the fixture inspector.
-const importer = createTestPrisma(process.env.FUNCTION_OWNER_DATABASE_URL);
+const importerUrl = process.env.IMPORTER_DATABASE_URL;
+if (!importerUrl) throw new Error("IMPORTER_DATABASE_URL is required");
+const importer = createTestPrisma(importerUrl);
 const base = 1500000000;
 const semesterJwId = base + 401;
 const sectionJwId = base + 101;
@@ -74,6 +74,10 @@ async function presenceFixture() {
   return { current, missing };
 }
 try {
+  const [role] = await importer.$queryRaw<
+    Array<{ currentUser: string }>
+  >`SELECT current_user AS "currentUser"`;
+  strictEqual(role.currentUser, "life_ustc_importer");
   execFileSync("bun", [
     fileURLToPath(new URL("./static-loader-snapshot.ts", import.meta.url)),
     path,

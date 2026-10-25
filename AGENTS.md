@@ -74,6 +74,7 @@ export FUNCTION_OWNER_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:554
 export DATABASE_URL="postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:55432/life_ustc_test"
 export AUTH_DATABASE_URL="postgresql://life_ustc_auth_runtime:auth-runtime-test-password@127.0.0.1:55432/life_ustc_test"
 export MAINTENANCE_DATABASE_URL="postgresql://life_ustc_maintenance_runtime:maintenance-runtime-test-password@127.0.0.1:55432/life_ustc_test"
+export IMPORTER_DATABASE_URL="postgresql://life_ustc_importer:importer-test-password@127.0.0.1:55432/life_ustc_test"
 export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE="$DATABASE_URL"
 export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_AUTH="$AUTH_DATABASE_URL"
 export CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE_MAINTENANCE="$MAINTENANCE_DATABASE_URL"

@@ -20,6 +20,7 @@ env:
   # Only jobs declaring PostgreSQL connect; builds use the same datasource URL.
   FUNCTION_OWNER_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_test
   DATABASE_URL: postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/life_ustc_test
+  IMPORTER_DATABASE_URL: postgresql://life_ustc_importer:importer-test-password@127.0.0.1:5432/life_ustc_test
   AUTH_DATABASE_URL: postgresql://life_ustc_auth_runtime:auth-runtime-test-password@127.0.0.1:5432/life_ustc_test
   MAINTENANCE_DATABASE_URL: postgresql://life_ustc_maintenance_runtime:maintenance-runtime-test-password@127.0.0.1:5432/life_ustc_test
   CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: postgresql://life_ustc_runtime:runtime-test-password@127.0.0.1:5432/life_ustc_test

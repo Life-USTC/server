@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ImportReport } from "@/static-loader/import-types";
 import { nodeProtocolTest } from "./node-protocol-fixture";
+import { staticImporterConnection } from "./static-importer-connection";
 
 export type StaticImportSnapshot = {
   metadata: Record<string, string>;
@@ -40,6 +41,9 @@ export const staticImportProcessTest = nodeProtocolTest.extend<{
           stdio: ["ignore", "pipe", "pipe"],
           env: {
             ...process.env,
+            IMPORTER_DATABASE_URL: staticImporterConnection(
+              isolatedDatabase.name,
+            ),
             FUNCTION_OWNER_DATABASE_URL: connections.owner,
             DATABASE_URL: connections.app,
             AUTH_DATABASE_URL: connections.auth,

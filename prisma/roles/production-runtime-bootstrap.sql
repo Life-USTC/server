@@ -24,6 +24,13 @@ WHERE NOT EXISTS (
   SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_maintenance_runtime'
 ) \gexec
 
+-- Import login is provisioned separately; a new role starts without LOGIN.
+SELECT 'CREATE ROLE life_ustc_importer'
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_importer') \gexec
+
+ALTER ROLE life_ustc_importer
+  NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT NOBYPASSRLS;
+
 SELECT 'CREATE ROLE life_ustc_function_owner'
 WHERE NOT EXISTS (
   SELECT 1 FROM pg_roles WHERE rolname = 'life_ustc_function_owner'
@@ -76,7 +83,8 @@ WHERE member.rolname IN (
   'life_ustc_runtime',
   'life_ustc_auth_runtime',
   'life_ustc_maintenance_runtime',
-  'life_ustc_function_owner'
+  'life_ustc_function_owner',
+  'life_ustc_importer'
 )
 \gexec
 
@@ -88,7 +96,8 @@ WHERE parent.rolname IN (
   'life_ustc_runtime',
   'life_ustc_auth_runtime',
   'life_ustc_maintenance_runtime',
-  'life_ustc_function_owner'
+  'life_ustc_function_owner',
+  'life_ustc_importer'
 )
 \gexec
 
@@ -103,21 +112,24 @@ ALTER DEFAULT PRIVILEGES
     life_ustc_runtime,
     life_ustc_auth_runtime,
     life_ustc_maintenance_runtime,
-    life_ustc_function_owner;
+    life_ustc_function_owner,
+    life_ustc_importer;
 ALTER DEFAULT PRIVILEGES
   REVOKE ALL ON SEQUENCES
   FROM PUBLIC,
     life_ustc_runtime,
     life_ustc_auth_runtime,
     life_ustc_maintenance_runtime,
-    life_ustc_function_owner;
+    life_ustc_function_owner,
+    life_ustc_importer;
 ALTER DEFAULT PRIVILEGES
   REVOKE EXECUTE ON FUNCTIONS
   FROM PUBLIC,
     life_ustc_runtime,
     life_ustc_auth_runtime,
     life_ustc_maintenance_runtime,
-    life_ustc_function_owner;
+    life_ustc_function_owner,
+    life_ustc_importer;
 ALTER DEFAULT PRIVILEGES FOR ROLE life_ustc_function_owner
   REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 
@@ -150,7 +162,8 @@ CROSS JOIN (
     ('life_ustc_runtime'),
     ('life_ustc_auth_runtime'),
     ('life_ustc_maintenance_runtime'),
-    ('life_ustc_function_owner')
+    ('life_ustc_function_owner'),
+    ('life_ustc_importer')
 ) AS runtime_role(role_name)
 WHERE namespace.nspname = 'public'
   AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
@@ -172,6 +185,15 @@ REVOKE ALL ON SCHEMA public FROM life_ustc_function_owner;
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM life_ustc_function_owner;
 REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM life_ustc_function_owner;
 REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM life_ustc_function_owner;
+
+REVOKE ALL PRIVILEGES ON DATABASE :"database_name" FROM life_ustc_importer;
+REVOKE ALL ON SCHEMA public FROM life_ustc_importer;
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM life_ustc_importer;
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM life_ustc_importer;
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM life_ustc_importer;
+GRANT CONNECT ON DATABASE :"database_name" TO life_ustc_importer;
+GRANT USAGE ON SCHEMA public TO life_ustc_importer;
+\ir importer-table-grants.sql
 
 GRANT CONNECT ON DATABASE :"database_name" TO life_ustc_runtime;
 GRANT USAGE ON SCHEMA public TO life_ustc_runtime;
@@ -383,6 +405,20 @@ ALTER TABLE "OAuthGrantUsageDaily" ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "AuditLog_append_only" ON "AuditLog";
 CREATE POLICY "AuditLog_append_only" ON "AuditLog"
   FOR INSERT TO PUBLIC WITH CHECK (true);
+DROP POLICY IF EXISTS "AuditLog_importer_append" ON "AuditLog";
+CREATE POLICY "AuditLog_importer_append" ON "AuditLog"
+  AS RESTRICTIVE FOR INSERT TO life_ustc_importer
+  WITH CHECK (
+    "action" IN ('section_retire', 'section_reactivate')
+    AND "targetType" = 'section'
+    AND "targetId" IS NOT NULL
+    AND "userId" IS NULL AND "subjectUserId" IS NULL
+    AND "oauthClientId" IS NULL AND "oauthGrantId" IS NULL
+    AND "sessionId" IS NULL AND "requestId" IS NULL
+    AND "ipAddress" IS NULL AND "userAgent" IS NULL
+    AND "outcome" = 'success' AND "channel" = 'web'
+    AND "metadata" ->> 'source' = 'static-loader'
+  );
 DROP POLICY IF EXISTS "AuditLog_scoped_reader" ON "AuditLog";
 CREATE POLICY "AuditLog_scoped_reader" ON "AuditLog"
   FOR SELECT TO PUBLIC

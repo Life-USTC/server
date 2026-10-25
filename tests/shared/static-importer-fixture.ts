@@ -1,5 +1,6 @@
 import { nodeProtocolTest } from "./node-protocol-fixture";
 import { createTestPrisma, type TestPrismaClient } from "./prisma";
+import { staticImporterConnection } from "./static-importer-connection";
 
 export const staticImporterTest = nodeProtocolTest.extend<{
   importer: TestPrismaClient;
@@ -8,10 +9,20 @@ export const staticImporterTest = nodeProtocolTest.extend<{
     { isolatedDatabase, protocolRuntime, onTestFinished },
     use,
   ) => {
-    // Production static sync uses the migrator role. Keep the importer separate
-    // from the owner that prepares fixtures and observes committed results.
-    const importer = createTestPrisma(isolatedDatabase.connections.owner);
+    const importer = createTestPrisma(
+      staticImporterConnection(isolatedDatabase.name),
+    );
     try {
+      const [role] = await importer.$queryRaw<
+        Array<{ currentUser: string; sessionUser: string }>
+      >`SELECT current_user AS "currentUser", session_user AS "sessionUser"`;
+      if (
+        role.currentUser !== "life_ustc_importer" ||
+        role.sessionUser !== "life_ustc_importer"
+      )
+        throw new Error(
+          "Static import tests require the independent importer role",
+        );
       await use(importer);
     } finally {
       // Admitted workflows/requests finish before their importer is disconnected.
