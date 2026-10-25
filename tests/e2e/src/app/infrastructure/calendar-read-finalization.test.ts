@@ -1,4 +1,7 @@
-import { expect } from "@playwright/test";
+import { readdirSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { expect, type Request, type Response } from "@playwright/test";
+import { parse } from "jsonc-parser";
 import { createDeferred } from "../../../../shared/deferred";
 import type { ProducerObservation } from "../../../utils/calendar-effects";
 import { withHomeworkEffects } from "../../../utils/homework-effects";
@@ -15,6 +18,12 @@ for (const scenario of [
   }, async ({ page, isolatedWorker, run }) => {
     const account = await run(() => isolatedWorker.createActor());
     const dispatched = scenario.startsWith("completed");
+    const assetErrors: unknown[] = [];
+    const terminals: Promise<{
+      request: Request;
+      response?: Response | null;
+      error?: unknown;
+    }>[] = [];
     const workflow = run(() =>
       withHomeworkEffects(
         {
@@ -30,14 +39,18 @@ for (const scenario of [
           expectReadCancellation,
           checkpoint,
         }) => {
-          const admitted = createDeferred();
+          const admitted = createDeferred<Request>();
+          const scriptAdmitted = createDeferred<Request>();
           const release = createDeferred();
           const continued = createDeferred();
+          let scriptPath: string | undefined;
+          let scriptOperation: Promise<void> | undefined;
+          const settled = new Set<Request>();
           let routeError: unknown;
           await page.route(
             "**/api/catalog/courses?search=retired-read",
             async (route) => {
-              admitted.resolve();
+              admitted.resolve(route.request());
               await release.promise;
               try {
                 if (dispatched) {
@@ -60,6 +73,26 @@ for (const scenario of [
           );
           try {
             await page.goto("/api/catalog/semesters");
+            if (scenario === "canceled before dispatch") {
+              const config = parse(readFileSync("wrangler.e2e.jsonc", "utf8"));
+              const entries = readdirSync(
+                resolve(config.assets.directory, "_app/immutable/entry"),
+              ).filter((name) => /^start\..+\.js$/.test(name));
+              expect(entries).toHaveLength(1);
+              scriptPath = `/_app/immutable/entry/${entries[0]}`;
+              await page.route(
+                new URL(scriptPath, isolatedWorker.origin).href,
+                (route) => {
+                  scriptAdmitted.resolve(route.request());
+                  scriptOperation = release.promise
+                    .then(() => route.continue())
+                    .catch((error) => {
+                      assetErrors.push(error);
+                    });
+                  return scriptOperation;
+                },
+              );
+            }
             if (scenario === "completed beside a native cancellation") {
               await page.route(
                 "**/api/catalog/courses?search=canceled-read",
@@ -81,15 +114,45 @@ for (const scenario of [
                 "net::ERR_ABORTED",
               );
             }
-            await page.evaluate(() => {
+            await page.evaluate((scriptPath) => {
+              if (scriptPath) {
+                const script = document.createElement("script");
+                script.type = "module";
+                script.src = scriptPath;
+                document.head.append(script);
+              }
               void fetch("/api/catalog/courses?search=retired-read").catch(
                 () => undefined,
               );
-            });
-            await admitted.promise;
-            await page.goto("/api/catalog/teachers");
+            }, scriptPath);
+            const api = await admitted.promise;
+            if (scriptPath) {
+              const script = await scriptAdmitted.promise;
+              expect(script.resourceType()).toBe("script");
+              for (const request of [api, script]) {
+                expect(request.failure()).toBeNull();
+                terminals.push(
+                  request.response().then(
+                    (response) => {
+                      settled.add(request);
+                      return { request, response };
+                    },
+                    (error: unknown) => {
+                      settled.add(request);
+                      return { request, error };
+                    },
+                  ),
+                );
+              }
+              await page.evaluate(() => document.readyState);
+              expect(settled.size).toBe(0);
+            }
+            const replacement = await page.goto("/api/catalog/teachers");
+            expect(replacement?.status()).toBe(200);
+            expect(replacement?.request().isNavigationRequest()).toBe(true);
             release.resolve();
             await continued.promise;
+            await scriptOperation;
             if (routeError) throw routeError;
             const response = await page.request.get(
               "/__test/community-effects?id=" +
@@ -111,6 +174,14 @@ for (const scenario of [
                   ]
                 : [],
             );
+            if (scriptPath) {
+              expect(
+                producer.requests.filter(
+                  ({ value }) => value.path === scriptPath,
+                ),
+              ).toEqual([]);
+              expect(settled.size).toBe(0);
+            }
             if (scenario === "checkpoint remains strict") {
               await checkpoint("Retired reads do not relax a checkpoint", {
                 calendarMessages: [],
@@ -118,6 +189,7 @@ for (const scenario of [
             }
           } finally {
             release.resolve();
+            await scriptOperation;
           }
         },
       ),
@@ -133,9 +205,26 @@ for (const scenario of [
         ]),
       );
     } else {
-      await workflow;
+      const failure: unknown = await workflow.catch((error: unknown) => error);
+      if (failure !== undefined || assetErrors.length)
+        throw new AggregateError(
+          [...(failure === undefined ? [] : [failure]), ...assetErrors],
+          "Retired read workflow failed",
+        );
     }
     expect(page.isClosed()).toBe(true);
+    for (const terminal of await Promise.all(terminals)) {
+      if (terminal.error !== undefined) {
+        expect(terminal.error).toBeInstanceOf(Error);
+        expect((terminal.error as Error).message).toBe(
+          "request.response: Target page, context or browser has been closed",
+        );
+      } else if (terminal.response) {
+        expect(terminal.response.status()).toBe(200);
+      } else {
+        expect(terminal.request.failure()?.errorText).toBe("net::ERR_ABORTED");
+      }
+    }
   });
 }
 
