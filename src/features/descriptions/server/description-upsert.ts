@@ -5,7 +5,7 @@ import {
   writeAuditLog,
 } from "@/lib/audit/write-audit-log";
 import { getViewerContext } from "@/lib/auth/viewer-context";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
 import { invalidateCloudflareCatalogRepresentations } from "@/lib/ports/runtime";
 import {
@@ -72,7 +72,7 @@ export async function upsertDescriptionContent({
   }
 
   const writeDescription = () =>
-    prisma.$transaction((tx) =>
+    withUserDbContext(userId, (tx) =>
       writeDescriptionContentInTransaction(tx, {
         auditMetadata,
         content,

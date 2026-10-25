@@ -14,6 +14,7 @@ const {
   getViewerContextMock,
   isPrismaUniqueConstraintErrorMock,
   prismaMock,
+  withUserDbContextMock,
   sectionFindUniqueMock,
 } = vi.hoisted(() => ({
   calendarRebuildMock: vi.fn(),
@@ -24,8 +25,8 @@ const {
   descriptionUpdateMock: vi.fn(),
   getViewerContextMock: vi.fn(),
   isPrismaUniqueConstraintErrorMock: vi.fn(),
+  withUserDbContextMock: vi.fn(),
   prismaMock: {
-    $transaction: vi.fn(),
     auditLog: {
       createMany: vi.fn(),
     },
@@ -55,6 +56,7 @@ vi.mock("@/lib/auth/viewer-context", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: prismaMock,
+  withUserDbContext: withUserDbContextMock,
 }));
 
 vi.mock("@/lib/db/prisma-errors", () => ({
@@ -84,8 +86,8 @@ describe("upsertDescriptionContent", () => {
     prismaMock.description.update = descriptionUpdateMock;
     prismaMock.descriptionEdit.create = descriptionEditCreateMock;
     prismaMock.section.findUnique = sectionFindUniqueMock;
-    prismaMock.$transaction.mockReset();
-    prismaMock.$transaction.mockImplementation(async (action) =>
+    withUserDbContextMock.mockReset();
+    withUserDbContextMock.mockImplementation(async (_userId, action) =>
       action({
         auditLog: prismaMock.auditLog,
         description: prismaMock.description,
@@ -195,8 +197,8 @@ describe("upsertDescriptionContent", () => {
     );
     let committed = false;
     let cachedHtml: string | null = "before";
-    const transaction = prismaMock.$transaction.getMockImplementation();
-    prismaMock.$transaction.mockImplementation(async (...args) => {
+    const transaction = withUserDbContextMock.getMockImplementation();
+    withUserDbContextMock.mockImplementation(async (...args) => {
       const result = await transaction?.(...args);
       committed = true;
       return result;
@@ -235,7 +237,7 @@ describe("upsertDescriptionContent", () => {
   ])(
     "does not invalidate $targetType representations when commit fails",
     async (target) => {
-      const transaction = prismaMock.$transaction.getMockImplementation();
+      const transaction = withUserDbContextMock.getMockImplementation();
       if (!transaction) throw new Error("Missing transaction callback harness");
       descriptionFindFirstMock.mockResolvedValue({
         id: "description-1",
@@ -249,7 +251,7 @@ describe("upsertDescriptionContent", () => {
       const { upsertDescriptionContent } = await import(
         "@/features/descriptions/server/description-upsert"
       );
-      prismaMock.$transaction.mockImplementation(async (...args) => {
+      withUserDbContextMock.mockImplementation(async (...args) => {
         await transaction(...args);
         expect(purge).not.toHaveBeenCalled();
         expect(calendarRebuildMock).not.toHaveBeenCalled();

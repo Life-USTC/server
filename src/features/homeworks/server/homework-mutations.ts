@@ -1,6 +1,6 @@
 import { scheduleInvalidateCalendarExportsForSection } from "@/features/calendar/server/calendar-export-invalidation";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
 import {
   type HomeworkAuditContext,
@@ -51,7 +51,7 @@ export async function updateHomework(input: {
   }
 
   const writeHomeworkUpdate = () =>
-    prisma.$transaction(async (tx) => {
+    withUserDbContext(input.userId, async (tx) => {
       if (input.update.homeworkUpdates) {
         await tx.homework.update({
           where: { id: input.homeworkId },
