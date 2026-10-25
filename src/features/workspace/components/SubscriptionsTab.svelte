@@ -116,7 +116,6 @@ $: bulkImportSections = matchedSections.map<BulkImportSectionView>(
 
   <SubscriptionsList
     {readOnlyReason}
-    unavailableReason={signedData.demo?.unavailableReason}
     {workspaceCopy}
     {formatMessage}
     {removeSubscribedSection}

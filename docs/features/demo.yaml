@@ -37,7 +37,7 @@ requirements:
   rule: A demo identity is a separately signed, purpose-bound cookie with a fifteen-minute lifetime and
     supported fixture version, never a real user ID or session. Tampered, expired, future-issued, duplicate,
     unsupported-version and mixed credentials fail closed before real authentication. An invalid unmixed
-    cookie on a top-level Todos or subscriptions HTML request is cleared with a fixed sign-in redirect;
+    cookie on a supported top-level workspace or catalog-detail HTML request is cleared with a fixed sign-in redirect;
     API and page-data requests remain unauthorized. No demo identity reaches a real-user data adapter.
   acceptance:
     given: Valid, forged, expired, duplicate, unsupported-version and mixed credentials.
@@ -67,6 +67,7 @@ requirements:
   applies_to:
   - demo-todos
   - demo-subscriptions
+  - demo-catalog-details
   expectation:
     kind: authorization
     surface: service
@@ -92,8 +93,9 @@ requirements:
     - OAuth and outbound requests
     - browser analytics scripts and telemetry
   rationale: Demo possession is not real-user authentication. The read allowlist comprises Todos and
-    subscriptions HTML/page-data, GET /api/workspace/todos, GET /api/workspace/subscriptions/current and
-    shell bootstrap. Same-origin locale-cookie updates are allowed. Entry and exit are cookie controls. Every other request is denied before its route runs, including visit-recording GET, uploads,
+    subscriptions HTML/page-data, the three supported catalog-detail pages and their page-data,
+    GET /api/workspace/todos, GET /api/workspace/subscriptions/current, section detail/personal reads,
+    fixture descriptions/comments and shell bootstrap. Same-origin locale-cookie updates are allowed. Entry and exit are cookie controls. Every other request is denied before its route runs, including visit-recording GET, uploads,
     private exports, administrator routes, GraphQL and MCP.
   acceptance:
     given: A signed demo and unrelated real private data in an isolated actual Worker.
@@ -128,7 +130,7 @@ requirements:
     semesters and regular, auditor and teaching-assistant roles, retaining complete localized teacher lists.
     Desktop and mobile views preserve existing filters, including applying multiple fields and clearing
     an empty result. Quick add, import, role changes, unsubscribe, calendar feeds, activity subscriptions
-    and unimplemented catalog destinations are disabled. Demo reads never create a calendar token.
+    and catalog collection destinations are disabled. Sample section, course and teacher details remain navigable. Demo reads never create a calendar token.
   acceptance:
     given: An independently signed demo in either supported locale, with ordinary account subscriptions unchanged.
     when: The caller navigates between Todos and subscriptions, filters samples, changes language and reads the API.
@@ -139,11 +141,30 @@ requirements:
     test:
       file: tests/e2e/src/app/demo/test.ts
       name: 'demo.subscriptions: read-only browsing zh-cn 1280'
+- id: demo.catalog-projection
+  category: consistency
+  rule: Demo subscription links open the existing section, course and teacher detail pages using the same
+    three fixed sections, two teachers and localized course identities. Section schedules and exams use fixed
+    dates; descriptions and empty discussions retain existing response shapes and an anonymous viewer.
+    Only fixture identifiers and matching target aliases resolve; unknown or mixed targets cannot access
+    ordinary data. Calendar exports, subscriptions, homework creation, description edits and comments are
+    visibly disabled. Catalog collection pages and homework details remain unavailable.
+  acceptance:
+    given: A valid demo in either supported locale on desktop or mobile.
+    when: The visitor follows subscription, course and teacher links and reads detail sections and lazy data.
+    then:
+    - The linked pages, detail APIs, schedule, exam and section histories agree on the fixed sample identities.
+    - Read-only controls and a visible explanation replace sign-in or mutation prompts.
+    - No database access, external requests or writes occur, including for unknown and mixed identifiers.
+    test:
+      file: tests/e2e/src/app/demo/test.ts
+      name: 'demo.catalog: linked read-only details zh-cn 1280'
 - id: demo.cache-isolation
   category: privacy
   rule: Demo cookie presence, including invalid cookies, bypasses shared HTML admission before cache hits
     and never marks page data reusable as public navigation. Responses and failures are private, no-store
-    for browser and CDN. Entry and exit reload the document; shell/controller identity changes discard pending
+    for browser and CDN, with noindex, nofollow and noarchive directives. Catalog detail pages omit structured
+    indexing data. Entry and exit reload the document; shell/controller identity changes discard pending
     old identity responses and selected private details. Refresh, locale navigation and history must not restore
     another identity's state.
   acceptance:
@@ -228,3 +249,34 @@ capabilities:
       - View disabled mutation, feed and unimplemented navigation controls
       requirement_refs:
       - demo.subscriptions-projection
+  demo-catalog-details:
+    title: Read-only Demo Catalog Details
+    description: Existing section, course and teacher detail pages project the fixed subscription samples.
+      These reads supply no real-user, OAuth or agent authority and no export or write capability.
+    auth: anon
+    web:
+      pages:
+      - /catalog/sections/[jwId]
+      - /catalog/courses/[jwId]
+      - /catalog/teachers/[id]
+    rest:
+      routes:
+      - method: GET
+        path: /api/catalog/sections/{jwId}
+        reference_only: true
+      - method: GET
+        path: /api/community/descriptions
+        reference_only: true
+      - method: GET
+        path: /api/community/comments
+        reference_only: true
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Follow sample subscriptions to section, course and teacher details
+      - Read fixed descriptions, schedules, exams and empty discussions
+      - View disabled mutation and export controls
+      requirement_refs:
+      - demo.catalog-projection

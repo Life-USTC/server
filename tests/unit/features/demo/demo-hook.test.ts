@@ -73,6 +73,16 @@ it.each([
   "/workspace/subscriptions/__data.json",
   "/api/workspace/subscriptions/current",
   "/_internal/shell-bootstrap",
+  "/catalog/sections/910001",
+  "/catalog/sections/910001/__data.json",
+  "/catalog/courses/920001",
+  "/catalog/courses/920001/__data.json",
+  "/catalog/teachers/401",
+  "/catalog/teachers/401/__data.json",
+  "/api/catalog/sections/910001",
+  "/_internal/catalog/sections/910001/viewer",
+  "/api/community/descriptions?targetType=course&targetId=201",
+  "/api/community/comments?targetType=section&targetId=101",
 ])("serves only demo locals and overrides caches at %s", async (path) => {
   const result = await request(path);
   expect(result.response.status).toBe(200);
@@ -90,6 +100,9 @@ it.each([
     "no-store",
   );
   expect(result.response.headers.get("x-life-public-navigation")).toBeNull();
+  expect(result.response.headers.get("x-robots-tag")).toBe(
+    "noindex, nofollow, noarchive",
+  );
   expect(session).not.toHaveBeenCalled();
   expect(persist).not.toHaveBeenCalled();
   expect(result.waitUntil).not.toHaveBeenCalled();
@@ -104,7 +117,13 @@ it.each([
   ["POST", "/api/workspace/subscriptions/query"],
   ["POST", "/api/workspace/subscriptions/batch"],
   ["GET", "/workspace/subscriptions/activities"],
-  ["GET", "/catalog/sections/910001"],
+  ["POST", "/catalog/sections/910001?/subscribe"],
+  ["POST", "/api/community/comments"],
+  ["POST", "/api/community/descriptions"],
+  ["GET", "/catalog/sections/910001/calendar.ics"],
+  ["GET", "/catalog/sections/%39%31%30%30%30%31"],
+  ["GET", "/catalog/sections/910001/__data.json/__data.json"],
+  ["GET", "/api/catalog/sections/910001/private"],
   ["PATCH", "/api/workspace/todos/real-id"],
   ["DELETE", "/api/workspace/todos/real-id"],
   ["POST", "/api/workspace/todos/batch"],

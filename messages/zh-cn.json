@@ -1802,7 +1802,7 @@
     "enter": "进入演示",
     "description": "无需注册，浏览只读待办及订阅样例。",
     "displayName": "演示账户 · 只读",
-    "readOnlyReason": "你可以浏览和筛选待办及订阅样例，无法修改数据或执行外部操作。",
+    "readOnlyReason": "你可以浏览待办、订阅和课程目录详情样例，无法修改数据或执行外部操作。",
     "exit": "退出演示",
     "unavailableReason": "其他功能暂未开放演示。",
     "referenceTime": "样例时间（上海）"

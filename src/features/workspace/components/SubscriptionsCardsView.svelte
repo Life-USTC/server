@@ -19,7 +19,6 @@ type SubscriptionSection = SubscriptionListData[number]["sections"][number];
 
 export let workspaceCopy: WorkspaceCopy;
 export let readOnlyReason: string | undefined = undefined;
-export let unavailableReason: string | undefined = undefined;
 export let requestEditKind: (section: SubscriptionSection) => void;
 export let requestRemoveSection: (section: SubscriptionSection) => void;
 export let removingSectionId: SubscriptionSection["id"] | null;
@@ -47,11 +46,6 @@ function courseName(section: SubscriptionSection) {
       <MobileListCard>
         <Item.Content class="min-w-0 gap-1">
           <Item.Title class="line-clamp-none flex w-full min-w-0 flex-wrap items-center gap-1.5">
-            {#if readOnlyReason}
-              <span class="line-clamp-2 min-w-0 max-w-full break-words font-medium" title={unavailableReason} data-testid="subscription-course-link">
-                {courseName(section)}
-              </span>
-            {:else}
               <a
                 class="flex min-h-11 min-w-0 max-w-full items-center font-medium hover:underline"
                 href={`/catalog/sections/${section.jwId}`}
@@ -61,7 +55,6 @@ function courseName(section: SubscriptionSection) {
                   {courseName(section)}
                 </span>
               </a>
-            {/if}
             {#if section.kind !== "regular"}<Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>{/if}
           </Item.Title>
           <Item.Description
@@ -81,8 +74,7 @@ function courseName(section: SubscriptionSection) {
           </TableIconButton>
           <TableIconButton
             className="size-11"
-            href={readOnlyReason ? undefined : `/catalog/sections/${section.jwId}`}
-            disabled={Boolean(readOnlyReason)}
+            href={`/catalog/sections/${section.jwId}`}
             label={sectionCopy.moreDetails}
           >
             <ArrowUpRight data-icon="inline-start" />

@@ -87,7 +87,7 @@ $: classLectureNumberById = new Map(
             {#if event.teachers?.length}
               <div class="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground" aria-label={sectionCopy.teacher}>
                 {#each event.teachers as teacher (teacher.id)}
-                  <a class="whitespace-nowrap underline-offset-4 hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
+                  <a class="inline-flex min-h-6 min-w-6 items-center whitespace-nowrap underline-offset-4 hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
                 {/each}
               </div>
             {/if}
@@ -121,7 +121,7 @@ $: classLectureNumberById = new Map(
             {#if event.teachers?.length}
               <div class="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground" aria-label={sectionCopy.teacher}>
                 {#each event.teachers as teacher (teacher.id)}
-                  <a class="whitespace-nowrap underline-offset-4 hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
+                  <a class="inline-flex min-h-6 min-w-6 items-center whitespace-nowrap underline-offset-4 hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
                 {/each}
               </div>
             {/if}

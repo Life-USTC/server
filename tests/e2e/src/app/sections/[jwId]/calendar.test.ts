@@ -24,9 +24,29 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
     isolatedWorker,
   }) => {
     await preferenceFlow.prepare(() =>
-      isolatedWorker.database.owner.$transaction((db) =>
-        arrangeSectionDetails(db, detailCatalog),
-      ),
+      isolatedWorker.database.owner.$transaction(async (db) => {
+        await arrangeSectionDetails(db, detailCatalog);
+        const group = await db.scheduleGroup.findFirstOrThrow({
+          where: { sectionId: detailCatalog.section.id },
+        });
+        await db.schedule.create({
+          data: {
+            sectionId: detailCatalog.section.id,
+            scheduleGroupId: group.id,
+            date: null,
+            weekday: 4,
+            startTime: 1400,
+            endTime: 1545,
+            startUnit: 6,
+            endUnit: 7,
+            periods: 2,
+            weekIndex: 3,
+            teacherParticipations: {
+              create: { teacherId: detailCatalog.teacher.id, periods: 2 },
+            },
+          },
+        });
+      }),
     );
     await preferenceFlow.run(async () => {
       test.setTimeout(90_000);
@@ -38,6 +58,15 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
       const scheduleTable = calendar.locator("table").first();
       await expect(scheduleTable).toBeVisible({ timeout: 30_000 });
       await expect(scheduleTable.locator("tbody tr").first()).toBeVisible();
+      const teacherLinks = scheduleTable.locator(
+        `a[href="/catalog/teachers/${detailCatalog.teacher.id}"]`,
+      );
+      await expect(teacherLinks).toHaveCount(2);
+      for (const link of await teacherLinks.all()) {
+        const bounds = await link.boundingBox();
+        expect(bounds?.width).toBeGreaterThanOrEqual(24);
+        expect(bounds?.height).toBeGreaterThanOrEqual(24);
+      }
 
       // schedule.room / building / campus appear in the location column.
       await expect(

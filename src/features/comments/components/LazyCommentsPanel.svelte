@@ -13,6 +13,7 @@ export let initialData: PanelProps["initialData"];
 export let permalinkBaseHref: string;
 export let heading: string;
 export let copy: { loadFailed: string; retry: string };
+export let readOnlyReason: string | undefined = undefined;
 
 let CommentsPanel: typeof CommentsPanelComponent | null = null;
 let loadError = false;
@@ -39,6 +40,7 @@ onMount(() => {
     {targetType}
     {targetId}
     {heading}
+    {readOnlyReason}
   />
 {:else if loadError}
   <Alert.Root variant="destructive">

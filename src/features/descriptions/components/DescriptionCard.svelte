@@ -29,6 +29,7 @@ export let targetType: DescriptionTargetType;
 export let targetId: number | string;
 export let initialData: DescriptionPayload;
 export let resolveViewer = false;
+export let readOnlyReason: string | undefined = undefined;
 /** When set, renders a page-style h2 + primary action row above the body. */
 export let heading: string | null = null;
 export let showTitle = true;
@@ -149,6 +150,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
     getGeneration: () => viewerGeneration,
     canEdit: () =>
       !destroyed &&
+      !readOnlyReason &&
       !viewerLoading &&
       !viewerFailed &&
       viewer.isAuthenticated &&
@@ -186,7 +188,9 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
 {#if usePageHeading}
   <div class="mb-3 flex flex-wrap items-center gap-3">
     <h2 class="text-lg font-semibold tracking-tight">{heading}</h2>
-    {#if viewerLoading}
+    {#if readOnlyReason}
+      <Button type="button" variant="outline" disabled title={readOnlyReason}>{copy.edit}</Button>
+    {:else if viewerLoading}
       <Skeleton class="h-9 w-24" />
     {:else if !viewerFailed && viewer.isAuthenticated && !viewer.isSuspended && !isEditing}
       <Button
@@ -220,7 +224,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
     {copy}
     {description}
     showTitle={showInlineTitle}
-    showAction={showInlineAction && !viewerLoading && !viewerFailed}
+    showAction={showInlineAction && !readOnlyReason && !viewerLoading && !viewerFailed}
     editing={isEditing}
     editorName={editorName}
     formatDate={formatDate}

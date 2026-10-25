@@ -1,4 +1,5 @@
 import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
+import type { DemoView } from "@/features/demo/lib/demo-types";
 import type { DescriptionPayload } from "@/features/descriptions/lib/description-card-actions";
 import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
@@ -364,6 +365,7 @@ export type HomeworkAuditLog = {
 };
 
 export type SectionDetailPageData = {
+  demo?: DemoView | null;
   commentsData: CommentsInitialData | null;
   copy: SectionDetailCopy;
   descriptionData: DescriptionPayload;

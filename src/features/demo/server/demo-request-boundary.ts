@@ -13,6 +13,7 @@ export function setDemoPrivateHeaders(headers: Headers) {
   headers.set("Cache-Control", "private, no-store");
   headers.set("Cloudflare-CDN-Cache-Control", "no-store");
   headers.set("Vary", "Cookie");
+  headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
   headers.delete(PUBLIC_NAVIGATION_HEADER);
 }
 
@@ -30,6 +31,20 @@ type DemoBoundary = {
   response?: Response;
   clearCookie?: boolean;
 };
+
+function isDemoCatalogPage(path: string) {
+  return /^\/catalog\/(?:sections|courses|teachers)\/[1-9]\d*$/.test(path);
+}
+
+function isDemoCatalogRead(path: string) {
+  return (
+    isDemoCatalogPage(path.replace(/\/__data\.json$/, "")) ||
+    /^\/api\/catalog\/sections\/[1-9]\d*$/.test(path) ||
+    /^\/_internal\/catalog\/sections\/[1-9]\d*\/viewer$/.test(path) ||
+    path === "/api/community/descriptions" ||
+    path === "/api/community/comments"
+  );
+}
 
 /** Runs before Better Auth, route adapters and durable request observations. */
 export async function resolveDemoBoundary(
@@ -74,7 +89,10 @@ export async function resolveDemoBoundary(
   if (!identity) {
     if (
       request.method === "GET" &&
-      ["/workspace/todos", "/workspace/subscriptions"].includes(url.pathname) &&
+      (["/workspace/todos", "/workspace/subscriptions"].includes(
+        url.pathname,
+      ) ||
+        isDemoCatalogPage(url.pathname)) &&
       request.headers.get("accept")?.includes("text/html")
     ) {
       const response = new Response(null, {
@@ -98,7 +116,7 @@ export async function resolveDemoBoundary(
   const read = request.method === "GET" || request.method === "HEAD";
   if (
     !read ||
-    ![
+    (![
       "/workspace/todos",
       "/workspace/todos/__data.json",
       "/api/workspace/todos",
@@ -106,7 +124,8 @@ export async function resolveDemoBoundary(
       "/workspace/subscriptions/__data.json",
       "/api/workspace/subscriptions/current",
       "/_internal/shell-bootstrap",
-    ].includes(url.pathname)
+    ].includes(url.pathname) &&
+      !isDemoCatalogRead(url.pathname))
   ) {
     return reject(403, "DEMO_READ_ONLY");
   }
