@@ -83,6 +83,7 @@ export const test = base.extend<
   {
     isolatedWorker: IsolatedWorker;
     workerBindings: Record<string, string>;
+    workerOutboundJson: { url: string; json: unknown } | undefined;
     _workerResources: { start: () => Promise<IsolatedWorker> };
   },
   {
@@ -91,6 +92,7 @@ export const test = base.extend<
   }
 >({
   workerBindings: {},
+  workerOutboundJson: [undefined, { option: true }],
   _templateResources: [
     // biome-ignore lint/correctness/noEmptyPattern: Playwright requires destructured fixture dependencies.
     async ({}, use, workerInfo) => {
@@ -133,7 +135,11 @@ export const test = base.extend<
     { scope: "worker", timeout: 60_000 },
   ],
   _workerResources: [
-    async ({ databaseTemplate, playwright, workerBindings }, use, testInfo) => {
+    async (
+      { databaseTemplate, playwright, workerBindings, workerOutboundJson },
+      use,
+      testInfo,
+    ) => {
       const database = ownIsolatedDatabase(databaseTemplate);
       const abort = new AbortController();
       let starting: Promise<IsolatedWorker> | undefined;
@@ -306,6 +312,7 @@ export const test = base.extend<
           child.send({
             type: "start",
             options,
+            outboundJson: workerOutboundJson,
           });
           await withTimeout(
             Promise.race([ready, cancelled]),

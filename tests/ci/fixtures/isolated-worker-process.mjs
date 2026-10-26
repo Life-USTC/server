@@ -11,7 +11,20 @@ const cancelled = new Promise((_, reject) => {
 });
 void cancelled.catch(() => undefined);
 
-async function start(options) {
+async function start(options, outboundJson) {
+  if (outboundJson) {
+    // Functions stay in the owned child; IPC carries only the case's JSON input.
+    options = {
+      ...options,
+      dev: {
+        ...options.dev,
+        outboundService: (request) =>
+          request.method === "GET" && request.url === outboundJson.url
+            ? Response.json(outboundJson.json)
+            : globalThis.fetch(request.url, request),
+      },
+    };
+  }
   worker = await unstable_startWorker(options);
   const fail = (event) => {
     const error =
@@ -99,7 +112,7 @@ function stop() {
 }
 process.on("message", (message) => {
   if (message.type === "start" && !starting) {
-    starting = start(message.options);
+    starting = start(message.options, message.outboundJson);
     void starting.then(
       (port) => {
         if (process.connected) process.send?.({ type: "ready", port });
