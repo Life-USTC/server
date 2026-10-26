@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { createDeferred } from "../../shared/deferred";
+import { isolateBrowserAnalytics } from "./browser-analytics";
 
 type Outcome = { ok: true } | { ok: false; error: unknown };
 type BrowserWorkflow = {
@@ -26,6 +27,7 @@ export async function withBrowserWorkflow(
   const bodies: Promise<Outcome>[] = [];
   const errors: unknown[] = [];
   let operation: Promise<void> | undefined;
+  let disposeAnalytics: (() => Promise<void>) | undefined;
   let closing = false;
   let interruption: Error | undefined;
   const interruptionError = () =>
@@ -38,6 +40,7 @@ export async function withBrowserWorkflow(
   };
 
   try {
+    disposeAnalytics = await isolateBrowserAnalytics(page.context());
     await use({
       run(work) {
         if (closing || operation)
@@ -112,6 +115,11 @@ export async function withBrowserWorkflow(
     interrupted.resolve();
     try {
       await operation;
+    } catch (error) {
+      remember(error);
+    }
+    try {
+      await disposeAnalytics?.();
     } catch (error) {
       remember(error);
     }

@@ -1,4 +1,4 @@
-import { expect, type Route } from "@playwright/test";
+import { expect, type Request, type Route } from "@playwright/test";
 import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
 import { test } from "../../../../utils/calendar-presentation-fixture";
 
@@ -70,6 +70,18 @@ test("calendar.activity-owner-transition", { tag: "@Calendar/Web" }, async ({
             });
             page.once("close", releaseOld);
             const routeOperations: Promise<void>[] = [];
+            let previousOwnerRequest: Request | undefined;
+            let previousOwnerTerminal: "finished" | "failed" | undefined;
+            const finished = (request: Request) => {
+              if (request === previousOwnerRequest)
+                previousOwnerTerminal = "finished";
+            };
+            const failed = (request: Request) => {
+              if (request === previousOwnerRequest)
+                previousOwnerTerminal = "failed";
+            };
+            page.on("requestfinished", finished);
+            page.on("requestfailed", failed);
             const pattern = "**/api/workspace/calendar/events?**";
             const handler = (route: Route) => {
               const operation = (async () => {
@@ -79,6 +91,14 @@ test("calendar.activity-owner-transition", { tag: "@Calendar/Web" }, async ({
                     maxRedirects: 0,
                   });
                   const body = await response.json();
+                  if (
+                    !previousOwnerRequest &&
+                    body.data.some(
+                      (item: { youngId: string | null }) =>
+                        item.youngId === fixtures[0].young.youngId,
+                    )
+                  )
+                    previousOwnerRequest = route.request();
                   if (
                     pending &&
                     !held &&
@@ -110,6 +130,22 @@ test("calendar.activity-owner-transition", { tag: "@Calendar/Web" }, async ({
               return operation;
             };
             const errors: unknown[] = [];
+            let routesDrained = false;
+            const drainRoutes = async () => {
+              if (routesDrained) return;
+              routesDrained = true;
+              try {
+                await page.unroute(pattern, handler);
+              } catch (error) {
+                errors.push(error);
+              }
+              const settled = await Promise.allSettled(routeOperations);
+              errors.push(
+                ...settled.flatMap((result) =>
+                  result.status === "rejected" ? [result.reason] : [],
+                ),
+              );
+            };
             try {
               await page.route(pattern, handler);
               await page.context().clearCookies();
@@ -195,12 +231,39 @@ test("calendar.activity-owner-transition", { tag: "@Calendar/Web" }, async ({
                 );
               }
               releaseOld();
+              await drainRoutes();
+              expect(previousOwnerRequest).toBeDefined();
+              await expect.poll(() => previousOwnerTerminal).toBeDefined();
+              if (previousOwnerTerminal === "failed")
+                expect(previousOwnerRequest?.failure()?.errorText).toBe(
+                  "net::ERR_ABORTED",
+                );
+              // Native completion precedes a rendering opportunity for the
+              // current promise, Svelte and MutationObserver work.
+              await page.evaluate(
+                () =>
+                  new Promise<void>((resolve) => {
+                    requestAnimationFrame(() =>
+                      requestAnimationFrame(() => resolve()),
+                    );
+                  }),
+              );
+              await expect(page.locator("body")).toContainText(
+                fixtures[1].users[ownerIndex].name,
+              );
               await expect(page.locator("body")).toContainText(
                 fixtures[1].young.name,
               );
               await expect(page.locator("body")).not.toContainText(
                 fixtures[0].young.name,
               );
+              await expect(page.locator("body")).not.toContainText(
+                fixtures[0].course.nameEn as string,
+              );
+              if (ownerIndex === 0)
+                await expect(page.locator("body")).toContainText(
+                  fixtures[1].course.nameEn as string,
+                );
 
               expect(
                 await page.evaluate(
@@ -223,18 +286,10 @@ test("calendar.activity-owner-transition", { tag: "@Calendar/Web" }, async ({
               errors.push(error);
             } finally {
               releaseOld();
-              try {
-                await page.unroute(pattern, handler);
-              } catch (error) {
-                errors.push(error);
-              }
-              const settled = await Promise.allSettled(routeOperations);
-              errors.push(
-                ...settled.flatMap((result) =>
-                  result.status === "rejected" ? [result.reason] : [],
-                ),
-              );
+              await drainRoutes();
               page.off("close", releaseOld);
+              page.off("requestfinished", finished);
+              page.off("requestfailed", failed);
             }
             if (errors.length === 1) throw errors[0];
             if (errors.length)
