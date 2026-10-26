@@ -118,9 +118,33 @@ export function generateOpenApiDocument(): ReturnType<typeof createDocument> {
   return createDocument(document);
 }
 
+export function checkOpenApiDocument(
+  document: ReturnType<typeof createDocument>,
+  outputPath: string,
+): boolean {
+  try {
+    return (
+      fs.readFileSync(outputPath, "utf8") ===
+      `${JSON.stringify(document, null, 2)}\n`
+    );
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw error;
+  }
+}
+
 if (import.meta.main) {
   const doc = generateOpenApiDocument();
   const out = path.resolve("public/openapi.generated.json");
-  fs.writeFileSync(out, `${JSON.stringify(doc, null, 2)}\n`);
-  console.log(`Wrote ${out}`);
+  if (process.argv.includes("--check")) {
+    if (!checkOpenApiDocument(doc, out)) {
+      console.error(
+        "OpenAPI snapshot is missing or stale. Run bun run openapi:generate.",
+      );
+      process.exitCode = 1;
+    }
+  } else {
+    fs.writeFileSync(out, `${JSON.stringify(doc, null, 2)}\n`);
+    console.log(`Wrote ${out}`);
+  }
 }

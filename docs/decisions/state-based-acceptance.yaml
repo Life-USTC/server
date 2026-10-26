@@ -25,16 +25,8 @@ decisions:
 - Verify promised navigation, refresh, cache and asynchronous effects in the module that owns each
   behavior. Mutation and consumer cases do not require a separate cross-entrypoint or complete-journey
   layer that repeats the same obligations.
-- Select meaningful state transitions and invariants, including rejected transitions with no effects.
-  Keep transport-specific scope, audience, error and public-field assertions visible.
-- Generated browser tests are reviewable ordinary code. Review requirements and generated assertions;
-  do not automatically weaken expectations or skip product failures to heal a test.
 consequences:
 - This decision defines the target organization, not a claim that every existing test has migrated.
   Review each module's independent setup and unique assertions before removing repeated flows.
 - Database observation establishes stored effects, not user-visible freshness, object storage or
   queue completion. Observe each relevant effect at its own boundary.
-- Rendered visibility and geometry checks cover explicit presentation rules, not all occlusion or
-  subjective design quality. Screenshots and design review remain complementary evidence.
-- Test names and document references aid human navigation. They are not a machine-generated proof of
-  coverage, and one meaningful scenario may support several requirements.

@@ -226,6 +226,10 @@ export type IncompleteRuleSummary = {
 /** Enough targets to locate the problem, few enough to read in a report. */
 const MAX_SUMMARY_ELEMENTS = 5;
 
+/**
+ * Audit the selected WCAG A/AA rules. Serious/critical violations fail the gate;
+ * incomplete results are reported for review. Passing is not full WCAG coverage.
+ */
 export async function auditAccessibility(
   page: Page,
 ): Promise<AccessibilityAudit> {
@@ -235,10 +239,6 @@ export async function auditAccessibility(
   type AxePage = ConstructorParameters<typeof AxeBuilder>[0]["page"];
   const results = await new AxeBuilder({ page: page as unknown as AxePage })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-    // Every WCAG rule in the tag set above is enforced. `color-contrast` was
-    // the last exemption; the role text tokens cleared it, and this change
-    // clears `target-size` (SC 2.5.8). Adding a rule back to a disable list
-    // means a visual regression went unfixed, so prefer fixing the nodes.
     .analyze();
 
   const violations: UiQualityIssue[] = results.violations

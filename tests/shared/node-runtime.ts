@@ -1,7 +1,13 @@
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { createWaitUntil } from "./wait-until";
 
-/** Own direct Node runtime calls, without changing their domain bindings. */
+/**
+ * Own Node callbacks and their waitUntil work under the supplied bindings.
+ * `run` tracks only its callback: include response consumption and observations
+ * in an outer workflow when they outlive a request. `close` rejects new work,
+ * joins admitted callbacks, and cancels unread returned bodies before draining
+ * cleanup. Call it outside the callbacks it owns to avoid waiting on itself.
+ */
 export function createNodeRuntime(env: unknown) {
   const responses = new Set<Response>();
   const operations: Promise<void>[] = [];

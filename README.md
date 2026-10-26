@@ -29,5 +29,6 @@ bun run dev            # http://127.0.0.1:3000
 bun run check          # static, type, specification, and unit checks
 ```
 
-For code layout, implementation, checks, and delivery, read [AGENTS.md](AGENTS.md).
+For tests, specification changes, and API contracts, read
+[CONTRIBUTING.md](CONTRIBUTING.md).
 Production monitoring and deploy runbooks are kept out of the public tree.

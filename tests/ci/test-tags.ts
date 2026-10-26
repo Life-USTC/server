@@ -1,4 +1,6 @@
-// Shared spelling for native test tags. Only collected combinations create jobs.
+// Tags identify the operation under test, not setup or observation calls.
+// Shell/navigation uses @Site/Web. test-matrix.ts requires one legal tag per
+// integration/Worker/browser case and creates jobs only for collected groups.
 export const testTags = [
   "Account",
   "Admin",

@@ -11,7 +11,11 @@ import {
 
 export type { IsolatedDatabase } from "./isolated-database-lifecycle";
 
-/** Vitest lifecycle adapter; Worker/browser tests share the same DB factory. */
+/**
+ * Each case owns an empty migrated DB clone with production roles and RLS.
+ * Use `owner` for arrangement/independent observation; application calls use
+ * `connections.app/auth/maintenance`. Worker tests share the same DB factory.
+ */
 export const isolatedDatabaseTest = test.extend<{
   $file: {
     databaseTemplate: DatabaseTemplate;

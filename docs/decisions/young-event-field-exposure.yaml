@@ -34,6 +34,7 @@ consequences:
   places, and the proposed GraphQL JSON scalar do not override them.
 - Upstream applyNum was observed as zero for ongoing events and peopleNum was often null; missing values must
   not be fabricated.
+# Mapping snapshot from this decision on 2026-09-02; current shapes live in the feature specification.
 field_mappings:
 - field: description
   upstream: baseContent

@@ -1,23 +1,10 @@
 /**
  * MCP in-process harness.
  *
- * Shared seed/setup workflow lives in the repo root `AGENTS.md`; this helper only
- * encapsulates the authenticated in-process client/server wiring used by
- * integration tests.
- *
- * Creates a real McpServer connected to a real MCP Client via InMemoryTransport,
- * with a synthetic AuthInfo injected so tool handlers see an authenticated user.
- * No HTTP, no browser — just direct function call overhead.
- *
- * Usage:
- *   const { callTool, close } = await createMcpHarness(userId);
- *   const anonymous = await createAnonymousMcpHarness();
- *   try {
- *     const result = await callTool("account_profile_get");
- *     // result is the parsed JSON payload the tool returned
- *   } finally {
- *     await close();
- *   }
+ * Real SDK client/server over InMemoryTransport with synthetic AuthInfo.
+ * This covers SDK/domain behavior, not Worker HTTP authentication or bindings.
+ * Application tests use isolatedMcpTest in isolated-context.ts, which owns
+ * database, runtime and sessions. Standalone callers own each client's close().
  */
 
 import { Client } from "@modelcontextprotocol/client";
