@@ -103,6 +103,12 @@ workerTest(
           (flow) =>
             flow.run(async () => {
               const context = await flow.newContext();
+              const response = await flow.http(() =>
+                context.request.get("/catalog/courses", {
+                  headers: flow.headers,
+                }),
+              );
+              expect(response.status()).toBe(200);
               const secondary = await flow.newPage(context);
               expect(await loadAnalytics(secondary)).toBe("");
               expect(forwarded).toEqual([]);
