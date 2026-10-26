@@ -248,6 +248,7 @@ it("section.web-table-filters", { tags: ["@Section/Service"] }, async ({
         retiredAt: new Date("2026-10-01T00:00:00Z"),
       },
     });
+
     const expected = [...fixture.sections, third];
     for (const [field, threshold] of [
       ["credits", "2.5"],
@@ -358,5 +359,66 @@ it("section.web-table-filters", { tags: ["@Section/Service"] }, async ({
       fixture.sections[1].id,
       fixture.sections[0].id,
     ]);
+
+    const teacherCountCases = await Promise.all(
+      [0, 1, 2, 3].map((count) =>
+        db.section.create({
+          data: {
+            jwId: fixture.base + 5 + count,
+            code: `teacher-count-case-${count}`,
+            courseId: fixture.courses[0].id,
+            semesterId: fixture.semester.id,
+            teachers: {
+              connect: fixture.teachers
+                .slice(0, Math.min(count, 2))
+                .map((teacher) => ({
+                  id: teacher.id,
+                })),
+            },
+          },
+        }),
+      ),
+    );
+    const thirdTeacher = await db.teacher.create({
+      data: {
+        jwId: fixture.base + 10,
+        nameCn: fixture.teachers[0].nameCn,
+        nameEn: fixture.teachers[0].nameEn,
+        code: "teacher-count-case-3",
+        departmentId: fixture.departments[0].id,
+      },
+    });
+    await db.section.update({
+      where: { id: teacherCountCases[3].id },
+      data: { teachers: { connect: { id: thirdTeacher.id } } },
+    });
+
+    const teacherCountComparisons = [
+      ["eq", "1", undefined, [1]],
+      ["ne", "1", undefined, [0, 2, 3]],
+      ["gt", "1", undefined, [2, 3]],
+      ["gte", "1", undefined, [1, 2, 3]],
+      ["lt", "1", undefined, [0]],
+      ["lte", "1", undefined, [0, 1]],
+      ["between", "1", "2", [1, 2]],
+    ] as const;
+    for (const [op, threshold, max, indices] of teacherCountComparisons) {
+      const result = await request(() =>
+        listSectionTableSummaries({
+          filters: {
+            sectionCode: "teacher-count-case-",
+            teacherCount: threshold,
+            teacherCountOp: op,
+            teacherCountMax: max,
+          },
+          pagination: { page: 1, pageSize: 20 },
+        }),
+      );
+      expect(
+        result.data.map((row) => row.id),
+        `teacherCount ${op}`,
+      ).toEqual(indices.map((index) => teacherCountCases[index].id));
+      expect(result.pagination.total).toBe(indices.length);
+    }
   });
 });
