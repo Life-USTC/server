@@ -18,7 +18,7 @@ describe("OpenAPI build and workflow contracts", () => {
       "bun run app:prepare && bun run openapi:generate && vite build",
     );
     expect(packageJson.scripts["openapi:check"]).toBe(
-      "bun run openapi:generate && git diff --exit-code public/openapi.generated.json",
+      "bun run scripts/openapi/generate.ts --check",
     );
   });
 

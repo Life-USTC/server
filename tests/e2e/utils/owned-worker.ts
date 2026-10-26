@@ -2,7 +2,12 @@ import { test as workerTest } from "./isolated-worker";
 
 type Run = <T>(work: () => Promise<T>) => Promise<T>;
 
-/** Keep admitted Node preparation/observations alive until their Worker can close. */
+/**
+ * Wrap the whole preparation/request/body/observation workflow in `run`.
+ * Teardown joins admitted callbacks before releasing requests and the Worker;
+ * tracking only the HTTP call leaves later Node work outside that ownership.
+ * Browser workflows also depend on `page` (see owned-page.ts).
+ */
 export const test = workerTest.extend<{ run: Run }>({
   run: async ({ isolatedWorker: _isolatedWorker, request: _request }, use) => {
     const operations: Promise<unknown>[] = [];

@@ -26,7 +26,15 @@ export type PrivateMcpActor = {
   username: string;
 };
 
-/** Explicit private state; each SDK server request owns its runtime lifetime. */
+/**
+ * Private DB, restricted-role request runtime and owned SDK sessions.
+ * Wrap complete setup/call/observation workflows in `mcpWorkflow.run`; direct
+ * handler comparisons use `mcpRuntime.run`. `mcpSessions.own/ownAnonymous` records
+ * cleanup before initialize(), including failed initialization. A dependent
+ * fixture checks `signal.throwIfAborted()` after async setup, before `use`.
+ * Session close cancels transports; fixture teardown then joins workflows and
+ * requests before releasing the DB. Do not close a runtime inside its own run.
+ */
 export const isolatedMcpTest = isolatedDatabaseTest.extend<{
   mcpWorkflow: Runtime;
   _mcpCatalogRevision: undefined;

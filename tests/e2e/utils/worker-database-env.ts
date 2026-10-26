@@ -33,7 +33,7 @@ function requireEnvironmentValue(
   const value = input[name]?.trim();
   if (!value) {
     throw new Error(
-      `${name} is required for real Worker tests; prepare the disposable database and connections described in AGENTS.md`,
+      `${name} is required for real Worker tests; prepare the disposable database and connections described in docs/local-development.md`,
     );
   }
   return value;

@@ -76,8 +76,11 @@ async function stopWorker(child: ChildProcess, exited: Promise<void>) {
     );
 }
 
-/** Stateful cases own the database and the actual workerd process/storage.
- * Stateless anonymous checks can use Playwright's base fixture.
+/**
+ * Application HTTP/browser cases, including anonymous reads, own their DB,
+ * workerd process, origin and storage: reads can populate caches or queue work.
+ * Arrange/observe with database.owner; createActor/createSession bypass sign-in.
+ * Self-contained platform tests can own a separate Wrangler harness without DB.
  */
 export const test = base.extend<
   {

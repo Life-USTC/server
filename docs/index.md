@@ -1,8 +1,9 @@
 # Documentation index
 
-Requirements live in YAML; [schemas](schemas/) validate their structure and the
-specification checker validates references. Start with [product.yaml](product.yaml),
-then the relevant [feature](features/) and its referenced [policies](policies/).
+Start with [product.yaml](product.yaml), then the relevant [feature](features/)
+and its referenced [policies](policies/). These describe intended behavior;
+generated interface contracts describe exposed shapes, and decisions record
+the reasons for architectural choices.
 
 | Need | Read |
 |---|---|
@@ -18,33 +19,13 @@ then the relevant [feature](features/) and its referenced [policies](policies/).
 | GraphQL SDL | [schema.graphql](graphql/schema.graphql) |
 | Generated REST contract | [openapi.generated.json](../public/openapi.generated.json) |
 | Models and enums | [schema.prisma](../prisma/schema.prisma) |
-| Editing and validating specifications | [docs/AGENTS.md](AGENTS.md) |
-| Implementation, checks, and delivery | [root AGENTS.md](../AGENTS.md) |
+| Editing and validating specifications | [Specification authoring](specification-authoring.md) |
+| Database-backed test setup and commands | [Local development](local-development.md) |
+| Test layers, isolation and coverage boundaries | [Test runtime](test-runtime.md) |
+| Making changes, updating interface snapshots and submitting a PR | [Contributing](../CONTRIBUTING.md) |
 
 ```bash
 bun run specs:list
 bun run specs:show homework
 bun run specs:check
 ```
-
-Requirements and tests are synchronized by human review. Optional
-`acceptance.test` references identify representative scenarios; they are not
-machine-enforced coverage bindings. Tests may cover multiple requirements and
-requirements may need multiple scenarios. The checker validates schema and
-business references without interpreting test names or execution reports.
-
-Acceptance tests separate independent mutation and consumer cases. Each mutation
-prepares its own precondition and independently verifies persisted effects;
-consumers start from known state. Promised refresh, cache and asynchronous behavior
-is checked in its owning module without a duplicate journey layer.
-Passing runner jobs proves those assertions passed, not that all requirements or
-possible behaviors are covered. See [editing specifications](AGENTS.md) and
-[test conventions](../tests/AGENTS.md) for review and isolation rules.
-
-Generated OpenAPI and GraphQL snapshots remain interface artifacts, not duplicate
-product requirements. Build regenerates OpenAPI; `bun run openapi:check` detects
-drift. Intentional breaking changes require `api-breaking-approved` or
-`graphql-breaking-approved` respectively; approving compatibility checks does
-not disable validation of the current generated contracts.
-
-Production monitoring, role grants, and deploy runbooks are not published here.

@@ -5,7 +5,7 @@ import { sharedAlias } from "./vitest.base.ts";
 
 dotenv.config();
 
-/** Integration schema and role setup lives in `tests/integration/AGENTS.md`. */
+/** Integration schema and role setup lives in `docs/local-development.md`. */
 export default defineConfig({
   resolve: { alias: sharedAlias },
   test: {
