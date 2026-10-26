@@ -9,6 +9,7 @@ import {
   type Request,
   type Route,
 } from "@playwright/test";
+import { isolateBrowserAnalytics } from "./browser-analytics";
 import { ownBrowserReads } from "./browser-read-lifecycle";
 import { withBrowserWorkflow } from "./browser-workflow";
 import type { ProducerObservation } from "./calendar-effects";
@@ -86,6 +87,7 @@ export async function withCommunityFlow(
   const probePath = "/__test/community-effects?id=" + probeId;
   const headers = { ...secret, "x-test-community-probe": probeId };
   const contexts: BrowserContext[] = [];
+  const analyticsDisposers: (() => Promise<void>)[] = [];
   const disabledScriptContexts = new Set<BrowserContext>();
   const reads = new Map<Page, ReturnType<typeof ownBrowserReads>>();
   const pending = new Set<Promise<void>>();
@@ -108,32 +110,6 @@ export async function withCommunityFlow(
   let finalization: Promise<void> | undefined;
   const remember = (error: unknown) => {
     if (!errors.includes(error)) errors.push(error);
-  };
-  const analyticsMatch = (url: URL) =>
-    url.href === "https://www.googletagmanager.com/gtag/js?id=G-JNK35J2Q3R";
-  const analyticsHandler = async (route: Route) => {
-    const task = Promise.resolve()
-      .then(() =>
-        route.fulfill({
-          status: 200,
-          contentType: "application/javascript",
-          body: "",
-        }),
-      )
-      .catch(async (error) => {
-        remember(error);
-        try {
-          await route.abort("aborted");
-        } catch (abortError) {
-          remember(abortError);
-        }
-      });
-    pending.add(task);
-    try {
-      await task;
-    } finally {
-      pending.delete(task);
-    }
   };
   const sdk = ownHttpMcp({ origin, headers, remember });
   const open = () => {
@@ -407,10 +383,9 @@ export async function withCommunityFlow(
         }
       }
       await sdk.settle();
-      for (const context of [page.context(), ...contexts]) {
-        if (context.isClosed()) continue;
+      for (const dispose of analyticsDisposers) {
         try {
-          await context.unroute(analyticsMatch, analyticsHandler);
+          await dispose();
         } catch (error) {
           remember(error);
         }
@@ -554,7 +529,6 @@ export async function withCommunityFlow(
     // Establish native fixture use before run can register its effect probe.
     await withBrowserWorkflow(page, async (workflow) => {
       try {
-        await page.context().route(analyticsMatch, analyticsHandler);
         await use({
           assertAnonymousNoEffects,
           async mcp(identity, accessToken) {
@@ -629,7 +603,7 @@ export async function withCommunityFlow(
                 await context.close();
                 open();
               }
-              await context.route(analyticsMatch, analyticsHandler);
+              analyticsDisposers.push(await isolateBrowserAnalytics(context));
               if (closing) {
                 await context.close();
                 open();

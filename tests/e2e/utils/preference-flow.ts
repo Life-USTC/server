@@ -9,6 +9,7 @@ import {
   type Response,
   type Route,
 } from "@playwright/test";
+import { isolateBrowserAnalytics } from "./browser-analytics";
 import { ownBrowserReads } from "./browser-read-lifecycle";
 import { withBrowserWorkflow } from "./browser-workflow";
 import type { IsolatedWorker } from "./isolated-worker";
@@ -72,6 +73,7 @@ export async function withPreferenceFlow(
   const probePath = "/__test/community-effects?id=" + probeId;
   const headers = { ...secret, "x-test-community-probe": probeId };
   const contexts = new Set<BrowserContext>([page.context()]);
+  const analyticsDisposers: (() => Promise<void>)[] = [];
   const noScript = new Set<BrowserContext>();
   const readers = new Map<Page, ReturnType<typeof ownBrowserReads>>();
   const pending = new Set<Promise<void>>();
@@ -195,6 +197,8 @@ export async function withPreferenceFlow(
   }
   async function installContext(context: BrowserContext) {
     contexts.add(context);
+    if (context !== page.context())
+      analyticsDisposers.push(await isolateBrowserAnalytics(context));
     context.on("page", onPage);
     for (const current of context.pages()) observePage(current);
     await context.route(
@@ -294,6 +298,13 @@ export async function withPreferenceFlow(
       for (const context of contexts) {
         try {
           await context.close();
+        } catch (error) {
+          remember(error);
+        }
+      }
+      for (const dispose of analyticsDisposers) {
+        try {
+          await dispose();
         } catch (error) {
           remember(error);
         }
