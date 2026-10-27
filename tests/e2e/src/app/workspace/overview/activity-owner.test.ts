@@ -1,4 +1,4 @@
-import { expect, type Route } from "@playwright/test";
+import { expect, type Request, type Route } from "@playwright/test";
 import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
 import { test } from "../../../../utils/calendar-presentation-fixture";
 
@@ -40,7 +40,20 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
         const release = new Promise<void>((resolve) => {
           releaseOld = resolve;
         });
+        page.once("close", releaseOld);
         const routeOperations: Promise<void>[] = [];
+        let previousOwnerRequest: Request | undefined;
+        let previousOwnerTerminal: "finished" | "failed" | undefined;
+        const finished = (request: Request) => {
+          if (request === previousOwnerRequest)
+            previousOwnerTerminal = "finished";
+        };
+        const failed = (request: Request) => {
+          if (request === previousOwnerRequest)
+            previousOwnerTerminal = "failed";
+        };
+        page.on("requestfinished", finished);
+        page.on("requestfailed", failed);
         const pattern =
           pending === "overview"
             ? "**/_internal/home/viewer*"
@@ -53,16 +66,16 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
                 maxRedirects: 0,
               });
               const body = await response.json();
-              if (
-                pending &&
-                !held &&
-                (pending === "overview"
+              const previousOwner =
+                pending === "overview"
                   ? body.navStats?.user.id === fixtures[0].users[0].id
                   : body.data.some(
                       (item: { youngId: string | null }) =>
                         item.youngId === fixtures[0].young.youngId,
-                    ))
-              ) {
+                    );
+              if (!previousOwnerRequest && previousOwner)
+                previousOwnerRequest = route.request();
+              if (pending && !held && previousOwner) {
                 held = true;
                 await release;
               }
@@ -85,9 +98,25 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
           void operation.catch(() => undefined);
           return operation;
         };
-        await page.route(pattern, handler);
         const errors: unknown[] = [];
+        let routesDrained = false;
+        const drainRoutes = async () => {
+          if (routesDrained) return;
+          routesDrained = true;
+          try {
+            await page.unroute(pattern, handler);
+          } catch (error) {
+            errors.push(error);
+          }
+          const settled = await Promise.allSettled(routeOperations);
+          errors.push(
+            ...settled.flatMap((result) =>
+              result.status === "rejected" ? [result.reason] : [],
+            ),
+          );
+        };
         try {
+          await page.route(pattern, handler);
           await page.context().clearCookies();
           await page
             .context()
@@ -170,6 +199,29 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
             page.getByTestId("home-personal-overview"),
           ).not.toContainText(fixtures[0].young.name);
           releaseOld();
+          await drainRoutes();
+          expect(previousOwnerRequest).toBeDefined();
+          await expect.poll(() => previousOwnerTerminal).toBeDefined();
+          if (previousOwnerTerminal === "failed")
+            expect(previousOwnerRequest?.failure()?.errorText).toBe(
+              "net::ERR_ABORTED",
+            );
+          // Native completion precedes a rendering opportunity for the
+          // current promise, Svelte and MutationObserver work.
+          await page.evaluate(
+            () =>
+              new Promise<void>((resolve) => {
+                requestAnimationFrame(() =>
+                  requestAnimationFrame(() => resolve()),
+                );
+              }),
+          );
+          await expect(
+            page
+              .getByText(fixtures[1].homework.title, { exact: true })
+              .filter({ visible: true })
+              .first(),
+          ).toBeVisible();
           await expect(focus).toContainText(fixtures[1].young.name);
           await expect(
             page.getByTestId("home-personal-overview"),
@@ -192,17 +244,10 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
           errors.push(error);
         } finally {
           releaseOld();
-          try {
-            await page.unroute(pattern, handler);
-          } catch (error) {
-            errors.push(error);
-          }
-          const settled = await Promise.allSettled(routeOperations);
-          errors.push(
-            ...settled.flatMap((result) =>
-              result.status === "rejected" ? [result.reason] : [],
-            ),
-          );
+          await drainRoutes();
+          page.off("close", releaseOld);
+          page.off("requestfinished", finished);
+          page.off("requestfailed", failed);
         }
         if (errors.length === 1) throw errors[0];
         if (errors.length)
