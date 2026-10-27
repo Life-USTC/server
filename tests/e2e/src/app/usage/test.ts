@@ -224,9 +224,29 @@ test("bot mcp and cli marketing composition stays aligned", {
   await publicFlow.run(async () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
 
-    for (const routePath of ["/usage/bot", "/usage/mcp", "/usage/cli"]) {
+    const marketingGuides = [
+      {
+        routePath: "/usage/bot",
+        blurb:
+          /^(?:在 QQ 中查询校园信息和个人日程。|Check campus information and your schedule in QQ\.)$/,
+      },
+      {
+        routePath: "/usage/mcp",
+        blurb:
+          /^(?:把 Life@USTC 连接到 ChatGPT、Claude 或其他支持 MCP 的客户端。|Connect Life@USTC to ChatGPT, Claude, or any other MCP-compatible client\.)$/,
+      },
+      {
+        routePath: "/usage/cli",
+        blurb:
+          /^(?:在终端中查询校园信息和个人工作台。|Access campus information and your workspace from the terminal\.)$/,
+      },
+    ];
+
+    for (const { routePath, blurb } of marketingGuides) {
       await gotoAndWaitForReady(page, routePath);
-      await expect(page.locator('[data-usage-marketing="hero"]')).toBeVisible();
+      const hero = page.locator('[data-usage-marketing="hero"]');
+      await expect(hero).toBeVisible();
+      await expect(hero.getByText(blurb)).toBeVisible();
       const exampleCards = page.locator(
         '[data-usage-marketing="example-card"]:visible',
       );
