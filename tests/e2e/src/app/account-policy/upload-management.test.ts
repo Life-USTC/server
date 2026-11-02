@@ -6,7 +6,12 @@ import { observeAction } from "../../../utils/observed-action";
 import { test as workerTest } from "../../../utils/owned-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { withSettledPageWrites } from "../../../utils/settled-page-writes";
-import { createUploadBucket } from "../../../utils/upload-bucket";
+import {
+  expectUploadWriteState,
+  type UploadState,
+  type UploadWrite,
+  withUploadObserver,
+} from "../../../utils/upload-write-observer";
 import { createUploadedFileViaApi } from "../../../utils/uploads";
 import { assertPageContract } from "../_shared/page-contract";
 
@@ -16,16 +21,18 @@ type UploadManagement = {
   sectionJwId: number;
   sectionId: number;
   quotaLabel: string;
-  bucket: ReturnType<typeof createUploadBucket>;
-  objects: Map<string, string>;
+  objects: Map<string, UploadState>;
+  writes: UploadWrite[];
+  readUpload: (id: string, key: string) => Promise<UploadState>;
   upload: (filename?: string) => Promise<string>;
+  prepareUpload: () => Promise<string>;
 };
 
 const test = workerTest.extend<{
   owned: UploadManagement;
   uploadRun: (work: () => Promise<void>) => Promise<void>;
 }>({
-  owned: async ({ isolatedWorker, request, run }, use) => {
+  owned: async ({ isolatedWorker, run }, use) => {
     await use(
       await run(async () => {
         const db = isolatedWorker.database.owner;
@@ -60,24 +67,52 @@ const test = workerTest.extend<{
             },
           });
         });
-        const bucket = createUploadBucket(request, isolatedWorker.origin);
-        const objects = new Map<string, string>();
+        const objects = new Map<string, UploadState>();
+        const readUpload = (id: string, key: string) =>
+          withUploadObserver(isolatedWorker.origin, async (observer) => {
+            const upload = await db.upload.findUnique({ where: { id } });
+            const object = await observer.get(key);
+            const metadata = await observer.head(key);
+            return { upload, object, metadata };
+          });
         return {
           user,
           db,
           sectionJwId: section.jwId,
           sectionId: section.id,
           quotaLabel: "",
-          bucket,
           objects,
+          writes: [],
+          readUpload,
+          prepareUpload: () =>
+            run(async () => {
+              const key = `uploads/${user.id}/${crypto.randomUUID()}`;
+              await withUploadObserver(isolatedWorker.origin, (observer) =>
+                observer.put(key, "Learning material", {
+                  httpMetadata: { contentType: "text/plain" },
+                }),
+              );
+              const upload = await db.upload.create({
+                data: {
+                  userId: user.id,
+                  key,
+                  filename: "lecture-notes.txt",
+                  contentType: "text/plain",
+                  size: Buffer.byteLength("Learning material"),
+                },
+              });
+              objects.set(upload.id, await readUpload(upload.id, key));
+              return upload.id;
+            }),
           upload: (filename = "lecture-notes.txt") =>
             run(async () => {
               const result = await createUploadedFileViaApi(user.request, {
                 filename,
                 contents: "Learning material",
               });
-              objects.set(result.uploadId, result.key);
-              const stored = await bucket.get(result.key);
+              const state = await readUpload(result.uploadId, result.key);
+              objects.set(result.uploadId, state);
+              const stored = state.object;
               expect(stored).not.toBeNull();
               expect(stored?.body).toEqual(
                 new TextEncoder().encode("Learning material"),
@@ -112,21 +147,26 @@ const test = workerTest.extend<{
                   const { meta } = await response.json();
                   owned.quotaLabel = formatBytes(meta.quotaBytes);
                   await work();
+                  expect(owned.writes).toEqual([]);
                 }),
               async (response, request) => {
                 await response.body();
                 const id = new URL(request.url()).pathname.match(
                   /^\/api\/workspace\/uploads\/([^/]+)$/,
                 )?.[1];
-                if (
-                  id &&
-                  request.method() === "DELETE" &&
-                  response.status() === 200
-                ) {
-                  const key = owned.objects.get(id);
-                  if (!key)
-                    throw new Error("Deleted upload has no owned storage key");
-                  expect(await owned.bucket.get(key)).toBeNull();
+                if (id && ["PATCH", "DELETE"].includes(request.method())) {
+                  const write = owned.writes.shift();
+                  expect(write).toMatchObject({
+                    id,
+                    method: request.method(),
+                    status: response.status(),
+                  });
+                  const before = owned.objects.get(id);
+                  if (!write || !before?.upload)
+                    throw new Error("Upload write has no scenario-owned state");
+                  const after = await owned.readUpload(id, before.upload.key);
+                  expectUploadWriteState(before, after, write);
+                  owned.objects.set(id, after);
                 }
               },
             ),
@@ -338,7 +378,11 @@ test("upload.web-rename", { tag: "@Upload/Web" }, async ({
   uploadRun,
 }) => {
   await uploadRun(async () => {
-    const id = await owned.upload();
+    const id = await owned.prepareUpload();
+    owned.writes.push(
+      { id, method: "PATCH", status: 403 },
+      { id, method: "PATCH", status: 200, filename: "renamed-notes.txt" },
+    );
     await gotoAndWaitForReady(page, "/workspace/uploads");
     await page
       .getByRole("button", { name: "Rename lecture-notes.txt", exact: true })
@@ -414,7 +458,11 @@ test("upload.web-delete-feedback", { tag: "@Upload/Web" }, async ({
   uploadRun,
 }) => {
   await uploadRun(async () => {
-    const id = await owned.upload();
+    const id = await owned.prepareUpload();
+    owned.writes.push(
+      { id, method: "DELETE", status: 403 },
+      { id, method: "DELETE", status: 200 },
+    );
     await gotoAndWaitForReady(page, "/workspace/uploads");
     await page
       .getByRole("button", { name: "Delete lecture-notes.txt", exact: true })
@@ -491,6 +539,7 @@ test("cases.content-security.deletion-confirmation", {
 }, async ({ page, owned, uploadRun }) => {
   await uploadRun(async () => {
     const id = await owned.upload();
+    owned.writes.push({ id, method: "DELETE", status: 200 });
     const { id: commentId } = await owned.db.comment.create({
       data: {
         userId: owned.user.id,
