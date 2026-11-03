@@ -7,9 +7,9 @@ import {
 } from "@/features/homeworks/server/homework-mutations";
 import { rlsTest as it } from "../shared/rls-fixture";
 
-describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
+describe(
   "Homework mutation actors",
-  { tags: ["@Homework/Permissions"] },
+  { tags: ["@Homework/Service"] },
   () => {
     it("attributes collaborative edits to the service actor", async ({
       isolatedDatabase: { owner },
