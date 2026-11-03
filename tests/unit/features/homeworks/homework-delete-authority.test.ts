@@ -11,10 +11,15 @@ const { viewer, findHomework, updateHomework, writeAuditLog, invalidate } =
 
 vi.mock("@/lib/auth/viewer-context", () => ({ getViewerContext: viewer }));
 vi.mock("@/lib/db/prisma", () => ({
+  withUserDbContext: async (
+    _userId: string,
+    callback: (tx: unknown) => Promise<unknown>,
+  ) =>
+    callback({
+      homework: { updateMany: updateHomework, findUnique: findHomework },
+    }),
   prisma: {
     homework: { findUnique: findHomework },
-    $transaction: async (callback: (tx: unknown) => Promise<unknown>) =>
-      callback({ homework: { update: updateHomework } }),
   },
 }));
 vi.mock("@/lib/audit/write-audit-log", () => ({ writeAuditLog }));
@@ -30,6 +35,7 @@ import {
 describe("homework deletion authority", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    updateHomework.mockResolvedValue({ count: 1 });
     viewer.mockResolvedValue({
       isAuthenticated: true,
       isSuspended: false,
