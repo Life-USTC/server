@@ -14,6 +14,30 @@ policy_refs:
 - homework-naming
 - cases.missing-data
 requirements:
+- id: homework.actor-aware-mutations
+  category: consistency
+  rule: Shared homework edits attribute the service actor, and deletion carries that actor into its database transaction. Concurrent creator and moderation deletions join the first committed tombstone as successful replays, with one deletion audit event.
+  acceptance:
+    given: An active creator and administrator share a homework in an isolated database with restricted runtime roles.
+    when: Both deletion services reach the database before either write can commit.
+    then:
+    - Both requests succeed, with one new deletion and one replay.
+    - The stored tombstone belongs to the winning actor and exactly one deletion audit event remains.
+    test:
+      file: tests/integration/homework-mutation-actor.test.ts
+      name: joins concurrent deletion replays after the first tombstone commits
+- id: homework.web-table-filters
+  category: presentation
+  rule: Workspace homework column and top-area filters share one draft and Apply action. Course, semester, section, completion and status badges allow multiple alternatives; title, description and Shanghai date comparisons combine across fields. Filtering preserves the viewer-specific advisory and pending semantics.
+  acceptance:
+    given: Homework rows include overdue required work and advisory work before and after its deadline.
+    when: The viewer combines course, semester, completion and badge filters.
+    then:
+    - Multiple alternatives match within one field and independent fields intersect.
+    - Advisory items remain pending only according to the existing viewer-specific rule.
+    test:
+      file: tests/unit/features/workspace/workspace-task-table-filters.test.ts
+      name: keeps advisory completion semantics and supports course, semester and status badges
 - id: homework.database-write-boundary
   category: authorization
   rule: PostgreSQL forces Homework row security while retaining public reads. Creation and collaborative edits require an existing unsuspended transaction actor with matching attribution. Runtime updates cannot change the creator, target, identifier or creation time. Soft deletion requires the creator or an active administrator and matching deletion attribution; deleted rows cannot be edited or restored. Ordinary application deletion remains creator-only, and administrators use the explicit moderation entry. Account deletion clears attribution while retaining shared content.
@@ -27,18 +51,6 @@ requirements:
     test:
       file: tests/integration/homework-rls.test.ts
       name: rejects collaborator deletion and forged tombstones while preserving creator replay and admin moderation
-- id: homework.web-table-filters
-  category: presentation
-  rule: Workspace homework column and top-area filters share one draft and Apply action. Course, semester, section, completion and status badges allow multiple alternatives; title, description and Shanghai date comparisons combine across fields. Filtering preserves the viewer-specific advisory and pending semantics.
-  acceptance:
-    given: Homework rows include overdue required work and advisory work before and after its deadline.
-    when: The viewer combines course, semester, completion and badge filters.
-    then:
-    - Multiple alternatives match within one field and independent fields intersect.
-    - Advisory items remain pending only according to the existing viewer-specific rule.
-    test:
-      file: tests/unit/features/workspace/workspace-task-table-filters.test.ts
-      name: keeps advisory completion semantics and supports course, semester and status badges
 - id: homework.scoped-rest-viewer
   category: authorization
   rule: Shared section-homework list and detail REST reads remain public while projecting only the authenticated viewer's completion. A supplied Bearer token requires a valid REST audience, active grant and community.section-homework read or write scope; rejected credentials return 401 without session or anonymous fallback. Mixed credentials use the Bearer actor, reads do not alter completion records and responses remain private and non-cacheable.
