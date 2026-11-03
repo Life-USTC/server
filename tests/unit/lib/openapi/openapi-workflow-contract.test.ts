@@ -2,8 +2,6 @@ import { readFile } from "node:fs/promises";
 
 import { describe, expect, it } from "vitest";
 
-const actionRevision = "b9325c9e0a27ab65b0da3b766522cedec6be81dc";
-
 async function readRepositoryFile(path: string) {
   return readFile(new URL(`../../../../${path}`, import.meta.url), "utf8");
 }
@@ -27,7 +25,11 @@ describe("OpenAPI build and workflow contracts", () => {
       ".github/workflows/openapi-compatibility.yml",
     );
 
-    expect(workflow.match(new RegExp(actionRevision, "g"))).toHaveLength(1);
+    expect(
+      workflow.match(
+        /uses: oasdiff\/oasdiff-action\/breaking@[a-f0-9]{40}(?=\s|$)/g,
+      ),
+    ).toHaveLength(1);
     expect(workflow).toContain(
       "base: origin/$" + "{{ github.base_ref }}:public/openapi.generated.json",
     );
