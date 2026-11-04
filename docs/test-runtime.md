@@ -52,3 +52,13 @@ route samples; it does not establish behavior coverage.
 The [accessibility helper](../tests/e2e/utils/ui-quality.ts) runs the selected WCAG A/AA axe rules, including contrast and target size.
 Serious/critical violations fail the gate; incomplete results are reported for
 review. A passing audit does not establish full accessibility coverage.
+
+Account browser scenarios can attach an independent persisted-state callback as
+the fifth field of a planned write in
+[accountRun](../tests/e2e/utils/account-fixture.ts). The owned request proxy waits
+for both response and state checks before releasing the response to the browser;
+a response assertion failure still runs the state check. Define expectations from
+scenario inputs, including intermediate values before a rollback. The profile
+save journey uses this boundary while retaining both reloads, visible toasts and
+post-drain state/audit checks. Writes made through `page.request` use the native
+Worker transport ledger and cannot satisfy a browser state callback.
