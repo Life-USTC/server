@@ -104,7 +104,7 @@ All three swap a role colour used as text for its `-text` counterpart: the
 `link` variant's `text-primary`, and the `destructive` variant's
 `text-destructive`.
 
-`--primary` is the brand teal, calibrated as a *surface* against
+`--primary` is the brand teal, calibrated as a _surface_ against
 `--primary-foreground`. The `link` variant is the one variant that is never a
 filled surface, so upstream's `text-primary` always lands on the page
 background: `#00c3d0` on white is 2.16:1, far below the 4.5:1 WCAG AA minimum,
