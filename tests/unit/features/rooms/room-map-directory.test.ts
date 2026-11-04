@@ -73,3 +73,18 @@ it("does not query the catalog when the map manifest is absent", async () => {
   expect(await listRoomMapDirectory("zh-cn")).toEqual([]);
   expect(rooms).not.toHaveBeenCalled();
 });
+
+it("retains the static directory when optional campus enrichment fails", async () => {
+  rooms.mockRejectedValue(new Error("unavailable"));
+  const result = await listRoomMapDirectory("zh-cn");
+  expect(
+    result.map((building) => ({
+      name: building.building,
+      campus: building.campus,
+      count: building.roomCount,
+    })),
+  ).toEqual([
+    { name: "三教主", campus: null, count: 2 },
+    { name: "五教", campus: null, count: 1 },
+  ]);
+});

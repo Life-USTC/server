@@ -146,3 +146,49 @@ test(
     });
   },
 );
+
+test("room-map.optional-campus-failure", { tag: "@RoomMap/Web" }, async ({
+  page,
+  isolatedWorker,
+  catalogFlow,
+}) => {
+  await catalogFlow.run(async () => {
+    // Revoke only this owned DB's optional Room read to reproduce an unavailable
+    // catalog association while keeping the static manifest and map path usable.
+    await isolatedWorker.database.owner.$executeRawUnsafe(
+      'REVOKE SELECT ON "Room" FROM life_ustc_runtime',
+    );
+    try {
+      await gotoAndWaitForReady(page, "/catalog/rooms");
+      await expect(page.getByTestId("room-map-building-index")).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /Campus not recorded|未记录校区/ }),
+      ).toBeVisible();
+      await page.route("**/api/catalog/rooms/**/map", async (route) =>
+        route.fulfill({
+          json: {
+            code: "3A204",
+            building: "三教主",
+            floor: "2",
+            status: "highlighted",
+            imageUrl:
+              "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40'/%3E%3C/svg%3E",
+            sourceImageUrl: null,
+          },
+        }),
+      );
+      await page
+        .getByTestId("room-map-sample-chip")
+        .filter({ hasText: "3A204" })
+        .click();
+      await expect(page).toHaveURL(/\?room=3A204$/);
+      await expect(
+        page.getByTestId("room-map-preview").getByRole("img"),
+      ).toBeVisible();
+    } finally {
+      await isolatedWorker.database.owner.$executeRawUnsafe(
+        'GRANT SELECT ON "Room" TO life_ustc_runtime',
+      );
+    }
+  });
+});
