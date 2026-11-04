@@ -14,6 +14,24 @@ policy_refs:
 - homework-naming
 - cases.missing-data
 requirements:
+- id: homework.section-personal-list-state
+  category: presentation
+  rule: Resolved authenticated section homework lists show My status separately from shared homework
+    attributes, using the same completion and deadline semantics as the workspace. Completed items
+    retain their absolute due date while hiding overdue reminders; teaching assistants see No completion
+    required without completion actions. Anonymous, unresolved and failed private projections do not
+    present public seed data as personal pending state.
+  acceptance:
+    given: An owner has completed and pending overdue homework in a subscribed section.
+    when: The owner compares workspace and section lists in both locales and viewport sizes, then
+      changes completion through the section list's existing detail entry.
+    then:
+    - Both lists show the same completion and relative deadline state, separately from major/team flags.
+    - Actual completion changes refresh the section row and preserve the absolute due date.
+    - The detail entry retains existing completion permissions and teaching-assistant exclusions.
+    test:
+      file: tests/e2e/src/app/workspace/homeworks/section-list-state.test.ts
+      name: homework section list preserves personal state en-us 1280
 - id: homework.actor-aware-mutations
   category: consistency
   rule: Shared homework edits attribute the service actor, and deletion carries that actor into its database transaction. Concurrent creator and moderation deletions join the first committed tombstone as successful replays, with one deletion audit event.
