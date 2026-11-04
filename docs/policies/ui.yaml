@@ -52,6 +52,20 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
       name: ui.layout-principles-3 Course
+- id: ui.detail-content-width
+  category: presentation
+  topic: layout-principles
+  rule: Course, teacher and teaching-section details switch to a facts sidebar only when the actual content container has at least 60rem available. Narrower content preserves the identity-before-reading order. A viewport crossing 1024px must not collapse the reading column; toggling the shell sidebar can change the detail layout according to available content width.
+  acceptance:
+    given: Public course, teacher and section details render with the shell sidebar expanded.
+    when: The viewport crosses 1023/1024,1144,1280 and1440 pixels and the sidebar collapses at1144.
+    then:
+    - Increasing1023 to1024 preserves the reading width apart from normal page padding changes.
+    - Reading columns remain at least540px in these desktop samples.
+    - Wide content retains right-side identity/facts; collapsed sidebar space can enable this layout without changing viewport width.
+    test:
+      file: tests/e2e/src/app/shared-policy/detail-content-width.test.ts
+      name: ui.detail-content-width course
 - id: ui.layout-principles-4
   category: presentation
   topic: layout-principles
