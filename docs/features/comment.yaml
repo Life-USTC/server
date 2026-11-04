@@ -12,6 +12,19 @@ policy_refs:
 - audit
 - cases.content-security
 requirements:
+- id: comment.attachment-database-boundary
+  category: authorization
+  rule: PostgreSQL forces CommentAttachment row security. Link reads follow parent Comment visibility; existing public summary and signed-in download projections retain their authorization. An existing unsuspended author may attach only their own uploads to an active comment and detach links only from their own active comments. Administrators do not gain attachment mutation authority over other authors. Link identities and targets cannot be updated, an upload remains attached to at most one comment, and upload, account and catalog deletion retain foreign-key cleanup.
+  acceptance:
+    given: An isolated PostgreSQL database uses production roles with public, login-only, softbanned and deleted comments, ordinary authors, an administrator and owned uploads.
+    when: Direct runtime transactions and real comment services read, attach, retain, replace and detach links, followed by upload and account cleanup.
+    then:
+    - Missing, empty, nonexistent and suspended actors cannot attach or detach; foreign uploads and foreign or locked parents cannot be modified.
+    - Public summaries and eligible downloads preserve visibility while direct Upload rows remain owner-only and transaction identities do not leak.
+    - Valid owner service operations preserve upload contents; immutable links, single-comment occupancy and foreign-key cleanup remain enforced.
+    test:
+      file: tests/integration/comment-attachment-rls.test.ts
+      name: creates, retains, replaces and detaches through the real comment services
 - id: comment.scoped-rest-viewer
   category: authorization
   rule: Comment list, focused-thread and reply-continuation REST reads preserve anonymous and session reads. A supplied Bearer token must have a valid REST audience, active grant and community.comment read or write scope; rejected credentials return 401 without falling back to a session or anonymous viewer. Valid scoped reads use ordinary visibility, anonymous-author masking, reactions, attachments and viewer action permissions, with no administrator governance override. Responses remain private and non-cacheable.
