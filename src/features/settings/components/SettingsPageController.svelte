@@ -15,10 +15,7 @@ import {
   createSettingsAccountAction,
 } from "@/features/settings/lib/settings-page-actions";
 import { resolveSettingsPageHeading } from "@/features/settings/lib/settings-page-heading";
-import {
-  type SettingsTab,
-  settingsCompanionTabs,
-} from "@/features/settings/lib/settings-tabs";
+import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
 import { goto } from "$app/navigation";
 import { page as routePage } from "$app/state";
 import type {
@@ -67,13 +64,6 @@ let {
   ),
 );
 let consumedStatusKey = $state("");
-/**
- * Width at which the canvas fits a second column of groups. Companions render
- * only above it, so a phone never pays for markup it cannot show.
- */
-const SETTINGS_COMPANION_MEDIA_QUERY = "(min-width: 1024px)";
-let hasCompanionRoom = $state(false);
-
 const accountAction = createSettingsAccountAction({
   setPendingAccountAction: (value) => {
     _pendingAccountAction = value;
@@ -90,16 +80,7 @@ onMount(() => {
   const mountTimer = setTimeout(() => {
     _isMounted = true;
   }, 0);
-  const companionQuery = window.matchMedia(SETTINGS_COMPANION_MEDIA_QUERY);
-  const syncCompanions = () => {
-    hasCompanionRoom = companionQuery.matches;
-  };
-  syncCompanions();
-  companionQuery.addEventListener("change", syncCompanions);
-  return () => {
-    clearTimeout(mountTimer);
-    companionQuery.removeEventListener("change", syncCompanions);
-  };
+  return () => clearTimeout(mountTimer);
 });
 let avatarOptions = $derived(
   data.user.profilePictures.length > 0 ? data.user.profilePictures : [],
@@ -160,8 +141,6 @@ let _unlinkAccount = $derived(
 );
 let _hasPendingAccountAction = $derived(Boolean(_pendingAccountAction));
 let pageHeading = $derived(resolveSettingsPageHeading(copy, data.tab));
-let companionTabs = $derived(settingsCompanionTabs(data.tab));
-let showCompanions = $derived(hasCompanionRoom && companionTabs.length > 0);
 </script>
 
 <svelte:head><title>{pageHeading.title} - Life@USTC</title></svelte:head>
@@ -227,36 +206,8 @@ let showCompanions = $derived(hasCompanionRoom && companionTabs.length > 0);
   >
     <SettingsStatusAlert copy={copy} statusMessage={statusMessage} />
 
-    <div
-      class={showCompanions
-        ? "grid min-w-0 grid-cols-2 items-start gap-6 gap-x-10"
-        : "grid min-w-0 gap-4"}
-    >
-      <!-- The requested group keeps the leading column at every width. -->
-      <div class="grid min-w-0 gap-4" data-settings-active-group>
-        {@render settingsGroup(data.tab)}
-      </div>
-
-      {#if showCompanions}
-        <!--
-          Companions fill the canvas a single group leaves empty on a desktop.
-          They mount only above the companion width, so a phone keeps one group
-          per screen and loads nothing extra.
-        -->
-        <div class="grid min-w-0 content-start gap-8" data-settings-companion-panel>
-          {#each companionTabs as companion (companion)}
-            <div class="grid min-w-0 gap-4">
-              <div class="grid gap-1">
-                <h2 class="text-lg font-semibold">{copy.settings.nav[companion].title}</h2>
-                <p class="text-muted-foreground text-sm">
-                  {copy.settings.nav[companion].description}
-                </p>
-              </div>
-              {@render settingsGroup(companion)}
-            </div>
-          {/each}
-        </div>
-      {/if}
+    <div class="grid min-w-0 gap-4" data-settings-active-group>
+      {@render settingsGroup(data.tab)}
     </div>
   </div>
 </CollectionPage>

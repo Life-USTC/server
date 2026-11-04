@@ -246,7 +246,7 @@ describe("catalog detail page data", () => {
 
     expect(requests).toHaveLength(1);
     expect(requests[0]?.url).toBe(
-      "https://example.test/_life-ustc-internal-cache/catalog-detail-core/v2/test-revision/course/page-core-v2%3Asections-page%3D1/en-us/101",
+      "https://example.test/_life-ustc-internal-cache/catalog-detail-core/v2/test-revision/course/page-core-v3%3Asections-page%3D1/en-us/101",
     );
   });
 

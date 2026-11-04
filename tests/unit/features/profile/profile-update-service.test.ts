@@ -29,6 +29,7 @@ vi.mock("@/lib/db/prisma-errors", () => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: prismaMock,
+  withUserDbContext: vi.fn((_userId, action) => action(prismaMock)),
 }));
 
 vi.mock("@/lib/log/app-logger", () => ({

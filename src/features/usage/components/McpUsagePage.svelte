@@ -122,7 +122,7 @@ function selectClient(value: string) {
   >
     <span class="grid min-w-0 flex-1 gap-0.5">
       <span class="text-muted-foreground text-xs">{label}</span>
-      <code class="truncate font-mono text-sm">{value}</code>
+      <code class="whitespace-normal break-all font-mono text-sm">{value}</code>
     </span>
     <span
       class="flex shrink-0 items-center gap-1.5 text-muted-foreground text-xs group-hover:text-foreground"
@@ -201,7 +201,7 @@ function selectClient(value: string) {
 <section class={usageMarketingPageClass} data-usage-marketing="page">
   <div class={`${usageMarketingHeroShellClass} overflow-hidden`} data-usage-marketing="hero">
     <div
-      class={`${usageMarketingHeroGridClass} lg:grid-cols-[minmax(20rem,0.78fr)_minmax(32rem,1.22fr)]`}
+      class={`${usageMarketingHeroGridClass} xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]`}
     >
       <div class={usageMarketingHeroCopyClass}>
         <div class={usageMarketingIconClass}>
@@ -266,10 +266,10 @@ function selectClient(value: string) {
     >
       <Tabs.List
         aria-label={data.copy.configurationTitle}
-        class="grid w-full grid-cols-3 gap-1 rounded-xl bg-muted p-1"
+        class="grid w-full grid-cols-3 gap-1 group-data-horizontal/tabs:h-12"
       >
         <Tabs.Trigger
-          class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-foreground/70 text-sm transition hover:bg-background/70 sm:px-4"
+          class="min-w-0 gap-2 px-2 sm:px-4"
           value="chatgpt"
         >
           <span class="truncate">{data.copy.clientTabs.chatgpt}</span>
@@ -278,7 +278,7 @@ function selectClient(value: string) {
           </Badge>
         </Tabs.Trigger>
         <Tabs.Trigger
-          class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-foreground/70 text-sm transition hover:bg-background/70 sm:px-4"
+          class="min-w-0 gap-2 px-2 sm:px-4"
           value="claude"
         >
           <span class="truncate">{data.copy.clientTabs.claude}</span>
@@ -287,7 +287,7 @@ function selectClient(value: string) {
           </Badge>
         </Tabs.Trigger>
         <Tabs.Trigger
-          class="flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 font-medium text-foreground/70 text-sm transition hover:bg-background/70 sm:px-4"
+          class="min-w-0 gap-2 px-2 sm:px-4"
           value="other"
         >
           <span class="truncate">{data.copy.clientTabs.other}</span>
@@ -315,7 +315,7 @@ function selectClient(value: string) {
                 </a>
               </h4>
             </div>
-            <a class="flex w-full items-start justify-center" href={data.copy.chatgpt.overviewSrc} rel="noreferrer" target="_blank">
+            <a class="flex w-full max-w-2xl items-start justify-start" href={data.copy.chatgpt.overviewSrc} rel="noreferrer" target="_blank">
               {@render tutorialImage(data.copy.chatgpt.overviewSrc, data.copy.chatgpt.overviewAlt, "max-h-[34rem]")}
             </a>
           </section>
@@ -328,7 +328,7 @@ function selectClient(value: string) {
               </div>
               {@render chatgptFormValues()}
             </div>
-            <a class="flex w-full items-start justify-center" href={data.copy.chatgpt.filledSrc} rel="noreferrer" target="_blank">
+            <a class="flex w-full max-w-2xl items-start justify-start" href={data.copy.chatgpt.filledSrc} rel="noreferrer" target="_blank">
               {@render tutorialImage(data.copy.chatgpt.filledSrc, data.copy.chatgpt.filledAlt, "max-h-[42rem]")}
             </a>
           </section>
@@ -338,7 +338,7 @@ function selectClient(value: string) {
               <span class={usageMarketingStepIndexClass}>{usageMarketingStepIndex(2)}</span>
               <h4 class={usageMarketingStepTitleClass}>{data.copy.chatgpt.steps[2]}</h4>
             </div>
-            <a class="flex w-full items-start justify-center" href="/images/usage/mcp-use-case.png" rel="noreferrer" target="_blank">
+            <a class="flex w-full max-w-2xl items-start justify-start" href="/images/usage/mcp-use-case.png" rel="noreferrer" target="_blank">
               {@render tutorialImage("/images/usage/mcp-use-case.png", data.copy.useCaseAlt, "max-h-[34rem]")}
             </a>
           </section>
@@ -354,7 +354,7 @@ function selectClient(value: string) {
               <span class={usageMarketingStepIndexClass}>{usageMarketingStepIndex(0)}</span>
               <h4 class={usageMarketingStepTitleClass}>{data.copy.claude.steps[0]}</h4>
             </div>
-            <a class="flex w-full items-start justify-center" href="/images/usage/mcp-claude-empty.png" rel="noreferrer" target="_blank">
+            <a class="flex w-full max-w-2xl items-start justify-start" href="/images/usage/mcp-claude-empty.png" rel="noreferrer" target="_blank">
               {@render tutorialImage("/images/usage/mcp-claude-empty.png", data.copy.claude.emptyAlt, "max-h-[34rem]")}
             </a>
           </section>
@@ -371,7 +371,7 @@ function selectClient(value: string) {
               </div>
               <p class="text-muted-foreground text-sm leading-6">{data.copy.claude.note}</p>
             </div>
-            <a class="flex w-full items-start justify-center" href="/images/usage/mcp-claude-filled.png" rel="noreferrer" target="_blank">
+            <a class="flex w-full max-w-2xl items-start justify-start" href="/images/usage/mcp-claude-filled.png" rel="noreferrer" target="_blank">
               {@render tutorialImage("/images/usage/mcp-claude-filled.png", data.copy.claude.filledAlt, "max-h-[42rem]")}
             </a>
           </section>
@@ -381,7 +381,7 @@ function selectClient(value: string) {
               <span class={usageMarketingStepIndexClass}>{usageMarketingStepIndex(2)}</span>
               <h4 class={usageMarketingStepTitleClass}>{data.copy.claude.steps[2]}</h4>
             </div>
-            <a class="flex w-full items-start justify-center" href="/images/usage/mcp-use-case.png" rel="noreferrer" target="_blank">
+            <a class="flex w-full max-w-2xl items-start justify-start" href="/images/usage/mcp-use-case.png" rel="noreferrer" target="_blank">
               {@render tutorialImage("/images/usage/mcp-use-case.png", data.copy.useCaseAlt, "max-h-[34rem]")}
             </a>
           </section>

@@ -111,7 +111,7 @@ it("publications.ingestion-query-budget", {
   // Core revision decisions stay sequential; associations are registered once
   // per batch. Count actual SQL so per-item preloads or links cannot return.
   expect(first.queries).toBeGreaterThan(50);
-  expect(first.queries).toBeLessThanOrEqual(200);
+  expect(first.queries).toBeLessThanOrEqual(150);
   const replay = await ingest(payload);
   expect(replay).toEqual(first.result);
 
@@ -552,4 +552,115 @@ it("rejects a noncanonical stored object key without repairing it", {
       })
     ).r2Key,
   ).toBe(wrongKey);
+});
+
+it("keeps initial pointers alongside later updates, tombstones and stale items", {
+  tags: ["@Publication/Service"],
+}, async () => {
+  const payload = batch("initial-pointers", 4);
+  const [untouched, updated, deleted, duplicate] = payload.items;
+  if (
+    untouched.tombstone ||
+    updated.tombstone ||
+    deleted.tombstone ||
+    duplicate.tombstone
+  )
+    throw new Error("Expected publications");
+  const newer = {
+    ...updated,
+    revisionHash: digest("pointer-newer"),
+    observedAt: "2026-09-02",
+  };
+  const tombstone = {
+    sourceId: deleted.sourceId,
+    canonicalUrl: deleted.canonicalUrl,
+    tombstone: true as const,
+    revisionHash: digest("pointer-tombstone"),
+    observedAt: "2026-09-03",
+  };
+  payload.items.push(newer, tombstone, duplicate, {
+    ...untouched,
+    revisionHash: digest("pointer-stale"),
+    observedAt: "2026-08-01",
+  });
+  const started = Date.now();
+  const response = await ingest(payload);
+  const finished = Date.now();
+  expect(response.results.map(({ status }) => status)).toEqual([
+    "created",
+    "created",
+    "created",
+    "created",
+    "updated",
+    "updated",
+    "unchanged",
+    "unchanged",
+  ]);
+  const publications = await db.publication.findMany({
+    where: { sourceId: payload.sources[0].id },
+    orderBy: { canonicalUrl: "asc" },
+    include: { currentRevision: true, revisions: true },
+  });
+  expect(
+    publications.map(({ currentRevision }) => currentRevision?.revisionHash),
+  ).toEqual([
+    untouched.revisionHash,
+    newer.revisionHash,
+    tombstone.revisionHash,
+    duplicate.revisionHash,
+  ]);
+  expect(publications.map(({ revisions }) => revisions.length)).toEqual([
+    1, 2, 2, 1,
+  ]);
+  expect(
+    publications.map(({ deletedAt }) => deletedAt?.toISOString() ?? null),
+  ).toEqual([null, null, "2026-09-02T16:00:00.000Z", null]);
+  for (const publication of publications) {
+    expect(publication.updatedAt.getTime()).toBeGreaterThanOrEqual(started);
+    expect(publication.updatedAt.getTime()).toBeLessThanOrEqual(finished);
+  }
+  expect(await ingest(payload)).toEqual(response);
+  expect(
+    await db.publicationEventOutbox.count({
+      where: { aggregateId: { in: publications.map(({ id }) => id) } },
+    }),
+  ).toBe(6);
+});
+
+it("preserves disabled-source and ordered image validation before pointer flush", {
+  tags: ["@Publication/Service"],
+}, async () => {
+  const disabled = batch("disabled-pointer");
+  await db.publicationSource.create({
+    data: { id: disabled.sources[0].id, name: "disabled", enabled: false },
+  });
+  const disabledItem = disabled.items[0];
+  if (disabledItem.tombstone) throw new Error("Expected publication");
+  disabledItem.imageSources = {
+    ["0".repeat(64)]: "https://publication.example/wrong.jpg",
+  };
+  expect((await ingest(disabled)).results[0]).toMatchObject({
+    status: "rejected",
+    error: "source is disabled",
+  });
+  const payload = batch("ordered-pointer", 3);
+  const second = payload.items[1];
+  const third = payload.items[2];
+  if (second.tombstone || third.tombstone)
+    throw new Error("Expected publication");
+  second.imageSources = {
+    ["0".repeat(64)]: "https://publication.example/second.jpg",
+  };
+  third.imageSources = {
+    ["1".repeat(64)]: "https://publication.example/third.jpg",
+  };
+  await expect(ingest(payload)).rejects.toThrow(
+    `Image source key does not match its URL: ${"0".repeat(64)}`,
+  );
+  expect(
+    await db.publicationSource.count({ where: { id: payload.sources[0].id } }),
+  ).toBe(0);
+  expect(
+    await db.ingestionBatch.count({ where: { batchId: payload.batchId } }),
+  ).toBe(0);
 });

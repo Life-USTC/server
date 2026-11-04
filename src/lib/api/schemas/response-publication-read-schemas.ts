@@ -163,6 +163,3 @@ export const publicPublicationDetailSchema = z.strictObject({
 export const publicPublicationsResponseSchema = createPaginatedSchema(
   publicPublicationListItemSchema,
 );
-
-/** The object route streams bytes; this schema documents its binary response. */
-export const publicPublicationObjectBinaryResponseSchema = z.string();

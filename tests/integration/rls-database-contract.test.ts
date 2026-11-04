@@ -334,7 +334,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       });
     });
 
-    it("allows the app runtime to append trusted profile picture URLs", async ({
+    it("allows the owner-scoped app runtime to append trusted profile picture URLs", async ({
       isolatedDatabase: { app: prisma, owner: adminPrisma },
       nodeRuntime,
     }) => {
@@ -349,14 +349,17 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         });
 
         await expect(
-          prisma.user.update({
-            where: { id: user.id },
-            data: {
-              profilePictures: {
-                push: `https://example.test/${marker}.webp`,
+          prisma.$transaction(async (tx) => {
+            await tx.$queryRaw`SELECT set_config('app.user_id', ${user.id}, true)`;
+            return tx.user.update({
+              where: { id: user.id },
+              data: {
+                profilePictures: {
+                  push: `https://example.test/${marker}.webp`,
+                },
               },
-            },
-            select: { profilePictures: true },
+              select: { profilePictures: true },
+            });
           }),
         ).resolves.toEqual({
           profilePictures: [`https://example.test/${marker}.webp`],

@@ -37,6 +37,7 @@ import { publicationObjectKey } from "@/features/publications/server/publication
 import {
   getPublicPublicationById,
   getPublicPublicationObjectResponse,
+  listPublicationHeadlines,
   listPublications,
 } from "@/features/publications/server/publication-public-read-service";
 
@@ -124,6 +125,41 @@ function stream(value: string) {
 }
 
 describe("public publication reads", () => {
+  it("reads bounded headlines without waiting for a total or loading objects", async () => {
+    const row = publication();
+    mocks.publicationFindMany.mockResolvedValue([row]);
+    mocks.publicationCount.mockResolvedValue(10_000);
+    const result = await listPublicationHeadlines(6);
+    expect(result).toEqual([
+      {
+        id: row.id,
+        source: row.source,
+        revision: {
+          title: row.currentRevision.title,
+          publishedAt: row.currentRevision.publishedAt,
+        },
+      },
+    ]);
+    expect(mocks.publicationCount).not.toHaveBeenCalled();
+    const query = mocks.publicationFindMany.mock.calls[0][0];
+    expect(query.take).toBe(6);
+    expect(query.select.currentRevision.select).toEqual({
+      title: true,
+      publishedAt: true,
+    });
+    expect(query.where).toMatchObject({
+      deletedAt: null,
+      currentRevision: { is: { isTombstone: false } },
+    });
+  });
+
+  it("rejects unbounded headline queries", async () => {
+    for (const limit of [0, -1, 1.5, 21, Number.NaN]) {
+      await expect(listPublicationHeadlines(limit)).rejects.toThrow(RangeError);
+    }
+    expect(mocks.publicationFindMany).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     // Detail reads always compute `alsoPublishedIn` via a secondary
