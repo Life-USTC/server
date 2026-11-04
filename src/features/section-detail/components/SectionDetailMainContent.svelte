@@ -113,7 +113,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
   </div>
 
   <div
-    class="min-w-0 min-h-0 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
+    class="@container/detail min-w-0 min-h-0 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
     aria-busy={streamLoading}
     data-detail-scroll-container
   >
@@ -147,8 +147,8 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
       </Alert.Root>
     {/if}
 
-    <div class="page-frame page-frame-content grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-10">
-      <div class="min-w-0 lg:col-start-2 lg:row-start-1" data-detail-identity>
+    <div class="page-frame page-frame-content grid gap-8 @[60rem]/detail:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] @[60rem]/detail:grid-rows-[auto_1fr] @[60rem]/detail:items-start @[60rem]/detail:gap-10">
+      <div class="min-w-0 @[60rem]/detail:col-start-2 @[60rem]/detail:row-start-1" data-detail-identity>
         <SectionDetailIdentity
           notAvailable={notAvailable}
           primaryName={primaryName}
@@ -158,7 +158,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
           teachers={displaySection.teachers}
         />
       </div>
-      <div class="grid min-w-0 grid-cols-1 gap-10 lg:col-start-1 lg:row-start-1 lg:row-span-2" data-detail-reading-stream>
+      <div class="grid min-w-0 grid-cols-1 gap-10 @[60rem]/detail:col-start-1 @[60rem]/detail:row-start-1 @[60rem]/detail:row-span-2" data-detail-reading-stream>
         <section id="introduction" class="scroll-mt-4">
           {#key `description:section:${data.section.id}`}
             {#if DescriptionCard}
@@ -273,7 +273,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
         </section>
       </div>
 
-      <aside class="min-w-0 lg:col-start-2 lg:row-start-2" id="overview">
+      <aside class="min-w-0 @[60rem]/detail:col-start-2 @[60rem]/detail:row-start-2" id="overview">
         <SectionBasicInfoCard
           commonCopy={commonCopy}
           notAvailable={notAvailable}

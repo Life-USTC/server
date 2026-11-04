@@ -143,6 +143,7 @@
     "todo": "待办"
   },
   "roomMap": {
+    "unknownCampus": "未记录校区",
     "title": "教室位置",
     "subtitle": "输入教室编号查看楼层图和位置标注。",
     "searchLabel": "教室编号",
@@ -151,9 +152,9 @@
     "empty": "输入教室编号后查看地图，或试试下面的示例。",
     "emptyTitle": "尚未查询教室",
     "sampleGuidance": "试试这些教室：",
-    "sampleRooms": ["3A204", "3A205", "2101"],
-    "browseTitle": "按教学楼浏览",
-    "browseGuidance": "以下教学楼已有楼层图，选择教室编号即可查看。",
+    "sampleRooms": ["3A204", "3A205", "5201"],
+    "browseTitle": "按校区和教学楼浏览",
+    "browseGuidance": "展开校区、教学楼和楼层，选择已有位置标注的教室。",
     "roomCount": "{count} 间教室",
     "roomCountOne": "1 间教室",
     "floorName": "{floor} 层",
@@ -164,7 +165,7 @@
     "loading": "正在加载地图…",
     "fetchError": "地图暂时无法加载，请稍后重试。",
     "highlighted": "已标注教室",
-    "overview": "楼层概览",
+    "overview": "仅有楼层概览，未标出具体教室。",
     "unavailable": "暂无地图",
     "unavailableDescription": "暂时没有这间教室的地图。",
     "building": "楼栋",
@@ -177,6 +178,8 @@
     "close": "关闭"
   },
   "subscriptions": {
+    "mySubscription": "我的订阅身份",
+    "manageSubscription": "管理订阅身份",
     "title": "教学班订阅",
     "description": "管理您在 Life@USTC 中订阅的教学班",
     "summary": {
@@ -1607,6 +1610,7 @@
     "subscriptionDisclaimer": "这里的“教学班订阅”只会影响 Life@USTC 中的工作区与日历，不代表中国科大官方选课。",
     "calendar": "日历 ({count})",
     "calendarEmpty": "此教学班暂无课程或考试安排",
+    "examEmpty": "暂无可用考试安排",
     "classEvent": "上课",
     "examEvent": "考试",
     "lecture": "课次",
@@ -2120,6 +2124,7 @@
     "retry": "重试",
     "emptyTitle": "暂无评论",
     "emptyDescription": "登录后即可分享体验与建议。",
+    "emptyAuthenticatedDescription": "还没有评论，分享你的体验与建议。",
     "anonymousLabel": "匿名",
     "anonymousBadge": "匿名",
     "ustcVerified": "USTC 认证",
@@ -2844,6 +2849,7 @@
     "conflictUnavailable": "暂时无法核对个人日程，请稍后刷新重试。",
     "conflictScope": "冲突提示仅核对已同步课程、考试和已订阅活动中可确定的占用时段；时间未知或仅有整体活动范围时需自行确认，无提示不代表空闲或具备报名资格。",
     "organizersDescription": "优先展示有当前报名列表活动的主办方，也可按名称查找。",
+    "organizerDetailDescription": "查看该主办方发布的活动与历史记录。",
     "description": "来自第二课堂平台的报名活动。",
     "platformName": "第二课堂平台",
     "searchPlaceholder": "按活动名称搜索...",
