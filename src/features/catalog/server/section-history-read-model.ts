@@ -6,7 +6,7 @@ import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { sectionSummarySelect } from "./academic-query-includes";
 import { toSectionSummaryDto } from "./academic-summary-dto-mappers";
 import { cachedCatalogListRead } from "./catalog-list-cache";
-import { SECTION_SUMMARY_DEFAULT_ORDER_BY } from "./section-summary-read-model";
+import { SECTION_HISTORY_ORDER } from "./section-history-order";
 
 export type SectionHistoryScope =
   | { kind: "course"; jwId: number }
@@ -23,7 +23,7 @@ export async function listSectionHistory(input: {
     kind: "sections",
     locale,
     pagination,
-    shape: "scoped-history-v1",
+    shape: "scoped-history-v2",
     load: async () => {
       const prisma = getPrisma(locale);
       const parent =
@@ -48,7 +48,7 @@ export async function listSectionHistory(input: {
             skip,
             take,
             select: { ...sectionSummarySelect, retiredAt: true },
-            orderBy: SECTION_SUMMARY_DEFAULT_ORDER_BY,
+            orderBy: SECTION_HISTORY_ORDER,
           }),
         () => prisma.section.count({ where }),
         pagination.page,
