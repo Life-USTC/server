@@ -916,13 +916,16 @@ test("cases.missing-data.section-missing-teacher-location-or-exam-1", {
       await expect(campus.locator("+ dd")).toHaveText(
         locale === "zh-cn" ? "暂无" : "N/A",
       );
-      for (const region of ["#calendar", "#exams"]) {
-        await expect(page.locator(region)).toContainText(
-          locale === "zh-cn"
-            ? "此教学班暂无课程或考试安排"
-            : "No schedule or exam events available for this section",
-        );
-      }
+      await expect(page.locator("#calendar")).toContainText(
+        locale === "zh-cn"
+          ? "此教学班暂无课程或考试安排"
+          : "No schedule or exam events available for this section",
+      );
+      await expect(page.locator("#exams")).toContainText(
+        locale === "zh-cn"
+          ? "暂无可用考试安排"
+          : "No exam arrangements available yet",
+      );
       expect(await page.locator("#main-content").innerText()).not.toMatch(
         /取消|cancelled|canceled/i,
       );

@@ -181,6 +181,7 @@ export type SectionDetailMainSectionCopy = SectionCalendarCopy &
     calendarMiniDescription: string;
     classLegend: string;
     date: string;
+    examEmpty: string;
     examBatch: string;
     examCount: string;
     examDate: string;
