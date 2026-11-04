@@ -178,6 +178,8 @@
     "close": "Close"
   },
   "subscriptions": {
+    "mySubscription": "My subscription",
+    "manageSubscription": "Manage subscription",
     "title": "Section Subscriptions",
     "description": "Manage your section subscriptions in Life@USTC",
     "summary": {

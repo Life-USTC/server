@@ -178,6 +178,8 @@
     "close": "关闭"
   },
   "subscriptions": {
+    "mySubscription": "我的订阅身份",
+    "manageSubscription": "管理订阅身份",
     "title": "教学班订阅",
     "description": "管理您在 Life@USTC 中订阅的教学班",
     "summary": {

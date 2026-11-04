@@ -394,6 +394,7 @@ export type SectionDetailPageData = {
     loading?: boolean;
     failed?: boolean;
     isSubscribed?: boolean;
+    subscriptionKind?: "regular" | "auditor" | "teaching_assistant";
     signedIn?: boolean;
   };
 };

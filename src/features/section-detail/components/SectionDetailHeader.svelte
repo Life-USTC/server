@@ -3,7 +3,9 @@ import PageHeader from "#lib/components/PageHeader.svelte";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import type { SubmitFunction } from "$app/forms";
+import { page } from "$app/state";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
 
 type SectionHeaderCopy = {
@@ -23,6 +25,7 @@ type SectionHeaderSection = {
 
 type SectionHeaderViewer = {
   isSubscribed?: boolean;
+  subscriptionKind?: "regular" | "auditor" | "teaching_assistant";
 };
 
 type SubscriptionActionKey = "subscribe" | "unsubscribe";
@@ -40,6 +43,9 @@ export let subscriptionAction: (
 ) => SubmitFunction;
 export let subscriptionPendingAction: SubscriptionActionKey | null;
 export let viewer: SectionHeaderViewer;
+$: subscriptionsCopy = getWorkspacePageCopy(
+  page.data.locale === "en-us" ? "en-us" : "zh-cn",
+).subscriptions;
 </script>
 
 <PageHeader
@@ -67,6 +73,12 @@ export let viewer: SectionHeaderViewer;
     />
   {/snippet}
   {#snippet after()}
+    {#if viewer.isSubscribed && viewer.subscriptionKind}
+      <section class="flex flex-wrap items-center gap-2 text-sm" aria-label={subscriptionsCopy.mySubscription}>
+        <span>{subscriptionsCopy.mySubscription}: {subscriptionsCopy.kindEditor[viewer.subscriptionKind]}</span>
+        <a class="underline underline-offset-4" href="/workspace/subscriptions">{subscriptionsCopy.manageSubscription}</a>
+      </section>
+    {/if}
     {#if section.retiredAt != null || formError}
       <div class="grid gap-4">
         {#if section.retiredAt != null}

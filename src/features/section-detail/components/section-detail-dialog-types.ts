@@ -238,6 +238,7 @@ export type SectionDetailMainContentProps = {
     isAuthenticated?: boolean;
     signedIn?: boolean;
     isSubscribed?: boolean;
+    subscriptionKind?: "regular" | "auditor" | "teaching_assistant";
     loading?: boolean;
     failed?: boolean;
   };
