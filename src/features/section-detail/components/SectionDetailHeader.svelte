@@ -56,6 +56,7 @@ export let viewer: SectionHeaderViewer;
   {/snippet}
   {#snippet actions()}
     <SectionDetailPrimaryActions
+      {courseName}
       onOpenCalendar={onOpenCalendar}
       onOpenSubscribe={onOpenSubscribe}
       retired={section.retiredAt != null}

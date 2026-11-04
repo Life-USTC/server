@@ -1916,7 +1916,7 @@
     "unsubscribing": "Removing...",
     "pleaseWait": "Please wait",
     "subscribeSuccess": "Added",
-    "unsubscribeSuccess": "Removed",
+    "unsubscribeSuccess": "This section has been removed from your Life@USTC subscriptions",
     "subscribeSuccessDescription": "This section has been added to your Life@USTC subscriptions only",
     "unsubscribeSuccessDescription": "This section has been removed from your Life@USTC subscriptions",
     "operationFailed": "Operation failed",

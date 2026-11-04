@@ -7,12 +7,12 @@ import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
-import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
+import SubscriptionCancelDialog from "@/features/subscriptions/components/SubscriptionCancelDialog.svelte";
 import { groupSubscribedSectionsBySemester } from "@/features/workspace/lib/subscriptions";
 import type {
   SubscriptionsData,
@@ -178,16 +178,8 @@ function requestRemoveSection(section: SubscriptionSection) {
 }
 
 async function confirmRemoveSection() {
-  if (!pendingRemoveSection) return;
-  const section = pendingRemoveSection;
-  removeDialogOpen = false;
-  pendingRemoveSection = null;
-
-  const removed = await removeSubscribedSection(section.id);
-  if (!removed) {
-    pendingRemoveSection = section;
-    removeDialogOpen = true;
-  }
+  if (!pendingRemoveSection) return false;
+  return removeSubscribedSection(pendingRemoveSection.id);
 }
 
 function handleRemoveDialogOpenChange(open: boolean) {
@@ -348,36 +340,9 @@ function handleRemoveDialogOpenChange(open: boolean) {
   />
 {/if}
 
-<AlertDialog.Root
-  bind:open={removeDialogOpen}
-  onOpenChange={handleRemoveDialogOpenChange}
->
-  {#if pendingRemoveSection}
-    <AlertDialog.Content>
-      <AlertDialog.Header>
-        <AlertDialog.Title>{subscriptionsCopy.unsubscribeTitle}</AlertDialog.Title>
-        <AlertDialog.Description>
-          {formatMessage(subscriptionsCopy.unsubscribeDescription, {
-            name: courseName(pendingRemoveSection),
-          })}
-        </AlertDialog.Description>
-      </AlertDialog.Header>
-      <AlertDialog.Footer>
-        <AlertDialog.Cancel>{subscriptionsCopy.cancelUnsubscribe}</AlertDialog.Cancel>
-        <AlertDialog.Action
-          variant="destructive"
-          disabled={removingSectionId === pendingRemoveSection.id}
-          onclick={confirmRemoveSection}
-        >
-          {#if removingSectionId === pendingRemoveSection.id}
-            <Spinner data-icon="inline-start" />
-          {/if}
-          {subscriptionsCopy.confirmUnsubscribe}
-        </AlertDialog.Action>
-      </AlertDialog.Footer>
-    </AlertDialog.Content>
-  {/if}
-</AlertDialog.Root>
+{#if pendingRemoveSection}
+<SubscriptionCancelDialog bind:open={removeDialogOpen} name={courseName(pendingRemoveSection)} copy={subscriptionsCopy} onconfirm={confirmRemoveSection} onOpenChange={handleRemoveDialogOpenChange} />
+{/if}
 
 {#if editingSection}
   <SubscriptionKindDialog section={editingSection} copy={subscriptionsCopy.kindEditor} onClose={() => { editingSection = null; }} />

@@ -117,7 +117,13 @@ test("已订阅用户仍可取消订阅已退役教学班", {
                 `/_internal/catalog/sections/${section.jwId}/viewer` &&
               response.status() === 200,
           ),
-        () => unsubscribe.first().click(),
+        async () => {
+          await unsubscribe.first().click();
+          await page
+            .getByRole("alertdialog")
+            .getByRole("button", { name: /确认取消订阅|Confirm Unsubscribe/i })
+            .click();
+        },
       );
       expect((await refreshedViewer.json()).viewer).toEqual({
         signedIn: true,

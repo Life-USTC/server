@@ -295,6 +295,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
     <Separator />
     <div class="px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <SectionDetailPrimaryActions
+        {courseName}
         onOpenCalendar={openCalendarDialog}
         onOpenSubscribe={openSubscribeDialog}
         retired={data.section.retiredAt != null}
