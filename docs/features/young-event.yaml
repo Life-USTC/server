@@ -587,6 +587,19 @@ requirements:
     test:
       file: tests/e2e/src/app/young-events/detail-contract.test.ts
       name: young-event.scope-uncertainty
+- id: young-event.organizer-detail-copy
+  category: presentation
+  rule: Organizer detail introduction and empty results describe this organizers activities rather than promising directory search.
+  surfaces:
+  - web
+  acceptance:
+    given: An organizer has no published activity records.
+    when: The existing page is viewed on desktop and mobile.
+    then:
+    - The detail page describes its own activities and history without a name-search instruction.
+    test:
+      file: tests/e2e/src/app/shared-policy/empty-state-copy.test.ts
+      name: organizer detail copy describes its own activities zh-cn
 capabilities:
   young-event:
     title: Second-Classroom Events

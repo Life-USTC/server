@@ -530,6 +530,19 @@ requirements:
     test:
       file: tests/unit/lib/mcp/mcp-registry-contracts.test.ts
       name: section.catalog-id-list-bound
+- id: section.exam-empty-scope
+  category: presentation
+  rule: An empty exams section states that exam arrangements have not been published and does not deny existing class meetings.
+  surfaces:
+  - web
+  acceptance:
+    given: A teaching section has a class meeting but no exams.
+    when: The existing page is viewed on desktop and mobile.
+    then:
+    - The exams section uses exam-specific copy while the class meeting remains present.
+    test:
+      file: tests/e2e/src/app/shared-policy/empty-state-copy.test.ts
+      name: empty copy respects signed-in comments and exam scope zh-cn
 capabilities:
   section-list:
     title: Section List & Filter

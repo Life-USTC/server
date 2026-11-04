@@ -227,6 +227,7 @@ export type SectionDetailCopy = {
     calendarMiniDescription: string;
     calendarDescription: string;
     calendarEmpty: string;
+    examEmpty: string;
     calendarSheetDescription: string;
     calendarSheetTitle: string;
     calendarUrlDescription: string;
