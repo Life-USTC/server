@@ -3,7 +3,10 @@ import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { getCalendarSubscriptionUrl } from "./subscription-calendar-read-model";
-import { getUserSubscriptionKinds } from "./subscription-kind";
+import {
+  getUserSubscriptionKinds,
+  type UserSubscriptionKindsSnapshot,
+} from "./subscription-kind";
 import {
   listSubscribedSectionsForSubscriptionsTab,
   subscriptionSectionFromRow,
@@ -17,10 +20,16 @@ export async function getSubscriptionsTabData(
     includeExams?: boolean;
     referenceNow?: Date;
     sectionIds?: readonly number[];
+    subscriptionKinds?: UserSubscriptionKindsSnapshot;
   } = {},
 ) {
   const localizedPrisma = getPrisma(locale);
-  const kinds = await getUserSubscriptionKinds(userId);
+  // Only reuse the same actor's request-local read; standalone or mismatched
+  // callers still establish their own membership/RLS boundary.
+  const kinds =
+    options.subscriptionKinds?.userId === userId
+      ? options.subscriptionKinds.kinds
+      : await getUserSubscriptionKinds(userId);
   const sectionIds = options.sectionIds?.filter((id) => kinds.has(id)) ?? [
     ...kinds.keys(),
   ];
