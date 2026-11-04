@@ -55,7 +55,10 @@ export async function updateHomework(input: {
       if (input.update.homeworkUpdates) {
         await tx.homework.update({
           where: { id: input.homeworkId },
-          data: input.update.homeworkUpdates,
+          data: {
+            ...input.update.homeworkUpdates,
+            updatedBy: { connect: { id: input.userId } },
+          },
         });
       }
 
@@ -138,15 +141,39 @@ async function deleteHomeworkWithAuthority(
     return { ok: true as const, alreadyDeleted: true };
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.homework.update({
-      where: { id: input.homeworkId },
+  const result = await withUserDbContext(input.userId, async (tx) => {
+    const deleted = await tx.homework.updateMany({
+      where: { id: input.homeworkId, deletedAt: null },
       data: {
         deletedAt: new Date(),
         deletedById: input.userId,
         updatedById: input.userId,
       },
     });
+
+    if (deleted.count === 0) {
+      const current = await tx.homework.findUnique({
+        where: { id: input.homeworkId },
+        select: { createdById: true, deletedAt: true },
+      });
+      if (!current)
+        return {
+          ok: false as const,
+          error: "not_found" as HomeworkMutationError,
+        };
+      if (
+        current.deletedAt &&
+        (moderation
+          ? viewer.viewer.isAdmin
+          : current.createdById === input.userId)
+      ) {
+        return { ok: true as const, alreadyDeleted: true };
+      }
+      return {
+        ok: false as const,
+        error: "forbidden" as HomeworkMutationError,
+      };
+    }
 
     await writeAuditLog(
       {
@@ -158,9 +185,11 @@ async function deleteHomeworkWithAuthority(
       },
       tx,
     );
+    return { ok: true as const, alreadyDeleted: false };
   });
 
-  scheduleInvalidateCalendarExportsForSection(homework.sectionId);
-
-  return { ok: true as const, alreadyDeleted: false };
+  if (result.ok && !result.alreadyDeleted) {
+    scheduleInvalidateCalendarExportsForSection(homework.sectionId);
+  }
+  return result;
 }
