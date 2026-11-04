@@ -178,6 +178,12 @@
     "close": "关闭"
   },
   "subscriptions": {
+    "calendarRecovery": {
+      "reauthenticate": "请重新登录后查看你的私人日历订阅链接。",
+      "unavailable": "日历链接暂不可用，请重试。",
+      "signIn": "重新登录",
+      "retry": "重试"
+    },
     "mySubscription": "我的订阅身份",
     "manageSubscription": "管理订阅身份",
     "title": "教学班订阅",
@@ -1986,6 +1992,7 @@
     "tagMajor": "大作业",
     "tagTeam": "需要组队",
     "tagDefault": "常规作业",
+    "myStatus": "我的状态",
     "completedLabel": "已完成",
     "pendingLabel": "待处理",
     "noCompletionRequired": "无需完成",
