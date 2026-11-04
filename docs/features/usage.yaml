@@ -68,8 +68,9 @@ requirements:
 - id: usage.marketing-composition
   category: presentation
   rule: Bot, MCP, and CLI marketing pages share one composition recipe — icon container, title, one-line blurb,
-    primary CTA, three equal-height example cards, and numbered steps. MCP keeps copy-endpoint as the primary
-    CTA; CLI install exposes a copy affordance.
+    primary CTA, three content-sized examples, and sequential numbered configuration steps. MCP keeps copy-endpoint as the primary
+    CTA; CLI install exposes a copy affordance. MCP steps remain in reading order; terminal output preserves
+    columns and Bot examples open in a keyboard-accessible image preview.
   acceptance:
     given: Anonymous desktop visits to /usage/bot, /usage/mcp, and /usage/cli.
     when: Each page renders its marketing hero and example or step strip.
@@ -79,6 +80,21 @@ requirements:
     test:
       file: tests/e2e/src/app/usage/test.ts
       name: bot mcp and cli marketing composition stays aligned
+- id: usage.readable-content-layout
+  category: presentation
+  rule: MCP tutorial steps follow one reading order at narrow and wide widths. Tabs remain inside their
+    rail, the hero figure fits its container, and complete copyable addresses remain readable. CLI output
+    preserves terminal columns; Bot examples open in an image preview that returns keyboard focus on close.
+  acceptance:
+    given: Anonymous visits with a fresh browser and the existing public usage examples.
+    when: Inspect MCP at390,768,1024,1144 and1440px, then CLI and Bot examples at768px.
+    then:
+    - The hero figure and tab bounds fit their containing regions, and numbered steps remain vertically ordered.
+    - Copy fields do not hide overflow; CLI preformatted output retains its column whitespace.
+    - The Bot schedule image opens in a dialog and Escape returns focus to its trigger.
+    test:
+      file: tests/e2e/src/app/usage/layout-recovery.test.ts
+      name: usage content remains readable in narrow desktop and tablet layouts
 capabilities:
   usage-guides:
     title: Client Usage Guides
