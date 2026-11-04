@@ -936,7 +936,7 @@ it("mcp.current-protocol", { tags: ["@MCP/MCP"] }, async ({ http }) =>
         },
       },
     });
-    for (const version of ["2025-03-26", "2099-01-01"]) {
+    for (const version of ["1900-01-01", "2099-01-01"]) {
       const response = await http.post(
         {
           jsonrpc: "2.0",

@@ -33,6 +33,33 @@ describe("MCP 可观测性", () => {
     });
   });
 
+  it("summarizes legacy initialization without additional client fields", async () => {
+    const request = new Request("https://example.test/api/mcp", {
+      method: "POST",
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-11-25",
+          capabilities: {},
+          clientInfo: {
+            name: "legacy-client",
+            version: "1",
+            private: "PRIVATE_VALUE",
+          },
+        },
+      }),
+    });
+    const summary = await summarizeMcpJsonRpcRequest(request);
+    expect(summary).toMatchObject({
+      methods: ["initialize"],
+      protocolVersion: "2025-11-25",
+      clientInfo: { name: "legacy-client", version: "1" },
+    });
+    expect(JSON.stringify(summary)).not.toContain("PRIVATE_VALUE");
+  });
+
   it("记录工具调用名称和参数键，不记录参数值", async () => {
     const request = new Request("https://example.test/api/mcp", {
       method: "POST",
