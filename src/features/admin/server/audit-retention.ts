@@ -2,9 +2,6 @@ import { Prisma } from "@/generated/prisma/client";
 
 export const AUDIT_RETENTION_BATCH_SIZE = 1000;
 export const AUDIT_RETENTION_MAX_BATCHES = 20;
-export const AUDIT_NETWORK_RETENTION_DAYS = 30;
-export const AUDIT_ATTRIBUTION_RETENTION_DAYS = 90;
-export const AUDIT_EVENT_RETENTION_DAYS = 400;
 
 type AuditRetentionClient = Pick<Prisma.TransactionClient, "$queryRaw">;
 

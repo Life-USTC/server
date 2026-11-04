@@ -144,3 +144,9 @@ Adds optional previous/next accessible-label props to the composed Calendar.
 Bits UI defaults these controls to English independently of date formatting;
 DateTimePicker passes localized labels and its calendar locale. Defaults preserve
 existing callers. The native bilingual Todo date/time regression covers them.
+
+## tabs
+
+`tabs.patch` replaces translucent inactive foreground with the semantic foreground.
+The former pairing measured3.95:1 on the light muted rail (muted text is also below4.5:1 there); native MCP tab checks
+cover every selection in light/dark themes without exempting contrast.

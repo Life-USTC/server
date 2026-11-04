@@ -7,6 +7,7 @@ import QrCodeIcon from "@lucide/svelte/icons/qr-code";
 import TerminalIcon from "@lucide/svelte/icons/terminal";
 import { writeClipboardText } from "#lib/browser/clipboard.js";
 import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Popover from "#lib/components/ui/popover/index.js";
 import {
   usageMarketingBlurbClass,
@@ -310,7 +311,7 @@ async function copyInstallCommand() {
         {#each data.copy.steps as step, index}
           {#if kind === "bot"}
             <article
-              class="mx-auto grid h-full w-full min-w-0 content-start gap-3 p-2 sm:p-3"
+              class="mx-auto grid w-full min-w-0 content-start gap-3 p-2 sm:p-3"
               data-usage-marketing="example-card"
             >
               <span class={usageMarketingStepIndexClass}>
@@ -322,15 +323,26 @@ async function copyInstallCommand() {
                 {step.title}
               </div>
               {#if step.imageSrc}
-                <div class="imessage-incoming w-[calc(100%-0.5rem)] shadow-sm">
-                  <img
-                    alt={step.description ?? step.title}
-                    class="h-auto w-full rounded-[1rem] bg-white"
-                    decoding="async"
-                    loading="lazy"
-                    src={step.imageSrc}
-                  />
-                </div>
+                <Dialog.Root>
+                  <Dialog.Trigger class="imessage-incoming w-[calc(100%-0.5rem)] cursor-zoom-in shadow-sm" aria-label={step.description ?? step.title}>
+                    <img
+                      alt={step.description ?? step.title}
+                      class="h-auto w-full rounded-[1rem] bg-white"
+                      decoding="async"
+                      loading="lazy"
+                      src={step.imageSrc}
+                    />
+                  </Dialog.Trigger>
+                  <Dialog.Content class="sm:max-w-[calc(100%-2rem)]">
+                    <Dialog.Header class="pe-8">
+                      <Dialog.Title>{step.title}</Dialog.Title>
+                      <Dialog.Description>{step.description ?? step.title}</Dialog.Description>
+                    </Dialog.Header>
+                    <a href={step.imageSrc} target="_blank" rel="noreferrer" class="block min-w-0 cursor-zoom-in">
+                      <img alt={step.description ?? step.title} src={step.imageSrc} class="h-auto w-full" />
+                    </a>
+                  </Dialog.Content>
+                </Dialog.Root>
               {/if}
             </article>
           {:else}
@@ -347,7 +359,7 @@ async function copyInstallCommand() {
                   <code class="break-words">{step.title}</code>
                 </div>
                 <pre
-                  class="min-w-0 flex-1 overflow-x-auto whitespace-pre-wrap font-mono text-muted-foreground text-xs leading-6">{(step.resultLines ?? []).join("\n")}</pre
+                  class="min-w-0 flex-1 overflow-x-auto whitespace-pre font-mono text-muted-foreground text-xs leading-6">{(step.resultLines ?? []).join("\n")}</pre
                 >
               </div>
             </article>

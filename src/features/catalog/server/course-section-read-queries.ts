@@ -279,7 +279,7 @@ export async function findCourseDetailByJwId(
     id: jwId,
     kind: "course",
     locale,
-    shape: "detail-v1",
+    shape: "detail-v2",
     load: async () => {
       const course = await getPrisma(locale).course.findUnique({
         where: { jwId },

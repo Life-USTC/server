@@ -45,7 +45,7 @@ function formatRange(event: YoungEventSummary) {
 {/snippet}
 
 <CollectionPage
-  description={youngCopy.organizersDescription}
+  description={youngCopy.organizerDetailDescription}
   layout="detail"
   title={organizer.name}
 >
@@ -88,7 +88,7 @@ function formatRange(event: YoungEventSummary) {
             {/each}
           </Item.Group>
         {:else}
-          <ResultsEmpty title={youngCopy.noEventsFound} description={youngCopy.organizersDescription} />
+          <ResultsEmpty title={youngCopy.noEventsFound} description={youngCopy.organizerDetailDescription} />
         {/if}
         </div>
       </Panel>
