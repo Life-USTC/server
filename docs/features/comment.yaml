@@ -706,6 +706,19 @@ requirements:
     test:
       file: tests/integration/comment-write-contracts.test.ts
       name: comment.reply-moderation-lock
+- id: comment.empty-viewer-guidance
+  category: presentation
+  rule: Comment empty guidance reflects authentication and suspension; an explicit read-only reason takes precedence.
+  surfaces:
+  - web
+  acceptance:
+    given: A signed-in, anonymous, suspended or read-only viewer opens an empty discussion.
+    when: The existing page is viewed on desktop and mobile.
+    then:
+    - Only anonymous viewers receive sign-in guidance; eligible signed-in viewers are invited to comment, and restricted viewers keep their reason.
+    test:
+      file: tests/e2e/src/app/shared-policy/empty-state-copy.test.ts
+      name: empty copy respects signed-in comments and exam scope zh-cn
 capabilities:
   object-comment-section:
     title: Object Comment Section
