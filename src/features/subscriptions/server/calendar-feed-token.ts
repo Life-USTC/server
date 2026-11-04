@@ -4,7 +4,7 @@ import {
 } from "@/lib/audit/write-audit-log";
 import { resolveAuthoritativeRecentSession } from "@/lib/auth/recent-session";
 import { randomBytesBase64Url } from "@/lib/crypto/web-crypto";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 
 function createCalendarFeedToken(): string {
   return randomBytesBase64Url(24);
@@ -34,10 +34,12 @@ export async function ensureUserCalendarFeedToken(
   }
 
   const token = createCalendarFeedToken();
-  const updateResult = await prisma.user.updateMany({
-    where: { id: userId, calendarFeedToken: null },
-    data: { calendarFeedToken: token },
-  });
+  const updateResult = await withUserDbContext(userId, (tx) =>
+    tx.user.updateMany({
+      where: { id: userId, calendarFeedToken: null },
+      data: { calendarFeedToken: token },
+    }),
+  );
 
   if (updateResult.count === 1) {
     await auditCalendarFeedTokenCreation(userId);
@@ -53,10 +55,12 @@ export async function ensureUserCalendarFeedToken(
     return current.calendarFeedToken;
   }
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: { calendarFeedToken: token },
-  });
+  await withUserDbContext(userId, (tx) =>
+    tx.user.update({
+      where: { id: userId },
+      data: { calendarFeedToken: token },
+    }),
+  );
 
   await auditCalendarFeedTokenCreation(userId);
 
@@ -92,10 +96,12 @@ export async function rotateUserCalendarFeedToken(
 
   const token = createCalendarFeedToken();
   try {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { calendarFeedToken: token },
-    });
+    await withUserDbContext(userId, (tx) =>
+      tx.user.update({
+        where: { id: userId },
+        data: { calendarFeedToken: token },
+      }),
+    );
   } catch (error) {
     await fireAuditLog({
       action: "account_calendar_token_rotate",

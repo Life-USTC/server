@@ -24,8 +24,7 @@ vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     user: { findUnique: baseUserFindUniqueMock },
   },
-  // The profile group shares its canvas with linked accounts, so the page also
-  // reads USTC identities through the user's RLS context.
+  // Linked account pages read USTC identities through the user's RLS context.
   withUserDbContext: (
     _userId: string,
     action: (tx: {
@@ -92,5 +91,6 @@ describe("settings page RLS context", () => {
       },
     });
     expect(result.user).not.toHaveProperty("counts");
+    expect(ustcIdentityFindManyMock).not.toHaveBeenCalled();
   });
 });

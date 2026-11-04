@@ -1,13 +1,22 @@
 import { createServer } from "node:http";
 import type { Socket } from "node:net";
 import { test as base, expect } from "@playwright/test";
-import { createCalendarEffectObserver } from "../../../utils/calendar-effects";
+import {
+  createCalendarEffectObserver,
+  withCalendarObserver,
+} from "../../../utils/calendar-effects";
 import { withCalendarProtocol } from "../../../utils/calendar-protocol-lifecycle";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
 
 type Endpoint = {
   origin: string;
-  requests: { method: string; path: string; connection: number }[];
+  requests: {
+    method: string;
+    path: string;
+    connection: number;
+    host: string | undefined;
+    secret: string | undefined;
+  }[];
   expireConnections: () => void;
   resetConsumer: boolean;
   failRead: boolean;
@@ -40,6 +49,8 @@ const test = base.extend<{ endpoint: Endpoint }>({
         method: request.method ?? "",
         path,
         connection: ids.get(request.socket) as number,
+        host: request.headers.host,
+        secret: request.headers["x-test-storage-secret"] as string | undefined,
       });
       // Deterministically expose reuse after a phase boundary. The real
       // workerd reproduction closes its idle socket before the next I/O turn.
@@ -231,8 +242,9 @@ test("failed observation still drains and verifies independent state", {
 test("calendar checkpoints own connections after registration and earlier collection", {
   tag: "@Infrastructure/Runtime",
 }, async ({ endpoint }) => {
+  const origin = endpoint.origin.replace("127.0.0.1", "localhost");
   const observer = createCalendarEffectObserver({
-    origin: endpoint.origin,
+    origin,
     producerPath: "/__test/community-effects?id=checkpoints",
     account: { id: "actor" },
     calendar: "absent",
@@ -245,6 +257,9 @@ test("calendar checkpoints own connections after registration and earlier collec
   const second = await observer.collect(0);
   observer.assert(second, []);
   expect(second).toEqual(first);
+  expect(
+    endpoint.requests.every(({ host }) => host === new URL(origin).host),
+  ).toBe(true);
   expect(endpoint.requests.map(({ method, path }) => [method, path])).toEqual([
     ["POST", "/__test/calendar-consumer"],
     ["GET", "/__test/community-effects"],
@@ -257,3 +272,47 @@ test("calendar checkpoints own connections after registration and earlier collec
   ).toBe(3);
   await expect.poll(() => endpoint.connections.size).toBe(0);
 });
+
+for (const fails of [false, true]) {
+  test(`localhost observer preserves HTTP authority and closes after failure=${fails}`, {
+    tag: "@Infrastructure/Runtime",
+  }, async ({ endpoint }) => {
+    const origin = endpoint.origin.replace("127.0.0.1", "localhost");
+    const failure = new Error("Independent observation failed");
+    let owned:
+      | Parameters<Parameters<typeof withCalendarObserver>[1]>[0]
+      | undefined;
+    const result = await withCalendarObserver(origin, async (request) => {
+      owned = request;
+      for (const path of [
+        "/__test/community-effects",
+        "/__test/calendar-consumer",
+      ]) {
+        const response = await request.post(path, {
+          headers: { "x-test-storage-secret": "private-probe" },
+        });
+        expect(response.status()).toBe(201);
+        await response.body();
+        expect(new URL(response.url()).hostname).toBe("127.0.0.1");
+      }
+      if (fails) throw failure;
+      return "observed";
+    }).catch((error: unknown) => error);
+    expect(result).toBe(fails ? failure : "observed");
+    expect(
+      endpoint.requests.map(({ host, secret }) => ({ host, secret })),
+    ).toEqual([
+      { host: new URL(origin).host, secret: "private-probe" },
+      { host: new URL(origin).host, secret: "private-probe" },
+    ]);
+    expect(
+      new Set(endpoint.requests.map(({ connection }) => connection)).size,
+    ).toBe(1);
+    await expect.poll(() => endpoint.connections.size).toBe(0);
+    if (!owned) throw new Error("Observer context was never created");
+    await expect(owned.get("/__test/community-effects")).rejects.toThrow(
+      /Target page, context or browser has been closed/,
+    );
+    expect(endpoint.requests).toHaveLength(2);
+  });
+}
