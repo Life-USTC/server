@@ -5,7 +5,7 @@ const {
   getNextDeparturesFromHubCampusMock,
   getPublicCatalogLinksDataMock,
   getWeatherSnapshotMock,
-  listPublicationsMock,
+  listPublicationHeadlinesMock,
   listYoungEventsMock,
   logAppEventMock,
   readWeatherCacheMock,
@@ -14,7 +14,7 @@ const {
   getNextDeparturesFromHubCampusMock: vi.fn(),
   getPublicCatalogLinksDataMock: vi.fn(),
   getWeatherSnapshotMock: vi.fn(),
-  listPublicationsMock: vi.fn(),
+  listPublicationHeadlinesMock: vi.fn(),
   listYoungEventsMock: vi.fn(),
   logAppEventMock: vi.fn(),
   readWeatherCacheMock: vi.fn(),
@@ -34,7 +34,7 @@ vi.mock("@/features/weather/server/weather-service", () => ({
 
 vi.mock(
   "@/features/publications/server/publication-public-read-service",
-  () => ({ listPublications: listPublicationsMock }),
+  () => ({ listPublicationHeadlines: listPublicationHeadlinesMock }),
 );
 
 vi.mock("@/features/young/server/young-event-service", () => ({
@@ -55,7 +55,10 @@ vi.mock("@/lib/log/app-logger", () => ({
 
 import { loadPublicLinksPage } from "@/features/catalog-links/server/public-links-page-load";
 import { loadHomePage } from "@/features/workspace/server/anonymous-home-page-load";
-import { loadHomeCampusNow } from "@/features/workspace/server/anonymous-home-sections";
+import {
+  loadAnonymousHomeInformation,
+  loadHomeCampusNow,
+} from "@/features/workspace/server/anonymous-home-sections";
 import { loadPublicBusPage } from "@/features/workspace/server/public-bus-page-load";
 import { getAnonymousHomePageCopy } from "@/lib/shell/page-copy";
 
@@ -80,7 +83,7 @@ describe("public page loaders", () => {
     getNextDeparturesFromHubCampusMock.mockReset();
     getPublicCatalogLinksDataMock.mockReset();
     getWeatherSnapshotMock.mockReset();
-    listPublicationsMock.mockReset();
+    listPublicationHeadlinesMock.mockReset();
     listYoungEventsMock.mockReset();
     logAppEventMock.mockReset();
     readWeatherCacheMock.mockReset();
@@ -88,20 +91,18 @@ describe("public page loaders", () => {
     readWeatherCacheMock.mockResolvedValue(null);
     getWeatherSnapshotMock.mockResolvedValue(null);
     getNextDeparturesFromHubCampusMock.mockResolvedValue(null);
-    listPublicationsMock.mockResolvedValue({ data: [] });
+    listPublicationHeadlinesMock.mockResolvedValue([]);
     listYoungEventsMock.mockResolvedValue({ data: [] });
   });
 
   it("loads the editorial information sections for the home page", async () => {
-    listPublicationsMock.mockResolvedValue({
-      data: [
-        {
-          id: "pub-1",
-          revision: { publishedAt: null, title: "Midterm schedule" },
-          source: { name: "Academic Affairs" },
-        },
-      ],
-    });
+    listPublicationHeadlinesMock.mockResolvedValue([
+      {
+        id: "pub-1",
+        revision: { publishedAt: null, title: "Midterm schedule" },
+        source: { name: "Academic Affairs" },
+      },
+    ]);
     listYoungEventsMock.mockResolvedValue({
       data: [
         {
@@ -187,15 +188,13 @@ describe("public page loaders", () => {
     getWeatherSnapshotMock.mockRejectedValue(
       new Error("weather upstream down"),
     );
-    listPublicationsMock.mockResolvedValue({
-      data: [
-        {
-          id: "pub-1",
-          revision: { publishedAt: null, title: "Midterm schedule" },
-          source: { name: "Academic Affairs" },
-        },
-      ],
-    });
+    listPublicationHeadlinesMock.mockResolvedValue([
+      {
+        id: "pub-1",
+        revision: { publishedAt: null, title: "Midterm schedule" },
+        source: { name: "Academic Affairs" },
+      },
+    ]);
 
     const campusNow = await loadHomeCampusNow(campusNowInput);
     const result = await loadHomePage(event);
@@ -207,6 +206,54 @@ describe("public page loaders", () => {
       "home.section.degraded",
       expect.objectContaining({ section: "weather" }),
     );
+  });
+
+  it("keeps the home notice summary independent of the full list count", async () => {
+    listPublicationHeadlinesMock.mockResolvedValue([
+      {
+        id: "latest",
+        source: { name: "Campus" },
+        revision: { title: "Latest", publishedAt: null },
+      },
+    ]);
+    const result = await loadAnonymousHomeInformation({
+      locale: "en-us",
+      requestId: "summary",
+    });
+    expect(result.notices?.map(({ key }) => key)).toEqual(["latest"]);
+    expect(listPublicationHeadlinesMock).toHaveBeenCalledWith(5);
+  });
+
+  it("distinguishes a timed-out notice summary from an empty success", async () => {
+    vi.useFakeTimers();
+    try {
+      listPublicationHeadlinesMock.mockImplementation(
+        () => new Promise(() => {}),
+      );
+      const pending = loadAnonymousHomeInformation({
+        locale: "en-us",
+        requestId: "timeout",
+      });
+      await vi.advanceTimersByTimeAsync(1500);
+      expect(await pending).toEqual({ activities: [], notices: null });
+      expect(logAppEventMock).toHaveBeenCalledWith(
+        "warn",
+        "home.section.degraded",
+        expect.objectContaining({
+          section: "notices",
+          reason: "home section exceeded its budget",
+        }),
+      );
+      listPublicationHeadlinesMock.mockResolvedValue([]);
+      expect(
+        await loadAnonymousHomeInformation({
+          locale: "en-us",
+          requestId: "empty",
+        }),
+      ).toEqual({ activities: [], notices: [] });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("loads only bus data for the public bus page", async () => {
