@@ -117,6 +117,8 @@ export async function updateAdminUser(
 
   const updateUser = () =>
     runSerializableTransaction(async (tx) => {
+      // Set the actor on every serializable attempt, before any protected write.
+      await tx.$queryRaw`SELECT set_config('app.user_id', ${adminUserId}, true)`;
       const existingUser = await tx.user.findUnique({
         where: { id },
         select: { id: true, isAdmin: true, name: true, username: true },

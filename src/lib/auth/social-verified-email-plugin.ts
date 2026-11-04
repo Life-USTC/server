@@ -6,7 +6,7 @@ import {
 import { upsertVerifiedEmail } from "@/lib/auth/oauth-user-email-resolve";
 import { consumeStagedSocialVerifiedEmail } from "@/lib/auth/social-verified-email-staging";
 import { authPrisma } from "@/lib/db/auth-prisma";
-import { prisma } from "@/lib/db/prisma";
+import { withUserDbContext } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 const SOCIAL_PROFILE_PROVIDERS = new Set(["github", "google", "oidc"]);
@@ -53,13 +53,16 @@ async function applySocialVerifiedEmailToUser(input: {
       // holds the upstream mailbox for OAuth userinfo resolution.
     }
   }
-  if (input.image && !current.profilePictures.includes(input.image)) {
+  const image = input.image;
+  if (image && !current.profilePictures.includes(image)) {
     try {
-      await prisma.user.update({
-        where: { id: input.userId },
-        data: { profilePictures: { push: input.image } },
-        select: { id: true },
-      });
+      await withUserDbContext(input.userId, (tx) =>
+        tx.user.update({
+          where: { id: input.userId },
+          data: { profilePictures: { push: image } },
+          select: { id: true },
+        }),
+      );
     } catch (error) {
       logAppEvent(
         "warn",

@@ -21,6 +21,7 @@ const {
   isPrismaUniqueConstraintErrorMock: vi.fn(),
   prismaMock: {
     $transaction: vi.fn(),
+    $queryRaw: vi.fn(),
     auditLog: {
       createMany: vi.fn(),
     },
@@ -88,9 +89,11 @@ describe("admin API 服务", () => {
     prismaMock.description.findUnique = descriptionFindUniqueMock;
     prismaMock.description.update = descriptionUpdateMock;
     prismaMock.descriptionEdit.create = descriptionEditCreateMock;
+    prismaMock.$queryRaw.mockReset();
     prismaMock.$transaction.mockReset();
     prismaMock.$transaction.mockImplementation(async (action) =>
       action({
+        $queryRaw: prismaMock.$queryRaw,
         auditLog: prismaMock.auditLog,
         comment: prismaMock.comment,
         description: prismaMock.description,
@@ -108,6 +111,34 @@ describe("admin API 服务", () => {
     prismaMock.userSuspension.update.mockReset();
     prismaMock.userSuspension.updateMany.mockReset();
     vi.resetModules();
+  });
+
+  it("restores the actor on every transaction retry", async () => {
+    prismaMock.user.findUnique
+      .mockRejectedValueOnce({ code: "P2034" })
+      .mockResolvedValueOnce(null);
+    const { updateAdminUser } = await import(
+      "@/features/admin/server/admin-api-service"
+    );
+    await expect(
+      updateAdminUser("admin-actor", "target-user", { name: "Update" }),
+    ).resolves.toEqual({ ok: false, reason: "not_found" });
+    expect(prismaMock.$transaction).toHaveBeenCalledTimes(2);
+    expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(2);
+    for (const call of prismaMock.$queryRaw.mock.calls) {
+      expect(call[0].join("?")).toBe(
+        "SELECT set_config('app.user_id', ?, true)",
+      );
+      expect(call[1]).toBe("admin-actor");
+    }
+    for (let attempt = 0; attempt < 2; attempt++) {
+      expect(
+        prismaMock.$queryRaw.mock.invocationCallOrder[attempt],
+      ).toBeLessThan(
+        prismaMock.user.findUnique.mock.invocationCallOrder[attempt],
+      );
+    }
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 
   it("更新用户前拒绝自我降权", async () => {
@@ -156,7 +187,7 @@ describe("admin API 服务", () => {
     prismaMock.$transaction
       .mockRejectedValueOnce({ code: "P2034" })
       .mockImplementationOnce(async (action) =>
-        action({ user: prismaMock.user }),
+        action({ $queryRaw: prismaMock.$queryRaw, user: prismaMock.user }),
       );
     prismaMock.user.findUnique.mockResolvedValue({
       id: "admin-2",
