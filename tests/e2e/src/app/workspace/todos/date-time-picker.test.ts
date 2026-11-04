@@ -43,6 +43,26 @@ for (const [locale, width] of [
           });
           const time = page.locator('input[type="time"]');
           await expect(time).toBeVisible();
+          const popup = page.locator('[data-slot="popover-content"]');
+          const popupBox = await popup.boundingBox();
+          const viewportWidth = await page.evaluate(() => window.innerWidth);
+          expect(popupBox).not.toBeNull();
+          if (!popupBox) throw new Error("Date/time popup has no bounds");
+          expect(popupBox.x).toBeGreaterThanOrEqual(0);
+          expect(popupBox.x + popupBox.width).toBeLessThanOrEqual(
+            viewportWidth,
+          );
+          await expect(popup.locator("select")).toHaveCount(2);
+          for (const select of await popup.locator("select").all()) {
+            await expect(select).toBeVisible();
+            await expect(select).toBeEnabled();
+            const box = await select.boundingBox();
+            if (!box) throw new Error("Calendar select has no bounds");
+            expect(box.x).toBeGreaterThanOrEqual(popupBox.x);
+            expect(box.x + box.width).toBeLessThanOrEqual(
+              popupBox.x + popupBox.width,
+            );
+          }
           await expect(
             page.getByRole("button", {
               name: locale === "zh-cn" ? "上个月" : "Previous month",
