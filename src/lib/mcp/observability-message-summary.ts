@@ -51,11 +51,22 @@ export function summarizeJsonRpcMessage(
     };
   }
 
+  if (method === "initialize") {
+    summary.protocolVersion = asSafeString(params?.protocolVersion);
+    const clientInfo = asMcpObservabilityRecord(params?.clientInfo);
+    if (clientInfo) {
+      summary.clientInfo = {
+        name: asSafeString(clientInfo.name),
+        version: asSafeString(clientInfo.version),
+      };
+    }
+  }
+
   const meta = asMcpObservabilityRecord(params?._meta);
   if (meta) {
-    summary.protocolVersion = asSafeString(
-      meta["io.modelcontextprotocol/protocolVersion"],
-    );
+    summary.protocolVersion =
+      asSafeString(meta["io.modelcontextprotocol/protocolVersion"]) ??
+      summary.protocolVersion;
     const clientInfo = asMcpObservabilityRecord(
       meta["io.modelcontextprotocol/clientInfo"],
     );
