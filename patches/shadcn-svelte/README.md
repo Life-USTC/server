@@ -137,3 +137,9 @@ accepts an empty programmatic value, and the binding plus attribute spread
 replays the stale bound filename into the element on re-render, throwing
 `InvalidStateError` and unmounting the surrounding tree (first seen crashing
 the comment composer's pending-upload UI after the SvelteKit 3 migration).
+
+## tabs
+
+`tabs.patch` replaces translucent inactive foreground with the semantic foreground.
+The former pairing measured3.95:1 on the light muted rail (muted text is also below4.5:1 there); native MCP tab checks
+cover every selection in light/dark themes without exempting contrast.

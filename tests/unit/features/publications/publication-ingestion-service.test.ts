@@ -49,6 +49,21 @@ const fake = vi.hoisted(() => {
   }
 
   const tx = {
+    $executeRaw: vi.fn(async (query: { values: unknown[] }) => {
+      for (let index = 0; index < query.values.length; index += 3) {
+        const [publicationId, revisionId, updatedAt] = query.values.slice(
+          index,
+          index + 3,
+        );
+        const publication = state.publications.get(String(publicationId));
+        if (!publication) throw new Error("publication not found");
+        Object.assign(publication, {
+          currentRevisionId: revisionId,
+          updatedAt,
+        });
+      }
+      return query.values.length / 3;
+    }),
     user: {
       findUnique: vi.fn(async () => ({ isAdmin: true })),
     },
