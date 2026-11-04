@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.11/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.2/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -43,7 +43,7 @@
     "rules": {
       "preset": "recommended",
       "nursery": {
-        "useSortedClasses": "error"
+        "useTailwindSortedClasses": "error"
       },
       "suspicious": {
         "noUnknownAtRules": "off",
@@ -69,6 +69,22 @@
           },
           "style": {
             "useImportType": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.yaml", "**/*.yml"],
+      "formatter": {
+        "enabled": false
+      }
+    },
+    {
+      "includes": ["tests/unit/**/*.ts", "tests/integration/**/*.ts"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "usePlaywrightValidDescribeCallback": "off"
           }
         }
       }

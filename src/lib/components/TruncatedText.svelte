@@ -73,13 +73,13 @@ function triggerProps(props: Record<string, unknown>) {
   return {
     ...rest,
     class: cn(
-      "block min-w-0 max-w-full overflow-hidden",
+      "block max-w-full min-w-0 overflow-hidden",
       lines === 1
         ? "truncate"
         : cn(
             "line-clamp-2",
             preserveWhitespace
-              ? "whitespace-pre-wrap break-words"
+              ? "break-words whitespace-pre-wrap"
               : "whitespace-normal",
           ),
       typeof triggerClass === "string" ? triggerClass : undefined,
