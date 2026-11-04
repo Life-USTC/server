@@ -1,5 +1,5 @@
 import { authApi } from "@/lib/auth/core";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { isPrismaUniqueConstraintError } from "@/lib/db/prisma-errors";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { isValidProfileUsername } from "../lib/profile-username";
@@ -69,18 +69,18 @@ export async function updateOwnProfile(
       headers: input.headers,
       returnHeaders: true,
     });
-    if (
-      input.trustedImageUrl &&
-      !current.profilePictures.includes(input.trustedImageUrl)
-    ) {
+    const trustedImageUrl = input.trustedImageUrl;
+    if (trustedImageUrl && !current.profilePictures.includes(trustedImageUrl)) {
       try {
-        await prisma.user.update({
-          where: { id: input.userId },
-          data: {
-            profilePictures: { push: input.trustedImageUrl },
-          },
-          select: { id: true },
-        });
+        await withUserDbContext(input.userId, (tx) =>
+          tx.user.update({
+            where: { id: input.userId },
+            data: {
+              profilePictures: { push: trustedImageUrl },
+            },
+            select: { id: true },
+          }),
+        );
       } catch (error) {
         // The current image already points at the processed object, so profile
         // completion can succeed even if persisting the reusable option fails.
