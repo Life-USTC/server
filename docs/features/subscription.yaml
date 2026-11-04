@@ -338,6 +338,20 @@ requirements:
     test:
       file: tests/e2e/src/app/sections/[jwId]/unsubscribe-confirmation.test.ts
       name: section cancellation stays open during failure and explicit retry
+- id: subscription.section-viewer-kind
+  category: presentation
+  rule: A section detail shows the signed-in viewers current regular, auditor or teaching-assistant subscription kind separately from catalog facts and links to existing subscription management. This relation is read only through the private session projection and never enters public HTML or shared caches.
+  surfaces:
+  - web
+  acceptance:
+    given: An authenticated viewer owns each supported subscription kind on a section.
+    when: The section is viewed at desktop and mobile widths.
+    then:
+    - The named personal-subscription region shows the current role and links to subscription management.
+    - The existing membership remains unchanged; public HTML remains anonymous and Bearer cannot access the private projection.
+    test:
+      file: tests/e2e/src/app/sections/[jwId]/subscription-kind.test.ts
+      name: section displays personal subscription kind teaching_assistant
 capabilities:
   subscribe-from-section:
     title: Subscribe from Section Detail
