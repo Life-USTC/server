@@ -10,7 +10,16 @@ export async function withCalendarObserver<T>(
   origin: string,
   observe: (request: APIRequestContext) => Promise<T>,
 ): Promise<T> {
-  const request = await nativeRequest.newContext({ baseURL: origin });
+  const endpoint = new URL(origin);
+  const loopback =
+    endpoint.protocol === "http:" && endpoint.hostname === "localhost";
+  // The isolated Worker listens on IPv4. Dial it directly for these private
+  // probes while preserving its HTTP authority; browser/auth origins stay local.
+  if (loopback) endpoint.hostname = "127.0.0.1";
+  const request = await nativeRequest.newContext({
+    baseURL: loopback ? endpoint.origin : origin,
+    ...(loopback ? { extraHTTPHeaders: { host: new URL(origin).host } } : {}),
+  });
   let result: { value: T } | { error: unknown };
   try {
     result = { value: await observe(request) };
