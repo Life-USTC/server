@@ -9,6 +9,7 @@
 		class: className,
 		children,
 		variant = "ghost",
+		"aria-label": label = "Previous",
 		...restProps
 	}: CalendarPrimitive.PrevButtonProps & {
 		variant?: ButtonVariant;
@@ -28,9 +29,13 @@
 	)}
 	{...restProps}
 >
+	{#snippet child({ props })}
+	<button {...props} aria-label={label}>
 	{#if children}
 		{@render children?.()}
 	{:else}
 		{@render Fallback()}
 	{/if}
+	</button>
+	{/snippet}
 </CalendarPrimitive.PrevButton>
