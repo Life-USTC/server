@@ -2326,6 +2326,7 @@
     "tagMajor": "Major assignment",
     "tagTeam": "Team required",
     "tagDefault": "Standard",
+    "myStatus": "My status",
     "completedLabel": "Completed",
     "pendingLabel": "Pending",
     "noCompletionRequired": "No completion required",

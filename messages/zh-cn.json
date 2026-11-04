@@ -1974,6 +1974,7 @@
     "tagMajor": "大作业",
     "tagTeam": "需要组队",
     "tagDefault": "常规作业",
+    "myStatus": "我的状态",
     "completedLabel": "已完成",
     "pendingLabel": "待处理",
     "noCompletionRequired": "无需完成",

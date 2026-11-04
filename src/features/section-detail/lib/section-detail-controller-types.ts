@@ -170,6 +170,9 @@ export type SectionDetailCopy = {
     advancedShow: string;
     cancel: string;
     completedLabel: string;
+    dateTBD: string;
+    myStatus: string;
+    viewDetails: string;
     commentsTitle: string;
     contentHistoryAction: string;
     contentHistoryActor: string;
