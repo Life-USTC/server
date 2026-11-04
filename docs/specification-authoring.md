@@ -5,13 +5,13 @@ shared requirements. Validate edits with `bun run specs:check`.
 
 ## Where an edit belongs
 
-| Information | Owner |
-|---|---|
-| Product scope and feature behavior | `product.yaml`, `features/<id>.yaml` |
-| Requirements shared across features | `policies/<id>.yaml` |
-| Context, alternatives and consequences of a decision | `decisions/<id>.yaml` |
-| Supported document shapes and expectation kinds | [schemas/](schemas/) |
-| Model fields and exposed interface shapes | [Prisma](../prisma/schema.prisma), [OpenAPI](../public/openapi.generated.json), [GraphQL SDL](graphql/schema.graphql) |
+| Information                                          | Owner                                                                                                                 |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Product scope and feature behavior                   | `product.yaml`, `features/<id>.yaml`                                                                                  |
+| Requirements shared across features                  | `policies/<id>.yaml`                                                                                                  |
+| Context, alternatives and consequences of a decision | `decisions/<id>.yaml`                                                                                                 |
+| Supported document shapes and expectation kinds      | [schemas/](schemas/)                                                                                                  |
+| Model fields and exposed interface shapes            | [Prisma](../prisma/schema.prisma), [OpenAPI](../public/openapi.generated.json), [GraphQL SDL](graphql/schema.graphql) |
 
 For a feature example, see [homework](features/homework.yaml):
 `homework.no-subscription-required` uses a prose `rule`, while

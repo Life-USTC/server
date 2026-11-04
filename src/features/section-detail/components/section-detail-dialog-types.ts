@@ -181,6 +181,7 @@ export type SectionDetailMainSectionCopy = SectionCalendarCopy &
     calendarMiniDescription: string;
     classLegend: string;
     date: string;
+    examEmpty: string;
     examBatch: string;
     examCount: string;
     examDate: string;
@@ -237,6 +238,7 @@ export type SectionDetailMainContentProps = {
     isAuthenticated?: boolean;
     signedIn?: boolean;
     isSubscribed?: boolean;
+    subscriptionKind?: "regular" | "auditor" | "teaching_assistant";
     loading?: boolean;
     failed?: boolean;
   };

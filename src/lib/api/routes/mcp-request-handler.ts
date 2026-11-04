@@ -117,6 +117,12 @@ export async function handleMcpRequest(request: Request) {
       return withMcpCors(request, bodyResult.response);
     }
 
+    const { summarizeMcpJsonRpcBody } = await import("@/lib/mcp/observability");
+    rpcSummary =
+      bodyResult.body === undefined
+        ? null
+        : summarizeMcpJsonRpcBody(bodyResult.body);
+
     const toolCallNames = extractMcpToolCallNames(bodyResult.body);
     const toolNames = Array.from(new Set(toolCallNames));
     let authInfo: AuthInfo | undefined;
@@ -176,12 +182,6 @@ export async function handleMcpRequest(request: Request) {
         });
       }
     }
-
-    const { summarizeMcpJsonRpcBody } = await import("@/lib/mcp/observability");
-    rpcSummary =
-      bodyResult.body === undefined
-        ? null
-        : summarizeMcpJsonRpcBody(bodyResult.body);
 
     const userId = authInfo?.extra?.userId;
     if (typeof userId === "string" && userId.length > 0) {
@@ -249,7 +249,7 @@ export async function handleMcpRequest(request: Request) {
         return server;
       },
       {
-        legacy: "reject",
+        legacy: "stateless",
         onerror: (error) => {
           protocolErrorName = getSafeErrorName(error);
         },

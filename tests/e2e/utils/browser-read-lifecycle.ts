@@ -35,9 +35,11 @@ export function ownBrowserReads(
     // Snapshot synchronously at the frame event, before destination scripts can
     // admit reads. The navigation response below must still verify this root;
     // the frame event alone never proves that a new document committed.
-    let departingReads: OwnedRead[] | undefined;
+    let departingReads: OwnedRead[] = [];
+    let boundaryCaptured = false;
     const captureBoundary = (frame: Frame) => {
-      if (frame !== page.mainFrame() || departingReads) return;
+      if (frame !== page.mainFrame() || boundaryCaptured) return;
+      boundaryCaptured = true;
       departingReads = [...ownedReads.entries()]
         .filter(
           ([request, owned]) =>
@@ -47,9 +49,16 @@ export function ownBrowserReads(
         .map(([, owned]) => owned);
     };
     page.on("framenavigated", captureBoundary);
-    const observation = page.waitForNavigation({ waitUntil: "commit" }).then(
-      (response) => {
-        if (!response) return;
+    const observation = (async () => {
+      while (!stopped && !page.isClosed()) {
+        departingReads = [];
+        boundaryCaptured = false;
+        const response = await page.waitForNavigation({ waitUntil: "commit" });
+        // A pending document request does not stop the departing document from
+        // updating its history (for example Scalar's section anchor). That
+        // navigation returns null; keep observing until an actual document
+        // commits, taking a fresh boundary for reads admitted in the meantime.
+        if (!response) continue;
         let root = response.request();
         for (
           let predecessor = root.redirectedFrom();
@@ -57,13 +66,13 @@ export function ownBrowserReads(
           predecessor = root.redirectedFrom()
         )
           root = predecessor;
-        if (root !== incoming || !departingReads) return;
+        if (root !== incoming || !boundaryCaptured) return;
         const committed = { order, url: response.url() };
         for (const owned of departingReads)
           if (!owned.retiredBy) owned.retiredBy = committed;
-      },
-      () => undefined,
-    );
+        return;
+      }
+    })().catch(() => undefined);
     pendingNavigations.add(observation);
     void observation.finally(() => {
       page.off("framenavigated", captureBoundary);

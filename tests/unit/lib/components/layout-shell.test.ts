@@ -190,11 +190,8 @@ describe("settings redirect success feedback", () => {
     expect(controller).toContain('routePage.url.searchParams.get("message")');
     expect(controller).toContain("_isMounted &&");
     expect(controller).toContain("const mountTimer = setTimeout(() => {");
-    // The mount teardown also detaches the companion-width listener, so assert
-    // the whole cleanup rather than a single-statement return.
-    expect(controller).toMatch(
-      /return \(\) => \{\s*clearTimeout\(mountTimer\);\s*companionQuery\.removeEventListener\(\s*"change",\s*syncCompanions,?\s*\);\s*\};/,
-    );
+    // The only mount resource is the deferred-ready timer.
+    expect(controller).toMatch(/return \(\) => clearTimeout\(mountTimer\);/);
     expect(controller).toContain(
       "goto(nextUrl, { shallow: true, replace: true })",
     );
