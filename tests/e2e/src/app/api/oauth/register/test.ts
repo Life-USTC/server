@@ -32,6 +32,7 @@ import {
 import { sha256Base64Url } from "../../../../../../shared/crypto";
 import { test as isolatedTest } from "../../../../../utils/mcp-worker";
 import { test } from "../../../../../utils/owned-worker";
+import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
 
 async function generateCodeChallenge(codeVerifier: string) {
   return sha256Base64Url(codeVerifier);
@@ -149,8 +150,39 @@ test.describe("OAuth 提供者", () => {
         expect(consentLocation).toContain("/oauth/authorize?");
 
         // Complete consent UI.
-        await page.goto(consentLocation);
-        await page.waitForLoadState("domcontentloaded");
+        let releaseScripts!: () => void;
+        let sawScript!: () => void;
+        const heldScript = new Promise<void>((resolve) => {
+          sawScript = resolve;
+        });
+        const release = new Promise<void>((resolve) => {
+          releaseScripts = resolve;
+        });
+        await page.route("**/_app/immutable/**/*.js", async (route) => {
+          sawScript();
+          await release;
+          await route.continue();
+        });
+        let navigationReady = false;
+        const navigation = gotoAndWaitForReady(page, consentLocation).then(
+          () => {
+            navigationReady = true;
+          },
+        );
+        try {
+          await heldScript;
+          const allow = page.getByRole("button", { name: /allow|允许|授权/i });
+          await expect(allow).toBeVisible();
+          expect(navigationReady).toBe(false);
+          expect(
+            await page.evaluate(
+              () => document.documentElement.dataset.lifeUstcHydrated,
+            ),
+          ).not.toBe("true");
+        } finally {
+          releaseScripts();
+        }
+        await navigation;
         const allowButton = page.getByRole("button", {
           name: /allow|允许|授权/i,
         });

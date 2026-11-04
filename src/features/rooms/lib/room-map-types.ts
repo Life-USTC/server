@@ -15,6 +15,7 @@ export type RoomMapFloor = {
 };
 
 export type RoomMapBuilding = {
+  campus?: string | null;
   building: string;
   floors: RoomMapFloor[];
   roomCount: number;
@@ -23,6 +24,7 @@ export type RoomMapBuilding = {
 export type RoomMapCopy = {
   browseGuidance: string;
   browseTitle: string;
+  unknownCampus: string;
   building: string;
   close: string;
   dialogDescription: string;

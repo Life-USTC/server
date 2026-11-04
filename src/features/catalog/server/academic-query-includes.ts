@@ -1,4 +1,8 @@
 import type { Prisma } from "@/generated/prisma/client";
+import {
+  COURSE_SECTION_HISTORY_ORDER,
+  TEACHER_SECTION_HISTORY_ORDER,
+} from "./section-history-order";
 
 const persistedLocalizedNameSelect = {
   nameCn: true,
@@ -249,10 +253,7 @@ export const teacherPublicDetailSelect = {
       },
       semester: true,
     },
-    orderBy: [
-      { semester: { jwId: "desc" as const } },
-      { course: { nameCn: "asc" as const } },
-    ],
+    orderBy: TEACHER_SECTION_HISTORY_ORDER,
     take: PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
   },
   _count: {
@@ -282,7 +283,7 @@ export const courseDetailInclude = {
       campus: true,
       teachers: { select: teacherPublicIdentitySelect },
     },
-    orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
+    orderBy: COURSE_SECTION_HISTORY_ORDER,
     take: PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
   },
   _count: { select: { sections: true } },

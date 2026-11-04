@@ -52,6 +52,20 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
       name: ui.layout-principles-3 Course
+- id: ui.detail-content-width
+  category: presentation
+  topic: layout-principles
+  rule: Course, teacher and teaching-section details switch to a facts sidebar only when the actual content container has at least 60rem available. Narrower content preserves the identity-before-reading order. A viewport crossing 1024px must not collapse the reading column; toggling the shell sidebar can change the detail layout according to available content width.
+  acceptance:
+    given: Public course, teacher and section details render with the shell sidebar expanded.
+    when: The viewport crosses 1023/1024,1144,1280 and1440 pixels and the sidebar collapses at1144.
+    then:
+    - Increasing1023 to1024 preserves the reading width apart from normal page padding changes.
+    - Reading columns remain at least540px in these desktop samples.
+    - Wide content retains right-side identity/facts; collapsed sidebar space can enable this layout without changing viewport width.
+    test:
+      file: tests/e2e/src/app/shared-policy/detail-content-width.test.ts
+      name: ui.detail-content-width course
 - id: ui.layout-principles-4
   category: presentation
   topic: layout-principles
@@ -1259,19 +1273,17 @@ requirements:
 - id: ui.settings-navigation-8
   category: presentation
   topic: settings-navigation
-  rule: A settings destination whose group is short and bounded co-displays the other short bounded
-    groups once the canvas fits a second column, keeping the requested group in the leading column.
-    A narrow canvas renders the requested group alone. Destinations whose group is a history list,
-    and the destructive destination, stay single-group at every width.
+  rule: Each settings destination renders only the requested setting group at every width.
+    Related settings remain discoverable through the existing settings navigation, not duplicate
+    editable forms. Preferences never mount profile, linked-account or passkey controls.
   acceptance:
-    given: A signed-in user opens preferences and danger settings at a canvas wide enough for two
-      columns, then reopens preferences on a phone.
-    when: The browser inspects the rendered groups and their columns at each width.
+    given: A signed-in user opens preferences, profile, linked accounts and danger settings
+      on desktop and phone viewports.
+    when: The browser inspects editable forms, preference regions and passkey requests.
     then:
-    - The wide preferences canvas renders the profile and linked-account groups beside the requested
-      preferences group, and the requested group keeps the leading column.
-    - The wide danger canvas renders no companion group.
-    - The narrow preferences canvas renders no companion group and no companion form at all.
+    - Only profile renders the profile-edit form, and only preferences renders appearance/language controls.
+    - Only linked accounts can request its passkey list; other pages do not mount that feature.
+    - Danger remains isolated and all settings remain reachable from their existing routes.
     test:
       file: tests/e2e/src/app/settings/test.ts
       name: ui.settings-navigation-8

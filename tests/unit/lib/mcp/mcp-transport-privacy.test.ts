@@ -139,3 +139,102 @@ it("mcp.transport-observability", async () => {
   ])
     expect(output).not.toContain(secret);
 });
+
+it("records bounded handshake categories when authentication rejects", async () => {
+  const { authenticateMcpRequest } = await import("@/lib/mcp/auth");
+  vi.stubEnv("LOG_LEVEL", "debug");
+  vi.stubEnv("NODE_ENV", "test");
+  vi.mocked(authenticateMcpRequest).mockResolvedValueOnce({
+    response: new Response("Unauthorized", { status: 401 }),
+    authFailureDiagnostics: {
+      authFailureKind: "upstream_auth_rejected",
+      authHeaderKind: "bearer",
+      authTokenFormat: "jwt",
+    },
+  });
+  const response = await handleMcpRequest(
+    new Request("https://life.example/api/mcp", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer BEARER_SECRET",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-11-25",
+          capabilities: {},
+          clientInfo: {
+            name: "CLIENT_NAME_SECRET",
+            version: "CLIENT_VERSION_SECRET",
+          },
+        },
+      }),
+    }),
+  );
+  expect(response.status).toBe(401);
+  const records = emitLog.mock.calls.map((call) => call[2]);
+  expect(records).toContainEqual(
+    expect.objectContaining({
+      message: "mcp.transport.response",
+      phase: "auth-rejected",
+      rpcMethod: "initialize",
+      protocolFamily: "legacy",
+    }),
+  );
+  expect(handleRequest).not.toHaveBeenCalled();
+  for (const secret of [
+    "BEARER_SECRET",
+    "CLIENT_NAME_SECRET",
+    "CLIENT_VERSION_SECRET",
+  ])
+    expect(JSON.stringify(emitLog.mock.calls)).not.toContain(secret);
+});
+
+it("never logs client-controlled protocol or method strings", async () => {
+  vi.stubEnv("LOG_LEVEL", "debug");
+  vi.stubEnv("NODE_ENV", "test");
+  connect.mockResolvedValue(undefined);
+  handleRequest.mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        error: { code: -32601, message: "Method not found" },
+      }),
+      { status: 400, headers: { "content-type": "application/json" } },
+    ),
+  );
+  const response = await handleMcpRequest(
+    new Request("https://life.example/api/mcp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "mcp-protocol-version": "HEADER_SECRET",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "METHOD_SECRET",
+        params: {
+          _meta: {
+            "io.modelcontextprotocol/protocolVersion": "VERSION_SECRET",
+          },
+        },
+      }),
+    }),
+  );
+  expect(response.status).toBe(400);
+  const records = emitLog.mock.calls.map((call) => call[2]);
+  expect(records).toContainEqual(
+    expect.objectContaining({
+      message: "mcp.transport.response",
+      rpcMethod: "other",
+      protocolFamily: "other",
+    }),
+  );
+  for (const secret of ["METHOD_SECRET", "VERSION_SECRET", "HEADER_SECRET"])
+    expect(JSON.stringify(emitLog.mock.calls)).not.toContain(secret);
+});

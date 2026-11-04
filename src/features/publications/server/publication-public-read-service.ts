@@ -555,6 +555,41 @@ function mapPublication(
   };
 }
 
+/** Latest public headlines without the full list's count and attachment reads. */
+export async function listPublicationHeadlines(limit: number) {
+  if (!Number.isInteger(limit) || limit < 1 || limit > 20) {
+    throw new RangeError("Publication headline limit must be between 1 and 20");
+  }
+  const records = await prisma.publication.findMany({
+    where: publicPublicationWhere(),
+    select: {
+      id: true,
+      source: { select: { name: true } },
+      currentRevision: { select: { title: true, publishedAt: true } },
+    },
+    orderBy: [
+      { publishedAt: { sort: "desc", nulls: "last" } },
+      { lastSeenAt: "desc" },
+      { id: "asc" },
+    ],
+    take: limit,
+  });
+  return records.flatMap((record) =>
+    record.currentRevision
+      ? [
+          {
+            id: record.id,
+            source: record.source,
+            revision: {
+              title: record.currentRevision.title ?? "",
+              publishedAt: record.currentRevision.publishedAt,
+            },
+          },
+        ]
+      : [],
+  );
+}
+
 export async function listPublications(
   input: {
     filters?: PublicationReadFilters;

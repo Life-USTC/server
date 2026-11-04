@@ -7,6 +7,7 @@ import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
 import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { isTeacherPageCore } from "./catalog-detail-cache-validation";
+import { TEACHER_SECTION_HISTORY_ORDER } from "./section-history-order";
 
 const teacherPageSectionsSelect = {
   jwId: true,
@@ -20,7 +21,7 @@ const teacherPageSectionsSelect = {
   semester: { select: { nameCn: true } },
 } as const;
 
-const TEACHER_PAGE_CORE_CACHE_SHAPE = "page-core-v2";
+const TEACHER_PAGE_CORE_CACHE_SHAPE = "page-core-v3";
 
 /**
  * Loads the immutable public teacher core. Viewer, description, and comments
@@ -64,11 +65,7 @@ export async function getTeacherPage(
               },
               _count: { select: { sections: true } },
               sections: {
-                orderBy: [
-                  { semester: { jwId: "desc" } },
-                  { course: { nameCn: "asc" } },
-                  { jwId: "asc" },
-                ],
+                orderBy: TEACHER_SECTION_HISTORY_ORDER,
                 skip: (sectionsPage - 1) * PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
                 take: PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
                 select: teacherPageSectionsSelect,
