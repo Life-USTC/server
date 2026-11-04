@@ -11,7 +11,7 @@ import {
 import type { SectionCalendarEvent } from "./section-calendar-tab-types";
 
 type SectionExamCopy = {
-  calendarEmpty: string;
+  examEmpty: string;
   dateTBD: string;
   examBatch: string;
   examCount: string;
@@ -83,5 +83,5 @@ export let sectionCopy: SectionExamCopy;
     </Table.Root>
   </div>
 {:else}
-  <CollectionEmpty variant="compact" description={sectionCopy.calendarEmpty} />
+  <CollectionEmpty variant="compact" description={sectionCopy.examEmpty} />
 {/if}

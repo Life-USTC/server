@@ -20,7 +20,7 @@ describe("section subscription state", () => {
     vi.clearAllMocks();
     userFindUniqueMock.mockResolvedValue({
       id: "user-1",
-      sectionSubscriptions: [{ sectionId: 42 }],
+      sectionSubscriptions: [{ sectionId: 42, kind: "teaching_assistant" }],
     });
   });
 
@@ -44,13 +44,14 @@ describe("section subscription state", () => {
         id: true,
         sectionSubscriptions: {
           where: { section: { jwId: 301 } },
-          select: { sectionId: true },
+          select: { sectionId: true, kind: true },
           take: 1,
         },
       },
     });
     expect(result).toEqual({
       isSubscribed: true,
+      kind: "teaching_assistant",
       userId: "user-1",
     });
   });

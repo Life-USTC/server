@@ -230,6 +230,7 @@ export type SectionDetailCopy = {
     calendarMiniDescription: string;
     calendarDescription: string;
     calendarEmpty: string;
+    examEmpty: string;
     calendarSheetDescription: string;
     calendarSheetTitle: string;
     calendarUrlDescription: string;
@@ -396,6 +397,7 @@ export type SectionDetailPageData = {
     loading?: boolean;
     failed?: boolean;
     isSubscribed?: boolean;
+    subscriptionKind?: "regular" | "auditor" | "teaching_assistant";
     signedIn?: boolean;
   };
 };

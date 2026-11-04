@@ -7,6 +7,7 @@ import { getPrisma } from "@/lib/db/prisma";
 import { toLoadData } from "@/lib/load-data-utils";
 import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { isCoursePageCore } from "./catalog-detail-cache-validation";
+import { COURSE_SECTION_HISTORY_ORDER } from "./section-history-order";
 
 const coursePageSectionsSelect = {
   jwId: true,
@@ -26,7 +27,7 @@ const coursePageSectionsSelect = {
   },
 } as const;
 
-const COURSE_PAGE_CORE_CACHE_SHAPE = "page-core-v2";
+const COURSE_PAGE_CORE_CACHE_SHAPE = "page-core-v3";
 
 /**
  * Loads the immutable public course core. Viewer, description, and comments
@@ -78,11 +79,7 @@ export async function getCoursePage(
               },
               _count: { select: { sections: true } },
               sections: {
-                orderBy: [
-                  { semester: { jwId: "desc" } },
-                  { code: "asc" },
-                  { jwId: "asc" },
-                ],
+                orderBy: COURSE_SECTION_HISTORY_ORDER,
                 skip: (sectionsPage - 1) * PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
                 take: PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT,
                 select: coursePageSectionsSelect,
