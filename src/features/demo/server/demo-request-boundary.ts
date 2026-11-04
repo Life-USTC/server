@@ -33,12 +33,16 @@ type DemoBoundary = {
 };
 
 function isDemoCatalogPage(path: string) {
-  return /^\/catalog\/(?:sections|courses|teachers)\/[1-9]\d*$/.test(path);
+  return (
+    path === "/catalog/courses" ||
+    /^\/catalog\/(?:sections|courses|teachers)\/[1-9]\d*$/.test(path)
+  );
 }
 
 function isDemoCatalogRead(path: string) {
   return (
     isDemoCatalogPage(path.replace(/\/__data\.json$/, "")) ||
+    path === "/api/catalog/courses" ||
     /^\/api\/catalog\/sections\/[1-9]\d*$/.test(path) ||
     /^\/_internal\/catalog\/sections\/[1-9]\d*\/viewer$/.test(path) ||
     path === "/api/community/descriptions" ||

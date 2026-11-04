@@ -68,6 +68,7 @@ requirements:
   - demo-todos
   - demo-subscriptions
   - demo-catalog-details
+  - demo-course-list
   - demo-homeworks
   expectation:
     kind: authorization
@@ -94,7 +95,8 @@ requirements:
     - OAuth and outbound requests
     - browser analytics scripts and telemetry
   rationale: Demo possession is not real-user authentication. The read allowlist comprises Todos, homeworks and
-    subscriptions HTML/page-data, the three supported catalog-detail pages and their page-data,
+    subscriptions HTML/page-data, the course listing, the three supported catalog-detail pages and their page-data,
+    GET /api/catalog/courses,
     GET /api/workspace/todos, GET /api/workspace/subscriptions/current, section detail/personal reads,
     fixture descriptions/comments, homework list/detail/audit reads and shell bootstrap. Same-origin locale-cookie updates are allowed. Entry and exit are cookie controls. Every other request is denied before its route runs, including visit-recording GET, uploads,
     private exports, administrator routes, GraphQL and MCP.
@@ -131,7 +133,7 @@ requirements:
     semesters and regular, auditor and teaching-assistant roles, retaining complete localized teacher lists.
     Desktop and mobile views preserve existing filters, including applying multiple fields and clearing
     an empty result. Quick add, import, role changes, unsubscribe, calendar feeds, activity subscriptions
-    and catalog collection destinations are disabled. Sample section, course and teacher details remain navigable. Demo reads never create a calendar token.
+    and unimplemented catalog collection destinations are disabled. Sample section, course and teacher details remain navigable. Demo reads never create a calendar token.
   acceptance:
     given: An independently signed demo in either supported locale, with ordinary account subscriptions unchanged.
     when: The caller navigates between Todos and subscriptions, filters samples, changes language and reads the API.
@@ -149,7 +151,7 @@ requirements:
     dates; descriptions and empty discussions retain existing response shapes and an anonymous viewer.
     Only fixture identifiers and matching target aliases resolve; unknown or mixed targets cannot access
     ordinary data. Calendar exports, subscriptions, homework creation, description edits and comments are
-    visibly disabled. Catalog collection pages remain unavailable; fixture homework details are read-only.
+    visibly disabled. Section and teacher collections remain unavailable; the course collection and fixture homework details are read-only.
   acceptance:
     given: A valid demo in either supported locale on desktop or mobile.
     when: The visitor follows subscription, course and teacher links and reads detail sections and lazy data.
@@ -178,6 +180,25 @@ requirements:
     test:
       file: tests/e2e/src/app/demo/homeworks.test.ts
       name: 'demo.homeworks: read-only browsing zh-cn 1280'
+- id: demo.course-list-projection
+  category: consistency
+  rule: The existing course listing and its page-data share the three fixed subscription courses with
+    the read-only course API and linked course details. Ordering is by course code then upstream ID.
+    Existing normalized Web search/name/code and classification filters remain usable; the REST API
+    retains its validated search, scalar classification and pagination query contract. Both use the same
+    filtering and pagination projection for shared inputs. Missing classifications offer no live options.
+    Unknown filters/targets never fall through to ordinary data. Demo reads are private and do not access
+    database, runtime caches or external services. Ordinary callers retain their existing read model.
+  acceptance:
+    given: A valid demo in either locale on desktop or mobile, and independent ordinary catalog records.
+    when: The visitor opens Courses from the existing navigation, filters, clears an empty result and follows details.
+    then:
+    - Page, page-data, REST and details agree on course identities, text matching, ordering and counts.
+    - Pagination beyond the sample set is empty; unknown classifications cannot expose live records.
+    - Read-only labeling remains visible and business writes, exports and unsupported destinations stay blocked.
+    test:
+      file: tests/e2e/src/app/demo/courses.test.ts
+      name: 'demo.courses: read-only browsing zh-cn 1280'
 - id: demo.cache-isolation
   category: privacy
   rule: Demo cookie presence, including invalid cookies, bypasses shared HTML admission before cache hits
@@ -330,3 +351,25 @@ capabilities:
       - Read fixed completion and advisory states with disabled writes
       requirement_refs:
       - demo.homework-projection
+  demo-course-list:
+    title: Read-only Demo Course Listing
+    description: The existing course collection projects the shared fixed courses without real-user authority or live data.
+    auth: anon
+    web:
+      pages:
+      - /catalog/courses
+    rest:
+      routes:
+      - method: GET
+        path: /api/catalog/courses
+        reference_only: true
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Open Courses from the existing demo navigation
+      - Filter fixed courses and clear empty results
+      - Follow course and teaching section details with read-only labeling
+      requirement_refs:
+      - demo.course-list-projection

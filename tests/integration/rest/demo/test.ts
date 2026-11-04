@@ -612,7 +612,9 @@ test.describe("enabled demo", () => {
           ["GET", "/admin/users"],
           ["POST", "/api/graphql"],
           ["POST", "/api/mcp"],
-          ["GET", "/catalog/courses"],
+          ["GET", "/catalog/teachers"],
+          ["POST", "/catalog/courses"],
+          ["POST", "/api/catalog/courses"],
           ["POST", "/_internal/edge-cache/purge"],
         ]) {
           const response = await request.fetch(path, {
@@ -653,6 +655,9 @@ test.describe("enabled demo", () => {
           "/api/community/comments?targetType=homework&targetId=demo-homework-vectors",
           "/catalog/sections/910001?homeworkId=demo-homework-vectors",
           "/catalog/sections/910001/__data.json",
+          "/catalog/courses",
+          "/catalog/courses/__data.json",
+          "/api/catalog/courses",
           "/catalog/courses/920001",
           "/catalog/courses/920001/__data.json",
           "/catalog/teachers/401",
@@ -789,6 +794,8 @@ test.describe("enabled demo", () => {
           "/api/catalog/sections/910001",
           "/catalog/sections/910001/__data.json",
           "/catalog/courses/920001/__data.json",
+          "/catalog/courses/__data.json",
+          "/api/catalog/courses",
           "/catalog/teachers/401/__data.json",
           "/_internal/catalog/sections/910001/viewer",
           "/api/community/comments?targetType=course&targetId=201",
@@ -808,6 +815,7 @@ test.describe("enabled demo", () => {
         "/workspace/subscriptions",
         "/workspace/homeworks",
         "/catalog/sections/910001",
+        "/catalog/courses",
         "/catalog/courses/920001",
         "/catalog/teachers/401",
       ]) {
