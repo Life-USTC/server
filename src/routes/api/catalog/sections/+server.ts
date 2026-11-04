@@ -1,6 +1,8 @@
 import { getSectionsRoute } from "@/lib/api/routes/academic-section-routes";
-import { svelteRequestHandler } from "@/lib/api/svelte-route";
+import { getDemoSectionListRoute } from "@/lib/api/routes/demo-section-list-route";
 import { observedApiRoute } from "@/lib/log/api-observability";
+
+import type { RequestHandler } from "./$types";
 
 /**
  * List sections.
@@ -8,4 +10,7 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response paginatedSectionResponseSchema
  * @response 400:openApiErrorSchema
  */
-export const GET = svelteRequestHandler(observedApiRoute(getSectionsRoute));
+export const GET: RequestHandler = ({ request, locals }) =>
+  locals.demo
+    ? getDemoSectionListRoute(request, locals.locale)
+    : observedApiRoute(getSectionsRoute)(request);

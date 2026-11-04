@@ -455,6 +455,7 @@ let navGroups = $derived(
             "/workspace/subscriptions",
             "/workspace/homeworks",
             "/catalog/courses",
+            "/catalog/sections",
           ].includes(link.href)
             ? link
             : { ...link, disabledReason: viewerDemo?.unavailableReason },
