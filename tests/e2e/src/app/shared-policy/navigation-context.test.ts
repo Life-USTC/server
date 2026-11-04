@@ -2,6 +2,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
 import type { TestPrismaClient } from "../../../../shared/prisma";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
 import { test } from "../../../utils/navigation-policy-fixture";
+import { waitForUiSettled } from "../../../utils/page-ready";
 
 async function fixture(db: TestPrismaClient) {
   const suffix = crypto.randomUUID().slice(0, 8);
@@ -126,6 +127,7 @@ test("ui.context-tabs-3", { tag: "@Site/Web" }, async ({
     for (const width of [1280, 390, 280]) {
       await page.setViewportSize({ width, height: 950 });
       await page.goto(paths.at(-1) ?? "");
+      await waitForUiSettled(page);
       if (width < 768)
         await page.locator('[data-slot="sidebar-trigger"]').click();
       const nav = page.getByTestId("settings-sidebar");
