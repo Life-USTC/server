@@ -12,15 +12,13 @@ test("usage content remains readable in narrow desktop and tablet layouts", {
   tag: "@Site/Web",
 }, async ({ page, publicFlow, isolatedWorker }) => {
   await publicFlow.run(async () => {
-    await page
-      .context()
-      .addCookies([
-        {
-          name: "NEXT_LOCALE",
-          value: evidenceLocale,
-          url: isolatedWorker.origin,
-        },
-      ]);
+    await page.context().addCookies([
+      {
+        name: "NEXT_LOCALE",
+        value: evidenceLocale,
+        url: isolatedWorker.origin,
+      },
+    ]);
     if (evidence) await mkdir(evidence, { recursive: true });
     const capture = async (name: string) => {
       const visibleContent =
