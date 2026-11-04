@@ -13,13 +13,50 @@ export type McpRequestSummary = Awaited<
   >
 >;
 
-function safeRpcSummary(summary: McpRequestSummary | null) {
+function safeRpcSummary(summary: McpRequestSummary | null, request: Request) {
   if (!summary) return undefined;
   return {
     rpcBodyKind: summary.bodyKind,
     rpcCount: summary.rpcCount,
     rpcToolCount: summary.toolNames.length,
+    rpcMethod: safeRpcMethod(summary.methods),
+    protocolFamily: safeProtocolFamily(
+      summary.protocolVersion ??
+        request.headers.get("mcp-protocol-version") ??
+        undefined,
+    ),
   };
+}
+
+// Only closed categories enter transport logs; never echo client-controlled names.
+function safeRpcMethod(methods: string[]) {
+  if (methods.length !== 1) return "other";
+  switch (methods[0]) {
+    case "initialize":
+    case "server/discover":
+    case "tools/list":
+    case "tools/call":
+    case "notifications/initialized":
+      return methods[0];
+    default:
+      return "other";
+  }
+}
+
+function safeProtocolFamily(version: string | undefined) {
+  if (version === undefined) return "unspecified";
+  if (version === "2026-07-28") return "modern";
+  if (
+    [
+      "2024-10-07",
+      "2024-11-05",
+      "2025-03-26",
+      "2025-06-18",
+      "2025-11-25",
+    ].includes(version)
+  )
+    return "legacy";
+  return "other";
 }
 
 function safeContentType(request: Request) {
@@ -116,7 +153,7 @@ export function logMcpTransportResponse({
       phase,
       hasError: responseHasError,
       inspectionTruncated: inspectionWasTruncated,
-      ...safeRpcSummary(rpcSummary),
+      ...safeRpcSummary(rpcSummary, request),
       ...(errorName === undefined ? {} : { errorName }),
       ...(authFailureDiagnostics ?? {}),
       ...(toolCount === undefined ? {} : { toolCount }),

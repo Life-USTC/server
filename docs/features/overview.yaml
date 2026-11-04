@@ -35,6 +35,20 @@ requirements:
     test:
       file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
       name: overview.decision-page
+- id: overview.public-notice-headlines
+  category: behavior
+  rule: The home notice summary reads only a bounded prefix of public current publication headlines,
+    preserving list visibility and ordering without counting the archive or fetching attachment metadata.
+    Empty and failed reads remain distinct; the full publication list retains its pagination contract.
+  acceptance:
+    given: Public, deleted, tombstoned, non-public and undated publications with tied publication dates.
+    when: The home headline reader requests the latest rows under the application database role.
+    then:
+    - The selected headline facts match the public list prefix, including current revision titles and stable ordering.
+    - No total count or publication object query is issued, and empty results remain empty.
+    test:
+      file: tests/integration/publication-headlines.test.ts
+      name: home headlines preserve public ordering without count or attachment queries
 - id: overview.legacy-preview-week
   category: behavior
   rule: Legacy overview links redirect to / while preserving snapshotAt and overviewWeek. The private

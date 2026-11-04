@@ -23,6 +23,9 @@ export async function getSectionPersonalData(input: {
     viewer: {
       signedIn: homeworkData.viewer.isAuthenticated,
       isSubscribed: subscription?.isSubscribed ?? false,
+      ...(subscription?.isSubscribed && subscription.kind
+        ? { subscriptionKind: subscription.kind }
+        : {}),
     },
     homeworkData,
   };
