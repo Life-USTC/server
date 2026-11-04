@@ -6,7 +6,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
   test(
     `empty copy respects signed-in comments and exam scope ${locale}`,
     {
-      tag: ["@Comment/Web", "@Exam/Web"],
+      tag: "@Comment/Web",
     },
     async ({ page, isolatedWorker, community, communityFlow }, testInfo) => {
       await communityFlow.run(async () => {
