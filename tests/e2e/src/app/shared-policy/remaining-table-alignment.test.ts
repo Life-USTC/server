@@ -128,7 +128,7 @@ for (const [domain, names] of [
         name: "section-homeworks",
         path: sectionPath,
         selector: '[data-testid="section-homeworks-list"] table:visible',
-        columns: ["left", "left", "left"],
+        columns: ["left", "left", "left", "left"],
       },
       {
         name: "section-exams",
