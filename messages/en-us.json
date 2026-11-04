@@ -1954,7 +1954,7 @@
     "subscriptionDisclaimer": "Subscribing to a section here only affects your Life@USTC workspace and calendar. It is not official USTC course enrollment.",
     "calendar": "Calendar ({count})",
     "calendarEmpty": "No schedule or exam events available for this section",
-    "examEmpty": "Exam arrangements have not been published yet",
+    "examEmpty": "No exam arrangements available yet",
     "classEvent": "Class",
     "examEvent": "Exam",
     "lecture": "Lecture",

@@ -1601,7 +1601,7 @@
     "subscriptionDisclaimer": "这里的“教学班订阅”只会影响 Life@USTC 中的工作区与日历，不代表中国科大官方选课。",
     "calendar": "日历 ({count})",
     "calendarEmpty": "此教学班暂无课程或考试安排",
-    "examEmpty": "暂未公布考试安排",
+    "examEmpty": "暂无可用考试安排",
     "classEvent": "上课",
     "examEvent": "考试",
     "lecture": "课次",

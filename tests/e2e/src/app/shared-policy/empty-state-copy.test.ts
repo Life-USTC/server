@@ -79,8 +79,8 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             .soft(exams)
             .toContainText(
               locale === "zh-cn"
-                ? "暂未公布考试安排"
-                : "Exam arrangements have not been published yet",
+                ? "暂无可用考试安排"
+                : "No exam arrangements available yet",
             );
           await expect
             .soft(exams)

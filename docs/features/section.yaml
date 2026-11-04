@@ -532,7 +532,7 @@ requirements:
       name: section.catalog-id-list-bound
 - id: section.exam-empty-scope
   category: presentation
-  rule: An empty exams section states that exam arrangements have not been published and does not deny existing class meetings.
+  rule: An empty exams section states that exam arrangements are not available and does not deny existing class meetings.
   surfaces:
   - web
   acceptance:
