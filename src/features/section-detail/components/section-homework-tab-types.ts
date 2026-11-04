@@ -15,11 +15,16 @@ export type SectionHomework = {
 
 export type SectionHomeworkCopy = {
   auditTitle: string;
+  completedLabel: string;
+  dateTBD: string;
   loginToCreate: string;
+  myStatus: string;
   noCompletionRequired: string;
+  pendingLabel: string;
   showCreate: string;
   tagMajor: string;
   tagTeam: string;
+  viewDetails: string;
 };
 
 export type SectionCopy = {

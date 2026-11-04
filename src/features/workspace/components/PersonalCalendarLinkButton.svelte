@@ -1,10 +1,22 @@
 <script lang="ts">
 import Link2 from "@lucide/svelte/icons/link-2";
+import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
 import CalendarSubscriptionDialog from "@/features/calendar/components/CalendarSubscriptionDialog.svelte";
 import type { WorkspaceSectionCopy } from "@/features/workspace/lib/workspace-controller-helpers";
+import { buildReauthenticationPageUrl } from "@/lib/auth/auth-routing";
 import { writeClipboardText } from "@/lib/browser/clipboard";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import { refreshAll } from "$app/navigation";
+import { page } from "$app/state";
 
+export let calendarLinkState:
+  | "ready"
+  | "reauthenticate"
+  | "unavailable"
+  | undefined = undefined;
 export let buttonLabel: string;
 export let className = "";
 export let failureMessage: string;
@@ -36,6 +48,24 @@ $: absoluteSubscriptionUrl = (() => {
   return `${window.location.origin}${subscriptionCalendarUrl}`;
 })();
 
+$: recoveryCopy = getWorkspacePageCopy(
+  page.data.locale === "en-us" ? "en-us" : "zh-cn",
+).subscriptions.calendarRecovery;
+$: returnTo = page.url.pathname + page.url.search;
+let retrying = false;
+let retryFailed = false;
+async function retryLink() {
+  if (retrying) return;
+  retrying = true;
+  retryFailed = false;
+  try {
+    await refreshAll();
+  } catch {
+    retryFailed = true;
+  } finally {
+    retrying = false;
+  }
+}
 let isOpen = false;
 let clipboardMessage = "";
 let clipboardError = "";
@@ -54,6 +84,7 @@ export function open() {
     resetTimer = null;
   }
   resetClipboardState();
+  retryFailed = false;
   isOpen = true;
 }
 
@@ -103,6 +134,7 @@ async function copyUrl() {
   </Button>
 {/if}
 
+{#if subscriptionCalendarUrl}
 <CalendarSubscriptionDialog
   {clipboardError}
   {clipboardMessage}
@@ -122,3 +154,30 @@ async function copyUrl() {
     warning: sectionCopy.subscriptionPrivacyNote,
   }]}
 />
+
+{:else}
+<Dialog.Root open={isOpen} onOpenChange={setOpen}>
+  <Dialog.Content>
+    <Dialog.Header>
+      <Dialog.Title>{buttonLabel}</Dialog.Title>
+      <Dialog.Description>{calendarLinkState === "reauthenticate" ? recoveryCopy.reauthenticate : recoveryCopy.unavailable}</Dialog.Description>
+    </Dialog.Header>
+    {#if retryFailed}
+      <Alert.Root variant="destructive">
+        <Alert.Description>{recoveryCopy.unavailable}</Alert.Description>
+      </Alert.Root>
+    {/if}
+    <Dialog.Footer>
+      {#if calendarLinkState === "reauthenticate"}
+        <Button href={buildReauthenticationPageUrl(returnTo)}>{recoveryCopy.signIn}</Button>
+      {:else}
+        <Button disabled={retrying} onclick={retryLink}>
+          {#if retrying}<Spinner aria-hidden="true" data-icon="inline-start" />{/if}
+          {recoveryCopy.retry}
+        </Button>
+      {/if}
+      <Button variant="outline" onclick={close}>{sectionCopy.close}</Button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
+{/if}

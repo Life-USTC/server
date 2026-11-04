@@ -178,6 +178,12 @@
     "close": "Close"
   },
   "subscriptions": {
+    "calendarRecovery": {
+      "reauthenticate": "Sign in again to reveal your private calendar link.",
+      "unavailable": "The calendar link is unavailable. Try again.",
+      "signIn": "Sign in again",
+      "retry": "Retry"
+    },
     "mySubscription": "My subscription",
     "manageSubscription": "Manage subscription",
     "title": "Section Subscriptions",
@@ -2331,6 +2337,7 @@
     "tagMajor": "Major assignment",
     "tagTeam": "Team required",
     "tagDefault": "Standard",
+    "myStatus": "My status",
     "completedLabel": "Completed",
     "pendingLabel": "Pending",
     "noCompletionRequired": "No completion required",
