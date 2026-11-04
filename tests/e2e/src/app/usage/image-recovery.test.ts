@@ -7,6 +7,8 @@ for (const locale of ["en-us", "zh-cn"]) {
     tag: "@Site/Web",
   }, async ({ page, publicFlow, isolatedWorker }) => {
     await publicFlow.run(async () => {
+      if (process.env.USAGE_IMAGE_MOBILE)
+        await page.setViewportSize({ width: 390, height: 844 });
       await page
         .context()
         .addCookies([
