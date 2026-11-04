@@ -8,6 +8,7 @@ import { writeClipboardText } from "#lib/browser/clipboard.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Tabs from "#lib/components/ui/tabs/index.js";
+import { cn } from "#lib/utils.js";
 import { goto } from "$app/navigation";
 import {
   usageMarketingBlurbClass,
@@ -216,7 +217,7 @@ function selectClient(value: string) {
 <section class={usageMarketingPageClass} data-usage-marketing="page">
   <div class={`${usageMarketingHeroShellClass} overflow-hidden`} data-usage-marketing="hero">
     <div
-      class={`${usageMarketingHeroGridClass} xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]`}
+      class={cn(usageMarketingHeroGridClass, activeClient === "chatgpt" && "xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]")}
     >
       <div class={usageMarketingHeroCopyClass}>
         <div class={usageMarketingIconClass}>
@@ -400,8 +401,6 @@ function selectClient(value: string) {
               <h4 class={usageMarketingStepTitleClass}>{data.copy.claude.steps[2]}</h4>
             </div>
             <p class="text-sm leading-6">{data.copy.claudeCompletion}</p>
-            {@render commandField("claude-public-query", data.copy.verifyTitle, data.copy.verifyPrompt)}
-            <p class="text-sm text-muted-foreground leading-6">{data.copy.verifyDescription}</p>
             <Button href={CLAUDE_DOCS_URL} target="_blank" rel="noreferrer" variant="link" class="w-fit">{data.copy.claudeOfficial}<ExternalLinkIcon data-icon="inline-end" /></Button>
           </section>
         </div>
@@ -426,6 +425,10 @@ function selectClient(value: string) {
         </article>
       </Tabs.Content>
     </Tabs.Root>
+    <section class="grid gap-3" data-usage-marketing="public-verification">
+      {@render commandField("public-query", data.copy.verifyTitle, data.copy.verifyPrompt)}
+      <p class="text-sm text-muted-foreground leading-6">{data.copy.verifyDescription}</p>
+    </section>
     <section class="grid gap-3">
       <h3 class="font-semibold text-xl">{data.copy.recoveryTitle}</h3>
       <p class="text-sm text-muted-foreground leading-6">{data.copy.recoveryDescription}</p>

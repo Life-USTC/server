@@ -38,12 +38,12 @@ for (const locale of ["en-us", "zh-cn"]) {
         ).toHaveCount(0);
         await expect(claude).toContainText("Connectors");
         await expect(
-          claude.getByRole("button", { name: /catalog_section_search/ }),
+          page.getByRole("button", { name: /catalog_section_search/ }),
         ).toBeVisible();
         await page
           .context()
           .grantPermissions(["clipboard-read", "clipboard-write"]);
-        await claude
+        await page
           .getByRole("button", { name: /catalog_section_search/ })
           .click();
         await expect
@@ -52,6 +52,9 @@ for (const locale of ["en-us", "zh-cn"]) {
         await page.getByRole("tab", { name: /ChatGPT/ }).click();
         await expect(page).toHaveURL(/client=chatgpt/);
         await expect(page.getByRole("tabpanel")).toContainText("Plugins");
+        await expect(
+          page.getByRole("button", { name: /catalog_section_search/ }),
+        ).toBeVisible();
         await expect(
           page
             .getByRole("tabpanel")
