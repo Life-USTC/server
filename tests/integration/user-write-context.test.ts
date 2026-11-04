@@ -37,7 +37,7 @@ async function prepareWriteProbe(db: IsolatedDatabase, actor = ownerId) {
     'CREATE POLICY "User_probe_read" ON "User" FOR SELECT USING (true)',
   );
   await db.owner.$executeRawUnsafe(
-    `CREATE POLICY "User_probe_app_update" ON "User" FOR UPDATE TO life_ustc_runtime
+    `CREATE POLICY "User_probe_app_update" ON "User" AS RESTRICTIVE FOR UPDATE TO life_ustc_runtime
      USING (current_setting('app.user_id', true) = '${actor}')
      WITH CHECK (current_setting('app.user_id', true) = '${actor}')`,
   );
