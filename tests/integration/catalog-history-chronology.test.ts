@@ -7,7 +7,7 @@ import { findTeacherDetailById } from "@/features/catalog/server/teacher-summary
 import { catalogReadTest as it } from "../shared/catalog-read-fixture";
 
 it("catalog.history-chronology", {
-  tags: ["@Course/Service", "@Teacher/Service"],
+  tags: ["@Course/Service"],
 }, async ({ catalogRead: { run, db, fixture, request } }) => {
   await run(async () => {
     const [course] = fixture.courses;
