@@ -10,6 +10,18 @@ policy_refs:
 - rendering-and-cache
 - cases.mcp-assistant-workflows
 requirements:
+- id: todo.date-time-input
+  category: behavior
+  rule: Todo deadline controls accept a calendar date and visible hour/minute input without requiring ISO text editing. Changing the date preserves the selected time. The calendar and auxiliary controls follow the application locale, while submitted values retain Shanghai civil date/time semantics.
+  acceptance:
+    given: The new Todo dialog opens in Chinese or English with a selected deadline.
+    when: The user changes its time to 14:30, selects another calendar day, then clears and cancels the form.
+    then:
+    - The deadline field preserves 14:30 across date selection and clears completely.
+    - Calendar dates and controls use the selected locale; cancelling creates no Todo.
+    test:
+      file: tests/e2e/src/app/workspace/todos/date-time-picker.test.ts
+      name: todo.date-time-input zh-cn/1280
 - id: todo.web-table-filters
   category: presentation
   rule: Todo title, priority, deadline, completion and content filters apply to the full loaded owner list. Priority and completion support multiple selections with OR within a field and AND across fields; deadlines compare Shanghai calendar dates. Column and top-area controls share a draft committed by one Apply action.
