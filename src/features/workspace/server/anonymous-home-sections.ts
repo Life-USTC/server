@@ -1,5 +1,5 @@
 import { getNextDeparturesFromHubCampus } from "@/features/bus/server/bus-service";
-import { listPublications } from "@/features/publications/server/publication-public-read-service";
+import { listPublicationHeadlines } from "@/features/publications/server/publication-public-read-service";
 import { readWeatherCache } from "@/features/weather/server/weather-cache";
 import {
   WEATHER_LOCATIONS,
@@ -233,9 +233,7 @@ async function readBus(
 }
 
 async function readNotices(locale: AppLocale): Promise<HomeListItem[]> {
-  const { data } = await listPublications({
-    pagination: { page: 1, pageSize: NOTICE_LIMIT },
-  });
+  const data = await listPublicationHeadlines(NOTICE_LIMIT);
   return data.map((item) => ({
     dateLabel: item.revision.publishedAt
       ? formatCampusDateTime(item.revision.publishedAt, "", locale, {

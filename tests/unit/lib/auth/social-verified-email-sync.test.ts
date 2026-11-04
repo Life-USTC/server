@@ -22,11 +22,13 @@ vi.mock("@/lib/db/auth-prisma", () => ({
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
-    user: {
-      update: (...args: unknown[]) => profilePictureUpdateMock(...args),
-    },
-  },
+  withUserDbContext: vi.fn((_userId, action) =>
+    action({
+      user: {
+        update: (...args: unknown[]) => profilePictureUpdateMock(...args),
+      },
+    }),
+  ),
 }));
 
 import { syncSocialVerifiedEmailFromAccountHook } from "@/lib/auth/social-verified-email-plugin";

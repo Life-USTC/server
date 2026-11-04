@@ -107,10 +107,6 @@ export function gone(message = "Gone") {
   return jsonResponse({ error: message }, { status: 410 });
 }
 
-export function notFoundText() {
-  return new Response("Not found\n", { status: 404 });
-}
-
 export function payloadTooLarge(message = "Payload too large") {
   return errorResponse(message, 413);
 }

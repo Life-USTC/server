@@ -23,6 +23,7 @@ beforeEach(() => {
   findSection.mockResolvedValue({ id: 31 });
   readSubscription.mockResolvedValue({
     isSubscribed: true,
+    kind: "teaching_assistant",
     calendarFeedCredential: "secret-must-not-leak",
   });
   readHomeworks.mockImplementation(
@@ -67,7 +68,11 @@ describe("section Web personal projection", () => {
       });
       expect(readSubscription).toHaveBeenLastCalledWith(userId, 301);
       expect(readHomeworks).toHaveBeenLastCalledWith(31, userId, "hw-1");
-      expect(result?.viewer).toEqual({ signedIn: true, isSubscribed: true });
+      expect(result?.viewer).toEqual({
+        signedIn: true,
+        isSubscribed: true,
+        subscriptionKind: "teaching_assistant",
+      });
       expect(result?.homeworkData.viewer.userId).toBe(userId);
       expect(JSON.stringify(result)).not.toContain("secret-must-not-leak");
     }

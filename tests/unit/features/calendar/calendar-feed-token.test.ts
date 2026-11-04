@@ -28,15 +28,19 @@ vi.mock("@/lib/auth/recent-session", () => ({
   resolveAuthoritativeRecentSession: resolveAuthoritativeRecentSessionMock,
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/db/prisma", () => {
+  const client = {
     user: {
       findUnique: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
     },
-  },
-}));
+  };
+  return {
+    prisma: client,
+    withUserDbContext: vi.fn((_userId, action) => action(client)),
+  };
+});
 
 vi.mock("@/lib/log/app-logger", () => ({
   logAppEvent: vi.fn(),
