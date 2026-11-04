@@ -121,6 +121,21 @@ requirements:
     test:
       file: tests/e2e/src/app/usage/client-guidance.test.ts
       name: MCP tutorial completion matches selected client en-us
+- id: usage.mcp-sidebar-content-bounds
+  category: presentation
+  rule: At laptop breakpoint widths, the MCP hero figure and image stay inside the padded content box
+    with the sidebar expanded or collapsed. Client tabs keep symmetric vertical space and stable heights;
+    tutorial text, ordered steps and complete copyable addresses stay inside their content bounds.
+  acceptance:
+    given: Anonymous English and Chinese visits at 1023, 1024, 1144 and 1440 pixels.
+    when: Toggle the real sidebar rail, select every client by mouse or keyboard and copy each public endpoint.
+    then:
+    - All four figure and image edges remain within the hero grid content box in both sidebar states.
+    - Tab rail and trigger heights stay stable, and upper and lower spacing remain symmetric.
+    - Text lines and numbered steps stay within their panel, and URL fields remain complete without overlapping copy controls.
+    test:
+      file: tests/e2e/src/app/usage/sidebar-geometry.test.ts
+      name: MCP content fits both sidebar states en-us 1023
 capabilities:
   usage-guides:
     title: Client Usage Guides
