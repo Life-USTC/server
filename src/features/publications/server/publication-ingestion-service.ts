@@ -26,6 +26,10 @@ import {
   flushPublicationLinks,
   type PendingPublicationLinks,
 } from "./publication-ingestion-links";
+import {
+  flushPublicationPointers,
+  type PendingPublicationPointers,
+} from "./publication-ingestion-pointers";
 import { parsePublicationDate } from "./publication-ingestion-revision-semantics";
 import { loadIngestionBatchState } from "./publication-ingestion-state";
 
@@ -203,6 +207,7 @@ async function ingestWithRetry(
           const results: PublicationIngestionItemResult[] = [];
           const state = await loadIngestionBatchState(tx, payload.items);
           const links: PendingPublicationLinks[] = [];
+          const pointers: PendingPublicationPointers = new Map();
           const events: Prisma.PublicationEventOutboxCreateManyInput[] = [];
           for (const item of payload.items) {
             const source = registeredSources.get(item.sourceId);
@@ -231,9 +236,11 @@ async function ingestWithRetry(
                 state,
                 links,
                 events,
+                pointers,
               ),
             );
           }
+          await flushPublicationPointers(tx, pointers);
           await flushPublicationLinks(tx, batch.id, links);
           if (events.length > 0) {
             await tx.publicationEventOutbox.createMany({

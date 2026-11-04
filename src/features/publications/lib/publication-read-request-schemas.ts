@@ -12,8 +12,6 @@ const sourceIdSchema = z
   .max(64)
   .regex(/^[a-z0-9][a-z0-9._-]*$/);
 
-export const publicationReadTypeSchema = publicationTypeSchema;
-
 /** At most this many source ids may be combined in one list request. */
 export const PUBLICATION_LIST_MAX_SOURCE_IDS = 20;
 
