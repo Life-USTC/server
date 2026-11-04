@@ -147,6 +147,48 @@ for (const kind of ["course", "teacher", "section"] as const) {
           expect(observations.at(-1)?.identityX).toBeGreaterThan(
             observations.at(-1)?.readingX ?? 0,
           );
+          // Resolve the threshold from the actual query container, including
+          // each shell's padding placement, rather than another viewport guess.
+          const contentWidth = await page
+            .locator("[data-detail-scroll-container]")
+            .evaluate((node) => {
+              const style = getComputedStyle(node);
+              return (
+                node.clientWidth -
+                parseFloat(style.paddingLeft) -
+                parseFloat(style.paddingRight)
+              );
+            });
+          const boundaryViewport = Math.round(1440 + 960 - contentWidth);
+          for (const viewport of [boundaryViewport - 1, boundaryViewport]) {
+            await page.setViewportSize({ width: viewport, height: 900 });
+            const reading = page.locator("[data-detail-reading-stream]");
+            const identity = page.locator("[data-detail-identity]");
+            await expect
+              .poll(async () => {
+                const bounds = await reading.boundingBox();
+                return bounds?.width ?? 0;
+              })
+              .toBeGreaterThanOrEqual(540);
+            const actual = await page.evaluate(() => {
+              const r = document
+                .querySelector("[data-detail-reading-stream]")
+                ?.getBoundingClientRect();
+              const i = document
+                .querySelector("[data-detail-identity]")
+                ?.getBoundingClientRect();
+              return Boolean(r && i && i.x > r.x + r.width);
+            });
+            expect(actual).toBe(viewport === boundaryViewport);
+            if (kind === "section") {
+              const table = page.getByTestId("section-calendar-table");
+              const bounds = await table.boundingBox();
+              expect(bounds?.width).toBeLessThanOrEqual(
+                (await reading.boundingBox())?.width ?? 0,
+              );
+            }
+            await expect(identity).toBeVisible();
+          }
           await page.setViewportSize({ width: 1144, height: 900 });
           await gotoAndWaitForReady(page, route);
           await page.locator('[data-slot="sidebar-rail"]').click();
