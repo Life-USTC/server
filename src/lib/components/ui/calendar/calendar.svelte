@@ -15,6 +15,8 @@
 		buttonVariant = "ghost",
 		captionLayout = "label",
 		locale = "en-US",
+		previousLabel = "Previous",
+		nextLabel = "Next",
 		months: monthsProp,
 		years,
 		monthFormat: monthFormatProp,
@@ -29,6 +31,8 @@
 		years?: CalendarPrimitive.YearSelectProps["years"];
 		monthFormat?: CalendarPrimitive.MonthSelectProps["monthFormat"];
 		yearFormat?: CalendarPrimitive.YearSelectProps["yearFormat"];
+		previousLabel?: string;
+		nextLabel?: string;
 		day?: Snippet<[{ day: DateValue; outsideMonth: boolean }]>;
 	} = $props();
 
@@ -61,8 +65,8 @@ get along, so we shut typescript up by casting `value` to `never`.
 	{#snippet children({ months, weekdays })}
 		<Calendar.Months>
 			<Calendar.Nav>
-				<Calendar.PrevButton variant={buttonVariant} />
-				<Calendar.NextButton variant={buttonVariant} />
+				<Calendar.PrevButton variant={buttonVariant} aria-label={previousLabel} />
+				<Calendar.NextButton variant={buttonVariant} aria-label={nextLabel} />
 			</Calendar.Nav>
 			{#each months as month, monthIndex (month)}
 				<Calendar.Month>

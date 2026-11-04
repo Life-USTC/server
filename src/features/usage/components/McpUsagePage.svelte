@@ -8,6 +8,7 @@ import { writeClipboardText } from "#lib/browser/clipboard.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Tabs from "#lib/components/ui/tabs/index.js";
+import { goto } from "$app/navigation";
 import {
   usageMarketingBlurbClass,
   usageMarketingCtaRowClass,
@@ -75,6 +76,7 @@ type McpCopy = {
 type PageData = {
   copy: McpCopy;
   metadataTitle: string;
+  client: "chatgpt" | "claude" | "other";
 };
 
 export let data: PageData;
@@ -87,7 +89,7 @@ const CODEX_COMMAND = `codex mcp add life-ustc --url ${MCP_ENDPOINT}\ncodex mcp 
 const CLAUDE_CODE_COMMAND = `claude mcp add --scope user --transport http life-ustc ${MCP_ENDPOINT}`;
 
 let copiedKey: string | null = null;
-let activeClient: "chatgpt" | "claude" | "other" = "chatgpt";
+$: activeClient = data.client;
 
 // TODO(#962): add dark-mode variants of the tutorial screenshots once assets are available.
 // For now, images are wrapped in a rounded bordered container so they remain visible in dark mode.
@@ -106,7 +108,10 @@ function copyEndpoint() {
 
 function selectClient(value: string) {
   if (value === "chatgpt" || value === "claude" || value === "other") {
-    activeClient = value;
+    if (value === data.client) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("client", value);
+    void goto(url, { reset: false });
   }
 }
 </script>
