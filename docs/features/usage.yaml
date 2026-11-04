@@ -108,6 +108,19 @@ requirements:
     test:
       file: tests/e2e/src/app/usage/client-navigation.test.ts
       name: MCP client selection survives navigation (en-us)
+- id: usage.client-specific-completion
+  category: presentation
+  rule: MCP tutorial completion instructions and examples match the selected client. Claude guidance does
+    not reuse a ChatGPT success screenshot; it offers a public query and explains how to inspect its tool result.
+  acceptance:
+    given: Anonymous English and Chinese visits to the Claude tutorial URL.
+    when: Inspect completion guidance, copy the public query, switch to ChatGPT and navigate Back.
+    then:
+    - Claude completion and hero contain no ChatGPT result image, and expose the public query and official guidance.
+    - ChatGPT retains its own imagery and current plugin setup instructions; browser restoration returns the correct content.
+    test:
+      file: tests/e2e/src/app/usage/client-guidance.test.ts
+      name: MCP tutorial completion matches selected client en-us
 capabilities:
   usage-guides:
     title: Client Usage Guides
