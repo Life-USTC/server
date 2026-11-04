@@ -115,7 +115,9 @@ GRANT UPDATE ("retiredAt", "updatedAt") ON TABLE "SectionTeacher" TO life_ustc_r
 
 GRANT SELECT, INSERT, UPDATE ON TABLE "Comment" TO life_ustc_runtime;
 GRANT INSERT, DELETE ON TABLE "CommentAttachment" TO life_ustc_runtime;
-GRANT INSERT, UPDATE ON TABLE "Homework" TO life_ustc_runtime;
+GRANT INSERT ON TABLE "Homework" TO life_ustc_runtime;
+GRANT UPDATE ("title", "isMajor", "requiresTeam", "publishedAt", "submissionStartAt", "submissionDueAt", "updatedAt", "updatedById", "deletedAt", "deletedById")
+ON TABLE "Homework" TO life_ustc_runtime;
 GRANT INSERT ON TABLE "Description" TO life_ustc_runtime;
 GRANT UPDATE ("content", "lastEditedAt", "lastEditedById", "updatedAt")
 ON TABLE "Description" TO life_ustc_runtime;
