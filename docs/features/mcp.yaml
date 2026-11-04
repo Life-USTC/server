@@ -354,16 +354,44 @@ requirements:
 - id: mcp.current-protocol
   category: behavior
   rule: The HTTP endpoint serves MCP2026-07-28 through the official SDK. Server discovery advertises
-    that version and server metadata; legacy and unsupported protocol versions reject before tool execution.
+    that version and server metadata; unsupported protocol versions reject before tool execution.
   acceptance:
     given: A private database and the real Node HTTP routes with public discovery and a signed todo-write grant.
-    when: Discover with MCP2026-07-28, then submit writes using legacy and unknown versions.
+    when: Discover with MCP2026-07-28, then submit writes using unsupported older and future versions.
     then:
     - Discovery returns200 with supportedVersions2026-07-28, complete result type and server metadata.
     - Both unsupported requests return400 and create no todo.
     test:
       file: tests/integration/mcp-http-contracts.test.ts
       name: mcp.current-protocol
+- id: mcp.legacy-stateless-clients
+  category: behavior
+  rule: The same HTTP endpoint accepts SDK-supported 2025 Streamable HTTP requests through the
+    official stateless legacy handler. Each request retains the existing authentication, scope,
+    body-size and mutation boundaries; no persistent protocol session is created.
+  acceptance:
+    given: A private database and the real Node HTTP routes with public catalog data and a signed todo-write grant.
+    when: Clients initialize using 2025-03-26, 2025-06-18 and 2025-11-25, acknowledge initialization,
+      list tools, query public courses and attempt private writes with and without authorization.
+    then:
+    - Initialization negotiates the requested supported version without a session identifier.
+    - Public tool discovery and calls succeed; missing credentials cannot create a todo.
+    - Authorized creation persists one matching todo for each tested version.
+    test:
+      file: tests/integration/mcp-legacy-http-contracts.test.ts
+      name: mcp.legacy-stateless-clients
+- id: mcp.default-sdk-client
+  category: behavior
+  rule: The official SDK client connects over Streamable HTTP without opting into modern version
+    negotiation and can discover and call public tools.
+  acceptance:
+    given: A private database, real Node HTTP routes and the official SDK client with its default configuration.
+    when: The client connects, lists tools and queries public courses.
+    then:
+    - The native handshake and public call succeed with a complete structured result.
+    test:
+      file: tests/integration/mcp-legacy-http-contracts.test.ts
+      name: mcp.default-sdk-client
 - id: mcp.request-batch-rejection
   category: validation
   rule: JSON-RPC arrays return400/-32600 before authentication, mutation budgets, usage accounting or
@@ -399,7 +427,7 @@ requirements:
 - id: mcp.transport-observability
   category: privacy
   rule: MCP transport logging must never include bearer tokens, cookies, exception messages, or tool argument
-    values.
+    values. Closed method/protocol-family categories remain available when authentication rejects a parsed request.
   acceptance:
     given: The real transport handler, body summarizer, bookkeeping, app logger and verbose OAuth logger
       with external execution and emission sinks replaced.

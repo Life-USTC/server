@@ -285,7 +285,11 @@ test("section.private-section-projection", { tag: "@Section/REST" }, async ({
     expect(own.headers()["cloudflare-cdn-cache-control"]).toBe("no-store");
     expect(own.headers().vary).toBe("Cookie");
     const body = await own.json();
-    expect(body.viewer).toEqual({ signedIn: true, isSubscribed: true });
+    expect(body.viewer).toEqual({
+      signedIn: true,
+      isSubscribed: true,
+      subscriptionKind: "regular",
+    });
     expect(body.homeworkData.viewer).toMatchObject({
       userId: user.id,
       isAuthenticated: true,

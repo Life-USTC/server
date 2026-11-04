@@ -3,13 +3,13 @@
 Setup and role environment variables: [local development](local-development.md).
 Choose the runtime for the boundary being tested:
 
-| Boundary | Entry point | What it exercises |
-| --- | --- | --- |
-| Pure logic / mocked orchestration | [Unit config](../vitest.config.ts) | Node code without real DB or Worker bindings |
-| Database | [isolatedDatabaseTest](../tests/shared/isolated-database.ts) | Private migrated DB with production roles and RLS |
-| Node protocol | [nodeProtocolTest](../tests/shared/node-protocol-fixture.ts) | Handlers with restricted DB roles and explicit test bindings |
-| MCP SDK | [isolatedMcpTest](../tests/integration/mcp/_harness/isolated-context.ts) | SDK client/server over in-memory transport and synthetic authentication |
-| Worker HTTP / browser | [isolated Worker](../tests/e2e/utils/isolated-worker.ts) | Compiled application in workerd, real HTTP and Worker bindings |
+| Boundary                          | Entry point                                                              | What it exercises                                                       |
+| --------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Pure logic / mocked orchestration | [Unit config](../vitest.config.ts)                                       | Node code without real DB or Worker bindings                            |
+| Database                          | [isolatedDatabaseTest](../tests/shared/isolated-database.ts)             | Private migrated DB with production roles and RLS                       |
+| Node protocol                     | [nodeProtocolTest](../tests/shared/node-protocol-fixture.ts)             | Handlers with restricted DB roles and explicit test bindings            |
+| MCP SDK                           | [isolatedMcpTest](../tests/integration/mcp/_harness/isolated-context.ts) | SDK client/server over in-memory transport and synthetic authentication |
+| Worker HTTP / browser             | [isolated Worker](../tests/e2e/utils/isolated-worker.ts)                 | Compiled application in workerd, real HTTP and Worker bindings          |
 
 Node protocol and in-memory MCP tests do not establish real Worker HTTP
 or authentication behavior. Runtime ownership contracts live beside the APIs:
@@ -52,3 +52,11 @@ route samples; it does not establish behavior coverage.
 The [accessibility helper](../tests/e2e/utils/ui-quality.ts) runs the selected WCAG A/AA axe rules, including contrast and target size.
 Serious/critical violations fail the gate; incomplete results are reported for
 review. A passing audit does not establish full accessibility coverage.
+
+Calendar effect observations use a fresh native request context for each phase.
+For the isolated Worker's HTTP `localhost` origin, those anonymous probes connect
+to its IPv4 listener directly while retaining the original `Host` header. This
+avoids address-family fallback during each connection without changing browser
+cookies, WebAuthn or OAuth origins. HTTPS and other hosts retain their original
+endpoint. Each phase still consumes its responses and disposes its context, even
+when observation fails.
