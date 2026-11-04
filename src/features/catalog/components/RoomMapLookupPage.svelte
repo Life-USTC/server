@@ -1,11 +1,13 @@
 <script lang="ts">
 import MapPinnedIcon from "@lucide/svelte/icons/map-pinned";
+import { untrack } from "svelte";
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import {
   toolbarControlClass,
   toolbarFieldClass,
 } from "#lib/components/toolbar-control.js";
+import * as Accordion from "#lib/components/ui/accordion/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
@@ -14,26 +16,59 @@ import type {
   RoomMapBuilding,
   RoomMapCopy,
 } from "@/features/rooms/lib/room-map-types";
+import { goto } from "$app/navigation";
 
-export let copy: RoomMapCopy;
-export let buildings: RoomMapBuilding[] = [];
-export let initialRoom = "";
+let {
+  copy,
+  buildings = [],
+  initialRoom = "",
+}: {
+  copy: RoomMapCopy;
+  buildings?: RoomMapBuilding[];
+  initialRoom?: string;
+} = $props();
+let input = $state(untrack(() => initialRoom));
+let selectedRoom = $derived(initialRoom.trim().normalize("NFKC").toUpperCase());
+let searchRevision = $state(0);
+let openedCampus = $state<string[]>([]);
+let openedBuilding = $state<string[]>([]);
+let openedFloor = $state<string[]>([]);
+let campuses = $derived([
+  ...new Set(
+    buildings.map((building) => building.campus ?? copy.unknownCampus),
+  ),
+]);
 
-let input = initialRoom;
-let selectedRoom = initialRoom;
-let searchRevision = 0;
-
+$effect(() => {
+  input = selectedRoom;
+});
+$effect(() => {
+  const matching = buildings.find((building) =>
+    building.floors.some((floor) => floor.codes.includes(selectedRoom)),
+  );
+  if (matching) {
+    openedCampus = [matching.campus ?? copy.unknownCampus];
+    openedBuilding = [matching.building];
+    openedFloor = matching.floors
+      .filter((floor) => floor.codes.includes(selectedRoom))
+      .map((floor) => `${matching.building}:${floor.floor}`);
+  } else {
+    openedCampus = [];
+    openedBuilding = [];
+    openedFloor = [];
+  }
+});
+function roomHref(code: string) {
+  return `/catalog/rooms?${new URLSearchParams({ room: code.trim().normalize("NFKC").toUpperCase() })}`;
+}
 function submit(event: SubmitEvent) {
   event.preventDefault();
-  const room = input.trim();
-  selectedRoom = room;
-  searchRevision += 1;
-}
-
-function selectSample(code: string) {
-  input = code;
-  selectedRoom = code;
-  searchRevision += 1;
+  const room = input.trim().normalize("NFKC").toUpperCase();
+  if (room === selectedRoom) {
+    searchRevision += 1;
+    return;
+  }
+  void goto(room ? roomHref(room) : "/catalog/rooms", { reset: false });
 }
 
 function roomCountLabel(roomCount: number) {
@@ -54,6 +89,8 @@ function floorLabel(floor: string) {
 <CollectionPage description={copy.subtitle} title={copy.title}>
   {#snippet toolbar()}
     <form
+      method="GET"
+      action="/catalog/rooms"
       aria-label={copy.searchLabel}
       class="flex items-end gap-2"
       onsubmit={submit}
@@ -62,6 +99,7 @@ function floorLabel(floor: string) {
         <Field.FieldLabel for="room-map-code">{copy.searchLabel}</Field.FieldLabel>
         <Input
           id="room-map-code"
+          name="room"
           class={toolbarFieldClass}
           bind:value={input}
           placeholder={copy.placeholder}
@@ -82,7 +120,7 @@ function floorLabel(floor: string) {
   {/snippet}
 
   {#if selectedRoom}
-    {#key `${searchRevision}:${selectedRoom}`}
+    {#key `${selectedRoom}:${searchRevision}`}
       <RoomMapPreview
         code={selectedRoom}
         {copy}
@@ -103,12 +141,11 @@ function floorLabel(floor: string) {
           <div class="flex flex-wrap gap-2">
             {#each copy.sampleRooms as code (code)}
               <Button
-                type="button"
+                href={roomHref(code)}
                 variant="outline"
                 size="sm"
                 class="font-mono"
                 data-testid="room-map-sample-chip"
-                onclick={() => selectSample(code)}
               >
                 {code}
               </Button>
@@ -118,47 +155,45 @@ function floorLabel(floor: string) {
       {/if}
     </CollectionEmpty>
 
-    {#if buildings.length > 0}
-      <section class="grid gap-3" data-testid="room-map-building-index">
-        <div class="grid gap-1">
-          <h2 class="font-medium text-sm">{copy.browseTitle}</h2>
-          <p class="text-muted-foreground text-sm">{copy.browseGuidance}</p>
-        </div>
-        <div class="grid gap-3 md:block md:columns-2 md:gap-3 xl:columns-3">
-          {#each buildings as entry (entry.building)}
-            <section
-              class="grid break-inside-avoid content-start gap-2 rounded-md border border-border p-3 md:mb-3"
-              data-testid="room-map-building"
-            >
-              <div class="flex flex-wrap items-baseline justify-between gap-x-2">
-                <h3 class="font-medium text-sm">{entry.building}</h3>
-                <span class="text-muted-foreground text-xs">
-                  {roomCountLabel(entry.roomCount)}
-                </span>
-              </div>
-              {#each entry.floors as floor (floor.floor)}
-                <div class="grid gap-1.5">
-                  <p class="text-muted-foreground text-xs">{floorLabel(floor.floor)}</p>
-                  <div class="flex flex-wrap gap-1.5">
-                    {#each floor.codes as code (code)}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        class="font-mono"
-                        data-testid="room-map-building-room"
-                        onclick={() => selectSample(code)}
-                      >
-                        {code}
-                      </Button>
-                    {/each}
-                  </div>
-                </div>
-              {/each}
-            </section>
-          {/each}
-        </div>
-      </section>
-    {/if}
+  {/if}
+  {#if buildings.length > 0}
+    <section class="grid gap-3" data-testid="room-map-building-index">
+      <div class="grid gap-1">
+        <h2 class="font-medium text-sm">{copy.browseTitle}</h2>
+        <p class="text-muted-foreground text-sm">{copy.browseGuidance}</p>
+      </div>
+      <Accordion.Root type="multiple" bind:value={openedCampus}>
+        {#each campuses as campus (campus)}
+          <Accordion.Item value={campus}>
+            <Accordion.Trigger>{campus}</Accordion.Trigger>
+            <Accordion.Content>
+              <Accordion.Root type="multiple" bind:value={openedBuilding}>
+                {#each buildings.filter((building) => (building.campus ?? copy.unknownCampus) === campus) as entry (entry.building)}
+                  <Accordion.Item value={entry.building} data-testid="room-map-building">
+                    <Accordion.Trigger level={4}>{entry.building} · {roomCountLabel(entry.roomCount)}</Accordion.Trigger>
+                    <Accordion.Content>
+                      <Accordion.Root type="multiple" bind:value={openedFloor}>
+                        {#each entry.floors as floor (floor.floor)}
+                          <Accordion.Item value={`${entry.building}:${floor.floor}`}>
+                            <Accordion.Trigger level={5}>{floorLabel(floor.floor)}</Accordion.Trigger>
+                            <Accordion.Content>
+                              <div class="flex flex-wrap gap-2">
+                                {#each floor.codes as code (code)}
+                                  <Button href={roomHref(code)} variant={code === selectedRoom ? "secondary" : "outline"} size="sm" aria-current={code === selectedRoom ? "location" : undefined} data-testid="room-map-building-room">{code}</Button>
+                                {/each}
+                              </div>
+                            </Accordion.Content>
+                          </Accordion.Item>
+                        {/each}
+                      </Accordion.Root>
+                    </Accordion.Content>
+                  </Accordion.Item>
+                {/each}
+              </Accordion.Root>
+            </Accordion.Content>
+          </Accordion.Item>
+        {/each}
+      </Accordion.Root>
+    </section>
   {/if}
 </CollectionPage>

@@ -47,7 +47,7 @@ export function findTeacherDetailById(id: number, locale = DEFAULT_LOCALE) {
     id,
     kind: "teacher",
     locale,
-    shape: "detail-v1",
+    shape: "detail-v2",
     load: async () => {
       const teacher = await getPrisma(locale).teacher.findUnique({
         where: { id },

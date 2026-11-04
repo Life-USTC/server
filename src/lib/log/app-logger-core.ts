@@ -1,4 +1,5 @@
 import { getOptionalTrimmedEnv } from "@/app-env";
+import { getSafeErrorCauseDetails } from "@/lib/log/safe-error-cause";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
 
@@ -234,6 +235,7 @@ export function serializeError(error: unknown) {
       ...(details.code ? { code: details.code } : {}),
       ...(details.prismaCode ? { prismaCode: details.prismaCode } : {}),
       ...(details.transaction ? { transaction: details.transaction } : {}),
+      ...getSafeErrorCauseDetails(error),
     };
   }
 

@@ -155,6 +155,24 @@ requirements:
     test:
       file: tests/e2e/src/app/courses/history-pagination.test.ts
       name: course.bounded-detail-history
+- id: course.chronological-history
+  category: consistency
+  rule: Historical offerings sort by the semester start date descending before pagination,
+    regardless of the upstream semester ID. Missing start dates follow known dates;
+    equal dates retain deterministic semester and section tie-breakers. Web and public
+    detail/history readers use the same chronological order.
+  surfaces:
+  - web
+  acceptance:
+    given: A course has offerings in 2009, 2006 and 2005 autumn whose upstream semester IDs
+      are respectively 47, 48 and 31.
+    when: Anonymous visitors read the existing history on desktop and mobile.
+    then:
+    - The visible section destinations appear in 2009, 2006 and 2005 order.
+    - Reading the history leaves the arranged offerings unchanged.
+    test:
+      file: tests/e2e/src/app/courses/history-chronology.test.ts
+      name: course.chronological-history
 - id: course.history-page-validation
   category: validation
   rule: Supplied values must be positive decimal integers without leading zeros, signs, fractions, exponent
