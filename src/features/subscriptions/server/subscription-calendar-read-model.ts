@@ -19,7 +19,7 @@ export async function getUserSectionSubscriptionStatusForSection(
         id: true,
         sectionSubscriptions: {
           where: { section: { jwId: sectionJwId } },
-          select: { sectionId: true },
+          select: { sectionId: true, kind: true },
           take: 1,
         },
       },
@@ -30,6 +30,7 @@ export async function getUserSectionSubscriptionStatusForSection(
   return {
     userId: user.id,
     isSubscribed: user.sectionSubscriptions.length > 0,
+    kind: user.sectionSubscriptions[0]?.kind ?? null,
   };
 }
 

@@ -1,9 +1,6 @@
 import { redirect } from "@sveltejs/kit";
 import { listUserOAuthAuthorizations } from "@/features/oauth/server/user-authorizations.server";
-import {
-  type SettingsTab,
-  settingsRenderedTabs,
-} from "@/features/settings/lib/settings-tabs";
+import type { SettingsTab } from "@/features/settings/lib/settings-tabs";
 import type { UserUstcIdentitySummary } from "@/features/settings/lib/ustc-identity";
 import { listOwnAccountSecurityActivityPage } from "@/features/settings/server/account-activity";
 import { buildSettingsAccountProviders } from "@/features/settings/server/settings-account-providers";
@@ -42,7 +39,7 @@ export async function getSettingsPageData(
   tab: SettingsTab,
 ) {
   const sessionUser = await requireSettingsUser(request, url);
-  const loadUstcIdentities = settingsRenderedTabs(tab).includes("accounts");
+  const loadUstcIdentities = tab === "accounts";
   const [
     user,
     accounts,

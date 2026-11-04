@@ -9,7 +9,7 @@ export let linkIconLabel: (icon: string) => string;
 export let reserveActionSpace = false;
 
 function visitLinkClass(props: Record<string, unknown>) {
-  return cn(props.class as string, "bg-background text-left hover:bg-muted");
+  return cn(props.class as string, "bg-background hover:bg-muted text-left");
 }
 </script>
 

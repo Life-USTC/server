@@ -21,6 +21,21 @@ access:
   agent: Can only access restricted capabilities after OAuth authorization; does not inherit admin permissions
     by default; REST and MCP for the same abstract endpoint maintain consistent fields and permissions.
 requirements:
+- id: user.database-write-boundary
+  category: authorization
+  rule: The application role can update personal fields only on the actor's own User row. Administrators without an active suspension may update another user's public profile and role but cannot alter their calendar token or reusable avatar choices, and no actor may change their own administrator flag. Missing, unknown and foreign non-admin contexts cannot update a User. Personal account settings retain existing suspension behavior. Authentication keeps its existing limited INSERT/UPDATE column privileges, and account deletion remains available only through the authorized function-owner path. This write boundary preserves existing read projections; it does not establish column privacy for the application's existing User SELECT grant.
+  acceptance:
+    given: A migrated PostgreSQL database with application, authentication, maintenance, importer and function-owner identities and independently arranged users.
+    when: Direct role calls attempt unscoped and cross-user writes, self-promotion, partial privileged updates, immutable-column changes, private-field changes by administrators, legitimate owner/admin writes and account deletion.
+    then:
+    - Unauthorized writes leave persisted rows unchanged and transaction-local actor state does not leak.
+    - Owners retain personal updates while admin role changes require another administrator and cannot change private fields.
+    - Active suspension blocks governance writes while expired or lifted suspension restores them. Demotion is effective on the next statement; the application cannot create or delete users or rewrite authentication fields.
+    - Existing authentication profile fields, public projections and account-deletion cascades work, while importer and maintenance User access remain denied.
+    - Applying the migration to existing roles enforces the same boundary without rerunning role bootstrap.
+    test:
+      file: tests/integration/user-rls.test.ts
+      name: User PostgreSQL write boundaries
 - id: user.application-write-context
   category: authorization
   rule: Application-role writes to calendar tokens, reusable avatar choices and administrative profile or role fields carry the authenticated actor on the same database transaction as the write. Administrative updates retain serializable retries and establish their actor on each attempt. Authentication profile fields retain the existing separate auth role and column grants.

@@ -1,3 +1,4 @@
+import { createConnection, createServer } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   runWithCloudflareRuntimeEnv,
@@ -261,6 +262,101 @@ describe("应用日志记录器", () => {
     });
     expect(String(payload)).not.toContain("private database detail");
     expect(String(payload)).not.toContain("private wrapper detail");
+  });
+
+  it("records a native refused connection through a generic Error wrapper", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const listener = createServer();
+    await new Promise<void>((resolve) =>
+      listener.listen(0, "127.0.0.1", resolve),
+    );
+    const address = listener.address();
+    if (!address || typeof address === "string")
+      throw new Error("Missing test listener");
+    await new Promise<void>((resolve, reject) =>
+      listener.close((error) => (error ? reject(error) : resolve())),
+    );
+    const cause = await new Promise<Error>((resolve, reject) => {
+      const socket = createConnection({
+        host: "127.0.0.1",
+        port: address.port,
+      });
+      let connectionError: Error | undefined;
+      socket.once("error", (error) => {
+        connectionError = error;
+      });
+      socket.once("close", () => {
+        if (connectionError) resolve(connectionError);
+      });
+      socket.once("connect", () => {
+        socket.destroy();
+        reject(new Error("Closed test port unexpectedly connected"));
+      });
+    });
+    logRouteFailure("Read failed", 500, new Error("private query", { cause }));
+    const serialized = String(errorSpy.mock.calls[0]?.[0]);
+    expect(JSON.parse(serialized).error).toEqual({
+      name: "Error",
+      transportCode: "ECONNREFUSED",
+    });
+    expect(serialized).not.toContain("127.0.0.1");
+    expect(serialized).not.toContain("private query");
+  });
+
+  it("retains bounded transport causes without private error content", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const failure = new Error("private outer", {
+      cause: new AggregateError(
+        [
+          Object.assign(new Error("private socket"), {
+            code: "ECONNRESET",
+            address: "private host",
+            port: 5432,
+          }),
+        ],
+        "private aggregate",
+      ),
+    });
+    logRouteFailure("Read failed", 500, failure);
+    const payload = JSON.parse(String(errorSpy.mock.calls[0]?.[0]));
+    expect(payload.error).toEqual({
+      name: "Error",
+      transportCode: "ECONNRESET",
+    });
+    expect(JSON.stringify(payload)).not.toContain("private");
+  });
+
+  it("retains an allowlisted nested timeout name without inferring a cause from messages", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    logRouteFailure(
+      "Read failed",
+      500,
+      new Error("private outer", {
+        cause: new DOMException("private timeout", "TimeoutError"),
+      }),
+    );
+    expect(JSON.parse(String(errorSpy.mock.calls[0]?.[0])).error).toEqual({
+      name: "Error",
+      causeName: "TimeoutError",
+    });
+    errorSpy.mockClear();
+    logRouteFailure(
+      "Read failed",
+      500,
+      Object.assign(new Error("ETIMEDOUT"), {
+        cause: {
+          name: "PrivateErrorName",
+          code: "PRIVATE_CODE",
+          message: "secret",
+        },
+      }),
+    );
+    expect(JSON.parse(String(errorSpy.mock.calls[0]?.[0])).error).toEqual({
+      name: "Error",
+    });
   });
 
   it("生产环境日志序列化不因 BigInt 或循环引用失败", () => {

@@ -92,6 +92,27 @@ requirements:
     test:
       file: tests/e2e/src/app/rooms/test.ts
       name: room-map.empty-samples
+- id: room-map.url-navigation
+  category: behavior
+  rule: The selected room is derived from the URL room query. Search and room links
+    preserve reload, share and browser history. The directory progressively expands
+    campus, building and floor, opening the selected marked room's path. A campus
+    is shown only from an unambiguous public catalog association; missing or conflicting
+    associations remain explicitly unclassified. Overview maps do not claim an exact room highlight.
+  surfaces:
+  - web
+  acceptance:
+    given: A controlled map manifest contains two marked rooms in one catalog campus
+      and a building with no catalog campus association.
+    when: A visitor chooses a sample, reloads, selects another room, navigates Back/Forward,
+      and submits a lowercase room code on desktop and mobile.
+    then:
+    - URL, input and preview retain the chosen room, including restored browser history.
+    - The selected campus, building and floor expand; an initial directory keeps room lists collapsed.
+    - A building without an authoritative campus remains available under an unknown-campus label.
+    test:
+      file: tests/e2e/src/app/rooms/navigation.test.ts
+      name: room-map.url-navigation
 - id: room-map.exam-map-attachments
   category: behavior
   rule: Each mapped exam room contributes its public image URL to the event attachments, deduplicated
