@@ -5,6 +5,17 @@ import {
 } from "@/lib/components/date-time-picker-value";
 
 describe("date-time local input", () => {
+  it("preserves valid existing seconds and milliseconds when changing the date", () => {
+    const parsed = parseDateTimeLocal("2026-11-05T14:30:45.125");
+    expect(parsed?.time).toBe("14:30:45.125");
+    expect(
+      dateTimeLocalValue(
+        parsed?.date.add({ days: 1 }),
+        parsed?.time ?? "",
+        "23:59",
+      ),
+    ).toBe("2026-11-06T14:30:45.125");
+  });
   it("retains civil date and minute precision without timezone conversion", () => {
     const value = parseDateTimeLocal("2028-02-29T14:30");
     expect(value?.date.toString()).toBe("2028-02-29");

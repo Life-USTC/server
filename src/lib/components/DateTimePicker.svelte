@@ -108,6 +108,7 @@ let rootProps = $derived.by(() => {
     {name}
     {placeholder}
     type="datetime-local"
+    step="any"
     {value}
     oninput={handleInput}
   />
@@ -138,7 +139,7 @@ let rootProps = $derived.by(() => {
           aria-label={calendarButtonLabel}
           type="single"
         />
-        <div class="grid gap-3 p-3">
+        <Field.FieldGroup class="gap-3 p-3">
           <Field.Field>
             <Field.FieldLabel for={`${controlId}-time`}>
               {pickerCopy.time}
@@ -146,7 +147,7 @@ let rootProps = $derived.by(() => {
             <Input
               id={`${controlId}-time`}
               type="time"
-              step="60"
+              step="any"
               value={timeValue}
               oninput={handleTimeInput}
               disabled={disabled || !selectedDate}
@@ -155,7 +156,7 @@ let rootProps = $derived.by(() => {
           <Button type="button" variant="outline" onclick={() => { open = false; }}>
             {pickerCopy.done}
           </Button>
-        </div>
+        </Field.FieldGroup>
       </Popover.Content>
     </Popover.Root>
   </InputGroup.Addon>

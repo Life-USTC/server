@@ -3,7 +3,7 @@ import { CalendarDate, type DateValue } from "@internationalized/date";
 export function parseDateTimeLocal(input: string | null | undefined) {
   if (!input) return null;
   const match = input.match(
-    /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d)$/,
+    /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d(?:\.\d{1,3})?)?$/,
   );
   if (!match) return null;
   const date = new CalendarDate(
@@ -14,7 +14,7 @@ export function parseDateTimeLocal(input: string | null | undefined) {
   if (date.toString() !== `${match[1]}-${match[2]}-${match[3]}`) return null;
   return {
     date,
-    time: `${match[4]}:${match[5]}`,
+    time: `${match[4]}:${match[5]}${match[6] ?? ""}`,
   };
 }
 
