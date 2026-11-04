@@ -67,7 +67,6 @@ FROM (
     ('public.FeatureOperationEvent:SELECT'),
     ('public.Homework:INSERT'),
     ('public.Homework:SELECT'),
-    ('public.Homework:UPDATE'),
     ('public.HomeworkCompletion:DELETE'),
     ('public.HomeworkCompletion:INSERT'),
     ('public.HomeworkCompletion:SELECT'),
