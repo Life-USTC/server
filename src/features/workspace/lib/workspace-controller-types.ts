@@ -614,6 +614,7 @@ export type WorkspacePageData = WorkspaceRecord & {
   demo?: DemoView | null;
   bus?: WorkspaceBusData | null;
   calendarSubscriptionUrl?: string | null;
+  calendarLinkState?: "ready" | "reauthenticate" | "unavailable";
   copy: WorkspaceRootCopy;
   homeworks?: WorkspaceHomeworksData | null;
   links?: CatalogLinksData | null;

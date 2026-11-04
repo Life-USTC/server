@@ -97,16 +97,16 @@ $: bulkImportSections = matchedSections.map<BulkImportSectionView>(
 <Button class="justify-self-start" href={readOnlyReason ? undefined : "/workspace/subscriptions/activities"} disabled={Boolean(readOnlyReason)} title={signedData.demo?.unavailableReason} variant="outline">{getWorkspacePageCopy(signedData.locale === "en-us" ? "en-us" : "zh-cn").youngEvents.workspace.manage}</Button>
 
 <section class="grid gap-4">
-  {#if signedData.subscriptions.subscriptions.length > 0}
     <SubscriptionsTabToolbar
       {readOnlyReason}
       calendarSubscriptionUrl={signedData.subscriptions.calendarSubscriptionUrl ?? null}
+      calendarLinkState={signedData.calendarLinkState}
+      showSubscriptionActions={signedData.subscriptions.subscriptions.length > 0}
       {openBulkImportDialog}
       {openQuickAddDialog}
       {sectionCopy}
       {subscriptionsCopy}
     />
-  {/if}
 
   <SubscriptionsStatusAlerts
     {bulkImportError}

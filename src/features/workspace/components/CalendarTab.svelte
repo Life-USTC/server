@@ -21,6 +21,7 @@ import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { browser } from "$app/env";
 import CalendarTabToolbar from "./CalendarTabToolbar.svelte";
+import PersonalCalendarLinkButton from "./PersonalCalendarLinkButton.svelte";
 import type { WorkspaceCalendarTabProps } from "./workspace-calendar-component-types";
 import type { FormatMessage } from "./workspace-component-types";
 
@@ -184,6 +185,16 @@ $: agendaDays = baseAgendaDays.map((day) => ({
   {#if signedData.navStats.user.id !== ownerId}
     <p role="status">{activityCopy.youngEvents.workspace.loading}</p>
   {:else if !hasWorkspaceSubscriptions(signedData)}
+    {#if signedData.calendarLinkState || signedData.calendarSubscriptionUrl}
+      <PersonalCalendarLinkButton
+        buttonLabel={subscriptionsCopy.iCalLink}
+        failureMessage={subscriptionsCopy.optOutRetry}
+        {sectionCopy}
+        subscriptionCalendarUrl={signedData.calendarSubscriptionUrl ?? ""}
+        calendarLinkState={signedData.calendarLinkState}
+        className="w-fit"
+      />
+    {/if}
     <PersonalActivityCalendar
       copy={activityCopy}
       locale={signedData.locale}
