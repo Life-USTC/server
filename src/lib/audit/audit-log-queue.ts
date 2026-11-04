@@ -9,8 +9,6 @@ import { logAppEvent } from "@/lib/log/app-logger";
 import { elapsedMs, monotonicNowMs } from "@/lib/log/observability-clock";
 import { writeQueueBatchAnalytics } from "@/lib/metrics/analytics-engine";
 
-export const AUDIT_LOG_WRITE_QUEUE_NAME = "life-ustc-audit-log-write";
-
 export type AuditLogWriteQueueMessage = {
   auditId: string;
   params: Omit<AuditLogParams, "id">;
