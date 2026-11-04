@@ -69,6 +69,7 @@ requirements:
   - demo-subscriptions
   - demo-catalog-details
   - demo-homeworks
+  - demo-exams
   expectation:
     kind: authorization
     surface: service
@@ -93,7 +94,7 @@ requirements:
     - rate limiting, object storage, calendar queues and invalidation
     - OAuth and outbound requests
     - browser analytics scripts and telemetry
-  rationale: Demo possession is not real-user authentication. The read allowlist comprises Todos, homeworks and
+  rationale: Demo possession is not real-user authentication. The read allowlist comprises Todos, homeworks, exams and
     subscriptions HTML/page-data, the three supported catalog-detail pages and their page-data,
     GET /api/workspace/todos, GET /api/workspace/subscriptions/current, section detail/personal reads,
     fixture descriptions/comments, homework list/detail/audit reads and shell bootstrap. Same-origin locale-cookie updates are allowed. Entry and exit are cookie controls. Every other request is denied before its route runs, including visit-recording GET, uploads,
@@ -195,6 +196,19 @@ requirements:
     test:
       file: tests/e2e/src/app/demo/test.ts
       name: 'demo.session: late real-account responses cannot restore the previous viewer'
+- id: demo.exams-projection
+  category: consistency
+  rule: The existing Exams page and its page-data use the same three fixed exams as demo section details, across two semesters at reference time 2026-09-24T09:00:00+08:00. Two upcoming exams and one completed exam retain existing desktop/mobile filters and section links. Shell navigation counts only the two upcoming exams. No calendar credentials, exports or real account reads are introduced.
+  acceptance:
+    given: An independently signed demo in each supported locale and desktop/mobile viewport.
+    when: The caller navigates from subscriptions to exams, changes completion filters and opens a sample section, while real Worker requests also probe page-data, writes, exports and invalid identities.
+    then:
+    - Page, section API and shell counts share the same fixed dates, times and identities.
+    - Upcoming, completed and all filters show the corresponding samples in existing layouts.
+    - Read-only identity remains visible and writes, exports and invalid credentials retain the fail-closed boundary without database or external effects.
+    test:
+      file: tests/e2e/src/app/demo/exams.test.ts
+      name: 'demo.exams: read-only browsing zh-cn 1280'
 capabilities:
   demo-bootstrap:
     title: Demo Entry and Exit
@@ -330,3 +344,21 @@ capabilities:
       - Read fixed completion and advisory states with disabled writes
       requirement_refs:
       - demo.homework-projection
+  demo-exams:
+    title: Read-only Demo Exams
+    description: Existing exams view projects the catalog samples without a real user identity or export capability.
+    auth: anon
+    web:
+      pages:
+      - /workspace/exams
+    rest: unavailable
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Filter fixed upcoming and completed exams
+      - Follow sample exam sections
+      - Retain the visible read-only demo identity
+      requirement_refs:
+      - demo.exams-projection
