@@ -177,6 +177,12 @@
     "close": "关闭"
   },
   "subscriptions": {
+    "calendarRecovery": {
+      "reauthenticate": "请重新登录后查看你的私人日历订阅链接。",
+      "unavailable": "日历链接暂不可用，请重试。",
+      "signIn": "重新登录",
+      "retry": "重试"
+    },
     "title": "教学班订阅",
     "description": "管理您在 Life@USTC 中订阅的教学班",
     "summary": {

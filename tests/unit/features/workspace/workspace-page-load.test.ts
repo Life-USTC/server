@@ -148,3 +148,35 @@ describe("signed workspace page load", () => {
     );
   });
 });
+
+it.each([
+  { fresh: false, link: null, expected: "reauthenticate" },
+  { fresh: true, link: null, expected: "unavailable" },
+  { fresh: true, link: "/feed.ics", expected: "ready" },
+])(
+  "distinguishes calendar link recovery from authoritative session and result $expected",
+  async ({ fresh, link, expected }) => {
+    resolveAuthoritativeRecentSessionMock.mockResolvedValue(
+      fresh
+        ? { ok: true, sessionId: "session-1", userId: "user-1" }
+        : { ok: false, reason: "session_not_fresh" },
+    );
+    loadSignedWorkspacePageDataMock.mockResolvedValue({
+      signedIn: true,
+      tab: "subscriptions",
+      calendarSubscriptionUrl: link,
+    });
+    const url = new URL("https://example.test/workspace/subscriptions");
+    const result = await loadSignedWorkspacePage({
+      locals: { locale: "en-us", requestId: "request-recovery" },
+      request: new Request(url),
+      tab: "subscriptions",
+      url,
+      userId: "user-1",
+    });
+    expect(result.calendarLinkState).toBe(expected);
+    expect(loadSignedWorkspacePageDataMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ revealCalendarFeed: fresh }),
+    );
+  },
+);
