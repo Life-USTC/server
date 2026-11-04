@@ -40,13 +40,6 @@ export function catalogLocalizedDisplayName(
   return primary || secondary;
 }
 
-export function catalogNames(items: CatalogNamed[]) {
-  return items
-    .map((item) => catalogPrimaryName(item))
-    .filter(Boolean)
-    .join(", ");
-}
-
 export function catalogLocalizedNames(
   items: CatalogNamed[],
   locale: string | null | undefined,

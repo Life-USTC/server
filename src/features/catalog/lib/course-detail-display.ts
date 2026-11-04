@@ -1,17 +1,7 @@
 import {
   type CatalogNamed,
   catalogLocalizedNames,
-  catalogPrimaryName,
-  catalogSecondaryName,
 } from "./catalog-list-display";
-
-export function courseDetailPrimaryName(item?: CatalogNamed | null) {
-  return catalogPrimaryName(item);
-}
-
-export function courseDetailSecondaryName(item?: CatalogNamed | null) {
-  return catalogSecondaryName(item);
-}
 
 export function formatCatalogDetailMessage(
   template: string,
