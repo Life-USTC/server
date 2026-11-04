@@ -21,6 +21,20 @@ access:
   agent: Can only access restricted capabilities after OAuth authorization; does not inherit admin permissions
     by default; REST and MCP for the same abstract endpoint maintain consistent fields and permissions.
 requirements:
+- id: user.application-write-context
+  category: authorization
+  rule: Application-role writes to calendar tokens, reusable avatar choices and administrative profile or role fields carry the authenticated actor on the same database transaction as the write. Administrative updates retain serializable retries and establish their actor on each attempt. Authentication profile fields retain the existing separate auth role and column grants.
+  acceptance:
+    given: An isolated database rejects application User updates without the expected actor, while existing authentication column grants remain unchanged.
+    when: Token initialization races, a recent session rotates its token, profile completion saves an avatar, a social account hook saves an upstream avatar and an administrator updates another user.
+    then:
+    - Concurrent initialization returns one persisted token and records one creation event; rotation changes only the owner token and never includes the secret in audit metadata.
+    - Both avatar paths persist their reusable choice, with other users unchanged.
+    - Administrative writes identify the acting administrator rather than the target and preserve audit attribution.
+    - A conflicting nested actor fails and later unscoped writes remain denied.
+    test:
+      file: tests/integration/user-write-context.test.ts
+      name: User application writes before row security
 - id: user.public-contribution-window
   category: consistency
   rule: The public contribution heatmap and its total cover exactly 365 Asia/Shanghai calendar days ending today. Padding to full Sunday-through-Saturday weeks has zero contributions outside that interval. Future dates never increase the annual total, which equals the sum of displayed cells.
