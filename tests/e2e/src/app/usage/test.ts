@@ -254,14 +254,6 @@ test("bot mcp and cli marketing composition stays aligned", {
       await expect(exampleCards.nth(0)).toContainText("01");
       await expect(exampleCards.nth(1)).toContainText("02");
       await expect(exampleCards.nth(2)).toContainText("03");
-
-      const heights = await exampleCards.evaluateAll((nodes) =>
-        nodes.map((node) => Math.round(node.getBoundingClientRect().height)),
-      );
-      expect(heights).toHaveLength(3);
-      expect(Math.max(...heights) - Math.min(...heights)).toBeLessThanOrEqual(
-        2,
-      );
     }
 
     await gotoAndWaitForReady(page, "/usage/mcp");

@@ -74,6 +74,85 @@ test.describe("/api/mcp - 传输与授权", () => {
     });
   });
 
+  test("legacy MCP clients initialize and query public data in the Worker", {
+    tag: "@MCP/MCP",
+  }, async ({ isolatedWorker, calendarProtocolRun }) => {
+    await calendarProtocolRun(async ({ request }) => {
+      const headers = {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+        "MCP-Protocol-Version": "2025-11-25",
+      };
+      const initialize = await request.post("/api/mcp", {
+        headers,
+        data: {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            protocolVersion: "2025-11-25",
+            capabilities: {},
+            clientInfo: { name: "worker-legacy-contract", version: "1" },
+          },
+        },
+      });
+      expect(initialize.status()).toBe(200);
+      expect(initialize.headers()["mcp-session-id"]).toBeUndefined();
+      await expect(readMcpJsonRpcResponse(initialize)).resolves.toMatchObject({
+        result: {
+          protocolVersion: "2025-11-25",
+          serverInfo: { name: "life-ustc-mcp" },
+        },
+      });
+      const initialized = await request.post("/api/mcp", {
+        headers,
+        data: { jsonrpc: "2.0", method: "notifications/initialized" },
+      });
+      expect(initialized.status()).toBe(202);
+      await initialized.body();
+      const list = await request.post("/api/mcp", {
+        headers,
+        data: { jsonrpc: "2.0", id: 2, method: "tools/list" },
+      });
+      expect(list.status()).toBe(200);
+      await expect(readMcpJsonRpcResponse(list)).resolves.toMatchObject({
+        result: {
+          tools: expect.arrayContaining([
+            expect.objectContaining({ name: "catalog_course_search" }),
+          ]),
+        },
+      });
+      const result = await request.post("/api/mcp", {
+        headers,
+        data: {
+          jsonrpc: "2.0",
+          id: 3,
+          method: "tools/call",
+          params: {
+            name: "catalog_course_search",
+            arguments: { search: "missing-fixture", limit: 1 },
+          },
+        },
+      });
+      expect(result.status()).toBe(200);
+      await expect(readMcpJsonRpcResponse(result)).resolves.toMatchObject({
+        result: {
+          structuredContent: {
+            success: true,
+            data: [],
+            pagination: { total: 0, page: 1, pageSize: 1 },
+          },
+        },
+      });
+      return anonymousProtocolChecks(isolatedWorker, [
+        ["POST", "/api/mcp", 200],
+        ["POST", "/api/mcp", 202],
+        ["POST", "/api/mcp", 200],
+        ["POST", "/api/mcp", 200],
+      ]);
+    });
+  });
+
   test("/api/mcp 未认证时可以调用公开 catalog 工具", {
     tag: "@Semester/MCP",
   }, async ({ isolatedWorker, calendarProtocolRun }) => {

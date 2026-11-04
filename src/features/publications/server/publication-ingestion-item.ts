@@ -6,6 +6,7 @@ import {
   type PublicationIngestionItemResult,
 } from "./publication-ingestion-errors";
 import type { PendingPublicationLinks } from "./publication-ingestion-links";
+import type { PendingPublicationPointers } from "./publication-ingestion-pointers";
 import {
   incomingRevisionSemanticsKey,
   parseOptionalPublicationDate,
@@ -114,6 +115,7 @@ export async function ingestItem(
   state: IngestionBatchState,
   links: PendingPublicationLinks[],
   events: Prisma.PublicationEventOutboxCreateManyInput[],
+  pointers: PendingPublicationPointers,
 ): Promise<PublicationIngestionItemResult> {
   if (!item.tombstone) {
     await validatePublicationImageSources(item.imageSources);
@@ -189,10 +191,10 @@ export async function ingestItem(
         classifierVersion: item.classifierVersion ?? null,
       },
     });
-    await tx.publication.update({
-      select: { id: true },
-      where: { id: created.id },
-      data: { currentRevisionId: revision.id },
+    // Preserve the initial pointer's update time while batching its write.
+    pointers.set(created.id, {
+      revisionId: revision.id,
+      updatedAt: new Date(),
     });
     const remembered = rememberRevision(
       state,
@@ -345,6 +347,9 @@ export async function ingestItem(
     });
   }
 
+  // A later applied item already installed the current pointer. Never flush
+  // the initial revision over an update or tombstone from this batch.
+  pointers.delete(publication.id);
   publication.currentRevision = remembered;
   publication.lastSeenAt = maxDate(publication.lastSeenAt, observedAt);
   if (!item.tombstone) links.push({ revisionId: revision.id, item });

@@ -3,13 +3,13 @@
 Setup and role environment variables: [local development](local-development.md).
 Choose the runtime for the boundary being tested:
 
-| Boundary | Entry point | What it exercises |
-| --- | --- | --- |
-| Pure logic / mocked orchestration | [Unit config](../vitest.config.ts) | Node code without real DB or Worker bindings |
-| Database | [isolatedDatabaseTest](../tests/shared/isolated-database.ts) | Private migrated DB with production roles and RLS |
-| Node protocol | [nodeProtocolTest](../tests/shared/node-protocol-fixture.ts) | Handlers with restricted DB roles and explicit test bindings |
-| MCP SDK | [isolatedMcpTest](../tests/integration/mcp/_harness/isolated-context.ts) | SDK client/server over in-memory transport and synthetic authentication |
-| Worker HTTP / browser | [isolated Worker](../tests/e2e/utils/isolated-worker.ts) | Compiled application in workerd, real HTTP and Worker bindings |
+| Boundary                          | Entry point                                                              | What it exercises                                                       |
+| --------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Pure logic / mocked orchestration | [Unit config](../vitest.config.ts)                                       | Node code without real DB or Worker bindings                            |
+| Database                          | [isolatedDatabaseTest](../tests/shared/isolated-database.ts)             | Private migrated DB with production roles and RLS                       |
+| Node protocol                     | [nodeProtocolTest](../tests/shared/node-protocol-fixture.ts)             | Handlers with restricted DB roles and explicit test bindings            |
+| MCP SDK                           | [isolatedMcpTest](../tests/integration/mcp/_harness/isolated-context.ts) | SDK client/server over in-memory transport and synthetic authentication |
+| Worker HTTP / browser             | [isolated Worker](../tests/e2e/utils/isolated-worker.ts)                 | Compiled application in workerd, real HTTP and Worker bindings          |
 
 Node protocol and in-memory MCP tests do not establish real Worker HTTP
 or authentication behavior. Runtime ownership contracts live beside the APIs:
