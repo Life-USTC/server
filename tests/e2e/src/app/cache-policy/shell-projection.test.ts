@@ -1040,6 +1040,7 @@ roomTest(
               expect(projection.buildings, locale).toEqual([
                 {
                   building: "Shell projection fixture",
+                  campus: null,
                   floors: [{ floor: "2", codes: ["3A204"] }],
                   roomCount: 1,
                 },
