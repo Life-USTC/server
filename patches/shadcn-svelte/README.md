@@ -138,6 +138,13 @@ replays the stale bound filename into the element on re-render, throwing
 `InvalidStateError` and unmounting the surrounding tree (first seen crashing
 the comment composer's pending-upload UI after the SvelteKit 3 migration).
 
+### `calendar.patch`
+
+Adds optional previous/next accessible-label props to the composed Calendar.
+Bits UI defaults these controls to English independently of date formatting;
+DateTimePicker passes localized labels and its calendar locale. Defaults preserve
+existing callers. The native bilingual Todo date/time regression covers them.
+
 ## tabs
 
 `tabs.patch` replaces translucent inactive foreground with the semantic foreground.

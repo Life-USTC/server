@@ -5,6 +5,12 @@ import {
   subscriptionKindSchema,
 } from "../lib/subscription-kind";
 
+/** Server-only membership data from the current request's actor read. */
+export type UserSubscriptionKindsSnapshot = {
+  readonly userId: string;
+  readonly kinds: ReadonlyMap<number, SubscriptionKind>;
+};
+
 export async function getUserSubscriptionKinds(userId: string) {
   const rows = await withUserDbContext(userId, (tx) =>
     tx.userSectionSubscription.findMany({

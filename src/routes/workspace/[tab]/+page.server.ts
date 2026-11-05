@@ -17,7 +17,9 @@ export const load: PageServerLoad = async (event) => {
   }
   if (
     event.locals.demo &&
-    (event.params.tab === "todos" || event.params.tab === "homeworks")
+    (event.params.tab === "todos" ||
+      event.params.tab === "homeworks" ||
+      event.params.tab === "exams")
   ) {
     return getDemoWorkspacePage(
       event.locals.demo,

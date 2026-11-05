@@ -80,6 +80,12 @@ test("usage content remains readable in narrow desktop and tablet layouts", {
               ? page.getByRole("tab", { name: /Claude/ })
               : page.getByRole("tab").nth(2);
         await selected.click();
+        await expect
+          .poll(
+            () => new URL(page.url()).searchParams.get("client") ?? "chatgpt",
+          )
+          .toBe(client);
+        await expect(selected).toHaveAttribute("aria-selected", "true");
         const rail = await page.getByRole("tablist").boundingBox();
         if (!rail) throw new Error("Missing tab rail geometry");
         for (const item of await page.getByRole("tab").all()) {

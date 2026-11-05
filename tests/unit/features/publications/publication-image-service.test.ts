@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   imageSourceFindUnique: vi.fn(),
@@ -84,6 +84,12 @@ beforeEach(() => {
   mocks.bucket.put.mockResolvedValue(undefined);
   mocks.fetchMock.mockReset();
   vi.stubGlobal("fetch", mocks.fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe("publication image service", () => {
@@ -365,4 +371,182 @@ describe("publication image service", () => {
     expect(response).toBeNull();
     expect(mocks.bucket.put).not.toHaveBeenCalled();
   });
+});
+
+describe("publication image origin diagnostics", () => {
+  const secret = "private-origin-credential";
+  const cases: Array<{
+    reason: string;
+    response: () => Response;
+    upstreamStatus?: number;
+  }> = [
+    {
+      reason: "upstream_status",
+      upstreamStatus: 403,
+      response: () => new Response(secret, { status: 403 }),
+    },
+    {
+      reason: "content_type",
+      response: () =>
+        new Response(secret, { headers: { "Content-Type": "text/html" } }),
+    },
+    {
+      reason: "empty_body",
+      response: () =>
+        new Response(null, { headers: { "Content-Type": "image/png" } }),
+    },
+    {
+      reason: "response_too_large",
+      response: () =>
+        new Response(secret, {
+          headers: {
+            "Content-Type": "image/png",
+            "Content-Length": String(PUBLICATION_IMAGE_MAX_BYTES + 1),
+          },
+        }),
+    },
+    {
+      reason: "redirect_disallowed",
+      response: () =>
+        new Response(null, {
+          status: 302,
+          headers: { Location: `https://forbidden.example/${secret}` },
+        }),
+    },
+    {
+      reason: "redirect_missing_location",
+      response: () => new Response(null, { status: 302 }),
+    },
+    {
+      reason: "redirect_invalid",
+      response: () =>
+        new Response(null, {
+          status: 302,
+          headers: { Location: "http://[invalid" },
+        }),
+    },
+    {
+      reason: "redirect_limit",
+      response: () =>
+        new Response(null, {
+          status: 302,
+          headers: { Location: `/loop?token=${secret}` },
+        }),
+    },
+    {
+      reason: "fetch_failed",
+      response: () => {
+        throw new Error(
+          `Network failure at https://private.example/?token=${secret}`,
+        );
+      },
+    },
+    {
+      reason: "body_read_failed",
+      response: () =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.error(new Error(`Body contains ${secret}`));
+            },
+          }),
+          { headers: { "Content-Type": "image/png" } },
+        ),
+    },
+  ];
+
+  it.each(cases)(
+    "logs $reason without exposing upstream data",
+    async ({ reason, response, upstreamStatus }) => {
+      vi.stubEnv("NODE_ENV", "production");
+      const log = vi.spyOn(console, "error").mockImplementation(() => {});
+      const url = `https://news.example.test/private.png?token=${secret}`;
+      const hash = await hashUrl(url);
+      mocks.imageSourceFindUnique.mockResolvedValue(sourceRecord(url, hash));
+      mocks.fetchMock.mockImplementation(async () => response());
+
+      const result = await getPublicPublicationImageRoute(
+        new Request(`https://life.test/api/publications/images/${hash}`),
+        { hash },
+      );
+      expect(result.status).toBe(502);
+      expect(result.headers.get("Cache-Control")).toBe("no-store");
+      await expect(result.json()).resolves.toEqual({
+        error: "Failed to fetch publication image from origin",
+      });
+      expect(mocks.bucket.put).not.toHaveBeenCalled();
+      expect(log).toHaveBeenCalledTimes(1);
+      const payload = JSON.parse(String(log.mock.calls[0]?.[0]));
+      expect(payload).toMatchObject({
+        event: "publication.image.origin-failure",
+        originFailureReason: reason,
+        status: 502,
+      });
+      expect(payload.upstreamStatus).toBe(upstreamStatus);
+      const serialized = JSON.stringify(payload);
+      expect(serialized).not.toContain(secret);
+      expect(serialized).not.toContain(hash);
+      expect(serialized).not.toContain("https://");
+      expect(serialized).not.toContain("Body contains");
+    },
+  );
+
+  it.each(["fetch", "body"] as const)(
+    "distinguishes the existing %s timeout without extending its deadline",
+    async (phase) => {
+      vi.stubEnv("NODE_ENV", "production");
+      const log = vi.spyOn(console, "error").mockImplementation(() => {});
+      const url = "https://news.example.test/timeout.png";
+      const hash = await hashUrl(url);
+      mocks.imageSourceFindUnique.mockResolvedValue(sourceRecord(url, hash));
+      const started = Promise.withResolvers<AbortSignal>();
+      mocks.fetchMock.mockImplementation((_url: URL, options: RequestInit) => {
+        const signal = options.signal as AbortSignal;
+        started.resolve(signal);
+        if (phase === "body") {
+          return Promise.resolve(
+            new Response(
+              new ReadableStream({
+                start(controller) {
+                  signal.addEventListener(
+                    "abort",
+                    () =>
+                      controller.error(new DOMException(secret, "AbortError")),
+                    { once: true },
+                  );
+                },
+              }),
+              { headers: { "Content-Type": "image/png" } },
+            ),
+          );
+        }
+        return new Promise<Response>((_resolve, reject) => {
+          signal.addEventListener(
+            "abort",
+            () => reject(new DOMException(secret, "AbortError")),
+            { once: true },
+          );
+        });
+      });
+      vi.useFakeTimers();
+      const pending = getPublicPublicationImageRoute(
+        new Request(`https://life.test/api/publications/images/${hash}`),
+        { hash },
+      );
+      const signal = await started.promise;
+      await vi.advanceTimersByTimeAsync(9_999);
+      expect(signal.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      const response = await pending;
+      expect(response.status).toBe(502);
+      expect(response.headers.get("Cache-Control")).toBe("no-store");
+      await response.body?.cancel();
+      expect(mocks.bucket.put).not.toHaveBeenCalled();
+      expect(log).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(String(log.mock.calls[0]?.[0]))).toMatchObject({
+        originFailureReason: "timeout",
+      });
+      expect(JSON.stringify(log.mock.calls)).not.toContain(secret);
+    },
+  );
 });

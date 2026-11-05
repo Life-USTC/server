@@ -185,6 +185,7 @@ export async function loadSignedWorkspaceTabData(input: {
             includeExams: input.tab === "exams",
             referenceNow: input.referenceNow,
             sectionIds: input.context.sectionIds,
+            subscriptionKinds: input.context.subscriptionKinds,
           }),
         )
       : inactiveStage(null);
