@@ -75,6 +75,8 @@ it.each([
   "/_internal/shell-bootstrap",
   "/workspace/homeworks",
   "/workspace/homeworks/__data.json",
+  "/workspace/exams",
+  "/workspace/exams/__data.json",
   "/api/workspace/homeworks",
   "/api/community/section-homeworks?sectionId=101",
   "/api/community/section-homeworks/demo-homework-vectors",
@@ -122,6 +124,8 @@ it.each([
 
 it.each([
   ["POST", "/workspace/todos?/createTodo"],
+  ["POST", "/workspace/exams?/subscribe"],
+  ["GET", "/workspace/exams/calendar.ics"],
   ["POST", "/api/workspace/todos"],
   ["POST", "/workspace/subscriptions?/subscribe"],
   ["PATCH", "/api/workspace/subscriptions"],

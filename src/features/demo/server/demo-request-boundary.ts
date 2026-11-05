@@ -99,6 +99,7 @@ export async function resolveDemoBoundary(
         "/workspace/todos",
         "/workspace/subscriptions",
         "/workspace/homeworks",
+        "/workspace/exams",
       ].includes(url.pathname) ||
         isDemoCatalogPage(url.pathname)) &&
       request.headers.get("accept")?.includes("text/html")
@@ -133,6 +134,8 @@ export async function resolveDemoBoundary(
       "/api/workspace/subscriptions/current",
       "/workspace/homeworks",
       "/workspace/homeworks/__data.json",
+      "/workspace/exams",
+      "/workspace/exams/__data.json",
       "/api/workspace/homeworks",
       "/api/community/section-homeworks",
       "/api/community/section-homeworks/audit",

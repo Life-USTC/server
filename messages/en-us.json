@@ -178,6 +178,12 @@
     "close": "Close"
   },
   "subscriptions": {
+    "calendarRecovery": {
+      "reauthenticate": "Sign in again to reveal your private calendar link.",
+      "unavailable": "The calendar link is unavailable. Try again.",
+      "signIn": "Sign in again",
+      "retry": "Retry"
+    },
     "mySubscription": "My subscription",
     "manageSubscription": "Manage subscription",
     "title": "Section Subscriptions",
@@ -514,6 +520,12 @@
   },
   "usagePages": {
     "bot": {
+      "imageFailure": {
+        "title": "Image could not load",
+        "description": "The example is unavailable. Try again or open the original image.",
+        "retry": "Retry",
+        "original": "Open original"
+      },
       "title": "Meet Presto",
       "subtitle": "Check campus information and your schedule in QQ.",
       "primaryAction": "Message Presto",
@@ -2159,7 +2171,7 @@
     "enter": "Enter demo",
     "description": "Browse read-only sample todos and subscriptions without creating an account.",
     "displayName": "Demo account · Read only",
-    "readOnlyReason": "Browse sample todos, homework, subscriptions and catalog details. Changes and external actions are disabled.",
+    "readOnlyReason": "Browse sample todos, homework, exams, subscriptions and catalog details. Changes and external actions are disabled.",
     "exit": "Exit demo",
     "unavailableReason": "Other features are not available in this demo yet.",
     "referenceTime": "Sample time (Shanghai)"
@@ -2331,6 +2343,7 @@
     "tagMajor": "Major assignment",
     "tagTeam": "Team required",
     "tagDefault": "Standard",
+    "myStatus": "My status",
     "completedLabel": "Completed",
     "pendingLabel": "Pending",
     "noCompletionRequired": "No completion required",

@@ -104,6 +104,15 @@ export async function loadSignedWorkspacePage({
 
   return {
     ...signedData,
+    ...(shouldRevealCalendarFeed
+      ? {
+          calendarLinkState: !recent.ok
+            ? ("reauthenticate" as const)
+            : signedData.calendarSubscriptionUrl
+              ? ("ready" as const)
+              : ("unavailable" as const),
+        }
+      : {}),
     mainContentLabel: pageCopy.workspace.nav[tab].title,
   };
 }

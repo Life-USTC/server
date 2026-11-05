@@ -1,3 +1,4 @@
+import type { UserSubscriptionKindsSnapshot } from "@/features/subscriptions/server/subscription-kind";
 import { withUserDbContext } from "@/lib/db/prisma";
 import { getUserRlsTransactionClient } from "@/lib/db/rls-context";
 import {
@@ -22,6 +23,7 @@ export type WorkspaceUserContext = {
   user: WorkspaceUserSummary & { calendarFeedToken: string | null };
   sectionIds: number[];
   subscribedSections: WorkspaceSubscribedSection[];
+  subscriptionKinds?: UserSubscriptionKindsSnapshot;
 };
 
 export async function getWorkspaceUserContext(
@@ -42,6 +44,7 @@ export async function getWorkspaceUserContext(
         calendarFeedToken: true,
         sectionSubscriptions: {
           select: {
+            kind: true,
             section: {
               select: { id: true, retiredAt: true, semesterId: true },
             },
@@ -62,5 +65,11 @@ export async function getWorkspaceUserContext(
     },
     sectionIds: user.sectionSubscriptions.map((row) => row.section.id),
     subscribedSections: user.sectionSubscriptions.map((row) => row.section),
+    subscriptionKinds: {
+      userId: user.id,
+      kinds: new Map(
+        user.sectionSubscriptions.map((row) => [row.section.id, row.kind]),
+      ),
+    },
   };
 }

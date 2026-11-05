@@ -7,7 +7,6 @@ import QrCodeIcon from "@lucide/svelte/icons/qr-code";
 import TerminalIcon from "@lucide/svelte/icons/terminal";
 import { writeClipboardText } from "#lib/browser/clipboard.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Popover from "#lib/components/ui/popover/index.js";
 import {
   usageMarketingBlurbClass,
@@ -27,10 +26,17 @@ import {
   usageMarketingStepIndexClass,
   usageMarketingTitleClass,
 } from "../lib/usage-marketing-layout.js";
+import UsageExampleImage from "./UsageExampleImage.svelte";
 
 type GuideKind = "bot" | "cli";
 
 type GuideCopy = {
+  imageFailure?: {
+    title: string;
+    description: string;
+    retry: string;
+    original: string;
+  };
   copiedInstallAction?: string;
   copyInstallAction?: string;
   installCommand?: string;
@@ -251,13 +257,9 @@ async function copyInstallCommand() {
               {#each data.copy.previewLines ?? [] as line}
                 {#if line.kind === "image"}
                   <div class="imessage-incoming w-full max-w-[85%] shadow-md">
-                    <img
-                      alt={line.text}
-                      class="h-auto w-full rounded-[1rem] bg-white"
-                      decoding="async"
-                      loading="eager"
-                      src={line.src}
-                    />
+                    {#if line.src && data.copy.imageFailure}
+                      <UsageExampleImage src={line.src} alt={line.text} copy={data.copy.imageFailure} loading="eager" class="h-auto w-full rounded-[1rem] bg-white" />
+                    {/if}
                   </div>
                 {:else}
                   <div
@@ -323,26 +325,11 @@ async function copyInstallCommand() {
                 {step.title}
               </div>
               {#if step.imageSrc}
-                <Dialog.Root>
-                  <Dialog.Trigger class="imessage-incoming w-[calc(100%-0.5rem)] cursor-zoom-in shadow-sm" aria-label={step.description ?? step.title}>
-                    <img
-                      alt={step.description ?? step.title}
-                      class="h-auto w-full rounded-[1rem] bg-white"
-                      decoding="async"
-                      loading="lazy"
-                      src={step.imageSrc}
-                    />
-                  </Dialog.Trigger>
-                  <Dialog.Content class="sm:max-w-[calc(100%-2rem)]">
-                    <Dialog.Header class="pe-8">
-                      <Dialog.Title>{step.title}</Dialog.Title>
-                      <Dialog.Description>{step.description ?? step.title}</Dialog.Description>
-                    </Dialog.Header>
-                    <a href={step.imageSrc} target="_blank" rel="noreferrer" class="block min-w-0 cursor-zoom-in">
-                      <img alt={step.description ?? step.title} src={step.imageSrc} class="h-auto w-full" />
-                    </a>
-                  </Dialog.Content>
-                </Dialog.Root>
+                {#if data.copy.imageFailure}
+                  <div class="imessage-incoming w-[calc(100%-0.5rem)] shadow-sm">
+                    <UsageExampleImage src={step.imageSrc} alt={step.description ?? step.title} title={step.title} copy={data.copy.imageFailure} preview class="h-auto w-full rounded-[1rem] bg-white" />
+                  </div>
+                {/if}
               {/if}
             </article>
           {:else}

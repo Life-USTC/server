@@ -9,7 +9,13 @@ import type {
   WorkspaceSubscriptionsTabProps,
 } from "./subscription-tab-types";
 
+export let calendarLinkState:
+  | "ready"
+  | "reauthenticate"
+  | "unavailable"
+  | undefined = undefined;
 export let calendarSubscriptionUrl: string | null;
+export let showSubscriptionActions = true;
 export let openBulkImportDialog: () => void;
 export let openQuickAddDialog: () => void;
 export let sectionCopy: WorkspaceSubscriptionsTabProps["sectionCopy"];
@@ -18,6 +24,7 @@ export let readOnlyReason: string | undefined = undefined;
 </script>
 
 <div class="grid min-w-0 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
+  {#if showSubscriptionActions}
   <Button class="w-full sm:w-auto" type="button" disabled={Boolean(readOnlyReason)} title={readOnlyReason} onclick={openQuickAddDialog}>
     <BookPlus data-icon="inline-start" />
     {subscriptionsCopy.quickAdd.title}
@@ -33,12 +40,13 @@ export let readOnlyReason: string | undefined = undefined;
     <ClipboardList data-icon="inline-start" />
     {subscriptionsCopy.bulkImport.title}
   </Button>
+  {/if}
   {#if readOnlyReason}
     <Button class="w-full sm:w-auto" type="button" variant="outline" disabled title={readOnlyReason}>
       <Link2 data-icon="inline-start" />
       {subscriptionsCopy.iCalLink}
     </Button>
-  {:else if calendarSubscriptionUrl}
+  {:else}
     <PersonalCalendarLinkButton
       buttonLabel={subscriptionsCopy.iCalLink}
       className="w-full sm:w-auto"
@@ -46,7 +54,8 @@ export let readOnlyReason: string | undefined = undefined;
       {sectionCopy}
       showIcon={true}
       showSubscriptionsLink={false}
-      subscriptionCalendarUrl={calendarSubscriptionUrl}
+      subscriptionCalendarUrl={calendarSubscriptionUrl ?? ""}
+      {calendarLinkState}
     />
   {/if}
 </div>
