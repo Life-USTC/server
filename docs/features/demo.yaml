@@ -69,6 +69,7 @@ requirements:
   - demo-subscriptions
   - demo-catalog-details
   - demo-course-list
+  - demo-section-list
   - demo-homeworks
   - demo-exams
   expectation:
@@ -152,7 +153,7 @@ requirements:
     dates; descriptions and empty discussions retain existing response shapes and an anonymous viewer.
     Only fixture identifiers and matching target aliases resolve; unknown or mixed targets cannot access
     ordinary data. Calendar exports, subscriptions, homework creation, description edits and comments are
-    visibly disabled. Section and teacher collections remain unavailable; the course collection and fixture homework details are read-only.
+    visibly disabled. Teacher collections remain unavailable; course and section collections and fixture homework details are read-only.
   acceptance:
     given: A valid demo in either supported locale on desktop or mobile.
     when: The visitor follows subscription, course and teacher links and reads detail sections and lazy data.
