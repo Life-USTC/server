@@ -249,6 +249,8 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
               fmtDateTime={fmtDateTime}
               homeworkCopy={homeworkCopy}
               homeworks={homeworks}
+              locale={data.locale}
+              showPersonalStatus={!data.demo && !viewer.loading && !viewer.failed && (viewer.isAuthenticated ?? viewer.signedIn === true)}
               sectionCopy={sectionCopy}
               selectHomework={setSelectedHomework}
             />

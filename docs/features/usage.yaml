@@ -95,6 +95,32 @@ requirements:
     test:
       file: tests/e2e/src/app/usage/layout-recovery.test.ts
       name: usage content remains readable in narrow desktop and tablet layouts
+- id: usage.bot-image-recovery
+  category: behavior
+  rule: Bot example and preview image failures show localized recovery controls with retry and the original image URL.
+  acceptance:
+    given: Anonymous English and Chinese visits with a controlled corrupt schedule image.
+    when: Retry the example, then open the preview with another controlled failure and retry again.
+    then:
+    - The failure state identifies the unavailable image and provides the original URL.
+    - Explicit retry loads a new image request and returns to the successful example or preview.
+    - Closing the recovered preview returns focus to the image trigger.
+    test:
+      file: tests/e2e/src/app/usage/image-recovery.test.ts
+      name: Bot example image load failure recovers (en-us)
+- id: usage.mcp-client-navigation
+  category: behavior
+  rule: The MCP tutorial client is derived from the URL client parameter. Missing or unrecognized values
+    select ChatGPT; supported selections preserve browser history, scroll and keyboard focus.
+  acceptance:
+    given: Anonymous English and Chinese browser visits to the Claude tutorial URL.
+    when: Select the next tab with the keyboard, reload, select ChatGPT, navigate Back and Forward, and visit an invalid value.
+    then:
+    - The selected tab and tutorial panel follow the URL across direct navigation, reload and browser history.
+    - Keyboard selection updates the URL and retains focus; invalid input uses the default tutorial.
+    test:
+      file: tests/e2e/src/app/usage/client-navigation.test.ts
+      name: MCP client selection survives navigation (en-us)
 capabilities:
   usage-guides:
     title: Client Usage Guides

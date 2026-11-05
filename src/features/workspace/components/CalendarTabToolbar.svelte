@@ -85,7 +85,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
     <Button class="min-w-28 md:min-w-28" href={activitiesManageHref} variant="outline">
       {activitiesManageLabel}
     </Button>
-    {#if signedData.calendarSubscriptionUrl}
+    {#if signedData.calendarLinkState || signedData.calendarSubscriptionUrl}
       <PersonalCalendarLinkButton
         bind:this={personalCalendarLink}
         buttonLabel={subscriptionsCopy.iCalLink}
@@ -93,7 +93,8 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
         failureMessage={subscriptionsCopy.optOutRetry}
         {sectionCopy}
         showSubscriptionsLink={true}
-        subscriptionCalendarUrl={signedData.calendarSubscriptionUrl}
+        subscriptionCalendarUrl={signedData.calendarSubscriptionUrl ?? ""}
+        calendarLinkState={signedData.calendarLinkState}
       />
     {/if}
   </div>
@@ -159,7 +160,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
                 <a {...props} href={activitiesManageHref}>{activitiesManageLabel}</a>
               {/snippet}
             </DropdownMenu.Item>
-            {#if signedData.calendarSubscriptionUrl}
+            {#if signedData.calendarLinkState || signedData.calendarSubscriptionUrl}
               <DropdownMenu.Item onSelect={() => personalCalendarLink?.open()}>
                 {subscriptionsCopy.iCalLink}
               </DropdownMenu.Item>

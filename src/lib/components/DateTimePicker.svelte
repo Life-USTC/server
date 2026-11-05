@@ -1,33 +1,53 @@
 <script lang="ts">
 import type { CalendarDate, DateValue } from "@internationalized/date";
 import CalendarIcon from "@lucide/svelte/icons/calendar";
+import { untrack } from "svelte";
+import { dateTimePickerCopy } from "#lib/components/date-time-picker-copy.js";
 import {
   dateTimeLocalValue,
   parseDateTimeLocal,
 } from "#lib/components/date-time-picker-value.js";
+import { Button } from "#lib/components/ui/button/index.js";
 import { Calendar } from "#lib/components/ui/calendar/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import { Input } from "#lib/components/ui/input/index.js";
 import * as InputGroup from "#lib/components/ui/input-group/index.js";
 import * as Popover from "#lib/components/ui/popover/index.js";
 import { cn } from "#lib/utils.js";
+import { page } from "$app/state";
 
-export let disabled = false;
-export let name: string | undefined = undefined;
-export let placeholder = "";
-export let calendarButtonLabel: string;
-export let value = "";
-export let defaultTime = "23:59";
-let className = "";
+let {
+  disabled = false,
+  name,
+  placeholder = "",
+  calendarButtonLabel,
+  value = $bindable(""),
+  defaultTime = "23:59",
+  locale,
+  class: className = "",
+  ...restProps
+}: {
+  disabled?: boolean;
+  name?: string;
+  placeholder?: string;
+  calendarButtonLabel: string;
+  value?: string;
+  defaultTime?: string;
+  locale?: "zh-cn" | "en-us";
+  class?: string;
+  [key: string]: unknown;
+} = $props();
 
-export { className as class };
-
-let open = false;
-let selectedDate: CalendarDate | undefined;
-let timeValue = defaultTime;
-let lastSyncedValue = "";
-let rootProps: Record<string, unknown> = {};
+let open = $state(false);
+let selectedDate = $state<CalendarDate | undefined>();
+let timeValue = $state(untrack(() => defaultTime));
+let lastSyncedValue = $state("");
+let activeLocale = $derived(locale ?? page.data.locale ?? "zh-cn");
+let pickerCopy = $derived(dateTimePickerCopy(activeLocale));
+const controlId = $props.id();
 
 function stringRestProp(name: string) {
-  const value = ($$restProps as Record<string, unknown>)[name];
+  const value = restProps[name];
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
@@ -46,7 +66,13 @@ function commit(nextDate = selectedDate, nextTime = timeValue) {
 function handleDateChange(nextDate: DateValue | undefined) {
   selectedDate = nextDate as CalendarDate | undefined;
   commit();
-  open = false;
+}
+
+function handleTimeInput(event: Event) {
+  const input = event.currentTarget as HTMLInputElement;
+  if (!input.validity.valid || !input.value) return;
+  timeValue = input.value;
+  commit();
 }
 
 function handleInput(event: Event) {
@@ -54,19 +80,19 @@ function handleInput(event: Event) {
   syncFromValue(value);
 }
 
-$: if ((value ?? "") !== lastSyncedValue) {
-  syncFromValue(value ?? "");
-}
-$: labelledBy = stringRestProp("aria-labelledby");
-$: label = stringRestProp("aria-label") ?? placeholder;
-$: {
+$effect.pre(() => {
+  if ((value ?? "") !== lastSyncedValue) syncFromValue(value ?? "");
+});
+let labelledBy = $derived(stringRestProp("aria-labelledby"));
+let label = $derived(stringRestProp("aria-label") ?? placeholder);
+let rootProps = $derived.by(() => {
   const {
     "aria-label": _label,
     "aria-labelledby": _labelledBy,
     ...rest
-  } = $$restProps as Record<string, unknown>;
-  rootProps = rest;
-}
+  } = restProps;
+  return rest;
+});
 </script>
 
 <InputGroup.Root
@@ -81,7 +107,8 @@ $: {
     disabled={disabled}
     {name}
     {placeholder}
-    type="text"
+    type="datetime-local"
+    step="any"
     {value}
     oninput={handleInput}
   />
@@ -106,8 +133,30 @@ $: {
           bind:value={selectedDate}
           captionLayout="dropdown"
           onValueChange={handleDateChange}
+          locale={activeLocale === "zh-cn" ? "zh-CN" : "en-US"}
+          previousLabel={pickerCopy.previous}
+          nextLabel={pickerCopy.next}
+          aria-label={calendarButtonLabel}
           type="single"
         />
+        <Field.FieldGroup class="gap-3 p-3">
+          <Field.Field>
+            <Field.FieldLabel for={`${controlId}-time`}>
+              {pickerCopy.time}
+            </Field.FieldLabel>
+            <Input
+              id={`${controlId}-time`}
+              type="time"
+              step="any"
+              value={timeValue}
+              oninput={handleTimeInput}
+              disabled={disabled || !selectedDate}
+            />
+          </Field.Field>
+          <Button type="button" variant="outline" onclick={() => { open = false; }}>
+            {pickerCopy.done}
+          </Button>
+        </Field.FieldGroup>
       </Popover.Content>
     </Popover.Root>
   </InputGroup.Addon>

@@ -3,6 +3,10 @@ import type {
   AuditAction,
   User,
 } from "../../../src/generated/prisma-node/client";
+import {
+  type AccountWrite,
+  createAccountWriteObserver,
+} from "./account-write-observer";
 import { withBrowserWorkflow } from "./browser-workflow";
 import {
   type CalendarBrowserWriteVerifier,
@@ -10,12 +14,6 @@ import {
 } from "./calendar-protocol-lifecycle";
 import { test as workerTest } from "./owned-worker";
 
-type AccountWrite = readonly [
-  path: string,
-  status: number,
-  action?: string,
-  redirect?: string,
-];
 type AccountStateCheck = () => Promise<void>;
 type AccountPlan = {
   writes: readonly AccountWrite[];
@@ -52,7 +50,7 @@ export const test = workerTest.extend<{
   accountRun: async ({ page, playwright, isolatedWorker, run }, use) => {
     await withBrowserWorkflow(page, async (workflow) => {
       await use(({ writes, audits, verifyWrite }, work) => {
-        const browserWrites = [...writes];
+        const observer = createAccountWriteObserver(writes, verifyWrite);
         return workflow.run(() =>
           run(() =>
             withCalendarProtocol(
@@ -65,33 +63,7 @@ export const test = workerTest.extend<{
                     extraHTTPHeaders: headers,
                   }),
                 runBody: workflow.body,
-                async verifyBrowserWrite(response, incoming) {
-                  const url = new URL(incoming.url());
-                  expect(incoming.method()).toBe("POST");
-                  const index = browserWrites.findIndex(
-                    ([path, , action]) =>
-                      path === url.pathname &&
-                      url.search === (action ? `?/${action}` : ""),
-                  );
-                  if (index < 0)
-                    throw new Error(
-                      `Unplanned account write: ${url.pathname}${url.search}`,
-                    );
-                  const [planned] = browserWrites.splice(index, 1);
-                  const [, status, action, redirect] = planned;
-                  expect(response.status()).toBe(status);
-                  await response.body();
-                  if (action) expect(url.search).toBe(`?/${action}`);
-                  if (redirect && status === 303)
-                    expect(response.headers().location).toBe(redirect);
-                  else if (redirect)
-                    expect(await response.json()).toMatchObject({
-                      type: "redirect",
-                      status: 303,
-                      location: redirect,
-                    });
-                  if (verifyWrite) await verifyWrite(response, incoming);
-                },
+                verifyBrowserWrite: observer.observe,
               },
               async () => {
                 const users = await isolatedWorker.database.owner.user.findMany(
@@ -100,6 +72,7 @@ export const test = workerTest.extend<{
                 const verifyState = await work();
                 return {
                   async verifyTransport({ effects, sdkRequests }) {
+                    observer.assertStateObserved();
                     expect(sdkRequests).toEqual([]);
                     expect(
                       effects.requests
