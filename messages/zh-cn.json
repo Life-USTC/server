@@ -590,9 +590,9 @@
         "overviewSrc": "/images/usage/mcp-chatgpt-overview-zh.png",
         "filledSrc": "/images/usage/mcp-chatgpt-filled-zh.png",
         "steps": [
-          "在设置 → Apps → 高级设置中启用开发者模式，然后创建 App。",
-          "使用下方信息填写表单、扫描工具并创建 App。",
-          "完成 Life@USTC 授权；在新对话的工具菜单中选择该 App 即可使用。"
+          "打开 ChatGPT Plugins，点击 +，选择 Add custom MCP server。",
+          "填写下方信息，选择 OAuth 身份验证，并创建插件。",
+          "安装插件后，在对话中输入 @ 并选择 Life@USTC，按提示授权，再检查实际工具结果。"
         ],
         "emptyAlt": "ChatGPT 新插件空白配置表单",
         "filledAlt": "填写完成的 Life@USTC ChatGPT 插件配置",
@@ -602,18 +602,26 @@
       },
       "claude": {
         "steps": [
-          "打开 Claude 连接器设置，点击“Add”，再选择“Add custom connector”。",
-          "使用下方信息填写表单，然后点击 Add。",
-          "按提示通过 Life@USTC 登录即可。"
+          "打开 Customize → Connectors，点击 + Add，选择 Add custom connector。",
+          "填写名称和服务器地址，核对检测到的 OAuth 设置，再添加连接器。",
+          "连接并在当前对话启用 Life@USTC。"
         ],
         "emptyAlt": "Claude 自定义连接器空白配置表单",
         "filledAlt": "填写完成的 Life@USTC Claude 连接器配置",
-        "note": "OAuth Client ID 和 Client Secret 留空即可。"
+        "note": "使用客户端提供的 OAuth 注册选项，无需个人 API key 或复制 bearer token；受管理工作区可能需要所有者先添加连接器。"
       },
       "otherClients": {
         "title": "Codex、Claude Code 与其他客户端",
         "description": "Codex 和 Claude Code 可直接复制对应命令。其他支持远程 MCP 的客户端使用下方 URL；Life@USTC 通过 OAuth 登录，不需要 API Key 或 Authorization header。"
-      }
+      },
+      "guideVerified": "配置说明于2026年11月4日按官方文档核对；菜单和可用入口可能随账号或工作区不同。",
+      "verifyTitle": "试一次公开查询",
+      "verifyPrompt": "请使用 Life@USTC 的 catalog_section_search，search=计算机视觉，limit=3，列出返回的教学班及其编号。",
+      "verifyDescription": "这个查询只读取公开课程目录，不需要你的个人课表。展开工具结果，确认内容来自 Life@USTC；仅显示已连接并不代表查询已经完成。",
+      "recoveryTitle": "查询没有成功时",
+      "recoveryDescription": "确认服务器地址以 /api/mcp 结尾，并已在当前对话启用 Life@USTC。授权过期时，在客户端重新连接后继续查询。若连接或结果展示仍失败，反馈客户端名称、发生时间和错误提示，不要提供令牌或私人会话链接。",
+      "claudeCompletion": "连接后进入对话，通过 + → Connectors 启用 Life@USTC，发送下面的公开查询，再查看工具返回结果。",
+      "claudeOfficial": "Claude 官方连接器说明"
     },
     "cli": {
       "title": "终端里的 Life@USTC",

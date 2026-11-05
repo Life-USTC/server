@@ -4,10 +4,12 @@ import CheckIcon from "@lucide/svelte/icons/check";
 import CopyIcon from "@lucide/svelte/icons/copy";
 import DownloadIcon from "@lucide/svelte/icons/download";
 import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
+import { onDestroy } from "svelte";
 import { writeClipboardText } from "#lib/browser/clipboard.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Tabs from "#lib/components/ui/tabs/index.js";
+import { cn } from "#lib/utils.js";
 import { goto } from "$app/navigation";
 import {
   usageMarketingBlurbClass,
@@ -71,6 +73,14 @@ type McpCopy = {
   title: string;
   useCaseAlt: string;
   useCaseTitle: string;
+  guideVerified: string;
+  verifyTitle: string;
+  verifyPrompt: string;
+  verifyDescription: string;
+  recoveryTitle: string;
+  recoveryDescription: string;
+  claudeCompletion: string;
+  claudeOfficial: string;
 };
 
 type PageData = {
@@ -83,22 +93,36 @@ export let data: PageData;
 
 const MCP_ENDPOINT = "https://life-ustc.tiankaima.dev/api/mcp";
 const CHATGPT_DOCS_URL =
-  "https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt-beta";
+  "https://developers.openai.com/api/docs/guides/custom-mcp-server";
+const CLAUDE_DOCS_URL =
+  "https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp";
 const CHATGPT_DESCRIPTION = "Modern, unified MCP entrypoint of USTC";
 const CODEX_COMMAND = `codex mcp add life-ustc --url ${MCP_ENDPOINT}\ncodex mcp login life-ustc`;
 const CLAUDE_CODE_COMMAND = `claude mcp add --scope user --transport http life-ustc ${MCP_ENDPOINT}`;
 
 let copiedKey: string | null = null;
+let copyFeedbackTimer: ReturnType<typeof setTimeout> | undefined;
+let copyAttempt = 0;
+let destroyed = false;
+onDestroy(() => {
+  destroyed = true;
+  copyAttempt += 1;
+  clearTimeout(copyFeedbackTimer);
+});
 $: activeClient = data.client;
 
 // TODO(#962): add dark-mode variants of the tutorial screenshots once assets are available.
 // For now, images are wrapped in a rounded bordered container so they remain visible in dark mode.
 
 async function copyValue(key: string, value: string) {
+  const attempt = ++copyAttempt;
   await writeClipboardText(value);
+  if (destroyed || attempt !== copyAttempt) return;
+  clearTimeout(copyFeedbackTimer);
   copiedKey = key;
-  window.setTimeout(() => {
-    if (copiedKey === key) copiedKey = null;
+  copyFeedbackTimer = setTimeout(() => {
+    copiedKey = null;
+    copyFeedbackTimer = undefined;
   }, 1800);
 }
 
@@ -206,7 +230,7 @@ function selectClient(value: string) {
 <section class={usageMarketingPageClass} data-usage-marketing="page">
   <div class={`${usageMarketingHeroShellClass} overflow-hidden`} data-usage-marketing="hero">
     <div
-      class={`${usageMarketingHeroGridClass} xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]`}
+      class={cn(usageMarketingHeroGridClass, activeClient === "chatgpt" && "xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]")}
     >
       <div class={usageMarketingHeroCopyClass}>
         <div class={usageMarketingIconClass}>
@@ -233,6 +257,7 @@ function selectClient(value: string) {
         </div>
       </div>
 
+      {#if activeClient === "chatgpt"}
       <figure
         class="relative mx-auto grid w-full max-w-sm gap-3 sm:max-w-xl lg:max-w-2xl lg:justify-self-end"
       >
@@ -256,6 +281,7 @@ function selectClient(value: string) {
           />
         </div>
       </figure>
+      {/if}
     </div>
   </div>
 
@@ -264,6 +290,7 @@ function selectClient(value: string) {
       {data.copy.configurationTitle}
     </h2>
 
+    <p class="text-sm text-muted-foreground">{data.copy.guideVerified}</p>
     <Tabs.Root
       value={activeClient}
       onValueChange={selectClient}
@@ -386,9 +413,8 @@ function selectClient(value: string) {
               <span class={usageMarketingStepIndexClass}>{usageMarketingStepIndex(2)}</span>
               <h4 class={usageMarketingStepTitleClass}>{data.copy.claude.steps[2]}</h4>
             </div>
-            <a class="flex w-full max-w-2xl items-start justify-start" href="/images/usage/mcp-use-case.png" rel="noreferrer" target="_blank">
-              {@render tutorialImage("/images/usage/mcp-use-case.png", data.copy.useCaseAlt, "max-h-[34rem]")}
-            </a>
+            <p class="text-sm leading-6">{data.copy.claudeCompletion}</p>
+            <Button href={CLAUDE_DOCS_URL} target="_blank" rel="noreferrer" variant="link" class="w-fit">{data.copy.claudeOfficial}<ExternalLinkIcon data-icon="inline-end" /></Button>
           </section>
         </div>
         </article>
@@ -412,5 +438,13 @@ function selectClient(value: string) {
         </article>
       </Tabs.Content>
     </Tabs.Root>
+    <section class="grid gap-3" data-usage-marketing="public-verification">
+      {@render commandField("public-query", data.copy.verifyTitle, data.copy.verifyPrompt)}
+      <p class="text-sm text-muted-foreground leading-6">{data.copy.verifyDescription}</p>
+    </section>
+    <section class="grid gap-3">
+      <h3 class="font-semibold text-xl">{data.copy.recoveryTitle}</h3>
+      <p class="text-sm text-muted-foreground leading-6">{data.copy.recoveryDescription}</p>
+    </section>
   </div>
 </section>
