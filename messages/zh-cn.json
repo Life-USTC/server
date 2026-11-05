@@ -520,6 +520,12 @@
   },
   "usagePages": {
     "bot": {
+      "imageFailure": {
+        "title": "图片未能加载",
+        "description": "示例图片暂不可用。可以重试或查看原图。",
+        "retry": "重试",
+        "original": "查看原图"
+      },
       "title": "认识 Presto",
       "subtitle": "在 QQ 中查询校园信息和个人日程。",
       "primaryAction": "联系 Presto",
@@ -1812,7 +1818,7 @@
     "enter": "进入演示",
     "description": "无需注册，浏览只读待办及订阅样例。",
     "displayName": "演示账户 · 只读",
-    "readOnlyReason": "你可以浏览待办、作业、订阅和课程目录详情样例，无法修改数据或执行外部操作。",
+    "readOnlyReason": "你可以浏览待办、作业、考试、订阅和课程目录详情样例，无法修改数据或执行外部操作。",
     "exit": "退出演示",
     "unavailableReason": "其他功能暂未开放演示。",
     "referenceTime": "样例时间（上海）"

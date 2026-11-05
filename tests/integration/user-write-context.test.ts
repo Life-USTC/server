@@ -78,7 +78,7 @@ describe("User application writes before row security", {
     protocolRuntime,
   }) => {
     await prepareWriteProbe(db);
-    await protocolRuntime.run(async () => {
+    const rotatedToken = await protocolRuntime.run(async () => {
       const tokens = await Promise.all([
         ensureUserCalendarFeedToken(ownerId),
         ensureUserCalendarFeedToken(ownerId),
@@ -109,32 +109,34 @@ describe("User application writes before row security", {
           data: { calendarFeedToken: "leaked" },
         }),
       ).toEqual({ count: 0 });
-      const audits = await db.owner.auditLog.findMany({
-        where: {
-          action: {
-            in: [
-              "account_calendar_token_create",
-              "account_calendar_token_rotate",
-            ],
-          },
-        },
-      });
-      expect(
-        audits.filter((row) => row.action === "account_calendar_token_create"),
-      ).toHaveLength(1);
-      expect(
-        audits.filter(
-          (row) =>
-            row.action === "account_calendar_token_rotate" &&
-            row.outcome === "success",
-        ),
-      ).toHaveLength(1);
-      expect(JSON.stringify(audits)).not.toContain(rotated.token);
-      expect(
-        (await db.owner.user.findUniqueOrThrow({ where: { id: ownerId } }))
-          .calendarFeedToken,
-      ).toBe(rotated.token);
+      return rotated.token;
     });
+    // The runtime owns scheduled audit writes and drains them before returning.
+    const audits = await db.owner.auditLog.findMany({
+      where: {
+        action: {
+          in: [
+            "account_calendar_token_create",
+            "account_calendar_token_rotate",
+          ],
+        },
+      },
+    });
+    expect(
+      audits.filter((row) => row.action === "account_calendar_token_create"),
+    ).toHaveLength(1);
+    expect(
+      audits.filter(
+        (row) =>
+          row.action === "account_calendar_token_rotate" &&
+          row.outcome === "success",
+      ),
+    ).toHaveLength(1);
+    expect(JSON.stringify(audits)).not.toContain(rotatedToken);
+    expect(
+      (await db.owner.user.findUniqueOrThrow({ where: { id: ownerId } }))
+        .calendarFeedToken,
+    ).toBe(rotatedToken);
   });
 
   it("persists the processed avatar after the authenticated profile update", async ({

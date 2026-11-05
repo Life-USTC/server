@@ -57,8 +57,32 @@ export class PublicationImageStorageUnavailableError extends Error {
   readonly code = "publication_image_storage_unavailable";
 }
 
+type PublicationImageOriginFailureReason =
+  | "response_too_large"
+  | "empty_body"
+  | "body_read_failed"
+  | "fetch_failed"
+  | "timeout"
+  | "redirect_disallowed"
+  | "redirect_limit"
+  | "redirect_missing_location"
+  | "redirect_invalid"
+  | "upstream_status"
+  | "content_type";
+
 export class PublicationImageOriginError extends Error {
   readonly code = "publication_image_origin_error";
+
+  constructor(
+    readonly reason: PublicationImageOriginFailureReason,
+    message: string,
+    options?: ErrorOptions & { upstreamStatus?: number },
+  ) {
+    super(message, options);
+    this.upstreamStatus = options?.upstreamStatus;
+  }
+
+  readonly upstreamStatus: number | undefined;
 }
 
 function normalizeHost(value: string) {
@@ -263,7 +287,7 @@ function imageResponseHeaders(etag?: string) {
   return headers;
 }
 
-async function readLimitedBody(response: Response) {
+async function readLimitedBody(response: Response, signal: AbortSignal) {
   const declaredLength = Number(response.headers.get("Content-Length"));
   if (
     Number.isFinite(declaredLength) &&
@@ -272,11 +296,13 @@ async function readLimitedBody(response: Response) {
   ) {
     await response.body?.cancel().catch(() => undefined);
     throw new PublicationImageOriginError(
+      "response_too_large",
       `Publication image response exceeds ${PUBLICATION_IMAGE_MAX_BYTES} bytes`,
     );
   }
   if (!response.body) {
     throw new PublicationImageOriginError(
+      "empty_body",
       "Publication image origin returned an empty body",
     );
   }
@@ -292,6 +318,7 @@ async function readLimitedBody(response: Response) {
       if (total > PUBLICATION_IMAGE_MAX_BYTES) {
         await reader.cancel();
         throw new PublicationImageOriginError(
+          "response_too_large",
           `Publication image response exceeds ${PUBLICATION_IMAGE_MAX_BYTES} bytes`,
         );
       }
@@ -301,12 +328,14 @@ async function readLimitedBody(response: Response) {
     await reader.cancel().catch(() => undefined);
     if (error instanceof PublicationImageOriginError) throw error;
     throw new PublicationImageOriginError(
+      signal.aborted ? "timeout" : "body_read_failed",
       "Failed to read publication image from origin",
       { cause: error },
     );
   }
   if (total === 0) {
     throw new PublicationImageOriginError(
+      "empty_body",
       "Publication image origin returned an empty body",
     );
   }
@@ -345,6 +374,7 @@ async function fetchPublicationImage(
         )
       ) {
         throw new PublicationImageOriginError(
+          "redirect_disallowed",
           "Publication image redirect target is not allowed",
         );
       }
@@ -356,6 +386,7 @@ async function fetchPublicationImage(
         });
       } catch (error) {
         throw new PublicationImageOriginError(
+          controller.signal.aborted ? "timeout" : "fetch_failed",
           "Failed to fetch publication image from origin",
           { cause: error },
         );
@@ -365,12 +396,14 @@ async function fetchPublicationImage(
         await response.body?.cancel().catch(() => undefined);
         if (redirect === PUBLICATION_IMAGE_MAX_REDIRECTS) {
           throw new PublicationImageOriginError(
+            "redirect_limit",
             "Publication image origin redirected too many times",
           );
         }
         const location = response.headers.get("Location");
         if (!location) {
           throw new PublicationImageOriginError(
+            "redirect_missing_location",
             "Publication image origin returned a redirect without a location",
           );
         }
@@ -378,6 +411,7 @@ async function fetchPublicationImage(
           currentUrl = new URL(location, currentUrl);
         } catch {
           throw new PublicationImageOriginError(
+            "redirect_invalid",
             "Publication image origin returned an invalid redirect",
           );
         }
@@ -386,7 +420,9 @@ async function fetchPublicationImage(
       if (!response.ok) {
         await response.body?.cancel().catch(() => undefined);
         throw new PublicationImageOriginError(
+          "upstream_status",
           `Publication image origin responded ${response.status}`,
+          { upstreamStatus: response.status },
         );
       }
 
@@ -397,15 +433,20 @@ async function fetchPublicationImage(
       if (!contentType || !RASTER_CONTENT_TYPES.has(contentType)) {
         await response.body?.cancel().catch(() => undefined);
         throw new PublicationImageOriginError(
+          "content_type",
           "Publication image origin returned a non-raster content type",
         );
       }
-      return { bytes: await readLimitedBody(response), contentType };
+      return {
+        bytes: await readLimitedBody(response, controller.signal),
+        contentType,
+      };
     }
   } finally {
     clearTimeout(timeout);
   }
   throw new PublicationImageOriginError(
+    "redirect_limit",
     "Publication image origin redirected too many times",
   );
 }

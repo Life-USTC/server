@@ -13,6 +13,7 @@ import {
 } from "@/features/publications/server/publication-public-read-service";
 import { listPublicationSourceDirectory } from "@/features/publications/server/publication-source-directory-service";
 import {
+  errorResponse,
   handleRouteError,
   notFound,
   parseRouteParams,
@@ -30,6 +31,7 @@ import {
   publicPublicationSourceDirectoryResponseSchema,
   publicPublicationsResponseSchema,
 } from "@/lib/api/schemas/response-schemas";
+import { logRouteFailure } from "@/lib/log/app-logger";
 
 const PUBLICATION_LIST_PAGINATION = {
   defaultPage: 1,
@@ -170,11 +172,16 @@ export async function getPublicPublicationImageRoute(
       return response;
     }
     if (error instanceof PublicationImageOriginError) {
-      const response = handleRouteError(
-        "Failed to fetch publication image from origin",
-        error,
-        502,
-      );
+      const message = "Failed to fetch publication image from origin";
+      logRouteFailure(message, 502, error, {
+        source: "route-handler",
+        event: "publication.image.origin-failure",
+        originFailureReason: error.reason,
+        ...(error.upstreamStatus === undefined
+          ? {}
+          : { upstreamStatus: error.upstreamStatus }),
+      });
+      const response = errorResponse(message, 502);
       response.headers.set("Cache-Control", "no-store");
       return response;
     }
