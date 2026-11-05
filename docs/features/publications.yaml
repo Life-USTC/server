@@ -257,6 +257,9 @@ requirements:
   category: validation
   rule: Origin responses must be nonempty raster images of at most 10 MiB. Non-raster, empty, unsuccessful,
     or oversized responses are rejected; streaming overflow cancels the body and cannot archive bytes.
+    Origin failures log a fixed reason and, for unsuccessful HTTP responses, the numeric upstream
+    status. The production origin-failure event omits origin URLs, image hashes, headers, response bodies,
+    and exception messages.
   acceptance:
     given: Real registered images and controlled upstream response bodies, backed by local workerd R2.
     when: Read SVG, HTML, empty/error, declared-oversize and endless-stream responses, then an exactly
