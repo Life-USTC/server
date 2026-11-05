@@ -18,6 +18,21 @@ access:
   agent: After OAuth authorization, can manage the current user's own subscription relationships; REST
     and MCP both support the same semantic operations.
 requirements:
+- id: subscription.request-membership-reuse
+  category: consistency
+  rule: Signed exam and subscription pages reuse the current request's same-user membership kinds
+    from their initial workspace context. Standalone or different-user contexts still read the
+    caller's memberships under RLS; requested section IDs remain intersected with those memberships.
+  acceptance:
+    given: A viewer owns regular and teaching-assistant subscriptions while another viewer owns a different section.
+    when: Read the exams projection using the same-user snapshot, no snapshot, and the other user's snapshot.
+    then:
+    - All reads return only the viewer's sections with their unchanged personal kinds and exam data.
+    - The matching snapshot avoids an additional membership read while standalone or mismatched calls retain RLS lookup.
+    - The snapshot stays in server request data and does not change independent workspace query contexts.
+    test:
+      file: tests/integration/workspace-subscription-kinds-reuse.test.ts
+      name: subscription.request-membership-reuse
 - id: subscription.calendar-link-recovery
   category: presentation
   rule: Personal calendar links remain discoverable in subscriptions and calendar, including empty
