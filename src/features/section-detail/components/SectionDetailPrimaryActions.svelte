@@ -1,10 +1,10 @@
 <script lang="ts">
 import CalendarIcon from "@lucide/svelte/icons/calendar";
-import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import LinkIcon from "@lucide/svelte/icons/link-2";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
-import { enhance, type SubmitFunction } from "$app/forms";
+import SectionCancelSubscription from "@/features/subscriptions/components/SectionCancelSubscription.svelte";
+import type { SubmitFunction } from "$app/forms";
 
 type SubscriptionActionKey = "subscribe" | "unsubscribe";
 
@@ -15,6 +15,7 @@ type SectionActionsCopy = {
   unsubscribing: string;
 };
 
+export let courseName: string;
 export let onOpenCalendar: () => void;
 export let onOpenSubscribe: () => void;
 export let retired = false;
@@ -53,25 +54,7 @@ export let viewer: {
   {#if viewer.loading}
     <Skeleton class="h-9 w-28" />
   {:else if !viewer.failed && viewer.isSubscribed}
-    <form
-      class={stretched ? "w-full" : undefined}
-      method="POST"
-      action="?/unsubscribe"
-      use:enhance={subscriptionAction("unsubscribe")}
-    >
-      <Button
-        class={stretched ? "w-full" : undefined}
-        variant="outline"
-        type="submit"
-        disabled={Boolean(readOnlyReason) || subscriptionPendingAction === "unsubscribe"}
-        title={readOnlyReason}
-      >
-        <CheckCircleIcon data-icon="inline-start" />
-        {subscriptionPendingAction === "unsubscribe"
-          ? sectionCopy.unsubscribing
-          : sectionCopy.unsubscribeLabel}
-      </Button>
-    </form>
+    <SectionCancelSubscription name={courseName} label={sectionCopy.unsubscribeLabel} pending={subscriptionPendingAction === "unsubscribe"} {stretched} {readOnlyReason} action={subscriptionAction("unsubscribe")} />
   {:else if !viewer.failed && !retired}
     <form class={stretched ? "w-full" : undefined} method="GET">
       <input name="subscribe" type="hidden" value="1" />

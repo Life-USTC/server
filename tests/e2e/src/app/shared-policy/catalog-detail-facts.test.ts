@@ -408,6 +408,12 @@ test("ui.detail-two-column-stream-4 Subscription", {
             ),
           )
           .toBe(1);
+        await unsubscribe.click();
+        const cancellation = page.getByRole("alertdialog", {
+          name: "Unsubscribe from this section?",
+          exact: true,
+        });
+        await expect(cancellation).toBeVisible();
         const [unsubscribed] = await Promise.all([
           page.waitForResponse((response) => {
             const url = new URL(response.url());
@@ -417,7 +423,9 @@ test("ui.detail-two-column-stream-4 Subscription", {
               response.request().method() === "POST"
             );
           }),
-          unsubscribe.click(),
+          cancellation
+            .getByRole("button", { name: "Confirm Unsubscribe", exact: true })
+            .click(),
         ]);
         expect(unsubscribed.status()).toBe(200);
         expect(await unsubscribed.json()).toMatchObject({

@@ -1587,7 +1587,7 @@
     "unsubscribing": "移除中...",
     "pleaseWait": "请稍候",
     "subscribeSuccess": "已订阅",
-    "unsubscribeSuccess": "已移除",
+    "unsubscribeSuccess": "该教学班已从订阅列表中移除",
     "subscribeSuccessDescription": "该教学班已加入你的订阅列表，仅影响 Life@USTC 中的日历与工作区。",
     "unsubscribeSuccessDescription": "该教学班已从你的订阅列表中移除",
     "operationFailed": "操作失败",
