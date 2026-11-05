@@ -80,6 +80,21 @@ test("demo production entry stays disabled without the explicit binding", {
       expect(response.headers()["set-cookie"]).toBeUndefined();
       await response.body();
     }
+    const signed = await createSignedDemoCookie({
+      issuedAt: Math.floor(Date.now() / 1000),
+    });
+    for (const path of [
+      "/catalog/sections",
+      "/catalog/sections/__data.json",
+      "/api/catalog/sections",
+    ]) {
+      const response = await request.get(path, {
+        headers: { cookie: cookieHeader(signed) },
+        maxRedirects: 0,
+      });
+      expect(response.status()).toBe(404);
+      await response.body();
+    }
     expect(await databaseSnapshot(isolatedWorker)).toEqual(before);
   });
 });
@@ -617,6 +632,8 @@ test.describe("enabled demo", () => {
           ["POST", "/api/graphql"],
           ["POST", "/api/mcp"],
           ["GET", "/catalog/teachers"],
+          ["POST", "/catalog/sections"],
+          ["PATCH", "/api/catalog/sections"],
           ["POST", "/catalog/courses"],
           ["POST", "/api/catalog/courses"],
           ["POST", "/_internal/edge-cache/purge"],
@@ -661,6 +678,9 @@ test.describe("enabled demo", () => {
           "/catalog/sections/910001?homeworkId=demo-homework-vectors",
           "/catalog/sections/910001/__data.json",
           "/catalog/courses",
+          "/catalog/sections",
+          "/catalog/sections/__data.json",
+          "/api/catalog/sections",
           "/catalog/courses/__data.json",
           "/api/catalog/courses",
           "/catalog/courses/920001",
@@ -800,6 +820,9 @@ test.describe("enabled demo", () => {
           "/api/catalog/sections/910001",
           "/catalog/sections/910001/__data.json",
           "/catalog/courses/920001/__data.json",
+          "/catalog/sections",
+          "/catalog/sections/__data.json",
+          "/api/catalog/sections",
           "/catalog/courses/__data.json",
           "/api/catalog/courses",
           "/catalog/teachers/401/__data.json",

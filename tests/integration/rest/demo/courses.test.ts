@@ -154,7 +154,7 @@ test("demo course listing isolates live data and agrees with native catalog quer
           404,
         ],
         ["/catalog/teachers", 403],
-        ["/catalog/sections", 403],
+        ["/catalog/sections/910001/private", 403],
         ["/api/catalog/links/resolve?slug=jw", 403],
       ] as const) {
         const response = await request.get(path, { headers });

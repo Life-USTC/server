@@ -35,6 +35,7 @@ type DemoBoundary = {
 function isDemoCatalogPage(path: string) {
   return (
     path === "/catalog/courses" ||
+    path === "/catalog/sections" ||
     /^\/catalog\/(?:sections|courses|teachers)\/[1-9]\d*$/.test(path)
   );
 }
@@ -43,6 +44,7 @@ function isDemoCatalogRead(path: string) {
   return (
     isDemoCatalogPage(path.replace(/\/__data\.json$/, "")) ||
     path === "/api/catalog/courses" ||
+    path === "/api/catalog/sections" ||
     /^\/api\/catalog\/sections\/[1-9]\d*$/.test(path) ||
     /^\/_internal\/catalog\/sections\/[1-9]\d*\/viewer$/.test(path) ||
     path === "/api/community/descriptions" ||

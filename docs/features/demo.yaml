@@ -69,6 +69,7 @@ requirements:
   - demo-subscriptions
   - demo-catalog-details
   - demo-course-list
+  - demo-section-list
   - demo-homeworks
   - demo-exams
   expectation:
@@ -96,8 +97,8 @@ requirements:
     - OAuth and outbound requests
     - browser analytics scripts and telemetry
   rationale: Demo possession is not real-user authentication. The read allowlist comprises Todos, homeworks, exams and
-    subscriptions HTML/page-data, the course listing, the three supported catalog-detail pages and their page-data,
-    GET /api/catalog/courses,
+    subscriptions HTML/page-data, the course and section listings, the three supported catalog-detail pages and their page-data,
+    GET /api/catalog/courses, GET /api/catalog/sections,
     GET /api/workspace/todos, GET /api/workspace/subscriptions/current, section detail/personal reads,
     fixture descriptions/comments, homework list/detail/audit reads and shell bootstrap. Same-origin locale-cookie updates are allowed. Entry and exit are cookie controls. Every other request is denied before its route runs, including visit-recording GET, uploads,
     private exports, administrator routes, GraphQL and MCP.
@@ -152,7 +153,7 @@ requirements:
     dates; descriptions and empty discussions retain existing response shapes and an anonymous viewer.
     Only fixture identifiers and matching target aliases resolve; unknown or mixed targets cannot access
     ordinary data. Calendar exports, subscriptions, homework creation, description edits and comments are
-    visibly disabled. Section and teacher collections remain unavailable; the course collection and fixture homework details are read-only.
+    visibly disabled. Teacher collections remain unavailable; course and section collections and fixture homework details are read-only.
   acceptance:
     given: A valid demo in either supported locale on desktop or mobile.
     when: The visitor follows subscription, course and teacher links and reads detail sections and lazy data.
@@ -200,6 +201,26 @@ requirements:
     test:
       file: tests/e2e/src/app/demo/courses.test.ts
       name: 'demo.courses: read-only browsing zh-cn 1280'
+- id: demo.section-list-projection
+  category: consistency
+  rule: The existing section listing and page-data project the same three subscription sections, two
+    semesters and two teachers as the read-only section API and catalog details. Web keeps normalized
+    multi-value filters, numeric comparisons, advanced search and explicit-column precedence; REST keeps
+    its scalar relation filters, identifier lists, advanced search and pagination schema. Shared inputs use
+    one fixed matching and ordering projection, with filtering before pagination and upstream ID tie-breaks.
+    Unknown or mixed unavailable identifier lists never fall through to live data. Null sample metadata
+    stays null and demo enrollment displays unknown rather than zero; only existing sample semesters become filter options. No database, cache or external reads
+    occur under demo identity. Ordinary callers keep their existing query services and behavior.
+  acceptance:
+    given: A valid demo in either locale on desktop or mobile, alongside independently seeded ordinary records.
+    when: The visitor opens Sections, filters by semester and teacher, compares credits, clears an empty result and follows details.
+    then:
+    - Page, page-data, REST and linked details agree on fixed identities, localized relations, filtering, order and pagination.
+    - Missing classifications and numeric metadata remain empty or null; unknown and mixed targets expose no real records.
+    - Demo notice remains visible, writes and external exports stay refused, and ordinary filters retain their behavior.
+    test:
+      file: tests/e2e/src/app/demo/sections.test.ts
+      name: 'demo.sections: read-only browsing zh-cn 1280'
 - id: demo.cache-isolation
   category: privacy
   rule: Demo cookie presence, including invalid cookies, bypasses shared HTML admission before cache hits
@@ -387,6 +408,28 @@ capabilities:
       - Follow course and teaching section details with read-only labeling
       requirement_refs:
       - demo.course-list-projection
+  demo-section-list:
+    title: Read-only Demo Section Listing
+    description: The existing section collection browses shared fixed subscription sections without real-user authority or live data.
+    auth: anon
+    web:
+      pages:
+      - /catalog/sections
+    rest:
+      routes:
+      - method: GET
+        path: /api/catalog/sections
+        reference_only: true
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Open Sections from existing demo navigation
+      - Filter fixed sections and clear empty results
+      - Follow teaching section and course details with read-only labeling
+      requirement_refs:
+      - demo.section-list-projection
   demo-exams:
     title: Read-only Demo Exams
     description: Existing exams view projects the catalog samples without a real user identity or export capability.

@@ -84,7 +84,7 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
                   </Item.Actions>
                       <Item.Footer class="flex-wrap justify-start">
                         <span>{sectionLabels.credits}: {section.credits ?? "-"}</span>
-                        <span>{sectionLabels.capacity}: {section.stdCount ?? 0} / {section.limitCount ?? "-"}</span>
+                        <span>{sectionLabels.capacity}: {section.stdCount ?? (routePage.data.demo ? "-" : 0)} / {section.limitCount ?? "-"}</span>
                         <span>{section.campus ? primaryName(section.campus) : "-"}</span>
                       </Item.Footer>
                     </a>
@@ -156,7 +156,7 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
                 {section.credits ?? "-"}
               </Table.Cell>
               <Table.Cell class="text-left tabular-nums">
-                {section.stdCount ?? 0} / {section.limitCount ?? "-"}
+                {section.stdCount ?? (routePage.data.demo ? "-" : 0)} / {section.limitCount ?? "-"}
               </Table.Cell>
               <Table.Cell >
                 {section.campus ? primaryName(section.campus) : "-"}

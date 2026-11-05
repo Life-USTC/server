@@ -8,34 +8,8 @@ import type { AppLocale } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages.server";
 import { parsePositivePage } from "@/lib/load-data-utils";
 import { buildPaginatedResponse } from "@/lib/pagination";
+import { demoCatalogTextMatches } from "./demo-catalog-text-match";
 import { getDemoSubscribedSections } from "./demo-subscriptions";
-
-// The ordinary catalog uses ILIKE '%value%'. Match its wildcards/escapes with
-// bounded dynamic programming instead of backtracking user-supplied patterns.
-function textMatches(value: string | null, filter: string | null | undefined) {
-  if (!filter) return true;
-  if (value === null) return false;
-  const text = [...value.toLowerCase()];
-  let matches = [true, ...text.map(() => false)];
-  let escaped = false;
-  for (const char of `%${filter.toLowerCase()}%`) {
-    if (!escaped && char === "\\") {
-      escaped = true;
-      continue;
-    }
-    const many = !escaped && char === "%";
-    const one = !escaped && char === "_";
-    const next = [many && matches[0]];
-    for (let index = 1; index <= text.length; index++) {
-      next[index] = many
-        ? matches[index] || next[index - 1]
-        : matches[index - 1] && (one || text[index - 1] === char);
-    }
-    matches = next;
-    escaped = false;
-  }
-  return matches[text.length];
-}
 
 /** One fixed dataset and ordering for Web page-data and REST collection reads. */
 export function getDemoCourseList(
@@ -64,13 +38,14 @@ export function getDemoCourseList(
         return false;
     }
     const nameMatches = (query: string | null | undefined) =>
-      textMatches(course.nameCn, query) || textMatches(course.nameEn, query);
+      demoCatalogTextMatches(course.nameCn, query) ||
+      demoCatalogTextMatches(course.nameEn, query);
     return (
       nameMatches(filters.name) &&
-      textMatches(course.code, filters.code) &&
+      demoCatalogTextMatches(course.code, filters.code) &&
       (!filters.search ||
         nameMatches(filters.search) ||
-        textMatches(course.code, filters.search))
+        demoCatalogTextMatches(course.code, filters.search))
     );
   });
   courses.sort((a, b) => a.code.localeCompare(b.code, "en") || a.jwId - b.jwId);
