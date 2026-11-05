@@ -479,7 +479,10 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             .getByRole("button", { name: text.activities, exact: true }),
         ).toBeDisabled();
         await expect(
-          page.locator('a[href^="/catalog/"]').filter({ visible: true }),
+          page
+            .getByRole("main")
+            .locator('a[href^="/catalog/"]')
+            .filter({ visible: true }),
         ).toHaveCount(6);
         const links = page
           .getByTestId("subscription-course-link")

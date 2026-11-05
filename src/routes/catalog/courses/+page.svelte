@@ -1,6 +1,7 @@
 <script lang="ts">
 import CoursesPageController from "@/features/catalog/components/CoursesPageController.svelte";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
+import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
 import { createEndlessList } from "@/lib/navigation/endless-list.svelte";
 import { page } from "$app/state";
 import type { PageData } from "./$types";
@@ -14,4 +15,7 @@ const endless = createEndlessList({
 });
 </script>
 
+{#if data.demo}
+  <DemoNotice demo={data.demo} locale={data.locale} />
+{/if}
 <CoursesPageController data={{ ...data, data: endless.items }} {endless} />
