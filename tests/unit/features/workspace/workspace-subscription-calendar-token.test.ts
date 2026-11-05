@@ -97,9 +97,14 @@ describe("workspace subscription calendar token reuse", () => {
   ])(
     "forwards the workspace context token for the %s tab",
     async (tab, includeExams) => {
+      const subscriptionKinds = {
+        userId: "user-1",
+        kinds: new Map([[12, "teaching_assistant" as const]]),
+      };
       await loadSignedWorkspaceTabData({
         calendarSemesterId: undefined,
         context: {
+          subscriptionKinds,
           sectionIds: [12],
           subscribedSections: [{ id: 12, semesterId: 1 }],
           user: {
@@ -124,6 +129,7 @@ describe("workspace subscription calendar token reuse", () => {
           calendarFeedToken: "context-token",
           includeExams,
           sectionIds: [12],
+          subscriptionKinds,
         },
       );
     },
