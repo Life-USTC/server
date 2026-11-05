@@ -3,10 +3,8 @@ import CollectionPage from "#lib/components/CollectionPage.svelte";
 import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import TableColumnHeader from "#lib/components/TableColumnHeader.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
-import {
-  catalogActiveFilters,
-  catalogFilterDraft,
-} from "@/features/catalog/lib/catalog-filter-view";
+import { createCatalogFilterDraft } from "@/features/catalog/lib/catalog-filter-draft.svelte";
+import { catalogActiveFilters } from "@/features/catalog/lib/catalog-filter-view";
 import {
   catalogHref,
   catalogPrimaryName as primaryName,
@@ -48,14 +46,10 @@ type PageData = {
 let { data, endless }: { data: PageData; endless: EndlessScrollState } =
   $props();
 const formId = "section-filters";
-const appliedFilters = $derived(data.filters);
-let draft = $derived(catalogFilterDraft(appliedFilters));
+const draft = createCatalogFilterDraft(() => data.filters);
 const locale = $derived(routePage.data.locale ?? "zh-cn");
 const commonLabels = $derived(data.labels.common);
 const sectionLabels = $derived(data.labels.sections);
-function update(patch: Record<string, string>) {
-  draft = { ...draft, ...patch };
-}
 const options = (items: SectionListOptionSource[]) =>
   items.map((item) => ({ value: String(item.id), label: primaryName(item) }));
 const fields = $derived<Record<string, TableFilterField[]>>({
@@ -154,8 +148,8 @@ const sortLabels = $derived({
   campus: sectionLabels.filters.sortCampus,
 });
 const defaults = $derived({
-  values: draft,
-  onchange: update,
+  values: draft.values,
+  onchange: draft.update,
   labels: commonLabels.tableFilters,
   formId,
 });
@@ -218,7 +212,7 @@ function emptyDescription() {
   <EndlessScroll state={endless} labels={commonLabels.endlessScroll} />
 {/snippet}
 {#snippet controls()}
-  <CatalogFilters {activeFilters} clearHref="/catalog/sections" clearLabel={commonLabels.clear} filterTitle={sectionLabels.summary.filters} searchLabel={commonLabels.search} searchPlaceholder={sectionLabels.searchPlaceholder} values={draft} onchange={update} applyLabel={commonLabels.applyFilters} {formId}>
+  <CatalogFilters {activeFilters} clearHref="/catalog/sections" clearLabel={commonLabels.clear} filterTitle={sectionLabels.summary.filters} searchLabel={commonLabels.search} searchPlaceholder={sectionLabels.searchPlaceholder} values={draft.values} onchange={draft.update} onsubmit={draft.submit} applyLabel={commonLabels.applyFilters} {formId}>
     {#each extraFields as field (field.name)}<CatalogColumnFilter {...defaults} label={field.label} fields={[field]} idPrefix={"section-extra-" + field.name} />{/each}
     <TableColumnHeader label={sectionLabels.searchHelpTitle}>
       <p class="mb-3 text-sm text-muted-foreground">{sectionLabels.searchHelpDescription}</p>

@@ -1,10 +1,8 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import EndlessScroll from "#lib/components/EndlessScroll.svelte";
-import {
-  catalogActiveFilters,
-  catalogFilterDraft,
-} from "@/features/catalog/lib/catalog-filter-view";
+import { createCatalogFilterDraft } from "@/features/catalog/lib/catalog-filter-draft.svelte";
+import { catalogActiveFilters } from "@/features/catalog/lib/catalog-filter-view";
 import { catalogPrimaryName as primaryName } from "@/features/catalog/lib/catalog-list-display";
 import { buildCourseFilterOptions } from "@/features/catalog/lib/courses-page-view-model";
 import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
@@ -33,13 +31,9 @@ type PageData = {
 let { data, endless }: { data: PageData; endless: EndlessScrollState } =
   $props();
 const formId = "course-filters";
-const appliedFilters = $derived(data.filters);
-let draft = $derived(catalogFilterDraft(appliedFilters));
+const draft = createCatalogFilterDraft(() => data.filters);
 const commonLabels = $derived(data.labels.common);
 const courseLabels = $derived(data.labels.courses);
-function update(patch: Record<string, string>) {
-  draft = { ...draft, ...patch };
-}
 const filterOptions = $derived(buildCourseFilterOptions(data.filterOptions));
 const fields = $derived<Record<string, TableFilterField>>({
   name: { name: "name", label: courseLabels.courseName },
@@ -67,8 +61,8 @@ const columnFilters = $derived<Record<string, CatalogColumnFilterProps>>(
       {
         label: field.label,
         fields: [field],
-        values: draft,
-        onchange: update,
+        values: draft.values,
+        onchange: draft.update,
         labels: commonLabels.tableFilters,
         formId,
       },
@@ -98,7 +92,7 @@ function emptyDescription() {
   <EndlessScroll state={endless} labels={commonLabels.endlessScroll} />
 {/snippet}
 {#snippet controls()}
-  <CatalogFilters {activeFilters} clearHref="/catalog/courses" clearLabel={commonLabels.clear} filterTitle={courseLabels.summary.filters} searchLabel={commonLabels.search} searchPlaceholder={courseLabels.searchPlaceholder} values={draft} onchange={update} applyLabel={commonLabels.applyFilters} {formId} />
+  <CatalogFilters {activeFilters} clearHref="/catalog/courses" clearLabel={commonLabels.clear} filterTitle={courseLabels.summary.filters} searchLabel={commonLabels.search} searchPlaceholder={courseLabels.searchPlaceholder} values={draft.values} onchange={draft.update} onsubmit={draft.submit} applyLabel={commonLabels.applyFilters} {formId} />
 {/snippet}
 <CollectionPage description={courseLabels.subtitle} footer={endless.hasMore ? paginationFooter : undefined} title={courseLabels.title} toolbar={controls}>
   <CoursesResults {columnFilters} courseEmptyDescription={emptyDescription} {courseLabels} data={resultData} primaryName={primaryName} />

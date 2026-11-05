@@ -1,10 +1,8 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import EndlessScroll from "#lib/components/EndlessScroll.svelte";
-import {
-  catalogActiveFilters,
-  catalogFilterDraft,
-} from "@/features/catalog/lib/catalog-filter-view";
+import { createCatalogFilterDraft } from "@/features/catalog/lib/catalog-filter-draft.svelte";
+import { catalogActiveFilters } from "@/features/catalog/lib/catalog-filter-view";
 import {
   type CatalogNamed,
   catalogPrimaryName as primaryName,
@@ -37,13 +35,9 @@ type PageData = {
 let { data, endless }: { data: PageData; endless: EndlessScrollState } =
   $props();
 const formId = "teacher-filters";
-const appliedFilters = $derived(data.filters);
-let draft = $derived(catalogFilterDraft(appliedFilters));
+const draft = createCatalogFilterDraft(() => data.filters);
 const commonLabels = $derived(data.labels.common);
 const teacherLabels = $derived(data.labels.teachers);
-function update(patch: Record<string, string>) {
-  draft = { ...draft, ...patch };
-}
 const options = (items: Option[]) =>
   items.map((item) => ({ value: String(item.id), label: primaryName(item) }));
 const showTitleColumn = $derived(
@@ -81,8 +75,8 @@ const allFilters = $derived<Record<string, CatalogColumnFilterProps>>(
       {
         label: field.label,
         fields: [field],
-        values: draft,
-        onchange: update,
+        values: draft.values,
+        onchange: draft.update,
         labels: commonLabels.tableFilters,
         formId,
       },
@@ -123,7 +117,7 @@ const activeFilters = $derived(
   <EndlessScroll state={endless} labels={commonLabels.endlessScroll} />
 {/snippet}
 {#snippet controls()}
-  <CatalogFilters {activeFilters} clearHref="/catalog/teachers" clearLabel={commonLabels.clear} filterTitle={teacherLabels.filterTitle} searchLabel={teacherLabels.searchLabel} searchPlaceholder={teacherLabels.searchNameOrCode} values={draft} onchange={update} applyLabel={commonLabels.applyFilters} {formId}>
+  <CatalogFilters {activeFilters} clearHref="/catalog/teachers" clearLabel={commonLabels.clear} filterTitle={teacherLabels.filterTitle} searchLabel={teacherLabels.searchLabel} searchPlaceholder={teacherLabels.searchNameOrCode} values={draft.values} onchange={draft.update} onsubmit={draft.submit} applyLabel={commonLabels.applyFilters} {formId}>
     {#each extraFilters as [key, filter] (key)}<CatalogColumnFilter {...filter} idPrefix={"teacher-extra-" + key} />{/each}
   </CatalogFilters>
 {/snippet}
