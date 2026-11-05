@@ -4,6 +4,7 @@ import CheckIcon from "@lucide/svelte/icons/check";
 import CopyIcon from "@lucide/svelte/icons/copy";
 import DownloadIcon from "@lucide/svelte/icons/download";
 import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
+import { onDestroy } from "svelte";
 import { writeClipboardText } from "#lib/browser/clipboard.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
@@ -100,16 +101,28 @@ const CODEX_COMMAND = `codex mcp add life-ustc --url ${MCP_ENDPOINT}\ncodex mcp 
 const CLAUDE_CODE_COMMAND = `claude mcp add --scope user --transport http life-ustc ${MCP_ENDPOINT}`;
 
 let copiedKey: string | null = null;
+let copyFeedbackTimer: ReturnType<typeof setTimeout> | undefined;
+let copyAttempt = 0;
+let destroyed = false;
+onDestroy(() => {
+  destroyed = true;
+  copyAttempt += 1;
+  clearTimeout(copyFeedbackTimer);
+});
 $: activeClient = data.client;
 
 // TODO(#962): add dark-mode variants of the tutorial screenshots once assets are available.
 // For now, images are wrapped in a rounded bordered container so they remain visible in dark mode.
 
 async function copyValue(key: string, value: string) {
+  const attempt = ++copyAttempt;
   await writeClipboardText(value);
+  if (destroyed || attempt !== copyAttempt) return;
+  clearTimeout(copyFeedbackTimer);
   copiedKey = key;
-  window.setTimeout(() => {
-    if (copiedKey === key) copiedKey = null;
+  copyFeedbackTimer = setTimeout(() => {
+    copiedKey = null;
+    copyFeedbackTimer = undefined;
   }, 1800);
 }
 
