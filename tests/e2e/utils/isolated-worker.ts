@@ -16,6 +16,7 @@ import {
   ownIsolatedDatabase,
 } from "../../shared/isolated-database-lifecycle";
 import { getWorkerProcessEnvironment } from "./worker-database-env";
+import { withWorkerTransport } from "./worker-transport";
 
 const authSecret = "e2e-dev-secret-not-for-production";
 type Cookie = { name: string; value: string; url: string };
@@ -94,6 +95,11 @@ export const test = base.extend<
     _templateResources: OwnedDatabaseTemplate;
   }
 >({
+  proxy: async ({ isolatedWorker }, use) => {
+    // Both the original browser and its associated request context use this
+    // owned transport. The fixture closes them before releasing the proxy.
+    await withWorkerTransport(isolatedWorker.origin, use);
+  },
   workerBindings: {},
   workerOutboundJson: [undefined, { option: true }],
   _templateResources: [

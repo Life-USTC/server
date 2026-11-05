@@ -70,3 +70,22 @@ avoids address-family fallback during each connection without changing browser
 cookies, WebAuthn or OAuth origins. HTTPS and other hosts retain their original
 endpoint. Each phase still consumes its responses and disposes its context, even
 when observation fails.
+
+### Owned browser transport
+
+The isolated Worker fixture gives each case a loopback SOCKS5 proxy via
+Playwright's public context `proxy` option. Only the exact owned `localhost`
+hostname and port select IPv4; other authorities retain normal address selection.
+`@pondwader/socks5-server` handles the protocol through its documented connection
+handler and custom-Duplex entry point. The fixture owns both raw socket endpoints,
+without HTTP parsing, URL rewriting, cookie copying or process-global agents.
+HTTP, HTTPS and redirects retain the original browser-managed cookie jar.
+
+`withSettledPageWrites` retains native `route.fetch({ maxRedirects: 0 })`, zero
+retries, observation before fulfillment and its write drain. The original browser
+context and its associated requests close before the proxy, then the
+Worker/database owner. Proxy disposal joins listener startup
+and **both source and target socket close events**; late handshakes cannot allocate
+a target after teardown. Native cases cover HTTP/non-owned HTTPS, cookie boundaries,
+redirects, resets, cancellation and partial startup. HTTPS controls generate a
+disposable certificate with OpenSSL and verify default certificate rejection.

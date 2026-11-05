@@ -5,6 +5,7 @@ import { createDeferred } from "../../../../shared/deferred";
 import { createAccountWriteObserver } from "../../../utils/account-write-observer";
 import { withBrowserWorkflow } from "../../../utils/browser-workflow";
 import { withSettledPageWrites } from "../../../utils/settled-page-writes";
+import { withWorkerTransport } from "../../../utils/worker-transport";
 
 function gate() {
   let resolve!: () => void;
@@ -24,6 +25,9 @@ type Endpoint = {
 };
 
 const test = base.extend<{ endpoint: Endpoint }>({
+  proxy: async ({ endpoint }, use) => {
+    await withWorkerTransport(endpoint.origin, use);
+  },
   // biome-ignore lint/correctness/noEmptyPattern: Playwright reads destructuring as the fixture dependency list.
   endpoint: async ({}, use) => {
     const received = gate();
@@ -74,7 +78,7 @@ const test = base.extend<{ endpoint: Endpoint }>({
       if (!address || typeof address === "string")
         throw new Error("Expected a private HTTP server port");
       await use({
-        origin: `http://127.0.0.1:${address.port}`,
+        origin: `http://localhost:${address.port}`,
         writes,
         received: received.promise,
         responded: responded.promise,

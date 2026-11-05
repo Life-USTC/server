@@ -1,5 +1,8 @@
 import { expect, type Page } from "@playwright/test";
-import { expectNoPageHorizontalOverflow } from "../../../utils/page-ready";
+import {
+  expectNoPageHorizontalOverflow,
+  waitForUiSettled,
+} from "../../../utils/page-ready";
 import { busTest as test } from "../../../utils/personal-preferences-fixture";
 
 async function apply(page: Page) {
@@ -36,6 +39,7 @@ test("bus.table-column-filters", { tag: "@Bus/Web" }, async ({
           { name: "NEXT_LOCALE", value: "en-us", url: isolatedWorker.origin },
         ]);
       await page.goto("/catalog/bus");
+      await waitForUiSettled(page);
       const routes = page.getByTestId("bus-route-section");
       await expect(routes).toHaveCount(2);
       await expect(
