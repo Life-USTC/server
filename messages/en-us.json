@@ -520,6 +520,12 @@
   },
   "usagePages": {
     "bot": {
+      "imageFailure": {
+        "title": "Image could not load",
+        "description": "The example is unavailable. Try again or open the original image.",
+        "retry": "Retry",
+        "original": "Open original"
+      },
       "title": "Meet Presto",
       "subtitle": "Check campus information and your schedule in QQ.",
       "primaryAction": "Message Presto",

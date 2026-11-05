@@ -26,9 +26,15 @@ test("community analytics isolation preserves native loads and scenario routes",
         { page, browser, observer, isolatedWorker, account: null },
         (flow) =>
           flow.run(async () => {
-            const load = async (current: Page) => {
-              const [script, response] = await Promise.all([
+            const load = async (current: Page, expectedScript = "") => {
+              // A completed SSR document can still be hydrating its anonymous
+              // shell. Own that real read before closing or replacing this page.
+              const [script, bootstrap, response] = await Promise.all([
                 current.waitForResponse(analytics),
+                current.waitForResponse(
+                  new URL("/_internal/shell-bootstrap", isolatedWorker.origin)
+                    .href,
+                ),
                 current.goto("/catalog/courses"),
               ]);
               expect(response?.status()).toBe(200);
@@ -45,7 +51,19 @@ test("community analytics isolation preserves native loads and scenario routes",
               expect(script.headers()["content-type"]).toContain(
                 "application/javascript",
               );
-              expect(await script.text()).toBe("");
+              expect(await script.text()).toBe(expectedScript);
+              expect(bootstrap.status()).toBe(200);
+              expect(await bootstrap.json()).toEqual({
+                viewer: null,
+                navigation: null,
+              });
+              await expect(current.locator("html")).toHaveAttribute(
+                "data-life-ustc-hydrated",
+                "true",
+              );
+              await expect(
+                current.locator("[data-shell-sign-in]"),
+              ).toBeVisible();
             };
             await load(page);
             const secondary = await flow.newContext();
@@ -80,7 +98,7 @@ test("community analytics isolation preserves native loads and scenario routes",
                 body: "globalThis.analyticsScenario = true;",
               }),
             );
-            expect((await page.goto("/catalog/courses"))?.status()).toBe(200);
+            await load(page, "globalThis.analyticsScenario = true;");
             expect(
               await page.evaluate(() =>
                 Reflect.get(window, "analyticsScenario"),

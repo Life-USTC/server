@@ -520,6 +520,12 @@
   },
   "usagePages": {
     "bot": {
+      "imageFailure": {
+        "title": "图片未能加载",
+        "description": "示例图片暂不可用。可以重试或查看原图。",
+        "retry": "重试",
+        "original": "查看原图"
+      },
       "title": "认识 Presto",
       "subtitle": "在 QQ 中查询校园信息和个人日程。",
       "primaryAction": "联系 Presto",
