@@ -244,7 +244,7 @@ requirements:
 - id: ui.list-table-4
   category: presentation
   topic: list-table
-  rule: The applied URL initializes one shared page draft. Closing, reopening or switching popovers retains unsaved selections and leaves the URL and results unchanged. The page Apply action commits those drafts; explicit clear and filter-removal actions remain available.
+  rule: The applied URL initializes one shared page draft. Closing, reopening or switching popovers retains unsaved selections and leaves the URL and results unchanged. The page Apply action commits those drafts without discarding fields edited after that submission. Explicit navigation, history traversal, clear and filter-removal actions initialize the draft from their target URL.
   acceptance:
     given: Course, teacher, and section URLs apply all advanced filters to a seeded matching result.
     when: The browser opens each column filter, changes its drafts, dismisses through an outside click and Escape, then reopens it.
@@ -254,6 +254,33 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/catalog-filters.test.ts
       name: ui.list-table-4 Course
+- id: ui.catalog-pending-filter-draft
+  category: behavior
+  topic: list-table
+  rule: Catalog filters remain editable while Apply is pending. A completed native GET submission updates the applied filters and results while preserving fields changed after that submission; the next Apply submits the current draft with all other filters. External navigation, history traversal and language reloads initialize drafts from the applied URL.
+  acceptance:
+    given: Course, teacher and section lists each show two matching records with advanced filters applied.
+    when: The browser holds a real Apply response, types a new search, releases the response, applies again and traverses history, changes language and clears filters.
+    then:
+    - The first response updates its URL and active filters without erasing the newer search; the results still match the first submission.
+    - The next Apply includes the new search and every advanced filter and shows only the matching record at desktop and mobile widths.
+    - Back, Forward, language reload and Clear restore the draft and results belonging to their applied URL.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-pending-filter-draft.test.ts
+      name: catalog Apply preserves a newer section draft 1280
+- id: ui.catalog-superseded-filter-draft
+  category: behavior
+  topic: list-table
+  rule: A superseded catalog Apply response cannot overwrite a later submission's URL, results or newer draft. Clearing an advanced field while a submission is pending is preserved as an explicit draft edit.
+  acceptance:
+    given: Two native course filter submissions are pending and the user edits the search and clears the code draft after the second submission.
+    when: The second response completes before the first, and the browser then applies the retained draft and traverses history.
+    then:
+    - The second submission owns the applied URL and result while both newer draft edits survive; the late first response changes neither.
+    - Applying the newer draft omits the cleared code, retains the category and renders both matching Physics records; history returns to the second submission's Chemistry result.
+    test:
+      file: tests/e2e/src/app/shared-policy/catalog-pending-filter-draft.test.ts
+      name: catalog draft follows the latest native Apply when responses finish out of order
 - id: ui.list-table-5
   category: presentation
   topic: list-table
