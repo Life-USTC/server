@@ -121,6 +121,49 @@ requirements:
     test:
       file: tests/e2e/src/app/usage/client-navigation.test.ts
       name: MCP client selection survives navigation (en-us)
+- id: usage.client-specific-completion
+  category: presentation
+  rule: MCP tutorial completion instructions and examples match the selected client. Claude guidance does
+    not reuse a ChatGPT success screenshot; it offers a public query and explains how to inspect its tool result.
+  acceptance:
+    given: Anonymous English and Chinese visits to the Claude tutorial URL.
+    when: Inspect completion guidance, copy the public query, switch to ChatGPT and navigate Back.
+    then:
+    - Claude completion and hero contain no ChatGPT result image, and expose the public query and official guidance.
+    - ChatGPT retains its own imagery and current plugin setup instructions; browser restoration returns the correct content.
+    test:
+      file: tests/e2e/src/app/usage/client-guidance.test.ts
+      name: MCP tutorial completion matches selected client en-us
+- id: usage.mcp-sidebar-content-bounds
+  category: presentation
+  rule: At laptop breakpoint widths, the MCP hero figure and image stay inside the padded content box
+    with the sidebar expanded or collapsed. Client tabs keep symmetric vertical space and stable heights;
+    tutorial text, ordered steps and complete copyable addresses stay inside their content bounds.
+  acceptance:
+    given: Anonymous English and Chinese visits at 1023, 1024, 1144 and 1440 pixels.
+    when: Toggle the real sidebar rail, select every client by mouse or keyboard and copy each public endpoint.
+    then:
+    - All four figure and image edges remain within the hero grid content box in both sidebar states.
+    - Tab rail and trigger heights stay stable, and upper and lower spacing remain symmetric.
+    - Text lines and numbered steps stay within their panel, and URL fields remain complete without overlapping copy controls.
+    test:
+      file: tests/e2e/src/app/usage/sidebar-geometry.test.ts
+      name: MCP content fits both sidebar states en-us 1023
+- id: usage.mcp-copy-feedback-lifecycle
+  category: behavior
+  rule: Each successful MCP copy action owns a fresh feedback interval. Repeating a field or copying
+    another field replaces the previous timer. Feedback belongs to the latest attempt even if clipboard
+    completion arrives out of order; leaving the guide disposes its timer and pending feedback.
+  acceptance:
+    given: An English or Chinese visitor copies an MCP endpoint with the native clipboard.
+    when: Copy again midway through the feedback interval, complete writes out of order, or leave before a write completes.
+    then:
+    - The newly copied field retains its localized success feedback through the old timer's deadline.
+    - Feedback clears at the new interval's deadline, and only the latest field shows it.
+    - An older pending copy cannot overwrite newer feedback or schedule feedback after the guide unmounts.
+    test:
+      file: tests/e2e/src/app/usage/copy-feedback.test.ts
+      name: MCP copy feedback owns its latest timer en-us same
 capabilities:
   usage-guides:
     title: Client Usage Guides

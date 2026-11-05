@@ -590,9 +590,9 @@
         "overviewSrc": "/images/usage/mcp-chatgpt-overview-en.png",
         "filledSrc": "/images/usage/mcp-chatgpt-filled-en.png",
         "steps": [
-          "Enable Developer Mode in Settings → Apps → Advanced settings, then create an app.",
-          "Fill in the details below, scan the tools, and create the app.",
-          "Authorize with Life@USTC, then select the app from the tools menu in a new chat."
+          "Open ChatGPT Plugins, select +, then Add custom MCP server.",
+          "Enter the details below, choose OAuth authentication, and create the plugin.",
+          "Install the plugin, then type @ in a conversation and select Life@USTC. Authorize when prompted and check a real tool result."
         ],
         "emptyAlt": "Blank ChatGPT new plugin form",
         "filledAlt": "Completed Life@USTC ChatGPT plugin configuration",
@@ -602,18 +602,26 @@
       },
       "claude": {
         "steps": [
-          "Open Claude connector settings, click Add, then choose Add custom connector.",
-          "Fill the form with the information below, then click Add.",
-          "Follow the prompt to sign in through Life@USTC."
+          "Open Customize → Connectors, choose + Add, then Add custom connector.",
+          "Enter the server name and URL, review the detected OAuth settings, then add the connector.",
+          "Connect and enable Life@USTC in your conversation."
         ],
         "emptyAlt": "Blank Claude custom connector form",
         "filledAlt": "Completed Life@USTC Claude connector configuration",
-        "note": "Leave OAuth Client ID and Client Secret blank."
+        "note": "Use the client-provided OAuth registration option; personal API keys or copied bearer tokens are not needed. In managed workspaces, an owner may need to add the connector first."
       },
       "otherClients": {
         "title": "Codex, Claude Code, and other clients",
         "description": "Copy the command for Codex or Claude Code. For any other remote-MCP client, use the URL below. Life@USTC signs in with OAuth, so no API key or Authorization header is required."
-      }
+      },
+      "guideVerified": "Setup instructions checked against official documentation on November 4, 2026. Menus and access can vary by account or workspace.",
+      "verifyTitle": "Try a public query",
+      "verifyPrompt": "Use Life@USTC catalog_section_search with search=计算机视觉 and limit=3. Show the returned teaching sections and their identifiers.",
+      "verifyDescription": "This query reads the public course directory and does not need your personal schedule. Expand the tool result to check that the response came from Life@USTC; a connected label alone is not a completed query.",
+      "recoveryTitle": "If the query does not work",
+      "recoveryDescription": "Confirm the server URL ends in /api/mcp and that Life@USTC is enabled in this conversation. If authorization has expired, reconnect through the client and return here. If connection or result rendering still fails, record the client name, time and error message for feedback; do not share tokens or personal conversation links.",
+      "claudeCompletion": "After connecting, open a conversation, choose + → Connectors, and enable Life@USTC. Send the public query below, then check the tool result.",
+      "claudeOfficial": "Official Claude connector instructions"
     },
     "cli": {
       "title": "Life@USTC in your terminal",

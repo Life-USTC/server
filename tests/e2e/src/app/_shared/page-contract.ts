@@ -689,11 +689,11 @@ export async function assertPageContract(
       ).toBeVisible();
       await expect(
         page.getByRole("link", {
-          name: /启用开发者模式|Enable Developer Mode/i,
+          name: /打开 ChatGPT Plugins|Open ChatGPT Plugins/i,
         }),
       ).toHaveAttribute(
         "href",
-        "https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt-beta",
+        "https://developers.openai.com/api/docs/guides/custom-mcp-server",
       );
       await expect(
         page.locator('img[src="/images/usage/mcp-use-case.png"]').first(),

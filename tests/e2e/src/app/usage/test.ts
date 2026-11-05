@@ -94,11 +94,11 @@ test("usage pages expose their primary handoff", { tag: "@Site/Web" }, async ({
     await expect(mcpEndpointButton).toHaveAttribute("data-slot", "button");
     await expect(
       page.getByRole("link", {
-        name: /启用开发者模式|Enable Developer Mode/i,
+        name: /打开 ChatGPT Plugins|Open ChatGPT Plugins/i,
       }),
     ).toHaveAttribute(
       "href",
-      "https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt-beta",
+      "https://developers.openai.com/api/docs/guides/custom-mcp-server",
     );
     await expect(
       page.getByRole("link", {
@@ -142,7 +142,7 @@ test("usage pages expose their primary handoff", { tag: "@Site/Web" }, async ({
       page.getByRole("button", { name: /(?:身份验证|Authentication).*OAuth/i }),
     ).toHaveCount(0);
     await expect(
-      page.getByText(/完成 Life@USTC 授权|Authorize with Life@USTC/i),
+      page.getByText(/安装插件后|Install the plugin/i),
     ).toBeVisible();
 
     const clientTabs = page.getByRole("tab");
