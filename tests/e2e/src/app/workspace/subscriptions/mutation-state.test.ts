@@ -227,6 +227,11 @@ for (const role of ["regular", "suspended admin"] as const) {
               .getByRole("button", { name: operation, exact: true })
               .click();
           }
+          if (action === "remove")
+            await page
+              .getByRole("alertdialog")
+              .getByRole("button", { name: "Confirm Unsubscribe", exact: true })
+              .click();
           await expect(
             page.getByRole("button", { name: nextAction, exact: true }),
           ).toBeVisible();

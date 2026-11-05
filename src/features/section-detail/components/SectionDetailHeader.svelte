@@ -62,6 +62,7 @@ $: subscriptionsCopy = getWorkspacePageCopy(
   {/snippet}
   {#snippet actions()}
     <SectionDetailPrimaryActions
+      {courseName}
       onOpenCalendar={onOpenCalendar}
       onOpenSubscribe={onOpenSubscribe}
       retired={section.retiredAt != null}

@@ -354,6 +354,21 @@ requirements:
     test:
       file: tests/e2e/src/app/workspace/subscriptions/presentation-contract.test.ts
       name: subscription.kind-web-editor-location
+- id: subscription.cancel-confirmation
+  category: behavior
+  rule: Section detail and subscription management share cancellation impact copy, explicit confirmation, pending controls and recoverable failures. Opening or cancelling the confirmation does not write a subscription; only confirmation invokes the existing authorized mutation.
+  surfaces:
+  - web
+  acceptance:
+    given: An authenticated user owns a section subscription.
+    when: The user opens and cancels the section confirmation on desktop and mobile, then a controlled attempt fails and is explicitly retried.
+    then:
+    - Opening and choosing Keep Subscription produce no writes and preserve membership.
+    - Pending confirmation disables repeated actions and cannot be dismissed with Escape.
+    - A failed result retains the confirmation with a retryable error and unchanged membership.
+    test:
+      file: tests/e2e/src/app/sections/[jwId]/unsubscribe-confirmation.test.ts
+      name: section cancellation stays open during failure and explicit retry
 - id: subscription.section-viewer-kind
   category: presentation
   rule: A section detail shows the signed-in viewers current regular, auditor or teaching-assistant subscription kind separately from catalog facts and links to existing subscription management. This relation is read only through the private session projection and never enters public HTML or shared caches.

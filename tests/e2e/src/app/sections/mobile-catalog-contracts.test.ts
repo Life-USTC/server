@@ -332,6 +332,10 @@ for (const domain of ["Calendar", "Subscription"] as const) {
             await bar
               .getByRole("button", { name: "取消订阅教学班", exact: true })
               .click();
+            await page
+              .getByRole("alertdialog")
+              .getByRole("button", { name: "确认取消订阅", exact: true })
+              .click();
             await expect(
               bar.getByRole("button", { name: "订阅教学班", exact: true }),
             ).toBeVisible();
