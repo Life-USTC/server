@@ -138,9 +138,39 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                 await numeric.getByRole("combobox").selectOption("gte");
                 await numeric.locator("input").first().fill("4");
                 await applyCatalogFilters(page);
+                // This comparison keeps one row; wait for the applied state
+                // before editing a draft that navigation would initialize.
+                await expect
+                  .poll(() =>
+                    Object.fromEntries(new URL(page.url()).searchParams),
+                  )
+                  .toMatchObject({
+                    semesterId: "2609",
+                    teacher: "Lin",
+                    creditsOp: "gte",
+                    credits: "4",
+                  });
+                await expect(
+                  page.locator('[data-slot="active-filters"]'),
+                ).toContainText(
+                  locale === "en-us"
+                    ? "Credits: At least 4"
+                    : "学分: 大于等于 4",
+                );
                 await expect(rows).toHaveCount(1);
                 await page.getByRole("searchbox").fill("Physics");
                 await applyCatalogFilters(page);
+                await expect
+                  .poll(() =>
+                    Object.fromEntries(new URL(page.url()).searchParams),
+                  )
+                  .toMatchObject({
+                    search: "Physics",
+                    semesterId: "2609",
+                    teacher: "Lin",
+                    creditsOp: "gte",
+                    credits: "4",
+                  });
                 await expect(rows).toHaveCount(0);
                 await expect(
                   page
