@@ -76,6 +76,13 @@ test.describe("/account/settings/profile 个人资料设置", () => {
     account,
     isolatedWorker,
   }) => {
+    const originalName = account.name;
+    const newName = "Updated private profile";
+    const observeName = (name: string) => async () => {
+      expect(
+        await storedProfile(isolatedWorker.database.owner, account.id),
+      ).toEqual({ ...account, name, updatedAt: expect.any(Date) });
+    };
     await accountRun(
       {
         writes: [
@@ -84,12 +91,14 @@ test.describe("/account/settings/profile 个人资料设置", () => {
             200,
             "updateProfile",
             "/account/settings/profile?message=Success",
+            observeName(newName),
           ],
           [
             "/account/settings/profile",
             200,
             "updateProfile",
             "/account/settings/profile?message=Success",
+            observeName(originalName),
           ],
         ],
         audits: ["account_profile_update", "account_profile_update"],
@@ -104,8 +113,6 @@ test.describe("/account/settings/profile 个人资料设置", () => {
         const successToast = page
           .locator("[data-sonner-toast]")
           .filter({ hasText: /成功|Success|updated successfully/i });
-        const originalName = account.name;
-        const newName = "Updated private profile";
 
         await nameInput.fill(newName);
         const saveResponse = await observeAction(
@@ -119,9 +126,6 @@ test.describe("/account/settings/profile 个人资料设置", () => {
         );
         await saveResponse.body();
         await expect(successToast).toBeVisible();
-        expect(
-          await storedProfile(isolatedWorker.database.owner, account.id),
-        ).toMatchObject({ name: newName });
         await expect(page).toHaveURL(/\/account\/settings\/profile$/);
         await page.reload({ waitUntil: "domcontentloaded" });
         await waitForUiSettled(page);
@@ -140,22 +144,13 @@ test.describe("/account/settings/profile 个人资料设置", () => {
         );
         await rollbackResponse.body();
         await expect(successToast).toBeVisible();
-        expect(
-          await storedProfile(isolatedWorker.database.owner, account.id),
-        ).toMatchObject({
-          name: originalName,
-        });
         await expect(page).toHaveURL(/\/account\/settings\/profile$/);
         await page.reload({ waitUntil: "domcontentloaded" });
         await waitForUiSettled(page);
         await expect(page.locator("input#name")).toHaveValue(originalName, {
           timeout: 10_000,
         });
-        return async () => {
-          expect(
-            await storedProfile(isolatedWorker.database.owner, account.id),
-          ).toMatchObject({ name: originalName, username: account.username });
-        };
+        return observeName(originalName);
       },
     );
   });

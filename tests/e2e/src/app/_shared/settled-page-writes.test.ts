@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { gzipSync } from "node:zlib";
 import { test as base, expect, type Page } from "@playwright/test";
 import { createDeferred } from "../../../../shared/deferred";
+import { createAccountWriteObserver } from "../../../utils/account-write-observer";
 import { withBrowserWorkflow } from "../../../utils/browser-workflow";
 import { withSettledPageWrites } from "../../../utils/settled-page-writes";
 
@@ -691,3 +692,94 @@ test("pre-fetch failure aborts the paused browser write without sending it", {
   expect(endpoint.writes).toEqual([]);
   expect(page.isClosed()).toBe(true);
 });
+
+for (const stateFails of [false, true]) {
+  test(`account write state gates browser continuation, failure=${stateFails}`, {
+    tag: "@Infrastructure/Runtime",
+  }, async ({ page, endpoint }) => {
+    const entered = createDeferred();
+    const release = createDeferred();
+    const stateError = new Error("Independent account state mismatch");
+    const observer = createAccountWriteObserver([
+      [
+        "/write",
+        200,
+        undefined,
+        undefined,
+        async () => {
+          expect(endpoint.writes).toEqual([
+            { method: "POST", path: "/write", body: "saved name" },
+          ]);
+          entered.resolve();
+          await release.promise;
+          if (stateFails) throw stateError;
+        },
+      ],
+      [
+        "/rollback",
+        200,
+        undefined,
+        undefined,
+        async () => {
+          expect(endpoint.writes).toEqual([
+            { method: "POST", path: "/write", body: "saved name" },
+            { method: "POST", path: "/rollback", body: "original name" },
+          ]);
+        },
+      ],
+    ]);
+    endpoint.release();
+    const result = withSettledPageWrites(
+      page,
+      `${endpoint.origin}/**`,
+      async () => {
+        await page.goto(endpoint.origin);
+        await page.evaluate(() => {
+          document.querySelector("#write")?.addEventListener("click", () => {
+            void (async () => {
+              try {
+                await fetch("/write", { method: "POST", body: "saved name" });
+                document.body.dataset.saved = "yes";
+                await fetch("/rollback", {
+                  method: "POST",
+                  body: "original name",
+                });
+                document.body.dataset.restored = "yes";
+              } catch {
+                document.body.dataset.failed = "yes";
+              }
+            })();
+          });
+        });
+        await page.getByRole("button", { name: "Write", exact: true }).click();
+        await entered.promise;
+        expect(
+          await page.locator("body").getAttribute("data-saved"),
+        ).toBeNull();
+        expect(endpoint.writes).toHaveLength(1);
+        release.resolve();
+        await expect(page.locator("body")).toHaveAttribute(
+          stateFails ? "data-failed" : "data-restored",
+          "yes",
+        );
+      },
+      observer.observe,
+    ).catch((error: unknown) => error);
+    try {
+      const error = await result;
+      expect(page.isClosed()).toBe(true);
+      if (stateFails) {
+        expect(workflowErrors(error)).toEqual([stateError]);
+        expect(endpoint.writes).toHaveLength(1);
+        expect(() => observer.assertStateObserved()).toThrow();
+      } else {
+        expect(error).toBeUndefined();
+        expect(endpoint.writes).toHaveLength(2);
+        observer.assertStateObserved();
+      }
+    } finally {
+      release.resolve();
+      await result;
+    }
+  });
+}
