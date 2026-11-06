@@ -48,6 +48,7 @@ export let subscriptionAction: (
 ) => SubmitFunction;
 export let subscriptionPendingAction: SubscriptionActionKey | null;
 export let viewer: SectionHeaderViewer;
+let locale: "en-us" | "zh-cn";
 $: locale = page.data.locale === "en-us" ? "en-us" : "zh-cn";
 $: hasCourseName = courseName !== section.code;
 $: teacherNames = catalogLocalizedNames(section.teachers ?? [], locale);
