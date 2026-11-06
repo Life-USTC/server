@@ -425,10 +425,11 @@ capabilities:
           - course.jwId
         web-history:
           primary:
-          - section.semester.nameCn
+          - course.namePrimary
           secondary:
           - section.teachers.namePrimary
           - section.code
+          - section.semester.nameCn
           - section.campus.namePrimary
           - section.stdCount
           - section.limitCount

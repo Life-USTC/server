@@ -508,7 +508,7 @@ for (const locale of ["zh-cn", "en-us"] as const)
                         .first();
                 const identity =
                   kind === "course" && width === 1280
-                    ? offering.getByText(semester, { exact: true }).first()
+                    ? heading
                     : offering
                         .getByText(name(course, locale), { exact: false })
                         .first();
@@ -517,7 +517,12 @@ for (const locale of ["zh-cn", "en-us"] as const)
                   identity,
                   primary:
                     kind === "course"
-                      ? { "section.semester.nameCn": text(offering, semester) }
+                      ? {
+                          "course.namePrimary": field(
+                            identity,
+                            name(course, locale),
+                          ),
+                        }
                       : {
                           "section.course.namePrimary": field(
                             identity,
@@ -527,6 +532,7 @@ for (const locale of ["zh-cn", "en-us"] as const)
                   secondary:
                     kind === "course"
                       ? {
+                          "section.semester.nameCn": text(offering, semester),
                           "section.teachers.namePrimary": field(
                             offering
                               .getByText(name(teacher, locale), {

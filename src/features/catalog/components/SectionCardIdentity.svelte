@@ -26,7 +26,7 @@ $: teacherNames = catalogLocalizedNames(teachers, locale);
     <Item.Description class="line-clamp-none break-words">{teacherNames}</Item.Description>
   {/if}
   {#if hasCourseName || semester?.nameCn}
-  <div class="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+  <div class="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
     {#if hasCourseName}<span class="min-w-0 font-mono [overflow-wrap:anywhere]" data-slot="catalog-code">{code}</span>{/if}
     {#if semester?.nameCn}<span>{formatSemesterName(locale, semester.nameCn)}</span>{/if}
   </div>

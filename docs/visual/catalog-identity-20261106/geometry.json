@@ -1,0 +1,234 @@
+[
+  {
+    "phase": "before",
+    "locale": "en-us",
+    "width": 390,
+    "errors": [],
+    "scrollWidth": 375,
+    "sections": [
+      {
+        "name": "discovery",
+        "text": "Discovery cardsSemester  Course Name  Section Code  Teachers  Credits  Capacity  Campus   Computer Vision and Pattern Recognition: Algorithms for Complex Scenes and Interdisciplinary Applications (计算机视觉与模式识别：复杂场景中的算法与应用) Fall 2026\n                      · Professor Wang (王老师) COMP6001P.01  Credits: 3 Capacity: 42 / 60 Gaoxin Campus   Semester   Course Name   Section Code   Teachers   Credits   Capacity   Campus   Fall 2026 Computer Vision and Pattern Recognition: Algorithms for Complex Scenes and Interdisciplinary Applications (计算机视觉与模式识别：复杂场景中的算法与应用)  COMP6001P.01  Professor Wang (王老师)  3 42 / 60 Gaoxin Campus ",
+        "bounds": {
+          "x": 20,
+          "y": 144,
+          "width": 335,
+          "height": 416.75,
+          "top": 144,
+          "right": 355,
+          "bottom": 560.75,
+          "left": 20
+        }
+      },
+      {
+        "name": "course",
+        "text": "Course historyFall 2026 Professor Wang (王老师) COMP6001P.01  Campus: Gaoxin Campus Capacity: 42 / 60",
+        "bounds": {
+          "x": 20,
+          "y": 592.75,
+          "width": 335,
+          "height": 132.25,
+          "top": 592.75,
+          "right": 355,
+          "bottom": 725,
+          "left": 20
+        }
+      },
+      {
+        "name": "teacher",
+        "text": "Teacher historyComputer Vision and Pattern Recognition: Algorithms for Complex Scenes and Interdisciplinary Applications (计算机视觉与模式识别：复杂场景中的算法与应用) COMP6001P.01  Fall 2026 3 Credits",
+        "bounds": {
+          "x": 20,
+          "y": 757,
+          "width": 335,
+          "height": 222.75,
+          "top": 757,
+          "right": 355,
+          "bottom": 979.75,
+          "left": 20
+        }
+      }
+    ]
+  },
+  {
+    "phase": "after",
+    "locale": "en-us",
+    "width": 390,
+    "errors": [],
+    "scrollWidth": 375,
+    "sections": [
+      {
+        "name": "discovery",
+        "text": "Discovery cardsSemester  Course Name  Section Code  Teachers  Credits  Capacity  Campus   Computer Vision and Pattern Recognition: Algorithms for Complex Scenes and Interdisciplinary Applications (计算机视觉与模式识别：复杂场景中的算法与应用) Professor Wang (王老师) COMP6001P.01 Fall 2026 Credits: 3 Capacity: 42 / 60 Gaoxin Campus   Semester   Course Name   Section Code   Teachers   Credits   Capacity   Campus   Fall 2026 Computer Vision and Pattern Recognition: Algorithms for Complex Scenes and Interdisciplinary Applications (计算机视觉与模式识别：复杂场景中的算法与应用)  COMP6001P.01  Professor Wang (王老师)  3 42 / 60 Gaoxin Campus ",
+        "bounds": {
+          "x": 20,
+          "y": 144,
+          "width": 335,
+          "height": 358,
+          "top": 144,
+          "right": 355,
+          "bottom": 502,
+          "left": 20
+        }
+      },
+      {
+        "name": "course",
+        "text": "Course historyComputer Vision and Pattern Recognition: Algorithms for Complex Scenes and Interdisciplinary Applications (计算机视觉与模式识别：复杂场景中的算法与应用) Professor Wang (王老师) COMP6001P.01 Fall 2026 Campus: Gaoxin Campus Capacity: 42 / 60",
+        "bounds": {
+          "x": 20,
+          "y": 534,
+          "width": 335,
+          "height": 210,
+          "top": 534,
+          "right": 355,
+          "bottom": 744,
+          "left": 20
+        }
+      },
+      {
+        "name": "teacher",
+        "text": "Teacher historyComputer Vision and Pattern Recognition: Algorithms for Complex Scenes and Interdisciplinary Applications (计算机视觉与模式识别：复杂场景中的算法与应用) Professor Wang (王老师) COMP6001P.01 Fall 2026 3 Credits",
+        "bounds": {
+          "x": 20,
+          "y": 776,
+          "width": 335,
+          "height": 210,
+          "top": 776,
+          "right": 355,
+          "bottom": 986,
+          "left": 20
+        }
+      },
+      {
+        "name": "missing",
+        "text": "Missing optional fieldsCOMP6001P.02-LONG-CODE-WITHOUT-OPTIONAL-CONTEXT  ",
+        "bounds": {
+          "x": 20,
+          "y": 1018,
+          "width": 335,
+          "height": 98.5,
+          "top": 1018,
+          "right": 355,
+          "bottom": 1116.5,
+          "left": 20
+        }
+      }
+    ]
+  },
+  {
+    "phase": "before",
+    "locale": "zh-cn",
+    "width": 768,
+    "errors": [],
+    "scrollWidth": 753,
+    "sections": [
+      {
+        "name": "discovery",
+        "text": "Discovery cards学期  课程名称  教学班代码  教师  学分  容量  校区   计算机视觉与模式识别：复杂场景中的算法与应用 2026年秋季学期\n                      · 王老师 COMP6001P.01  学分: 3 容量: 42 / 60 高新校区   学期   课程名称   教学班代码   教师   学分   容量   校区   2026年秋季学期 计算机视觉与模式识别：复杂场景中的算法与应用  COMP6001P.01  王老师  3 42 / 60 高新校区 ",
+        "bounds": {
+          "x": 20,
+          "y": 104,
+          "width": 713,
+          "height": 164.25,
+          "top": 104,
+          "right": 733,
+          "bottom": 268.25,
+          "left": 20
+        }
+      },
+      {
+        "name": "course",
+        "text": "Course history2026年秋季学期 王老师 COMP6001P.01  校区: 高新校区 容量: 42 / 60",
+        "bounds": {
+          "x": 20,
+          "y": 300.25,
+          "width": 713,
+          "height": 132.25,
+          "top": 300.25,
+          "right": 733,
+          "bottom": 432.5,
+          "left": 20
+        }
+      },
+      {
+        "name": "teacher",
+        "text": "Teacher history计算机视觉与模式识别：复杂场景中的算法与应用 COMP6001P.01  2026年秋季学期 3 学分",
+        "bounds": {
+          "x": 20,
+          "y": 464.5,
+          "width": 713,
+          "height": 108,
+          "top": 464.5,
+          "right": 733,
+          "bottom": 572.5,
+          "left": 20
+        }
+      }
+    ]
+  },
+  {
+    "phase": "after",
+    "locale": "zh-cn",
+    "width": 768,
+    "errors": [],
+    "scrollWidth": 753,
+    "sections": [
+      {
+        "name": "discovery",
+        "text": "Discovery cards学期  课程名称  教学班代码  教师  学分  容量  校区   计算机视觉与模式识别：复杂场景中的算法与应用 王老师 COMP6001P.01 2026年秋季学期 学分: 3 容量: 42 / 60 高新校区   学期   课程名称   教学班代码   教师   学分   容量   校区   2026年秋季学期 计算机视觉与模式识别：复杂场景中的算法与应用  COMP6001P.01  王老师  3 42 / 60 高新校区 ",
+        "bounds": {
+          "x": 20,
+          "y": 104,
+          "width": 713,
+          "height": 184.25,
+          "top": 104,
+          "right": 733,
+          "bottom": 288.25,
+          "left": 20
+        }
+      },
+      {
+        "name": "course",
+        "text": "Course history计算机视觉与模式识别：复杂场景中的算法与应用 王老师 COMP6001P.01 2026年秋季学期 校区: 高新校区 容量: 42 / 60",
+        "bounds": {
+          "x": 20,
+          "y": 320.25,
+          "width": 713,
+          "height": 152.25,
+          "top": 320.25,
+          "right": 733,
+          "bottom": 472.5,
+          "left": 20
+        }
+      },
+      {
+        "name": "teacher",
+        "text": "Teacher history计算机视觉与模式识别：复杂场景中的算法与应用 王老师 COMP6001P.01 2026年秋季学期 3 学分",
+        "bounds": {
+          "x": 20,
+          "y": 504.5,
+          "width": 713,
+          "height": 152.25,
+          "top": 504.5,
+          "right": 733,
+          "bottom": 656.75,
+          "left": 20
+        }
+      },
+      {
+        "name": "missing",
+        "text": "Missing optional fieldsCOMP6001P.02-LONG-CODE-WITHOUT-OPTIONAL-CONTEXT  ",
+        "bounds": {
+          "x": 20,
+          "y": 688.75,
+          "width": 713,
+          "height": 78.25,
+          "top": 688.75,
+          "right": 733,
+          "bottom": 767,
+          "left": 20
+        }
+      }
+    ]
+  }
+]
