@@ -159,6 +159,11 @@ async function copyInstallCommand() {
   }
 </style>
 
+<!-- These captured CLI samples use two terminal cells per Han character. -->
+{#snippet terminalOutput(text: string)}
+  {#each text.split(/(\p{Script=Han})/u) as fragment}{#if /^\p{Script=Han}$/u.test(fragment)}<span class="inline-block w-[2ch]">{fragment}</span>{:else}{fragment}{/if}{/each}
+{/snippet}
+
 <svelte:head><title>{data.metadataTitle} - Life@USTC</title></svelte:head>
 
 {#if installCopied}
@@ -346,7 +351,7 @@ async function copyInstallCommand() {
                   <code class="break-words">{step.title}</code>
                 </div>
                 <pre
-                  class="min-w-0 flex-1 overflow-x-auto whitespace-pre font-mono text-muted-foreground text-xs leading-6">{(step.resultLines ?? []).join("\n")}</pre
+                  class="min-w-0 flex-1 overflow-x-auto whitespace-pre font-mono text-muted-foreground text-xs leading-6">{@render terminalOutput((step.resultLines ?? []).join("\n"))}</pre
                 >
               </div>
             </article>
