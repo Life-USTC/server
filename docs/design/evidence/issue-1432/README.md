@@ -84,5 +84,11 @@ check the single-column geometry, and keep every persisted-create and effects
 assertion. No case, deadline, mutation or audit assertion was removed. Local
 actual-component checks at 1280/390px verified both rendered revisions and the
 unchanged description form value; see [the 390px preview](repair-preview-390.png).
+The preview image waits for the actual finite tab transitions to finish. The
+product stylesheet, including the shadcn `data-active` custom variant, is loaded
+unchanged. DOM state and final computed styling agree: Preview is selected with
+a white background and shadow, while Write is unselected. An earlier visual
+observation captured an intermediate transition frame; it did not establish a
+product tab-state or stylesheet defect. No product tab primitive was changed.
 The responsive minimum-height unit test also passes after the correction.
 Full database-backed browser acceptance remains the CI gate.
