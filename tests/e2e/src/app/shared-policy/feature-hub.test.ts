@@ -335,9 +335,14 @@ test("home and navigation stay reachable through the tablet range", {
     await menu.focus();
     await page.keyboard.press("Enter");
     await expect(menu).toHaveAttribute("aria-expanded", "true");
+    await gotoAndWaitForReady(page, "/");
+    await expect(menu).toHaveAttribute("aria-expanded", "true");
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(width);
+    await menu.focus();
+    await page.keyboard.press("Enter");
+    await expect(menu).toHaveAttribute("aria-expanded", "false");
   }
 });
 
