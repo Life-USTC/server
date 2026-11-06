@@ -172,11 +172,11 @@ function overflowClass(index: number, shown: string, hidden: string): string {
         {:else if activities.length === 0}
           {@render note(info.activities.empty)}
         {:else}
-          {#each [false, true] as ongoing}
-            {@const group = activities.filter((item) => Boolean(item.ongoing) === ongoing)}
+          {#each [false, true] as crossDay}
+            {@const group = activities.filter((item) => item.crossDay === crossDay)}
             {#if group.length}
               <div class="grid min-w-0 gap-1">
-                <h3 class="text-sm font-medium">{ongoing ? info.activities.ongoing : info.activities.upcoming}</h3>
+                <h3 class="text-sm font-medium">{crossDay ? info.activities.crossDay : info.activities.upcoming}</h3>
                 {@render itemList(group, info.activities.empty)}
               </div>
             {/if}

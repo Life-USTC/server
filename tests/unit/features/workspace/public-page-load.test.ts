@@ -147,7 +147,7 @@ describe("public page loaders", () => {
       "/catalog/young-events/young-1",
     );
     expect(
-      result.information.activities?.map(({ ongoing }) => ongoing),
+      result.information.activities?.map(({ crossDay }) => crossDay),
     ).toEqual([false, true]);
     expect(result.information.activities?.[1]?.dateLabel).toContain(
       "2027-01-02",

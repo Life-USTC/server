@@ -426,7 +426,7 @@
       },
       "activities": {
         "upcoming": "今日及后续活动",
-        "ongoing": "跨日活动",
+        "crossDay": "跨日活动",
         "title": "校园活动",
         "viewAll": "全部第二课堂活动",
         "unavailable": "活动暂不可用",

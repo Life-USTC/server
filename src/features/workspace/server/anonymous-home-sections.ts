@@ -99,13 +99,13 @@ export type HomeListItem = {
   dateLabel: string | null;
 };
 
+export type HomeActivityItem = HomeListItem & { crossDay: boolean };
+
 /**
  * `null` means the section could not be read and renders as unavailable; an
  * empty list means it was read successfully and has nothing to show. The
  * component tells those apart, so a down upstream never looks like quiet news.
  */
-export type HomeActivityItem = HomeListItem & { ongoing: boolean };
-
 export type AnonymousHomeInformation = {
   activities: HomeActivityItem[] | null;
   notices: HomeListItem[] | null;
@@ -261,7 +261,7 @@ async function readActivities(locale: AppLocale): Promise<HomeActivityItem[]> {
   const today = shanghaiDayjs().startOf("day");
   const copy = getWorkspacePageCopy(locale).youngEvents;
   const groups = await Promise.all(
-    [false, true].map(async (ongoing) => {
+    [false, true].map(async (crossDay) => {
       const { data } = await listYoungEvents({
         dateFrom: today.toDate(),
         page: 1,
@@ -271,7 +271,7 @@ async function readActivities(locale: AppLocale): Promise<HomeActivityItem[]> {
           active: "true",
           timeBasis: "activity",
           startAt: today.format("YYYY-MM-DD"),
-          startAtOp: ongoing ? "lt" : "gte",
+          startAtOp: crossDay ? "lt" : "gte",
         },
       });
       return data.map((event) => ({
@@ -279,7 +279,7 @@ async function readActivities(locale: AppLocale): Promise<HomeActivityItem[]> {
         href: `/catalog/young-events/${event.youngId}`,
         key: event.youngId,
         meta: event.location ?? event.organizer,
-        ongoing,
+        crossDay,
         title: event.name,
       }));
     }),
