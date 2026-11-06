@@ -61,3 +61,28 @@ Create and Cancel readable. After scrolling through the optional fields and
 opening the shortcut menu, choosing the next actual class set both entries to
 `2026-11-09T08:00` in Shanghai time. The menu occupied x=0–287 inside the 390px
 viewport, with equal scroll/client widths. These are local component observations.
+
+## Retained CI failure and correction
+
+Run [42177828959](https://github.com/Life-USTC/server/actions/runs/42177828959)
+at `0d90f69c` exposed one unit failure and three Homework browser failures.
+The original run and artifacts remain retained; no unchanged rerun replaced them.
+
+The new full-details action omitted the explicit medium-breakpoint minimum
+height required by the shared Button base. It now retains that height. Its
+horizontal mobile placement also squeezed the completion action to 139px in the
+original 320px browser case. Mobile detail actions now stack at full width;
+the existing test's 240px minimum assertion remains unchanged. The local actual
+component correction measures the primary action at 288px × 44px, with its
+footer ending at the 568px viewport boundary. See [the 320px correction](repair-detail-320.png).
+
+The two creation cases still expected a permanently visible split preview and
+two desktop form columns. The shared single-column/tab design replaces those
+presentation assumptions. The original cases now switch Preview → Write →
+Preview, retain heading/strong-content update and hidden-input assertions,
+check the single-column geometry, and keep every persisted-create and effects
+assertion. No case, deadline, mutation or audit assertion was removed. Local
+actual-component checks at 1280/390px verified both rendered revisions and the
+unchanged description form value; see [the 390px preview](repair-preview-390.png).
+The responsive minimum-height unit test also passes after the correction.
+Full database-backed browser acceptance remains the CI gate.

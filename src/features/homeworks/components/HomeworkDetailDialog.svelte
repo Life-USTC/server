@@ -131,10 +131,10 @@ onMount(() => {
 
       {#if showCompletion || (showContextActions && contextActions)}
         <Dialog.Footer class="mx-0 mb-0 shrink-0 rounded-none border-t-0 p-4 sm:rounded-b-xl sm:px-10 sm:py-5">
-          <div class="flex w-full flex-wrap items-center justify-end gap-3">
+          <div class="flex w-full flex-col items-stretch justify-end gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             {#if showCompletion && homework.completionRequired && onToggleCompletion}
               <Button
-                class="order-1 min-h-11 min-w-0 flex-1 whitespace-normal text-center sm:order-2 sm:min-h-9 sm:flex-none md:min-h-9"
+                class="order-1 min-h-11 min-w-0 w-full flex-1 whitespace-normal text-center sm:order-2 sm:min-h-9 sm:w-auto sm:flex-none md:min-h-9"
                 disabled={completionSaving || Boolean(readOnlyReason)}
                 title={readOnlyReason ?? undefined}
                 type="button"
