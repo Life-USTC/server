@@ -1,5 +1,8 @@
 import { expect, type Page } from "@playwright/test";
-import { expectNoPageHorizontalOverflow } from "../../../utils/page-ready";
+import {
+  expectNoPageHorizontalOverflow,
+  waitForUiSettled,
+} from "../../../utils/page-ready";
 import { busTest as test } from "../../../utils/personal-preferences-fixture";
 import {
   busContractState,
@@ -20,6 +23,7 @@ async function openPlanner(
     .context()
     .addCookies([{ name: "NEXT_LOCALE", value: locale, url: origin }]);
   await page.goto("/catalog/bus");
+  await waitForUiSettled(page);
   await expect(
     page.getByRole("button", { name: /Change route|调整路线/ }),
   ).toBeEnabled();
