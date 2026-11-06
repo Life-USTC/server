@@ -133,6 +133,10 @@ const calendarLabels = $derived({
   today: youngCopy.today,
   week: youngCopy.week,
   calendarEmpty: youngCopy.calendarEmpty,
+  dayTimes: youngCopy.dayTimes,
+  crossDayRanges: youngCopy.crossDayRanges,
+  startsAt: youngCopy.startsAt,
+  endsAt: youngCopy.endsAt,
 });
 </script>
 

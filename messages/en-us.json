@@ -1250,6 +1250,8 @@
     "previous": "Previous",
     "next": "Next",
     "calendarEmpty": "No dated events in this range",
+    "dayTimes": "Times on this date",
+    "crossDayRanges": "Multi-day ranges",
     "unknownDates": "Events with unknown dates",
     "sourceMissing": "Missing from the latest sync; check the official platform",
     "sourceFresh": "Source snapshot is fresh",

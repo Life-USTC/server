@@ -429,7 +429,7 @@ requirements:
       name: public list returns known conflict intervals instead of display envelopes
 - id: young-event.web-calendar-density
   category: presentation
-  rule: Month and week grids start on Sunday. Day cells show the date number; weekday names stay in the column header. Month and week grids list events that start that day. The day view lists continuing overlaps after events that start that day.
+  rule: Month and week grids start on Sunday. Day cells show the date number; weekday names stay in the column header. Month and week grids list events that start that day. The day view separates same-day starts from multi-day ranges, including ranges that start that day, without inferring daily sessions. Desktop and mobile reuse the same rows; activity and registration bases show their exact date ranges, including partial endpoints. Long names, ranges and locations wrap rather than hiding the end date.
   acceptance:
     given: A Wednesday anchor and events that start on that day or only continue into it.
     when: The calendar builds the week range and the day list.

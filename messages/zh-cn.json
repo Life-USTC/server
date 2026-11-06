@@ -2935,6 +2935,8 @@
     "previous": "上一页",
     "next": "下一页",
     "calendarEmpty": "此范围内没有日期明确的活动",
+    "dayTimes": "当日时间",
+    "crossDayRanges": "跨日范围",
     "unknownDates": "日期未知的活动",
     "sourceMissing": "本次同步未收录，请以官方平台为准",
     "sourceFresh": "数据源快照较新",

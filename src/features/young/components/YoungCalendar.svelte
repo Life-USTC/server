@@ -16,6 +16,7 @@ import {
   youngCalendarRange,
   youngCalendarWeeks,
 } from "../lib/young-calendar";
+import { youngDateRange, youngDateTime } from "../lib/young-event-display";
 import type {
   YoungCalendarEvent,
   YoungEventTimeBasis,
@@ -40,6 +41,10 @@ export let labels: {
   moreEvents: string;
   sourceMissing: string;
   calendarEmpty: string;
+  dayTimes: string;
+  crossDayRanges: string;
+  startsAt: string;
+  endsAt: string;
 };
 export let hrefFor: (view: YoungCalendarView, date: string) => string = (
   targetView,
@@ -103,66 +108,66 @@ function formatTime(event: YoungCalendarEvent) {
   const start =
     timeBasis === "registration" ? event.applyStartAt : event.startAt;
   const end = timeBasis === "registration" ? event.applyEndAt : event.endAt;
-  if (!start && !end) return "";
-  const formatter = createShanghaiDateTimeFormatter(locale, {
-    timeZone: "Asia/Shanghai",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  });
-  return `${start ? formatter.format(new Date(start)) : "?"} – ${end ? formatter.format(new Date(end)) : "?"}`;
+  return youngDateRange(start, end, labels) ?? "";
 }
 
-function eventMeta(event: YoungCalendarEvent, conflicts: Set<string>) {
-  return [
-    formatTime(event),
-    event.location,
-    conflicts.has(event.youngId) ? conflictLabel : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+function crossesDate(event: YoungCalendarEvent) {
+  const start =
+    timeBasis === "registration" ? event.applyStartAt : event.startAt;
+  const end = timeBasis === "registration" ? event.applyEndAt : event.endAt;
+  return Boolean(
+    start &&
+      end &&
+      youngDateTime(start)?.split(" ")[0] !== youngDateTime(end)?.split(" ")[0],
+  );
 }
 </script>
 
-{#snippet agendaRows(agendaDays: typeof days)}
-      {#each agendaDays as day}
-        {@const visible = view === "day" ? day.events : day.startingEvents}
-        {@const limit = view === "week" ? 6 : view === "month" ? 3 : visible.length}
-        <section aria-labelledby={`young-agenda-${day.key}`} class="grid gap-2">
-          <h3 id={`young-agenda-${day.key}`} class="text-sm font-medium">
-            <a class="hover:underline" href={hrefFor("day", day.key)}>
-              {createShanghaiDateTimeFormatter(locale, {
-                timeZone: "Asia/Shanghai",
-                weekday: "long",
-                month: "short",
-                day: "numeric",
-              }).format(day.date)}
-            </a>
-            {#if day.isToday}<Badge variant="secondary">{labels.today}</Badge>{/if}
-          </h3>
-          {#if visible.length > 0}
-            <ul class="divide-y">
-              {#each visible.slice(0, limit) as event (event.youngId)}
-                <li>
-                  <a class="grid grid-cols-[3.25rem_minmax(0,1fr)] items-baseline gap-3 py-2 text-sm hover:bg-muted/60" href={eventHref(event)}>
-                    <time class="tabular-nums text-muted-foreground">{formatClock(event) || "–"}</time>
-                    <span class="min-w-0">
-                      <span class="block truncate font-medium" data-slot="item-title">{event.name}</span>
-                      <span class="block truncate text-muted-foreground text-xs" data-slot="item-description">{eventMeta(event, conflictIds)}</span>
-                      {#if event.sourceMissing}
-                        <span class="block truncate text-muted-foreground text-xs" data-slot="item-description">{labels.sourceMissing}</span>
-                      {/if}
-                    </span>
-                  </a>
-                </li>
-              {/each}
-            </ul>
-            {#if visible.length > limit}
-              <a class="text-muted-foreground text-xs underline" href={hrefFor("day", day.key)}>{labels.moreEvents.replace("{count}", String(visible.length - limit))}</a>
-            {/if}
+{#snippet eventRows(items: typeof events)}
+  <ul class="divide-y">
+    {#each items as event (event.youngId)}
+      <li>
+        <a class="grid min-w-0 gap-1 py-2 text-sm [overflow-wrap:anywhere] hover:bg-muted/60" href={eventHref(event)}>
+          <span class="font-medium" data-slot="item-title">{event.name}</span>
+          <span class="text-muted-foreground text-xs tabular-nums" data-slot="item-description">{formatTime(event)}</span>
+          {#if event.location}<span class="text-muted-foreground text-xs" data-slot="item-description">{event.location}</span>{/if}
+          {#if conflictIds.has(event.youngId)}<Badge variant="secondary" class="justify-self-start">{conflictLabel}</Badge>{/if}
+          {#if event.sourceMissing}<span class="text-muted-foreground text-xs" data-slot="item-description">{labels.sourceMissing}</span>{/if}
+        </a>
+      </li>
+    {/each}
+  </ul>
+{/snippet}
+
+{#snippet agendaRows(agendaDays: typeof days, prefix = "young-agenda")}
+  {#each agendaDays as day}
+    {@const visible = view === "day" ? day.events : day.startingEvents}
+    {@const limit = view === "week" ? 6 : view === "month" ? 3 : visible.length}
+    <section aria-labelledby={`${prefix}-${day.key}`} class="grid min-w-0 gap-2">
+      <h3 id={`${prefix}-${day.key}`} class="text-sm font-medium">
+        <a class="hover:underline" href={hrefFor("day", day.key)}>
+          {createShanghaiDateTimeFormatter(locale, {timeZone: "Asia/Shanghai", weekday: "long", month: "short", day: "numeric"}).format(day.date)}
+        </a>
+        {#if day.isToday}<Badge variant="secondary">{labels.today}</Badge>{/if}
+      </h3>
+      {#if view === "day"}
+        {#each [false, true] as crossDay}
+          {@const group = visible.filter((event) => crossesDate(event) === crossDay)}
+          {#if group.length}
+            <div class="grid min-w-0 gap-1">
+              <h4 class="text-sm font-medium">{crossDay ? labels.crossDayRanges : labels.dayTimes}</h4>
+              {@render eventRows(group)}
+            </div>
           {/if}
-        </section>
-      {/each}
+        {/each}
+      {:else}
+        {@render eventRows(visible.slice(0, limit))}
+        {#if visible.length > limit}
+          <a class="text-muted-foreground text-xs underline" href={hrefFor("day", day.key)}>{labels.moreEvents.replace("{count}", String(visible.length - limit))}</a>
+        {/if}
+      {/if}
+    </section>
+  {/each}
 {/snippet}
 
 <section class="grid gap-4" data-testid="young-calendar">
@@ -201,24 +206,9 @@ function eventMeta(event: YoungCalendarEvent, conflicts: Set<string>) {
 
   <div class="hidden min-w-0 md:block" data-testid="young-calendar-grid">
     {#if view === "day"}
-      {@const day = days[0]}
-      {#if day}
-        <div class="grid gap-2 rounded-xl border p-4">
-          <div class="font-medium text-sm">
-            {createShanghaiDateTimeFormatter(locale, {
-              timeZone: "Asia/Shanghai",
-              dateStyle: "full",
-            }).format(day.date)}
-          </div>
-          {#each day.events as event (event.youngId)}
-            <a class="grid gap-1 rounded-md px-2 py-2 text-sm hover:bg-muted" href={eventHref(event)}>
-              <div class="font-medium">{event.name}</div>
-              <div class="truncate text-muted-foreground text-xs">{eventMeta(event, conflictIds)}</div>
-              <div class="truncate text-muted-foreground text-xs">{event.sourceMissing ? labels.sourceMissing : ""}</div>
-            </a>
-          {/each}
-        </div>
-      {/if}
+      <div class="grid min-w-0 gap-2 rounded-xl border p-4">
+        {@render agendaRows(days, "young-grid")}
+      </div>
     {:else}
       <CalendarGrid
         density="lines"
