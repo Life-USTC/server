@@ -46,11 +46,11 @@ Screenshots support review of text hierarchy and bounds. Actual permission
 projections, persisted create/edit/completion flows, production navigation and
 the remaining #1432 outcomes require the full application checks.
 
-| Entry / viewport | Before | After |
-| --- | --- | --- |
-| Workspace, 390px | ![Workspace before at 390px](before-workspace-en-us-390.png) | ![Workspace after at 390px](after-workspace-en-us-390.png) |
+| Entry / viewport  | Before                                                         | After                                                        |
+| ----------------- | -------------------------------------------------------------- | ------------------------------------------------------------ |
+| Workspace, 390px  | ![Workspace before at 390px](before-workspace-en-us-390.png)   | ![Workspace after at 390px](after-workspace-en-us-390.png)   |
 | Workspace, 1440px | ![Workspace before at 1440px](before-workspace-en-us-1440.png) | ![Workspace after at 1440px](after-workspace-en-us-1440.png) |
-| Section, 390px | ![Section before at 390px](before-section-en-us-390.png) | ![Section after at 390px](after-section-en-us-390.png) |
+| Section, 390px    | ![Section before at 390px](before-section-en-us-390.png)       | ![Section after at 390px](after-section-en-us-390.png)       |
 
 Additional observations: [full-details link and footer](after-detail-en-us-390.png)
 and [the bounded deadline menu](after-workspace-en-us-390-deadlines.png).
