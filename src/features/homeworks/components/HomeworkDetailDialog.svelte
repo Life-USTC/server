@@ -85,13 +85,13 @@ onMount(() => {
           {homework.title}
         </Dialog.Title>
         {#if contextLabel && contextHref}
-          <Dialog.Description class="truncate text-sm sm:text-base">
+          <Dialog.Description class="break-words text-sm sm:text-base">
             <a class="underline-offset-4 hover:underline" href={contextHref}>
               {contextLabel}
             </a>
           </Dialog.Description>
         {:else if contextLabel}
-          <Dialog.Description class="truncate text-sm sm:text-base">
+          <Dialog.Description class="break-words text-sm sm:text-base">
             {contextLabel}
           </Dialog.Description>
         {/if}
@@ -131,10 +131,10 @@ onMount(() => {
 
       {#if showCompletion || (showContextActions && contextActions)}
         <Dialog.Footer class="mx-0 mb-0 shrink-0 rounded-none border-t-0 p-4 sm:rounded-b-xl sm:px-10 sm:py-5">
-          <div class="flex w-full items-center justify-end gap-3">
+          <div class="flex w-full flex-wrap items-center justify-end gap-3">
             {#if showCompletion && homework.completionRequired && onToggleCompletion}
               <Button
-                class="order-1 min-h-11 min-w-0 flex-1 sm:order-2 sm:min-h-9 sm:flex-none md:min-h-9"
+                class="order-1 min-h-11 min-w-0 flex-1 whitespace-normal text-center sm:order-2 sm:min-h-9 sm:flex-none md:min-h-9"
                 disabled={completionSaving || Boolean(readOnlyReason)}
                 title={readOnlyReason ?? undefined}
                 type="button"

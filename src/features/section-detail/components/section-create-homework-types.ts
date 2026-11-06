@@ -13,6 +13,7 @@ export type SectionCreateHomeworkFieldsCopy = HomeworkFormCopy &
 
 export type SectionCreateHomeworkCopy = SectionCreateHomeworkFieldsCopy & {
   auditTitle: string;
+  cancel: string;
   createAction: string;
   createTitle: string;
   subtitle: string;

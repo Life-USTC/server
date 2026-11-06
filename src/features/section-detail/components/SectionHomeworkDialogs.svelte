@@ -12,6 +12,7 @@ import type { SectionDetailHomeworkDialogsProps } from "./section-detail-dialog-
 
 export let readOnlyReason: string | null | undefined = null;
 export let referenceDate: string | undefined = undefined;
+export let classStarts: string[] = [];
 export let applyCreateDueAtSemesterEnd: SectionDetailHomeworkDialogsProps["applyCreateDueAtSemesterEnd"];
 export let applyCreateDueInMonth: SectionDetailHomeworkDialogsProps["applyCreateDueInMonth"];
 export let applyCreateDueInWeek: SectionDetailHomeworkDialogsProps["applyCreateDueInWeek"];
@@ -69,6 +70,8 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
 </script>
 
 <SectionCreateHomeworkDialog
+  {classStarts}
+  {locale}
   applyDueAtSemesterEnd={applyCreateDueAtSemesterEnd}
   applyDueInMonth={applyCreateDueInMonth}
   applyDueInWeek={applyCreateDueInWeek}
@@ -84,7 +87,6 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
   {homeworkMessage}
   openAuditDialog={() => setHomeworkAuditDialogOpen(true)}
   bind:publishedAt={createHomeworkPublishedAt}
-  {sectionCopy}
   {sectionLabel}
   show={showCreateHomework}
   bind:submissionDueAt={createHomeworkSubmissionDueAt}
@@ -92,6 +94,7 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
 />
 
 <SectionHomeworkDetailDialog
+  {classStarts}
   {readOnlyReason}
   {referenceDate}
   {CommentsPanel}

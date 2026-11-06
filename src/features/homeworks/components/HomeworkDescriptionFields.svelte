@@ -14,7 +14,6 @@ export let description = "";
 export let disabled = false;
 export let idPrefix = "homework";
 export let markdownModeLabel = "";
-export let previewLayout: "tabs" | "split" = "tabs";
 </script>
 
 <Field.Field data-disabled={disabled ? "true" : undefined}>
@@ -30,7 +29,6 @@ export let previewLayout: "tabs" | "split" = "tabs";
     name="description"
     placeholder={copy.descriptionPlaceholder}
     previewEmptyLabel={commentsCopy.previewEmpty}
-    {previewLayout}
     remarkPlugins={campusReferenceMarkdownPlugins}
     tabPreviewLabel={commentsCopy.tabPreview}
     tabWriteLabel={commentsCopy.tabWrite}

@@ -2017,6 +2017,7 @@
     "emptyTitle": "暂无作业",
     "createdAt": "创建于 {date}",
     "statusLabel": "状态",
+    "openFullDetails": "打开完整详情",
     "viewDetails": "查看详情",
     "dateTBD": "待定",
     "editAction": "编辑信息",

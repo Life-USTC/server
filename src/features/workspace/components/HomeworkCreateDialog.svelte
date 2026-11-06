@@ -43,7 +43,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
   >
     <Dialog.Content
       aria-describedby={undefined}
-      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(84dvh,52rem)] sm:max-h-[min(84dvh,52rem)] sm:max-w-6xl"
+      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-2xl flex-col gap-0 overflow-clip p-0 sm:h-[min(78vh,48rem)] sm:max-h-[min(78vh,48rem)] sm:max-w-2xl"
     >
       <form
         class="flex min-h-0 flex-1 flex-col overflow-hidden"
@@ -51,7 +51,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
         action="?/createHomework"
         use:enhance={createHomeworkAction}
       >
-        <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
+        <Dialog.Header class="shrink-0 px-5 pb-2 pt-5 pr-14 sm:px-6 sm:pt-6">
           <Dialog.Title class="break-words">{homeworksCopy.createTitle}</Dialog.Title>
         </Dialog.Header>
         <ScrollArea class="h-0 min-h-0 flex-1">
@@ -73,7 +73,7 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
             toShanghaiDateTimeLocalValue={toShanghaiDateTimeLocalValue}
           />
         </ScrollArea>
-        <Dialog.Footer class="mx-0 mb-0 shrink-0">
+        <Dialog.Footer class="mx-0 mb-0 shrink-0 border-t-0 sm:px-6">
           <Button
             disabled={isCreatingHomework}
             type="button"

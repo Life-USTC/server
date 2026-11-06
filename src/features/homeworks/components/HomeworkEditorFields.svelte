@@ -1,5 +1,6 @@
 <script lang="ts">
 import * as Field from "#lib/components/ui/field/index.js";
+import { buildHomeworkDueShortcuts } from "@/features/homeworks/lib/homework-due-shortcuts";
 import HomeworkDescriptionFields from "./HomeworkDescriptionFields.svelte";
 import HomeworkStyleGuide from "./HomeworkStyleGuide.svelte";
 import HomeworkTagFields from "./HomeworkTagFields.svelte";
@@ -23,6 +24,8 @@ export let commentsCopy: HomeworkFormCommentsCopy;
 export let copy: EditorCopy;
 export let description = "";
 export let disabled = false;
+export let classStarts: string[] = [];
+export let locale = "zh-cn";
 export let idPrefix = "homework";
 export let isMajor: boolean | undefined = undefined;
 export let markdownModeLabel = "";
@@ -32,12 +35,21 @@ export let styleGuidePrefix = idPrefix;
 export let submissionDueAt = "";
 export let submissionStartAt = "";
 export let title = "";
+
+const shortcutReferenceNow = new Date();
+$: dueShortcuts = buildHomeworkDueShortcuts({
+  classStarts,
+  copy,
+  locale,
+  now: shortcutReferenceNow,
+});
 </script>
 
 <Field.Group class="gap-4">
   <HomeworkTitleField {copy} {disabled} {idPrefix} {title} />
   <HomeworkTimestampFields
     {actions}
+    {dueShortcuts}
     bind:advancedOpen
     {capabilities}
     {copy}
@@ -56,9 +68,6 @@ export let title = "";
         {idPrefix}
         {markdownModeLabel}
       />
-      <HomeworkStyleGuide {copy} testIdPrefix={styleGuidePrefix} />
-    {/snippet}
-    {#snippet optionalSettings()}
       <HomeworkTagFields
         {copy}
         {disabled}
@@ -68,4 +77,5 @@ export let title = "";
       />
     {/snippet}
   </HomeworkTimestampFields>
+  <HomeworkStyleGuide {copy} testIdPrefix={styleGuidePrefix} />
 </Field.Group>

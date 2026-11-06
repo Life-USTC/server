@@ -103,7 +103,7 @@ test.describe("仪表盘作业", () => {
     );
   });
 
-  test("homework.workspace-style-guide-omitted", {
+  test("homework.workspace-shared-editor", {
     tag: "@Homework/Web",
   }, async ({ page, academic: _academic, homeworkRun }) => {
     await homeworkRun(
@@ -131,9 +131,20 @@ test.describe("仪表盘作业", () => {
           createDialog.getByRole("textbox", { name: "Details" }),
         ).toHaveAttribute("placeholder", /题目：/);
 
+        const guideTrigger = createDialog.getByTestId(
+          "workspace-homework-style-guide-trigger",
+        );
+        await expect(guideTrigger).toHaveAttribute("aria-expanded", "false");
         await expect(
-          createDialog.getByTestId("workspace-homework-style-guide-trigger"),
-        ).toHaveCount(0);
+          createDialog.getByRole("checkbox", { name: "Major assignment" }),
+        ).toBeVisible();
+        await expect(
+          createDialog.getByRole("checkbox", { name: "Team required" }),
+        ).toBeVisible();
+        await guideTrigger.click();
+        await expect(
+          createDialog.getByTestId("workspace-homework-style-guide-content"),
+        ).toBeVisible();
         await expect(
           createDialog.locator('[data-slot="dialog-description"]'),
         ).toHaveCount(0);

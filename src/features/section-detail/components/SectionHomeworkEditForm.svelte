@@ -13,6 +13,8 @@ import type {
 } from "./section-homework-display-types";
 
 export let applyDueAtSemesterEnd: SectionHomeworkTimestampAction;
+export let classStarts: string[] = [];
+export let locale: string;
 export let applyDueInMonth: SectionHomeworkTimestampAction;
 export let applyDueInWeek: SectionHomeworkTimestampAction;
 export let applyPublishNow: SectionHomeworkTimestampAction;
@@ -51,6 +53,8 @@ $: homeworkTimestampCapabilities = {
 >
   <Field.Group>
     <HomeworkEditorFields
+      {classStarts}
+      {locale}
       actions={homeworkTimestampActions}
       bind:advancedOpen={advancedOpen}
       capabilities={homeworkTimestampCapabilities}
