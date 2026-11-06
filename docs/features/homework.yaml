@@ -27,6 +27,8 @@ requirements:
       changes completion through the section list's existing detail entry.
     then:
     - Both lists show the same completion and relative deadline state, separately from major/team flags.
+    - Workspace cards, tables and details share the section list's explicit Pending, Completed and No completion required labels; missing deadlines do not replace Pending with TBD.
+    - Details show personal completion and deadline urgency only after the owning viewer projection resolves; anonymous, loading, failed and demo projections retain published dates and flags without claiming personal state.
     - Actual completion changes refresh the section row and preserve the absolute due date.
     - The detail entry retains existing completion permissions and teaching-assistant exclusions.
     test:

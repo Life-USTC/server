@@ -10,6 +10,7 @@ import type {
 } from "./section-detail-component-types";
 import type { SectionDetailHomeworkDialogsProps } from "./section-detail-dialog-types";
 
+export let showPersonalStatus = false;
 export let readOnlyReason: string | null | undefined = null;
 export let referenceDate: string | undefined = undefined;
 export let classStarts: string[] = [];
@@ -94,6 +95,7 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
 />
 
 <SectionHomeworkDetailDialog
+  {showPersonalStatus}
   {classStarts}
   {readOnlyReason}
   {referenceDate}

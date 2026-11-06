@@ -66,5 +66,6 @@ export type HomeworkDetailProps = {
   relativeEtaLabel: HomeworkDetailRelativeFormatter;
   showContextActions?: boolean;
   showCompletion?: boolean;
+  showPersonalStatus?: boolean;
   referenceDate?: HomeworkDateValue;
 };

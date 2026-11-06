@@ -7,8 +7,12 @@ import TableIconButton from "#lib/components/TableIconButton.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
+import HomeworkPersonalStatus from "@/features/homeworks/components/HomeworkPersonalStatus.svelte";
 import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
-import type { WorkspaceHomeworkItem } from "@/features/workspace/lib/workspace-controller-types";
+import type {
+  WorkspaceHomeworkItem,
+  WorkspaceHomeworksCopy,
+} from "@/features/workspace/lib/workspace-controller-types";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 
@@ -20,6 +24,7 @@ type HomeworkOverduePredicate = (
 ) => boolean;
 type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
+export let showPersonalStatus = false;
 export let readOnlyReason: string | null | undefined = null;
 export let locale: string;
 export let unknownSemesterLabel: string;
@@ -33,17 +38,17 @@ export let homeworkCopy: Record<string, string>;
 export let homeworkEtaLabel: HomeworkDateFormatter;
 export let homeworkIsOverdue: HomeworkOverduePredicate;
 export let homeworkSectionHref: HomeworkAction;
-export let homeworksCopy: Record<string, string>;
+export let homeworksCopy: WorkspaceHomeworksCopy;
 export let homeworkSavingById: Record<string, boolean>;
 export let selectedHomework: WorkspaceHomeworkItem | null;
 export let toggleHomeworkCompletion: (
   homework: WorkspaceHomeworkItem,
 ) => void | Promise<void>;
 
-function summaryBadges(homework: WorkspaceHomeworkItem) {
+function propertyBadges(homework: WorkspaceHomeworkItem) {
   return homeworkSummaryBadges(
     {
-      completed: Boolean(homework.completion),
+      completed: false,
       completionRequired: homework.completionRequired,
       isMajor: homework.isMajor === true,
       requiresTeam: homework.requiresTeam === true,
@@ -80,7 +85,7 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
               </button>
             </Item.Title>
             <Item.Description
-              class="line-clamp-none flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 break-words"
+              class="line-clamp-none grid min-w-0 gap-1 break-words"
             >
               <a
                 class="max-w-full break-words hover:underline"
@@ -88,30 +93,20 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
               >
                 {homework.section?.courseName ?? homeworkCopy.section}
               </a>
-              <span aria-hidden="true">·</span>
               <span class="max-w-full break-words">{formatSemesterName(locale, homework.section?.semesterName ?? unknownSemesterLabel)}</span>
-              <span aria-hidden="true">·</span>
               <span class="max-w-full break-words"
                 >{homeworkCopy.due}: {fmtDate(homework.submissionDueAt)}</span
               >
-              {#if homework.completionRequired === false}
-                <Badge variant="outline">{homeworksCopy.noCompletionRequired}</Badge>
-              {:else if !homework.completion}
-                <Badge
-                  data-status-token={homeworkIsOverdue(homework.submissionDueAt)
-                    ? "overdue"
-                    : undefined}
-                  variant={homeworkIsOverdue(homework.submissionDueAt)
-                    ? "status-overdue"
-                    : "ghost"}
-                >
-                  {homeworkEtaLabel(homework.submissionDueAt)}
-                </Badge>
-              {/if}
-              {#each summaryBadges(homework) as badge (badge.key)}
-                <Badge variant={badge.variant}>{badge.label}</Badge>
-              {/each}
+              {#if homework.isMajor || homework.requiresTeam}<span class="flex min-w-0 flex-wrap gap-2">
+                {#each propertyBadges(homework) as badge (badge.key)}<Badge variant={badge.variant}>{badge.label}</Badge>{/each}
+              </span>{/if}
             </Item.Description>
+            {#if showPersonalStatus}
+            <div class="grid min-w-0 gap-1" role="group" aria-label={homeworksCopy.myStatus}>
+              <span class="text-sm text-muted-foreground">{homeworksCopy.myStatus}</span>
+              <HomeworkPersonalStatus completed={Boolean(homework.completion)} completionRequired={homework.completionRequired !== false} copy={homeworksCopy} relativeLabel={homework.submissionDueAt ? homeworkEtaLabel(homework.submissionDueAt) : ""} overdue={homeworkIsOverdue(homework.submissionDueAt)} />
+            </div>
+            {/if}
           </Item.Content>
           <Item.Actions class="shrink-0 self-start">
             {#if homework.completionRequired !== false}

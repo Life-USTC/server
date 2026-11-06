@@ -9,8 +9,12 @@ import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
+import HomeworkPersonalStatus from "@/features/homeworks/components/HomeworkPersonalStatus.svelte";
 import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
-import type { WorkspaceHomeworkItem } from "@/features/workspace/lib/workspace-controller-types";
+import type {
+  WorkspaceHomeworkItem,
+  WorkspaceHomeworksCopy,
+} from "@/features/workspace/lib/workspace-controller-types";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 
@@ -22,6 +26,7 @@ type HomeworkOverduePredicate = (
 ) => boolean;
 type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
+export let showPersonalStatus = false;
 export let readOnlyReason: string | null | undefined = null;
 export let filterControls: Snippet<[string[], string, string]>;
 export let locale: string;
@@ -36,17 +41,17 @@ export let homeworkCopy: Record<string, string>;
 export let homeworkEtaLabel: HomeworkDateFormatter;
 export let homeworkIsOverdue: HomeworkOverduePredicate;
 export let homeworkSectionHref: HomeworkAction;
-export let homeworksCopy: Record<string, string>;
+export let homeworksCopy: WorkspaceHomeworksCopy;
 export let homeworkSavingById: Record<string, boolean>;
 export let selectedHomework: WorkspaceHomeworkItem | null;
 export let toggleHomeworkCompletion: (
   homework: WorkspaceHomeworkItem,
 ) => void | Promise<void>;
 
-function summaryBadges(homework: WorkspaceHomeworkItem) {
+function propertyBadges(homework: WorkspaceHomeworkItem) {
   return homeworkSummaryBadges(
     {
-      completed: Boolean(homework.completion),
+      completed: false,
       completionRequired: homework.completionRequired,
       isMajor: homework.isMajor === true,
       requiresTeam: homework.requiresTeam === true,
@@ -99,24 +104,13 @@ function summaryBadges(homework: WorkspaceHomeworkItem) {
             {fmtDate(homework.submissionDueAt)}
           </Table.Cell>
           <Table.Cell>
-            <div class="flex min-w-0 flex-wrap items-center gap-1.5">
-              {#if homework.completionRequired === false}
-                <Badge variant="outline">{homeworksCopy.noCompletionRequired}</Badge>
-              {:else if !homework.completion}
-                <Badge
-                  data-status-token={homeworkIsOverdue(homework.submissionDueAt)
-                    ? "overdue"
-                    : undefined}
-                  variant={homeworkIsOverdue(homework.submissionDueAt)
-                    ? "status-overdue"
-                    : "ghost"}
-                >
-                  {homeworkEtaLabel(homework.submissionDueAt)}
-                </Badge>
-              {/if}
-              {#each summaryBadges(homework) as badge (badge.key)}
+            <div class="grid min-w-0 gap-1">
+              {#if showPersonalStatus}<div role="group" aria-label={homeworksCopy.myStatus}><HomeworkPersonalStatus completed={Boolean(homework.completion)} completionRequired={homework.completionRequired !== false} copy={homeworksCopy} relativeLabel={homework.submissionDueAt ? homeworkEtaLabel(homework.submissionDueAt) : ""} overdue={homeworkIsOverdue(homework.submissionDueAt)} /></div>{/if}
+            {#if homework.isMajor || homework.requiresTeam}<div class="flex min-w-0 flex-wrap items-center gap-1.5">
+              {#each propertyBadges(homework) as badge (badge.key)}
                 <Badge variant={badge.variant}>{badge.label}</Badge>
               {/each}
+            </div>{/if}
             </div>
           </Table.Cell>
           <Table.Cell>

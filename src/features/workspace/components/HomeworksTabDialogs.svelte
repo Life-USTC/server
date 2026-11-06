@@ -23,6 +23,7 @@ import type {
 
 type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
+export let showPersonalStatus = false;
 export let readOnlyReason: string | null | undefined = null;
 export let CommentsPanel: HomeworkDetailCommentsPanel;
 export let applyHomeworkDueAtSemesterEnd: WorkspaceHomeworkDateShortcut;
@@ -95,6 +96,7 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
 {/if}
 
 <HomeworkDetailDialog
+  {showPersonalStatus}
   {readOnlyReason}
   freezeReferenceTime={Boolean(readOnlyReason)}
   CommentsPanel={CommentsPanel}

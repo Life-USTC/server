@@ -11,6 +11,7 @@ import type {
   HomeworkDetailRelativeFormatter,
 } from "./homework-detail-types";
 
+export let showPersonalStatus = false;
 export let copy: HomeworkDetailCopy;
 export let dateFallback: string;
 export let deadlineState: HomeworkDeadlineState;
@@ -25,7 +26,8 @@ $: isOverdue = deadlineState === "overdue";
 // Keep #1026: no deadline reminder once the homework is completed, and none at
 // all when the section does not require completion (#1038).
 $: showRelativeLabel = Boolean(
-  homework.submissionDueAt &&
+  showPersonalStatus &&
+    homework.submissionDueAt &&
     relativeLabel &&
     homework.completionRequired &&
     !homework.completed,
