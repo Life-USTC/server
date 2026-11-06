@@ -25,6 +25,7 @@ import type {
   SectionHomeworkTimestampAction,
 } from "./section-homework-display-types";
 
+export let showPersonalStatus = false;
 export let readOnlyReason: string | null | undefined = null;
 export let referenceDate: string | undefined = undefined;
 export let classStarts: string[] = [];
@@ -81,6 +82,7 @@ $: permalinkBaseHref = _selectedHomework
 </script>
 
 <HomeworkDetailDialog
+  {showPersonalStatus}
   {readOnlyReason}
   {referenceDate}
   freezeReferenceTime={Boolean(readOnlyReason)}

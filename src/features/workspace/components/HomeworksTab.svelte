@@ -177,6 +177,7 @@ $: ({
         {@render columnFilter(["completion", "flags"], homeworksCopy.statusLabel, "mobile")}
       </div>
         <HomeworksCardsView
+          showPersonalStatus={!signedData.demo}
       {readOnlyReason}
           locale={locale}
           unknownSemesterLabel={commonCopy.unknown}
@@ -198,6 +199,7 @@ $: ({
       {/snippet}
       {#snippet desktop()}
         <HomeworksListView
+          showPersonalStatus={!signedData.demo}
       {readOnlyReason}
         filterControls={columnFilter}
           locale={locale}
@@ -221,6 +223,7 @@ $: ({
     </WorkspaceCollection>
 
     <HomeworksTabDialogs
+      showPersonalStatus={!signedData.demo}
       {readOnlyReason}
       CommentsPanel={CommentsPanel}
       applyHomeworkDueAtSemesterEnd={applyHomeworkDueAtSemesterEnd}

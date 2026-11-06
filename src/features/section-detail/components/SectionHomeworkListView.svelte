@@ -7,6 +7,7 @@ import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
+import HomeworkPersonalStatus from "@/features/homeworks/components/HomeworkPersonalStatus.svelte";
 import {
   formatHomeworkDueRelativeTime,
   homeworkDeadlineState,
@@ -33,19 +34,13 @@ onMount(() => {
 
 {#snippet personalStatus(homework: SectionHomework)}
   <div class="flex min-w-0 flex-wrap items-center gap-2">
-    {#if homework.completionRequired === false}
-      <Badge variant="outline">{homeworkCopy.noCompletionRequired}</Badge>
-    {:else if homework.completion}
-      <Badge variant="secondary">{homeworkCopy.completedLabel}</Badge>
-    {:else}
-      <Badge variant="outline">{homeworkCopy.pendingLabel}</Badge>
-      {#if homework.submissionDueAt}
-        {@const overdue = homeworkDeadlineState(homework.submissionDueAt, referenceDate) === "overdue"}
-        <Badge variant={overdue ? "status-overdue" : "ghost"} data-status-token={overdue ? "overdue" : undefined}>
-          {formatHomeworkDueRelativeTime(homework.submissionDueAt, referenceDate, locale, homeworkCopy.dateTBD)}
-        </Badge>
-      {/if}
-    {/if}
+    <HomeworkPersonalStatus
+      completed={Boolean(homework.completion)}
+      completionRequired={homework.completionRequired !== false}
+      copy={homeworkCopy}
+      relativeLabel={homework.submissionDueAt ? formatHomeworkDueRelativeTime(homework.submissionDueAt, referenceDate, locale, homeworkCopy.dateTBD) : ""}
+      overdue={homeworkDeadlineState(homework.submissionDueAt, referenceDate) === "overdue"}
+    />
     <Button size="sm" variant="link" onclick={() => selectHomework(homework)}>{homeworkCopy.viewDetails}</Button>
   </div>
 {/snippet}
@@ -84,10 +79,10 @@ onMount(() => {
                       <Badge variant="outline">{homeworkCopy.noCompletionRequired}</Badge>
                     {/if}
                     {#if homework.isMajor}
-                      <Badge variant="secondary">{homeworkCopy.tagMajor}</Badge>
+                      <Badge variant="outline">{homeworkCopy.tagMajor}</Badge>
                     {/if}
                     {#if homework.requiresTeam}
-                      <Badge variant="secondary">{homeworkCopy.tagTeam}</Badge>
+                      <Badge variant="outline">{homeworkCopy.tagTeam}</Badge>
                     {/if}
                   </Item.Description>
                   {#if showPersonalStatus}
@@ -138,10 +133,10 @@ onMount(() => {
                       {#if !showPersonalStatus && homework.completionRequired === false}
                         <Badge variant="outline">{homeworkCopy.noCompletionRequired}</Badge>
                       {/if}
-                      {#if homework.isMajor}<Badge variant="secondary"
+                      {#if homework.isMajor}<Badge variant="outline"
                           >{homeworkCopy.tagMajor}</Badge
                         >{/if}
-                      {#if homework.requiresTeam}<Badge variant="secondary"
+                      {#if homework.requiresTeam}<Badge variant="outline"
                           >{homeworkCopy.tagTeam}</Badge
                         >{/if}
                     </div>

@@ -47,6 +47,7 @@ export let permalinkBaseHref: string | null = null;
 export let relativeEtaLabel: HomeworkDetailRelativeFormatter;
 export let showContextActions = true;
 export let showCompletion = false;
+export let showPersonalStatus = false;
 export let referenceDate: HomeworkDateValue = null;
 
 let liveReferenceDate = referenceDate ? new Date(referenceDate) : new Date();
@@ -103,6 +104,7 @@ onMount(() => {
             {@render editingContent()}
           {:else}
             <HomeworkDeadlineSummary
+              {showPersonalStatus}
               {copy}
               {dateFallback}
               deadlineState={resolvedDeadlineState}
@@ -111,7 +113,7 @@ onMount(() => {
               referenceDate={freezeReferenceTime ? referenceDate : liveReferenceDate}
               {relativeEtaLabel}
             />
-            <HomeworkDetailSecondaryDetails {copy} {fmtDate} {homework} />
+            <HomeworkDetailSecondaryDetails {copy} {fmtDate} {homework} {showPersonalStatus} />
             <HomeworkDetailDescription {copy} {homework} />
           {/if}
 
