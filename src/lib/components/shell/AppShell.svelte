@@ -58,6 +58,10 @@ import {
   isShellLinkActive,
   isShellLinkAncestor,
 } from "./navigation";
+import {
+  loadSidebarPreferences,
+  saveSidebarPreferences,
+} from "./sidebar-preferences";
 import type { ShellLink } from "./types";
 
 if (typeof window !== "undefined") {
@@ -322,9 +326,9 @@ async function setLocale(locale: "en-us" | "zh-cn") {
 }
 
 onMount(() => {
-  if (window.matchMedia("(max-width: 1023px)").matches) {
-    sidebarOpen = false;
-  }
+  sidebarOpen =
+    loadSidebarPreferences().open ??
+    !window.matchMedia("(max-width: 1023px)").matches;
   void resolveClientShell();
   themeMode = loadStoredThemeMode(themeMode);
   applyShellTheme(themeMode);
@@ -564,6 +568,8 @@ let globalSearchShortcutLabel = $derived(
 {:else}
   <Sidebar.Provider
     bind:open={sidebarOpen}
+    onOpenChange={(open) =>
+      saveSidebarPreferences({ ...loadSidebarPreferences(), open })}
     class="flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden"
   >
     <div class="flex min-h-0 w-full flex-1">

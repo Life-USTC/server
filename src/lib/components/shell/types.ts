@@ -8,6 +8,8 @@ export type ShellGlyph =
   | "danger";
 
 export type ShellLink = {
+  /** Static destination identity, independent of locale and viewer records. */
+  id?: string;
   disabledReason?: string;
   ariaLabel?: string;
   badge?: number | null;
@@ -21,6 +23,7 @@ export type ShellLink = {
 };
 
 export type ShellNavGroup = {
+  id?: string;
   defaultOpen?: boolean;
   icon?: Component;
   label: string;

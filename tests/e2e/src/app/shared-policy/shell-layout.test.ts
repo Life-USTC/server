@@ -111,7 +111,9 @@ test("ui.shell-layout-5", { tag: "@Site/Web" }, async ({
             .click();
         const shell =
           width < 768
-            ? page.getByRole("dialog", { name: "Sidebar", exact: true })
+            ? page.getByRole("dialog", {
+                name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+              })
             : page.getByTestId("app-sidebar");
         const profile = shell
           .locator('[data-slot="sidebar-footer"]')

@@ -683,7 +683,9 @@ test("subscribed-sections.sidebar-summary-only", {
           await page.getByRole("button", { name: /^(菜单|Menu)$/ }).click();
         const sidebar =
           width < 768
-            ? page.getByRole("dialog", { name: "Sidebar", exact: true })
+            ? page.getByRole("dialog", {
+                name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+              })
             : page.getByTestId("app-sidebar");
         await expect(sidebar).toBeVisible();
         const destination = sidebar.locator(

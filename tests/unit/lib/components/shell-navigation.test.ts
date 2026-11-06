@@ -294,6 +294,27 @@ describe("shared functional shell navigation", () => {
     expect(
       activeLinks(young, "/catalog/young-events/organizers/example")[0].href,
     ).toBe("/catalog/young-events/organizers");
+    const organizers = buildYoungNavGroups(
+      copy,
+      "/catalog/young-events/organizers/example",
+      {
+        organizer: { id: "example", name: "Student society" },
+      },
+    )[0].links;
+    expect(
+      activeLinks(organizers, "/catalog/young-events/organizers/example")[0]
+        .label,
+    ).toBe("Student society");
+    for (const pathname of [
+      "/catalog/young-events/calendar",
+      "/catalog/young-events/organizers/example",
+    ])
+      expect(
+        isShellLinkAncestor(
+          young[0],
+          new URL(pathname, "https://test.invalid"),
+        ),
+      ).toBe(false);
   });
 
   test("searches names, descriptions, group labels and child destinations, and clears", () => {

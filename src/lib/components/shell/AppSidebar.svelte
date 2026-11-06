@@ -2,6 +2,7 @@
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
+import { onMount } from "svelte";
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import * as Collapsible from "#lib/components/ui/collapsible/index.js";
 import * as Sidebar from "#lib/components/ui/sidebar/index.js";
@@ -13,6 +14,10 @@ import type {
 import { cn } from "#lib/utils.js";
 import AppUserMenu from "./AppUserMenu.svelte";
 import SettingsGlyph from "./SettingsGlyph.svelte";
+import {
+  loadSidebarPreferences,
+  saveSidebarPreferences,
+} from "./sidebar-preferences";
 import type { ShellLink, ShellNavGroup } from "./types";
 
 export type SectionSidebar = {
@@ -65,18 +70,30 @@ let {
 
 const sidebar = Sidebar.useSidebar();
 const groupOpen = $state<Record<string, boolean>>({});
+let savedSubmenus = $state<Record<string, boolean>>({});
 let submenuOverride = $state<Record<string, { open: boolean; path: string }>>(
   {},
 );
 
-function submenuIsOpen(href: string, autoOpen: boolean, path: string) {
-  const saved = submenuOverride[href];
+onMount(() => {
+  const saved = loadSidebarPreferences();
+  Object.assign(groupOpen, saved.groups);
+  savedSubmenus = saved.submenus;
+});
+
+function submenuIsOpen(key: string, autoOpen: boolean, path: string) {
+  const saved = submenuOverride[key];
   if (saved?.path === path) return saved.open;
-  return autoOpen;
+  return autoOpen || savedSubmenus[key] === true;
 }
 
-function setSubmenuOpen(href: string, path: string, open: boolean) {
-  submenuOverride = { ...submenuOverride, [href]: { open, path } };
+function setSubmenuOpen(key: string, path: string, open: boolean) {
+  submenuOverride = { ...submenuOverride, [key]: { open, path } };
+  savedSubmenus = { ...savedSubmenus, [key]: open };
+  saveSidebarPreferences({
+    ...loadSidebarPreferences(),
+    submenus: savedSubmenus,
+  });
 }
 
 function hasActiveChild(link: ShellLink): boolean {
@@ -88,6 +105,10 @@ function hasActiveChild(link: ShellLink): boolean {
 
 function setGroupOpen(key: string, isOpen: boolean): void {
   groupOpen[key] = isOpen;
+  saveSidebarPreferences({
+    ...loadSidebarPreferences(),
+    groups: groupOpen,
+  });
 }
 
 function showActiveState(active: boolean): boolean {
@@ -117,11 +138,29 @@ function closeMobileSidebar(): void {
     data-testid={sectionSidebar?.testId}
     class="flex min-h-0 flex-1 flex-col"
   >
-    <Sidebar.Header>
+    <Sidebar.Header class={mobile ? "pr-12" : undefined}>
       <Sidebar.Menu>
         <Sidebar.MenuItem>
           {#if sectionSidebar}
             {@const section = sectionSidebar}
+            <Sidebar.MenuButton tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? "Life@USTC" : undefined}>
+              {#snippet child({ props })}
+                <a
+                  {...props}
+                  href={homeHref}
+                  aria-label="Life@USTC"
+                  onclick={closeMobileSidebar}
+                >
+                  <img
+                    class="size-6 rounded-md"
+                    src={appIconUrl}
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <span>Life@USTC</span>
+                </a>
+              {/snippet}
+            </Sidebar.MenuButton>
             <Sidebar.MenuButton tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? section.backLabel : undefined}>
               {#snippet child({ props })}
                 <a
@@ -164,21 +203,19 @@ function closeMobileSidebar(): void {
     <Sidebar.Content>
       {#each groups as group, index}
         {@const isCollapsed = !mobile && sidebar.state === "collapsed"}
-        {@const groupKey = `${mobile ? "mobile" : "desktop"}-${index}`}
+        {@const groupKey = group.id ?? `group-${index}`}
         {@const groupActive = group.links.some(
           (link) =>
             isActiveLink(link) || hasActiveChild(link) || isAncestorLink(link),
         )}
         {@const isOpen =
-          isCollapsed ||
-          groupActive ||
-          (groupOpen[groupKey] ?? Boolean(group.defaultOpen))}
+          !isCollapsed &&
+          (groupActive || (groupOpen[groupKey] ?? Boolean(group.defaultOpen)))}
         <Collapsible.Root
           bind:open={() => isOpen,
           (value) => {
-            // Icon-collapsed groups render open so their destinations stay
-            // reachable, so the trigger reads as a request to expand the
-            // sidebar and show this group rather than to close it.
+            // The compact rail shows one icon per intent group. Opening one
+            // restores its destinations without expanding every other group.
             if (isCollapsed) {
               setGroupOpen(groupKey, true);
               sidebar.setOpen(true);
@@ -190,10 +227,19 @@ function closeMobileSidebar(): void {
         >
           <Sidebar.Group>
             <Sidebar.GroupLabel
-              class="gap-2 overflow-hidden text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:opacity-100"
+              class={cn(
+                "gap-2 overflow-hidden text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:opacity-100",
+                isCollapsed && groupActive && "bg-sidebar-accent text-sidebar-accent-foreground",
+              )}
             >
               {#snippet child({ props })}
-                <Collapsible.Trigger {...props}>
+                <Collapsible.Trigger
+                  {...props}
+                  aria-label={group.label}
+                  title={isCollapsed ? group.label : undefined}
+                  data-active={isCollapsed && groupActive ? "true" : undefined}
+                  aria-current={isCollapsed && groupActive ? "location" : undefined}
+                >
                   {#if group.icon}
                     {@const GroupIcon = group.icon}
                     <GroupIcon />
@@ -233,10 +279,10 @@ function closeMobileSidebar(): void {
                       {@const ownActive = isActiveLink(link) && !childActive}
                       {@const active = showActiveState(ownActive)}
                       {@const onPath = showActiveState(
-                        isAncestorLink(link) && !childActive,
+                        isAncestorLink(link) || childActive,
                       )}
                       {@const submenuOpen = submenuIsOpen(
-                        link.href,
+                        link.id ?? link.href,
                         ownActive || childActive,
                         currentPathname,
                       )}
@@ -282,7 +328,7 @@ function closeMobileSidebar(): void {
                           onclick={(event) => {
                             event.preventDefault();
                             setSubmenuOpen(
-                              link.href,
+                              link.id ?? link.href,
                               currentPathname,
                               !submenuOpen,
                             );
@@ -407,6 +453,9 @@ function closeMobileSidebar(): void {
 {/snippet}
 
 <Sidebar.Root
+  mobileTitle={sectionSidebar?.navLabel ?? copy.shell.primaryNavigation}
+  mobileDescription={copy.shell.menu}
+  closeLabel={copy.shell.closeNavigation}
   class={dockAboveFooter && !sidebar.isMobile
     ? "top-0! bottom-16! h-auto! max-h-none!"
     : undefined}

@@ -125,7 +125,9 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
     ).toBeVisible();
     await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
 
-    const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+    const sidebar = page.getByRole("dialog", {
+      name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+    });
     await expect(
       sidebar.getByRole("button", { name: /语言|Language/i }),
     ).toHaveCount(0);
@@ -371,7 +373,9 @@ shellTest(
       await sidebarTrigger.click();
       await expect(sidebarTrigger).toHaveAttribute("aria-expanded", "true");
 
-      const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+      const sidebar = page.getByRole("dialog", {
+        name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+      });
       await expect(sidebar).toBeVisible();
       await expect(
         sidebar.getByRole("link", { name: /^(浏览教学班|Browse sections)$/i }),
@@ -508,11 +512,15 @@ shellTest(
       const coursesLink = page
         .getByTestId("app-sidebar")
         .getByRole("link", { name: /^(浏览课程|Browse courses)$/i });
-      // The link stays in the accessibility tree while icon-collapsed (only its
-      // label is visually truncated), so assert on the rendered width instead of
-      // presence/absence.
+      // Compact navigation exposes one named entry per group, then restores
+      // that group's destinations when expanded.
+      const coursesGroup = sidebar.getByRole("button", {
+        name: /^(课程|Courses)$/i,
+      });
+      await expect(coursesGroup).toBeVisible();
+      await expect(coursesLink).toHaveCount(0);
       await expect
-        .poll(async () => (await coursesLink.boundingBox())?.width ?? 0)
+        .poll(async () => (await coursesGroup.boundingBox())?.width ?? 0)
         .toBeLessThan(40);
 
       // Reach the trigger purely via the keyboard and activate it with Enter.
@@ -552,11 +560,6 @@ shellTest(
       await menuTrigger.focus();
       await page.keyboard.press("Enter");
       await expect(sidebarRoot).toHaveAttribute("data-state", "collapsed");
-      const coursesGroup = page
-        .getByTestId("app-sidebar")
-        .locator('[data-slot="sidebar-group-label"][aria-expanded]')
-        .filter({ hasText: /课程|Courses/ })
-        .first();
       await expect(coursesGroup).toBeVisible();
       await expect(coursesGroup).not.toBeDisabled();
       const collapsedGroupBox = await coursesGroup.boundingBox();
@@ -721,7 +724,9 @@ shellTest(
 
       await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
 
-      const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+      const sidebar = page.getByRole("dialog", {
+        name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+      });
       await expect(sidebar).toBeVisible();
       await expect(
         sidebar.getByRole("button", { name: /^(日程|My day)$/i }),
@@ -769,7 +774,9 @@ shellTest(
         .getByRole("button", { name: /^菜单$|^Menu$/i })
         .click();
 
-      const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+      const sidebar = page.getByRole("dialog", {
+        name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+      });
       const settingsNav = sidebar.getByTestId("settings-sidebar");
       await expect(
         settingsNav.getByRole("link", { name: /偏好设置|Preferences/i }),
@@ -894,10 +901,9 @@ test("/ shell 桌面导航后内容滚动回到顶部", { tag: "@Site/Web" }, as
   }, {});
 });
 
-test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", { tag: "@Site/Web" }, async ({
-  publicFlow,
-  page,
-}) => {
+test("/ shell 折叠桌面侧边栏后分组入口展开并可跳转", {
+  tag: "@Site/Web",
+}, async ({ publicFlow, page }) => {
   await publicFlow.run(async () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await gotoAndWaitForReady(page, "/");
@@ -920,15 +926,20 @@ test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", { tag: "@Site/W
     await expect(
       page.locator('[data-slot="sidebar"][data-state="collapsed"]'),
     ).toBeVisible();
-    // The icon-collapsed group keeps its disclosure rather than going inert:
-    // it stays operable and reports its destinations as open, which is what
-    // keeps the icon links below reachable without expanding the sidebar.
     await expect(catalogGroup).toBeEnabled();
+    await expect(catalogGroup).toHaveAttribute("aria-expanded", "false");
+    await expect(coursesLink).toHaveCount(0);
+    await expect
+      .poll(async () => (await catalogGroup.boundingBox())?.width ?? 0)
+      .toBeLessThanOrEqual(40);
+    await catalogGroup.focus();
+    await page.keyboard.press("Enter");
+    await expect(
+      page.locator('[data-slot="sidebar"][data-state="expanded"]'),
+    ).toBeVisible();
     await expect(catalogGroup).toHaveAttribute("aria-expanded", "true");
     await expect(coursesLink).toBeVisible();
     await expect(coursesLink).toHaveAttribute("href", "/catalog/courses");
-    // Icon-mode labels animate margin/opacity for 200ms; clicking before that
-    // can land on the neighboring Sections icon instead of Courses.
     await expect
       .poll(async () =>
         Math.round(
@@ -937,7 +948,7 @@ test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", { tag: "@Site/W
           ),
         ),
       )
-      .toBeLessThanOrEqual(40);
+      .toBeGreaterThan(100);
 
     await Promise.all([
       page.waitForURL("**/catalog/courses"),
@@ -950,6 +961,8 @@ test("/ shell 折叠桌面侧边栏后图标链接仍可跳转", { tag: "@Site/W
     // the original client-navigation assertions have completed.
     const catalogResponse = await gotoAndWaitForReady(page, "/catalog/courses");
     expect(catalogResponse?.status()).toBe(200);
+    await page.locator('[data-sidebar="rail"]').click();
+    await expect(catalogGroup).toHaveAttribute("aria-current", "location");
   }, {});
 });
 

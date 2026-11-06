@@ -280,7 +280,9 @@ test.describe("仪表盘教学班订阅", () => {
       ).toBe(true);
       const topbar = page.locator("[data-shell-topbar]");
       await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
-      const mobileSidebar = page.getByRole("dialog", { name: /Sidebar/i });
+      const mobileSidebar = page.locator(
+        '[data-mobile="true"][data-sidebar="sidebar"]',
+      );
       await expect(mobileSidebar).toBeVisible();
       await expect(
         mobileSidebar.locator(
