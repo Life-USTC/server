@@ -708,14 +708,15 @@ requirements:
       name: comment.reply-moderation-lock
 - id: comment.empty-viewer-guidance
   category: presentation
-  rule: Comment empty guidance reflects authentication and suspension; an explicit read-only reason takes precedence.
+  rule: Comment empty guidance reflects authentication and suspension; an explicit read-only reason takes precedence and stays visible beside the disabled publication action in both empty and populated discussions.
   surfaces:
   - web
   acceptance:
-    given: A signed-in, anonymous, suspended or read-only viewer opens an empty discussion.
+    given: A signed-in, anonymous or suspended viewer opens an empty discussion, or a read-only viewer opens an empty or populated discussion.
     when: The existing page is viewed on desktop and mobile.
     then:
     - Only anonymous viewers receive sign-in guidance; eligible signed-in viewers are invited to comment, and restricted viewers keep their reason.
+    - Read-only guidance is visible without hovering or focusing a disabled button and is not repeated in the empty description.
     test:
       file: tests/e2e/src/app/shared-policy/empty-state-copy.test.ts
       name: empty copy respects signed-in comments and exam scope zh-cn

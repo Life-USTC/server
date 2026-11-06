@@ -21,6 +21,6 @@ let {
     {#if title}
       <Empty.Title>{title}</Empty.Title>
     {/if}
-    <Empty.Description>{description}</Empty.Description>
+    {#if description}<Empty.Description>{description}</Empty.Description>{/if}
   </Empty.Header>
 </Empty.Root>
