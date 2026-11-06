@@ -22,6 +22,7 @@ import type {
   SectionListLabels,
   SectionListResultData,
 } from "./catalog-section-list-types";
+import SectionCardIdentity from "./SectionCardIdentity.svelte";
 
 interface Props {
   columnFilters: Record<string, CatalogColumnFilterProps>;
@@ -72,16 +73,7 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
                 <MobileListCard size="sm">
                   {#snippet child({ props })}
                     <a href={sectionHref} {...props}>
-                      <Item.Content>
-                        <Item.Title><CatalogEntityName item={section.course} locale={locale} /></Item.Title>
-                        <Item.Description>
-                      {section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}
-                      · {catalogLocalizedNames(section.teachers, locale) || "-"}
-                        </Item.Description>
-                      </Item.Content>
-                  <Item.Actions>
-                    <TruncatedCode text={section.code} />
-                  </Item.Actions>
+                      <SectionCardIdentity course={section.course} teachers={section.teachers} code={section.code} semester={section.semester} {locale} />
                       <Item.Footer class="flex-wrap justify-start">
                         <span>{sectionLabels.credits}: {section.credits ?? "-"}</span>
                         <span>{sectionLabels.capacity}: {section.stdCount ?? (routePage.data.demo ? "-" : 0)} / {section.limitCount ?? "-"}</span>
