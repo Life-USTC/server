@@ -1,4 +1,5 @@
 <script lang="ts">
+import { nextHomeworkClassStarts } from "@/features/homeworks/lib/homework-due-shortcuts";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import SectionSubscribeDialog from "./SectionSubscribeDialog.svelte";
 import type {
@@ -113,6 +114,7 @@ $: if (isCalendarDialogOpen) {
     this={SectionHomeworkDialogs}
     readOnlyReason={data.demo?.readOnlyReason}
     referenceDate={data.demo?.referenceNow}
+    classStarts={nextHomeworkClassStarts(data.section.schedules ?? [])}
   {applyCreateDueAtSemesterEnd}
   {applyCreateDueInMonth}
   {applyCreateDueInWeek}

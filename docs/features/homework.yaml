@@ -602,28 +602,30 @@ requirements:
       name: homework.detail-dialog-dismissal
 - id: homework.section-style-guide
   category: presentation
-  rule: Section homework create/edit forms expose the collapsible homework-naming guide.
+  rule: Section homework create/edit forms expose the same initially collapsed homework-naming guide as workspace creation.
   acceptance:
     given: A signed-in Chinese-language viewer opens section homework create and edit forms on mobile.
-    when: The viewer inspects, collapses and expands each naming guide.
+    when: The viewer opens, collapses and expands each naming guide.
     then:
     - Both forms expose the same title and description guidance with advisory wording.
     - The guide is collapsible and the relevant create/save action remains accessible.
     test:
       file: tests/e2e/src/app/sections/[jwId]/homeworks.test.ts
       name: homework.section-style-guide
-- id: homework.workspace-style-guide-omitted
+- id: homework.workspace-shared-editor
   category: presentation
-  rule: The workspace homework create form omits the section-context advisory guide.
+  rule: Workspace and section homework forms share a single-column editor with title, due date, description,
+    visible major/team flags, optional timestamps and collapsed naming guidance. The workspace alone selects a section.
   acceptance:
     given: A signed-in English-language user opens the workspace homework create dialog.
     when: The form renders its title/details fields and submit action.
     then:
     - Useful title/details placeholders remain visible.
-    - The section-specific style-guide control and redundant dialog description are absent.
+    - The naming guide starts collapsed and can be opened without hiding the major/team controls.
+    - The redundant dialog description is absent.
     test:
       file: tests/e2e/src/app/workspace/homeworks/creation.test.ts
-      name: homework.workspace-style-guide-omitted
+      name: homework.workspace-shared-editor
 - id: homework.transport-creator-delete
   category: authorization
   rule: Ordinary homework deletion retains creator-only authority on REST, GraphQL and MCP; administrator
@@ -743,8 +745,8 @@ capabilities:
       - 'detail popup is one scrollable column: due datetime, relative urgency, remaining facts in a table excluding
         platform createdAt, then description, then full-width discussion; completion stays in the footer; do not use
         a two-column overlay'
-      - create form keeps major/team flags outside optional timestamps, omits subtitle and advisory style guide, and
-        uses aligned date inputs with adjacent shortcut menus
+      - create form reuses the section create/edit single-column editor, keeps major/team flags outside optional
+        timestamps, omits the redundant subtitle, and offers the same initially collapsed advisory guide
       - create section options identify course, teachers, and semester; common deadlines include the selected section's
         next classes and future this/next-week weekend cutoffs in Asia/Shanghai
       requirement_refs:
@@ -922,7 +924,8 @@ capabilities:
         (status, tags, publication, submission opens) are a table that does not repeat due date or platform createdAt,
         then description, then full-width discussion; edit/completion stay in the footer; do not use a two-column overlay'
       - section cards use a responsive multi-column layout
-      - create and edit forms expose the same collapsible advisory homework title and description style guide
+      - create and edit forms share the workspace field order and expose the same initially collapsed advisory homework guide
+      - workspace compact details provide an explicit full-details link targeting the same homework on the section page
     requirement_refs:
     - homework.creator-only-delete
   homework-governance:

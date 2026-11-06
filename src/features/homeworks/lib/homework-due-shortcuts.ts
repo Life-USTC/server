@@ -21,8 +21,8 @@ export type HomeworkDueShortcutCopy = {
 type DateLike = Date | string;
 
 type ActualClassSchedule = {
-  date: DateLike | null | undefined;
-  startTime: number | string | null | undefined;
+  date?: DateLike | null;
+  startTime?: number | string | null;
 };
 
 type DueShortcutInput = {

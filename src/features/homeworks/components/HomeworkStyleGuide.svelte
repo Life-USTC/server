@@ -5,7 +5,7 @@ import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-s
 export let copy: HomeworkStyleGuideCopy;
 export let testIdPrefix: string;
 
-let guideValue = "homework-style-guide";
+let guideValue = "";
 </script>
 
 <Accordion.Root

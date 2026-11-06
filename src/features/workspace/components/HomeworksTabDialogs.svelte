@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Button } from "#lib/components/ui/button/index.js";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import HomeworkDetailDialog from "@/features/homeworks/components/HomeworkDetailDialog.svelte";
 import type { HomeworkDetailCommentsPanel } from "@/features/homeworks/components/homework-detail-types";
@@ -121,4 +122,12 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
     )}
   referenceDate={referenceDate}
   showCompletion={selectedHomework !== null}
-/>
+>
+  {#snippet contextActions()}
+    {#if selectedHomeworkPermalinkBaseHref}
+      <Button href={selectedHomeworkPermalinkBaseHref} variant="outline" class="min-h-11 w-full whitespace-normal text-center sm:min-h-9 sm:w-auto md:min-h-9">
+        {homeworksCopy.openFullDetails}
+      </Button>
+    {/if}
+  {/snippet}
+</HomeworkDetailDialog>

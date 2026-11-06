@@ -2370,6 +2370,7 @@
     "emptyTitle": "No homework yet",
     "createdAt": "Created {date}",
     "statusLabel": "Status",
+    "openFullDetails": "Open full details",
     "viewDetails": "View details",
     "dateTBD": "TBD",
     "editAction": "Edit details",

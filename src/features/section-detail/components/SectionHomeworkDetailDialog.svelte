@@ -27,6 +27,7 @@ import type {
 
 export let readOnlyReason: string | null | undefined = null;
 export let referenceDate: string | undefined = undefined;
+export let classStarts: string[] = [];
 export let CommentsPanel: HomeworkDetailCommentsPanel;
 export let _applyEditDueAtSemesterEnd: SectionHomeworkTimestampAction;
 export let _applyEditDueInMonth: SectionHomeworkTimestampAction;
@@ -110,6 +111,8 @@ $: permalinkBaseHref = _selectedHomework
   {#snippet editingContent()}
     {#if _selectedHomework}
       <SectionHomeworkEditForm
+        {classStarts}
+        {locale}
         applyDueAtSemesterEnd={_applyEditDueAtSemesterEnd}
         applyDueInMonth={_applyEditDueInMonth}
         applyDueInWeek={_applyEditDueInWeek}

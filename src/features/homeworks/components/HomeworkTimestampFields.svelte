@@ -21,7 +21,6 @@ export let disabled = false;
 export let dueShortcuts: HomeworkDueShortcut[] = [];
 export let details: Snippet | undefined = undefined;
 export let idPrefix = "homework";
-export let optionalSettings: Snippet | undefined = undefined;
 export let publishedAt = "";
 export let submissionDueAt = "";
 export let submissionStartAt = "";
@@ -199,9 +198,6 @@ $: hasDueShortcuts = Boolean(
             </div>
           </Field.Field>
         </Field.Group>
-        {#if optionalSettings}
-          {@render optionalSettings()}
-        {/if}
       </Accordion.Content>
     </Accordion.Item>
   </Accordion.Root>

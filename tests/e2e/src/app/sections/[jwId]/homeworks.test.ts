@@ -67,7 +67,8 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
       const createTrigger = createDialog.getByTestId(
         "section-create-homework-style-guide-trigger",
       );
-      await expect(createTrigger).toHaveAttribute("aria-expanded", "true");
+      await expect(createTrigger).toHaveAttribute("aria-expanded", "false");
+      await createTrigger.click();
       const createGuide = createDialog.getByTestId(
         "section-create-homework-style-guide-content",
       );
@@ -110,7 +111,8 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
       const editTrigger = detailDialog.getByTestId(
         "section-edit-homework-style-guide-trigger",
       );
-      await expect(editTrigger).toHaveAttribute("aria-expanded", "true");
+      await expect(editTrigger).toHaveAttribute("aria-expanded", "false");
+      await editTrigger.click();
       const editGuide = detailDialog.getByTestId(
         "section-edit-homework-style-guide-content",
       );

@@ -4,7 +4,7 @@ import { test } from "../../../../utils/homework-editor-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 
 for (const width of [1280, 390]) {
-  test(`homework creation offers class deadlines and live preview at ${width}`, {
+  test(`homework creation offers class deadlines and editable preview at ${width}`, {
     tag: "@Homework/Web",
   }, async ({ page, homeworkEditor: fixture, taskFilterRun, taskFilterDb }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -84,11 +84,14 @@ for (const width of [1280, 390]) {
         await title.fill(`第一次作业 ${width}`);
         await editor.fill(markdown);
         const preview = dialog.locator('[data-slot="markdown-preview"]');
+        await dialog.getByRole("tab", { name: "预览", exact: true }).click();
         await expect(
           preview.getByRole("heading", { name: "第一次作业" }),
         ).toBeVisible();
         await expect(preview.locator("strong")).toHaveText("第一题");
+        await dialog.getByRole("tab", { name: "编辑", exact: true }).click();
         await editor.fill(markdown.replace("第一题", "第二题"));
+        await dialog.getByRole("tab", { name: "预览", exact: true }).click();
         await expect(preview.locator("strong")).toHaveText("第二题");
         await expect(dialog.locator('input[name="description"]')).toHaveCount(
           1,
@@ -96,7 +99,8 @@ for (const width of [1280, 390]) {
         await expect(dialog.locator('input[name="description"]')).toHaveValue(
           markdown.replace("第一题", "第二题"),
         );
-        if (width >= 1024) {
+        await dialog.getByRole("tab", { name: "编辑", exact: true }).click();
+        {
           const [titleBox, editorBox] = await Promise.all([
             title.boundingBox(),
             editor.boundingBox(),
@@ -104,8 +108,12 @@ for (const width of [1280, 390]) {
           expect(titleBox).not.toBeNull();
           expect(editorBox).not.toBeNull();
           if (!titleBox || !editorBox)
-            throw new Error("Expected both form columns");
-          expect(editorBox.x).toBeGreaterThan(titleBox.x + titleBox.width);
+            throw new Error("Expected the shared single-column fields");
+          expect(editorBox.y).toBeGreaterThan(titleBox.y + titleBox.height);
+          expect(editorBox.x).toBeGreaterThanOrEqual(titleBox.x);
+          expect(editorBox.x + editorBox.width).toBeLessThanOrEqual(
+            titleBox.x + titleBox.width,
+          );
         }
 
         for (const [index, section] of fixture.sections.entries()) {

@@ -34,6 +34,7 @@ export type WorkspaceHomeworkCreateSection = {
   id: number | string;
   nextClassStarts?: string[];
   semesterEnd?: string | null;
+  semesterStart?: string | null;
   semesterName?: string | null;
   teacherName?: string | null;
 };
