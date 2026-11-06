@@ -64,6 +64,7 @@ let {
 }: CommentsComposerSectionProps = $props();
 
 let composerOpen = $state(false);
+const readOnlyReasonId = $props.id();
 
 function closeComposer() {
   composerOpen = false;
@@ -75,9 +76,12 @@ function openComposer() {
 </script>
 
 {#if readOnlyReason}
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    {#if heading}<h2 class="text-lg font-semibold tracking-tight">{heading}</h2>{/if}
-    <Button type="button" variant="outline" disabled title={readOnlyReason}>{commentCopy.postAction}</Button>
+  <div class="grid gap-2">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      {#if heading}<h2 class="text-lg font-semibold tracking-tight">{heading}</h2>{/if}
+      <Button type="button" variant="outline" disabled aria-describedby={readOnlyReasonId}>{commentCopy.postAction}</Button>
+    </div>
+    <p id={readOnlyReasonId} class="text-sm text-muted-foreground">{readOnlyReason}</p>
   </div>
 {:else if loading && !viewerResolved}
   {#if heading}
