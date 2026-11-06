@@ -287,7 +287,7 @@ export async function checkWorkspaceCalendarPriorityViews(
       .locator('[data-slot="field"]')
       .filter({ hasText: courseName });
     const matchTitle = match.locator("label");
-    const matchDetails = match.locator('[data-slot="field-description"]');
+    const matchDetails = match.locator('[data-slot="item-content"]');
     await assertPriorityView({
       scope: confirm,
       identity: matchTitle,
