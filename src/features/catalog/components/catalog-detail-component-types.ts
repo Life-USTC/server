@@ -51,7 +51,7 @@ export type CourseDetailSection = {
   teachers: CatalogNamed[];
 };
 
-export type CourseDetailCourse = {
+export type CourseDetailCourse = CatalogNamed & {
   category?: CatalogNamed | null;
   classType?: CatalogNamed | null;
   code: string;
@@ -68,7 +68,7 @@ export type TeacherDetailSection = {
   semester?: { nameCn?: string | null } | null;
 };
 
-export type TeacherDetailTeacher = {
+export type TeacherDetailTeacher = CatalogNamed & {
   address?: string | null;
   department?: CatalogNamed | null;
   email?: string | null;

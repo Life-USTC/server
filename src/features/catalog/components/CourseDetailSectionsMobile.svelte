@@ -1,17 +1,13 @@
 <script lang="ts">
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
-import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
-import {
-  type CatalogNamed,
-  catalogLocalizedNames,
-} from "@/features/catalog/lib/catalog-list-display";
-import { formatSemesterName } from "@/lib/text/format-semester-name";
+import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 import type {
   CourseDetailCopy,
   CourseDetailCourse,
 } from "./catalog-detail-component-types";
+import SectionCardIdentity from "./SectionCardIdentity.svelte";
 
 export let copy: CourseDetailCopy;
 export let course: CourseDetailCourse;
@@ -33,15 +29,7 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
       <MobileListCard variant="outline" size="sm">
         {#snippet child({ props })}
           <a href={`/catalog/sections/${section.jwId}`} {...props}>
-            <Item.Content>
-              <Item.Title>{section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : notAvailable}</Item.Title>
-              <Item.Description>
-                {catalogLocalizedNames(section.teachers, locale) || notAvailable}
-              </Item.Description>
-            </Item.Content>
-            <Item.Actions>
-              <TruncatedCode text={section.code} />
-            </Item.Actions>
+            <SectionCardIdentity {course} teachers={section.teachers} code={section.code} semester={section.semester} {locale} />
             <Item.Footer class="flex-wrap justify-start">
               <span>{copy.courseDetail.campus}: {primaryName(section.campus) || notAvailable}</span>
               <span>{copy.courseDetail.capacity}: {section.stdCount ?? 0} / {section.limitCount ?? notAvailable}</span>
