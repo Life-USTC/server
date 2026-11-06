@@ -425,10 +425,12 @@
         "empty": "No notices yet"
       },
       "activities": {
-        "title": "Upcoming activities",
+        "upcoming": "Today and upcoming",
+        "ongoing": "Multi-day activities",
+        "title": "Campus activities",
         "viewAll": "All second-classroom activities",
         "unavailable": "Activities are unavailable right now",
-        "empty": "No upcoming activities"
+        "empty": "No activities to show"
       },
       "signInPrompt": {
         "title": "Sign in to sync your schedule and homework",

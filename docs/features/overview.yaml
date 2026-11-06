@@ -25,7 +25,10 @@ requirements:
   category: presentation
   rule: The home page leads with time-sensitive campus information and the teaching-section search, and
     places the product directory below them. The directory is reference material and must not displace the
-    section search that the destination rail leads with.
+    section search that the destination rail leads with. Activity summaries first show starts on the
+    current Shanghai day or later, then separately show ranges that started earlier and overlap the day.
+    Both bounded groups show their actual date range, never an inferred daily session or registration
+    window; the shared page uses the Shanghai day boundary rather than the request clock.
   acceptance:
     given: An anonymous visitor opens the homepage at desktop and mobile widths.
     when: The visitor reads the campus information, the destination rail and the directory below them.
