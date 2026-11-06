@@ -789,6 +789,70 @@ for (const scenario of shellViewerPages) {
   });
 }
 
+test("user.shell-viewer: retry failed identity without public page invalidation", {
+  tag: "@Site/Web",
+}, async ({ shell, page, context }) => {
+  await shell.run(
+    { sessions: [{ user: 0 }] },
+    async ({ users, sessionCookie, flow }) => {
+      await context.addCookies([await sessionCookie(users[0].id)]);
+      const identities = observeShellIdentities(page);
+      let failures = 2;
+      await flow.route(page, "**/_internal/shell-bootstrap", async (route) => {
+        if (failures-- > 0) await route.fulfill({ status: 503 });
+        else await route.continue();
+      });
+      await page.goto("/catalog/links");
+      const retry = page.locator("#main-content").getByRole("button", {
+        name: /^(重试|Retry)$/i,
+      });
+      await expect(retry).toBeVisible();
+      const publicRequests: string[] = [];
+      page.on("request", (request) => {
+        if (
+          request.isNavigationRequest() ||
+          request.url().includes("__data.json")
+        )
+          publicRequests.push(request.url());
+      });
+      await page.evaluate(() => {
+        document.documentElement.dataset.shellRetryDocument = "retained";
+      });
+      const failed = await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              new URL(response.url()).pathname === "/_internal/shell-bootstrap",
+          ),
+        () => retry.click(),
+      );
+      expect(failed.status()).toBe(503);
+      await expect(retry).toBeVisible();
+      const personal = await observeAction(
+        () =>
+          page.waitForResponse(
+            (response) =>
+              new URL(response.url()).pathname ===
+              "/_internal/catalog/links/viewer",
+          ),
+        () => retry.click(),
+      );
+      expect(personal.status()).toBe(200);
+      await expect(page.locator("#app-user-menu")).toContainText(
+        users[0].name ?? "",
+      );
+      await expect(retry).toHaveCount(0);
+      expect(identities).toEqual(Array(3).fill("/_internal/shell-bootstrap"));
+      expect(publicRequests).toEqual([]);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.dataset.shellRetryDocument,
+        ),
+      ).toBe("retained");
+    },
+  );
+});
+
 test("user.shell-viewer: private navigation retains the viewer on the public section", {
   tag: "@Site/Web",
 }, async ({ shell, page, context }) => {
