@@ -10,7 +10,7 @@ the reasons for architectural choices.
 | Feature behavior, scope, permissions, fields, surfaces           | [features/](features/)                                               |
 | Canonical names and cross-surface parity                         | [interface-hierarchy](policies/interface-hierarchy.yaml)             |
 | Display hierarchy and shared UI                                  | [ui](policies/ui.yaml), [permission-ui](policies/permission-ui.yaml) |
-| Course, section and homework visual reference                    | [Model UI reference](design/model-ui.md)                            |
+| Course, section and homework visual reference                    | [Model UI reference](design/model-ui.md)                             |
 | Public SSR, personal overlays, caching                           | [rendering-and-cache](policies/rendering-and-cache.yaml)             |
 | Edge cases spanning features                                     | `policies/cases.*.yaml`                                              |
 | Audit events and retention                                       | [audit](policies/audit.yaml)                                         |

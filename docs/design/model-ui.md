@@ -11,11 +11,11 @@ The existing [UI policy](../policies/ui.yaml), [permission policy](../policies/p
 and feature field declarations remain the requirement owners. This reference
 makes their composition visible instead of introducing another field registry.
 
-| Model | Identity | Supporting context | Task state and action |
-| --- | --- | --- | --- |
-| Course | Plain monospace course code as a small eyebrow, then the dominant localized name | Secondary localized name where applicable, education level and category | Browse its offerings; a course is not itself a semester subscription |
-| Section | Course name, then teachers; keep the same order in cards, subscription selection and details | Section code in plain monospace, semester, campus, credits when available | Subscription state is separate from identity; subscribe to this specific offering |
-| Homework | Homework title | Linked section context, tags and other published facts | Absolute due date/time and own completion state remain visible across entry points; relative urgency is subordinate |
+| Model    | Identity                                                                                     | Supporting context                                                        | Task state and action                                                                                               |
+| -------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Course   | Plain monospace course code as a small eyebrow, then the dominant localized name             | Secondary localized name where applicable, education level and category   | Browse its offerings; a course is not itself a semester subscription                                                |
+| Section  | Course name, then teachers; keep the same order in cards, subscription selection and details | Section code in plain monospace, semester, campus, credits when available | Subscription state is separate from identity; subscribe to this specific offering                                   |
+| Homework | Homework title                                                                               | Linked section context, tags and other published facts                    | Absolute due date/time and own completion state remain visible across entry points; relative urgency is subordinate |
 
 The compact rows and detail headers use the same identity fragment. The
 reference's course detail offerings keep the section identity used in discovery
