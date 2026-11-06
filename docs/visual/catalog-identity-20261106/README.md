@@ -6,9 +6,9 @@ The fixture uses one synthetic public course/section, locale-projected primary/s
 
 Before components are the unmodified source from `c81d63af` (the parent of the card change). After components are the reviewed worktree source; `SectionCardIdentity.svelte` blob is `198eac64419cbe88800f4ad8e1d00a5d1fc435a2`. The same data and viewport are used in each pair.
 
-| Width / locale | Before | After |
-| --- | --- | --- |
-| 390 / English | [Before](before-en-us-390.png) | [After](after-en-us-390.png) |
-| 768 / Chinese | [Before](before-zh-cn-768.png) | [After](after-zh-cn-768.png) |
+| Width / locale | Before                         | After                        |
+| -------------- | ------------------------------ | ---------------------------- |
+| 390 / English  | [Before](before-en-us-390.png) | [After](after-en-us-390.png) |
+| 768 / Chinese  | [Before](before-zh-cn-768.png) | [After](after-zh-cn-768.png) |
 
-Visual review confirms the same course → available teacher context → subordinate code/semester order across all three cards. The long English name and missing-context code wrap into visible lines, metadata remains legible, and no title or code is cut off. All four renderings had zero page errors. Recorded document scroll widths are 375 and 753 pixels respectively (the remaining 15 pixels are the browser scrollbar), within their viewports. `geometry.json` retains rendered text and component bounds; visual inspection is the primary evidence for readability.
+Visual review confirms the same course → available teacher context → subordinate code/semester order across all three cards. The long English name and missing-context code wrap into visible lines, metadata remains legible, and no title or code is cut off. All four renderings had zero page errors. Recorded document scroll widths are 375 and 753 pixels respectively (the remaining 15 pixels are the browser scrollbar), within their viewports. Rendered text and component bounds were inspected alongside the images; visual inspection is the primary evidence for readability.
