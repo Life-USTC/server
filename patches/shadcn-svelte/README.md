@@ -25,6 +25,20 @@ placeholder substitution, not a divergence.
 
 ## Current patches
 
+### `sidebar.patch`
+
+The mobile drawer accepts localized title, description and close labels from the
+application shell. It exposes a visible 44px close button instead of hiding the
+sheet's default close control. The reusable defaults remain available to other
+callers; the application passes the current navigation context and localized copy.
+The same panel still uses Bits UI's dialog dismissal and focus restoration.
+
+The patch includes the registry placeholder substitutions already used by the
+installed component. Preserve it when refreshing the sidebar registry component.
+Manual browser review covers named mobile drawers, close/Escape dismissal and
+return to the menu trigger; the existing navigation scenarios retain role/name
+locators for both locales.
+
 ### `sidebar-rail.patch`
 
 Removes `tabindex={-1}`, adds a `focus-visible` ring, takes the accessible name

@@ -422,7 +422,7 @@ function toSidebarLink(
   copy: LayoutCopy,
   context: SidebarContext,
 ): ShellLink {
-  const { description: _description, id: _id, ...link } = feature;
+  const { description: _description, ...link } = feature;
   return { ...link, items: sidebarItems(feature, copy, context) };
 }
 
@@ -433,6 +433,7 @@ export function buildShellNavGroups(
 ): ShellNavGroup[] {
   return buildShellFeatureGroups(copy, viewer, context.navigation).map(
     (group) => ({
+      id: group.id,
       defaultOpen:
         group.id === "apps" ? !viewer?.signedIn : group.id !== "admin",
       icon: GROUP_ICONS[group.id],
@@ -455,6 +456,7 @@ export function buildAdminNavGroups(
   if (!admin) return [];
   return [
     {
+      id: "admin",
       defaultOpen: true,
       icon: GROUP_ICONS.admin,
       label: admin.label,
@@ -481,32 +483,57 @@ function youngEventSidebarItem(
   return { href: pathname, label: record.name.trim() };
 }
 
+function youngOrganizerSidebarItem(
+  pathname: string,
+  pageData: Record<string, unknown>,
+): ShellLink | null {
+  const match = pathname.match(
+    /^\/catalog\/young-events\/organizers\/([^/]+)$/,
+  );
+  const organizer = pageData.organizer;
+  if (!match || !organizer || typeof organizer !== "object") return null;
+  const record = organizer as { id?: unknown; name?: unknown };
+  if (typeof record.name !== "string" || !record.name.trim()) return null;
+  if (
+    typeof record.id !== "string" ||
+    encodeURIComponent(record.id) !== match[1]
+  )
+    return null;
+  return { href: pathname, label: record.name.trim() };
+}
+
 export function buildYoungNavGroups(
   copy: LayoutCopy,
   pathname: string,
   pageData: Record<string, unknown>,
 ): ShellNavGroup[] {
   const currentEvent = youngEventSidebarItem(pathname, pageData);
+  const currentOrganizer = youngOrganizerSidebarItem(pathname, pageData);
   return [
     {
+      id: "young",
       defaultOpen: true,
       icon: PartyPopperIcon,
       label: copy.nav.youngEvents,
       links: [
         {
           href: "/catalog/young-events",
+          id: "youngActivities",
           icon: SparklesIcon,
           items: currentEvent ? [currentEvent] : undefined,
           label: copy.nav.youngActivities,
         },
         {
           href: "/catalog/young-events/calendar",
+          id: "youngCalendar",
           icon: CalendarDaysIcon,
           label: copy.nav.youngCalendar,
         },
         {
           href: "/catalog/young-events/organizers",
+          id: "youngOrganizers",
           icon: UsersIcon,
+          items: currentOrganizer ? [currentOrganizer] : undefined,
           label: copy.nav.youngOrganizers,
         },
       ],
@@ -517,6 +544,7 @@ export function buildYoungNavGroups(
 export function buildSettingsNavGroups(copy: LayoutCopy): ShellNavGroup[] {
   return [
     {
+      id: "settings",
       defaultOpen: true,
       icon: SettingsIcon,
       label: copy.nav.settings,
@@ -662,5 +690,8 @@ export function isShellLinkAncestor(link: ShellLink, current: NavigationUrl) {
   const target = new URL(link.href, current.origin);
   if (target.searchParams.size > 0) return false;
   if (isShellLinkActive(link, current)) return false;
+  // Calendar and organizers are siblings of the activity list, even though
+  // their canonical URLs share its prefix. The focused rail owns that context.
+  if (target.pathname === "/catalog/young-events") return false;
   return current.pathname.startsWith(`${target.pathname}/`);
 }

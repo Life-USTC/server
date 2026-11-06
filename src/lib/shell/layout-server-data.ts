@@ -126,6 +126,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       mobileApp: messages.homepage.actions.mobileApp,
     },
     shell: {
+      closeNavigation: messages.shell.closeNavigation,
       backToApp: messages.shell.backToApp,
       backToHome: messages.common.backToHome,
       footerNavigation: messages.common.footerNavigation,

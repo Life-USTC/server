@@ -113,7 +113,9 @@ export async function showWeatherFixture(
   // renders as a Sheet dialog; `app-sidebar` is a DOM node only on desktop.
   const mobile = (page.viewportSize()?.width ?? 1280) < 768;
   const navigation = mobile
-    ? page.getByRole("dialog", { name: "Sidebar", exact: true })
+    ? page.getByRole("dialog", {
+        name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+      })
     : appSidebar(page);
   if (mobile) {
     await page.locator('[data-slot="sidebar-trigger"]').click();

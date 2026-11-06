@@ -373,7 +373,7 @@ requirements:
 - id: ui.list-table-9
   category: presentation
   topic: list-table
-  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as publication source groups. Settings routes replace the primary sidebar with a settings sidebar whose top control returns home. Second-classroom routes replace the primary sidebar with a second-classroom sidebar whose top control returns home. An open event adds its name under the activity list. Admin routes replace the primary sidebar with admin tools and a back-to-app link. The home page keeps the primary sidebar.
+  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as publication source groups. Settings, second-classroom and admin routes focus the sidebar on their local sections while preserving the Life@USTC root identity and an explicit parent link. Those links use client-side route navigation; browser back restores the previous context without a document reload. An open event or organizer adds its name under its owning collection. The home page keeps the primary sidebar.
   rationale: Route navigation lives in the shell sidebar. In-page anchors stay on PageSectionNav. DetailSectionNav is not a settings control.
   acceptance:
     given: Second-classroom pages, moderation, settings, and the publication source directory.
@@ -958,8 +958,8 @@ requirements:
     is no Workspace or Explore container - a personal task destination belongs to My day, and a discovery
     destination belongs to the subject it is about. Each group is a disclosure labelled by the group name, with
     no separate toggle control beside it. Groups a student uses daily are expanded on arrival; Apps and Admin
-    start collapsed for a signed-in viewer, and any group holding the open page is expanded. Admin is present
-    only for an authorized administrator. Exactly one destination is marked as the current page.
+    start collapsed for a signed-in viewer when no local preference exists, and any group holding the open page is expanded. Device-local disclosure preferences use stable destination identities, survive reload and locale changes, and contain no viewer data. In the compact rail each intent group has one named icon, with the current ancestor highlighted; choosing a group expands its destinations without opening every group. Admin is present
+    only for an authorized administrator. The expanded rail marks exactly one destination as the current page.
   rationale: Destinations are grouped by what a student is trying to do, not by which part of the product owns
     the route. The ordered group set and its parity with the feature hub are owned by ui.shell-feature-hub.
   acceptance:
@@ -992,7 +992,7 @@ requirements:
 - id: ui.shell-layout-4
   category: presentation
   topic: shell-layout
-  rule: Mobile and desktop use the same functional sidebar destinations. No student or admin bottom tab bar renders. Mobile drawers close after navigation. Footer, content and section actions account for the device safe area once without reserving a tab-bar height.
+  rule: Mobile and desktop use the same functional sidebar destinations. No student or admin bottom tab bar renders. Mobile drawers have localized names and an explicit close action, restore focus when dismissed, and close after navigation. Footer, content and section actions account for the device safe area once without reserving a tab-bar height.
   acceptance:
     given: A signed-in browser opens the mobile shell.
     when: The user activates schedule and catalog links from the drawer and emulates bottom safe-area insets of zero and 34 pixels.
@@ -1212,7 +1212,7 @@ requirements:
 - id: ui.settings-navigation-1
   category: presentation
   topic: settings-navigation
-  rule: Settings routes replace the primary sidebar with a settings sidebar. Its top control returns home. Desktop shows that sidebar beside the active panel. Mobile opens it from the shell menu.
+  rule: Settings routes focus the sidebar on settings sections while keeping the Life@USTC root identity and a parent link home. Entering and leaving this context uses client-side navigation and restores local sidebar preferences. Desktop shows that sidebar beside the active panel. Mobile opens it from the shell menu, with a localized dialog name and an explicit reachable close action.
   acceptance:
     given: A signed-in user opens profile settings at desktop width, returns home, then opens danger settings on a phone.
     when: The browser measures the desktop sidebar against the panel, follows the home control, and opens the mobile menu.

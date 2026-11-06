@@ -4,12 +4,16 @@
 	import type { HTMLAttributes } from "svelte/elements";
 	import { SIDEBAR_WIDTH_MOBILE } from "./constants.js";
 	import { useSidebar } from "./context.svelte.js";
+	import XIcon from "@lucide/svelte/icons/x";
 
 	let {
 		ref = $bindable(null),
 		side = "left",
 		variant = "sidebar",
 		collapsible = "offcanvas",
+		mobileTitle = "Sidebar",
+		mobileDescription = "Displays the mobile sidebar.",
+		closeLabel = "Close",
 		class: className,
 		children,
 		...restProps
@@ -17,6 +21,9 @@
 		side?: "left" | "right";
 		variant?: "sidebar" | "floating" | "inset";
 		collapsible?: "offcanvas" | "icon" | "none";
+		mobileTitle?: string;
+		mobileDescription?: string;
+		closeLabel?: string;
 	} = $props();
 
 	const sidebar = useSidebar();
@@ -39,21 +46,25 @@
 		{...restProps}
 	>
 		<Sheet.Content
+			showCloseButton={false}
 			bind:ref
 			data-sidebar="sidebar"
 			data-slot="sidebar"
 			data-mobile="true"
 			class={cn(
-				"bg-sidebar text-sidebar-foreground w-(--sidebar-width) max-w-full p-0 [&>button]:hidden",
+				"bg-sidebar text-sidebar-foreground w-(--sidebar-width) max-w-full p-0",
 				className
 			)}
 			style="--sidebar-width: {SIDEBAR_WIDTH_MOBILE};"
 			{side}
 		>
 			<Sheet.Header class="sr-only">
-				<Sheet.Title>Sidebar</Sheet.Title>
-				<Sheet.Description>Displays the mobile sidebar.</Sheet.Description>
+				<Sheet.Title>{mobileTitle}</Sheet.Title>
+				<Sheet.Description>{mobileDescription}</Sheet.Description>
 			</Sheet.Header>
+			<Sheet.Close class="absolute top-2 right-2 z-10 flex size-11 items-center justify-center rounded-md hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring" aria-label={closeLabel}>
+				<XIcon class="size-4" />
+			</Sheet.Close>
 			<div class="flex h-full w-full flex-col">
 				{@render children?.()}
 			</div>

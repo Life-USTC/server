@@ -86,7 +86,9 @@ async function identify(page: Page, worker: IsolatedWorker, userId: string) {
 }
 async function sidebar(page: Page, width: number) {
   if (width < 768) {
-    const dialog = page.getByRole("dialog", { name: "Sidebar", exact: true });
+    const dialog = page.getByRole("dialog", {
+      name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+    });
     if (!(await dialog.isVisible()))
       await page
         .locator("[data-shell-topbar]")

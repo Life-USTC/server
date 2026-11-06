@@ -125,7 +125,9 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
     ).toBeVisible();
     await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
 
-    const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+    const sidebar = page.getByRole("dialog", {
+      name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+    });
     await expect(
       sidebar.getByRole("button", { name: /语言|Language/i }),
     ).toHaveCount(0);
@@ -371,7 +373,9 @@ shellTest(
       await sidebarTrigger.click();
       await expect(sidebarTrigger).toHaveAttribute("aria-expanded", "true");
 
-      const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+      const sidebar = page.getByRole("dialog", {
+        name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+      });
       await expect(sidebar).toBeVisible();
       await expect(
         sidebar.getByRole("link", { name: /^(浏览教学班|Browse sections)$/i }),
@@ -721,7 +725,9 @@ shellTest(
 
       await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
 
-      const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+      const sidebar = page.getByRole("dialog", {
+        name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+      });
       await expect(sidebar).toBeVisible();
       await expect(
         sidebar.getByRole("button", { name: /^(日程|My day)$/i }),
@@ -769,7 +775,9 @@ shellTest(
         .getByRole("button", { name: /^菜单$|^Menu$/i })
         .click();
 
-      const sidebar = page.getByRole("dialog", { name: /Sidebar/i });
+      const sidebar = page.getByRole("dialog", {
+        name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+      });
       const settingsNav = sidebar.getByTestId("settings-sidebar");
       await expect(
         settingsNav.getByRole("link", { name: /偏好设置|Preferences/i }),
