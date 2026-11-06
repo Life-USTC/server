@@ -61,7 +61,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
 
 <svelte:head><title>{copy.title} - Life@USTC</title></svelte:head>
 
-{#snippet actions(upload: Upload)}
+{#snippet uploadActions(upload: Upload)}
   <div class="flex flex-wrap gap-2">
     <Button href={`/api/workspace/uploads/${encodeURIComponent(upload.id)}/download`} variant="outline" size="sm" aria-label={`${copy.downloadAction} ${upload.filename}`}>{copy.downloadAction}</Button>
     <Button variant="outline" size="sm" aria-label={`${copy.renameAction} ${upload.filename}`} onclick={() => selected = {upload, action:"rename"}}>{copy.renameAction}</Button>
@@ -103,7 +103,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
                   <Table.Cell class="max-w-64"><TruncatedText class="font-medium" text={upload.filename} /></Table.Cell>
                   <Table.Cell class="text-left tabular-nums">{formatBytes(upload.size)}</Table.Cell>
                   <Table.Cell><time datetime={upload.createdAt}>{formatter.format(new Date(upload.createdAt))}</time></Table.Cell>
-                  <Table.Cell>{@render actions(upload)}</Table.Cell>
+                  <Table.Cell>{@render uploadActions(upload)}</Table.Cell>
                 </Table.Row>
               {/each}
               {#if data.uploads.length === 0}<Table.Row><Table.Cell colspan={4}><ResultsEmpty title={copy.emptyTitle} description={copy.emptyDescription} /></Table.Cell></Table.Row>{/if}
@@ -117,7 +117,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
                 <Item.Content>
                   <p class="break-all font-medium">{upload.filename}</p>
                   <Item.Description>{formatBytes(upload.size)} · <time datetime={upload.createdAt}>{formatter.format(new Date(upload.createdAt))}</time></Item.Description>
-                  {@render actions(upload)}
+                  {@render uploadActions(upload)}
                 </Item.Content>
               </Item.Root>
             {/each}
