@@ -103,17 +103,27 @@ describe("public page loaders", () => {
         source: { name: "Academic Affairs" },
       },
     ]);
-    listYoungEventsMock.mockResolvedValue({
+    listYoungEventsMock.mockImplementation(async ({ tableFilters }) => ({
       data: [
         {
           location: "Auditorium",
-          name: "Quantum lecture",
+          name:
+            tableFilters.startAtOp === "gte"
+              ? "Quantum lecture"
+              : "Weekly club",
           organizer: null,
-          startAt: null,
-          youngId: "young-1",
+          startAt:
+            tableFilters.startAtOp === "gte"
+              ? "2026-11-07T10:00:00+08:00"
+              : "2026-08-19T10:38:00+08:00",
+          endAt:
+            tableFilters.startAtOp === "gte"
+              ? "2026-11-07T12:00:00+08:00"
+              : "2027-01-02T10:38:00+08:00",
+          youngId: tableFilters.startAtOp === "gte" ? "young-1" : "young-2",
         },
       ],
-    });
+    }));
 
     const result = await loadHomePage(event);
 
@@ -136,6 +146,26 @@ describe("public page loaders", () => {
     expect(result.information.activities?.[0]?.href).toBe(
       "/catalog/young-events/young-1",
     );
+    expect(
+      result.information.activities?.map(({ crossDay }) => crossDay),
+    ).toEqual([false, true]);
+    expect(result.information.activities?.[1]?.dateLabel).toContain(
+      "2027-01-02",
+    );
+    expect(listYoungEventsMock).toHaveBeenCalledTimes(2);
+    for (const [
+      { dateFrom, pageSize, timeBasis, tableFilters },
+    ] of listYoungEventsMock.mock.calls) {
+      expect(pageSize).toBe(5);
+      expect(timeBasis).toBe("activity");
+      expect(tableFilters).toMatchObject({
+        active: "true",
+        timeBasis: "activity",
+      });
+      expect(dateFrom.toISOString()).toBe(
+        new Date(`${tableFilters.startAt}T00:00:00+08:00`).toISOString(),
+      );
+    }
     // The landing page reads its own lean sections, never the heavy
     // signed-in workspace tab payloads.
     expect(getBusTabDataMock).not.toHaveBeenCalled();

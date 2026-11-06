@@ -169,8 +169,18 @@ function overflowClass(index: number, shown: string, hidden: string): string {
         {@render heading("h2", SparklesIcon, info.activities.title, "/catalog/young-events", info.activities.viewAll)}
         {#if activities === null}
           {@render note(info.activities.unavailable)}
+        {:else if activities.length === 0}
+          {@render note(info.activities.empty)}
         {:else}
-          {@render itemList(activities, info.activities.empty)}
+          {#each [false, true] as crossDay}
+            {@const group = activities.filter((item) => item.crossDay === crossDay)}
+            {#if group.length}
+              <div class="grid min-w-0 gap-1">
+                <h3 class="text-sm font-medium">{crossDay ? info.activities.crossDay : info.activities.upcoming}</h3>
+                {@render itemList(group, info.activities.empty)}
+              </div>
+            {/if}
+          {/each}
         {/if}
       </section>
     </div>

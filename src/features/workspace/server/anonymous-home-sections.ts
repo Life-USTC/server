@@ -11,10 +11,14 @@ import {
   HOME_WEATHER_HOURLY_LIMIT,
 } from "@/features/workspace/lib/anonymous-home-layout";
 import { formatMessage } from "@/features/workspace/lib/overview-formatters";
+import { youngDateRange } from "@/features/young/lib/young-event-display";
 import { listYoungEvents } from "@/features/young/server/young-event-service";
 import type { AppLocale } from "@/i18n/config";
 import { logAppEvent } from "@/lib/log/app-logger";
-import type { getAnonymousHomePageCopy } from "@/lib/shell/page-copy";
+import {
+  type getAnonymousHomePageCopy,
+  getWorkspacePageCopy,
+} from "@/lib/shell/page-copy";
 import { formatCampusDateTime } from "@/lib/time/campus-date";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
@@ -50,9 +54,10 @@ const SECTION_BUDGET_MS = 1_500;
 /**
  * Desktop reads these sections on a canvas twice the width of a phone, so the
  * page fetches the longer list and the component's breakpoint decides how much
- * of it is shown (`src/features/workspace/lib/anonymous-home-layout.ts`). The
- * extra rows cost one larger `take` on queries that already run; they add no
- * round trip to the landing path.
+ * of it is shown (`src/features/workspace/lib/anonymous-home-layout.ts`).
+ * Activities use separate bounded reads for starts today/later and cross-day
+ * ranges, so an old long-running activity cannot crowd out a new start. Each
+ * group uses the same compact/wide row limits.
  */
 const NOTICE_LIMIT = HOME_LIST_LIMIT;
 const ACTIVITY_LIMIT = HOME_LIST_LIMIT;
@@ -94,13 +99,15 @@ export type HomeListItem = {
   dateLabel: string | null;
 };
 
+export type HomeActivityItem = HomeListItem & { crossDay: boolean };
+
 /**
  * `null` means the section could not be read and renders as unavailable; an
  * empty list means it was read successfully and has nothing to show. The
  * component tells those apart, so a down upstream never looks like quiet news.
  */
 export type AnonymousHomeInformation = {
-  activities: HomeListItem[] | null;
+  activities: HomeActivityItem[] | null;
   notices: HomeListItem[] | null;
 };
 
@@ -248,30 +255,36 @@ async function readNotices(locale: AppLocale): Promise<HomeListItem[]> {
   }));
 }
 
-async function readActivities(locale: AppLocale): Promise<HomeListItem[]> {
-  const { data } = await listYoungEvents({
-    active: true,
-    // The start of the Shanghai day rather than "now": `/` is cached until the
-    // next midnight, so selecting from the request instant would freeze one
-    // visitor's "upcoming" into every later visitor's page. Activities that
-    // already finished earlier today stay in the list for the rest of the day.
-    dateFrom: shanghaiDayjs().startOf("day").toDate(),
-    page: 1,
-    pageSize: ACTIVITY_LIMIT,
-    timeBasis: "activity",
-  });
-  return data.map((event) => ({
-    dateLabel: event.startAt
-      ? formatCampusDateTime(event.startAt, "", locale, {
-          dateStyle: "short",
-          timeStyle: "short",
-        })
-      : null,
-    href: `/catalog/young-events/${event.youngId}`,
-    key: event.youngId,
-    meta: event.location ?? event.organizer,
-    title: event.name,
-  }));
+async function readActivities(locale: AppLocale): Promise<HomeActivityItem[]> {
+  // The shared home representation lasts until Shanghai midnight, so classify
+  // by the day boundary, never by one visitor's request time.
+  const today = shanghaiDayjs().startOf("day");
+  const copy = getWorkspacePageCopy(locale).youngEvents;
+  const groups = await Promise.all(
+    [false, true].map(async (crossDay) => {
+      const { data } = await listYoungEvents({
+        dateFrom: today.toDate(),
+        page: 1,
+        pageSize: ACTIVITY_LIMIT,
+        timeBasis: "activity",
+        tableFilters: {
+          active: "true",
+          timeBasis: "activity",
+          startAt: today.format("YYYY-MM-DD"),
+          startAtOp: crossDay ? "lt" : "gte",
+        },
+      });
+      return data.map((event) => ({
+        dateLabel: youngDateRange(event.startAt, event.endAt, copy),
+        href: `/catalog/young-events/${event.youngId}`,
+        key: event.youngId,
+        meta: event.location ?? event.organizer,
+        crossDay,
+        title: event.name,
+      }));
+    }),
+  );
+  return groups.flat();
 }
 
 export async function loadAnonymousHomeInformation(input: {
