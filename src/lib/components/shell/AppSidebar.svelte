@@ -14,11 +14,11 @@ import type {
 import { cn } from "#lib/utils.js";
 import AppUserMenu from "./AppUserMenu.svelte";
 import SettingsGlyph from "./SettingsGlyph.svelte";
-import type { ShellLink, ShellNavGroup } from "./types";
 import {
   loadSidebarPreferences,
   saveSidebarPreferences,
 } from "./sidebar-preferences";
+import type { ShellLink, ShellNavGroup } from "./types";
 
 export type SectionSidebar = {
   backHref: string;

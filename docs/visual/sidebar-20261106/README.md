@@ -28,10 +28,10 @@ Original Chromium screenshots, captured at 1280×900 and 390×844 respectively.
 The baseline is main `c81d63af`. Both sides use the same public Links page,
 Chinese locale and isolated viewer fixture.
 
-| State | Before | After |
-| --- | --- | --- |
+| State                | Before                                             | After                                            |
+| -------------------- | -------------------------------------------------- | ------------------------------------------------ |
 | Compact desktop rail | ![Before compact rail](before-desktop-compact.png) | ![After compact rail](after-desktop-compact.png) |
-| Open mobile drawer | ![Before mobile drawer](before-mobile-drawer.png) | ![After mobile drawer](after-mobile-drawer.png) |
+| Open mobile drawer   | ![Before mobile drawer](before-mobile-drawer.png)  | ![After mobile drawer](after-mobile-drawer.png)  |
 
 The second-level context preserves the site identity and parent route:
 
@@ -47,7 +47,6 @@ not session authentication, database isolation or production latency. A same-ori
 QA font supplied the host's missing Chinese glyphs; no layout CSS was overridden.
 
 Observed in the candidate:
-
 - A compact desktop rail survived a document reload. Selecting Campus expanded
   the rail, and the current ancestor remained identifiable.
 - The browser entered Young activities, organizers and an organizer detail,
@@ -63,16 +62,40 @@ Observed in the candidate:
 
 Reviewing the organizer capture revealed a separate prefix bug: the activity
 list was incorrectly highlighted as an ancestor of its calendar/organizer
-siblings. The navigation predicate now distinguishes those siblings, with a
-regression assertion in the existing navigation unit case. The earlier organizer
-capture is excluded here; a final browser recheck of that highlight is pending.
+siblings. The navigation predicate now distinguishes those siblings, with an
+assertion in the existing navigation unit case.
 
-The optional 768px measurement initially included the rail's deliberate extension
-into the content gutter and therefore cannot establish content overflow. English
-and corrected tablet-content geometry checks remain pending. The raw QA report's
-numeric document count was also sampled after a later reload; that number is not
-used as context-navigation evidence. The marker/count assertions above occurred
-before the reload and passed.
+A full-application follow-up was stopped by automatic approval review because
+Miniflare startup could contact external `workers.cloudflare.com`. That denied
+operation was not repeated. Read-only dependency inspection identified the
+simulated `Request.cf` data fetch; the remaining checks used a separate renderer
+with the real `AppSidebar`, `Sidebar.Provider` and navigation builders, only
+Svelte/Tailwind plugins, no SvelteKit/Cloudflare adapter or business session, and
+all non-local browser requests blocked. This narrower check complements the
+actual-app evidence above; it does not complete the blocked full-app follow-up
+or establish authentication/production acceptance.
+
+The supplemental local component check passed organizer single-current/parent
+highlighting, English copy and disclosure/rail preferences across reload,
+English mobile naming/Escape focus, and visible navigation/control bounds at
+768/1024px. No external browser request or page error occurred.
+
+| Width | Document client / scroll | Navigation client / scroll | Main content client / scroll |
+| ----- | ------------------------ | -------------------------- | ---------------------------- |
+| 768   | 768 / 753                | 255 / 255                  | 497 / 497                    |
+| 1024  | 1024 / 1009              | 255 / 255                  | 753 / 753                    |
+
+All 53 visible navigation labels/controls fit inside the navigation bounds.
+The rail's hit area extends from x=251 to 275 into the intended gutter, while
+navigation controls and document/main content retain their full visible width.
+
+![Organizer current path in the local component renderer](organizer-single-active.png)
+
+![English mobile drawer in the local component renderer](mobile-english.png)
+
+The original raw QA report sampled one numeric document count after a later
+reload; that number is not used as context-navigation evidence. The actual-app
+marker/count assertions above occurred before the reload and passed.
 
 Existing navigation tests retain dialog role and localized-name locators. No new
 browser scenario or visual-shape constraint was added. Local navigation unit tests

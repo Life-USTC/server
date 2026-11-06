@@ -58,11 +58,11 @@ import {
   isShellLinkActive,
   isShellLinkAncestor,
 } from "./navigation";
-import type { ShellLink } from "./types";
 import {
   loadSidebarPreferences,
   saveSidebarPreferences,
 } from "./sidebar-preferences";
+import type { ShellLink } from "./types";
 
 if (typeof window !== "undefined") {
   const originalFetch = window.fetch.bind(window);
