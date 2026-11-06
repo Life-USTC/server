@@ -267,30 +267,26 @@ test("upload.web-list", { tag: "@Upload/Web" }, async ({
       exact: true,
     });
     await expect(apply).toHaveCount(1);
-    await page.getByRole("button", { name: "File", exact: true }).click();
-    await page
-      .getByRole("dialog", { name: "File", exact: true })
-      .getByRole("textbox")
+    const filterForm = page.locator("#uploads-filters");
+    await filterForm
+      .getByRole("textbox", { name: "File", exact: true })
       .fill("material");
-    await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: "Size", exact: true }).click();
-    const sizeDialog = page.getByRole("dialog", { name: "Size", exact: true });
     await expect(
-      sizeDialog.getByText("In bytes", { exact: true }),
+      filterForm.getByText("In bytes", { exact: true }),
     ).toBeVisible();
     await expect(
-      sizeDialog.getByRole("button", { name: "Apply filters", exact: true }),
-    ).toHaveCount(0);
-    await sizeDialog.getByRole("combobox").selectOption("between");
-    await sizeDialog.getByRole("spinbutton").nth(0).fill("1024");
-    await sizeDialog.getByRole("spinbutton").nth(1).fill("1024");
-    await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: "Uploaded", exact: true }).click();
-    await page
-      .getByRole("dialog", { name: "Uploaded", exact: true })
-      .getByLabel("Uploaded", { exact: true })
-      .fill("2026-01-01");
-    await page.keyboard.press("Escape");
+      filterForm.getByRole("button", { name: "Apply filters", exact: true }),
+    ).toHaveCount(1);
+    await filterForm
+      .getByRole("combobox", { name: "Size · Comparison", exact: true })
+      .selectOption("between");
+    await filterForm
+      .getByRole("spinbutton", { name: "Size", exact: true })
+      .fill("1024");
+    await filterForm
+      .getByRole("spinbutton", { name: "Upper bound", exact: true })
+      .fill("1024");
+    await filterForm.getByLabel("Uploaded", { exact: true }).fill("2026-01-01");
     await expect(page).toHaveURL(/\/workspace\/uploads$/);
     await apply.click();
     await expect(page).toHaveURL((url) =>
@@ -301,22 +297,15 @@ test("upload.web-list", { tag: "@Upload/Web" }, async ({
     const nextHref = await nextPage.getAttribute("href");
     const nextParams = new URL(nextHref ?? "", page.url()).searchParams;
     for (const [key, value] of filters) expect(nextParams.get(key)).toBe(value);
-    await page.getByRole("button", { name: "File", exact: true }).click();
-    await page
-      .getByRole("dialog", { name: "File", exact: true })
-      .getByRole("textbox")
+    await filterForm
+      .getByRole("textbox", { name: "File", exact: true })
       .fill("material-20");
-    await page.keyboard.press("Escape");
     await page.locator('[data-slot="endless-scroll"]').scrollIntoViewIfNeeded();
     await expect(page).toHaveURL((url) => !url.searchParams.has("page"));
     await expect(visibleRows(page)).toHaveCount(21);
-    await page.getByRole("button", { name: "File", exact: true }).click();
     await expect(
-      page
-        .getByRole("dialog", { name: "File", exact: true })
-        .getByRole("textbox"),
+      filterForm.getByRole("textbox", { name: "File", exact: true }),
     ).toHaveValue("material-20");
-    await page.keyboard.press("Escape");
     await expect(visibleRows(page).last()).toContainText("material-00.txt");
     for (const [key, value] of filters)
       expect(new URL(page.url()).searchParams.get(key)).toBe(value);
