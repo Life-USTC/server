@@ -7,6 +7,7 @@ import TableIconButton from "#lib/components/TableIconButton.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
+import SectionCardIdentity from "@/features/catalog/components/SectionCardIdentity.svelte";
 import type {
   SubscriptionsData,
   WorkspaceCopy,
@@ -17,6 +18,7 @@ import type {
 type SubscriptionListData = SubscriptionsData["subscriptions"];
 type SubscriptionSection = SubscriptionListData[number]["sections"][number];
 
+export let locale: string;
 export let workspaceCopy: WorkspaceCopy;
 export let readOnlyReason: string | undefined = undefined;
 export let requestEditKind: (section: SubscriptionSection) => void;
@@ -25,15 +27,6 @@ export let removingSectionId: SubscriptionSection["id"] | null;
 export let sectionCopy: WorkspaceSectionCopy;
 export let sections: SubscriptionSection[];
 export let subscriptionsCopy: WorkspaceSubscriptionsCopy;
-
-function teacherNames(section: SubscriptionSection) {
-  return (
-    section.teachers
-      .map((teacher) => teacher.namePrimary)
-      .filter(Boolean)
-      .join(", ") || sectionCopy.noTeachersListed
-  );
-}
 
 function courseName(section: SubscriptionSection) {
   return section.course.namePrimary ?? workspaceCopy.notAvailable;
@@ -44,30 +37,15 @@ function courseName(section: SubscriptionSection) {
   <Item.Group class="gap-0">
     {#each sections as section, index}
       <MobileListCard>
-        <Item.Content class="min-w-0 gap-1">
-          <Item.Title class="line-clamp-none flex w-full min-w-0 flex-wrap items-center gap-1.5">
-              <a
-                class="flex min-h-11 min-w-0 max-w-full items-center font-medium hover:underline"
-                href={`/catalog/sections/${section.jwId}`}
-                data-testid="subscription-course-link"
-              >
-                <span class="line-clamp-2 min-w-0 max-w-full break-words">
-                  {courseName(section)}
-                </span>
-              </a>
-            {#if section.kind !== "regular"}<Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>{/if}
-          </Item.Title>
-          <Item.Description
-            class="line-clamp-none flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 break-words"
-          >
-            <span class="w-full font-mono break-words">{section.code}</span>
-            <span class="max-w-full break-words">{teacherNames(section)}</span>
-            <Badge variant="outline">
-              {section.credits ?? workspaceCopy.notAvailable}
-              {subscriptionsCopy.credits}
-            </Badge>
-          </Item.Description>
-        </Item.Content>
+        <SectionCardIdentity course={section.course} teachers={section.teachers} code={section.code} semester={section.semester} {locale}>
+          {#snippet title()}
+            <a class="flex min-h-11 min-w-0 max-w-full items-center break-words font-medium hover:underline [overflow-wrap:anywhere]" href={`/catalog/sections/${section.jwId}`} data-testid="subscription-course-link">{courseName(section)}</a>
+          {/snippet}
+        </SectionCardIdentity>
+        <Item.Footer class="flex-wrap justify-start gap-2">
+          {#if section.kind !== "regular"}<Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>{/if}
+          <Badge variant="outline">{section.credits ?? workspaceCopy.notAvailable} {subscriptionsCopy.credits}</Badge>
+        </Item.Footer>
         <Item.Actions class="shrink-0 self-start">
           <TableIconButton className="size-11" label={subscriptionsCopy.kindEditor.title} disabled={Boolean(readOnlyReason)} onclick={() => requestEditKind(section)}>
             <Pencil data-icon="inline-start" />

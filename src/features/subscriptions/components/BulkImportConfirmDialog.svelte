@@ -7,6 +7,8 @@ import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
+import SectionCardIdentity from "@/features/catalog/components/SectionCardIdentity.svelte";
+import { page } from "$app/state";
 import type {
   BulkImportCopy,
   BulkImportFormatMessage,
@@ -65,19 +67,16 @@ const titleId = "bulk-import-confirm-title";
                     }}
                   />
                   <Field.Content>
-                    <Field.Label class="cursor-pointer" for={checkboxId}>
-                      <span class="sr-only">{formatMessage(copy.selectSection, { code: section.code })} · </span>
-                      {section.courseName}
-                      {#if section.courseSecondaryName}
-                        <span class="text-muted-foreground">({section.courseSecondaryName})</span>
-                      {/if}
-                    </Field.Label>
-                    <Field.Description>
-                      {section.code}
-                      {#if section.semesterName} · {section.semesterName}{/if}
-                      {#if section.campusName} · {section.campusName}{/if}
-                      {#if section.teacherNames} · {section.teacherNames}{/if}
-                    </Field.Description>
+                    <SectionCardIdentity course={{ namePrimary: section.courseName, nameSecondary: section.courseSecondaryName }} teachers={section.teacherNames ? [{ namePrimary: section.teacherNames }] : []} code={section.code} semester={{ nameCn: section.semesterName }} locale={page.data.locale ?? "zh-cn"}>
+                      {#snippet title()}
+                        <Field.Label class="block w-full cursor-pointer break-words [overflow-wrap:anywhere]" for={checkboxId}>
+                          <span class="sr-only">{formatMessage(copy.selectSection, { code: section.code })} · </span>
+                          {section.courseName}
+                          {#if section.courseSecondaryName}<span class="text-muted-foreground">({section.courseSecondaryName})</span>{/if}
+                        </Field.Label>
+                      {/snippet}
+                    </SectionCardIdentity>
+                    {#if section.campusName}<Field.Description>{section.campusName}</Field.Description>{/if}
                   </Field.Content>
                 </Field.Field>
               {/each}

@@ -1,4 +1,5 @@
 <script lang="ts">
+import type { Snippet } from "svelte";
 import * as Item from "#lib/components/ui/item/index.js";
 import {
   type CatalogNamed,
@@ -8,6 +9,7 @@ import {
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import CatalogEntityName from "./CatalogEntityName.svelte";
 
+export let title: Snippet | undefined = undefined;
 export let course: CatalogNamed | null | undefined;
 export let teachers: CatalogNamed[] = [];
 export let code: string;
@@ -20,14 +22,14 @@ $: teacherNames = catalogLocalizedNames(teachers, locale);
 
 <Item.Content class="min-w-0 basis-full gap-1">
   <Item.Title class="block w-full line-clamp-none break-words [overflow-wrap:anywhere]">
-    {#if hasCourseName}<CatalogEntityName item={course} {locale} />{:else}<span class="font-mono">{code}</span>{/if}
+    {#if title}{@render title()}{:else if hasCourseName}<CatalogEntityName item={course} {locale} />{:else}<span class="font-mono">{code}</span>{/if}
   </Item.Title>
   {#if teacherNames}
     <Item.Description class="line-clamp-none break-words group-hover/item:text-foreground">{teacherNames}</Item.Description>
   {/if}
-  {#if hasCourseName || semester?.nameCn}
+  {#if hasCourseName || title || semester?.nameCn}
   <div class="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground group-hover/item:text-foreground">
-    {#if hasCourseName}<span class="min-w-0 font-mono [overflow-wrap:anywhere]" data-slot="catalog-code">{code}</span>{/if}
+    {#if hasCourseName || title}<span class="min-w-0 font-mono [overflow-wrap:anywhere]" data-slot="catalog-code">{code}</span>{/if}
     {#if semester?.nameCn}<span>{formatSemesterName(locale, semester.nameCn)}</span>{/if}
   </div>
   {/if}
