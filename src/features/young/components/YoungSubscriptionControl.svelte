@@ -139,8 +139,8 @@ $effect(() => {
 });
 
 async function retry() {
-  if (viewerStatus === "error") await invalidateAll();
-  refresh++;
+  if (viewerStatus === "error") await shellViewer.retry();
+  else refresh++;
 }
 
 async function save(next: boolean) {

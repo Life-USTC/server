@@ -17,7 +17,6 @@ import { fetchDescriptionPayload } from "@/features/descriptions/lib/description
 import type { AppLocale } from "@/i18n/config";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
-import { invalidateAll } from "$app/navigation";
 import DescriptionCardHeader from "./DescriptionCardHeader.svelte";
 import DescriptionEditPanel from "./DescriptionEditPanel.svelte";
 import DescriptionReadPanel from "./DescriptionReadPanel.svelte";
@@ -110,7 +109,7 @@ async function loadViewer() {
 }
 async function retryViewer() {
   if (shellViewerStatus === "error") {
-    await invalidateAll();
+    await shellViewer.retry();
     return;
   }
   if (shellViewerStatus === "ready" && shellViewerId) void loadViewer();

@@ -72,6 +72,7 @@ requirements:
     then:
     - Each public full-page load makes exactly one shell-bootstrap request, returns the matching viewer and successfully reads its feature projection.
     - No page duplicates identity reads through profile or session endpoints.
+    - A failed identity read is retried directly by the existing feature Retry control. Repeated failure remains recoverable; success initializes the matching private projection without reloading the document or invalidating unrelated public page data.
     - Workspace SSR and subsequent client navigation reuse the existing viewer without another shell-bootstrap request.
     - Navigating from sign-in with a newly established session initializes the viewer and navigation with one bootstrap request and replaces anonymous shell controls.
     test:

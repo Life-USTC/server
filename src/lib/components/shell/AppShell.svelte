@@ -130,7 +130,10 @@ const shellViewer = writable<ShellViewerState>(
     status: viewerLoading ? "loading" : "ready",
   })),
 );
-setContext(SHELL_VIEWER_CONTEXT, shellViewer);
+setContext(SHELL_VIEWER_CONTEXT, {
+  ...shellViewer,
+  retry: () => resolveClientShell("goto"),
+});
 let workspaceNavigation: WorkspaceNavigationSummary | null = $state.raw(
   untrack(() => workspaceNavigationFromPageData(routePage.data, viewerOwnerId)),
 );

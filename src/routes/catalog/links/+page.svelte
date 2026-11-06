@@ -15,7 +15,6 @@ import {
 } from "@/features/workspace/lib/workspace-link-pin-client";
 import { CATALOG_LINKS_VIEWER_PATH } from "@/lib/navigation/internal-routes";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
-import { invalidateAll } from "$app/navigation";
 import type { PageData } from "./$types";
 
 export let data: PageData;
@@ -38,7 +37,7 @@ function resetViewer(_identity: string) {
     void loadLinkPreferences();
 }
 async function retryViewer() {
-  if ($shellViewer.status === "error") await invalidateAll();
+  if ($shellViewer.status === "error") await shellViewer.retry();
   else void loadLinkPreferences();
 }
 let signedIn = false;
