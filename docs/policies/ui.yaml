@@ -1211,13 +1211,13 @@ requirements:
 - id: ui.settings-navigation-1
   category: presentation
   topic: settings-navigation
-  rule: Settings routes focus the sidebar on settings sections while keeping the Life@USTC root identity and a parent link home. Entering and leaving this context uses client-side navigation and restores local sidebar preferences. Desktop shows that sidebar beside the active panel. Mobile opens it from the shell menu, with a localized dialog name and an explicit reachable close action.
+  rule: Settings and second-classroom routes retain the primary sidebar groups and role-filtered sibling destinations. Their sections appear below the owning destination, while the context header keeps the Life@USTC root identity and a parent link home. Entering and leaving uses client-side navigation and restores local sidebar preferences. Desktop shows that tree beside the active panel. Mobile opens it from the shell menu, with a localized dialog name and an explicit reachable close action.
   acceptance:
     given: A signed-in user opens profile settings at desktop width, returns home, then opens danger settings on a phone.
     when: The browser measures the desktop sidebar against the panel, follows the home control, and opens the mobile menu.
     then:
-    - The desktop settings sidebar sits to the left of the panel, marks profile current, and its top control returns home.
-    - Home restores the primary sidebar. The mobile menu shows the settings sidebar with danger current.
+    - The desktop tree sits to the left of the panel, marks the nested profile destination current, retains sibling course and campus destinations, and its top control returns home.
+    - Home keeps the same primary groups. The mobile menu retains those groups with the nested danger destination current.
     test:
       file: tests/e2e/src/app/settings/test.ts
       name: ui.settings-navigation-1

@@ -99,6 +99,7 @@ describe("shared functional shell navigation", () => {
         ]);
         expect(activities?.features[0].items?.map((item) => item.href)).toEqual(
           [
+            "/catalog/young-events",
             "/catalog/young-events/calendar",
             "/catalog/young-events/organizers",
           ],

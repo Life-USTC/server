@@ -376,7 +376,7 @@ function sidebarItems(
       items.push(...buildSettingsNavGroups(copy)[0].links);
       break;
     case "youngEvents":
-      items.push(...buildYoungNavGroups(copy, "", {})[0].links.slice(1));
+      items.push(...buildYoungNavGroups(copy, pathname, pageData)[0].links);
       break;
     case "news":
       items.push(
@@ -691,7 +691,7 @@ export function isShellLinkAncestor(link: ShellLink, current: NavigationUrl) {
   if (target.searchParams.size > 0) return false;
   if (isShellLinkActive(link, current)) return false;
   // Calendar and organizers are siblings of the activity list, even though
-  // their canonical URLs share its prefix. The focused rail owns that context.
+  // their canonical URLs share its prefix. Child items carry that context.
   if (target.pathname === "/catalog/young-events") return false;
   return current.pathname.startsWith(`${target.pathname}/`);
 }

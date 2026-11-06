@@ -134,7 +134,9 @@ test("ui.context-tabs-3", { tag: "@Site/Web" }, async ({
         await page.locator('[data-slot="sidebar-trigger"]').click();
       const nav = page.getByTestId("settings-sidebar");
       const viewport = nav.locator('[data-slot="sidebar-content"]');
-      const links = nav.locator('a[href^="/account/settings/"]');
+      const links = nav.locator(
+        'a[data-slot="sidebar-menu-sub-button"][href^="/account/settings/"]',
+      );
       await expect(links).toHaveCount(paths.length);
       await expect(nav.locator('[aria-current="page"]')).toHaveAttribute(
         "href",

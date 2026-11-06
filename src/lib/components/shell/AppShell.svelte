@@ -52,9 +52,7 @@ import { afterNavigate, goto } from "$app/navigation";
 import { navigating, page as routePage } from "$app/state";
 import {
   buildAdminNavGroups,
-  buildSettingsNavGroups,
   buildShellNavGroups,
-  buildYoungNavGroups,
   isShellLinkActive,
   isShellLinkAncestor,
 } from "./navigation";
@@ -444,13 +442,9 @@ let navContext = $derived({
   navigation: workspaceNavigation,
 });
 let fullNavGroups = $derived(
-  settingsSidebar
-    ? buildSettingsNavGroups(data.copy)
-    : youngSidebar
-      ? buildYoungNavGroups(data.copy, routePage.url.pathname, routePage.data)
-      : adminRoute
-        ? buildAdminNavGroups(data.copy, navViewer, navContext)
-        : buildShellNavGroups(data.copy, navViewer, navContext),
+  adminRoute
+    ? buildAdminNavGroups(data.copy, navViewer, navContext)
+    : buildShellNavGroups(data.copy, navViewer, navContext),
 );
 let navGroups = $derived(
   viewerDemo

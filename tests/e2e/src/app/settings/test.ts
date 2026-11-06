@@ -56,6 +56,9 @@ test.describe("/account/settings 设置中心", () => {
 
       const sidebar = page.getByTestId("settings-sidebar");
       const back = page.getByTestId("settings-sidebar-back");
+      await expect(
+        sidebar.getByRole("link", { name: /浏览课程|Browse courses/i }),
+      ).toBeVisible();
       const activePanel = page.locator("[data-settings-active-panel]");
       await expect(
         sidebar.getByRole("link", { name: /个人资料|Profile/i }),

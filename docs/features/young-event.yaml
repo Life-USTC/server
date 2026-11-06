@@ -794,4 +794,4 @@ capabilities:
       - organizer and stable organizer ID
       - sourceMissing and lastSeenAt when applicable
       - Per-slot venues take precedence over the single location.
-      - Second-classroom routes replace the primary sidebar with a second-classroom sidebar whose top control returns home. An open event adds its name under the activity list
+      - Second-classroom routes retain the primary navigation tree and expose activity list, calendar and organizers below Second Classroom. An open event or organizer adds its name below its parent; the root control returns home
