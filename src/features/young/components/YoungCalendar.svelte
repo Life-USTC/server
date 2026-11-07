@@ -143,11 +143,14 @@ function crossesDate(event: YoungCalendarEvent) {
   {#each agendaDays as day}
     {@const visible = view === "day" ? day.events : day.startingEvents}
     {@const limit = view === "week" ? 6 : view === "month" ? 3 : visible.length}
+    {@const dayLabel = createShanghaiDateTimeFormatter(locale, {timeZone: "Asia/Shanghai", weekday: "long", month: "short", day: "numeric"}).format(day.date)}
     <section aria-labelledby={`${prefix}-${day.key}`} class="grid min-w-0 gap-2">
       <h3 id={`${prefix}-${day.key}`} class="text-sm font-medium">
-        <a class="hover:underline" href={hrefFor("day", day.key)}>
-          {createShanghaiDateTimeFormatter(locale, {timeZone: "Asia/Shanghai", weekday: "long", month: "short", day: "numeric"}).format(day.date)}
-        </a>
+        {#if view === "day"}
+          {dayLabel}
+        {:else}
+          <a class="hover:underline" href={hrefFor("day", day.key)}>{dayLabel}</a>
+        {/if}
         {#if day.isToday}<Badge variant="secondary">{labels.today}</Badge>{/if}
       </h3>
       {#if view === "day"}

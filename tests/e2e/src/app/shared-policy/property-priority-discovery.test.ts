@@ -538,18 +538,12 @@ for (const locale of ["zh-cn", "en-us"] as const)
                   .locator(`a[href="/catalog/young-events/${f.young.youngId}"]`)
                   .filter({ visible: true })
                   .first();
-                const eventTitle =
-                  width === 1280
-                    ? event.locator(":scope > div").first()
-                    : event.locator('[data-slot="item-title"]');
-                const eventMeta =
-                  width === 1280
-                    ? event.locator(":scope > div").nth(1)
-                    : event.locator('[data-slot="item-description"]').first();
-                const withdrawn =
-                  width === 1280
-                    ? event.locator(":scope > div").last()
-                    : event.locator('[data-slot="item-description"]').last();
+                const eventTitle = event.locator('[data-slot="item-title"]');
+                const descriptions = event.locator(
+                  '[data-slot="item-description"]',
+                );
+                const eventMeta = descriptions.first();
+                const withdrawn = descriptions.last();
                 await assertPriorityView({
                   scope: event,
                   identity: eventTitle,
@@ -559,7 +553,10 @@ for (const locale of ["zh-cn", "en-us"] as const)
                     "event.endAt": visible(eventMeta, "12:00"),
                   },
                   secondary: {
-                    "event.location": visible(eventMeta, "Priority venue"),
+                    "event.location": visible(
+                      descriptions.nth(1),
+                      "Priority venue",
+                    ),
                     "event.sourceMissing": visible(withdrawn, y.sourceMissing),
                   },
                   tertiary: {},
