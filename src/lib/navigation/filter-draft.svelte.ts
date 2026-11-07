@@ -41,7 +41,11 @@ export function createFilterDraft(
       values = { ...values, ...patch };
     },
     /** A chip is a targeted applied intent, while other URL navigation resets drafts. */
-    remove(event: MouseEvent, names: readonly string[]) {
+    remove(
+      event: MouseEvent,
+      names: readonly string[],
+      targetAppliedPatch: Record<string, string> = {},
+    ) {
       if (
         event.defaultPrevented ||
         event.button !== 0 ||
@@ -50,13 +54,15 @@ export function createFilterDraft(
         event.shiftKey ||
         event.altKey
       )
-        return;
+        return false;
       const baseline = filterDraft(applied());
       for (const name of names) delete baseline[name];
+      Object.assign(baseline, targetAppliedPatch);
       removals.set(event, baseline);
       values = Object.fromEntries(
         Object.entries(values).filter(([name]) => !names.includes(name)),
       );
+      return true;
     },
     submit(event: SubmitEvent) {
       submissions.set(event, { ...values });
