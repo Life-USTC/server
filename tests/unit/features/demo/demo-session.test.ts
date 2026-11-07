@@ -152,18 +152,31 @@ it("requires the explicit gate and same origin to enter, and never converts an a
 });
 
 it("rejects encoded control aliases both at the hook and at the actual handler", async () => {
-  const { POST } = await import("@/routes/account/demo/enter/+server");
+  const { POST: enter } = await import("@/routes/account/demo/enter/+server");
+  const { POST: exit } = await import("@/routes/account/demo/exit/+server");
   const set = vi.fn();
-  for (const path of [
-    "/account/%64emo/enter",
-    "/account/demo/%65nter",
-    "/account/demo/enter/",
-  ]) {
+  const remove = vi.fn();
+  for (const [handler, path] of [
+    [enter, "/account/%64emo/enter"],
+    [enter, "/account/demo/%65nter"],
+    [enter, "/account/demo/enter/"],
+    [exit, "/account/%64emo/exit"],
+    [exit, "/account/demo/%65xit"],
+    [exit, "/account/demo/exit/"],
+  ] as const) {
     const url = new URL(path, "https://life.test");
-    const request = new Request(url, { method: "POST" });
+    const request = new Request(url, {
+      method: "POST",
+      headers: { origin: url.origin },
+    });
     expect((await resolveDemoBoundary(request)).response?.status).toBe(404);
-    const response = await POST({ request, url, cookies: { set } } as never);
+    const response = await handler({
+      request,
+      url,
+      cookies: { set, delete: remove },
+    } as never);
     expect(response.status).toBe(404);
   }
   expect(set).not.toHaveBeenCalled();
+  expect(remove).not.toHaveBeenCalled();
 });

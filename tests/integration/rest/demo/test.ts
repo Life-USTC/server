@@ -153,6 +153,118 @@ test.describe("enabled demo", () => {
     });
   });
 
+  test("demo exit rejects unsafe controls without clearing cookies or reaching live services", {
+    tag: "@Account/REST",
+  }, async ({ request, isolatedWorker, run }) => {
+    await run(async () => {
+      const actor = await isolatedWorker.createActor();
+      const demo = await createSignedDemoCookie({
+        issuedAt: Math.floor(Date.now() / 1000),
+      });
+      const before = await databaseSnapshot(isolatedWorker);
+      const id = crypto.randomUUID();
+      const probePath = `/__test/community-effects?id=${id}`;
+      const registered = await request.post(`${probePath}&io=1`, {
+        headers: secret,
+      });
+      expect(registered.status()).toBe(201);
+      await registered.body();
+      try {
+        // A real cookie remains present: exit controls must not resolve or alter it.
+        const headers = {
+          ...secret,
+          "x-test-community-probe": id,
+          cookie: `${cookieHeader(demo)}; ${cookieHeader(actor.cookie)}`,
+        };
+        const cases = [
+          ["POST", "/account/demo/exit", undefined, 403, headers.cookie],
+          [
+            "POST",
+            "/account/demo/exit",
+            "https://untrusted.test",
+            403,
+            headers.cookie,
+          ],
+          [
+            "GET",
+            "/account/demo/exit",
+            isolatedWorker.origin,
+            405,
+            headers.cookie,
+          ],
+          [
+            "HEAD",
+            "/account/demo/exit",
+            isolatedWorker.origin,
+            405,
+            headers.cookie,
+          ],
+          ["POST", "/account/%64emo/exit", isolatedWorker.origin, 404, ""],
+          ["POST", "/account/demo/%65xit", isolatedWorker.origin, 404, ""],
+          ["POST", "/account/demo/exit/", isolatedWorker.origin, 308, ""],
+          [
+            "POST",
+            "/account/demo/%65xit",
+            isolatedWorker.origin,
+            403,
+            cookieHeader(demo),
+          ],
+        ] as const;
+        for (const [method, path, origin, status, cookie] of cases) {
+          const response = await request.fetch(path, {
+            method,
+            headers: {
+              ...headers,
+              // Exercise both uncredentialed aliases and the valid-demo hook boundary.
+              cookie,
+              ...(origin ? { origin } : {}),
+            },
+            maxRedirects: 0,
+          });
+          expect(response.status(), `${method} ${path}`).toBe(status);
+          expect(response.headers()["set-cookie"]).toBeUndefined();
+          expect(response.headers()["cache-control"]).toBe("private, no-store");
+          expect(response.headers()["cloudflare-cdn-cache-control"]).toBe(
+            "no-store",
+          );
+          expect(
+            response.headers()["x-life-public-navigation"],
+          ).toBeUndefined();
+          const body = await response.text();
+          if (method === "HEAD") expect(body).toBe("");
+          if (status === 308) {
+            expect(response.headers()["x-sveltekit-normalize"]).toBe("1");
+            expect(
+              new URL(response.headers().location ?? "", response.url()).href,
+            ).toBe(new URL("/account/demo/exit", isolatedWorker.origin).href);
+          }
+          if (cookie === cookieHeader(demo))
+            expect(JSON.parse(body)).toEqual({ error: "DEMO_READ_ONLY" });
+          expect(await databaseSnapshot(isolatedWorker)).toEqual(before);
+        }
+        const effects = await (
+          await request.get(probePath, { headers: secret })
+        ).json();
+        expect(effects).toMatchObject({
+          purges: [],
+          messages: [],
+          backgroundErrors: [],
+          io: { bindings: [], outbound: [] },
+        });
+        expect(effects.requests).toHaveLength(cases.length);
+        expect(
+          effects.requests.every(
+            (entry: { outcome: string }) => entry.outcome === "fulfilled",
+          ),
+        ).toBe(true);
+      } finally {
+        const removed = await request.delete(probePath, { headers: secret });
+        expect(removed.status()).toBe(204);
+        await removed.body();
+      }
+    });
+  });
+
   test("demo homework reads preserve states, pagination and section context", {
     tag: "@Homework/REST",
   }, async ({ request, isolatedWorker, run }) => {
