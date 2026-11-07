@@ -73,7 +73,7 @@ requirements:
       name: exam.read-only
 - id: exam.semester-required
   category: presentation
-  rule: Semesters must be explicitly displayed when browsing exams across semesters.
+  rule: Semesters must be explicitly displayed when browsing exams across semesters. Mobile cards fully wrap the course title, including unbroken tokens, and present the subordinate monospace section code and semester before exam date facts.
   acceptance:
     given: The same course has owned exam offerings in current and historical semesters.
     when: The user reads all exams on desktop and mobile.
