@@ -3055,6 +3055,7 @@
     "activitySummary": "活动概览",
     "moreDetails": "更多活动资料",
     "poster": "活动海报",
+    "posterFailed": "活动海报加载失败。",
     "earlierDates": "查看此前日期",
     "organizerSearchPlaceholder": "按主办方名称搜索…",
     "dateUnknownActivity": "活动时间未知",
