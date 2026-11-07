@@ -411,12 +411,36 @@ for (const width of [1280, 390]) {
               applyEndAt: new Date("2035-09-14T18:00:00+08:00"),
             })),
           });
+          const rangeId = `${marker}-long-range`;
+          const rangeName =
+            "Cross-month practice with a complete title ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+          const rangeLocation =
+            "Long venue GH-206 with complete unbroken location ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+          await db.youngEvent.create({
+            data: {
+              youngId: rangeId,
+              name: rangeName,
+              location: rangeLocation,
+              organizerId: marker,
+              isActive: true,
+              rawJson: {},
+              startAt: new Date("2035-08-24T14:25:00+08:00"),
+              endAt: new Date("2036-01-15T14:25:00+08:00"),
+              applyStartAt: new Date("2035-09-10T09:00:00+08:00"),
+              applyEndAt: new Date("2035-10-10T18:00:00+08:00"),
+            },
+          });
           events.push(
             ...(await db.youngEvent.findMany({
               orderBy: { youngId: "asc" },
             })),
           );
-          expect(events).toHaveLength(106);
+          expect(events).toHaveLength(107);
+          expect(
+            events.filter((event) =>
+              event.name.startsWith("Calendar activity "),
+            ),
+          ).toHaveLength(106);
           await page.setViewportSize({ width, height: 844 });
           await gotoAndWaitForReady(
             page,
@@ -434,6 +458,38 @@ for (const width of [1280, 390]) {
               .getByRole("link", { name: /Calendar activity 105/ })
               .filter({ visible: true }),
           ).toBeVisible();
+          const rangeLink = root
+            .locator(`a[href="/catalog/young-events/${rangeId}"]`)
+            .filter({ visible: true });
+          await expect(rangeLink).toHaveCount(1);
+          await expect(
+            root
+              .getByRole("heading", { name: /^(跨日范围|Multi-day ranges)$/ })
+              .locator("..")
+              .locator(`a[href="/catalog/young-events/${rangeId}"]`),
+          ).toBeVisible();
+          await expect(
+            rangeLink.locator('[data-slot="item-title"]'),
+          ).toHaveText(rangeName);
+          await expect(
+            rangeLink.locator('[data-slot="item-description"]').first(),
+          ).toHaveText("2035-08-24 14:25 – 2036-01-15 14:25");
+          await expect(
+            rangeLink.locator('[data-slot="item-description"]').nth(1),
+          ).toHaveText(rangeLocation);
+          for (const text of [
+            rangeLink.locator('[data-slot="item-title"]'),
+            rangeLink.locator('[data-slot="item-description"]').first(),
+            rangeLink.locator('[data-slot="item-description"]').nth(1),
+          ]) {
+            expect(
+              await text.evaluate(
+                (element) =>
+                  element.scrollWidth > element.clientWidth + 1 ||
+                  element.scrollHeight > element.clientHeight + 1,
+              ),
+            ).toBe(false);
+          }
           await root.getByRole("link", { name: /^(周|Week)$/ }).click();
           await expect(page).toHaveURL(/view=week/);
           // The calendar keeps filters in its own links; it no longer renders
@@ -453,6 +509,9 @@ for (const width of [1280, 390]) {
               .getByRole("link", { name: /Calendar activity/ })
               .filter({ visible: true }),
           ).toHaveCount(0);
+          await expect(
+            rangeLink.locator('[data-slot="item-description"]').first(),
+          ).toHaveText("2035-09-10 09:00 – 2035-10-10 18:00");
           await root
             .getByRole("link", { name: /^(前一天|Previous day)$/ })
             .click();
