@@ -67,6 +67,7 @@ export async function listSubscribedWorkspaceSections(
                 id: true,
                 sectionId: true,
                 date: true,
+                weekIndex: true,
                 startTime: true,
                 endTime: true,
                 customPlace: true,
