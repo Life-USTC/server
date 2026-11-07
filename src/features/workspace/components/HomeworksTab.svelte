@@ -1,6 +1,5 @@
 <script lang="ts">
 import * as Alert from "#lib/components/ui/alert/index.js";
-import { Button } from "#lib/components/ui/button/index.js";
 import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import type CommentsPanelComponent from "@/features/comments/components/CommentsPanel.svelte";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
@@ -17,6 +16,7 @@ import type {
 } from "@/features/workspace/lib/workspace-controller-types";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
 import type { SubmitFunction } from "$app/forms";
+import { withoutTaskFilter } from "../lib/workspace-task-filter-state";
 import {
   filterHomeworkTable,
   homeworkTableFields,
@@ -26,7 +26,7 @@ import HomeworksListView from "./HomeworksListView.svelte";
 import HomeworksTabDialogs from "./HomeworksTabDialogs.svelte";
 import HomeworksTabToolbar from "./HomeworksTabToolbar.svelte";
 import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
-import WorkspaceTaskColumnFilter from "./WorkspaceTaskColumnFilter.svelte";
+import WorkspaceTaskFilterToolbar from "./WorkspaceTaskFilterToolbar.svelte";
 import type { WorkspaceHomeworkCreateSection } from "./workspace-homework-create-types";
 
 type HomeworkDateFormatter = (
@@ -87,7 +87,15 @@ let draft = { ...applied };
 $: fields = homeworkTableFields(
   { homeworks: homeworksCopy, common: commonCopy },
   homeworkItems,
-);
+).map((field) => ({
+  ...field,
+  label:
+    field.name === "completion"
+      ? commonCopy.taskFilters.myStatus
+      : field.name === "flags"
+        ? commonCopy.taskFilters.attributes
+        : field.label,
+}));
 $: filteredHomeworkItems = filterHomeworkTable(
   homeworkItems,
   fields,
@@ -96,6 +104,10 @@ $: filteredHomeworkItems = filterHomeworkTable(
 );
 function patchDraft(patch: Record<string, string>) {
   draft = { ...draft, ...patch };
+}
+function removeFilter(name: string) {
+  applied = withoutTaskFilter(applied, name);
+  draft = withoutTaskFilter(draft, name);
 }
 function applyFilters(event: SubmitEvent) {
   event.preventDefault();
@@ -135,9 +147,7 @@ $: ({
 }));
 </script>
 
-{#snippet columnFilter(names: string[], label: string, prefix: string)}
-  <WorkspaceTaskColumnFilter fields={fields.filter((field) => names.includes(field.name))} values={draft} {applied} onchange={patchDraft} {label} prefix={`${prefix}-homework-${names[0]}`} labels={commonCopy.tableFilters} formId="homework-table-filters" />
-{/snippet}
+
 
 <section class="grid gap-4">
   {#if !signedData.homeworks || !hasWorkspaceSubscriptions(signedData)}
@@ -162,20 +172,10 @@ $: ({
       </Alert.Root>
     {/if}
 
-    <form id="homework-table-filters" onsubmit={applyFilters} class="flex flex-wrap items-center gap-3" data-slot="table-filter-apply">
-      {#each fields.filter((field) => ["section", "publishedAt", "submissionStartAt", "description"].includes(field.name)) as field}
-        {@render columnFilter([field.name], field.label, "extra")}
-      {/each}
-      <Button type="submit">{commonCopy.applyFilters}</Button>
-    </form>
+    <WorkspaceTaskFilterToolbar id="homework-table-filters" {fields} commonNames={["completion", "course", "semester", "submissionDueAt"]} {draft} {applied} copy={commonCopy} sortLabel={commonCopy.taskFilters.homeworkSort} onchange={patchDraft} onapply={applyFilters} onreset={clearHomeworkFilter} onremove={removeFilter} />
     <WorkspaceCollection>
       {#snippet mobile()}
-      <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
-        {@render columnFilter(["course", "semester"], homeworksCopy.sectionLabel, "mobile")}
-        {@render columnFilter(["title"], homeworksCopy.titleLabel, "mobile")}
-        {@render columnFilter(["submissionDueAt"], homeworksCopy.submissionDue, "mobile")}
-        {@render columnFilter(["completion", "flags"], homeworksCopy.statusLabel, "mobile")}
-      </div>
+
         <HomeworksCardsView
           showPersonalStatus={!signedData.demo}
       {readOnlyReason}
@@ -201,7 +201,6 @@ $: ({
         <HomeworksListView
           showPersonalStatus={!signedData.demo}
       {readOnlyReason}
-        filterControls={columnFilter}
           locale={locale}
           unknownSemesterLabel={commonCopy.unknown}
           filteredHomeworkItems={filteredHomeworkItems}

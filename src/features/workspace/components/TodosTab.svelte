@@ -1,6 +1,5 @@
 <script lang="ts">
 import * as Alert from "#lib/components/ui/alert/index.js";
-import { Button } from "#lib/components/ui/button/index.js";
 import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import { createTodoTabDisplayActions } from "@/features/workspace/lib/todos-tab-display";
@@ -14,6 +13,7 @@ import type {
 } from "@/features/workspace/lib/workspace-controller-types";
 import type { SubmitFunction } from "$app/forms";
 import type { WorkspaceCommonCopy } from "../lib/workspace-controller-types";
+import { withoutTaskFilter } from "../lib/workspace-task-filter-state";
 import {
   filterTodoTable,
   todoTableFields,
@@ -22,7 +22,7 @@ import TodosCardsView from "./TodosCardsView.svelte";
 import TodosListView from "./TodosListView.svelte";
 import TodosTabDialogs from "./TodosTabDialogs.svelte";
 import TodosTabToolbar from "./TodosTabToolbar.svelte";
-import WorkspaceTaskColumnFilter from "./WorkspaceTaskColumnFilter.svelte";
+import WorkspaceTaskFilterToolbar from "./WorkspaceTaskFilterToolbar.svelte";
 
 type TodoDateFormatter = (value: Date | string | null | undefined) => string;
 type TodoAction = (todo: WorkspaceTodoItem) => string;
@@ -56,6 +56,10 @@ $: fields = todoTableFields({ todos: todosCopy });
 $: filteredTodos = filterTodoTable(todoItems, fields, applied);
 function patchDraft(patch: Record<string, string>) {
   draft = { ...draft, ...patch };
+}
+function removeFilter(name: string) {
+  applied = withoutTaskFilter(applied, name);
+  draft = withoutTaskFilter(draft, name);
 }
 function applyFilters(event: SubmitEvent) {
   event.preventDefault();
@@ -95,9 +99,7 @@ function clearTodoFilter() {
 }
 </script>
 
-{#snippet columnFilter(names: string[], label: string, prefix: string)}
-  <WorkspaceTaskColumnFilter fields={fields.filter((field) => names.includes(field.name))} values={draft} {applied} onchange={patchDraft} {label} prefix={`${prefix}-todo-${names[0]}`} labels={commonCopy.tableFilters} formId="todo-table-filters" />
-{/snippet}
+
 
 <section class="grid gap-4">
   <TodosTabToolbar
@@ -113,19 +115,11 @@ function clearTodoFilter() {
     </Alert.Root>
   {/if}
 
-  <form id="todo-table-filters" onsubmit={applyFilters} class="flex flex-wrap items-center gap-3" data-slot="table-filter-apply">
-    {@render columnFilter(["completion"], todosCopy.statusLabel, "extra")}
-    {@render columnFilter(["content"], todosCopy.contentLabel, "extra")}
-    <Button type="submit">{commonCopy.applyFilters}</Button>
-  </form>
+  <WorkspaceTaskFilterToolbar id="todo-table-filters" {fields} commonNames={["completion", "priority", "dueAt"]} {draft} {applied} copy={commonCopy} sortLabel={commonCopy.taskFilters.todoSort} onchange={patchDraft} onapply={applyFilters} onreset={clearTodoFilter} onremove={removeFilter} />
   <WorkspaceCollection>
     {#snippet mobile()}
-      <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
-        {#each fields.filter((field) => ["title", "priority", "dueAt"].includes(field.name)) as field}
-          {@render columnFilter([field.name], field.label, "mobile")}
-        {/each}
-      </div>
-      <TodosCardsView
+
+      <TodosCardsView emptyTitle={commonCopy.taskFilters.emptyTodos}
         {readOnlyReason}
         filteredTodos={filteredTodos}
         hasTodoItems={hasTodoItems}
@@ -141,8 +135,7 @@ function clearTodoFilter() {
       />
     {/snippet}
     {#snippet desktop()}
-      <TodosListView
-        filterControls={columnFilter}
+      <TodosListView emptyTitle={commonCopy.taskFilters.emptyTodos}
         {readOnlyReason}
         filteredTodos={filteredTodos}
         hasTodoItems={hasTodoItems}

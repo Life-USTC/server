@@ -18,9 +18,11 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
       path: `/workspace/${name}?semester=${c.semester.code}`,
       heading: "main h1",
       filter:
-        width < COLLECTION_DESKTOP_MIN_WIDTH_PX
-          ? '[data-slot="collection-header"] [data-slot="table-column-header"] button:visible'
-          : 'table:visible thead [data-slot="table-column-header"] button:visible',
+        name !== "exams"
+          ? '[data-slot="workspace-task-filter-toolbar"]'
+          : width < COLLECTION_DESKTOP_MIN_WIDTH_PX
+            ? '[data-slot="collection-header"] [data-slot="table-column-header"] button:visible'
+            : 'table:visible thead [data-slot="table-column-header"] button:visible',
       summary: "",
       continuation: false,
       records:
@@ -148,7 +150,11 @@ for (const [domain, names] of [
             records.first(),
             `${item.name}: extra filters and Apply before records`,
           );
-          if (item.filter) {
+          if (
+            item.filter &&
+            item.name !== "homeworks" &&
+            item.name !== "todos"
+          ) {
             await precedes(
               toolbar,
               page.locator(item.filter).first(),
