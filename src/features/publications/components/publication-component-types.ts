@@ -29,6 +29,7 @@ export type PublicationSourceOption = {
 };
 
 export type PublicationListPageData = {
+  hasPublications: boolean;
   publications: PublicPublicationList;
   filters: PublicationListFilters;
   sourceOptions: PublicationSourceOption[];
@@ -64,6 +65,11 @@ export type PublicationPageCopy = {
   applyFilters: string;
   clearFilters: string;
   emptyTitle: string;
+  noMatchTitle: string;
+  noMatchDescription: string;
+  newestFirst: string;
+  foldedNewestFirst: string;
+  pendingFilters: string;
   emptyDescription: string;
   author: string;
   reporter: string;

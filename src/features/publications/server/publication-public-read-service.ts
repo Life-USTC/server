@@ -590,6 +590,16 @@ export async function listPublicationHeadlines(limit: number) {
   );
 }
 
+/** A bounded public-only existence read for the page's no-data/no-match copy. */
+export async function hasPublicPublications() {
+  return Boolean(
+    await prisma.publication.findFirst({
+      where: publicPublicationWhere(),
+      select: { id: true },
+    }),
+  );
+}
+
 export async function listPublications(
   input: {
     filters?: PublicationReadFilters;
