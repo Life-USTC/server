@@ -117,13 +117,28 @@ export type HomeCampusNow = {
   weather: HomeWeatherTile[] | null;
 };
 
+class HomeSectionBudgetError extends Error {
+  constructor() {
+    super("home section exceeded its budget");
+    this.name = "TimeoutError";
+  }
+}
+
+function isHomeSectionBudgetError(
+  error: unknown,
+): error is HomeSectionBudgetError {
+  try {
+    return error instanceof HomeSectionBudgetError;
+  } catch {
+    // A hostile or revoked Proxy must not replace the section fallback.
+    return false;
+  }
+}
+
 function withBudget<T>(work: Promise<T>, budgetMs: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const budget = new Promise<never>((_resolve, reject) => {
-    timer = setTimeout(
-      () => reject(new Error("home section exceeded its budget")),
-      budgetMs,
-    );
+    timer = setTimeout(() => reject(new HomeSectionBudgetError()), budgetMs);
   });
   return Promise.race([work, budget]).finally(() => {
     if (timer) clearTimeout(timer);
@@ -139,12 +154,19 @@ async function readSection<T>(
   try {
     return await withBudget(read(), budgetMs);
   } catch (error) {
-    logAppEvent("warn", "home.section.degraded", {
-      event: "home.section.degraded",
-      reason: error instanceof Error ? error.message : "unknown",
-      requestId,
-      section,
-    });
+    logAppEvent(
+      "warn",
+      "home.section.degraded",
+      {
+        event: "home.section.degraded",
+        requestId,
+        section,
+        ...(isHomeSectionBudgetError(error)
+          ? { reason: "budget_exceeded" }
+          : {}),
+      },
+      error,
+    );
     return null;
   }
 }
