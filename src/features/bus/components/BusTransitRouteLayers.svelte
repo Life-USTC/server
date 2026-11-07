@@ -11,14 +11,22 @@ export let hoveredRoute: number | null;
 export let routes: BusMapRouteEdge[];
 export let routePaths: Map<number, BusMapRoutePath>;
 
-function routeOpacity(routeId: number) {
-  if (hoveredRoute == null) return activeRouteIds.has(routeId) ? 0.95 : 0.78;
-  return hoveredRoute === routeId ? 0.98 : 0.22;
+function routeOpacity(
+  routeId: number,
+  highlightedRoute: number | null,
+  activeRoutes: Set<number>,
+) {
+  if (highlightedRoute == null) return activeRoutes.has(routeId) ? 0.95 : 0.78;
+  return highlightedRoute === routeId ? 0.98 : 0.22;
 }
 
-function routeStrokeWidth(routeId: number) {
-  if (hoveredRoute === routeId) return 7;
-  return activeRouteIds.has(routeId) ? 5.5 : 4.5;
+function routeStrokeWidth(
+  routeId: number,
+  highlightedRoute: number | null,
+  activeRoutes: Set<number>,
+) {
+  if (highlightedRoute === routeId) return 7;
+  return activeRoutes.has(routeId) ? 5.5 : 4.5;
 }
 </script>
 
@@ -42,11 +50,11 @@ function routeStrokeWidth(routeId: number) {
     <path
       d={routePath.path}
       stroke={routeColor(route.routeId, allRouteIds)}
-      stroke-width={routeStrokeWidth(route.routeId)}
+      stroke-width={routeStrokeWidth(route.routeId, hoveredRoute, activeRouteIds)}
       stroke-linecap="round"
       stroke-linejoin="round"
       fill="none"
-      opacity={routeOpacity(route.routeId)}
+      opacity={routeOpacity(route.routeId, hoveredRoute, activeRouteIds)}
       stroke-dasharray={activeRouteIds.has(route.routeId) ? "8 5" : undefined}
       style={activeRouteIds.has(route.routeId) ? "animation: dash-march 0.8s linear infinite;" : ""}
       role="presentation"

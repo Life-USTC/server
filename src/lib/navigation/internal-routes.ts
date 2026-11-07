@@ -12,6 +12,8 @@ export const INTERNAL_ROUTE_PREFIX = "/_internal";
 export const SHELL_BOOTSTRAP_PATH = `${INTERNAL_ROUTE_PREFIX}/shell-bootstrap`;
 
 /** Supplements public `/`, whose cached HTML omits the minute-by-minute board. */
+export const HOME_ACTIVITIES_PATH = `${INTERNAL_ROUTE_PREFIX}/home/activities`;
+export const HOME_NOTICES_PATH = `${INTERNAL_ROUTE_PREFIX}/home/notices`;
 export const HOME_CAMPUS_NOW_PATH = `${INTERNAL_ROUTE_PREFIX}/home/campus-now`;
 
 /** Supplements `/` with the authenticated viewer's rich overview. */
