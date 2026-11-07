@@ -2,6 +2,7 @@ import { expect, type Route } from "@playwright/test";
 import { createDeferred } from "../../../../shared/deferred";
 import { createSignedDemoCookie } from "../../../../shared/demo-token";
 import { withBrowserWorkflow } from "../../../utils/browser-workflow";
+import { expectNavigationCount } from "../../../utils/navigation-count";
 import { test as workerTest } from "../../../utils/owned-worker";
 import {
   expectNoPageHorizontalOverflow,
@@ -162,13 +163,19 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             ]);
             await gotoAndWaitForReady(page, "/workspace/todos");
             if (width === 1280) {
-              const link = page.locator(
-                'a[href="/workspace/calendar"]:visible',
+              const navigation = page.locator(
+                '[data-shell-navigation="desktop"]',
+              );
+              const link = navigation.locator(
+                'a[data-slot="sidebar-menu-button"][href="/workspace/calendar"]',
               );
               await expect(link).toBeVisible();
-              await expect(
-                link.locator("..").locator('[data-slot="sidebar-menu-badge"]'),
-              ).toHaveText("9");
+              await expectNavigationCount(
+                navigation,
+                "/workspace/calendar",
+                9,
+                english ? "items" : "汇总项",
+              );
               await page.screenshot({
                 path: testInfo.outputPath(
                   `after-navigation-${locale}-${width}.png`,
