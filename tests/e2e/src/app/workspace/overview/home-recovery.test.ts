@@ -1,6 +1,8 @@
 import { expect } from "@playwright/test";
 import pg from "pg";
+import type { HomeCampusNow } from "@/features/workspace/server/anonymous-home-sections";
 import { arrangeBusTimetable } from "../../../../../shared/bus-timetable";
+import { observeAction } from "../../../../utils/observed-action";
 import { test } from "../../../../utils/owned-page";
 import { expectNoPageHorizontalOverflow } from "../../../../utils/page-ready";
 
@@ -200,13 +202,48 @@ for (const locale of ["en-us", "zh-cn"]) {
               );
               busRevoked = false;
               const beforeBusRetry = sectionRequests.length;
-              await busRetry.click();
+              const busRetryStartedAt = Date.now();
+              const busResponse = await observeAction(
+                () =>
+                  page.waitForResponse((response) => {
+                    const url = new URL(response.url());
+                    return (
+                      url.pathname === "/_internal/home/campus-now" &&
+                      url.searchParams.get("section") === "bus" &&
+                      response.request().method() === "GET" &&
+                      response.status() === 200
+                    );
+                  }),
+                () => busRetry.click(),
+              );
               await expect(busRetry).toHaveCount(0);
               expect(sectionRequests.slice(beforeBusRetry)).toEqual([
                 "/_internal/home/campus-now?section=bus",
               ]);
+              const recoveredCampus: HomeCampusNow = await busResponse.json();
+              expect(recoveredCampus.bus).not.toBeNull();
+              if (!recoveredCampus.bus)
+                throw new Error("Bus retry did not recover");
+              const recoveredBus = recoveredCampus.bus;
+              const dateFormat = new Intl.DateTimeFormat(locale, {
+                timeZone: "Asia/Shanghai",
+                dateStyle: "short",
+              });
+              const serviceDates = [busRetryStartedAt, Date.now()].map((at) =>
+                dateFormat.format(new Date(at)),
+              );
+              expect(
+                serviceDates.some((date) =>
+                  recoveredBus.originNote.includes(date),
+                ),
+              ).toBe(true);
+              expect(recoveredBus.originNote).toMatch(
+                locale === "en-us" ? /^Today \(/ : /^今天（/,
+              );
               await expect(page.getByTestId("home-bus")).toContainText(
-                locale === "en-us" ? "today" : "今天",
+                recoveredBus.departures.length === 0
+                  ? recoveredBus.emptyNote
+                  : recoveredBus.originNote,
               );
               await expect(
                 page
