@@ -40,3 +40,18 @@ export function homeworkStartAtSemesterStart(semesterStart: string | Date) {
 export function dateTimeInputValue(value: string | Date | null | undefined) {
   return toShanghaiDateTimeLocalValue(value);
 }
+
+export function homeworkSemesterShortcutCapabilities(input: {
+  semesterStart?: Date | string | null;
+  semesterEnd?: Date | string | null;
+  now?: Date;
+}) {
+  return {
+    hasSemesterStart: Boolean(input.semesterStart),
+    hasSemesterEnd: Boolean(
+      input.semesterEnd &&
+        homeworkDueAtSemesterEnd(input.semesterEnd) >
+          homeworkTimestampNow(input.now),
+    ),
+  };
+}

@@ -1993,6 +1993,9 @@
     "calendarButtonLabel": "打开日历选择器",
     "timeShortcuts": "常用时间",
     "dueDateShortcuts": "常用截止时间",
+    "classDeadlinesLoading": "正在加载上课时间…",
+    "classDeadlinesFailed": "未能加载上课时间。已保留填写内容；可以手动填写截止时间或重试。",
+    "classDeadlinesRetry": "重试加载上课时间",
     "helperPublishNow": "立即发布",
     "helperStartNow": "立即开始",
     "helperClear": "清空",
@@ -3191,6 +3194,18 @@
     "noDataDescription": "请先导入或启用班车时刻表版本后再查看线路图。"
   },
   "shell": {
+    "currentLocation": "当前位置",
+    "detailNavigation": {
+      "label": "本页目录",
+      "relatedCourse": "查看所属课程",
+      "introduction": "简介",
+      "calendar": "日历",
+      "exams": "考试",
+      "homework": "作业",
+      "comments": "评论",
+      "sections": "教学班",
+      "overview": "更多资料"
+    },
     "menu": "菜单",
     "scrollRegion": "主要内容滚动区域",
     "toggleSidebar": "切换侧边栏",

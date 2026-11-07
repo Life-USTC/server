@@ -1,5 +1,6 @@
 <script lang="ts">
 // biome-ignore assist/source/organizeImports: keep Svelte template/action imports grouped with local suppressions.
+import { homeworkSemesterShortcutCapabilities } from "@/features/homeworks/lib/homework-timestamp-defaults";
 import { onMount } from "svelte";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { fetchSectionPersonalData } from "@/features/section-detail/lib/section-personal-client";
@@ -549,6 +550,7 @@ onMount(() => {
     notAvailable={_notAvailable}
     openCalendarDialog={_openCalendarDialog}
     openCreateHomeworkDialog={_openCreateHomeworkDialog}
+    openHomeworkAuditDialog={() => { _isHomeworkAuditDialogOpen = true; void loadHomeworkAuditLogs(); }}
     openSubscribeDialog={_openSubscribeDialog}
     {periodDetailRows}
     primaryName={_primaryName}
@@ -610,7 +612,7 @@ onMount(() => {
   editingHomework={_editingHomework}
   fmtDateTime={_fmtDateTime}
   formatMessage={_formatMessage}
-  hasSemesterEnd={Boolean(_semesterDate("end"))}
+  hasSemesterEnd={homeworkSemesterShortcutCapabilities({ semesterEnd: _semesterDate("end") }).hasSemesterEnd}
   hasSemesterStart={Boolean(_semesterDate("start"))}
   homeworkAuditActionLabel={_homeworkAuditActionLabel}
   homeworkAuditActorName={_homeworkAuditActorName}

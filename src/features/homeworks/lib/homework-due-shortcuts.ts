@@ -113,7 +113,7 @@ export function nextHomeworkClassStarts(
         ? schedule.startTime
         : schedule.startTime === null || schedule.startTime === undefined
           ? null
-          : Number(schedule.startTime);
+          : Number(String(schedule.startTime).replace(":", ""));
     if (!date || startTime === null || !Number.isFinite(startTime)) return [];
 
     try {
