@@ -300,13 +300,18 @@ for (const [locale, width] of [
         expect(auditInCreate, "New objects do not have edit history").toBe(0);
         await page.keyboard.press("Escape");
         await page.keyboard.press("Escape");
-        await page
+        const collectionHistory = page
           .locator("#homework")
           .getByRole("button", {
             name: locale === "en-us" ? "Edit records" : "编辑记录",
             exact: true,
-          })
-          .click();
+          });
+        if (width === 390) {
+          const bounds = await collectionHistory.boundingBox();
+          expect(bounds?.height).toBeGreaterThanOrEqual(44);
+          expect(bounds?.width).toBeGreaterThanOrEqual(44);
+        }
+        await collectionHistory.click();
         await expect(
           page
             .getByRole("dialog")
@@ -531,6 +536,7 @@ test("fresh class deadline failure and cancellation preserve the current draft",
       .addCookies([
         { name: "NEXT_LOCALE", value: "en-us", url: isolatedWorker.origin },
       ]);
+    await page.setViewportSize({ width: 390, height: 900 });
     await gotoAndWaitForReady(page, "/workspace/homeworks");
     await page.getByTestId("workspace-homeworks-add").click();
     const dialog = page.getByRole("dialog", {
@@ -548,6 +554,9 @@ test("fresh class deadline failure and cancellation preserve the current draft",
       exact: true,
     });
     await expect(retry).toBeVisible();
+    const retryBounds = await retry.boundingBox();
+    expect(retryBounds?.height).toBeGreaterThanOrEqual(44);
+    expect(retryBounds?.width).toBeGreaterThanOrEqual(44);
     const admission = preferenceFlow.waitForRequest(
       page.context(),
       (request) =>

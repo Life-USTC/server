@@ -93,7 +93,7 @@ $: dueShortcuts = buildHomeworkDueShortcuts({
   {:else if sectionJwId && classStartsState === "failed"}
     <Alert.Root variant="destructive"><Alert.Description>
       {copy.classDeadlinesFailed}
-      <Button type="button" variant="outline" onclick={() => refreshClassStarts(sectionJwId, locale)}>{copy.classDeadlinesRetry}</Button>
+      <Button type="button" variant="outline" class="min-h-11 sm:min-h-9" onclick={() => refreshClassStarts(sectionJwId, locale)}>{copy.classDeadlinesRetry}</Button>
     </Alert.Description></Alert.Root>
   {/if}
   <HomeworkTitleField {copy} {disabled} {idPrefix} {title} />
