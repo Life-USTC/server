@@ -292,6 +292,14 @@
     }
   },
   "uploads": {
+    "searchFilename": "搜索文件名",
+    "moreConditions": "更多条件",
+    "appliedConditions": "已应用条件",
+    "removeCondition": "移除条件：{condition}",
+    "reset": "重置",
+    "newestFirst": "排序：上传时间从新到旧。",
+    "noMatchTitle": "没有符合条件的上传文件",
+    "noMatchDescription": "调整或重置筛选条件以查看你的文件。",
     "title": "我的上传",
     "description": "管理通过评论附件上传的文件。",
     "uploadCardTitle": "上传资料",

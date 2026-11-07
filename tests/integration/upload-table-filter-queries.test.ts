@@ -134,3 +134,56 @@ it.for<{
     expect(result.usedBytes).toBe(128);
   },
 );
+
+it("upload.owner-existence-ignores-reservations-and-foreign-files-but-includes-zero-bytes", {
+  tags: ["@Upload/Service"],
+}, async ({ governance }) => {
+  const { db, userId, secondUserId, run } = governance;
+  await db.upload.create({
+    data: {
+      userId: secondUserId,
+      key: `uploads/${secondUserId}/foreign`,
+      filename: "foreign.txt",
+      size: 1024,
+    },
+  });
+  await db.uploadPending.create({
+    data: {
+      userId,
+      attemptId: "existence-pending",
+      key: `uploads/${userId}/pending`,
+      filename: "pending.txt",
+      size: 128,
+      expiresAt: new Date("2099-01-01T00:00:00Z"),
+    },
+  });
+  const pendingOnly = await run(() =>
+    listUploads(userId, { pageSize: 20, skip: 0 }, { filename: "absent" }),
+  );
+  expect(pendingOnly).toMatchObject({
+    total: 0,
+    uploads: [],
+    hasUploads: false,
+    usedBytes: 128,
+  });
+  await db.upload.create({
+    data: {
+      userId,
+      key: `uploads/${userId}/zero`,
+      filename: "zero.txt",
+      size: 0,
+    },
+  });
+  const before = await db.upload.findMany({ orderBy: { id: "asc" } });
+  const unmatched = await run(() =>
+    listUploads(userId, { pageSize: 20, skip: 0 }, { filename: "absent" }),
+  );
+  expect(unmatched).toMatchObject({
+    total: 0,
+    uploads: [],
+    hasUploads: true,
+    usedBytes: 128,
+  });
+  expect(await db.upload.findMany({ orderBy: { id: "asc" } })).toEqual(before);
+  expect(await db.uploadPending.count({ where: { userId } })).toBe(1);
+});
