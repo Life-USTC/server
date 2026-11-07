@@ -41,22 +41,23 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
       : workspaceTabHref("subscriptions")}
     <MobileListCard>
       <Item.Content class="min-w-0 gap-1">
-        <Item.Title class="line-clamp-none w-full min-w-0">
+        <Item.Title class="line-clamp-none block w-full min-w-0">
           <a
             class="flex min-h-11 w-full min-w-0 max-w-full items-center underline-offset-4 hover:underline"
             href={detailHref}
           >
-            <span class="line-clamp-2 min-w-0 max-w-full break-words">
+            <span class="min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
             {exam.courseName}
             </span>
           </a>
         </Item.Title>
+        <Item.Description class="line-clamp-none flex min-w-0 flex-wrap gap-x-1.5 gap-y-1 break-words">
+          <span class="min-w-0 max-w-full font-mono [overflow-wrap:anywhere]">{exam.section.code ?? subscriptionsCopy.section}</span>
+          <span>{formatSemesterName(locale, namePrimary(exam.section.semester) || unknownSemesterLabel)}</span>
+        </Item.Description>
         <Item.Description
           class="line-clamp-none flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 break-words"
         >
-          <span class="max-w-full break-words">
-            {exam.section.code ?? subscriptionsCopy.section} · {formatSemesterName(locale, namePrimary(exam.section.semester) || unknownSemesterLabel)}
-          </span>
           <span class="max-w-full break-words">
             {sectionCopy.examDate}: {#if exam.examDate}{fmtExamDate(exam.examDate)}{:else}{sectionCopy.examDateTBD}{/if}
           </span>
