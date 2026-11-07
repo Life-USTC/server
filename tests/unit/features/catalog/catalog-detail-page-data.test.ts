@@ -297,6 +297,84 @@ describe("catalog detail page data", () => {
     }
   });
 
+  it("does not retain out-of-range history pages or promote old empty KV pages", async () => {
+    const { getCoursePage } = await import(
+      "@/features/catalog/server/course-page-data"
+    );
+    const { getTeacherPage } = await import(
+      "@/features/catalog/server/teacher-page-data"
+    );
+    type PageCore =
+      | Awaited<ReturnType<typeof getCoursePage>>
+      | Awaited<ReturnType<typeof getTeacherPage>>;
+    for (const [read, core, query, section] of [
+      [getCoursePage, coursePage, courseFindUniqueMock, coursePageSection()],
+      [
+        getTeacherPage,
+        teacherPage,
+        teacherFindUniqueMock,
+        teacherPageSection(),
+      ],
+    ] as const) {
+      resetPublicRuntimeCacheForTest();
+      query.mockReset();
+      const empty = core({ _count: { sections: 20 } });
+      query.mockResolvedValue(empty);
+      const scheduled: Promise<unknown>[] = [];
+      const colo = {
+        match: vi.fn(async () => undefined),
+        put: vi.fn(async () => undefined),
+      };
+      const kv = {
+        get: vi.fn(async () => null as unknown),
+        put: vi.fn(async () => undefined),
+      };
+      vi.stubGlobal("caches", { open: async () => colo });
+      const run = (page: number) =>
+        runWithCloudflareRuntimeEnv<PageCore>(
+          { CATALOG_DETAIL_CORE: kv },
+          () => read(101, "zh-cn", page),
+          { waitUntil: (task: Promise<unknown>) => scheduled.push(task) },
+        );
+      for (const page of [2, 3, 1000, 1000])
+        expect(await run(page)).toEqual(empty);
+      await Promise.all(scheduled);
+      expect(kv.put).not.toHaveBeenCalled();
+      expect(query).toHaveBeenCalledTimes(4);
+      expect(colo.put).not.toHaveBeenCalled();
+
+      // Prior deployments may already have persisted a well-shaped empty page.
+      kv.get.mockResolvedValue(detailCacheEnvelope(empty));
+      expect(await run(4)).toEqual(empty);
+      expect(await run(4)).toEqual(empty);
+      await Promise.all(scheduled);
+      expect(query).toHaveBeenCalledTimes(6);
+      expect(kv.put).not.toHaveBeenCalled();
+      expect(colo.put).not.toHaveBeenCalled();
+
+      // Page one is finite and remains useful even for an entity with no sections.
+      kv.get.mockResolvedValue(null);
+      const first = core();
+      query.mockResolvedValue(first);
+      expect(await run(1)).toEqual(first);
+      expect(await run(1)).toEqual(first);
+      await Promise.all(scheduled);
+      expect(query).toHaveBeenCalledTimes(7);
+      expect(kv.put).toHaveBeenCalledOnce();
+      expect(colo.put).toHaveBeenCalledOnce();
+
+      // The final nonempty history page is still a normal persistent cache entry.
+      const last = core({ _count: { sections: 21 }, sections: [section] });
+      query.mockResolvedValue(last);
+      expect(await run(2)).toEqual(last);
+      expect(await run(2)).toEqual(last);
+      await Promise.all(scheduled);
+      expect(query).toHaveBeenCalledTimes(8);
+      expect(kv.put).toHaveBeenCalledTimes(2);
+      expect(colo.put).toHaveBeenCalledTimes(2);
+    }
+  });
+
   it("reloads a course when KV contains a corrupt page core", async () => {
     const course = coursePage();
     const namespace = {

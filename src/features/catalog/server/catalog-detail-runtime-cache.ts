@@ -63,11 +63,14 @@ export async function cachedPublicDetailRuntimeData<T>(input: {
   load: () => Promise<T | null>;
   locale: AppLocale;
   shape: string;
+  shouldCacheResult?: (result: T) => boolean;
   validateResult?: PublicDetailCacheResultValidator;
 }) {
   const validateResult = input.validateResult ?? isPublicDetailResult;
   const isValidResult = (result: unknown) =>
-    isPublicDetailResult(result) && validateResult(result);
+    isPublicDetailResult(result) &&
+    validateResult(result) &&
+    (input.shouldCacheResult?.(result as T) ?? true);
 
   const options = await buildPublicDetailRuntimeCacheOptions<T | null>({
     id: input.id,
@@ -75,7 +78,7 @@ export async function cachedPublicDetailRuntimeData<T>(input: {
     kvShape: input.shape,
     locale: input.locale,
     shouldCacheResult: isValidResult,
-    validateColoCacheResult: validateResult,
+    validateColoCacheResult: isValidResult,
   });
 
   return cachedPublicRuntimeData(
