@@ -11,10 +11,12 @@ let {
   options,
   selected = $bindable(),
   copy,
+  disabled = false,
 }: {
   options: PublicationSourceOption[];
   selected: string[];
   copy: PublicationPageCopy;
+  disabled?: boolean;
 } = $props();
 let query = $state("");
 const visibleOptions = $derived(
@@ -29,12 +31,12 @@ const visibleOptions = $derived(
   {#if options.length === 0}
     <Field.Description>{copy.sourceFilterEmpty}</Field.Description>
   {:else}
-    <SearchField id="publication-source-search" label={copy.searchSources} bind:value={query} placeholder={copy.searchSources} shortcut={false} />
+    <SearchField {disabled} id="publication-source-search" label={copy.searchSources} bind:value={query} placeholder={copy.searchSources} shortcut={false} />
     <Field.Group class="max-h-48 gap-2 overflow-y-auto overscroll-contain p-1">
       {#each options as option (option.id)}
         <div hidden={!visibleOptions.includes(option)}>
           <Field.Field orientation="horizontal" class="min-w-0 gap-2">
-            <Checkbox id={`publication-source-${option.id}`} name="source" value={option.id} checked={selected.includes(option.id)} onCheckedChange={(checked) => { selected = checked ? [...selected, option.id] : selected.filter((id) => id !== option.id); }} />
+            <Checkbox id={`publication-source-${option.id}`} {disabled} checked={selected.includes(option.id)} onCheckedChange={(checked) => { selected = checked ? [...selected, option.id] : selected.filter((id) => id !== option.id); }} />
             <Field.Label for={`publication-source-${option.id}`} class="min-w-0 [overflow-wrap:anywhere]">{option.name}</Field.Label>
           </Field.Field>
         </div>
