@@ -3,6 +3,7 @@ import { Button } from "#lib/components/ui/button/index.js";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import HomeworkDetailDialog from "@/features/homeworks/components/HomeworkDetailDialog.svelte";
 import type { HomeworkDetailCommentsPanel } from "@/features/homeworks/components/homework-detail-types";
+import { canCompletePersonalHomework } from "@/features/homeworks/lib/homework-capabilities";
 import {
   formatHomeworkDetailDateTime,
   formatHomeworkDueRelativeTime,
@@ -24,6 +25,7 @@ import type {
 type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
 export let showPersonalStatus = false;
+export let canWriteShared = false;
 export let readOnlyReason: string | null | undefined = null;
 export let CommentsPanel: HomeworkDetailCommentsPanel;
 export let applyHomeworkDueAtSemesterEnd: WorkspaceHomeworkDateShortcut;
@@ -68,7 +70,7 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
   : null;
 </script>
 
-{#if !readOnlyReason}
+{#if canWriteShared && !readOnlyReason}
 <HomeworkCreateDialog
   locale={locale}
   applyHomeworkDueAtSemesterEnd={applyHomeworkDueAtSemesterEnd}
@@ -123,7 +125,7 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
       homeworksCopy.dateTBD,
     )}
   referenceDate={referenceDate}
-  showCompletion={selectedHomework !== null}
+  showCompletion={(canCompletePersonalHomework({isAuthenticated:showPersonalStatus}) && selectedHomework !== null) || Boolean(readOnlyReason)}
 >
   {#snippet contextActions()}
     {#if selectedHomeworkPermalinkBaseHref}

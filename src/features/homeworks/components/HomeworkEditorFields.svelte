@@ -1,5 +1,9 @@
 <script lang="ts">
+import { onDestroy, onMount } from "svelte";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
+import { fetchHomeworkClassStarts } from "@/features/homeworks/lib/homework-class-starts-client";
 import { buildHomeworkDueShortcuts } from "@/features/homeworks/lib/homework-due-shortcuts";
 import HomeworkDescriptionFields from "./HomeworkDescriptionFields.svelte";
 import HomeworkStyleGuide from "./HomeworkStyleGuide.svelte";
@@ -25,6 +29,43 @@ export let copy: EditorCopy;
 export let description = "";
 export let disabled = false;
 export let classStarts: string[] = [];
+export let sectionJwId: number | string | null | undefined = undefined;
+let mounted = false;
+let request: AbortController | undefined;
+let freshClassStarts: string[] = [];
+let classStartsState: "loading" | "failed" | "ready" = "ready";
+onMount(() => {
+  mounted = true;
+});
+onDestroy(() => {
+  request?.abort();
+});
+async function refreshClassStarts(
+  jwId: number | string | null | undefined,
+  requestLocale: string,
+) {
+  request?.abort();
+  freshClassStarts = [];
+  if (!jwId) {
+    classStartsState = "ready";
+    return;
+  }
+  const owner = new AbortController();
+  request = owner;
+  classStartsState = "loading";
+  try {
+    const starts = await fetchHomeworkClassStarts({
+      sectionJwId: Number(jwId),
+      locale: requestLocale,
+      signal: owner.signal,
+    });
+    if (owner.signal.aborted || request !== owner) return;
+    freshClassStarts = starts;
+    classStartsState = "ready";
+  } catch {
+    if (!owner.signal.aborted && request === owner) classStartsState = "failed";
+  }
+}
 export let locale = "zh-cn";
 export let idPrefix = "homework";
 export let isMajor: boolean | undefined = undefined;
@@ -37,8 +78,9 @@ export let submissionStartAt = "";
 export let title = "";
 
 const shortcutReferenceNow = new Date();
+$: if (mounted) void refreshClassStarts(sectionJwId, locale);
 $: dueShortcuts = buildHomeworkDueShortcuts({
-  classStarts,
+  classStarts: sectionJwId ? freshClassStarts : classStarts,
   copy,
   locale,
   now: shortcutReferenceNow,
@@ -46,6 +88,14 @@ $: dueShortcuts = buildHomeworkDueShortcuts({
 </script>
 
 <Field.Group class="gap-4">
+  {#if sectionJwId && classStartsState === "loading"}
+    <p role="status" class="text-sm text-muted-foreground">{copy.classDeadlinesLoading}</p>
+  {:else if sectionJwId && classStartsState === "failed"}
+    <Alert.Root variant="destructive"><Alert.Description>
+      {copy.classDeadlinesFailed}
+      <Button type="button" variant="outline" class="min-h-11 sm:min-h-9 md:min-h-9" onclick={() => refreshClassStarts(sectionJwId, locale)}>{copy.classDeadlinesRetry}</Button>
+    </Alert.Description></Alert.Root>
+  {/if}
   <HomeworkTitleField {copy} {disabled} {idPrefix} {title} />
   <HomeworkTimestampFields
     {actions}

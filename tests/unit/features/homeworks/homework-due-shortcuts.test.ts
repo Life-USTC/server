@@ -42,9 +42,12 @@ describe("homework due shortcuts", () => {
       "2027-01-02T23:59",
       "2027-01-03T23:59",
       "2027-01-04T00:00",
+      "2027-01-08T23:59",
+      "2027-01-09T23:59",
     ]);
     expect(result[1]?.label).toMatch(/^BEFORE MONDAY · /);
-    expect(result[2]?.label).toMatch(/^NEXT Fri · /);
+    expect(result[2]?.label).toMatch(/^THIS Fri · /);
+    expect(result[4]?.label).toMatch(/^NEXT Sun · /);
   });
 
   it("omits past and duplicate class starts while retaining only three actual classes", () => {
@@ -106,11 +109,38 @@ describe("homework due shortcuts", () => {
       "2026-09-14T00:00",
       "2026-09-18T23:59",
       "2026-09-19T23:59",
-      "2026-09-20T23:59",
-      "2026-09-21T00:00",
     ]);
     expect(
       result.some((shortcut) => shortcut.value === "2026-09-11T23:59"),
     ).toBe(false);
+  });
+  it("changes Sunday period labels at Shanghai midnight without moving real weekday deadlines", () => {
+    const before = buildHomeworkDueShortcuts({
+      copy,
+      locale: "en-us",
+      now: "2026-09-12T15:59:00Z",
+    });
+    const after = buildHomeworkDueShortcuts({
+      copy,
+      locale: "en-us",
+      now: "2026-09-12T16:00:00Z",
+    });
+    expect(
+      before.find((item) => item.value === "2026-09-13T23:59")?.label,
+    ).toMatch(/^NEXT Sun · /);
+    expect(
+      after.find((item) => item.value === "2026-09-13T23:59")?.label,
+    ).toMatch(/^THIS Sun · /);
+    expect(
+      after.find((item) => item.value === "2026-09-18T23:59")?.label,
+    ).toMatch(/^THIS Fri · /);
+    for (const result of [before, after]) {
+      expect(
+        result.find((item) => item.value === "2026-09-14T00:00")?.label,
+      ).toMatch(/^BEFORE MONDAY · /);
+      expect(result.some((item) => item.value === "2026-09-13T00:00")).toBe(
+        false,
+      );
+    }
   });
 });

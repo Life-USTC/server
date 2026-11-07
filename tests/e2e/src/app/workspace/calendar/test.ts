@@ -8,7 +8,7 @@
  * - homework.submissionDueAt
  * - todo.dueAt
  * - Week numbers
- * - Weekday labels (Mon-Sun)
+ * - Weekday labels (Sun-Sat)
  *
  * ## Features
  * - View tabs: semester (default) / day / month / week
@@ -56,7 +56,7 @@ test.describe("仪表盘日历", () => {
           page.locator("#main-content").getByRole("alert"),
         ).toHaveCount(0);
 
-        // Weekday labels (Mon-Sun) — calendar.yml personal-calendar-view.display.fields
+        // Weekday labels (Sun-Sat) — calendar.yml personal-calendar-view.display.fields
         await expect(
           page
             .getByTestId("workspace-calendar-grid")

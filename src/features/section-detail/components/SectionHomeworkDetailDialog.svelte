@@ -2,6 +2,7 @@
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import HomeworkDetailDialog from "@/features/homeworks/components/HomeworkDetailDialog.svelte";
 import type { HomeworkDetailCommentsPanel } from "@/features/homeworks/components/homework-detail-types";
+import { canCompletePersonalHomework } from "@/features/homeworks/lib/homework-capabilities";
 import {
   formatHomeworkDetailDateTime,
   formatHomeworkDueRelativeTime,
@@ -28,6 +29,7 @@ import type {
 export let showPersonalStatus = false;
 export let readOnlyReason: string | null | undefined = null;
 export let referenceDate: string | undefined = undefined;
+export let classSectionJwId: number | string | null | undefined = undefined;
 export let classStarts: string[] = [];
 export let CommentsPanel: HomeworkDetailCommentsPanel;
 export let _applyEditDueAtSemesterEnd: SectionHomeworkTimestampAction;
@@ -108,12 +110,13 @@ $: permalinkBaseHref = _selectedHomework
     )}
   contextLabel={sectionLabel}
   showContextActions={_canWriteHomework || _canManageSelectedHomework}
-  showCompletion={_canWriteHomework || Boolean(readOnlyReason)}
+  showCompletion={canCompletePersonalHomework({isAuthenticated:showPersonalStatus}) || Boolean(readOnlyReason)}
 >
   {#snippet editingContent()}
     {#if _selectedHomework}
       <SectionHomeworkEditForm
-        {classStarts}
+        {classSectionJwId}
+  {classStarts}
         {locale}
         applyDueAtSemesterEnd={_applyEditDueAtSemesterEnd}
         applyDueInMonth={_applyEditDueInMonth}

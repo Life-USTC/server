@@ -1370,6 +1370,7 @@
     "activitySummary": "Activity at a glance",
     "moreDetails": "More activity details",
     "poster": "Activity poster",
+    "posterFailed": "The activity poster could not load.",
     "earlierDates": "Show earlier dates",
     "organizerSearchPlaceholder": "Search organizer names…",
     "dateUnknownActivity": "Unknown activity date",
@@ -2353,6 +2354,9 @@
     "calendarButtonLabel": "Open calendar picker",
     "timeShortcuts": "Common times",
     "dueDateShortcuts": "Common deadlines",
+    "classDeadlinesLoading": "Loading class deadlines…",
+    "classDeadlinesFailed": "Class deadlines could not be loaded. Your entries are preserved; enter a due date manually or retry.",
+    "classDeadlinesRetry": "Retry class deadlines",
     "helperPublishNow": "Publish now",
     "helperStartNow": "Start now",
     "helperClear": "Clear",
@@ -3195,6 +3199,18 @@
     }
   },
   "shell": {
+    "currentLocation": "Current location",
+    "detailNavigation": {
+      "label": "On this page",
+      "relatedCourse": "View course",
+      "introduction": "Description",
+      "calendar": "Calendar",
+      "exams": "Exams",
+      "homework": "Homework",
+      "comments": "Comments",
+      "sections": "Teaching sections",
+      "overview": "More details"
+    },
     "menu": "Menu",
     "scrollRegion": "Main content scroll region",
     "toggleSidebar": "Toggle sidebar",
