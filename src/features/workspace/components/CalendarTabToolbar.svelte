@@ -1,11 +1,8 @@
 <script lang="ts">
-import ChevronLeft from "@lucide/svelte/icons/chevron-left";
-import ChevronRight from "@lucide/svelte/icons/chevron-right";
 import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
-import { weekStartFor } from "@/features/workspace/lib/calendar";
 import CalendarTabNavigationControls from "./CalendarTabNavigationControls.svelte";
 import PersonalCalendarLinkButton from "./PersonalCalendarLinkButton.svelte";
 import type { WorkspaceCalendarTabProps } from "./workspace-calendar-component-types";
@@ -37,107 +34,33 @@ const activitiesManageHref = "/workspace/subscriptions/activities";
 let personalCalendarLink: PersonalCalendarLinkButton | undefined;
 </script>
 
-<div class="hidden gap-3 xl:grid xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
-  <div class="flex flex-wrap items-center gap-2 md:justify-start">
+<div class="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start" data-testid="workspace-calendar-mobile-toolbar">
+  <div class="grid min-w-0 gap-2">
     <ToggleGroup.Root
-      aria-label={workspaceCopy.nav.calendar.title}
+      aria-label={workspaceCopy.calendarViewLabel}
+      class="w-full sm:w-fit"
       type="single"
       required
       value={calendarView}
       variant="outline"
       onValueChange={(value) => {
-        if (value === "semester" || value === "month" || value === "week" || value === "day") {
-          setCalendarView(value);
-        }
+        if (value === "semester" || value === "month" || value === "week" || value === "day") setCalendarView(value);
       }}
     >
-      <ToggleGroup.Item value="day">{workspaceCopy.calendarViewDay}</ToggleGroup.Item>
-      <ToggleGroup.Item value="semester">
-        {workspaceCopy.calendarViewSemester}
-      </ToggleGroup.Item>
-      <ToggleGroup.Item value="month">
-        {workspaceCopy.calendarViewMonth}
-      </ToggleGroup.Item>
-      <ToggleGroup.Item value="week">
-        {workspaceCopy.calendarViewWeek}
-      </ToggleGroup.Item>
+      <ToggleGroup.Item class="h-11 flex-1" value="day">{workspaceCopy.calendarViewDay}</ToggleGroup.Item>
+      <ToggleGroup.Item class="h-11 flex-1" value="week">{workspaceCopy.calendarViewWeek}</ToggleGroup.Item>
+      <ToggleGroup.Item class="h-11 flex-1" value="month">{workspaceCopy.calendarViewMonth}</ToggleGroup.Item>
+      <ToggleGroup.Item class="h-11 flex-1" value="semester">{workspaceCopy.calendarViewSemester}</ToggleGroup.Item>
     </ToggleGroup.Root>
-    <CalendarTabNavigationControls
-      {addDays}
-      {addMonths}
-      {calendarData}
-      {calendarDay}
-      {calendarMonth}
-      {calendarSemesterIndex}
-      {calendarView}
-      {calendarWeekStart}
-      {commonCopy}
-      {workspaceCopy}
-      {formatMessage}
-      {sectionCopy}
-      {setCalendarDay}
-      {setCalendarMonth}
-      {setCalendarSemester}
-      {setCalendarWeek}
-    />
-  </div>
-  <div class="flex flex-wrap items-center gap-2 md:justify-end">
-    <Button class="min-w-28 md:min-w-28" href={activitiesManageHref} variant="outline">
-      {activitiesManageLabel}
-    </Button>
-    {#if signedData.calendarLinkState || signedData.calendarSubscriptionUrl}
-      <PersonalCalendarLinkButton
-        bind:this={personalCalendarLink}
-        buttonLabel={subscriptionsCopy.iCalLink}
-        className="min-w-28 md:min-w-28"
-        failureMessage={subscriptionsCopy.optOutRetry}
-        {sectionCopy}
-        showSubscriptionsLink={true}
-        subscriptionCalendarUrl={signedData.calendarSubscriptionUrl ?? ""}
-        calendarLinkState={signedData.calendarLinkState}
+    <div class="flex min-w-0 items-start justify-between gap-2">
+      <CalendarTabNavigationControls
+        {addDays} {addMonths} {calendarData} {calendarDay} {calendarMonth}
+        {calendarSemesterIndex} {calendarView}
+        calendarWeekStart={calendarWeekStart || agendaWeekStart}
+        {commonCopy} {workspaceCopy} {formatMessage} {sectionCopy}
+        {setCalendarDay} {setCalendarMonth} {setCalendarSemester} {setCalendarWeek}
       />
-    {/if}
-  </div>
-</div>
-
-{#if calendarData}
-  <div class="grid gap-2 xl:hidden" data-testid="workspace-calendar-mobile-toolbar">
-    <ToggleGroup.Root aria-label={workspaceCopy.nav.calendar.title} type="single" required value={calendarView === "day" ? "day" : "week"} variant="outline" onValueChange={(value) => { if (value === "day" || value === "week") setCalendarView(value); }}>
-      <ToggleGroup.Item value="day" class="h-11">{workspaceCopy.calendarViewDay}</ToggleGroup.Item>
-      <ToggleGroup.Item value="week" class="h-11">{workspaceCopy.calendarViewWeek}</ToggleGroup.Item>
-    </ToggleGroup.Root>
-    <div class="flex items-center justify-between gap-2">
-      <div class="flex items-center gap-1">
-        <Button
-          aria-label={calendarView === "day" ? workspaceCopy.calendarDay.prev : workspaceCopy.calendarWeek.prev}
-          class="size-11"
-          size="icon"
-          type="button"
-          variant="outline"
-          onclick={() => calendarView === "day" ? setCalendarDay(addDays(calendarDay, -1)) : setCalendarWeek(addDays(agendaWeekStart, -7))}
-        >
-          <ChevronLeft data-icon="inline-start" />
-        </Button>
-        <Button
-          class="h-11 px-3"
-          type="button"
-          variant="outline"
-          onclick={() => calendarView === "day" ? setCalendarDay(calendarData.todayDate) : setCalendarWeek(weekStartFor(calendarData.todayDate))}
-        >
-          {workspaceCopy.todayAction}
-        </Button>
-        <Button
-          aria-label={calendarView === "day" ? workspaceCopy.calendarDay.next : workspaceCopy.calendarWeek.next}
-          class="size-11"
-          size="icon"
-          type="button"
-          variant="outline"
-          onclick={() => calendarView === "day" ? setCalendarDay(addDays(calendarDay, 1)) : setCalendarWeek(addDays(agendaWeekStart, 7))}
-        >
-          <ChevronRight data-icon="inline-start" />
-        </Button>
-      </div>
-
+      <div class="xl:hidden">
       <DropdownMenu.Root>
         <DropdownMenu.Trigger>
           {#snippet child({ props })}
@@ -168,11 +91,24 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
           </DropdownMenu.Group>
         </DropdownMenu.Content>
       </DropdownMenu.Root>
+      </div>
     </div>
-    <p class="truncate text-sm text-muted-foreground">
-      {calendarView === "day" ? calendarDay : formatMessage(workspaceCopy.calendarWeek.current, {
-        date: agendaWeekStart,
-      })}
-    </p>
   </div>
-{/if}
+  <div class="hidden flex-wrap items-center gap-2 xl:flex xl:justify-end">
+    <Button class="min-w-28 md:min-w-28" href={activitiesManageHref} variant="outline">
+      {activitiesManageLabel}
+    </Button>
+    {#if signedData.calendarLinkState || signedData.calendarSubscriptionUrl}
+      <PersonalCalendarLinkButton
+        bind:this={personalCalendarLink}
+        buttonLabel={subscriptionsCopy.iCalLink}
+        className="min-w-28 md:min-w-28"
+        failureMessage={subscriptionsCopy.optOutRetry}
+        {sectionCopy}
+        showSubscriptionsLink={true}
+        subscriptionCalendarUrl={signedData.calendarSubscriptionUrl ?? ""}
+        calendarLinkState={signedData.calendarLinkState}
+      />
+    {/if}
+  </div>
+</div>

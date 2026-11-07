@@ -513,8 +513,7 @@ for (const width of [1280, 390]) {
             rangeLink.locator('[data-slot="item-description"]').first(),
           ).toHaveText("2035-09-10 09:00 – 2035-10-10 18:00");
           await root
-            .getByRole("link", { name: /^(上一段|Previous|上一)/ })
-            .first()
+            .getByRole("link", { name: /^(前一天|Previous day)$/ })
             .click();
           await expect(
             root
