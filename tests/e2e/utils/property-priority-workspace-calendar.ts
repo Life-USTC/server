@@ -293,7 +293,10 @@ export async function checkWorkspaceCalendarPriorityViews(
       identity: matchTitle,
       primary: { "section.course.namePrimary": field(matchTitle, courseName) },
       secondary: {
-        "section.code": text(matchDetails, section.code),
+        "section.code": field(
+          matchDetails.locator('[data-slot="catalog-code"]'),
+          section.code,
+        ),
         "semester.nameCn": text(matchDetails, semester),
         "section.teachers.namePrimary": text(matchDetails, teacherName),
         "unmatched.code": text(confirm, unmatched),
