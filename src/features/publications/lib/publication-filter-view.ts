@@ -1,5 +1,5 @@
 import type { PublicationListFilters } from "../components/publication-component-types";
-import { isPublicationSourceOrganizationLevel } from "./publication-source-levels";
+import { isPublicationSourceOrganizationLevel } from "./publication-source-level-values";
 
 export function publicationFilterValues(
   filters: PublicationListFilters,
