@@ -21,6 +21,7 @@ type TodoAction = (todo: WorkspaceTodoItem) => string;
 type TodoCompletionToggle = (todo: WorkspaceTodoItem) => void | Promise<void>;
 
 export let hasTodoItems: boolean;
+export let emptyTitle: string;
 export let onClearFilter: () => void;
 export let filteredTodos: WorkspaceTodoItem[];
 export let fmtDate: TodoDateFormatter;
@@ -124,7 +125,7 @@ export let readOnlyReason: string | undefined = undefined;
     </Item.Group>
   {:else}
     <WorkspaceTaskEmptyState
-            title={todosCopy.filterEmptyTitle}
+            title={hasTodoItems ? todosCopy.filterEmptyTitle : emptyTitle}
             description={hasTodoItems ? todosCopy.filterEmptyDescription : undefined}
             clearFilterLabel={todosCopy.clearFilter}
             onClearFilter={hasTodoItems ? onClearFilter : undefined}

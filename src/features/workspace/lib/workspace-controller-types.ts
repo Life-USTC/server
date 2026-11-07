@@ -23,6 +23,18 @@ import type { TableFilterLabels } from "@/lib/table-filters";
 type WorkspaceRecord = Record<string, unknown>;
 
 export type WorkspaceCommonCopy = WorkspaceRecord & {
+  taskFilters: {
+    search: string;
+    more: string;
+    applied: string;
+    reset: string;
+    remove: string;
+    myStatus: string;
+    attributes: string;
+    todoSort: string;
+    homeworkSort: string;
+    emptyTodos: string;
+  };
   tableFilters: TableFilterLabels;
   applyFilters: string;
   courses: string;

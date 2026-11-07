@@ -202,7 +202,7 @@ requirements:
 - id: ui.embedded-collection-order
   category: presentation
   topic: list-table
-  rule: Collection surfaces outside the public browse pages in ui.list-table-1 and the directory/workspace/administrative views in ui.other-collection-order, including embedded workspace task and detail collections, put their heading before result summaries and records; column filters live in the table or compact collection header, extra-property filters and the single Apply filters action precede the collection, and available endless-scroll controls follow the records. Teaching-section subscriptions grouped by semester keep all filters in one toolbar above the groups; group tables use plain column headings.
+  rule: Collection surfaces outside the public browse pages in ui.list-table-1 and the directory/workspace/administrative views in ui.other-collection-order, including embedded workspace task and detail collections, put their heading before result summaries and records; column filters live in the table or compact collection header, extra-property filters and the single Apply filters action precede the collection, and available endless-scroll controls follow the records. Teaching-section subscriptions grouped by semester keep all filters in one toolbar above the groups; group tables use plain column headings. Workspace homework and todo collections instead use one shared filter toolbar at every width. Title search, common conditions, more conditions, and applied-condition chips precede records; all fields edit one retained draft with a single Apply and adjacent Reset. Their table headings are plain labels and cards do not duplicate header filters. Applied-condition removal clears only its field and comparison bounds without dropping unrelated drafts; the current fixed ordering is visible.
   rationale: These embedded collection ordering obligations remain separate from verified top-level browse layouts. A heading and its summary may share a row in reading order.
   acceptance:
     given: Isolated records populate workspace homework/exam/todo/subscription collections, course/teacher offering history, organizer activity history and section homework/calendar/exam collections.
@@ -231,7 +231,7 @@ requirements:
 - id: ui.list-table-3
   category: presentation
   topic: list-table
-  rule: Every data column has a labeled filter in its corresponding heading; extra properties without a displayed column are grouped at the top of the page. Filters and sorting share one page draft and one Apply filters action. Popovers contain no separate Apply action. Categorical fields support multiple selections; numeric fields support equality, inequality, ordered and inclusive-range comparisons. An unrestricted selection displays only the localized Any label. Empty results retain all controls.
+  rule: Except for the shared workspace upload/homework/todo toolbars specified by ui.other-collection-order and ui.embedded-collection-order, every data column has a labeled filter in its corresponding heading; extra properties without a displayed column are grouped at the top of the page. Filters and sorting share one page draft and one Apply filters action. Popovers contain no separate Apply action. Categorical fields support multiple selections; numeric fields support equality, inequality, ordered and inclusive-range comparisons. An unrestricted selection displays only the localized Any label. Empty results retain all controls.
   acceptance:
     given: The seeded course, teacher, and section collections expose their declared advanced filters.
     when: An anonymous browser opens each column and extra-property filter at desktop and mobile widths and inspects accessible controls, the page Apply action, and dismissal behavior.
@@ -244,7 +244,7 @@ requirements:
 - id: ui.list-table-4
   category: presentation
   topic: list-table
-  rule: The applied URL initializes one shared page draft. Closing, reopening or switching popovers retains unsaved selections and leaves the URL and results unchanged. The page Apply action commits those drafts without discarding fields edited after that submission. Explicit navigation, history traversal, clear and filter-removal actions initialize the draft from their target URL.
+  rule: In public course, teacher and teaching-section browse collections, the applied URL initializes one shared page draft. Closing, reopening or switching popovers retains unsaved selections and leaves the URL and results unchanged. The page Apply action commits those drafts without discarding fields edited after that submission. Explicit navigation, history traversal, clear and filter-removal actions initialize the draft from their target URL.
   acceptance:
     given: Course, teacher, and section URLs apply all advanced filters to a seeded matching result.
     when: The browser opens each column filter, changes its drafts, dismisses through an outside click and Escape, then reopens it.
@@ -1131,6 +1131,19 @@ requirements:
     test:
       file: tests/e2e/src/app/signin/test.ts
       name: /account/sign-in uses the focused auth shell
+- id: ui.workspace-task-filter-toolbar
+  category: presentation
+  topic: workspace-filters-and-empty-states
+  rule: Workspace homework and todo collections share one retained draft across title search, common conditions and more conditions. Only the single Apply commits that draft. Applied chips describe committed values; removing one chip immediately clears only that field and its comparison bounds in both applied and draft state while retaining unrelated drafts. Reset clears all draft and applied values. Long applied-title labels remain complete and readable without horizontal page overflow, and no-data messages differ from no-match messages.
+  acceptance:
+    given: Owned homework and todo records populate isolated real database and Worker runtimes at mobile and desktop widths.
+    when: The user edits search and inclusive date ranges, reopens more conditions, applies them, removes only the date chip, resets, and applies a long title.
+    then:
+    - Unsaved search and more-condition values survive date-chip removal; the removed date, comparison and upper bound are cleared.
+    - Reset clears all conditions; a long title chip retains its complete label inside the viewport.
+    test:
+      file: tests/e2e/src/app/workspace/homeworks/filter-toolbar-evidence.test.ts
+      name: homeworks.filter-toolbar-evidence
 - id: ui.workspace-filters-and-empty-states-1
   category: presentation
   topic: workspace-filters-and-empty-states
@@ -1155,7 +1168,7 @@ requirements:
   acceptance:
     given: A signed-in browser opens each homework, todo, and exam page while its application hydration scripts
       are held.
-    when: The browser checks that the visible filter header button is disabled before releasing the scripts,
+    when: The browser checks that the visible filter trigger is disabled before releasing the scripts; homework/todo search and action controls are also disabled,
       then opens the enabled controls and applies unrestricted, completed and incomplete selections while offline.
     then:
     - Status-filter controls remain disabled until hydrated. Choices update the draft immediately and one Apply action updates results while offline.
@@ -1166,13 +1179,13 @@ requirements:
   category: presentation
   topic: workspace-filters-and-empty-states
   rule: Homework, todo, and exam filtered-empty states share compact left-aligned text with no decorative icon
-    or filled background. All three retain their table or compact collection header filters when there are zero rows. Exams and homeworks hide clear-filter on the default incomplete filter; todos retain an outline clear-filter below the explanation.
+    or filled background. All three retain reachable filters when there are zero rows; homework/todo use their shared toolbar and exams retain table or compact collection header filters. Exams and homeworks hide clear-filter on the default incomplete filter; todos retain an outline clear-filter below the explanation.
   acceptance:
     given: An isolated user has completed homework, todo, and exam records and no pending records.
     when: The browser loads each page’s pending filter at desktop and mobile widths and inspects empty-state
       geometry, colors, icon, action, and table header visibility.
     then:
-    - Homework, todo, and exam filtered-empty states share compact left-aligned text with no decorative icon or filled background and retain reachable header filters.
+    - Homework, todo, and exam filtered-empty states share compact left-aligned text with no decorative icon or filled background and retain reachable filters in their respective toolbar or exam header.
     - Exams and homeworks hide clear-filter on the default incomplete filter; todos retain an outline clear-filter below the explanation.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts

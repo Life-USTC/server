@@ -85,6 +85,18 @@
     "unknown": "Unknown",
     "campusServices": "Campus services",
     "applyFilters": "Apply filters",
+    "taskFilters": {
+      "search": "Search titles",
+      "more": "More conditions",
+      "applied": "Applied conditions",
+      "reset": "Reset",
+      "remove": "Remove condition",
+      "myStatus": "My status",
+      "attributes": "Assignment attributes",
+      "todoSort": "Order: earliest deadline first; undated items last.",
+      "homeworkSort": "Order: earliest deadline first; newly created first when deadlines match; undated items last.",
+      "emptyTodos": "No todos yet"
+    },
     "tableFilters": {
       "any": "Any",
       "operator": "Comparison",

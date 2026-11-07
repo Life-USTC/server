@@ -27,7 +27,7 @@ function taskTitle(
   return locator.filter({ visible: true });
 }
 
-test("workspace table filters share drafts across columns", {
+test("workspace task toolbar shares drafts across conditions", {
   tag: "@Todo/Web",
 }, async ({ page, taskFilterState, taskFilterRun }) => {
   const fixture = await taskFilterState(true);
@@ -40,7 +40,9 @@ test("workspace table filters share drafts across columns", {
       await openWorkspaceTaskFilter(page, "todos");
       await workspaceTaskFilterValue(page, "completed").check();
       await page.keyboard.press("Escape");
-      const headers = page.locator('[data-slot="table-column-header"]:visible');
+      const headers = page.locator(
+        '[data-slot="workspace-task-filter-toolbar"]',
+      );
       await headers
         .getByRole("button", { name: /^(优先级|Priority)$/i })
         .click();
@@ -48,11 +50,7 @@ test("workspace table filters share drafts across columns", {
       await priority.getByRole("checkbox", { name: /^(高|High)$/i }).check();
       await priority.getByRole("checkbox", { name: /^(中|Medium)$/i }).check();
       await page.keyboard.press("Escape");
-      await headers.getByRole("button", { name: /^(标题|Title)$/i }).click();
-      await page
-        .locator('[data-filter-field="title"]:visible input')
-        .fill(fixture.completedTitle.todos);
-      await page.keyboard.press("Escape");
+      await headers.getByRole("searchbox").fill(fixture.completedTitle.todos);
       await expect(completed).toHaveCount(0);
       await expect(pending).toHaveCount(1);
       await headers
@@ -69,9 +67,7 @@ test("workspace table filters share drafts across columns", {
       await apply.click();
       await expect(completed).toHaveCount(1);
       await expect(pending).toHaveCount(0);
-      await headers.getByRole("button", { name: /^(标题|Title)$/i }).click();
-      await page.locator('[data-filter-field="title"]:visible input').fill("");
-      await page.keyboard.press("Escape");
+      await headers.getByRole("searchbox").fill("");
       await apply.click();
       await expect(completed).toHaveCount(1);
       await expect(pending).toHaveCount(1);
@@ -190,13 +186,24 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
                     await expect(
                       page.getByRole("columnheader").first(),
                     ).toBeVisible();
-                    await expect(
-                      page
-                        .getByRole("columnheader")
-                        .locator('[data-slot="table-column-header"]')
-                        .getByRole("button")
-                        .first(),
-                    ).toBeVisible();
+                    if (tab === "exams") {
+                      await expect(
+                        page
+                          .getByRole("columnheader")
+                          .locator('[data-slot="table-column-header"]')
+                          .getByRole("button")
+                          .first(),
+                      ).toBeVisible();
+                    } else {
+                      await expect(
+                        page.getByRole("columnheader").locator("button"),
+                      ).toHaveCount(0);
+                      await expect(
+                        page.locator(
+                          '[data-slot="workspace-task-filter-toolbar"] [data-filter-trigger="completion"]',
+                        ),
+                      ).toBeVisible();
+                    }
                   }
                   if (tab === "todos") {
                     await page.keyboard.press("Escape");
