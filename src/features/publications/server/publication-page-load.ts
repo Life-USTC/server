@@ -1,7 +1,10 @@
 import { redirect } from "@sveltejs/kit";
 import { collapsePublicationListSearchParams } from "@/features/publications/lib/publication-read-request-schemas";
 import { getPublicationPageCopy } from "@/features/publications/server/publication-page-copy";
-import { listPublications } from "@/features/publications/server/publication-public-read-service";
+import {
+  hasPublicPublications,
+  listPublications,
+} from "@/features/publications/server/publication-public-read-service";
 import { listPublicationSourceOptions } from "@/features/publications/server/publication-source-directory-service";
 import type { AppLocale } from "@/i18n/config";
 import { publicationsQuerySchema } from "@/lib/api/schemas/request-schemas";
@@ -52,7 +55,10 @@ export async function loadPublicationListPage(url: URL, locale: AppLocale) {
   }
   const copy = getPublicationPageCopy(locale);
 
+  const hasPublications =
+    publications.data.length > 0 || (await hasPublicPublications());
   return {
+    hasPublications,
     publications,
     filters,
     sourceOptions,
