@@ -255,7 +255,7 @@ test("ui.shell-layout-4", { tag: "@Site/Web" }, async ({
           ),
         ).toHaveCount(0);
         const destinations = [
-          ["Life@USTC", "/"],
+          ["Life@USTC: Home", "/"],
           ["Calendar", "/workspace/calendar"],
           ["Homework", "/workspace/homeworks"],
           ["Todos", "/workspace/todos"],

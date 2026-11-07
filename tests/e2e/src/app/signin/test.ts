@@ -138,20 +138,37 @@ test("/account/sign-in narrow mobile shell uses an accessible compact brand", {
     }
 
     await expect(brand).toBeVisible();
-    await expect(brand).toHaveAttribute("aria-label", "Life@USTC");
-    await expect(brand).toHaveAttribute("title", "Life@USTC");
-    await expect(brand.locator("span")).toHaveClass(/sr-only/);
-    await expect(brand.locator("span")).not.toHaveClass(/truncate/);
+    await expect(brand).toHaveAttribute("aria-label", "Life@USTC: Home");
+    await expect(brand).toHaveAttribute("href", "/");
+    await expect(brand).toHaveAttribute("title", "Home");
+    const brandName = brand.getByText("Life@USTC", { exact: true });
+    await expect(brandName).toHaveClass(/sr-only/);
+    await expect(brandName).not.toHaveClass(/truncate/);
+
+    const caption = brand.getByText("Home", { exact: true });
+    await expect(caption).toBeVisible();
+    await expect(caption).not.toHaveClass(/sr-only|truncate/);
+    expect(
+      await caption.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    ).toBe(true);
 
     const metrics = await brand.evaluate((element) => {
       const rect = element.getBoundingClientRect();
       return {
         clientWidth: element.clientWidth,
+        height: rect.height,
+        left: rect.left,
         right: rect.right,
+        documentWidth: document.documentElement.scrollWidth,
         viewportWidth: window.innerWidth,
       };
     });
-    expect(metrics.clientWidth).toBe(44);
+    expect(metrics.clientWidth).toBeGreaterThanOrEqual(44);
+    expect(metrics.height).toBeGreaterThanOrEqual(44);
+    expect(metrics.left).toBeGreaterThanOrEqual(0);
+    expect(metrics.documentWidth).toBeLessThanOrEqual(metrics.viewportWidth);
     expect(metrics.right).toBeLessThanOrEqual(metrics.viewportWidth);
   }
 });

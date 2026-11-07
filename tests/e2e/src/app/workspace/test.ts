@@ -25,6 +25,7 @@ import {
   expandDaySidebarGroup,
   sidebarNavigationLink,
 } from "../../../utils/locators";
+import { expectNavigationCount } from "../../../utils/navigation-count";
 import { observeAction } from "../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
@@ -171,25 +172,48 @@ test.describe("仪表盘", () => {
         });
         await expandDaySidebarGroup(page);
 
-        for (const [label, count] of [
-          [/^(日历|Calendar)$/i, payload.navigation.calendarItemsCount],
-          [/^(作业|Homework)$/i, payload.navigation.pendingHomeworksCount],
-          [/^(待办|Todos?)$/i, payload.navigation.pendingTodosCount],
-          [/^(考试|Exams?)$/i, payload.navigation.examsCount],
+        for (const [path, label, count, unit] of [
           [
+            "calendar",
+            /^(日历|Calendar)$/i,
+            payload.navigation.calendarItemsCount,
+            /items|汇总项/,
+          ],
+          [
+            "homeworks",
+            /^(作业|Homework)$/i,
+            payload.navigation.pendingHomeworksCount,
+            /pending|未完成/,
+          ],
+          [
+            "todos",
+            /^(待办|Todos?)$/i,
+            payload.navigation.pendingTodosCount,
+            /pending|未完成/,
+          ],
+          [
+            "exams",
+            /^(考试|Exams?)$/i,
+            payload.navigation.examsCount,
+            /exams|考试/,
+          ],
+          [
+            "subscriptions",
             /^(教学班订阅|Section subscriptions)$/i,
             payload.navigation.subscribedSectionCount,
+            /subscribed|已订阅/,
           ],
         ] as const) {
-          const menuItem = sidebarNavigationLink(page, label).locator(
-            "xpath=ancestor::*[@data-slot='sidebar-menu-item'][1]",
+          await expect(sidebarNavigationLink(page, label)).toHaveAttribute(
+            "href",
+            `/workspace/${path}`,
           );
-          const badge = menuItem.locator("[data-slot='sidebar-menu-badge']");
-          if (count > 0) {
-            await expect(badge).toHaveText(String(count));
-          } else {
-            await expect(badge).toHaveCount(0);
-          }
+          await expectNavigationCount(
+            appSidebar(page),
+            `/workspace/${path}`,
+            count,
+            unit,
+          );
         }
         expect(
           bootstrapResponse.headers()["cloudflare-cdn-cache-control"],

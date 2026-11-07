@@ -7,6 +7,7 @@ import {
 import { unflatten } from "devalue";
 import { restReadScope } from "@/lib/oauth/scope-registry";
 import { DEV_SEED } from "../../../utils/dev-seed";
+import { expectNavigationCount } from "../../../utils/navigation-count";
 import { authorizeDeviceBearer } from "../../../utils/oauth-device-bearer";
 import { observeAction } from "../../../utils/observed-action";
 import {
@@ -277,21 +278,19 @@ test("rendering-and-cache.personal-overlays-5", { tag: "@Site/Web" }, async ({
             const navigation = page.locator(
               '[data-shell-navigation="desktop"]',
             );
-            for (const [path, field] of [
-              ["calendar", "calendarItemsCount"],
-              ["homeworks", "pendingHomeworksCount"],
-              ["todos", "pendingTodosCount"],
-              ["exams", "examsCount"],
-              ["subscriptions", "subscribedSectionCount"],
+            for (const [path, field, unit] of [
+              ["calendar", "calendarItemsCount", "items"],
+              ["homeworks", "pendingHomeworksCount", "pending"],
+              ["todos", "pendingTodosCount", "pending"],
+              ["exams", "examsCount", "exams"],
+              ["subscriptions", "subscribedSectionCount", "subscribed"],
             ] as const) {
-              const link = navigation.locator(`a[href="/workspace/${path}"]`);
-              await expect(link).toHaveCount(1);
-              const badge = link
-                .locator("xpath=ancestor::*[@data-slot='sidebar-menu-item'][1]")
-                .locator("[data-slot='sidebar-menu-badge']");
-              const count = payload.navigation[field];
-              if (count > 0) await expect(badge).toHaveText(String(count));
-              else await expect(badge).toHaveCount(0);
+              await expectNavigationCount(
+                navigation,
+                `/workspace/${path}`,
+                payload.navigation[field],
+                unit,
+              );
             }
             expect(bootstrapRequests).toEqual([]);
           } finally {

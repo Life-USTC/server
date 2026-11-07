@@ -1,4 +1,5 @@
-import type { Locator, Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
+import { navigationCount } from "./navigation-count";
 import { gotoAndWaitForReady } from "./page-ready";
 import {
   assertPriorityView,
@@ -130,13 +131,22 @@ export async function checkWorkspaceOverviewPriorityViews(
     name: locale === "en-us" ? "Todos" : "待办",
     exact: true,
   });
+  const count = navigationCount(navigation, "/workspace/todos");
+  await expect(count).toHaveCount(1);
+  await expect(count).toHaveAttribute("data-shell-count-value", "1");
+  await expect(count).toHaveText(locale === "en-us" ? "1 pending" : "1 未完成");
   await assertPriorityView({
     scope: item,
     identity: title.locator("span").last(),
     primary: {
       "navigation.title": field(title, locale === "en-us" ? "Todos" : "待办"),
     },
-    secondary: { "navigation.count": text(item, /^1$/) },
+    secondary: {
+      "navigation.count": field(
+        count,
+        locale === "en-us" ? "1 pending" : "1 未完成",
+      ),
+    },
     tertiary: {},
   });
   if (width < 768) {

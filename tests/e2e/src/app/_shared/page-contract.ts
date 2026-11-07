@@ -163,7 +163,9 @@ export async function assertPageContract(
     await gotoContractPage(page, routePath);
     await expectMainContent(page);
     await expandDaySidebarGroup(page);
-    await expect(sidebarNavigationLink(page, /^Life@USTC$/)).toBeVisible({
+    await expect(
+      sidebarNavigationLink(page, /^Life@USTC: (?:Home|首页)$/),
+    ).toBeVisible({
       timeout: 10_000,
     });
     return;

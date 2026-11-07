@@ -191,7 +191,7 @@ function closeMobileSidebar(): void {
                     alt=""
                     aria-hidden="true"
                   />
-                  <span class="grid min-w-0"><span>Life@USTC</span>{" "}<span class="text-xs font-normal text-muted-foreground">{homeLabel}</span></span>
+                  <span class="grid min-w-0"><span>Life@USTC</span>{" "}<span class="text-xs font-normal">{homeLabel}</span></span>
                 </a>
               {/snippet}
             </Sidebar.MenuButton>
@@ -225,7 +225,7 @@ function closeMobileSidebar(): void {
                     alt=""
                     aria-hidden="true"
                   />
-                  <span class="grid min-w-0"><span>Life@USTC</span>{" "}<span class="text-xs font-normal text-muted-foreground">{homeLabel}</span></span>
+                  <span class="grid min-w-0"><span>Life@USTC</span>{" "}<span class="text-xs font-normal">{homeLabel}</span></span>
                 </a>
               {/snippet}
             </Sidebar.MenuButton>
