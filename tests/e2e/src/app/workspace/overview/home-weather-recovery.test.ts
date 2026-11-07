@@ -25,15 +25,13 @@ for (const { locale, width } of [
       await pageRun(
         async () => {
           await page.setViewportSize({ width, height: 1000 });
-          await page
-            .context()
-            .addCookies([
-              {
-                name: "NEXT_LOCALE",
-                value: locale,
-                url: isolatedWorker.origin,
-              },
-            ]);
+          await page.context().addCookies([
+            {
+              name: "NEXT_LOCALE",
+              value: locale,
+              url: isolatedWorker.origin,
+            },
+          ]);
           await page.goto("/");
           const weather = page.getByTestId("home-weather");
           const retry = weather.getByRole("button", {
