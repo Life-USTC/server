@@ -69,6 +69,10 @@ it.each([
   "/workspace/todos",
   "/workspace/todos/__data.json",
   "/api/workspace/todos",
+  "/account/settings/profile",
+  "/account/settings/profile/__data.json",
+  "/account/settings/profile?tab=accounts&message=Success",
+  "/api/account/profile?userId=victim",
   "/workspace/subscriptions",
   "/workspace/subscriptions/__data.json",
   "/api/workspace/subscriptions/current",
@@ -164,7 +168,22 @@ it.each([
   ["PATCH", "/api/catalog/courses"],
   ["GET", "/catalog/courses/__data.json/__data.json"],
   ["GET", "/metrics"],
-  ["HEAD", "/account/settings/profile"],
+  ["HEAD", "/account/settings/unknown"],
+  ["GET", "/account/settings"],
+  ["GET", "/account/settings?tab=profile"],
+  ["GET", "/account/settings/accounts"],
+  ["GET", "/account/settings/security"],
+  ["GET", "/account/settings/preferences"],
+  ["GET", "/account/settings/authorizations"],
+  ["GET", "/account/settings/danger"],
+  ["GET", "/account/settings/profile/unknown"],
+  ["GET", "/account/settings/profile/__data.json/__data.json"],
+  ["POST", "/account/settings/profile?/updateProfile"],
+  ["POST", "/account/settings/profile?/linkAccount"],
+  ["POST", "/api/account/profile"],
+  ["PATCH", "/api/account/profile"],
+  ["GET", "/community/users/demo-student"],
+  ["GET", "/api/community/users/demo-student"],
 ])(
   "rejects %s %s before session, resolver and persistent telemetry",
   async (method, path) => {
@@ -175,6 +194,18 @@ it.each([
     expect(persist).not.toHaveBeenCalled();
     expect(result.waitUntil).not.toHaveBeenCalled();
     if (method === "HEAD") expect(await result.response.text()).toBe("");
+  },
+);
+
+it.each(["/account/settings/profile", "/api/account/profile"])(
+  "allows HEAD without resolving a real session at %s",
+  async (path) => {
+    const result = await request(path, "HEAD");
+    expect(result.response.status).toBe(200);
+    expect(result.locals.authUser).toBeNull();
+    expect(result.resolve).toHaveBeenCalledOnce();
+    expect(session).not.toHaveBeenCalled();
+    expect(persist).not.toHaveBeenCalled();
   },
 );
 

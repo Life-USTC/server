@@ -14,6 +14,27 @@ access:
   admin: Admin capabilities are never simulated.
   agent: Demo identity supplies no OAuth, GraphQL or MCP authority.
 requirements:
+- id: demo.profile-projection
+  category: privacy
+  rule: The existing /account/settings/profile page, page-data and same-origin account profile GET/HEAD API
+    share one fixed presentation identity and reference dates. The nickname matches demo navigation;
+    the sample ID never enables a real public-user profile. Valid demo reads bypass real session,
+    account, user, storage and outbound adapters. Profile fields, avatar choices and save remain disabled
+    from SSR through hydration, with an explicit read-only explanation. Query tabs and success messages
+    neither expand the allowed settings scope nor display a successful mutation. Other settings,
+    uploads and account linking remain unavailable; writes fail before their actions run.
+    Ordinary session and OAuth profile reads and ordinary profile edits keep their existing behavior.
+  acceptance:
+    given: Valid, expired, invalid and mixed demo identities alongside an ordinary private account.
+    when: Read profile HTML, page-data and API, navigate on desktop/mobile in both locales and attempt writes.
+    then:
+    - Page, API and navigation agree on fixed facts without reading the ordinary account or producing external effects.
+    - Every editing control stays disabled; unknown profile routes and other settings fail closed.
+    - Invalid HTML refresh clears the demo cookie and returns to sign-in; API/data remain unauthorized and mixed identities forbidden.
+    - Responses and failures stay private and no-store, and identity changes cannot restore another viewer's profile.
+    test:
+      file: tests/integration/rest/demo/profile.test.ts
+      name: demo profile isolates fixed page and API facts, identities and effects en-us
 - id: demo.calendar-projection
   category: privacy
   rule: The existing personal calendar is a read-only projection of the fixed subscribed sections,
@@ -56,7 +77,7 @@ requirements:
   rule: A demo identity is a separately signed, purpose-bound cookie with a fifteen-minute lifetime and
     supported fixture version, never a real user ID or session. Tampered, expired, future-issued, duplicate,
     unsupported-version and mixed credentials fail closed before real authentication. An invalid unmixed
-    cookie on a supported top-level workspace or catalog-detail HTML request is cleared with a fixed sign-in redirect;
+    cookie on a supported top-level workspace, catalog or account profile HTML request is cleared with a fixed sign-in redirect;
     API and page-data requests remain unauthorized. No demo identity reaches a real-user data adapter.
   acceptance:
     given: Valid, forged, expired, duplicate, unsupported-version and mixed credentials.
@@ -92,6 +113,7 @@ requirements:
   - demo-teacher-list
   - demo-homeworks
   - demo-exams
+  - demo-profile
   expectation:
     kind: authorization
     surface: service
@@ -285,6 +307,32 @@ requirements:
       file: tests/e2e/src/app/demo/exams.test.ts
       name: 'demo.exams: read-only browsing zh-cn 1280'
 capabilities:
+  demo-profile:
+    title: Demo account profile
+    description: Fixed read-only presentation data on the existing profile settings page and account profile API.
+    auth: anon
+    web:
+      pages:
+      - /account/settings/profile
+    rest:
+      routes:
+      - method: GET
+        path: /api/account/profile
+        reference_only: true
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: fields
+      views:
+        web:
+          primary:
+          - user.name
+          - user.username
+          secondary:
+          - user.image
+          tertiary: []
+      requirement_refs:
+      - demo.profile-projection
   demo-bootstrap:
     title: Demo Entry and Exit
     auth: anon
