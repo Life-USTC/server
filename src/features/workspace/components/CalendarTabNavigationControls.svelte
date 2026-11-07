@@ -70,7 +70,7 @@ function today() {
   <div class="grid min-w-0 gap-2 sm:flex sm:flex-wrap sm:items-center">
     <ButtonGroup.Root aria-label={workspaceCopy.calendarNavigationLabel}>
       <Button aria-label={previousLabel} class="size-11" size="icon" type="button" variant="outline" disabled={calendarView === "semester" && semesterIndex <= 0} onclick={() => move(-1)}><ChevronLeft data-icon="inline-start" /></Button>
-      <Button class="h-11 min-w-11 px-3" type="button" variant="outline" onclick={today}>{workspaceCopy.todayAction}</Button>
+      <Button class="h-11 min-w-11 px-3 md:min-w-11" type="button" variant="outline" onclick={today}>{workspaceCopy.todayAction}</Button>
       <Button aria-label={nextLabel} class="size-11" size="icon" type="button" variant="outline" disabled={calendarView === "semester" && semesterIndex >= calendarData.calendarSemesterNavList.length - 1} onclick={() => move(1)}><ChevronRight data-icon="inline-start" /></Button>
     </ButtonGroup.Root>
     {#if calendarView === "day"}
