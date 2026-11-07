@@ -129,6 +129,7 @@ let viewerFailed = $state(false);
 const shellViewer = writable<ShellViewerState>(
   untrack(() => ({
     viewer: viewerUser,
+    demo: viewerDemo,
     status: viewerLoading ? "loading" : "ready",
   })),
 );
@@ -392,6 +393,7 @@ $effect.pre(() => {
 $effect.pre(() => {
   const snapshot: ShellViewerState = {
     viewer: viewerUser,
+    demo: viewerDemo,
     status: viewerLoading ? "loading" : viewerFailed ? "error" : "ready",
   };
   untrack(() => shellViewer.set(snapshot));
@@ -456,6 +458,7 @@ let navGroups = $derived(
             "/workspace/subscriptions",
             "/workspace/homeworks",
             "/workspace/exams",
+            "/workspace/calendar",
             "/catalog/courses",
             "/catalog/sections",
             "/catalog/teachers",

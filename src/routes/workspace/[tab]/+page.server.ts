@@ -3,6 +3,7 @@ import { getDemoWorkspacePage } from "@/features/demo/server/demo-workspace";
 import { isWorkspaceTab } from "@/features/workspace/lib/workspace-nav";
 import { workspacePageActions } from "@/features/workspace/server/workspace-page-actions";
 import { loadSignedWorkspacePage } from "@/features/workspace/server/workspace-page-load";
+import { parsePositiveCalendarSemester } from "@/features/workspace/server/workspace-page-server";
 import { buildSignInPageUrl } from "@/lib/auth/auth-routing";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -19,12 +20,16 @@ export const load: PageServerLoad = async (event) => {
     event.locals.demo &&
     (event.params.tab === "todos" ||
       event.params.tab === "homeworks" ||
+      event.params.tab === "calendar" ||
       event.params.tab === "exams")
   ) {
     return getDemoWorkspacePage(
       event.locals.demo,
       event.locals.locale,
       event.params.tab,
+      parsePositiveCalendarSemester(
+        event.url.searchParams.get("calendarSemester"),
+      ),
     );
   }
   if (!event.locals.authUser?.id) {
