@@ -696,6 +696,33 @@ requirements:
     test:
       file: tests/integration/publication-http-contracts.test.ts
       name: publications.public-list-filters
+- id: publications.filter-draft-toolbar
+  category: presentation
+  rule: News filters use search, common type, More source/organization/fold fields, and URL-applied chips in that order. These controls share one native GET draft, one Apply and adjacent Reset. Type edits and closing More do not submit or discard the draft. Pending and superseded responses preserve newer edits; explicit Reset, history and unrelated navigation initialize the target URL state.
+  acceptance:
+    given: An isolated public list has news/notices in multiple sources and organization levels, with more than one page.
+    when: Desktop and mobile users edit fields, close/reopen More, apply through Enter or its real portaled submitter, and continue editing while actual GET responses are delayed or superseded.
+    then:
+    - One native form submits the current draft; no early type navigation or separate More/search submission path remains. The submitter remains attached through native FormData construction.
+    - Source alternatives retain OR semantics and type/organization conditions intersect; fold, repeated/canonical URLs, page reset, unknown filters, endless append and detail return retain their existing rules.
+    - Applied chips describe only the target URL and preserve complete readable labels; dirty fields are explicitly marked unapplied. Native chip removal changes only its own intent, preserving other dirty fields and explicit empty/multiselect choices. Modified/new-tab clicks do not alter the current draft.
+    - Reset/history follow their target URL; incremental loading does not clear drafts.
+    test:
+      file: tests/e2e/src/app/news/filter-draft.test.ts
+      name: news latest draft survives a pending native Apply 390
+- id: publications.public-empty-state
+  category: presentation
+  rule: An empty News result distinguishes no public publications from no matches within an existing public collection. A bounded existence read reuses the complete public visibility predicate, excluding deleted, tombstoned, missing-current and nonpublic publication/revision records. Ordinary lists describe publication-date descending order with undated records last; folded lists retain their existing representative and order semantics.
+  acceptance:
+    given: Isolated databases contain no rows, only hidden rows, or public news/notices filtered to an unknown source or unmatched query.
+    when: The public page reads each empty result and users recover through its retained controls.
+    then:
+    - Hidden rows do not change the no-public-data result or expose their titles; public data with no matching rows offers a distinct no-match message and Reset.
+    - Existence uses one bounded public-only read rather than an unfiltered count. Reads preserve stored data.
+    - No sorting affordance claims unsupported order changes; the visible fixed order matches actual reads and fold behavior is unchanged.
+    test:
+      file: tests/integration/publication-page-empty-state.test.ts
+      name: news empty state existence uses only current public publications and a bounded read
 capabilities:
   publication-read:
     title: Public publication list, detail, and verified object read

@@ -1,0 +1,44 @@
+name: RLS metadata audit (manual only)
+
+# Manual catalog collection only. No schedule, push, PR, deployment or privilege writes.
+on:
+  workflow_dispatch:
+    inputs:
+      expected_login_role:
+        description: Reviewed PostgreSQL login role behind MIGRATOR_DATABASE_URL
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rls-metadata-audit
+  cancel-in-progress: false
+
+jobs:
+  catalog-only:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install --no-install-recommends -y postgresql-client-16
+      - name: Collect bounded catalog metadata
+        env:
+          RLS_AUDIT_DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
+          RLS_AUDIT_EXPECTED_ROLE: ${{ inputs.expected_login_role }}
+        run: |
+          umask 077
+          python3 scripts/operations/rls-metadata-audit.py > rls-metadata.json
+      - name: Retain metadata only
+        if: success() || failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: rls-system-catalog-metadata
+          path: rls-metadata.json
+          if-no-files-found: ignore
+          retention-days: 1
