@@ -32,11 +32,9 @@ for (const width of widths) {
         await expect(rendered).toBeVisible();
         await expect(surface(page, width === 390 ? 1280 : 390)).toBeHidden();
         const header = page.locator(
-          width >= COLLECTION_DESKTOP_MIN_WIDTH_PX
-            ? "thead:visible"
-            : '[data-slot="collection-header"]:visible',
+          '[data-slot="workspace-task-filter-toolbar"]',
         );
-        const trigger = header.getByRole("button", { name: /^(标题|Title)$/i });
+        const trigger = header.locator('[data-filter-trigger="completion"]');
         await expect(trigger).toBeVisible();
         if (width < 768) {
           const box = await trigger.boundingBox();

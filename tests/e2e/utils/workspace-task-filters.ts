@@ -19,13 +19,17 @@ export async function openWorkspaceTaskFilter(
 ) {
   const labels = {
     todos: /^(状态|Status)$/i,
-    homeworks: /^(状态|Status)$/i,
+    homeworks: /^(我的状态|My status)$/i,
     exams: /^(日期|Date)$/i,
   };
   const dialog = page.getByRole("dialog", { name: labels[tab] });
   if (await dialog.isVisible()) return dialog;
   const trigger = page
-    .locator('[data-slot="table-column-header"]:visible')
+    .locator(
+      tab === "exams"
+        ? '[data-slot="table-column-header"]:visible'
+        : '[data-slot="workspace-task-filter-toolbar"]',
+    )
     .getByRole("button", { name: labels[tab] });
   await expect(trigger).toBeVisible();
   await trigger.click();

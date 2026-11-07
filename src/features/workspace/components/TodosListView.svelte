@@ -2,7 +2,6 @@
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import Pencil from "@lucide/svelte/icons/pencil";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
-import type { Snippet } from "svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -19,8 +18,8 @@ type TodoDateFormatter = (value: Date | string | null | undefined) => string;
 type TodoAction = (todo: WorkspaceTodoItem) => string;
 type TodoCompletionToggle = (todo: WorkspaceTodoItem) => void | Promise<void>;
 
-export let filterControls: Snippet<[string[], string, string]>;
 export let hasTodoItems: boolean;
+export let emptyTitle: string;
 export let onClearFilter: () => void;
 export let filteredTodos: WorkspaceTodoItem[];
 export let fmtDate: TodoDateFormatter;
@@ -36,9 +35,9 @@ export let readOnlyReason: string | undefined = undefined;
 <Table.Root class="min-w-0 w-full">
   <Table.Header>
     <Table.Row>
-      <Table.Head>{@render filterControls(["title"], todosCopy.titleLabel, "desktop")}</Table.Head>
-      <Table.Head>{@render filterControls(["priority"], todosCopy.priorityLabel, "desktop")}</Table.Head>
-      <Table.Head>{@render filterControls(["dueAt"], todosCopy.dueAtLabel, "desktop")}</Table.Head>
+      <Table.Head>{todosCopy.titleLabel}</Table.Head>
+      <Table.Head>{todosCopy.priorityLabel}</Table.Head>
+      <Table.Head>{todosCopy.dueAtLabel}</Table.Head>
       <Table.Head>
         <span class="sr-only">{todosCopy.editAriaLabel}</span>
       </Table.Head>
@@ -106,7 +105,7 @@ export let readOnlyReason: string | undefined = undefined;
       <Table.Row class="hover:bg-transparent">
         <Table.Cell class="p-0" colspan={4}>
           <WorkspaceTaskEmptyState
-            title={todosCopy.filterEmptyTitle}
+            title={hasTodoItems ? todosCopy.filterEmptyTitle : emptyTitle}
             description={hasTodoItems ? todosCopy.filterEmptyDescription : undefined}
             clearFilterLabel={todosCopy.clearFilter}
             onClearFilter={hasTodoItems ? onClearFilter : undefined}

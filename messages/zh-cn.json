@@ -85,6 +85,18 @@
     "unknown": "未知",
     "campusServices": "校园服务",
     "applyFilters": "应用筛选",
+    "taskFilters": {
+      "search": "搜索标题",
+      "more": "更多条件",
+      "applied": "已应用条件",
+      "reset": "重置",
+      "remove": "移除条件",
+      "myStatus": "我的状态",
+      "attributes": "作业属性",
+      "todoSort": "排序：截止时间从早到晚，无截止时间的任务排在最后。",
+      "homeworkSort": "排序：截止时间从早到晚，同一截止时间下新建在前，无截止时间的作业排在最后。",
+      "emptyTodos": "暂无待办"
+    },
     "tableFilters": {
       "any": "不限",
       "operator": "比较方式",
