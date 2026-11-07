@@ -596,7 +596,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     });
 
     it("keeps runtime grants on the checked-in privilege contract", async ({
-      isolatedDatabase: { app: prisma, connections },
+      isolatedDatabase: { app: prisma, owner, connections },
       nodeRuntime,
     }) => {
       await nodeRuntime.run(async () => {
@@ -604,22 +604,84 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           await loadRuntimePrivilegeAllowlist(prisma);
 
         // Exercise the production verifier against the same explicit contract.
-        execFileSync(
-          "psql",
-          [
-            connections.app,
-            "-X",
-            "--quiet",
-            "--set=expected_role=life_ustc_runtime",
-            "--set=expected_schema_privileges=public:USAGE",
-            `--set=expected_table_privileges=${expectedRuntimePrivileges.table.join(",")}`,
-            `--set=expected_column_privileges=${expectedRuntimePrivileges.column.join(",")}`,
-            `--set=expected_sequence_privileges=${expectedRuntimePrivileges.sequence.join(",")}`,
-            `--set=expected_function_privileges=${expectedRuntimeFunctionPrivileges.join(",")}`,
-            "--file=prisma/roles/verify-app-runtime.sql",
-          ],
-          { stdio: "pipe" },
+        const verifyRuntime = () =>
+          execFileSync(
+            "psql",
+            [
+              connections.app,
+              "-X",
+              "--quiet",
+              "--set=expected_role=life_ustc_runtime",
+              "--set=expected_schema_privileges=public:USAGE",
+              `--set=expected_table_privileges=${expectedRuntimePrivileges.table.join(",")}`,
+              `--set=expected_column_privileges=${expectedRuntimePrivileges.column.join(",")}`,
+              `--set=expected_sequence_privileges=${expectedRuntimePrivileges.sequence.join(",")}`,
+              `--set=expected_function_privileges=${expectedRuntimeFunctionPrivileges.join(",")}`,
+              "--file=prisma/roles/verify-app-runtime.sql",
+            ],
+            { stdio: "pipe" },
+          );
+        verifyRuntime();
+
+        for (const table of [
+          "Comment",
+          "Description",
+          "DescriptionEdit",
+          "Homework",
+          "CommentAttachment",
+          "User",
+        ]) {
+          await owner.$executeRawUnsafe(
+            `ALTER TABLE public."${table}" DISABLE ROW LEVEL SECURITY`,
+          );
+          try {
+            expect(() => verifyRuntime(), `${table} disabled RLS`).toThrow(
+              /app runtime RLS preflight failed/,
+            );
+          } finally {
+            await owner.$executeRawUnsafe(
+              `ALTER TABLE public."${table}" ENABLE ROW LEVEL SECURITY`,
+            );
+          }
+        }
+        verifyRuntime();
+        await owner.$executeRawUnsafe(
+          'ALTER TABLE public."User" NO FORCE ROW LEVEL SECURITY',
         );
+        try {
+          expect(() => verifyRuntime()).toThrow(
+            /app runtime RLS preflight failed/,
+          );
+        } finally {
+          await owner.$executeRawUnsafe(
+            'ALTER TABLE public."User" FORCE ROW LEVEL SECURITY',
+          );
+        }
+        await owner.$executeRawUnsafe(
+          'ALTER POLICY "Description_active_insert" ON public."Description" TO life_ustc_auth_runtime',
+        );
+        try {
+          expect(() => verifyRuntime()).toThrow(
+            /app runtime RLS preflight failed/,
+          );
+        } finally {
+          await owner.$executeRawUnsafe(
+            'ALTER POLICY "Description_active_insert" ON public."Description" TO PUBLIC',
+          );
+        }
+        await owner.$executeRawUnsafe(
+          'CREATE POLICY "unexpected_runtime_access" ON public."Description" FOR ALL TO life_ustc_runtime USING (true) WITH CHECK (true)',
+        );
+        try {
+          expect(() => verifyRuntime()).toThrow(
+            /app runtime RLS preflight failed/,
+          );
+        } finally {
+          await owner.$executeRawUnsafe(
+            'DROP POLICY "unexpected_runtime_access" ON public."Description"',
+          );
+        }
+        verifyRuntime();
 
         const grants = await prisma.$queryRaw<
           { tableName: string; privilege: string }[]
