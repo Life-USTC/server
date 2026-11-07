@@ -38,6 +38,7 @@ import {
 import {
   buildPublicNotFoundHtml,
   isLegacyCalendarSubscriptionFeedRequest,
+  PUBLIC_SSR_DEGRADED_HEADER,
   PUBLIC_SSR_HEADER,
   PUBLIC_SSR_LOCALE_CACHE_PARAM,
   PUBLIC_SSR_LOCALE_HEADER,
@@ -95,7 +96,8 @@ function cacheablePublicResponse(response) {
     response.status >= 200 &&
     response.status < 300 &&
     response.headers.get("content-type")?.includes("text/html") &&
-    !response.headers.has("set-cookie")
+    !response.headers.has("set-cookie") &&
+    response.headers.get(PUBLIC_SSR_DEGRADED_HEADER) !== "1"
   );
 }
 

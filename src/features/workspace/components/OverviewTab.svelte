@@ -1,6 +1,7 @@
 <script lang="ts">
 import { onDestroy } from "svelte";
 import { Button } from "#lib/components/ui/button/index.js";
+import { isHomeworkPendingForViewer } from "@/features/homeworks/lib/homework-completion-state";
 import {
   addDays,
   calendarEventsForDay,
@@ -10,6 +11,7 @@ import {
   pendingTodosForOverview,
   todosOverdueForOverview,
 } from "@/features/workspace/lib/overview";
+import { overviewDeadlineOverdue } from "@/features/workspace/lib/overview-deadline";
 import {
   OVERVIEW_FULL_WIDTH_CLASS,
   overviewListPlacement,
@@ -172,6 +174,44 @@ function overviewFocus(
     todayKey: overviewCalendar.todayDate,
   });
 }
+function deadlineBadge<
+  T extends { key: string; done?: boolean; badge?: string },
+>(item: T): T {
+  const todo = item.key.startsWith("todo-")
+    ? pendingTodosForOverview(signedData).find(
+        (todo) => `todo-${todo.id}` === item.key,
+      )
+    : undefined;
+  const homework = item.key.startsWith("homework-")
+    ? signedData.overview?.pendingHomeworks?.find(
+        (homework) => `homework-${homework.id}` === item.key,
+      )
+    : undefined;
+  if (
+    !todo &&
+    (!homework ||
+      !isHomeworkPendingForViewer(
+        homework,
+        new Date(
+          String(
+            signedData.referenceNow ??
+              signedData.overview?.calendar?.referenceDate,
+          ),
+        ),
+      ))
+  )
+    return item;
+  return overviewDeadlineOverdue({
+    dueAt: todo?.dueAt ?? homework?.submissionDueAt,
+    reference:
+      overviewReference(signedData.referenceNow) ??
+      overviewReference(signedData.overview?.calendar?.referenceDate),
+    completed: item.done,
+    completionRequired: homework?.completionRequired,
+  })
+    ? { ...item, badge: activityCopy.homeworks.overdueLabel }
+    : item;
+}
 function overviewStack(
   days: WorkspaceAgendaDay[],
   focusKey: string | undefined,
@@ -227,7 +267,7 @@ function overviewStack(
         class={OVERVIEW_FULL_WIDTH_CLASS}
         copy={workspaceCopy.focus}
         loadingLabel={youngLoading ? activityCopy.youngEvents.workspace.loading : null}
-        {focus}
+        focus={focus ? deadlineBadge(focus) : null}
       />
 
       {#if youngFailed}
@@ -243,7 +283,7 @@ function overviewStack(
           wide={listPlacement.wide}
           testId="workspace-overview-urgency"
           title={workspaceCopy.stack.urgency}
-          items={stack.urgency}
+          items={stack.urgency.map(deadlineBadge)}
           destinations={[
             { href: workspaceTabHref("homeworks"), label: workspaceCopy.nav.homeworks.title },
             { href: workspaceTabHref("todos"), label: workspaceCopy.nav.todos.title },

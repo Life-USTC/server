@@ -85,6 +85,18 @@
     "unknown": "Unknown",
     "campusServices": "Campus services",
     "applyFilters": "Apply filters",
+    "taskFilters": {
+      "search": "Search titles",
+      "more": "More conditions",
+      "applied": "Applied conditions",
+      "reset": "Reset",
+      "remove": "Remove condition",
+      "myStatus": "My status",
+      "attributes": "Assignment attributes",
+      "todoSort": "Order: earliest deadline first; undated items last.",
+      "homeworkSort": "Order: earliest deadline first; newly created first when deadlines match; undated items last.",
+      "emptyTodos": "No todos yet"
+    },
     "tableFilters": {
       "any": "Any",
       "operator": "Comparison",
@@ -424,13 +436,19 @@
         "busOriginNote": "Departing {campus}",
         "busMinutes": "in {minutes} min",
         "busDepartingNow": "Departing now",
-        "busViewAll": "All departures"
+        "busViewAll": "All departures",
+        "retryWeather": "Retry weather",
+        "retryBus": "Retry departures",
+        "busHours": "in {hours} h",
+        "busHoursMinutes": "in {hours} h {minutes} min",
+        "busServiceDay": "Today ({date}) · Departing {campus}"
       },
       "notices": {
         "title": "Latest notices",
         "viewAll": "All news and notices",
         "unavailable": "Notices are unavailable right now",
-        "empty": "No notices yet"
+        "empty": "No notices yet",
+        "retry": "Retry notices"
       },
       "activities": {
         "upcoming": "Today and upcoming",
@@ -438,7 +456,8 @@
         "title": "Campus activities",
         "viewAll": "All second-classroom activities",
         "unavailable": "Activities are unavailable right now",
-        "empty": "No activities to show"
+        "empty": "No activities to show",
+        "retry": "Retry activities"
       },
       "signInPrompt": {
         "title": "Sign in to sync your schedule and homework",
@@ -1481,6 +1500,7 @@
     "publicationCountOther": "{count} publications"
   },
   "busMap": {
+    "interactionHint": "Hover a route to highlight it. Campus markers show locations; use the timetable for stops and departures.",
     "title": "Transit Map",
     "subtitle": "Live shuttle bus network across USTC campuses",
     "experimental": "Experimental",

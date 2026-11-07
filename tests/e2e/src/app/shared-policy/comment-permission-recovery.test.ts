@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { parseShellBootstrapPayload } from "@/lib/shell/shell-bootstrap";
 import { test } from "../../../utils/community-fixture";
 import { observeAction } from "../../../utils/observed-action";
 import { absoluteTestUrl } from "../../../utils/request-url";
@@ -62,14 +63,37 @@ test("comment.public-permission-recovery", { tag: "@Comment/Web" }, async ({
               await route.continue();
             },
           );
-          await page.goto(path);
-          await reading;
           const post = page.getByRole("button", {
             name: "Post comment",
             exact: true,
           });
-          await expect(post).toHaveCount(0);
-          expect(writes).toBe(0);
+          const shellResponse = await observeAction(
+            () =>
+              page.waitForResponse(
+                (response) =>
+                  new URL(response.url()).pathname ===
+                    "/_internal/shell-bootstrap" && response.status() === 200,
+              ),
+            async () => {
+              await page.goto(path);
+              await reading;
+              await expect(post).toHaveCount(0);
+              expect(writes).toBe(0);
+            },
+          );
+          const bootstrap = parseShellBootstrapPayload(
+            await shellResponse.json(),
+          );
+          expect(bootstrap.viewer?.id).toBe(user.id);
+          expect(bootstrap.demo ?? null).toBeNull();
+          if (bootstrap.navigation)
+            expect(bootstrap.navigation.userId).toBe(user.id);
+          expect(user.username).toBeTruthy();
+          const accountMenu = page
+            .locator("#app-user-menu")
+            .filter({ visible: true });
+          await expect(accountMenu).toHaveCount(1);
+          await expect(accountMenu).toContainText(`@${user.username}`);
           release();
           const alert = page
             .getByRole("alert")

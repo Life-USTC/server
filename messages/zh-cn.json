@@ -85,6 +85,18 @@
     "unknown": "未知",
     "campusServices": "校园服务",
     "applyFilters": "应用筛选",
+    "taskFilters": {
+      "search": "搜索标题",
+      "more": "更多条件",
+      "applied": "已应用条件",
+      "reset": "重置",
+      "remove": "移除条件",
+      "myStatus": "我的状态",
+      "attributes": "作业属性",
+      "todoSort": "排序：截止时间从早到晚，无截止时间的任务排在最后。",
+      "homeworkSort": "排序：截止时间从早到晚，同一截止时间下新建在前，无截止时间的作业排在最后。",
+      "emptyTodos": "暂无待办"
+    },
     "tableFilters": {
       "any": "不限",
       "operator": "比较方式",
@@ -424,13 +436,19 @@
         "busOriginNote": "从{campus}出发",
         "busMinutes": "{minutes} 分钟后",
         "busDepartingNow": "即将发车",
-        "busViewAll": "全部班次"
+        "busViewAll": "全部班次",
+        "retryWeather": "重试天气",
+        "retryBus": "重试班次",
+        "busHours": "{hours} 小时后",
+        "busHoursMinutes": "{hours} 小时 {minutes} 分钟后",
+        "busServiceDay": "今天（{date}）· 从{campus}出发"
       },
       "notices": {
         "title": "最新通知",
         "viewAll": "全部新闻与通知",
         "unavailable": "通知暂不可用",
-        "empty": "暂无通知"
+        "empty": "暂无通知",
+        "retry": "重试通知"
       },
       "activities": {
         "upcoming": "今日及后续活动",
@@ -438,7 +456,8 @@
         "title": "校园活动",
         "viewAll": "全部第二课堂活动",
         "unavailable": "活动暂不可用",
-        "empty": "暂无可展示活动"
+        "empty": "暂无可展示活动",
+        "retry": "重试活动"
       },
       "signInPrompt": {
         "title": "登录以同步课表与作业",
@@ -3169,6 +3188,7 @@
     "publicationCountOther": "{count} 篇内容"
   },
   "busMap": {
+    "interactionHint": "将指针移到线路上可高亮线路。校区标记仅显示位置；停靠站和班次请查看时刻表。",
     "title": "线路图",
     "subtitle": "科大校区班车线路实时概览",
     "experimental": "实验性功能",

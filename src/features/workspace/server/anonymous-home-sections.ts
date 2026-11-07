@@ -161,9 +161,9 @@ async function readSection<T>(
         event: "home.section.degraded",
         requestId,
         section,
-        ...(isHomeSectionBudgetError(error)
-          ? { reason: "budget_exceeded" }
-          : {}),
+        reason: isHomeSectionBudgetError(error)
+          ? "budget_exceeded"
+          : "exception",
       },
       error,
     );
@@ -227,7 +227,9 @@ async function readBus(
   locale: AppLocale,
   copy: ReturnType<typeof getAnonymousHomePageCopy>,
 ): Promise<HomeBusBoard | null> {
+  const atTime = shanghaiDayjs().toISOString();
   const board = await getNextDeparturesFromHubCampus({
+    atTime,
     limit: BUS_DEPARTURE_LIMIT,
     locale,
   });
@@ -240,6 +242,8 @@ async function readBus(
       const destination = departure.destinationCampus?.namePrimary;
       if (!destination || !departure.departureTime) return [];
       const minutes = departure.minutesUntilDeparture;
+      const hours = minutes == null ? 0 : Math.floor(minutes / 60);
+      const remainder = minutes == null ? 0 : minutes % 60;
       return [
         {
           departureTime: departure.departureTime,
@@ -248,14 +252,27 @@ async function readBus(
           // calls at, so the trip id alone is not unique across the board.
           key: `${departure.tripId}-${departure.destinationCampus?.id}`,
           relativeLabel:
-            minutes == null || minutes <= 0
-              ? campusNow.busDepartingNow
-              : formatMessage(campusNow.busMinutes, { minutes }),
+            minutes == null
+              ? ""
+              : minutes <= 0
+                ? campusNow.busDepartingNow
+                : hours > 0
+                  ? formatMessage(
+                      remainder
+                        ? campusNow.busHoursMinutes
+                        : campusNow.busHours,
+                      { hours, minutes: remainder },
+                    )
+                  : formatMessage(campusNow.busMinutes, { minutes }),
         },
       ];
     }),
     emptyNote: formatMessage(campusNow.busEmpty, { campus: originCampus }),
-    originNote: formatMessage(campusNow.busOriginNote, {
+    originNote: formatMessage(campusNow.busServiceDay, {
+      date: formatCampusDateTime(atTime, "", locale, {
+        dateStyle: "short",
+        timeStyle: undefined,
+      }),
       campus: originCampus,
     }),
   };
@@ -310,12 +327,40 @@ export async function loadHomeCampusNow(input: {
   copy: ReturnType<typeof getAnonymousHomePageCopy>;
   locale: AppLocale;
   requestId: string | undefined;
+  section?: "bus" | "weather";
 }): Promise<HomeCampusNow> {
   const { copy, locale, requestId } = input;
   const [weather, bus] = await Promise.all([
-    readSection("weather", requestId, () => readWeather(copy)),
-    readSection("bus", requestId, () => readBus(locale, copy)),
+    input.section === "bus"
+      ? null
+      : readSection("weather", requestId, () => readWeather(copy)),
+    input.section === "weather"
+      ? null
+      : readSection("bus", requestId, () => readBus(locale, copy)),
   ]);
 
   return { bus, weather };
+}
+
+/** A retry must not repeat unrelated homepage reads. */
+export async function loadHomeNotices(input: {
+  locale: AppLocale;
+  requestId: string | undefined;
+}) {
+  return {
+    notices: await readSection("notices", input.requestId, () =>
+      readNotices(input.locale),
+    ),
+  };
+}
+
+export async function loadHomeActivities(input: {
+  locale: AppLocale;
+  requestId: string | undefined;
+}) {
+  return {
+    activities: await readSection("activities", input.requestId, () =>
+      readActivities(input.locale),
+    ),
+  };
 }

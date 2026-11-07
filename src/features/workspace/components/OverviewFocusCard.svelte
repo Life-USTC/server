@@ -35,6 +35,7 @@ function statusLabel(status: WorkspaceFocusItem["status"]) {
           <Badge data-testid="overview-focus-status" variant={focus.status === "urgent" ? "destructive" : "secondary"}>
             {statusLabel(focus.status)}
           </Badge>
+          {#if focus.badge}<Badge variant="destructive">{focus.badge}</Badge>{/if}
           <span data-testid="overview-focus-label">{focus.label}</span>
           {#if focus.time}
             <span data-testid="overview-focus-time" class="font-medium tabular-nums">{focus.time}</span>

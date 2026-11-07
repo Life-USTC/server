@@ -50,13 +50,9 @@ test("homework.responsive-workspace-view", { tag: "@Homework/Web" }, async ({
           list(page, width >= COLLECTION_DESKTOP_MIN_WIDTH_PX ? 390 : 1280),
         ).toBeHidden();
         const header = page.locator(
-          width >= COLLECTION_DESKTOP_MIN_WIDTH_PX
-            ? "thead:visible"
-            : '[data-slot="collection-header"]:visible',
+          '[data-slot="workspace-task-filter-toolbar"]',
         );
-        const trigger = header.getByRole("button", {
-          name: /^(状态|Status)$/i,
-        });
+        const trigger = header.locator('[data-filter-trigger="completion"]');
         await expect(trigger).toBeVisible();
         if (width < 768) {
           const box = await trigger.boundingBox();

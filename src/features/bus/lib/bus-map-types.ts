@@ -47,6 +47,7 @@ export type BusMapRoutePath = {
 export type BusMapDayTypeLabels = Record<BusMapData["todayType"], string>;
 
 export type BusMapCopy = {
+  interactionHint: string;
   backToBus: string;
   experimental: string;
   legend: {

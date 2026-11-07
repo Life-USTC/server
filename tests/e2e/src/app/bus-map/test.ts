@@ -35,10 +35,10 @@ test.describe("校车线路图", () => {
         page.getByText(/Experimental|实验性功能/).first(),
       ).toBeVisible();
       await expect(page.getByText(/返回时刻表|Back to timetable/)).toHaveCount(
-        0,
+        1,
       );
       await expect(page.getByTestId("bus-map-summary")).toHaveCount(0);
-      await expect(page.getByTestId("bus-map-legend")).toHaveCount(0);
+      await expect(page.getByTestId("bus-map-legend")).toBeVisible();
       await expect(page.getByText(/线路概览|Network overview/)).toHaveCount(0);
 
       const svg = page.locator('main svg[role="img"][aria-label]').first();
@@ -309,5 +309,143 @@ test.describe("校车线路图", () => {
 test("页面契约", { tag: "@Bus/Web" }, async ({ page, preferenceFlow }) => {
   await preferenceFlow.run(async () => {
     await assertPageContract(page, { routePath: "/catalog/bus/map" });
+  });
+});
+
+for (const locale of ["en-us", "zh-cn"]) {
+  for (const width of [1280, 390]) {
+    test(
+      `bus.map-recovery-guidance ${locale} ${width}`,
+      { tag: "@Bus/Web" },
+      async ({ page, preferenceFlow, isolatedWorker }, testInfo) => {
+        await preferenceFlow.run(async () => {
+          await page.setViewportSize({ width, height: 1000 });
+          await page.context().addCookies([
+            {
+              name: "NEXT_LOCALE",
+              value: locale,
+              url: isolatedWorker.origin,
+            },
+          ]);
+          await gotoAndWaitForReady(page, "/catalog/bus/map");
+          const legend = page.getByTestId("bus-map-legend");
+          await expect(legend).toBeVisible();
+          const svg = page.locator('svg[role="img"][aria-label]').first();
+          const route = svg.locator('path[role="presentation"]').last();
+          const point = await route.evaluate((node) => {
+            const path = node as SVGPathElement;
+            const matrix = path.getScreenCTM();
+            if (!matrix) throw new Error("Missing route screen matrix");
+            const hits: string[] = [];
+            for (const fraction of [0.17, 0.31, 0.43, 0.61, 0.79, 0.89]) {
+              const point = path
+                .getPointAtLength(path.getTotalLength() * fraction)
+                .matrixTransform(matrix);
+              const hit = document.elementFromPoint(point.x, point.y);
+              if (hit === path) return { x: point.x, y: point.y };
+              hits.push(hit?.outerHTML.slice(0, 120) ?? "none");
+            }
+            throw new Error(`No pointer hit on route: ${JSON.stringify(hits)}`);
+          });
+          await page.mouse.move(point.x, point.y);
+          await expect(route).toHaveAttribute("stroke-width", "7");
+          await page.mouse.move(0, 0);
+          const mapBox = await svg.boundingBox();
+          const legendBox = await legend.boundingBox();
+          if (!mapBox || !legendBox)
+            throw new Error("Missing map guidance geometry");
+          expect(mapBox.y - legendBox.y - legendBox.height).toBeLessThanOrEqual(
+            16,
+          );
+          await expectNoPageHorizontalOverflow(page);
+          await page.screenshot({
+            path: testInfo.outputPath(`map-${locale}-${width}.png`),
+            fullPage: true,
+          });
+          await legend
+            .getByRole("link", {
+              name: locale === "en-us" ? "Back to timetable" : "返回时刻表",
+            })
+            .click();
+          await expect(page).toHaveURL(/\/catalog\/bus$/);
+          await expect(page.getByRole("table")).toBeVisible();
+        });
+      },
+    );
+  }
+}
+
+test("bus.map-active-routes-refresh", { tag: "@Bus/Web" }, async ({
+  page,
+  preferenceFlow,
+  isolatedWorker,
+}) => {
+  await preferenceFlow.run(async () => {
+    const db = isolatedWorker.database.owner;
+    const now = new Date(Date.now() + 8 * 3600000);
+    const day = now.getUTCDay();
+    const dayType = day === 0 ? "sunday" : day === 6 ? "saturday" : "weekday";
+    const minutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+    const time = (minutes: number) =>
+      `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+    const version = await db.busScheduleVersion.findFirstOrThrow();
+    // Arrange an inactive service day without removing the routes retained by
+    // other service days. The same route stays mounted through both refreshes.
+    await db.busTrip.deleteMany({ where: { dayType, versionId: version.id } });
+    await gotoAndWaitForReady(page, "/catalog/bus/map");
+    const svg = page.locator('main svg[role="img"][aria-label]').first();
+    const route = svg.locator('path[role="presentation"]').first();
+    await page.mouse.move(0, 0);
+    await expect(route).toHaveAttribute("stroke-width", "4.5");
+    await expect(route).toHaveAttribute("opacity", "0.78");
+    const trip = await db.busTrip.create({
+      data: {
+        versionId: version.id,
+        routeId: 1,
+        dayType,
+        position: 999,
+        stopTimes: [
+          time(Math.max(0, minutes - 10)),
+          null,
+          time(Math.min(1439, minutes + 10)),
+        ],
+      },
+    });
+    await db.busScheduleVersion.update({
+      where: { id: version.id },
+      data: { importedAt: new Date() },
+    });
+    const refresh = page.getByRole("button", { name: /Refresh|刷新/ });
+    await refresh.click();
+    await expect(route).toHaveAttribute("stroke-width", "5.5");
+    await expect(route).toHaveAttribute("opacity", "0.95");
+    await expect(route).toHaveAttribute("stroke-dasharray", "8 5");
+    const point = await route.evaluate((node) => {
+      const path = node as SVGPathElement;
+      const matrix = path.getScreenCTM();
+      if (!matrix) throw new Error("Missing route transform");
+      for (const fraction of [0.13, 0.29, 0.41, 0.67, 0.83]) {
+        const point = path
+          .getPointAtLength(path.getTotalLength() * fraction)
+          .matrixTransform(matrix);
+        if (document.elementFromPoint(point.x, point.y) === path)
+          return { x: point.x, y: point.y };
+      }
+      throw new Error("No pointer hit on active route");
+    });
+    await page.mouse.move(point.x, point.y);
+    await expect(route).toHaveAttribute("stroke-width", "7");
+    await expect(route).toHaveAttribute("opacity", "0.98");
+    await page.mouse.move(0, 0);
+    await expect(route).toHaveAttribute("stroke-width", "5.5");
+    await db.busTrip.delete({ where: { id: trip.id } });
+    await db.busScheduleVersion.update({
+      where: { id: version.id },
+      data: { importedAt: new Date() },
+    });
+    await refresh.click();
+    await expect(route).toHaveAttribute("stroke-width", "4.5");
+    await expect(route).toHaveAttribute("opacity", "0.78");
+    expect(await route.getAttribute("stroke-dasharray")).toBeNull();
   });
 });

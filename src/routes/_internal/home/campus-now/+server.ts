@@ -33,7 +33,7 @@ function json(payload: HomeCampusNow, status = 200) {
   });
 }
 
-export const GET: RequestHandler = async ({ locals }) => {
+export const GET: RequestHandler = async ({ locals, url }) => {
   const locale = locals.locale;
   try {
     return json(
@@ -41,6 +41,12 @@ export const GET: RequestHandler = async ({ locals }) => {
         copy: getAnonymousHomePageCopy(locale),
         locale,
         requestId: locals.requestId,
+        section:
+          url.searchParams.get("section") === "bus"
+            ? "bus"
+            : url.searchParams.get("section") === "weather"
+              ? "weather"
+              : undefined,
       }),
     );
   } catch (error) {
