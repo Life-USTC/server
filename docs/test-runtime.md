@@ -89,3 +89,18 @@ and **both source and target socket close events**; late handshakes cannot alloc
 a target after teardown. Native cases cover HTTP/non-owned HTTPS, cookie boundaries,
 redirects, resets, cancellation and partial startup. HTTPS controls generate a
 disposable certificate with OpenSSL and verify default certificate rejection.
+
+## Runtime role preflight
+
+`prisma/roles/verify-app-runtime.sql` reports role/grant metadata and boolean
+checks. Supply the reviewed expected privilege allowlists described in its
+header; do not construct the expected contract from a potentially drifted target.
+The owner-family check validates its exact owner predicate. The separate
+`collaborative_policy_inventory` check requires enabled/forced RLS and the
+reviewed runtime-applicable policy names, commands, roles and permissiveness for
+Comment, Description, DescriptionEdit, Homework, CommentAttachment and User;
+unexpected runtime policies fail the preflight. This inventory does not compare
+the collaborative policy expressions. Their family integration suites establish
+read/write semantics, including public reads and restricted actor behavior.
+A passing disposable-database preflight does not establish production effective
+permissions or completion of the importer identity rollout.
