@@ -5,12 +5,12 @@ import CalendarGrid from "#lib/components/calendar/CalendarGrid.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Empty from "#lib/components/ui/empty/index.js";
 import { weekStartFor } from "@/features/workspace/lib/calendar";
-import { workspaceCalendarOwner } from "@/features/workspace/lib/workspace-calendar-owner";
 import { buildWorkspaceCalendarGridWeeks } from "@/features/workspace/lib/calendar-grid";
 import {
   buildWorkspaceAgendaDays,
   type WorkspaceAgendaDay,
 } from "@/features/workspace/lib/workspace-agenda";
+import { workspaceCalendarOwner } from "@/features/workspace/lib/workspace-calendar-owner";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
 import PersonalActivityCalendar from "@/features/young/components/PersonalActivityCalendar.svelte";
 import {
@@ -141,9 +141,19 @@ $: if (browser && requestKey !== requestedRange) {
   youngFailed = false;
   youngLoading = Boolean(requestKey);
   if (requestKey)
-    void loadYoung(ownerId, calendarOwner.epoch, rangeKeys[0], rangeKeys[rangeKeys.length - 1]);
+    void loadYoung(
+      ownerId,
+      calendarOwner.epoch,
+      rangeKeys[0],
+      rangeKeys[rangeKeys.length - 1],
+    );
 }
-async function loadYoung(requestOwnerId: string, requestEpoch: string, from: string, to: string) {
+async function loadYoung(
+  requestOwnerId: string,
+  requestEpoch: string,
+  from: string,
+  to: string,
+) {
   const controller = new AbortController();
   youngController = controller;
   youngOwnerId = requestOwnerId;
