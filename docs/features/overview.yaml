@@ -25,10 +25,14 @@ requirements:
   category: presentation
   rule: The home page leads with time-sensitive campus information and the teaching-section search, and
     places the product directory below them. The directory is reference material and must not displace the
-    section search that the destination rail leads with. Activity summaries first show starts on the
-    current Shanghai day or later, then separately show ranges that started earlier and overlap the day.
-    Both bounded groups show their actual date range, never an inferred daily session or registration
-    window; the shared page uses the Shanghai day boundary rather than the request clock.
+    section search that the destination rail leads with. Activity summaries classify actual Shanghai dates
+    before pagination. Same-day activities and known
+    starts without an end on the current day or later appear separately from ongoing or future cross-day
+    ranges. Each group independently selects up to five records ordered by activity start then youngId,
+    with the shared compact/wide display limits. Both groups show their actual date range; a missing end
+    shows only the known start, never an inferred end, daily session or registration window. Unknown
+    starts remain discoverable through the existing catalog unknown-date view. The shared page uses the
+    Shanghai day boundary rather than the request clock.
   acceptance:
     given: An anonymous visitor opens the homepage at desktop and mobile widths.
     when: The visitor reads the campus information, the destination rail and the directory below them.
@@ -38,6 +42,22 @@ requirements:
     test:
       file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
       name: overview.decision-page
+- id: overview.activity-date-groups
+  category: behavior
+  rule: The anonymous home selects active same-Shanghai-day activities and known starts without an end
+    separately from active ongoing or future cross-day ranges, before each group's limit. Same-day dates
+    are compared in Asia/Shanghai from UTC-stored timestamps, not by the UTC date. Both groups sort by
+    activity start then youngId; six future long ranges cannot displace a concrete upcoming lecture.
+    A range ending exactly at today's boundary, reversed dates and unknown starts do not enter these groups.
+  acceptance:
+    given: Future and ongoing long ranges, concrete sessions, start-only facts, midnight controls and invalid dates.
+    when: The home reads its two bounded activity groups under the application database role.
+    then:
+    - Concrete sessions survive the limit independently of earlier long ranges, with deterministic ties.
+    - Shanghai-midnight classification and all original activity timestamps remain accurate without writes.
+    test:
+      file: tests/integration/young-home-activities.test.ts
+      name: classifies Shanghai dates before each bounded group and preserves facts
 - id: overview.public-notice-headlines
   category: behavior
   rule: The home notice summary reads only a bounded prefix of public current publication headlines,
