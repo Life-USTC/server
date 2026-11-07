@@ -15,7 +15,15 @@ import { cn } from "#lib/utils.js";
 import HomeCampusNow from "@/features/workspace/components/HomeCampusNow.svelte";
 import { HOME_COMPACT_ITEM_COUNT } from "@/features/workspace/lib/anonymous-home-layout";
 import type { loadHomePage } from "@/features/workspace/server/anonymous-home-page-load";
-import type { HomeListItem } from "@/features/workspace/server/anonymous-home-sections";
+import type {
+  AnonymousHomeInformation,
+  HomeActivityItem,
+  HomeListItem,
+} from "@/features/workspace/server/anonymous-home-sections";
+import {
+  HOME_ACTIVITIES_PATH,
+  HOME_NOTICES_PATH,
+} from "@/lib/navigation/internal-routes";
 
 type HomePageData = Awaited<ReturnType<typeof loadHomePage>> & {
   copy: LayoutCopy;
@@ -36,8 +44,62 @@ const home = $derived(data.homeCopy.homepage);
 const info = $derived(home.information);
 const campusNow = $derived(info.campusNow);
 const pub = $derived(home.publicWorkspace);
-const notices = $derived(data.information.notices);
-const activities = $derived(data.information.activities);
+let recoveredNotices = $state<HomeListItem[] | undefined>();
+let recoveredActivities = $state<HomeActivityItem[] | undefined>();
+let noticeLoading = $state(false);
+let activityLoading = $state(false);
+let noticeRequest: AbortController | undefined;
+let activityRequest: AbortController | undefined;
+const notices = $derived(recoveredNotices ?? data.information.notices);
+const activities = $derived(recoveredActivities ?? data.information.activities);
+$effect(() => {
+  void data.information.notices;
+  void data.information.activities;
+  void data.locale;
+  recoveredNotices = undefined;
+  recoveredActivities = undefined;
+  noticeLoading = false;
+  activityLoading = false;
+  return () => {
+    noticeRequest?.abort();
+    activityRequest?.abort();
+  };
+});
+async function retryPublicList(section: "notices" | "activities") {
+  if (section === "notices" ? noticeLoading : activityLoading) return;
+  const controller = new AbortController();
+  if (section === "notices") {
+    noticeLoading = true;
+    noticeRequest = controller;
+  } else {
+    activityLoading = true;
+    activityRequest = controller;
+  }
+  try {
+    const response = await fetch(
+      section === "notices" ? HOME_NOTICES_PATH : HOME_ACTIVITIES_PATH,
+      {
+        cache: "no-store",
+        headers: { accept: "application/json" },
+        signal: controller.signal,
+      },
+    );
+    if (!response.ok) throw new Error("Home summary unavailable");
+    const body: Partial<AnonymousHomeInformation> = await response.json();
+    if (controller.signal.aborted) return;
+    if (section === "notices" && body.notices != null)
+      recoveredNotices = body.notices;
+    if (section === "activities" && body.activities != null)
+      recoveredActivities = body.activities;
+  } catch {
+    // Keep this module unavailable and its full-list link usable for another retry.
+  } finally {
+    if (!controller.signal.aborted) {
+      if (section === "notices") noticeLoading = false;
+      else activityLoading = false;
+    }
+  }
+}
 
 const destinations = $derived([
   { href: "/catalog/sections", label: pub.cards.sections.title },
@@ -153,22 +215,25 @@ function overflowClass(index: number, shown: string, hidden: string): string {
     <div class="grid min-w-0 gap-6 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-8">
       <HomeCampusNow
         busTitle={pub.cards.bus.title}
+        locale={data.locale}
         {campusNow}
         weatherLocationNames={data.homeCopy.weather.locationNames}
         weatherTitle={data.homeCopy.weather.title}
       />
-      <section class="grid min-w-0 content-start gap-2" data-testid="home-notices">
+      <section class="grid min-w-0 content-start gap-2" data-testid="home-notices" aria-busy={noticeLoading}>
         {@render heading("h2", BellIcon, info.notices.title, "/news", info.notices.viewAll)}
         {#if notices === null}
           {@render note(info.notices.unavailable)}
+          <Button class="justify-self-start" variant="outline" size="sm" disabled={noticeLoading} onclick={() => retryPublicList("notices")}>{info.notices.retry}</Button>
         {:else}
           {@render itemList(notices, info.notices.empty)}
         {/if}
       </section>
-      <section class="grid min-w-0 content-start gap-2" data-testid="home-activities">
+      <section class="grid min-w-0 content-start gap-2" data-testid="home-activities" aria-busy={activityLoading}>
         {@render heading("h2", SparklesIcon, info.activities.title, "/catalog/young-events", info.activities.viewAll)}
         {#if activities === null}
           {@render note(info.activities.unavailable)}
+          <Button class="justify-self-start" variant="outline" size="sm" disabled={activityLoading} onclick={() => retryPublicList("activities")}>{info.activities.retry}</Button>
         {:else if activities.length === 0}
           {@render note(info.activities.empty)}
         {:else}
