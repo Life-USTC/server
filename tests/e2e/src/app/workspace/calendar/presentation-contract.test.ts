@@ -225,7 +225,7 @@ for (const [view, label] of [
 }
 
 for (const view of ["semester", "month", "week"]) {
-  test(`calendar.week-starts-monday academic ${view}`, {
+  test(`calendar.week-starts-sunday academic ${view}`, {
     tag: "@Calendar/Web",
   }, async ({ page, calendar: fixture, calendarRun }) => {
     await calendarRun(
@@ -239,13 +239,13 @@ for (const view of ["semester", "month", "week"]) {
           .getByRole("columnheader");
         await expect(headers).toHaveCount(8);
         expect((await headers.allTextContents()).slice(1)).toEqual([
+          "Sun",
           "Mon",
           "Tue",
           "Wed",
           "Thu",
           "Fri",
           "Sat",
-          "Sun",
         ]);
         const courseCell = page
           .getByTestId("workspace-calendar-grid")
@@ -259,7 +259,7 @@ for (const view of ["semester", "month", "week"]) {
               cell.parentElement?.querySelectorAll('[role="gridcell"]') ?? [],
             ).indexOf(cell),
           ),
-        ).toBe(2);
+        ).toBe(3);
       },
       { accountIndex: 0, calendarTokenCreated: true },
     );
@@ -269,7 +269,7 @@ for (const [view, label] of [
   ["week", /^(Week|周)$/],
   ["month", /^(Month|月)$/],
 ] as const) {
-  test(`calendar.week-starts-monday activity ${view}`, {
+  test(`calendar.week-starts-sunday activity ${view}`, {
     tag: "@Calendar/Web",
   }, async ({ page, calendar: fixture, calendarRun }) => {
     await calendarRun(
@@ -283,13 +283,13 @@ for (const [view, label] of [
           .getByRole("columnheader");
         await expect(headers).toHaveCount(7);
         expect(await headers.allTextContents()).toEqual([
+          "Sunday",
           "Monday",
           "Tuesday",
           "Wednesday",
           "Thursday",
           "Friday",
           "Saturday",
-          "Sunday",
         ]);
       },
       { accountIndex: 1, calendarTokenCreated: true },

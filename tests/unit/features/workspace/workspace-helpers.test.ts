@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   buildTimeSlots,
   computeHomeworkBuckets,
+  selectWeeklySessions,
 } from "@/features/workspace/server/workspace-helpers";
+import { buildWorkspaceOverviewSchedule } from "@/features/workspace/server/workspace-overview-schedule";
 import type {
   HomeworkWithSection,
   SessionItem,
 } from "@/features/workspace/server/workspace-types";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import { getDefaultWeekRange } from "@/shared/lib/date-utils";
 
 function session(startTime: number, endTime: number): SessionItem {
   return {
@@ -78,5 +81,39 @@ describe("仪表盘辅助函数", () => {
     ]);
     expect(result.dueToday).toEqual([today]);
     expect(result.dueWithin3Days).toEqual([soon]);
+  });
+  it("uses the same Sunday-to-Saturday range for the homepage weekly summary and session membership", () => {
+    const referenceNow = shanghaiDayjs("2026-08-31T10:00:00+08:00");
+    const summary = buildWorkspaceOverviewSchedule({
+      workspaceSections: [],
+      homeworks: [],
+      locale: "en-us",
+      referenceNow,
+    });
+    expect(summary.weekDays.map((day) => day.format("YYYY-MM-DD"))).toEqual([
+      "2026-08-30",
+      "2026-08-31",
+      "2026-09-01",
+      "2026-09-02",
+      "2026-09-03",
+      "2026-09-04",
+      "2026-09-05",
+    ]);
+    const sessions = [
+      "2026-08-29T23:59:59+08:00",
+      "2026-08-30T00:00:00+08:00",
+      "2026-09-05T23:59:59+08:00",
+      "2026-09-06T00:00:00+08:00",
+    ].map((date, index) => ({
+      ...session(900, 1000),
+      id: String(index),
+      date: new Date(date),
+    }));
+    const { start, endExclusive } = getDefaultWeekRange(referenceNow);
+    expect(
+      selectWeeklySessions(sessions, start, endExclusive).map(
+        (item) => item.id,
+      ),
+    ).toEqual(["1", "2"]);
   });
 });
