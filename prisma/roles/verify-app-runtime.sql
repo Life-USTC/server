@@ -37,6 +37,36 @@ WITH protected(table_name) AS (
     ('YoungNotification'),
     ('UserUstcIdentity')
 ),
+-- Collaborative and service-owned families have multiple policies, unlike the
+-- exact owner predicate checked below. Audit their structural inventory here;
+-- the family integration suites establish the actual policy expressions.
+collaborative_policies(table_name, policy_name, command) AS (
+  VALUES
+    ('Comment', 'Comment_public_reader', 'SELECT'),
+    ('Comment', 'Comment_authenticated_reader', 'SELECT'),
+    ('Comment', 'Comment_admin_reader', 'SELECT'),
+    ('Comment', 'Comment_owner_isolation', 'ALL'),
+    ('Comment', 'Comment_admin_moderator', 'UPDATE'),
+    ('Description', 'Description_public_read', 'SELECT'),
+    ('Description', 'Description_active_insert', 'INSERT'),
+    ('Description', 'Description_active_update', 'UPDATE'),
+    ('DescriptionEdit', 'DescriptionEdit_public_read', 'SELECT'),
+    ('DescriptionEdit', 'DescriptionEdit_active_insert', 'INSERT'),
+    ('Homework', 'Homework_public_read', 'SELECT'),
+    ('Homework', 'Homework_active_insert', 'INSERT'),
+    ('Homework', 'Homework_active_update', 'UPDATE'),
+    ('CommentAttachment', 'CommentAttachment_visible_parent', 'SELECT'),
+    ('CommentAttachment', 'CommentAttachment_author_insert', 'INSERT'),
+    ('CommentAttachment', 'CommentAttachment_author_delete', 'DELETE'),
+    ('User', 'User_existing_reads', 'SELECT'),
+    ('User', 'User_auth_insert', 'INSERT'),
+    ('User', 'User_service_update', 'UPDATE'),
+    ('User', 'User_account_delete', 'DELETE'),
+    ('User', 'User_actor_update', 'UPDATE')
+),
+collaborative_tables AS (
+  SELECT DISTINCT table_name FROM collaborative_policies
+),
 audited_schemas AS (
   SELECT oid, nspname, nspowner, nspacl
   FROM pg_namespace
@@ -329,6 +359,44 @@ protected_contract AS (
     AND pg_policies.tablename = protected.table_name
     AND pg_policies.policyname = protected.table_name || '_owner_isolation'
 ),
+collaborative_contract AS (
+  SELECT
+    (SELECT count(*) FROM collaborative_tables) = (
+      SELECT count(*)
+      FROM collaborative_tables AS expected
+      JOIN audited_relations AS relation
+        ON relation.schema_name = 'public'
+        AND relation.relname = expected.table_name
+      WHERE relation.relrowsecurity
+        AND relation.relforcerowsecurity
+        AND pg_get_userbyid(relation.relowner) <> current_user
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM collaborative_policies AS expected
+      LEFT JOIN pg_policies AS actual
+        ON actual.schemaname = 'public'
+        AND actual.tablename = expected.table_name
+        AND actual.policyname = expected.policy_name
+        AND actual.cmd = expected.command
+        AND actual.permissive = 'PERMISSIVE'
+        AND actual.roles = ARRAY['public']::name[]
+      WHERE actual.policyname IS NULL
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM pg_policies AS actual
+      JOIN collaborative_tables AS expected
+        ON expected.table_name = actual.tablename
+      WHERE actual.schemaname = 'public'
+        AND actual.roles && ARRAY['public'::name, current_user::name]
+        AND NOT EXISTS (
+          SELECT 1 FROM collaborative_policies AS allowed
+          WHERE allowed.table_name = actual.tablename
+            AND allowed.policy_name = actual.policyname
+        )
+    ) AS passed
+),
 checks(name, passed) AS (
   SELECT
     'role_identity',
@@ -524,6 +592,8 @@ checks(name, passed) AS (
     )
   UNION ALL
   SELECT 'protected_tables', passed FROM protected_contract
+  UNION ALL
+  SELECT 'collaborative_policy_inventory', passed FROM collaborative_contract
   UNION ALL
   SELECT
     'missing_context_default_deny',

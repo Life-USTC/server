@@ -42,6 +42,7 @@ export type SectionWithRelations = {
   semester: { id: number } | null;
   schedules: Array<{
     id: number;
+    weekIndex?: number | null;
     date: Date | null;
     startTime: number;
     endTime: number;

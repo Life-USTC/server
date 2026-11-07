@@ -24,6 +24,7 @@ export function serializeWorkspaceOverview(overview: OverviewData) {
       courseName: session.courseName,
       date: session.date,
       dateKey: calendarDateKey(session.date),
+      weekIndex: session.weekIndex ?? null,
       startTime: session.startTime,
       endTime: session.endTime,
       location: session.location,

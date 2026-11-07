@@ -478,6 +478,7 @@ export type WorkspaceTodoPriorityOption = {
 };
 
 export type WorkspaceSessionItem = WorkspaceRecord & {
+  weekIndex?: number | null;
   courseName: string;
   dateKey?: string | null;
   endTime: number;

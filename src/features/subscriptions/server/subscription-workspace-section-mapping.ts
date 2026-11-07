@@ -15,6 +15,7 @@ export function subscriptionScheduleDateFilter(input: {
 type WorkspaceScheduleRowSource = {
   customPlace: string | null;
   date: Date | null;
+  weekIndex?: number | null;
   endTime: number | string | null;
   id: number;
   room: SectionWithRelations["schedules"][number]["room"];
@@ -41,6 +42,7 @@ export function mapWorkspaceScheduleRow(row: WorkspaceScheduleRowSource) {
   return {
     id: row.id,
     date: row.date,
+    weekIndex: row.weekIndex ?? null,
     startTime: timeNumber(row.startTime),
     endTime: timeNumber(row.endTime),
     customPlace: row.customPlace,
