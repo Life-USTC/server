@@ -60,6 +60,7 @@ function buildOverviewData(partial: Partial<OverviewData> = {}): OverviewData {
 function buildSession(overrides: Partial<SessionItem> = {}): SessionItem {
   return {
     id: "session-1",
+    weekIndex: 10,
     sectionJwId: 101,
     sectionCode: "COURSE.01",
     courseName: "计算机导论",
@@ -193,6 +194,7 @@ describe("仪表盘概览序列化", () => {
     expect(result.calendar.allSessions).toHaveLength(1);
     const serializedSession = result.calendar.allSessions[0];
     expect(serializedSession.id).toBe("session-1");
+    expect(serializedSession.weekIndex).toBe(10);
     expect(serializedSession.date).toBeInstanceOf(Date);
     expect(serializedSession.dateKey).toBe("2026-04-29");
     expect(serializedSession.courseName).toBe("计算机导论");

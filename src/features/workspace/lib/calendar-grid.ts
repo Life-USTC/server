@@ -3,6 +3,7 @@ import { calendarGridEventsForDay } from "@/features/workspace/lib/calendar-grid
 
 type CalendarSession = {
   courseName: string;
+  weekIndex?: number | null;
 };
 
 type CalendarExam = {
@@ -106,20 +107,30 @@ export function buildWorkspaceCalendarGridWeeks<
         ? options.monthWeeks(options.month)
         : options.calendar.semesterWeeks;
 
-  return weeks.map((week, weekIndex) => ({
-    label:
-      options.view === "week"
-        ? options.sectionWeekLabel
-        : options.calendarWeekLabel(weekIndex),
-    days: week.map((dayKey) => {
-      const events = options.calendarEventsForDay(options.calendar, dayKey);
-      return {
+  return weeks.map((week) => {
+    const days = week.map((dayKey) => ({
+      dayKey,
+      events: options.calendarEventsForDay(options.calendar, dayKey),
+    }));
+    const sessions = days.flatMap(({ events }) => events.sessions);
+    const teachingWeek = sessions[0]?.weekIndex;
+    const hasTeachingWeek =
+      typeof teachingWeek === "number" &&
+      Number.isInteger(teachingWeek) &&
+      teachingWeek > 0 &&
+      sessions.every((session) => session.weekIndex === teachingWeek);
+    return {
+      // The display formatter accepts a zero-based index; stored weeks are one-based.
+      label: hasTeachingWeek
+        ? options.calendarWeekLabel(teachingWeek - 1)
+        : options.sectionWeekLabel,
+      days: days.map(({ dayKey, events }) => ({
         key: dayKey,
         label: dayKey.slice(5),
         isToday: dayKey === options.calendar.todayDate,
         isMuted: options.view === "month" && !dayKey.startsWith(options.month),
         events: calendarGridEventsForDay(events, options),
-      };
-    }),
-  }));
+      })),
+    };
+  });
 }
