@@ -6,7 +6,7 @@ const {
   getPublicCatalogLinksDataMock,
   getWeatherSnapshotMock,
   listPublicationHeadlinesMock,
-  listYoungEventsMock,
+  readYoungHomeActivitiesMock,
   logAppEventMock,
   readWeatherCacheMock,
 } = vi.hoisted(() => ({
@@ -15,7 +15,7 @@ const {
   getPublicCatalogLinksDataMock: vi.fn(),
   getWeatherSnapshotMock: vi.fn(),
   listPublicationHeadlinesMock: vi.fn(),
-  listYoungEventsMock: vi.fn(),
+  readYoungHomeActivitiesMock: vi.fn(),
   logAppEventMock: vi.fn(),
   readWeatherCacheMock: vi.fn(),
 }));
@@ -37,8 +37,8 @@ vi.mock(
   () => ({ listPublicationHeadlines: listPublicationHeadlinesMock }),
 );
 
-vi.mock("@/features/young/server/young-event-service", () => ({
-  listYoungEvents: listYoungEventsMock,
+vi.mock("@/features/young/server/young-home-activities", () => ({
+  readYoungHomeActivities: readYoungHomeActivitiesMock,
 }));
 
 vi.mock("@/features/workspace/server/workspace-tab-data", () => ({
@@ -84,7 +84,7 @@ describe("public page loaders", () => {
     getPublicCatalogLinksDataMock.mockReset();
     getWeatherSnapshotMock.mockReset();
     listPublicationHeadlinesMock.mockReset();
-    listYoungEventsMock.mockReset();
+    readYoungHomeActivitiesMock.mockReset();
     logAppEventMock.mockReset();
     readWeatherCacheMock.mockReset();
 
@@ -92,7 +92,7 @@ describe("public page loaders", () => {
     getWeatherSnapshotMock.mockResolvedValue(null);
     getNextDeparturesFromHubCampusMock.mockResolvedValue(null);
     listPublicationHeadlinesMock.mockResolvedValue([]);
-    listYoungEventsMock.mockResolvedValue({ data: [] });
+    readYoungHomeActivitiesMock.mockResolvedValue([]);
   });
 
   it("loads the editorial information sections for the home page", async () => {
@@ -103,27 +103,35 @@ describe("public page loaders", () => {
         source: { name: "Academic Affairs" },
       },
     ]);
-    listYoungEventsMock.mockImplementation(async ({ tableFilters }) => ({
-      data: [
-        {
-          location: "Auditorium",
-          name:
-            tableFilters.startAtOp === "gte"
-              ? "Quantum lecture"
-              : "Weekly club",
-          organizer: null,
-          startAt:
-            tableFilters.startAtOp === "gte"
-              ? "2026-11-07T10:00:00+08:00"
-              : "2026-08-19T10:38:00+08:00",
-          endAt:
-            tableFilters.startAtOp === "gte"
-              ? "2026-11-07T12:00:00+08:00"
-              : "2027-01-02T10:38:00+08:00",
-          youngId: tableFilters.startAtOp === "gte" ? "young-1" : "young-2",
-        },
-      ],
-    }));
+    readYoungHomeActivitiesMock.mockResolvedValue([
+      {
+        location: "Auditorium",
+        name: "Quantum lecture",
+        organizer: null,
+        startAt: "2026-11-07T10:00:00+08:00",
+        endAt: "2026-11-07T12:00:00+08:00",
+        youngId: "young-1",
+        crossDay: false,
+      },
+      {
+        location: null,
+        name: "Weekly club",
+        organizer: "Music club",
+        startAt: "2026-08-19T10:38:00+08:00",
+        endAt: "2027-01-02T10:38:00+08:00",
+        youngId: "young-2",
+        crossDay: true,
+      },
+      {
+        location: null,
+        name: "Start known",
+        organizer: null,
+        startAt: "2026-11-08T10:00:00+08:00",
+        endAt: null,
+        youngId: "young-3",
+        crossDay: false,
+      },
+    ]);
 
     const result = await loadHomePage(event);
 
@@ -148,24 +156,18 @@ describe("public page loaders", () => {
     );
     expect(
       result.information.activities?.map(({ crossDay }) => crossDay),
-    ).toEqual([false, true]);
+    ).toEqual([false, true, false]);
     expect(result.information.activities?.[1]?.dateLabel).toContain(
       "2027-01-02",
     );
-    expect(listYoungEventsMock).toHaveBeenCalledTimes(2);
-    for (const [
-      { dateFrom, pageSize, timeBasis, tableFilters },
-    ] of listYoungEventsMock.mock.calls) {
-      expect(pageSize).toBe(5);
-      expect(timeBasis).toBe("activity");
-      expect(tableFilters).toMatchObject({
-        active: "true",
-        timeBasis: "activity",
-      });
-      expect(dateFrom.toISOString()).toBe(
-        new Date(`${tableFilters.startAt}T00:00:00+08:00`).toISOString(),
-      );
-    }
+    expect(result.information.activities?.[1]?.meta).toBe("Music club");
+    expect(result.information.activities?.[2]?.dateLabel).toBe(
+      "Starts: 2026-11-08 10:00",
+    );
+    expect(readYoungHomeActivitiesMock).toHaveBeenCalledTimes(1);
+    const [day, limit] = readYoungHomeActivitiesMock.mock.calls[0];
+    expect(limit).toBe(5);
+    expect(day.toISOString()).toMatch(/T16:00:00.000Z$/);
     // The landing page reads its own lean sections, never the heavy
     // signed-in workspace tab payloads.
     expect(getBusTabDataMock).not.toHaveBeenCalled();
