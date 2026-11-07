@@ -2,7 +2,7 @@
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
-import { onMount } from "svelte";
+import { onMount, tick } from "svelte";
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import * as Collapsible from "#lib/components/ui/collapsible/index.js";
 import * as Sidebar from "#lib/components/ui/sidebar/index.js";
@@ -69,6 +69,16 @@ let {
 } = $props();
 
 const sidebar = Sidebar.useSidebar();
+function revealCurrent(node: HTMLElement, active: boolean) {
+  function reveal(active: boolean) {
+    if (active)
+      void tick().then(() =>
+        node.scrollIntoView({ block: "nearest", inline: "nearest" }),
+      );
+  }
+  reveal(active);
+  return { update: reveal };
+}
 const groupOpen = $state<Record<string, boolean>>({});
 let savedSubmenus = $state<Record<string, boolean>>({});
 let submenuOverride = $state<Record<string, { open: boolean; path: string }>>(
@@ -112,7 +122,10 @@ function setGroupOpen(key: string, isOpen: boolean): void {
 }
 
 function showActiveState(active: boolean): boolean {
-  return active && (!sidebar.isMobile || sidebar.openMobile);
+  return (
+    active &&
+    (sidebar.isMobile ? sidebar.openMobile : sidebar.state === "expanded")
+  );
 }
 
 function closeMobileSidebar(): void {
@@ -299,6 +312,7 @@ function closeMobileSidebar(): void {
                             <a
                               {...props}
                               href={link.href}
+                              use:revealCurrent={active}
                               aria-label={link.ariaLabel}
                               aria-current={active
                                 ? "page"
@@ -351,15 +365,18 @@ function closeMobileSidebar(): void {
                               {@const subActive =
                                 showActiveState(subOwnActive)}
                               <Sidebar.MenuSubItem>
-                                <Sidebar.MenuSubButton isActive={subActive}>
+                                <Sidebar.MenuSubButton isActive={subActive} class={cn("h-auto min-h-7 py-1 [&>span:last-child]:whitespace-normal [&>span:last-child]:break-words", nestedActive && "bg-sidebar-accent/50 font-medium")} data-shell-ancestor={nestedActive ? "true" : undefined}>
                                   {#snippet child({ props })}
                                     <a
                                       {...props}
                                       href={subLink.href}
+                                      use:revealCurrent={subActive}
                                       aria-label={subLink.ariaLabel}
                                       aria-current={subActive
                                         ? "page"
-                                        : undefined}
+                                        : nestedActive
+                                          ? "location"
+                                          : undefined}
                                       onclick={closeMobileSidebar}
                                     >
                                       <span>{subLink.label}</span>
@@ -377,11 +394,13 @@ function closeMobileSidebar(): void {
                                         <Sidebar.MenuSubItem>
                                           <Sidebar.MenuSubButton
                                             isActive={nestedItemActive}
+                                            class="h-auto min-h-7 py-1 [&>span:last-child]:whitespace-normal [&>span:last-child]:break-words"
                                           >
                                             {#snippet child({ props })}
                                               <a
                                                 {...props}
                                                 href={nested.href}
+                                                use:revealCurrent={nestedItemActive}
                                                 aria-label={nested.ariaLabel}
                                                 aria-current={nestedItemActive
                                                   ? "page"
@@ -418,6 +437,7 @@ function closeMobileSidebar(): void {
                             <a
                               {...props}
                               href={link.href}
+                              use:revealCurrent={active}
                               aria-label={link.ariaLabel}
                               aria-current={active
                                 ? "page"

@@ -57,6 +57,9 @@ test("ui.navigation-landmarks-7", { tag: "@Young/Web" }, async ({
       }
       const expected = destination(item.url.toString());
       const nav = page.getByTestId("young-sidebar");
+      await expect(
+        nav.getByRole("link", { name: /浏览课程|Browse courses/i }),
+      ).toBeVisible();
       const active = nav.locator('[aria-current="page"]');
       await expect(active).toHaveCount(1);
       expect(destination(await active.getAttribute("href")).path).toBe(

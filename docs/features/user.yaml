@@ -1080,7 +1080,7 @@ capabilities:
         and cursor pagination'
       - 'Authorized OAuth applications: client display name, public URI, disabled state, scopes, last authorization
         time, last usage channel/feature, 30-day read/write/error counts, and revoke action'
-      - Settings routes replace the primary sidebar with a settings section sidebar whose top control returns home
+      - Settings routes retain the primary navigation tree with settings sections below their owning destination; the top control returns home
       - Navigation links to sections and comment guide
       - Visually separated danger region and account deletion confirmation interface
     requirement_refs:
