@@ -142,6 +142,8 @@ export type WorkspaceCopy = WorkspaceRecord & {
   calendarAgendaLabel: string;
   calendarMoreActions: string;
   calendarViewDay: string;
+  calendarViewLabel: string;
+  calendarNavigationLabel: string;
   calendarDay: { prev: string; next: string; label: string };
   calendarDayAgendaLabel: string;
   calendarViewMonth: string;
