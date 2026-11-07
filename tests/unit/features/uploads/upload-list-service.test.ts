@@ -38,7 +38,10 @@ describe("listUploads", () => {
     vi.clearAllMocks();
     uploadFindManyMock.mockResolvedValue([]);
     uploadCountMock.mockResolvedValue(3);
-    uploadAggregateMock.mockResolvedValue({ _sum: { size: 80 } });
+    uploadAggregateMock.mockResolvedValue({
+      _sum: { size: 80 },
+      _count: { _all: 3 },
+    });
     pendingAggregateMock.mockResolvedValue({ _sum: { size: 20 } });
     withUserDbContextMock.mockImplementation((_userId, action) =>
       action({
@@ -56,7 +59,12 @@ describe("listUploads", () => {
     await expect(
       listUploads("user-1", { pageSize: 2, skip: 2 }),
     ).resolves.toEqual(
-      expect.objectContaining({ total: 3, uploads: [], usedBytes: 100 }),
+      expect.objectContaining({
+        total: 3,
+        uploads: [],
+        usedBytes: 100,
+        hasUploads: true,
+      }),
     );
 
     expect(pendingDeleteManyMock).not.toHaveBeenCalled();
@@ -102,6 +110,7 @@ describe("listUploads", () => {
     expect(uploadAggregateMock).toHaveBeenCalledWith({
       where: { userId: "user-1" },
       _sum: { size: true },
+      _count: { _all: true },
     });
   });
 });

@@ -22,7 +22,7 @@ requirements:
   category: behavior
   surfaces:
   - web
-  rule: The owner's upload-management table filters filenames, numeric file sizes and Shanghai upload dates before counting and page slicing. Continuous loading appends matches while retaining all applied predicates and unsubmitted filter drafts. Usage always includes every owned upload and live reservation regardless of the current filter.
+  rule: The owner's upload-management table filters filenames, numeric file sizes and Shanghai upload dates before counting and page slicing. Continuous loading appends matches while retaining all applied predicates and unsubmitted filter drafts. Usage always includes every owned upload and live reservation regardless of the current filter. Unfiltered owner-file existence is counted independently of size and reservations, including zero-byte files; it never includes another owner.
   acceptance:
     given: Twenty-five matching owned files, a size decoy, a next-Shanghai-day decoy, a foreign owner's matching file and a live reservation.
     when: The restricted application service combines name, inclusive size range and date predicates and reads both pages.
@@ -399,6 +399,31 @@ requirements:
     test:
       file: tests/unit/features/uploads/upload-utils.test.ts
       name: upload.download-filename-header
+- id: upload.web-filter-toolbar
+  category: presentation
+  rule: Uploads expose filename search, a common upload-date condition, more byte-size conditions and applied URL-condition chips in one toolbar shared by desktop and mobile. One native GET Apply and adjacent Reset are rendered for the active toolbar or More panel, with no second submission control. Closing More retains its draft; pending Apply responses and incremental appends preserve newer unsubmitted edits. Removing a chip clears only its field and comparison bounds while preserving unrelated drafts. Reset and external history initialize drafts from their target URL. The fixed newest-upload-first order is visible.
+  acceptance:
+    given: An owned uploads list contains distinct filename, byte-size and Shanghai upload-date values.
+    when: The browser edits multiple drafts, removes only the applied size chip, submits with Enter in search and More, resets and traverses history.
+    then:
+    - Unsubmitted filename and date survive size-chip removal; size, its operator and upper bound clear together.
+    - Only one Apply exists and Enter submits the complete owner-scoped draft from either location; More dismissal does not apply or discard drafts.
+    - The URL, applied chips and rows describe committed filters while newer drafts remain editable.
+    test:
+      file: tests/e2e/src/app/account-policy/upload-filter-toolbar.test.ts
+      name: upload chip removal preserves unrelated drafts 390
+- id: upload.web-empty-scope
+  category: presentation
+  rule: The uploads page distinguishes an owner with no files from owned files that do not match the applied conditions. Live reservations and foreign files do not make an owner collection nonempty, while zero-byte owned files do. Empty states retain all filter controls and do not suggest uploading the first file when owned files already exist.
+  acceptance:
+    given: An owner has a live reservation and another owner has a file, with or without one zero-byte owned file.
+    when: The browser applies a nonmatching filename at desktop and mobile widths.
+    then:
+    - The no-files message appears only without an owned file; the no-match message appears with the zero-byte owned file, with identical quota usage.
+    - Foreign filenames are never rendered.
+    test:
+      file: tests/e2e/src/app/account-policy/upload-filter-toolbar.test.ts
+      name: upload no-data versus no-match owner existence true
 - id: upload.web-list
   category: presentation
   rule: The signed-in uploads page is reachable from workspace navigation and presents only the current

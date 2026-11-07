@@ -269,24 +269,37 @@ test("upload.web-list", { tag: "@Upload/Web" }, async ({
     await expect(apply).toHaveCount(1);
     const filterForm = page.locator("#uploads-filters");
     await filterForm
-      .getByRole("textbox", { name: "File", exact: true })
+      .getByRole("searchbox", { name: "Search filenames", exact: true })
       .fill("material");
-    await expect(
-      filterForm.getByText("In bytes", { exact: true }),
-    ).toBeVisible();
     await expect(
       filterForm.getByRole("button", { name: "Apply filters", exact: true }),
     ).toHaveCount(1);
-    await filterForm
+    await page
+      .getByRole("button", { name: "More conditions", exact: true })
+      .click();
+    const more = page.getByRole("dialog", {
+      name: "More conditions",
+      exact: true,
+    });
+    await expect(more.getByText("In bytes", { exact: true })).toBeVisible();
+    await expect(apply).toHaveCount(1);
+    await expect(apply).toHaveAttribute("form", "uploads-filters");
+    await more
       .getByRole("combobox", { name: "Size · Comparison", exact: true })
       .selectOption("between");
-    await filterForm
+    await more
       .getByRole("spinbutton", { name: "Size", exact: true })
       .fill("1024");
-    await filterForm
+    await more
       .getByRole("spinbutton", { name: "Upper bound", exact: true })
       .fill("1024");
-    await filterForm.getByLabel("Uploaded", { exact: true }).fill("2026-01-01");
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Uploaded", exact: true }).click();
+    await page
+      .locator('[data-filter-field="createdAt"]:visible')
+      .getByLabel("Uploaded", { exact: true })
+      .fill("2026-01-01");
+    await page.keyboard.press("Escape");
     await expect(page).toHaveURL(/\/workspace\/uploads$/);
     await apply.click();
     await expect(page).toHaveURL((url) =>
@@ -298,13 +311,16 @@ test("upload.web-list", { tag: "@Upload/Web" }, async ({
     const nextParams = new URL(nextHref ?? "", page.url()).searchParams;
     for (const [key, value] of filters) expect(nextParams.get(key)).toBe(value);
     await filterForm
-      .getByRole("textbox", { name: "File", exact: true })
+      .getByRole("searchbox", { name: "Search filenames", exact: true })
       .fill("material-20");
     await page.locator('[data-slot="endless-scroll"]').scrollIntoViewIfNeeded();
     await expect(page).toHaveURL((url) => !url.searchParams.has("page"));
     await expect(visibleRows(page)).toHaveCount(21);
     await expect(
-      filterForm.getByRole("textbox", { name: "File", exact: true }),
+      filterForm.getByRole("searchbox", {
+        name: "Search filenames",
+        exact: true,
+      }),
     ).toHaveValue("material-20");
     await expect(visibleRows(page).last()).toContainText("material-00.txt");
     for (const [key, value] of filters)
