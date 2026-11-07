@@ -84,6 +84,19 @@ class CarrierSafety(unittest.TestCase):
                 self.assertEqual((status, output), (1, ""))
                 client.assert_not_called()
 
+    def test_raw_url_controls_cannot_be_normalized_into_a_target(self):
+        values = [CONNECTION.replace("127.0.0.1", "127.0.0.1" + control)
+                  for control in ["\n", "\r", "\t"]]
+        values += [" " + CONNECTION, CONNECTION + " "]
+        for value in values:
+            with self.subTest():
+                status, output, errors, client = self.run_main(
+                    result=subprocess.CompletedProcess([], 1, b""),
+                    environment={**ENV, "RLS_AUDIT_DATABASE_URL": value})
+                self.assertEqual((status, output), (1, ""))
+                self.assertEqual(json.loads(errors)["error"], "unsupported-connection-value")
+                client.assert_not_called()
+
     def test_incomplete_or_wrong_identity_inventory_is_not_a_pass(self):
         incomplete, wrong_identity = report(), report()
         incomplete["limits"]["relation_count"] = 257

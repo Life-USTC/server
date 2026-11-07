@@ -30,6 +30,11 @@ def main() -> int:
     except UnicodeError:
         return fail("expected-role-required")
     try:
+        # urlsplit strips raw tabs/newlines and leading C0/space characters.
+        # Reject those bytes before parsing so the configured target cannot
+        # silently become a different, normalized connection target.
+        if connection != connection.strip() or re.search(r"[\x00-\x20\x7f]", connection):
+            return fail("unsupported-connection-value")
         parsed = urlsplit(connection)
         if parsed.scheme not in {"postgres", "postgresql"} or not parsed.hostname or not parsed.username or parsed.password is None or parsed.path in {"", "/"} or parsed.fragment:
             return fail("explicit-database-url-required")
