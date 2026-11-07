@@ -70,6 +70,7 @@ requirements:
   - demo-catalog-details
   - demo-course-list
   - demo-section-list
+  - demo-teacher-list
   - demo-homeworks
   - demo-exams
   expectation:
@@ -97,8 +98,8 @@ requirements:
     - OAuth and outbound requests
     - browser analytics scripts and telemetry
   rationale: Demo possession is not real-user authentication. The read allowlist comprises Todos, homeworks, exams and
-    subscriptions HTML/page-data, the course and section listings, the three supported catalog-detail pages and their page-data,
-    GET /api/catalog/courses, GET /api/catalog/sections,
+    subscriptions HTML/page-data, the course, section and teacher listings, the three supported catalog-detail pages and their page-data,
+    GET /api/catalog/courses, GET /api/catalog/sections, GET /api/catalog/teachers,
     GET /api/workspace/todos, GET /api/workspace/subscriptions/current, section detail/personal reads,
     fixture descriptions/comments, homework list/detail/audit reads and shell bootstrap. Same-origin locale-cookie updates are allowed. Entry and exit are cookie controls. Every other request is denied before its route runs, including visit-recording GET, uploads,
     private exports, administrator routes, GraphQL and MCP.
@@ -153,7 +154,7 @@ requirements:
     dates; descriptions and empty discussions retain existing response shapes and an anonymous viewer.
     Only fixture identifiers and matching target aliases resolve; unknown or mixed targets cannot access
     ordinary data. Calendar exports, subscriptions, homework creation, description edits and comments are
-    visibly disabled. Teacher collections remain unavailable; course and section collections and fixture homework details are read-only.
+    visibly disabled. Teacher, course and section collections and fixture homework details are read-only.
   acceptance:
     given: A valid demo in either supported locale on desktop or mobile.
     when: The visitor follows subscription, course and teacher links and reads detail sections and lazy data.
@@ -221,6 +222,19 @@ requirements:
     test:
       file: tests/e2e/src/app/demo/sections.test.ts
       name: 'demo.sections: read-only browsing zh-cn 1280'
+- id: demo.teacher-list-projection
+  category: consistency
+  rule: The existing teacher listing and page-data, read-only collection API and linked details share the two subscription teachers and their complete fixed section counts. Web keeps normalized name, code, email, classification and numeric-count filters; REST retains its existing validated search, scalar department and pagination schema. Ordering is Chinese name then upstream ID. Missing contact/classification metadata stays null with no live options. Unknown filters never reach real data. Demo reads remain private and perform no database, cache or external access; ordinary callers retain their existing services.
+  acceptance:
+    given: A signed demo in either locale on desktop/mobile and independent ordinary teacher records.
+    when: Open Teachers from shell navigation, filter, clear an empty result, paginate via REST and follow a fixed teacher detail.
+    then:
+    - Page, page-data, REST and details agree on identities, names and section counts.
+    - Filters and pagination operate only on fixed samples; unavailable metadata cannot match live records.
+    - Read-only notices remain visible, direct writes and unsupported exports stay refused, with no durable or external effects.
+    test:
+      file: tests/e2e/src/app/demo/teachers.test.ts
+      name: 'demo.teachers: read-only browsing zh-cn 1280'
 - id: demo.cache-isolation
   category: privacy
   rule: Demo cookie presence, including invalid cookies, bypasses shared HTML admission before cache hits
@@ -448,3 +462,25 @@ capabilities:
       - Retain the visible read-only demo identity
       requirement_refs:
       - demo.exams-projection
+
+  demo-teacher-list:
+    title: Read-only Demo Teacher Listing
+    auth: anon
+    web:
+      pages:
+      - /catalog/teachers
+    rest:
+      routes:
+      - method: GET
+        path: /api/catalog/teachers
+        reference_only: true
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Open Teachers from the existing demo navigation
+      - Filter fixed teachers and clear empty results
+      - Follow teacher and teaching section details with read-only labeling
+      requirement_refs:
+      - demo.teacher-list-projection
