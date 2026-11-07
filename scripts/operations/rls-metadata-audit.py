@@ -33,7 +33,10 @@ def main() -> int:
         parsed = urlsplit(connection)
         if parsed.scheme not in {"postgres", "postgresql"} or not parsed.hostname or not parsed.username or parsed.password is None or parsed.path in {"", "/"} or parsed.fragment:
             return fail("explicit-database-url-required")
-        port = str(parsed.port or 5432)
+        explicit_port = parsed.port
+        if explicit_port is not None and not 1 <= explicit_port <= 65535:
+            return fail("invalid-port")
+        port = str(5432 if explicit_port is None else explicit_port)
         parameters = parse_qsl(parsed.query, keep_blank_values=True, strict_parsing=True)
         allowed = {"sslmode": "PGSSLMODE", "channel_binding": "PGCHANNELBINDING", "sslrootcert": "PGSSLROOTCERT"}
         if len(dict(parameters)) != len(parameters) or any(key not in allowed for key, _value in parameters):

@@ -78,9 +78,9 @@ class CarrierSafety(unittest.TestCase):
                 self.assertNotIn("private", errors)
 
     def test_invalid_inputs_cannot_connect(self):
-        for environment in [{**ENV, "RLS_AUDIT_EXPECTED_ROLE": "bad\nrole"}, {**ENV, "RLS_AUDIT_DATABASE_URL": "postgresql:///fallback"}, {**ENV, "RLS_AUDIT_DATABASE_URL": CONNECTION + "&options=unsafe"}, {**ENV, "RLS_AUDIT_DATABASE_URL": CONNECTION + "&sslmode=require"}, {**ENV, "RLS_AUDIT_DATABASE_URL": CONNECTION + "#ignored"}, {**ENV, "RLS_AUDIT_DATABASE_URL": CONNECTION.replace("127.0.0.1", "host1,host2")}, {**ENV, "RLS_AUDIT_DATABASE_URL": CONNECTION.replace("p%3Aa%5Css", "bad%00value")}]:
+        for environment in [{**ENV, "RLS_AUDIT_EXPECTED_ROLE": "bad\nrole"}, {**ENV, "RLS_AUDIT_DATABASE_URL": "postgresql:///fallback"}, {**ENV, "RLS_AUDIT_DATABASE_URL": CONNECTION + "&options=unsafe"}, {**ENV, "RLS_AUDIT_DATABASE_URL": CONNECTION + "&sslmode=require"}, {**ENV, "RLS_AUDIT_DATABASE_URL": CONNECTION + "#ignored"}, {**ENV, "RLS_AUDIT_DATABASE_URL": CONNECTION.replace("127.0.0.1", "host1,host2")}, {**ENV, "RLS_AUDIT_DATABASE_URL": CONNECTION.replace("p%3Aa%5Css", "bad%00value")}, {**ENV, "RLS_AUDIT_DATABASE_URL": CONNECTION.replace(":55437", ":0")}, {**ENV, "RLS_AUDIT_DATABASE_URL": CONNECTION.replace(":55437", ":65536")}]:
             with self.subTest():
-                status, output, _errors, client = self.run_main(environment=environment)
+                status, output, _errors, client = self.run_main(result=subprocess.CompletedProcess([], 1, b""), environment=environment)
                 self.assertEqual((status, output), (1, ""))
                 client.assert_not_called()
 
