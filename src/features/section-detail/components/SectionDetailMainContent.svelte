@@ -33,6 +33,7 @@ export let homeworkCopy: SectionDetailMainContentProps["homeworkCopy"];
 export let homeworks: SectionDetailMainContentProps["homeworks"];
 export let notAvailable: string;
 export let openCalendarDialog: SectionDetailMainContentProps["openCalendarDialog"];
+export let openHomeworkAuditDialog: () => void;
 export let openCreateHomeworkDialog: SectionDetailMainContentProps["openCreateHomeworkDialog"];
 export let openSubscribeDialog: () => void;
 export let periodDetailRows: SectionDetailMainContentProps["periodDetailRows"];
@@ -229,6 +230,10 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
             <h2 class="text-lg font-semibold tracking-tight">
               {sectionCopy.tabs.homeworks}
             </h2>
+            <div class="flex flex-wrap items-center gap-2">
+            {#if !data.demo && !viewer.loading && !viewer.failed && (viewer.isAuthenticated ?? viewer.signedIn === true)}
+              <Button type="button" variant="outline" onclick={openHomeworkAuditDialog}>{homeworkCopy.auditTitle}</Button>
+            {/if}
             {#if data.demo}
               <Button type="button" disabled title={data.demo.readOnlyReason}>{homeworkCopy.showCreate}</Button>
             {:else if canWriteHomework}
@@ -243,6 +248,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
                 {homeworkCopy.loginToCreate}
               </Button>
             {/if}
+            </div>
           </div>
           {#if SectionHomeworkTab}
             <svelte:component this={SectionHomeworkTab}

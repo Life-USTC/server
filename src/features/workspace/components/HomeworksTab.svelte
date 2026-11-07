@@ -39,6 +39,7 @@ type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 type HomeworkCopy = WorkspaceMyHomeworksCopy;
 type HomeworksCopy = WorkspaceHomeworksCopy;
 
+export let canWriteShared = false;
 export let readOnlyReason: string | null | undefined = null;
 export let CommentsPanel: typeof CommentsPanelComponent;
 
@@ -151,10 +152,15 @@ $: ({
     />
   {:else}
     <HomeworksTabToolbar
+      {canWriteShared}
       {readOnlyReason}
       homeworksCopy={homeworksCopy}
       openCreateHomeworkDialog={openCreateHomeworkDialog}
     />
+
+    {#if signedData.homeworkCapabilities?.canComplete && !canWriteShared && !signedData.demo}
+      <Alert.Root><Alert.Description>{homeworksCopy.suspended}</Alert.Description></Alert.Root>
+    {/if}
 
     {#if homeworkActionError}
       <Alert.Root variant="destructive">
@@ -223,6 +229,7 @@ $: ({
     </WorkspaceCollection>
 
     <HomeworksTabDialogs
+      {canWriteShared}
       showPersonalStatus={!signedData.demo}
       {readOnlyReason}
       CommentsPanel={CommentsPanel}

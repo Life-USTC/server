@@ -95,6 +95,7 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
   />
 {:else if activeTab === "homeworks" && signedData.homeworks}
   <HomeworksTab
+    canWriteShared={signedData.homeworkCapabilities?.canWriteShared === true}
     readOnlyReason={signedData.demo?.readOnlyReason}
     {CommentsPanel}
     {commonCopy}
