@@ -68,6 +68,19 @@ requirements:
     test:
       file: tests/e2e/src/app/workspace/overview/home-activity-recovery.test.ts
       name: overview.home-activity-recovery
+- id: overview.home-weather-recovery
+  category: behavior
+  rule: A cold homepage weather module retries independently after its actual weather cache becomes
+    available. Reading cached weather preserves source facts and fetchedAt and never writes observation history.
+  acceptance:
+    given: The private Worker has no weather snapshots and renders its unavailable weather state.
+    when: The existing fixture warms its real WEATHER KV and the visitor clicks the weather retry control.
+    then:
+    - Both actual campus snapshots appear and the browser requests only the weather module.
+    - Original fetchedAt and snapshot facts remain identical in KV, and observation history remains unchanged.
+    test:
+      file: tests/e2e/src/app/workspace/overview/home-weather-recovery.test.ts
+      name: overview.home-weather-recovery
 - id: overview.deadline-state-labels
   category: presentation
   rule: Home urgency and focus items retain their actual due date and explicitly label incomplete due
