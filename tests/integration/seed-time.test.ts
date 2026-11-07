@@ -61,8 +61,8 @@ describe("named seed semester dates", () => {
       const dateFrom = weeks[0][0].format("YYYY-MM-DD");
       const dateTo = weeks.at(-1)?.at(-1)?.format("YYYY-MM-DD");
       expect({ dateFrom, dateTo }).toEqual({
-        dateFrom: "2026-04-06",
-        dateTo: "2026-09-06",
+        dateFrom: "2026-04-05",
+        dateTo: "2026-09-12",
       });
       expect(dateFrom <= DEV_SEED_ANCHOR.date).toBe(true);
       expect(dateTo && DEV_SEED_ANCHOR.date <= dateTo).toBe(true);

@@ -6,7 +6,7 @@ export type WeekStartsOn = 0 | 1;
 
 export const MONDAY_WEEK_STARTS_ON: WeekStartsOn = 1;
 export const SUNDAY_WEEK_STARTS_ON: WeekStartsOn = 0;
-export const DEFAULT_WEEK_STARTS_ON: WeekStartsOn = MONDAY_WEEK_STARTS_ON;
+export const DEFAULT_WEEK_STARTS_ON: WeekStartsOn = SUNDAY_WEEK_STARTS_ON;
 
 export const getWeekStart = (
   date: Dayjs,

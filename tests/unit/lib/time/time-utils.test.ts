@@ -8,16 +8,16 @@ describe("formatSmartDateTime", () => {
     expect(formatSmartDateTime(due, ref, "zh-cn")).toBe("今天 23:00");
   });
 
-  it("使用基于周一的同一周标签跨共享 week helper", () => {
+  it("按周日起始将下一周日显示为独立日期", () => {
     const ref = new Date("2026-03-16T10:00:00+08:00");
     const due = new Date("2026-03-22T09:00:00+08:00");
-    expect(formatSmartDateTime(due, ref, "en-us")).toBe("Sun, 09:00");
+    expect(formatSmartDateTime(due, ref, "en-us")).toBe("Mar 22, 9:00 AM");
   });
 
-  it("不将上周日视为本周", () => {
+  it("将起始周日视为本周", () => {
     const ref = new Date("2026-03-18T10:00:00+08:00");
     const due = new Date("2026-03-15T09:00:00+08:00");
-    expect(formatSmartDateTime(due, ref, "zh-cn")).toBe("3月15日 09:00");
+    expect(formatSmartDateTime(due, ref, "zh-cn")).toBe("周日 09:00");
   });
 
   it("同一年但不同周时省略年份（zh）", () => {
@@ -40,10 +40,10 @@ describe("formatSmartDate", () => {
     expect(formatSmartDate(due, ref, "zh-cn")).toBe("今天");
   });
 
-  it("复用相同的基于周一的周边界", () => {
+  it("复用相同的基于周日的周边界", () => {
     const ref = new Date("2026-03-16T10:00:00+08:00");
     const due = new Date("2026-03-22T08:00:00+08:00");
-    expect(formatSmartDate(due, ref, "en-us")).toBe("Sunday");
+    expect(formatSmartDate(due, ref, "en-us")).toBe("Mar 22");
   });
 
   it("同一年但不同周时省略年份（zh）", () => {
