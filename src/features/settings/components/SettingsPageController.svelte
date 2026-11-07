@@ -2,8 +2,8 @@
 import { onMount, untrack } from "svelte";
 import { toast } from "svelte-sonner";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
-import type { DemoView } from "@/features/demo/lib/demo-types";
 import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
+import type { DemoView } from "@/features/demo/lib/demo-types";
 import SettingsAccountsTab from "@/features/settings/components/SettingsAccountsTab.svelte";
 import SettingsAuthorizationsTab from "@/features/settings/components/SettingsAuthorizationsTab.svelte";
 import SettingsDangerTab from "@/features/settings/components/SettingsDangerTab.svelte";
@@ -94,7 +94,9 @@ let previewImage = $derived(
     ? "/images/icon.png"
     : selectedImage || currentImage || "/images/icon.png",
 );
-let statusMessage = $derived(data.demo ? null : form?.message ?? data.message);
+let statusMessage = $derived(
+  data.demo ? null : (form?.message ?? data.message),
+);
 let redirectStatus = $derived(
   data.demo ? null : routePage.url.searchParams.get("message"),
 );

@@ -471,7 +471,10 @@ let navGroups = $derived(
                   items: link.items?.map((item) =>
                     item.href === "/account/settings/profile"
                       ? item
-                      : { ...item, disabledReason: viewerDemo?.unavailableReason },
+                      : {
+                          ...item,
+                          disabledReason: viewerDemo?.unavailableReason,
+                        },
                   ),
                 }
               : link
