@@ -11,6 +11,7 @@ import { Input } from "#lib/components/ui/input/index.js";
 import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import { getDefaultWeekStart } from "@/shared/lib/date-utils";
 import {
   fetchPersonalCalendar,
   type PersonalCalendarItem,
@@ -42,12 +43,13 @@ const range = $derived.by(() => {
   const selected = shanghaiDayjs(selectedDate);
   if (view === "day") return { start: selected, count: 1 };
   const start = view === "month" ? selected.startOf("month") : selected;
-  const monday = start.subtract((start.day() + 6) % 7, "day");
+  const weekStart = getDefaultWeekStart(start);
   return {
-    start: monday,
+    start: weekStart,
     count:
       view === "month"
-        ? Math.ceil((selected.endOf("month").diff(monday, "day") + 1) / 7) * 7
+        ? Math.ceil((selected.endOf("month").diff(weekStart, "day") + 1) / 7) *
+          7
         : 7,
   };
 });
