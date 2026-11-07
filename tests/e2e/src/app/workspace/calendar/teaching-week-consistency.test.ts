@@ -446,6 +446,12 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               await selectPeriod(page, locale, view, meeting.date);
               await expectDateRange(page, view, meeting.date, width);
               if (width === 1280) {
+                // The date grid can render before its activity response inserts
+                // records. Join the actual current module before hovering.
+                const calendarModule = page
+                  .getByTestId("workspace-calendar-mobile-toolbar")
+                  .locator("xpath=ancestor::section[1]");
+                await expect(calendarModule.getByRole("status")).toHaveCount(0);
                 const grid = page.getByTestId("workspace-calendar-grid");
                 const row = rowForDate(grid, page, meeting.date);
                 await expect(row).toHaveCount(1);
@@ -466,10 +472,42 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                 await expect(course).toContainText("10:00");
                 await expect(course).toContainText(meeting.place);
                 await course.hover();
-                await expect(course).toHaveAttribute("aria-describedby", /\S+/);
-                const contentId = await course.getAttribute("aria-describedby");
-                if (!contentId)
-                  throw new Error("Open course tooltip needs its content ID");
+                let contentId = "";
+                await expect
+                  .poll(async () => {
+                    const observation = await course.evaluate(
+                      (link, fields) => {
+                        const id = link.getAttribute("aria-describedby");
+                        const content = id ? document.getElementById(id) : null;
+                        const linked =
+                          content?.matches("[data-tooltip-content]") === true;
+                        const style = content
+                          ? getComputedStyle(content)
+                          : null;
+                        return {
+                          id,
+                          linked,
+                          visible: Boolean(
+                            content?.getClientRects().length &&
+                              style?.visibility === "visible" &&
+                              Number(style.opacity) > 0,
+                          ),
+                          complete: fields.every((field) =>
+                            content?.textContent?.includes(field),
+                          ),
+                        };
+                      },
+                      [title, "09:00", "10:00", meeting.place],
+                    );
+                    contentId = observation.id ?? "";
+                    return observation;
+                  })
+                  .toMatchObject({
+                    id: expect.stringMatching(/\S+/),
+                    linked: true,
+                    visible: true,
+                    complete: true,
+                  });
                 const tooltip = page.locator(
                   `[data-tooltip-content][id="${contentId}"]`,
                 );
