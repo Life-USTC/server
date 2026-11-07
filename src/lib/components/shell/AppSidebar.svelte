@@ -389,6 +389,17 @@ function closeMobileSidebar(): void {
                               <Sidebar.MenuSubItem>
                                 <Sidebar.MenuSubButton isActive={subActive} class={cn("h-auto min-h-7 py-1 [&>span:last-child]:whitespace-normal [&>span:last-child]:break-words", nestedActive && "bg-sidebar-accent/50 font-medium")} data-shell-ancestor={nestedActive ? "true" : undefined}>
                                   {#snippet child({ props })}
+                                    {#if subLink.disabledReason}
+                                      <button
+                                        {...props}
+                                        aria-describedby="demo-unavailable"
+                                        title={subLink.disabledReason}
+                                        disabled
+                                        type="button"
+                                      >
+                                        <span>{subLink.label}</span>
+                                      </button>
+                                    {:else}
                                     <a
                                       {...props}
                                       href={subLink.href}
@@ -404,6 +415,7 @@ function closeMobileSidebar(): void {
                                       <span>{subLink.label}</span>
                                       {@render badge(subLink.badge)}
                                     </a>
+                                    {/if}
                                   {/snippet}
                                 </Sidebar.MenuSubButton>
 

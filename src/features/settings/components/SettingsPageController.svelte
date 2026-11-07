@@ -2,6 +2,8 @@
 import { onMount, untrack } from "svelte";
 import { toast } from "svelte-sonner";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
+import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
+import type { DemoView } from "@/features/demo/lib/demo-types";
 import SettingsAccountsTab from "@/features/settings/components/SettingsAccountsTab.svelte";
 import SettingsAuthorizationsTab from "@/features/settings/components/SettingsAuthorizationsTab.svelte";
 import SettingsDangerTab from "@/features/settings/components/SettingsDangerTab.svelte";
@@ -27,6 +29,7 @@ import type {
 } from "./settings-component-types";
 
 type PageData = {
+  demo?: DemoView | null;
   accounts: SettingsAccount[];
   authorizations: SettingsOAuthAuthorization[];
   securityActivity: SettingsSecurityActivity;
@@ -87,10 +90,19 @@ let avatarOptions = $derived(
 );
 let currentImage = $derived(data.user.image ?? "");
 let previewImage = $derived(
-  selectedImage || currentImage || "/images/icon.png",
+  data.demo
+    ? "/images/icon.png"
+    : selectedImage || currentImage || "/images/icon.png",
 );
-let statusMessage = $derived(form?.message ?? data.message);
-let redirectStatus = $derived(routePage.url.searchParams.get("message"));
+let statusMessage = $derived(
+  data.demo ? null : (form?.message ?? data.message),
+);
+let redirectStatus = $derived(
+  data.demo ? null : routePage.url.searchParams.get("message"),
+);
+$effect.pre(() => {
+  if (data.demo) selectedImage = undefined;
+});
 $effect.pre(() => {
   if (!redirectStatus) {
     consumedStatusKey = "";
@@ -140,7 +152,14 @@ let _unlinkAccount = $derived(
   data.accounts.find((account) => account.id === _unlinkAccountId) ?? null,
 );
 let _hasPendingAccountAction = $derived(Boolean(_pendingAccountAction));
-let pageHeading = $derived(resolveSettingsPageHeading(copy, data.tab));
+let pageHeading = $derived(
+  data.demo
+    ? {
+        title: copy.settings.nav.profile.title,
+        description: copy.settings.nav.profile.description,
+      }
+    : resolveSettingsPageHeading(copy, data.tab),
+);
 </script>
 
 <svelte:head><title>{pageHeading.title} - Life@USTC</title></svelte:head>
@@ -155,6 +174,7 @@ let pageHeading = $derived(resolveSettingsPageHeading(copy, data.tab));
       previewImage={previewImage}
       bind:selectedImage
       user={data.user}
+      readOnly={Boolean(data.demo)}
     />
   {:else if tab === "preferences"}
     <SettingsPreferencesTab copy={copy} locale={data.locale} />
@@ -204,6 +224,7 @@ let pageHeading = $derived(resolveSettingsPageHeading(copy, data.tab));
     class="grid min-w-0 gap-4"
     data-settings-active-panel
   >
+    {#if data.demo}<DemoNotice demo={data.demo} locale={data.locale} />{/if}
     <SettingsStatusAlert copy={copy} statusMessage={statusMessage} />
 
     <div class="grid min-w-0 gap-4" data-settings-active-group>

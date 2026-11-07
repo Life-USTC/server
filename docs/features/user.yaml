@@ -997,6 +997,7 @@ capabilities:
         and user.private-workspace-profile-exclusion
   settings:
     title: Settings
+    description: Ordinary authenticated settings retain full behavior; an independently validated demo identity can only browse fixed read-only profile presentation under demo.profile-projection.
     auth: user
     web:
       pages:

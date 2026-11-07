@@ -14,10 +14,15 @@ export let isMounted: boolean;
 export let previewImage: string;
 export let selectedImage: string | undefined;
 export let user: SettingsUser;
+export let readOnly = false;
 
 let saving = false;
 
-const updateProfile: SubmitFunction = () => {
+const updateProfile: SubmitFunction = ({ cancel }) => {
+  if (readOnly) {
+    cancel();
+    return;
+  }
   saving = true;
   return async ({ update }) => {
     try {
@@ -41,7 +46,7 @@ const updateProfile: SubmitFunction = () => {
     avatarOptionLabel={copy.accessibility.avatarOption}
     previewTestId="current-avatar"
     currentImage={currentImage}
-    disabled={!isMounted}
+    disabled={readOnly || !isMounted}
     previewImage={previewImage}
     bind:selectedImage
     user={user}
@@ -51,12 +56,12 @@ const updateProfile: SubmitFunction = () => {
     <ProfileIdentityFields
       copy={copy.profile}
       user={user}
-      disabled={!isMounted || saving}
+      disabled={readOnly || !isMounted || saving}
       showUsernameRequiredIndicator={false}
     />
   </Field.Group>
 
-  <Button class="w-fit" type="submit" disabled={!isMounted || saving}>
+  <Button class="w-fit" type="submit" disabled={readOnly || !isMounted || saving}>
     {#if saving}<Spinner data-icon="inline-start" />{/if}
     {saving ? copy.profile.pleaseWait : copy.profile.save}
   </Button>
