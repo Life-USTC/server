@@ -155,7 +155,7 @@ it.each([
   ["GET", "/oauth/authorize"],
   ["POST", "/api/uploads"],
   ["GET", "/api/calendar/private.ics"],
-  ["GET", "/catalog/teachers"],
+  ["GET", "/catalog/rooms"],
   ["POST", "/catalog/sections"],
   ["PATCH", "/api/catalog/sections"],
   ["GET", "/catalog/sections/__data.json/__data.json"],

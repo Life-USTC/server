@@ -152,7 +152,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
   <p class="text-muted-foreground text-sm">{message}</p>
 {/snippet}
 
-{#snippet itemList(items: HomeListItem[], emptyMessage: string)}
+{#snippet itemList(items: HomeListItem[], emptyMessage: string, activity = false)}
   {#if items.length === 0}
     {@render note(emptyMessage)}
   {:else}
@@ -169,9 +169,9 @@ function overflowClass(index: number, shown: string, hidden: string): string {
           {#snippet child({ props })}
             <a href={item.href} {...props}>
               <Item.Content class="min-w-0 gap-0.5">
-                <Item.Title class="break-words">{item.title}</Item.Title>
+                <Item.Title class={activity ? "block w-full line-clamp-none [overflow-wrap:anywhere]" : "break-words"}>{item.title}</Item.Title>
                 {#if item.meta || item.dateLabel}
-                  <Item.Description class="flex flex-wrap gap-x-2 gap-y-0.5">
+                  <Item.Description class={activity ? "flex! flex-col gap-0.5 line-clamp-none [overflow-wrap:anywhere]" : "flex flex-wrap gap-x-2 gap-y-0.5"}>
                     {#if item.meta}<span class="break-words">{item.meta}</span>{/if}
                     {#if item.dateLabel}
                       <span class="tabular-nums">{item.dateLabel}</span>
@@ -242,7 +242,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
             {#if group.length}
               <div class="grid min-w-0 gap-1">
                 <h3 class="text-sm font-medium">{crossDay ? info.activities.crossDay : info.activities.upcoming}</h3>
-                {@render itemList(group, info.activities.empty)}
+                {@render itemList(group, info.activities.empty, true)}
               </div>
             {/if}
           {/each}

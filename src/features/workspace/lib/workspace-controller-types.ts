@@ -142,6 +142,8 @@ export type WorkspaceCopy = WorkspaceRecord & {
   calendarAgendaLabel: string;
   calendarMoreActions: string;
   calendarViewDay: string;
+  calendarViewLabel: string;
+  calendarNavigationLabel: string;
   calendarDay: { prev: string; next: string; label: string };
   calendarDayAgendaLabel: string;
   calendarViewMonth: string;
@@ -478,6 +480,7 @@ export type WorkspaceTodoPriorityOption = {
 };
 
 export type WorkspaceSessionItem = WorkspaceRecord & {
+  weekIndex?: number | null;
   courseName: string;
   dateKey?: string | null;
   endTime: number;

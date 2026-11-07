@@ -22,6 +22,7 @@ import {
   youngDetailFacts,
   youngEventStatusLabel,
 } from "../lib/young-event-display";
+import YoungEventPoster from "./YoungEventPoster.svelte";
 import YoungSourceNote from "./YoungSourceNote.svelte";
 import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
@@ -135,20 +136,7 @@ const signupLabel = $derived(
     data-testid="young-event-banner"
   >
     {#if event.imageUrl}
-      <a
-        class="justify-self-center lg:justify-self-stretch"
-        href={event.imageUrl}
-        rel="noreferrer noopener"
-        target="_blank"
-        aria-label={youngCopy.poster}
-      >
-        <img
-          alt={event.name}
-          class="max-h-64 w-full rounded-lg bg-muted object-contain lg:max-h-80"
-          onerror={hideBrokenImage}
-          src={event.imageUrl}
-        />
-      </a>
+      <YoungEventPoster src={event.imageUrl} name={event.name} label={youngCopy.poster} failedLabel={youngCopy.posterFailed} retryLabel={copy.comments.retry} />
     {/if}
     <div class="grid min-w-0 gap-4">
       <div class="grid min-w-0 gap-3">

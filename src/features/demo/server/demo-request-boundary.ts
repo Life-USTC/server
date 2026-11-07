@@ -36,6 +36,7 @@ function isDemoCatalogPage(path: string) {
   return (
     path === "/catalog/courses" ||
     path === "/catalog/sections" ||
+    path === "/catalog/teachers" ||
     /^\/catalog\/(?:sections|courses|teachers)\/[1-9]\d*$/.test(path)
   );
 }
@@ -45,6 +46,7 @@ function isDemoCatalogRead(path: string) {
     isDemoCatalogPage(path.replace(/\/__data\.json$/, "")) ||
     path === "/api/catalog/courses" ||
     path === "/api/catalog/sections" ||
+    path === "/api/catalog/teachers" ||
     /^\/api\/catalog\/sections\/[1-9]\d*$/.test(path) ||
     /^\/_internal\/catalog\/sections\/[1-9]\d*\/viewer$/.test(path) ||
     path === "/api/community/descriptions" ||

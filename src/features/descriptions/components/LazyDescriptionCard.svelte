@@ -1,8 +1,6 @@
 <script lang="ts">
 import { type ComponentProps, onMount } from "svelte";
-import * as Alert from "#lib/components/ui/alert/index.js";
-import { Button } from "#lib/components/ui/button/index.js";
-import { Skeleton } from "#lib/components/ui/skeleton/index.js";
+import LazyModuleStatus from "#lib/components/LazyModuleStatus.svelte";
 import type DescriptionCardComponent from "./DescriptionCard.svelte";
 
 type CardProps = ComponentProps<typeof DescriptionCardComponent>;
@@ -18,18 +16,28 @@ export let readOnlyReason: string | undefined = undefined;
 
 let DescriptionCard: typeof DescriptionCardComponent | null = null;
 let loadError = false;
+let loading = false;
+let destroyed = false;
 
 async function loadCard() {
+  if (destroyed || loading) return;
+  loading = true;
   loadError = false;
   try {
-    DescriptionCard = (await import("./DescriptionCard.svelte")).default;
+    const result = await import("./DescriptionCard.svelte");
+    if (!destroyed) DescriptionCard = result.default;
   } catch {
-    loadError = true;
+    if (!destroyed) loadError = true;
+  } finally {
+    if (!destroyed) loading = false;
   }
 }
 
 onMount(() => {
   void loadCard();
+  return () => {
+    destroyed = true;
+  };
 });
 </script>
 
@@ -46,25 +54,12 @@ onMount(() => {
     {readOnlyReason}
     showTitle={false}
   />
-{:else if initialData.description.renderedHtml}
-  <h2 class="mb-3 text-lg font-semibold tracking-tight">{heading}</h2>
-  <div class="markdown-preview" data-slot="markdown-preview">
-    {@html initialData.description.renderedHtml}
-  </div>
-{:else if loadError}
-  <Alert.Root variant="destructive">
-    <Alert.Description>{copy.loadFailed}</Alert.Description>
-    <Alert.Action>
-      <Button size="sm" variant="ghost" onclick={() => void loadCard()}>
-        {copy.retry}
-      </Button>
-    </Alert.Action>
-  </Alert.Root>
 {:else}
-  <div class="grid gap-3" aria-busy="true" aria-label={heading}>
-    <Skeleton class="h-5 w-28" />
-    <Skeleton class="h-4 w-full" />
-    <Skeleton class="h-4 w-11/12" />
-    <Skeleton class="h-4 w-4/5" />
-  </div>
+  <h2 class="mb-3 text-lg font-semibold tracking-tight">{heading}</h2>
+  {#if initialData.description.renderedHtml}
+    <div class="markdown-preview" data-slot="markdown-preview">{@html initialData.description.renderedHtml}</div>
+  {/if}
+  {#if loadError || !initialData.description.renderedHtml}
+  <LazyModuleStatus failed={loadError} {heading} loadFailed={copy.loadFailed} retry={copy.retry} onRetry={() => void loadCard()} />
+  {/if}
 {/if}

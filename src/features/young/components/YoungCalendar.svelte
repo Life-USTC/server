@@ -31,6 +31,7 @@ export let conflictIds = new Set<string>();
 export let conflictLabel = "";
 export let labels: {
   agenda: string;
+  viewLabel: string;
   earlierDates: string;
   month: string;
   next: string;
@@ -174,14 +175,14 @@ function crossesDate(event: YoungCalendarEvent) {
 {/snippet}
 
 <section class="grid gap-4" data-testid="young-calendar">
-  <div class="flex min-w-0 items-center justify-between gap-1 sm:gap-3">
+  <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:justify-between sm:gap-3">
     <div class="flex shrink-0 items-center gap-1 sm:gap-2">
       <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" aria-label={labels.previous} variant="outline" href={hrefFor(view, youngCalendarPreviousDate(view, anchorDate))}>‹</Button>
       <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" variant="outline" href={hrefFor(view, normalizeYoungCalendarDate(null))}>{labels.today}</Button>
       <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" aria-label={labels.next} variant="outline" href={hrefFor(view, youngCalendarNextDate(view, anchorDate))}>›</Button>
     </div>
-    <h2 class="min-w-0 flex-1 truncate text-center font-medium text-sm sm:text-base">{heading}</h2>
-    <nav aria-label={labels.agenda} class="flex shrink-0 items-center gap-1">
+    <h2 class="col-span-2 row-start-2 min-w-0 break-words font-medium text-sm sm:flex-1 sm:text-center sm:text-base">{heading}</h2>
+    <nav aria-label={labels.viewLabel} class="col-start-2 row-start-1 flex shrink-0 items-center gap-1">
       {#each ["day", "week", "month"] as targetView}
         <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" variant={view === targetView ? "secondary" : "ghost"} aria-current={view === targetView ? "page" : undefined} href={hrefFor(targetView as YoungCalendarView, anchorDate)}>{labels[targetView as YoungCalendarView]}</Button>
       {/each}

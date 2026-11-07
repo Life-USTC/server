@@ -211,6 +211,7 @@ jobs:
           path: |
             .svelte-kit/cloudflare
             .svelte-kit/test-worker
+            .svelte-kit/output/client/.vite/manifest.json
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 14

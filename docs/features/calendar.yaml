@@ -54,7 +54,7 @@ requirements:
     ranges longer than 366 inclusive days are loaded in bounded date windows, with all pages fetched and
     overlapping activities displayed once.
   rationale: Day, week, and month remain useful with or without courses; semester adds the academic planning
-    range without removing a shorter view. A day agenda preserves course context and subscription badges.
+    range without removing a shorter view. View controls identify Day, Week, Month and the academic Semester separately from returning to today. Academic, personal activity and public activity calendars keep previous period, today and next period in that order with period-specific accessible navigation names. A day agenda preserves course context and subscription badges.
   acceptance:
     given: One isolated owner has a course and an activity subscription; another has only the same activity
       subscription.
@@ -74,18 +74,16 @@ requirements:
       name: calendar.day-navigation en-us 390
 - id: calendar.mobile-agenda-first
   category: presentation
-  rule: At mobile widths, the personal academic calendar offers day and week as vertically readable agendas
-    with time, title, type, and available location context. Previous day/week, today, next day/week, and
-    iCal actions remain directly accessible without page-level horizontal scrolling; desktop also offers
-    month and semester grids.
+  rule: At narrow widths, the personal academic calendar retains day, week, month and semester as vertically readable agendas covering the complete selected range with time, title, type, and available location context. View selection is separate from previous period, today and next period navigation. iCal actions remain accessible without page-level horizontal scrolling; desktop retains week, month and semester grids.
   acceptance:
     given: An isolated signed-in course subscriber opens a selected week on a 390px screen.
-    when: The browser reads the agenda, uses its iCal action, navigates weeks, and switches between day
-      and week.
+    when: The browser reads the agenda, uses its iCal action, navigates periods, and selects day, week, month and semester.
     then:
     - Week mode shows seven vertical day groups and real event context; day mode shows one day group.
     - Day/week navigation and today/actions controls have at least 44px touch bounds and copied iCal links
       are usable.
+    - Month and semester modes retain their full date ranges and activity links, rather than silently displaying only seven days.
+    - View names identify day, week, month and semester; navigation names identify the actual period and keep previous, today, next in that order.
     - Navigation preserves the agenda without page-level horizontal overflow.
     test:
       file: tests/e2e/src/app/workspace/calendar/test.ts
@@ -318,6 +316,19 @@ requirements:
     test:
       file: tests/integration/workspace-native-read-contract.test.ts
       name: calendar.native-navigation-context
+- id: calendar.stored-teaching-week
+  category: consistency
+  rule: Academic month, semester and week grids use the existing stored schedule teaching week rather than the grid row ordinal. A row with missing, invalid or conflicting teaching weeks displays the generic week label without inventing a number.
+  rationale: Month boundaries and adjusted class dates do not renumber the teaching week published for a course session.
+  acceptance:
+    given: The same November 6 course session has stored teaching week 10, with additional unknown or conflicting adjusted sessions in separate scenarios.
+    when: Build month, semester and week grids containing that date.
+    then:
+    - All three views retain teaching week 10 for an unambiguous row and the exact section link.
+    - Mixed or unknown rows use the generic week label, while a known first teaching week remains week 1.
+    test:
+      file: tests/unit/features/workspace/calendar-grid-teaching-weeks.test.ts
+      name: keeps the same stored week across month, semester and week grids
 capabilities:
   personal-calendar-view:
     title: Personal Calendar View
