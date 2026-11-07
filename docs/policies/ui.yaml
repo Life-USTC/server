@@ -1130,6 +1130,7 @@ requirements:
       their own profile made incomplete.
     then:
     - Workspace, settings, and administration routes omit the public footer navigation.
+    - Their sidebar legal navigation retains reachable Terms, Privacy, GitHub, and mobile usage links; this strip is not an appended public footer.
     - The incomplete profile reaches the canonical welcome route, which also omits the public footer.
     test:
       file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
