@@ -12,7 +12,7 @@ import {
 } from "@/features/workspace/lib/anonymous-home-layout";
 import { formatMessage } from "@/features/workspace/lib/overview-formatters";
 import { youngDateRange } from "@/features/young/lib/young-event-display";
-import { listYoungEvents } from "@/features/young/server/young-event-service";
+import { readYoungHomeActivities } from "@/features/young/server/young-home-activities";
 import type { AppLocale } from "@/i18n/config";
 import { logAppEvent } from "@/lib/log/app-logger";
 import {
@@ -55,8 +55,8 @@ const SECTION_BUDGET_MS = 1_500;
  * Desktop reads these sections on a canvas twice the width of a phone, so the
  * page fetches the longer list and the component's breakpoint decides how much
  * of it is shown (`src/features/workspace/lib/anonymous-home-layout.ts`).
- * Activities use separate bounded reads for starts today/later and cross-day
- * ranges, so an old long-running activity cannot crowd out a new start. Each
+ * Activities classify actual Shanghai dates before separate bounded reads, so
+ * neither ongoing nor future long ranges crowd out a concrete new start. Each
  * group uses the same compact/wide row limits.
  */
 const NOTICE_LIMIT = HOME_LIST_LIMIT;
@@ -260,31 +260,15 @@ async function readActivities(locale: AppLocale): Promise<HomeActivityItem[]> {
   // by the day boundary, never by one visitor's request time.
   const today = shanghaiDayjs().startOf("day");
   const copy = getWorkspacePageCopy(locale).youngEvents;
-  const groups = await Promise.all(
-    [false, true].map(async (crossDay) => {
-      const { data } = await listYoungEvents({
-        dateFrom: today.toDate(),
-        page: 1,
-        pageSize: ACTIVITY_LIMIT,
-        timeBasis: "activity",
-        tableFilters: {
-          active: "true",
-          timeBasis: "activity",
-          startAt: today.format("YYYY-MM-DD"),
-          startAtOp: crossDay ? "lt" : "gte",
-        },
-      });
-      return data.map((event) => ({
-        dateLabel: youngDateRange(event.startAt, event.endAt, copy),
-        href: `/catalog/young-events/${event.youngId}`,
-        key: event.youngId,
-        meta: event.location ?? event.organizer,
-        crossDay,
-        title: event.name,
-      }));
-    }),
-  );
-  return groups.flat();
+  const events = await readYoungHomeActivities(today.toDate(), ACTIVITY_LIMIT);
+  return events.map((event) => ({
+    dateLabel: youngDateRange(event.startAt, event.endAt, copy),
+    href: `/catalog/young-events/${event.youngId}`,
+    key: event.youngId,
+    meta: event.location ?? event.organizer,
+    crossDay: event.crossDay,
+    title: event.name,
+  }));
 }
 
 export async function loadAnonymousHomeInformation(input: {
