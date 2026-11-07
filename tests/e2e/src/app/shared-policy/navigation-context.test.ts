@@ -98,7 +98,28 @@ async function sidebar(page: Page, width: number) {
   }
   return page.getByTestId("app-sidebar");
 }
-async function insideHorizontalViewport(link: Locator, viewport: Locator) {
+async function navigationVisibleBounds(viewport: Locator) {
+  return viewport.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    // The sidebar's no-scrollbar scrollport retains fractional CSS geometry.
+    // Intersect its padding box with the actual browser viewport.
+    return {
+      left: Math.max(0, rect.left + Number.parseFloat(style.borderLeftWidth)),
+      right: Math.min(
+        innerWidth,
+        rect.right - Number.parseFloat(style.borderRightWidth),
+      ),
+      top: Math.max(0, rect.top + Number.parseFloat(style.borderTopWidth)),
+      bottom: Math.min(
+        innerHeight,
+        rect.bottom - Number.parseFloat(style.borderBottomWidth),
+      ),
+    };
+  });
+}
+
+async function insideNavigationViewport(link: Locator, viewport: Locator) {
   const [item, region] = await Promise.all([
     link.boundingBox(),
     viewport.boundingBox(),
@@ -108,6 +129,11 @@ async function insideHorizontalViewport(link: Locator, viewport: Locator) {
   if (!item || !region) throw new Error("Expected navigation geometry");
   expect(item.x).toBeGreaterThanOrEqual(region.x - 1);
   expect(item.x + item.width).toBeLessThanOrEqual(region.x + region.width + 1);
+  const visible = await navigationVisibleBounds(viewport);
+  expect(item.x).toBeGreaterThanOrEqual(visible.left);
+  expect(item.x + item.width).toBeLessThanOrEqual(visible.right);
+  expect(item.y).toBeGreaterThanOrEqual(visible.top);
+  expect(item.y + item.height).toBeLessThanOrEqual(visible.bottom);
 }
 
 test("ui.context-tabs-3", { tag: "@Site/Web" }, async ({
@@ -146,8 +172,16 @@ test("ui.context-tabs-3", { tag: "@Site/Web" }, async ({
         .poll(async () => {
           const a = await nav.locator('[aria-current="page"]').boundingBox();
           const b = await viewport.boundingBox();
+          const visible = await navigationVisibleBounds(viewport);
           return Boolean(
-            a && b && a.x >= b.x - 1 && a.x + a.width <= b.x + b.width + 1,
+            a &&
+              b &&
+              a.x >= b.x - 1 &&
+              a.x + a.width <= b.x + b.width + 1 &&
+              a.x >= visible.left &&
+              a.x + a.width <= visible.right &&
+              a.y >= visible.top &&
+              a.y + a.height <= visible.bottom,
           );
         })
         .toBe(true);
@@ -166,7 +200,7 @@ test("ui.context-tabs-3", { tag: "@Site/Web" }, async ({
           Math.min(...boxes.map((box) => box.y)),
       ).toBeGreaterThan(100);
       await links.first().focus();
-      await insideHorizontalViewport(links.first(), viewport);
+      await insideNavigationViewport(links.first(), viewport);
       await page.keyboard.press("Enter");
       await expect(page).toHaveURL(new RegExp(`${paths[0]}$`));
       for (let index = 0; index < paths.length; index++) {
@@ -178,13 +212,13 @@ test("ui.context-tabs-3", { tag: "@Site/Web" }, async ({
         await expect(
           page.locator("[data-settings-active-panel]"),
         ).toBeVisible();
-        await insideHorizontalViewport(active, viewport);
+        await insideNavigationViewport(active, viewport);
         if (index + 1 < paths.length) {
           await active.focus();
           await page.keyboard.press("Tab");
           const next = nav.locator(`a[href="${paths[index + 1]}"]`);
           await expect(next).toBeFocused();
-          await insideHorizontalViewport(next, viewport);
+          await insideNavigationViewport(next, viewport);
 
           await page.keyboard.press("Enter");
           await expect(page).toHaveURL(new RegExp(`${paths[index + 1]}$`));

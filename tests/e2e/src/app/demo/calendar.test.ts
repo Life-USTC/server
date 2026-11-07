@@ -1,4 +1,4 @@
-import { expect, type Route } from "@playwright/test";
+import { expect, type Locator, type Page, type Route } from "@playwright/test";
 import { createDeferred } from "../../../../shared/deferred";
 import { createSignedDemoCookie } from "../../../../shared/demo-token";
 import { withBrowserWorkflow } from "../../../utils/browser-workflow";
@@ -20,6 +20,89 @@ const test = workerTest.extend<{
   },
 });
 test.use({ workerBindings: { DEMO_ENABLED: "1", E2E_DEBUG_AUTH: "0" } });
+
+async function expectDemoCalendarRange(
+  page: Page,
+  view: "day" | "week" | "month" | "semester",
+  width: number,
+  english: boolean,
+) {
+  // Independent published fixture facts: Sunday weeks, fixed six-row month,
+  // and the complete autumn semester including its final padded week.
+  const { start, count, events } = {
+    day: { start: "2026-09-24", count: 1, events: 2 },
+    week: { start: "2026-09-20", count: 7, events: 6 },
+    month: { start: "2026-08-30", count: 42, events: 7 },
+    semester: { start: "2026-08-30", count: 154, events: 9 },
+  }[view];
+  const dates = Array.from({ length: count }, (_, index) =>
+    new Date(Date.parse(`${start}T00:00:00Z`) + index * 86_400_000)
+      .toISOString()
+      .slice(0, 10),
+  );
+  const agenda = view === "day" || width === 390;
+  const surface = agenda
+    ? page.getByTestId("calendar-agenda").filter({ visible: true })
+    : page.getByTestId("workspace-calendar-grid");
+  const days = agenda
+    ? surface.locator("section")
+    : surface.getByRole("gridcell");
+  await expect(days).toHaveCount(count);
+  await expect
+    .poll(() =>
+      days.evaluateAll(
+        (elements, isAgenda) =>
+          elements.map((element) =>
+            isAgenda
+              ? element.getAttribute("aria-labelledby")
+              : element.firstElementChild?.textContent?.trim(),
+          ),
+        agenda,
+      ),
+    )
+    .toEqual(dates.map((date) => (agenda ? `agenda-${date}` : date.slice(5))));
+  if (!agenda)
+    await expect(surface.getByRole("rowheader")).toHaveCount(count / 7);
+  await expect(surface.locator("a[href]")).toHaveCount(events);
+  const day = (date: string): Locator =>
+    agenda
+      ? surface.locator(`section[aria-labelledby="agenda-${date}"]`)
+      : days.filter({ has: page.getByText(date.slice(5), { exact: true }) });
+  for (const [id, title] of [
+    [910001, english ? "Linear Algebra" : "线性代数"],
+    [910002, english ? "College Physics" : "大学物理"],
+  ] as const) {
+    const course = day("2026-09-24").locator(
+      `a[href="/catalog/sections/${id}"]`,
+    );
+    await expect(course).toContainText(title);
+    await expect(course).toContainText("08:00");
+    await expect(course).toContainText("09:45");
+  }
+  if (view === "month" || view === "semester") {
+    const homework = day("2026-09-27").locator(
+      'a[href="/catalog/sections/910002?homeworkId=demo-homework-physics#homework"]',
+    );
+    await expect(homework).toContainText(
+      english ? "Mechanics further reading" : "力学拓展阅读",
+    );
+    await expect(homework).toContainText("18:00");
+  }
+  if (view === "semester") {
+    const exams = day("2027-01-08").locator('a[href="/workspace/exams"]');
+    await expect(exams).toHaveCount(2);
+    await expect(
+      exams.filter({ hasText: english ? "Linear Algebra" : "线性代数" }),
+    ).toHaveCount(1);
+    await expect(
+      exams.filter({ hasText: english ? "College Physics" : "大学物理" }),
+    ).toHaveCount(1);
+    for (const exam of await exams.all()) {
+      await expect(exam).toContainText("14:00");
+      await expect(exam).toContainText("16:00");
+    }
+  }
+}
 
 test("demo.calendar: exit and history cannot restore a held previous demo calendar response", {
   tag: "@Account/Web",
@@ -187,14 +270,22 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                 exact: true,
               }),
             ).toBeVisible();
-            for (const name of english
-              ? ["Day", "Week", "Month", "Semester"]
-              : ["日", "周", "月", "学期"]) {
+            for (const [view, name] of [
+              ["day", english ? "Day" : "日"],
+              ["week", english ? "Week" : "周"],
+              ["month", english ? "Month" : "月"],
+              ["semester", english ? "Semester" : "学期"],
+            ] as const) {
               await page.getByRole("radio", { name, exact: true }).click();
               await waitForUiSettled(page);
               await expect(
                 page.getByRole("radio", { name, exact: true }),
               ).toBeChecked();
+              const calendarModule = page
+                .getByTestId("workspace-calendar-mobile-toolbar")
+                .locator("xpath=ancestor::section[1]");
+              await expect(calendarModule.getByRole("status")).toHaveCount(0);
+              await expectDemoCalendarRange(page, view, width, english);
               if (name === (english ? "Day" : "日")) {
                 await expect(
                   page.getByRole("textbox", {
