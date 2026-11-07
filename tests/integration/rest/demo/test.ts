@@ -631,7 +631,7 @@ test.describe("enabled demo", () => {
           ["GET", "/admin/users"],
           ["POST", "/api/graphql"],
           ["POST", "/api/mcp"],
-          ["GET", "/catalog/teachers"],
+          ["GET", "/catalog/rooms"],
           ["POST", "/catalog/sections"],
           ["PATCH", "/api/catalog/sections"],
           ["POST", "/catalog/courses"],
