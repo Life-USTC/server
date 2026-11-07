@@ -342,6 +342,7 @@ for (const mode of [
   "new-anchor",
   "same-anchor",
   "same-anchor-keyboard",
+  "keyboard-input",
 ] as const) {
   test(`shell.anchor late viewer respects ${mode}`, {
     tag: "@Site/Web",
@@ -399,6 +400,17 @@ for (const mode of [
             .locator('a[href="#introduction"]')
             .click();
           await expect(page).toHaveURL(/#introduction$/);
+        } else if (mode === "keyboard-input") {
+          // Arrange the read position without dispatching an already-covered
+          // wheel/Home cancellation; the new intent comes only from keyboard.
+          await inner.evaluate((node) => {
+            node.scrollTop = 0;
+          });
+          await page.keyboard.press("Control+k");
+          await expect(
+            page.locator("#global-search-dialog-input"),
+          ).toBeFocused();
+          await page.keyboard.type("Anchor");
         } else {
           const anchor = page
             .getByTestId("shell-detail-navigation")
@@ -428,6 +440,16 @@ for (const mode of [
         } else if (mode === "new-anchor") {
           await expect(page).toHaveURL(/#introduction$/);
           await expect(page.locator("#introduction h2")).toBeInViewport();
+        } else if (mode === "keyboard-input") {
+          await expect(page.locator("#global-search-dialog-input")).toHaveValue(
+            "Anchor",
+          );
+          await expect(
+            page.locator("#global-search-dialog-input"),
+          ).toBeFocused();
+          await expect
+            .poll(() => inner.evaluate((node) => node.scrollTop))
+            .toBe(0);
         } else {
           await expect(page).toHaveURL(/#comments$/);
           await expect(page.locator("#comments h2")).toBeInViewport();

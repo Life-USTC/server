@@ -59,17 +59,9 @@ onMount(() => {
     }
   };
   const cancelKey = (event: KeyboardEvent) => {
-    if (
-      [
-        "ArrowUp",
-        "ArrowDown",
-        "PageUp",
-        "PageDown",
-        "Home",
-        "End",
-        " ",
-      ].includes(event.key)
-    )
+    // Tab, activation and typing all express a newer reading/focus intent.
+    // A subsequent explicit TOC click/Enter can still start its own owner.
+    if (!["Shift", "Control", "Alt", "Meta", "AltGraph"].includes(event.key))
       cancel();
   };
   window.addEventListener("wheel", cancel, { passive: true });
