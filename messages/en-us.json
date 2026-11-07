@@ -3191,6 +3191,18 @@
     }
   },
   "shell": {
+    "currentLocation": "Current location",
+    "detailNavigation": {
+      "label": "On this page",
+      "relatedCourse": "View course",
+      "introduction": "Description",
+      "calendar": "Calendar",
+      "exams": "Exams",
+      "homework": "Homework",
+      "comments": "Comments",
+      "sections": "Teaching sections",
+      "overview": "More details"
+    },
     "menu": "Menu",
     "scrollRegion": "Main content scroll region",
     "toggleSidebar": "Toggle sidebar",
