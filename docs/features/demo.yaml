@@ -14,6 +14,25 @@ access:
   admin: Admin capabilities are never simulated.
   agent: Demo identity supplies no OAuth, GraphQL or MCP authority.
 requirements:
+- id: demo.calendar-projection
+  category: privacy
+  rule: The existing personal calendar is a read-only projection of the fixed subscribed sections,
+    catalog schedules and exams, pending dated homeworks and incomplete dated todos. It uses the fixture
+    reference clock, stored teaching-week values and Shanghai range boundaries, including complete
+    selected-semester data and normal pagination. It invents no recurrence or activity. All four academic
+    views remain available at every width; narrow month and semester views use the existing complete agenda.
+    Only a matching root-shell demo identity grants presentation ownership. Demo never becomes a real
+    authenticated viewer, creates a calendar token or enables activity management, export or mutations.
+  acceptance:
+    given: Enabled demo sessions, expired and mixed identities, and an ordinary owner with private records.
+    when: Browse the existing calendar across day, week, month and semester, then request paginated events.
+    then:
+    - Page, API and navigation derive from the same existing fixed facts; historical and unknown semester selection stay fixture-only.
+    - Demo reads have no database, storage, queue or outbound effects and never reveal the ordinary owner's record.
+    - Invalid or mixed identities and writes fail closed; the ordinary authenticated API still reads its actual owner.
+    test:
+      file: tests/integration/rest/demo/calendar.test.ts
+      name: demo calendar isolates real owners, paginates fixed facts and rejects writes and forged identities
 - id: demo.entry-gate
   category: authorization
   rule: Only an explicitly enabled deployment offers demo entry. Entry and exit require same-origin POST
@@ -444,6 +463,27 @@ capabilities:
       - Follow teaching section and course details with read-only labeling
       requirement_refs:
       - demo.section-list-projection
+  demo-calendar:
+    title: Read-only Demo Personal Calendar
+    auth: anon
+    web:
+      pages:
+      - /workspace/calendar
+    rest:
+      routes:
+      - method: GET
+        path: /api/workspace/calendar/events
+        reference_only: true
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Browse day, week, month and complete semester views at desktop and mobile widths
+      - Move between existing sample semesters and return to the fixed reference period
+      - Follow existing catalog and workspace links while retaining read-only identity
+      requirement_refs:
+      - demo.calendar-projection
   demo-exams:
     title: Read-only Demo Exams
     description: Existing exams view projects the catalog samples without a real user identity or export capability.

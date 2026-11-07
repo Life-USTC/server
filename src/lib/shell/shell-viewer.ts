@@ -1,9 +1,11 @@
 import { getContext } from "svelte";
 import type { Readable } from "svelte/store";
+import type { DemoView } from "@/features/demo/lib/demo-types";
 import type { LayoutUserSummary } from "@/lib/shell/layout-server-data";
 
 export type ShellViewerState = {
   viewer: LayoutUserSummary;
+  demo?: DemoView | null;
   status: "loading" | "ready" | "error";
 };
 
