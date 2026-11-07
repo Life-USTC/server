@@ -1,6 +1,7 @@
 <script lang="ts">
 import CalendarIcon from "@lucide/svelte/icons/calendar";
 import { onMount } from "svelte";
+import LazyModuleStatus from "#lib/components/LazyModuleStatus.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
@@ -33,6 +34,7 @@ export let homeworkCopy: SectionDetailMainContentProps["homeworkCopy"];
 export let homeworks: SectionDetailMainContentProps["homeworks"];
 export let notAvailable: string;
 export let openCalendarDialog: SectionDetailMainContentProps["openCalendarDialog"];
+export let openHomeworkAuditDialog: () => void;
 export let openCreateHomeworkDialog: SectionDetailMainContentProps["openCreateHomeworkDialog"];
 export let openSubscribeDialog: () => void;
 export let periodDetailRows: SectionDetailMainContentProps["periodDetailRows"];
@@ -71,21 +73,65 @@ let SectionHomeworkTab:
   | typeof import("./SectionHomeworkTab.svelte").default
   | null = null;
 
+type ModuleKey = "description" | "calendar" | "exams" | "homework" | "comments";
+let moduleErrors: Partial<Record<ModuleKey, boolean>> = {};
+let modulePending: Partial<Record<ModuleKey, boolean>> = {};
+let destroyed = false;
+
+async function loadModule<T>(
+  key: ModuleKey,
+  load: () => Promise<{ default: T }>,
+  apply: (component: T) => void,
+) {
+  if (destroyed || modulePending[key]) return;
+  modulePending[key] = true;
+  moduleErrors[key] = false;
+  try {
+    const result = await load();
+    if (!destroyed) apply(result.default);
+  } catch {
+    if (!destroyed) moduleErrors[key] = true;
+  } finally {
+    if (!destroyed) modulePending[key] = false;
+  }
+}
+const moduleLoaders = {
+  description: () =>
+    loadModule(
+      "description",
+      () => import("@/features/descriptions/components/DescriptionCard.svelte"),
+      (component) => (DescriptionCard = component),
+    ),
+  calendar: () =>
+    loadModule(
+      "calendar",
+      () => import("./SectionCalendarTab.svelte"),
+      (component) => (SectionCalendarTab = component),
+    ),
+  exams: () =>
+    loadModule(
+      "exams",
+      () => import("./SectionExamSection.svelte"),
+      (component) => (SectionExamSection = component),
+    ),
+  homework: () =>
+    loadModule(
+      "homework",
+      () => import("./SectionHomeworkTab.svelte"),
+      (component) => (SectionHomeworkTab = component),
+    ),
+  comments: () =>
+    loadModule(
+      "comments",
+      () => import("@/features/comments/components/CommentsPanel.svelte"),
+      (component) => (CommentsPanel = component),
+    ),
+};
 onMount(() => {
-  void (async () => {
-    DescriptionCard ??= (
-      await import("@/features/descriptions/components/DescriptionCard.svelte")
-    ).default;
-    SectionCalendarTab ??= (await import("./SectionCalendarTab.svelte"))
-      .default;
-    SectionExamSection ??= (await import("./SectionExamSection.svelte"))
-      .default;
-    SectionHomeworkTab ??= (await import("./SectionHomeworkTab.svelte"))
-      .default;
-    CommentsPanel ??= (
-      await import("@/features/comments/components/CommentsPanel.svelte")
-    ).default;
-  })();
+  for (const load of Object.values(moduleLoaders)) void load();
+  return () => {
+    destroyed = true;
+  };
 });
 
 $: sectionExamEvents = sectionCalendarEvents.filter(
@@ -174,13 +220,18 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
                 showTitle={false}
                 readOnlyReason={data.demo?.readOnlyReason}
               />
-            {:else if descriptionData.description.renderedHtml}
+            {:else}
               <h2 class="mb-3 text-lg font-semibold tracking-tight">
                 {data.copy.descriptions.title}
               </h2>
-              <div class="markdown-preview" data-slot="markdown-preview">
-                {@html descriptionData.description.renderedHtml}
-              </div>
+              {#if descriptionData.description.renderedHtml}
+                <div class="markdown-preview" data-slot="markdown-preview">
+                  {@html descriptionData.description.renderedHtml}
+                </div>
+              {/if}
+              {#if moduleErrors.description || !descriptionData.description.renderedHtml}
+                <LazyModuleStatus failed={Boolean(moduleErrors.description)} heading={data.copy.descriptions.title} loadFailed={data.copy.descriptions.loadFailed} retry={data.copy.descriptions.retry} onRetry={() => void moduleLoaders.description()} />
+              {/if}
             {/if}
           {/key}
           {#if data.demo}
@@ -205,6 +256,8 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
               sectionCopy={sectionCopy}
               unscheduledCalendarEvents={unscheduledCalendarEvents}
              />
+          {:else}
+            <LazyModuleStatus failed={Boolean(moduleErrors.calendar)} heading={sectionCopy.tabs.calendar} loadFailed={data.copy.common.error} retry={sectionCopy.pleaseRetry} onRetry={() => void moduleLoaders.calendar()} />
           {/if}
         </section>
 
@@ -221,6 +274,8 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
               roomMapCopy={roomMapCopy}
               sectionCopy={sectionCopy}
              />
+          {:else}
+            <LazyModuleStatus failed={Boolean(moduleErrors.exams)} heading={sectionCopy.tabs.exams} loadFailed={data.copy.common.error} retry={sectionCopy.pleaseRetry} onRetry={() => void moduleLoaders.exams()} />
           {/if}
         </section>
 
@@ -229,6 +284,10 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
             <h2 class="text-lg font-semibold tracking-tight">
               {sectionCopy.tabs.homeworks}
             </h2>
+            <div class="flex flex-wrap items-center gap-2">
+            {#if !data.demo && !viewer.loading && !viewer.failed && (viewer.isAuthenticated ?? viewer.signedIn === true)}
+              <Button type="button" variant="outline" class="min-h-11 sm:min-h-9 md:min-h-9" onclick={openHomeworkAuditDialog}>{homeworkCopy.auditTitle}</Button>
+            {/if}
             {#if data.demo}
               <Button type="button" disabled title={data.demo.readOnlyReason}>{homeworkCopy.showCreate}</Button>
             {:else if canWriteHomework}
@@ -243,6 +302,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
                 {homeworkCopy.loginToCreate}
               </Button>
             {/if}
+            </div>
           </div>
           {#if SectionHomeworkTab}
             <svelte:component this={SectionHomeworkTab}
@@ -254,6 +314,8 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
               sectionCopy={sectionCopy}
               selectHomework={setSelectedHomework}
             />
+          {:else}
+            <LazyModuleStatus failed={Boolean(moduleErrors.homework)} heading={sectionCopy.tabs.homeworks} loadFailed={data.copy.common.error} retry={sectionCopy.pleaseRetry} onRetry={() => void moduleLoaders.homework()} />
           {/if}
         </section>
 
@@ -270,6 +332,9 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
                 heading={sectionCopy.tabs.comments}
                 readOnlyReason={data.demo?.readOnlyReason}
               />
+            {:else}
+              <h2 class="mb-3 text-lg font-semibold tracking-tight">{sectionCopy.tabs.comments}</h2>
+              <LazyModuleStatus failed={Boolean(moduleErrors.comments)} heading={sectionCopy.tabs.comments} loadFailed={data.copy.comments.loadFailed} retry={data.copy.comments.retry} onRetry={() => void moduleLoaders.comments()} />
             {/if}
           {/key}
         </section>

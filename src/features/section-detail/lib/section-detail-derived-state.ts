@@ -1,5 +1,6 @@
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import type { CommentTargetOption } from "@/features/comments/lib/comment-ui";
+import { homeworkCapabilities } from "@/features/homeworks/lib/homework-capabilities";
 import type {
   HomeworkAuditLog,
   HomeworkViewer,
@@ -74,7 +75,7 @@ export function buildSectionPeriodDetailRows(
 }
 
 export function canWriteSectionHomework(viewer: HomeworkViewer) {
-  return viewer.isAuthenticated && !viewer.isSuspended;
+  return homeworkCapabilities(viewer).canWriteShared;
 }
 
 export function canManageSectionHomework(

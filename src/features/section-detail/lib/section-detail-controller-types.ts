@@ -114,6 +114,8 @@ export type SectionDetailRelatedSection = {
 
 export type SectionDetailCopy = {
   comments: Record<string, unknown> & {
+    loadFailed: string;
+    retry: string;
     markdownGuide: string;
     previewEmpty: string;
     tabPreview: string;
@@ -121,6 +123,7 @@ export type SectionDetailCopy = {
     tabWrite: string;
   };
   common: {
+    error: string;
     home: string;
     sections: string;
     signIn?: string;
@@ -159,6 +162,9 @@ export type SectionDetailCopy = {
     updatedLabel: string;
   };
   homeworks: SectionDetailHomeworkMessages & {
+    classDeadlinesLoading: string;
+    classDeadlinesFailed: string;
+    classDeadlinesRetry: string;
     auditCreated: string;
     auditUpdated: string;
     auditDeleted: string;

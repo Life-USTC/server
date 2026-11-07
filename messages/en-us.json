@@ -304,6 +304,14 @@
     }
   },
   "uploads": {
+    "searchFilename": "Search filenames",
+    "moreConditions": "More conditions",
+    "appliedConditions": "Applied conditions",
+    "removeCondition": "Remove condition: {condition}",
+    "reset": "Reset",
+    "newestFirst": "Order: newest uploads first.",
+    "noMatchTitle": "No uploads match these conditions",
+    "noMatchDescription": "Change or reset the conditions to see your files.",
     "title": "My Uploads",
     "description": "Manage files uploaded through comment attachments.",
     "uploadCardTitle": "Upload materials",
@@ -844,7 +852,9 @@
     "description": "Hi {name}, this workspace brings together your courses, homework, and schedule.",
     "descriptionV2": "Hi, {name}",
     "fallbackName": "Guest",
-    "calendarViewSemester": "This semester",
+    "calendarViewSemester": "Semester",
+    "calendarViewLabel": "Calendar view",
+    "calendarNavigationLabel": "Calendar period navigation",
     "calendarViewDay": "Day",
     "calendarDay": {
       "prev": "Previous day",
@@ -852,11 +862,11 @@
       "label": "Date"
     },
     "calendarDayAgendaLabel": "Daily agenda",
-    "calendarViewMonth": "This month",
-    "calendarViewWeek": "This week",
+    "calendarViewMonth": "Month",
+    "calendarViewWeek": "Week",
     "calendarSemesterPrev": "Previous semester",
     "calendarSemesterNext": "Next semester",
-    "calendarAgendaLabel": "Weekly agenda",
+    "calendarAgendaLabel": "Calendar agenda",
     "calendarAgendaEmpty": "No events",
     "calendarMoreActions": "More calendar actions",
     "calendarWeek": {
@@ -1372,6 +1382,7 @@
     "activitySummary": "Activity at a glance",
     "moreDetails": "More activity details",
     "poster": "Activity poster",
+    "posterFailed": "The activity poster could not load.",
     "earlierDates": "Show earlier dates",
     "organizerSearchPlaceholder": "Search organizer names…",
     "dateUnknownActivity": "Unknown activity date",
@@ -2350,6 +2361,9 @@
     "calendarButtonLabel": "Open calendar picker",
     "timeShortcuts": "Common times",
     "dueDateShortcuts": "Common deadlines",
+    "classDeadlinesLoading": "Loading class deadlines…",
+    "classDeadlinesFailed": "Class deadlines could not be loaded. Your entries are preserved; enter a due date manually or retry.",
+    "classDeadlinesRetry": "Retry class deadlines",
     "helperPublishNow": "Publish now",
     "helperStartNow": "Start now",
     "helperClear": "Clear",
@@ -3192,6 +3206,18 @@
     }
   },
   "shell": {
+    "currentLocation": "Current location",
+    "detailNavigation": {
+      "label": "On this page",
+      "relatedCourse": "View course",
+      "introduction": "Description",
+      "calendar": "Calendar",
+      "exams": "Exams",
+      "homework": "Homework",
+      "comments": "Comments",
+      "sections": "Teaching sections",
+      "overview": "More details"
+    },
     "menu": "Menu",
     "scrollRegion": "Main content scroll region",
     "toggleSidebar": "Toggle sidebar",

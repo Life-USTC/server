@@ -2,6 +2,7 @@ import { isHomeworkPendingForViewer } from "@/features/homeworks/lib/homework-co
 import { listSubscribedHomeworks } from "@/features/subscriptions/server/subscription-read-model";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import { getDefaultWeekStart } from "@/shared/lib/date-utils";
 import {
   buildPreviewCalendarPayload,
   buildSemesterCalendarPayload,
@@ -63,9 +64,9 @@ export async function getWorkspaceOverviewData(
   } = semesterContext;
 
   const calendarMode = options.calendarMode ?? "semester";
-  const previewWeekStart = options.overviewWeek
-    ? shanghaiDayjs(options.overviewWeek).startOf("week")
-    : referenceNow.startOf("week");
+  const previewWeekStart = getDefaultWeekStart(
+    options.overviewWeek ? shanghaiDayjs(options.overviewWeek) : referenceNow,
+  );
   const previewStart = dayjsMin(referenceNow.startOf("day"), previewWeekStart);
   const previewEnd = dayjsMax(
     referenceNow.startOf("day").add(6, "day"),

@@ -189,7 +189,7 @@ requirements:
 - id: ui.other-collection-order
   category: presentation
   topic: list-table
-  rule: Link and publication-source directories, workspace uploads, the three activity-reminder views, and administrative users, bus, OAuth and four moderation lists put their page heading before summaries and records; available endless-scroll controls follow the records. Data-column filters belong to their column headers; extra properties without displayed columns and the single Apply filters action belong to the page toolbar. Shared searches retain their whole-collection scope. Compact card views retain these controls in their collection header. Workspace uploads instead share one visible filter toolbar across table and card views, with Apply and Clear adjacent to the same draft fields; quota information precedes this collection panel. Their layout uses the shared primitives required by ui.layout-principles-4.
+  rule: Link and publication-source directories, workspace uploads, the three activity-reminder views, and administrative users, bus, OAuth and four moderation lists put their page heading before summaries and records; available endless-scroll controls follow the records. Data-column filters belong to their column headers; extra properties without displayed columns and the single Apply filters action belong to the page toolbar. Shared searches retain their whole-collection scope. Compact card views retain these controls in their collection header. Workspace uploads instead share one visible filename-search/common-upload-date/more-byte-size/applied-condition toolbar across table and card views. One native GET Apply and adjacent Reset operate on its retained draft, including from the More panel; quota information precedes this collection panel. Applied-chip removal clears only its own field and comparison bounds, pending responses preserve newer drafts, and no-files and no-match messages are distinct. Their layout uses the shared primitives required by ui.layout-principles-4.
   acceptance:
     given: Isolated uploads, subscriptions, notifications, accounts and moderation records populate the thirteen directory/workspace/administrative views alongside the application link registry and publication source fixture.
     when: A browser opens each view at mobile and desktop widths.
@@ -373,13 +373,13 @@ requirements:
 - id: ui.list-table-9
   category: presentation
   topic: list-table
-  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as publication source groups. Settings, second-classroom and admin routes focus the sidebar on their local sections while preserving the Life@USTC root identity and an explicit parent link. Those links use client-side route navigation; browser back restores the previous context without a document reload. An open event or organizer adds its name under its owning collection. The home page keeps the primary sidebar.
+  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as academic detail sections and publication source groups. Canonical detail breadcrumbs use the collection and current entity; a teaching section links its real associated course without replacing that collection parent. Settings and second-classroom routes retain the global tree and nest local sections below their owning destination; admin preserves its authorized context, Life@USTC root identity and explicit parent link. Those links use client-side route navigation; browser back restores the previous context without a document reload. An open event or organizer adds its name under its owning collection. The home page keeps the primary sidebar.
   rationale: Route navigation lives in the shell sidebar. In-page anchors stay on PageSectionNav. DetailSectionNav is not a settings control.
   acceptance:
     given: Second-classroom pages, moderation, settings, and the publication source directory.
     when: The Svelte compiler resolves the actually rendered imported component graph for each owner.
     then:
-    - Sidebar-owned pages render neither PageSectionNav nor DetailSectionNav.
+    - Sidebar-owned route destinations are not repeated as page tabs; academic details may expose only same-page anchor links in their content directory.
     - The publication source directory renders PageSectionNav for its in-page groups.
     test:
       file: tests/unit/lib/components/navigation-ownership.test.ts
@@ -936,6 +936,27 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/catalog-identity.test.ts
       name: ui.global-search-results-4
+- id: ui.shell-navigation-continuity
+  category: presentation
+  topic: shell-layout
+  rule: Route-owned shellTemplate metadata declares standard, academic-detail, young-detail, workspace,
+    settings, home or focused presentation capabilities. Academic details retain their necessary nested
+    scroll region; other full templates use the shell content region. Every full template exposes the
+    same legal/help links through its public footer or sidebar footer. An open detail retains a collection
+    breadcrumb and same-page contents without replacing the global tree. Organizer detail keeps its real
+    current name leaf, related activity link and collection return path. Opening and closing a mobile
+    drawer preserves clear localized naming, reachable close controls and focus recovery. Current ancestors
+    stay identifiable in compact mode; local disclosure preferences survive reload.
+  acceptance:
+    given: A signed-in visitor browses a real organizer, related activity, academic detail and settings in both locales.
+    when: Desktop and mobile navigation opens, collapses, closes, reloads and follows the content directory.
+    then:
+    - Actual current entities and compact ancestors remain identifiable, and sibling destinations stay accessible.
+    - Content anchors scroll their actual target into view, the course relation uses its true identifier, and legal links remain reachable.
+    - Mobile close returns focus to its trigger without a write; route transitions and browser history preserve their context.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-navigation-continuity.test.ts
+      name: shell.navigation continuity en-us 1280
 - id: ui.shell-layout-1
   category: presentation
   topic: shell-layout
@@ -1109,6 +1130,7 @@ requirements:
       their own profile made incomplete.
     then:
     - Workspace, settings, and administration routes omit the public footer navigation.
+    - Their sidebar legal navigation retains reachable Terms, Privacy, GitHub, and mobile usage links; this strip is not an appended public footer.
     - The incomplete profile reaches the canonical welcome route, which also omits the public footer.
     test:
       file: tests/e2e/src/app/shared-policy/shell-layout.test.ts

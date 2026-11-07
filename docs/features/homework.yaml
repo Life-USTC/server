@@ -14,6 +14,33 @@ policy_refs:
 - homework-naming
 - cases.missing-data
 requirements:
+- id: homework.entry-capabilities
+  category: presentation
+  rule: Homework entrances distinguish personal progress from shared-content writes. An authenticated, resolved owner can complete or reopen their own homework even during suspension. Suspension disables shared creation and editing in both entrances; unresolved or failed identity cannot present personal mutation controls. Workspace compact details retain an exact link to canonical full details and history.
+  acceptance:
+    given: The same isolated user reads the same homework from the workspace and section, including active, suspended, unresolved and failed identity states.
+    when: The user opens details and attempts personal completion and forbidden shared creation.
+    then:
+    - Both entrances preserve the owner's personal capability; successful completion changes only their own record and queues their calendar rebuild.
+    - Suspended shared creation is disabled with an explanation; a forged request is rejected with no business writes or queue effects.
+    - Existing personal-state privacy and backend ownership controls remain in force.
+    test:
+      file: tests/e2e/src/app/workspace/homeworks/suspended-personal-completion.test.ts
+      name: suspended owner completes and reopens homework across entrances 1280
+- id: homework.editor-context-parity
+  category: presentation
+  rule: Workspace creation, section creation and section editing share field semantics, Shanghai defaults and semester shortcut availability. A semester-end suggestion must remain in the future; manually entered historical dates remain editable. Section-wide audit history belongs to the homework collection rather than a new object's create dialog. Actual class suggestions refresh for the selected real section when its editor opens, retain at most three distinct future starts, and continue pagination past past or duplicate schedules. Failed or cancelled refreshes preserve the user's entries and cannot replace a newer section's suggestions.
+  acceptance:
+    given: Matched workspace and section forms use the same section and a fixed Shanghai reference clock, including a past semester and a workspace loaded before several classes elapsed.
+    when: The viewer opens each form, selects date shortcuts, reads collection history, and retries a failed class lookup or changes section while it is pending.
+    then:
+    - Shared defaults and past-semester shortcut availability agree across create and edit; no stored deadline is rewritten.
+    - The collection history remains reachable and creation has no unrelated history action.
+    - Fresh class reads use existing bounded paginated public schedules, without enlarging the initial workspace payload or inferring recurrences.
+    - Failure offers a clear retry and manual due input; late responses cannot reset fields or replace the current section.
+    test:
+      file: tests/e2e/src/app/workspace/homeworks/entry-capabilities.test.ts
+      name: homework create shortcuts and history agree across entrances en-us 1280
 - id: homework.section-personal-list-state
   category: presentation
   rule: Resolved authenticated section homework lists show My status separately from shared homework

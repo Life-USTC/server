@@ -83,4 +83,14 @@ describe("仪表盘日历操作", () => {
     );
     expect(navigateUrl).not.toHaveBeenCalled();
   });
+  it("显式返回当前学期时清除原学期选择并重新加载", () => {
+    const { actions, navigateUrl, replaceUrl, state } = calendarActions();
+    actions.setCalendarSemester(null);
+    expect(state()).toMatchObject({
+      calendarSemesterId: null,
+      calendarView: "semester",
+    });
+    expect(navigateUrl).toHaveBeenCalledWith("/workspace/calendar");
+    expect(replaceUrl).not.toHaveBeenCalled();
+  });
 });

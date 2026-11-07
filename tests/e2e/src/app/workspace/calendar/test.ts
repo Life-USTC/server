@@ -8,7 +8,7 @@
  * - homework.submissionDueAt
  * - todo.dueAt
  * - Week numbers
- * - Weekday labels (Mon-Sun)
+ * - Weekday labels (Sun-Sat)
  *
  * ## Features
  * - View tabs: semester (default) / day / month / week
@@ -56,7 +56,7 @@ test.describe("仪表盘日历", () => {
           page.locator("#main-content").getByRole("alert"),
         ).toHaveCount(0);
 
-        // Weekday labels (Mon-Sun) — calendar.yml personal-calendar-view.display.fields
+        // Weekday labels (Sun-Sat) — calendar.yml personal-calendar-view.display.fields
         await expect(
           page
             .getByTestId("workspace-calendar-grid")
@@ -163,13 +163,13 @@ test.describe("仪表盘日历", () => {
           name: /日历|Calendar/i,
         });
         const monthTab = calendarTabs.getByRole("radio", {
-          name: /本月|This month/i,
+          name: /^月$|^Month$/i,
         });
         await monthTab.click();
         await expect(page).toHaveURL(/calendarView=month/);
         await expect(monthTab).toHaveAttribute("aria-checked", "true");
         const weekTab = calendarTabs.getByRole("radio", {
-          name: /本周|This week/i,
+          name: /^周$|^Week$/i,
         });
         await weekTab.click();
         await expect(page).toHaveURL(/calendarView=week/);
@@ -293,7 +293,7 @@ test.describe("仪表盘日历", () => {
             page.getByRole("radio", { name: /^(Day|日)$/ }),
           ).toBeVisible();
           await expect(
-            page.getByRole("radio", { name: /^(This week|本周)$/ }),
+            page.getByRole("radio", { name: /^(Week|周)$/ }),
           ).toBeVisible();
 
           const previous = page.getByRole("button", {
@@ -349,14 +349,49 @@ test.describe("仪表盘日历", () => {
             expect(box?.width).toBeGreaterThanOrEqual(44);
             expect(box?.height).toBeGreaterThanOrEqual(44);
           }
-          await page.getByRole("radio", { name: /^(This week|本周)$/ }).click();
+          await page.getByRole("radio", { name: /^(Week|周)$/ }).click();
           await expect(agenda.locator("section")).toHaveCount(7);
+          // Narrow screens retain complete month/semester ranges, not just the first week.
+          await page.getByRole("radio", { name: /^(Month|月)$/ }).click();
+          await expect(page).toHaveURL(/calendarView=month/);
+          expect(
+            await agenda.locator("section").count(),
+          ).toBeGreaterThanOrEqual(28);
+          await expect(
+            agenda.getByRole("link", { name: new RegExp(fixture.young.name) }),
+          ).toHaveAttribute(
+            "href",
+            `/catalog/young-events/${fixture.young.youngId}`,
+          );
+          const previousMonth = page.getByRole("button", {
+            name: /^(Previous month|上个月)$/,
+          });
+          const nextMonth = page.getByRole("button", {
+            name: /^(Next month|下个月)$/,
+          });
+          await expect(previousMonth).toBeVisible();
+          await expect(nextMonth).toBeVisible();
+          await nextMonth.click();
+          await expect(page).toHaveURL(/calendarView=month/);
+          await previousMonth.click();
+          await expect(
+            agenda.getByRole("link", { name: new RegExp(fixture.young.name) }),
+          ).toHaveCount(1);
+          await page.getByRole("radio", { name: /^(Semester|学期)$/ }).click();
+          expect(await agenda.locator("section").count()).toBeGreaterThan(28);
+          await expect(
+            agenda.getByRole("link", { name: new RegExp(fixture.young.name) }),
+          ).toHaveCount(1);
+          await expect(
+            page.getByRole("button", { name: /^(Today|今天)$/ }),
+          ).toBeVisible();
+          await page.getByRole("radio", { name: /^(Week|周)$/ }).click();
           await page.setViewportSize({ width: 1280, height: 900 });
           await expect(
             page.getByTestId("workspace-calendar-grid"),
           ).toBeVisible();
           await expect(
-            page.getByRole("group", { name: /日历|Calendar/i }),
+            page.getByRole("group", { name: /^(日历视图|Calendar view)$/ }),
           ).toBeVisible();
         },
         { accountIndex: 0, calendarTokenCreated: true },

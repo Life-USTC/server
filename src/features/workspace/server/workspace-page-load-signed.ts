@@ -1,3 +1,4 @@
+import { homeworkCapabilities } from "@/features/homeworks/lib/homework-capabilities";
 import { serializeWorkspaceOverview } from "@/features/workspace/server/workspace-overview-serialization";
 import type { WorkspacePageCopy } from "@/features/workspace/server/workspace-page-load-types";
 import {
@@ -5,10 +6,12 @@ import {
   timeWorkspaceStage,
 } from "@/features/workspace/server/workspace-page-tab-data";
 import {
+  countWorkspaceStageQuery,
   createWorkspaceStageCounter,
   markWorkspaceStageCountsUnknown,
 } from "@/features/workspace/server/workspace-stage-analytics";
 import type { AppLocale } from "@/i18n/config";
+import { getViewerContext } from "@/lib/auth/viewer-context";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 export async function loadSignedWorkspacePageData(input: {
@@ -32,14 +35,32 @@ export async function loadSignedWorkspacePageData(input: {
     dbContext: "rls",
     dbLabel: "app",
   });
-  const context = await timeWorkspaceStage(
+  const { context, capabilities } = await timeWorkspaceStage(
     "user_context",
     {
       requestId: input.requestId,
       tab: input.tab,
     },
-    () =>
-      workspaceModule.getWorkspaceUserContext(input.userId, userContextCounter),
+    async () => {
+      const [context, viewer] = await Promise.all([
+        workspaceModule.getWorkspaceUserContext(
+          input.userId,
+          userContextCounter,
+        ),
+        input.tab === "homeworks"
+          ? getViewerContext({
+              userId: input.userId,
+              instrumentation: {
+                onQuery: () => countWorkspaceStageQuery(userContextCounter),
+              },
+            })
+          : undefined,
+      ]);
+      return {
+        context,
+        capabilities: viewer ? homeworkCapabilities(viewer) : undefined,
+      };
+    },
     userContextCounter,
   );
 
@@ -90,6 +111,7 @@ export async function loadSignedWorkspacePageData(input: {
   );
 
   return {
+    homeworkCapabilities: capabilities,
     copy: input.pageCopy,
     locale: input.locale,
     referenceNow: toShanghaiIsoString(input.referenceNow ?? new Date()),

@@ -19,6 +19,21 @@ access:
   agent: Can read section information and manage personal section-related state through OAuth-authorized
     REST / MCP endpoints.
 requirements:
+- id: section.web-module-recovery
+  category: presentation
+  rule: Detail introduction, calendar, exams, homework and discussion modules load independently. Each
+    pending module retains a clear heading and, when no server-rendered content exists, a bounded skeleton; a failed module offers a local retry
+    without blocking other modules, reloading the document or repeating a write. Existing server-rendered
+    introduction text remains readable while the interactive module loads or fails.
+  acceptance:
+    given: A public teaching section is opened while a module asset is delayed or unavailable.
+    when: The other detail modules finish and the visitor retries the failed module after recovery.
+    then:
+    - All sections retain headings, and unaffected modules remain usable.
+    - Only the failed module is retried, with no document navigation or uncaught exception.
+    test:
+      file: tests/e2e/src/app/shared-policy/detail-module-recovery.test.ts
+      name: detail.module failure recovers locally en-us 390
 - id: section.web-table-filters
   category: behavior
   rule: The Web Section table filters all displayed fields plus department and course classifications. Metadata accepts multiple IDs; credits, enrolled count, capacity and teacher count support eq, ne, gt, gte, lt, lte and inclusive between before database pagination. Null numbers match no comparison, including ne. Structured controls override the equivalent advanced-search tag.

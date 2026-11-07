@@ -112,6 +112,7 @@ $: if (isCalendarDialogOpen) {
 {#if SectionHomeworkDialogs}
   <svelte:component
     this={SectionHomeworkDialogs}
+    classSectionJwId={data.demo ? undefined : data.section.jwId}
     showPersonalStatus={!data.demo && !data.viewer.loading && !data.viewer.failed && data.viewer.signedIn === true}
     readOnlyReason={data.demo?.readOnlyReason}
     referenceDate={data.demo?.referenceNow}

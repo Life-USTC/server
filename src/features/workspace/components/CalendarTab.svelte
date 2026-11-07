@@ -67,18 +67,23 @@ let baseCalendarGridWeeks: ReturnType<typeof buildWorkspaceCalendarGridWeeks> =
   [];
 let baseAgendaDays: WorkspaceAgendaDay[] = [];
 let agendaWeekStart = "";
+let agendaKeys: string[] = [];
 
 $: agendaWeekStart =
   calendarWeekStart ||
   (calendarData ? weekStartFor(calendarData.todayDate) : "");
+$: agendaKeys =
+  calendarView === "day"
+    ? [calendarDay]
+    : baseCalendarGridWeeks.flatMap((week) => week.days.map((day) => day.key));
 $: baseAgendaDays =
-  calendarData && agendaWeekStart
+  calendarData && agendaKeys.length > 0
     ? buildWorkspaceAgendaDays({
         calendar: calendarData,
         eventsForDay: calendarEventsForDay,
         locale: signedData.locale,
-        startKey: calendarView === "day" ? calendarDay : agendaWeekStart,
-        dayCount: calendarView === "day" ? 1 : 7,
+        startKey: agendaKeys[0],
+        dayCount: agendaKeys.length,
         timelineItemsForDay: calendarTimelineItemsForDay,
       })
     : [];

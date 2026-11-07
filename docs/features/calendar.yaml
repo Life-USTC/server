@@ -54,7 +54,7 @@ requirements:
     ranges longer than 366 inclusive days are loaded in bounded date windows, with all pages fetched and
     overlapping activities displayed once.
   rationale: Day, week, and month remain useful with or without courses; semester adds the academic planning
-    range without removing a shorter view. A day agenda preserves course context and subscription badges.
+    range without removing a shorter view. View controls identify Day, Week, Month and the academic Semester separately from returning to today. Academic, personal activity and public activity calendars keep previous period, today and next period in that order with period-specific accessible navigation names. A day agenda preserves course context and subscription badges.
   acceptance:
     given: One isolated owner has a course and an activity subscription; another has only the same activity
       subscription.
@@ -74,40 +74,38 @@ requirements:
       name: calendar.day-navigation en-us 390
 - id: calendar.mobile-agenda-first
   category: presentation
-  rule: At mobile widths, the personal academic calendar offers day and week as vertically readable agendas
-    with time, title, type, and available location context. Previous day/week, today, next day/week, and
-    iCal actions remain directly accessible without page-level horizontal scrolling; desktop also offers
-    month and semester grids.
+  rule: At narrow widths, the personal academic calendar retains day, week, month and semester as vertically readable agendas covering the complete selected range with time, title, type, and available location context. View selection is separate from previous period, today and next period navigation. iCal actions remain accessible without page-level horizontal scrolling; desktop retains week, month and semester grids.
   acceptance:
     given: An isolated signed-in course subscriber opens a selected week on a 390px screen.
-    when: The browser reads the agenda, uses its iCal action, navigates weeks, and switches between day
-      and week.
+    when: The browser reads the agenda, uses its iCal action, navigates periods, and selects day, week, month and semester.
     then:
     - Week mode shows seven vertical day groups and real event context; day mode shows one day group.
     - Day/week navigation and today/actions controls have at least 44px touch bounds and copied iCal links
       are usable.
+    - Month and semester modes retain their full date ranges and activity links, rather than silently displaying only seven days.
+    - View names identify day, week, month and semester; navigation names identify the actual period and keep previous, today, next in that order.
     - Navigation preserves the agenda without page-level horizontal overflow.
     test:
       file: tests/e2e/src/app/workspace/calendar/test.ts
       name: calendar.mobile-agenda-first
-- id: calendar.week-starts-monday
+- id: calendar.week-starts-sunday
   category: presentation
-  rule: All personal academic and activity calendar grids start on Monday and end on Sunday. Date cells
-    remain aligned with their weekday headers. The public second-classroom calendar is a separate Sunday-start grid.
+  rule: All academic, personal activity and public activity calendar grids start on Sunday and end on Saturday. Date cells
+    remain aligned with their weekday headers. Month, semester and homepage weekly summaries use the same boundary.
   rationale: One weekday order keeps dates in the same columns when viewers change mode or add course
-    subscriptions, matching the campus workweek.
+    subscriptions, matching the official campus teaching calendar.
   acceptance:
     given: Two isolated owners open academic and activity-only personal calendars in English.
     when: The real academic semester/month/week grids and activity week/month grids render, followed by
       the anonymous public Section lecture table.
     then:
-    - Academic and activity grids order weekday headers Monday through Sunday.
+    - Academic and activity grids order weekday headers Sunday through Saturday.
     - Date cells and their actual course events align with the matching weekday column.
     - The public Section lecture table retains the correct date, teaching week, time and location cells;
       it does not present a weekday grid.
     test:
       file: tests/e2e/src/app/workspace/calendar/presentation-contract.test.ts
-      name: calendar.week-starts-monday academic week
+      name: calendar.week-starts-sunday academic week
 - id: calendar.subscription-badges
   category: presentation
   rule: Personal Web calendar course cards show a localized teaching-assistant or auditor badge in desktop
@@ -441,7 +439,7 @@ capabilities:
           - exams.id
           tertiary: []
       items:
-      - Week numbers and Monday-first weekday labels
+      - Week numbers and Sunday-first weekday labels
       - Mobile week agenda
       filters:
       - View tabs
@@ -473,7 +471,7 @@ capabilities:
           tertiary:
           - event.id
     requirement_refs:
-    - calendar.week-starts-monday
+    - calendar.week-starts-sunday
     - section.retired-read-semantics
   event-card:
     title: Event Card

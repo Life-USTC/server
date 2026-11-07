@@ -13,6 +13,7 @@ import type { SectionDetailHomeworkDialogsProps } from "./section-detail-dialog-
 export let showPersonalStatus = false;
 export let readOnlyReason: string | null | undefined = null;
 export let referenceDate: string | undefined = undefined;
+export let classSectionJwId: number | string | null | undefined = undefined;
 export let classStarts: string[] = [];
 export let applyCreateDueAtSemesterEnd: SectionDetailHomeworkDialogsProps["applyCreateDueAtSemesterEnd"];
 export let applyCreateDueInMonth: SectionDetailHomeworkDialogsProps["applyCreateDueInMonth"];
@@ -71,6 +72,7 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
 </script>
 
 <SectionCreateHomeworkDialog
+  {classSectionJwId}
   {classStarts}
   {locale}
   applyDueAtSemesterEnd={applyCreateDueAtSemesterEnd}
@@ -86,7 +88,6 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
   {hasSemesterStart}
   {homeworkCopy}
   {homeworkMessage}
-  openAuditDialog={() => setHomeworkAuditDialogOpen(true)}
   bind:publishedAt={createHomeworkPublishedAt}
   {sectionLabel}
   show={showCreateHomework}
@@ -96,6 +97,7 @@ export let updateHomework: SectionDetailHomeworkDialogsProps["updateHomework"];
 
 <SectionHomeworkDetailDialog
   {showPersonalStatus}
+  {classSectionJwId}
   {classStarts}
   {readOnlyReason}
   {referenceDate}

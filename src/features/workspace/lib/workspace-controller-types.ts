@@ -5,6 +5,7 @@ import type {
 } from "@/features/catalog-links/lib/catalog-links";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type { DemoView } from "@/features/demo/lib/demo-types";
+import type { HomeworkCapabilities } from "@/features/homeworks/lib/homework-capabilities";
 import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import type { SubscriptionKind } from "@/features/subscriptions/lib/subscription-kind";
@@ -154,6 +155,8 @@ export type WorkspaceCopy = WorkspaceRecord & {
   calendarAgendaLabel: string;
   calendarMoreActions: string;
   calendarViewDay: string;
+  calendarViewLabel: string;
+  calendarNavigationLabel: string;
   calendarDay: { prev: string; next: string; label: string };
   calendarDayAgendaLabel: string;
   calendarViewMonth: string;
@@ -344,6 +347,9 @@ export type WorkspaceSubscriptionsCopy = WorkspaceRecord & {
 };
 
 export interface WorkspaceHomeworksCopy extends HomeworkStyleGuideCopy {
+  classDeadlinesLoading: string;
+  classDeadlinesFailed: string;
+  classDeadlinesRetry: string;
   [key: string]: string;
   advancedHide: string;
   advancedShow: string;
@@ -624,6 +630,7 @@ export type WorkspaceNavStats = WorkspaceRecord & {
 };
 
 export type WorkspacePageData = WorkspaceRecord & {
+  homeworkCapabilities?: HomeworkCapabilities;
   demo?: DemoView | null;
   bus?: WorkspaceBusData | null;
   calendarSubscriptionUrl?: string | null;

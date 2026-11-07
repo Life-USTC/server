@@ -4,9 +4,9 @@ import * as Field from "#lib/components/ui/field/index.js";
 import * as NativeSelect from "#lib/components/ui/native-select/index.js";
 import HomeworkEditorFields from "@/features/homeworks/components/HomeworkEditorFields.svelte";
 import {
-  homeworkDueAtSemesterEnd,
   homeworkDueInDays,
   homeworkDueInMonths,
+  homeworkSemesterShortcutCapabilities,
   homeworkStartAtSemesterStart,
 } from "@/features/homeworks/lib/homework-timestamp-defaults";
 import type {
@@ -65,14 +65,11 @@ $: homeworkTimestampActions = {
       }
     : undefined,
 };
-$: homeworkTimestampCapabilities = {
-  hasSemesterStart: Boolean(selectedSection?.semesterStart),
-  hasSemesterEnd: Boolean(
-    selectedSection?.semesterEnd &&
-      homeworkDueAtSemesterEnd(selectedSection.semesterEnd) >
-        toShanghaiDateTimeLocalValue(shortcutReferenceNow),
-  ),
-};
+$: homeworkTimestampCapabilities = homeworkSemesterShortcutCapabilities({
+  semesterStart: selectedSection?.semesterStart,
+  semesterEnd: selectedSection?.semesterEnd,
+  now: shortcutReferenceNow,
+});
 </script>
 
 <Field.Group class="min-w-0 gap-5 px-5 py-4 sm:px-6 sm:py-5">
@@ -106,6 +103,7 @@ $: homeworkTimestampCapabilities = {
     {/if}
   </Field.Field>
   <HomeworkEditorFields
+    sectionJwId={selectedSection?.jwId}
     classStarts={selectedSection?.nextClassStarts ?? []}
     {locale}
     actions={homeworkTimestampActions}

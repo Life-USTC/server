@@ -169,7 +169,12 @@ export function workspaceCalendarSemesterChange(input: {
   tabHref: WorkspaceTabHref;
 }) {
   return workspaceCalendarStateChange({
-    currentState: input.currentState,
+    // An explicit reset returns to the server-selected current semester.
+    // Other view changes keep their existing semester context.
+    currentState:
+      input.semesterId === null
+        ? { ...input.currentState, semesterId: null }
+        : input.currentState,
     patch: {
       semesterId: input.semesterId,
       view: "semester",

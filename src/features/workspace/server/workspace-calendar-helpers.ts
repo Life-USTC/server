@@ -9,7 +9,7 @@ export const filterSessionsByDay = (
 ) =>
   sessions.filter((item) => shanghaiDayjs(item.date).isSame(targetDay, "day"));
 
-/** Returns weeks (Mon-Sun) from semester start to end, inclusive. */
+/** Returns weeks (Sun-Sat) from semester start to end, inclusive. */
 export const getSemesterWeeks = (
   semesterStart: dayjs.Dayjs,
   semesterEnd: dayjs.Dayjs,

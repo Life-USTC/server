@@ -9,6 +9,7 @@ import type {
 } from "./section-create-homework-types";
 
 export let applyDueAtSemesterEnd: () => void;
+export let classSectionJwId: number | string | null | undefined = undefined;
 export let classStarts: string[] = [];
 export let locale: string;
 export let applyDueInMonth: () => void;
@@ -23,7 +24,6 @@ export let hasSemesterEnd: boolean;
 export let hasSemesterStart: boolean;
 export let homeworkCopy: SectionCreateHomeworkCopy;
 export let homeworkMessage: string;
-export let openAuditDialog: (() => void) | null = null;
 export let publishedAt: string;
 export let sectionLabel: string;
 export let show: boolean;
@@ -51,16 +51,13 @@ export let submissionStartAt: string;
             <div class="min-w-0 grid gap-1.5">
               <Dialog.Title class="break-words">{homeworkCopy.createTitle}</Dialog.Title>
             </div>
-            {#if openAuditDialog}
-              <Button type="button" variant="outline" onclick={openAuditDialog}>
-                {homeworkCopy.auditTitle}
-              </Button>
-            {/if}
+
           </div>
         </Dialog.Header>
         <ScrollArea class="h-0 min-h-0 flex-1">
           <SectionCreateHomeworkFields
-            {classStarts}
+            {classSectionJwId}
+  {classStarts}
             {locale}
             {applyDueAtSemesterEnd}
             {applyDueInMonth}

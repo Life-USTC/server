@@ -30,6 +30,7 @@ export async function listUploads(
       tx.upload.aggregate({
         where: { userId },
         _sum: { size: true },
+        _count: { _all: true },
       }),
       tx.uploadPending.aggregate({
         where: { userId, expiresAt: { gt: now } },
@@ -43,6 +44,7 @@ export async function listUploads(
       maxFileSizeBytes: uploadConfig.maxFileSizeBytes,
       quotaBytes: uploadConfig.totalQuotaBytes,
       total,
+      hasUploads: usage._count._all > 0,
       uploads: uploads.map(publicUploadPayload),
       usedBytes,
     };
