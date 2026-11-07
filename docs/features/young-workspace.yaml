@@ -209,6 +209,22 @@ requirements:
     test:
       file: tests/integration/young-workspace.test.ts
       name: young-workspace.reminder-settings
+- id: young-workspace.notification-cron-capacity
+  category: behavior
+  rule: Scheduled notification refreshes share one request-scoped application database pool. The sweep
+    admits no more owner transactions than that pool's configured capacity and joins every admitted owner
+    before propagating an error. It preserves per-owner RLS and atomicity, the sweep clock, recipient
+    pagination and deduplication; it does not increase connection limits, transaction deadlines or retries.
+  acceptance:
+    given: Five eligible owners share the three-connection runtime pool while real User row locks delay the first three.
+    when: The actual Worker scheduled entrypoint runs and the locks release after the unchanged transaction-start budget.
+    then:
+    - All five owners receive exactly one eligible reminder without a queued transaction-start failure.
+    - Repeating the sweep does not duplicate notifications or mutate subscription facts.
+    - Failure drains already-admitted owners and does not report partial work as successful completion.
+    test:
+      file: tests/integration/young-notification-cron-capacity.test.ts
+      name: keeps scheduled owner transactions within the pool while real row locks delay admitted owners
 - id: young-workspace.reminder-generation
   category: behavior
   rule: Reminder generation runs every ten minutes and refreshes on notification listing.
