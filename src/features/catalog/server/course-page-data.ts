@@ -43,6 +43,11 @@ export async function getCoursePage(
     kind: "course",
     locale,
     shape: `${COURSE_PAGE_CORE_CACHE_SHAPE}:sections-page=${sectionsPage}`,
+    // Keep arbitrary out-of-range page numbers from creating persistent keys.
+    shouldCacheResult: (result) =>
+      sectionsPage === 1 ||
+      (sectionsPage - 1) * PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT <
+        result._count.sections,
     validateResult: isCoursePageCore,
     load: async () => {
       const prisma = getPrisma(locale);

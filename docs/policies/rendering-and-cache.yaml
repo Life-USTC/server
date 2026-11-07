@@ -571,6 +571,21 @@ requirements:
     test:
       file: tests/unit/features/catalog/catalog-detail-cache-eligibility.test.ts
       name: rendering-and-cache.cache-layers-and-invalidation-11
+- id: rendering-and-cache.bounded-detail-history-cache
+  category: consistency
+  topic: cache-layers-and-invalidation
+  rule: Course and teacher history pages beyond the relation count are not retained in isolate memory,
+    colo Cache API or KV, including otherwise valid empty cores persisted by prior deployments.
+    Page one remains cacheable for empty entities; valid later pages retain their independent cache entries.
+  acceptance:
+    given: Course and teacher cores with 20 historical sections, controlled colo/KV boundaries, and an old empty KV page.
+    when: Read several out-of-range pages, repeat one, and then read an empty first page and a valid last page.
+    then:
+    - Out-of-range pages reload and produce no colo or KV writes, including promotion from old KV entries.
+    - Empty first pages and valid final pages populate the caches and serve repeated reads from isolate memory.
+    test:
+      file: tests/unit/features/catalog/catalog-detail-page-data.test.ts
+      name: does not retain out-of-range history pages or promote old empty KV pages
 - id: rendering-and-cache.cache-layers-and-invalidation-12
   category: consistency
   topic: cache-layers-and-invalidation
