@@ -1360,6 +1360,7 @@
     "activitySummary": "Activity at a glance",
     "moreDetails": "More activity details",
     "poster": "Activity poster",
+    "posterFailed": "The activity poster could not load.",
     "earlierDates": "Show earlier dates",
     "organizerSearchPlaceholder": "Search organizer names…",
     "dateUnknownActivity": "Unknown activity date",

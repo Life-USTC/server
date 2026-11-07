@@ -305,6 +305,21 @@ requirements:
     test:
       file: tests/e2e/src/app/young-events/public-browse-contract.test.ts
       name: young-event.web-organizer-order
+- id: young-event.web-poster-recovery
+  category: presentation
+  rule: The activity poster reserves a four-to-three frame before image bytes arrive, with a capped
+    width on narrow screens and object-contain rendering. Loading, failure and successful display retain
+    the same frame. A failed poster exposes an explicit local retry and the original local image link;
+    the rest of the activity remains readable.
+  acceptance:
+    given: An activity poster response is delayed or fails, then becomes available.
+    when: Chinese and English visitors load or retry the image on narrow and wide screens.
+    then:
+    - The header does not shift when the poster loads.
+    - Retry restores the image inside the same frame, preserving its source and aspect ratio.
+    test:
+      file: tests/e2e/src/app/shared-policy/detail-module-recovery.test.ts
+      name: detail.poster retains geometry while image loads en-us 390
 - id: young-event.web-detail-priority
   category: presentation
   rule: The poster is height-constrained beside the title on wide viewports (stacked and max-height capped on
