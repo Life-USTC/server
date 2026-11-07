@@ -132,7 +132,8 @@ export function nextHomeworkClassStarts(
 function weeklyDeadlineCandidates(now: Date) {
   const reference = shanghaiDayjs(now);
   const thisWeek = getWeekStart(reference);
-  const weekdays = [4, 5, 6] as const;
+  // Offsets are absolute Sunday-first weekdays, not positions in a workweek.
+  const weekdays = [0, 5, 6] as const;
   const candidates = [
     ...weekdays.map((weekday) => ({
       date: thisWeek
@@ -144,7 +145,7 @@ function weeklyDeadlineCandidates(now: Date) {
       period: "this" as const,
     })),
     {
-      date: thisWeek.add(7, "day").startOf("day"),
+      date: thisWeek.add(1, "day").startOf("day"),
       period: "beforeMonday" as const,
     },
     ...weekdays.map((weekday) => ({
@@ -157,12 +158,14 @@ function weeklyDeadlineCandidates(now: Date) {
       period: "next" as const,
     })),
     {
-      date: thisWeek.add(14, "day").startOf("day"),
+      date: thisWeek.add(8, "day").startOf("day"),
       period: "beforeMonday" as const,
     },
   ];
 
-  return candidates.filter((candidate) => candidate.date.isAfter(reference));
+  return candidates
+    .filter((candidate) => candidate.date.isAfter(reference))
+    .sort((left, right) => left.date.valueOf() - right.date.valueOf());
 }
 
 function shortcutValue(value: Date) {
