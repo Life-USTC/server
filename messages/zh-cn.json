@@ -3180,6 +3180,18 @@
     "noDataDescription": "请先导入或启用班车时刻表版本后再查看线路图。"
   },
   "shell": {
+    "currentLocation": "当前位置",
+    "detailNavigation": {
+      "label": "本页目录",
+      "relatedCourse": "查看所属课程",
+      "introduction": "简介",
+      "calendar": "日历",
+      "exams": "考试",
+      "homework": "作业",
+      "comments": "评论",
+      "sections": "教学班",
+      "overview": "更多资料"
+    },
     "menu": "菜单",
     "scrollRegion": "主要内容滚动区域",
     "toggleSidebar": "切换侧边栏",

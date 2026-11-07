@@ -10,9 +10,10 @@ export const load: PageServerLoad = async (event) => {
     throw redirect(308, compatibilityHref);
   }
 
-  return loadHomePage({
+  const data = await loadHomePage({
     locals: event.locals,
     request: event.request,
     url: event.url,
   });
+  return { ...data, shellTemplate: "home" as const };
 };
