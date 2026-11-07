@@ -57,10 +57,11 @@ def main() -> int:
     except (ValueError, UnicodeError):
         return fail("explicit-database-url-required")
     # Explicit libpq fields avoid URI-in-PGDATABASE fallback behavior. The URL
-    # and password stay out of argv and the child environment. Do not inherit
-    # target selection, service files, startup options or fallback credentials.
-    env = {key: value for key, value in os.environ.items() if not key.startswith("PG")}
-    env.pop("RLS_AUDIT_DATABASE_URL", None)
+    # and password stay out of argv and the child environment. Pass only the
+    # loader/locale environment needed by psql, never other database credentials,
+    # tokens, target selection, service files, or startup options.
+    inherited = {"PATH", "LD_LIBRARY_PATH", "LANG", "LC_ALL", "LC_CTYPE"}
+    env = {key: value for key, value in os.environ.items() if key in inherited}
     env.update({
         "PGHOST": host, "PGPORT": port, "PGDATABASE": database, "PGUSER": user,
         "PGCONNECT_TIMEOUT": "10", "PGAPPNAME": "life-ustc-rls-metadata-audit",

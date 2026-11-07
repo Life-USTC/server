@@ -48,6 +48,8 @@ class CarrierSafety(unittest.TestCase):
             child = options["env"]
             self.assertNotIn("RLS_AUDIT_DATABASE_URL", child)
             self.assertNotIn("PGPASSWORD", child)
+            self.assertFalse("DATABASE_URL" in child, "Unrelated database credentials reached the client")
+            self.assertFalse("UNRELATED_TOKEN" in child, "An unrelated token reached the client")
             self.assertEqual((child["PGHOST"], child["PGPORT"], child["PGDATABASE"], child["PGUSER"]), ("127.0.0.1", "55437", "disposable", "audit"))
             self.assertEqual(child["PGSSLMODE"], "disable")
             self.assertEqual(options["stderr"], subprocess.DEVNULL)
@@ -56,7 +58,9 @@ class CarrierSafety(unittest.TestCase):
             self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
             self.assertEqual(path.read_text(), "127.0.0.1:55437:disposable:audit:p\\:a\\\\ss\n")
             return subprocess.CompletedProcess(command, 0, json.dumps(report()).encode())
-        status, output, errors, _ = self.run_main(side_effect=client)
+        status, output, errors, _ = self.run_main(
+            side_effect=client,
+            environment={**ENV, "DATABASE_URL": CONNECTION, "UNRELATED_TOKEN": "synthetic-token"})
         self.assertEqual(status, 0)
         self.assertTrue(json.loads(output)["complete_within_limits"])
         self.assertEqual(errors, "")
