@@ -162,6 +162,9 @@ export type SectionDetailCopy = {
     updatedLabel: string;
   };
   homeworks: SectionDetailHomeworkMessages & {
+    classDeadlinesLoading: string;
+    classDeadlinesFailed: string;
+    classDeadlinesRetry: string;
     auditCreated: string;
     auditUpdated: string;
     auditDeleted: string;

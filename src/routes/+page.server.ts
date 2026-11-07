@@ -26,5 +26,5 @@ export const load: PageServerLoad = async (event) => {
       "Cloudflare-CDN-Cache-Control": "no-store",
     });
   }
-  return data;
+  return { ...data, shellTemplate: "home" as const };
 };

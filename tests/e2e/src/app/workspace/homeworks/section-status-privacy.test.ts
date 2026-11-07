@@ -107,7 +107,7 @@ for (const mode of ["delayed", "failed", "suspended", "anonymous"] as const) {
             page.getByRole("dialog").getByRole("button", {
               name: /Mark as incomplete|Mark as complete/,
             }),
-          ).toHaveCount(0);
+          ).toBeEnabled();
           await page.keyboard.press("Escape");
         }
       }

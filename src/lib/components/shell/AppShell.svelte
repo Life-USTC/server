@@ -19,13 +19,9 @@ import {
 import {
   applyShellTheme,
   buildFooterLinks,
-  isDetailWorkspacePath,
   isSignInPath,
-  isYoungEventDetailPath,
   resolveAvatarFallback,
   resolveProfileHref,
-  shouldShowAppFooter,
-  shouldUseFocusedShell,
   type ThemeMode,
 } from "#lib/components/shell/layout-shell.js";
 import RouteLoadingBar from "#lib/components/shell/RouteLoadingBar.svelte";
@@ -56,6 +52,8 @@ import {
   isShellLinkActive,
   isShellLinkAncestor,
 } from "./navigation";
+import ShellDetailNavigation from "./ShellDetailNavigation.svelte";
+import { shellPresentation } from "./shell-templates";
 import {
   loadSidebarPreferences,
   saveSidebarPreferences,
@@ -158,7 +156,10 @@ async function openGlobalSearch() {
 }
 
 async function handleGlobalSearchKeydown(event: KeyboardEvent) {
-  if (shouldUseFocusedShell(routePage.url.pathname)) return;
+  if (
+    shellPresentation(routePage.data.shellTemplate, Boolean(viewerUser)).focused
+  )
+    return;
   if (!isGlobalSearchShortcut(event)) return;
   event.preventDefault();
   await openGlobalSearch();
@@ -496,16 +497,15 @@ let sectionSidebar = $derived(
           } satisfies SectionSidebar)
         : null,
 );
-let detailWorkspace = $derived(isDetailWorkspacePath(routePage.url.pathname));
-let youngEventBanner = $derived(isYoungEventDetailPath(routePage.url.pathname));
-let focusedShell = $derived(shouldUseFocusedShell(routePage.url.pathname));
+let presentation = $derived(
+  shellPresentation(routePage.data.shellTemplate, Boolean(viewerUser)),
+);
+let detailWorkspace = $derived(presentation.detailScroll);
+let focusedShell = $derived(presentation.focused);
 let hideSignIn = $derived(
   Boolean(viewerDemo) || isSignInPath(routePage.url.pathname),
 );
-let showFooter = $derived(
-  !viewerDemo &&
-    shouldShowAppFooter(routePage.url.pathname, Boolean(viewerUser)),
-);
+let showFooter = $derived(!viewerDemo && presentation.footer === "public");
 let mainContentLabel = $derived(resolveMainContentLabel(routePage.data));
 let globalSearchShortcutLabel = $derived(
   isApplePlatform()
@@ -574,7 +574,7 @@ let globalSearchShortcutLabel = $derived(
         copy={data.copy}
         currentPathname={routePage.url.pathname}
         dockAboveFooter={showFooter}
-        footerLinks={detailWorkspace ? footerLinks : []}
+        footerLinks={!viewerDemo && presentation.footer === "sidebar" ? footerLinks : []}
         sectionSidebar={sectionSidebar}
         isActiveLink={isActiveLink}
         isAncestorLink={isAncestorLink}
@@ -629,14 +629,15 @@ let globalSearchShortcutLabel = $derived(
               : "lg:min-h-0 lg:overflow-y-auto",
           )}
         >
+          {#if detailWorkspace}
+            <ShellDetailNavigation pageData={routePage.data} pathname={routePage.url.pathname} hash={routePage.url.hash} viewerReady={!viewerLoading} copy={data.copy} />
+          {/if}
           <div
             class={cn(
               "w-full flex-1",
-              youngEventBanner
-              ? "p-0"
-              : detailWorkspace
+              detailWorkspace
                 ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
-                : "px-4 py-4 sm:px-5 lg:px-6",
+                : presentation.edgeToEdge ? "p-0" : "px-4 py-4 sm:px-5 lg:px-6",
               !showFooter && !detailWorkspace && "pb-[max(1rem,env(safe-area-inset-bottom))] lg:pb-4")}
           >{@render children?.()}</div>
         </div>

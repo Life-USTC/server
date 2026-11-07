@@ -23,7 +23,9 @@ test.describe("/news 新闻与通知预览", () => {
           name: /^(搜索|Search)$/,
         });
         await searchbox.fill(search);
-        await page.getByRole("button", { name: /^(搜索|Search)$/ }).click();
+        await page
+          .getByRole("button", { name: /^(应用筛选|Apply filters)$/ })
+          .click();
         await expect
           .poll(() => {
             const url = new URL(page.url());
@@ -115,21 +117,23 @@ test.describe("/news 新闻与通知预览", () => {
       await sourceFilter
         .getByRole("checkbox", { name: fixture.officeSourceName, exact: true })
         .check();
-      // Canceling the Sheet discards its draft. Main search only submits the
-      // advanced conditions already applied in the URL.
+      // Closing More retains the shared draft. The only Apply submits search
+      // together with the selected source union, regardless of where it is clicked.
       await page.keyboard.press("Escape");
       await expect(page.getByRole("dialog")).toBeHidden();
       await expect(moreFilters).toBeFocused();
       await page
         .getByRole("searchbox", { name: /^(搜索|Search)$/i })
         .fill("publication");
-      await page.getByRole("button", { name: /^(搜索|Search)$/i }).click();
+      await page
+        .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+        .click();
       await expect
         .poll(() => new URL(page.url()).searchParams.get("query"))
         .toBe("publication");
       await expect
         .poll(() => new URL(page.url()).searchParams.getAll("source"))
-        .toEqual([fixture.sourceId]);
+        .toEqual([fixture.sourceId, fixture.officeSourceId]);
       await moreFilters.click();
       await expect(sourceSearch).toHaveValue("");
       await expect(
@@ -137,11 +141,13 @@ test.describe("/news 新闻与通知预览", () => {
           name: fixture.officeSourceName,
           exact: true,
         }),
-      ).not.toBeChecked();
+      ).toBeChecked();
       await sourceFilter
         .getByRole("checkbox", { name: fixture.officeSourceName, exact: true })
         .check();
-      await page.getByRole("button", { name: /^(筛选|Filter)$/i }).click();
+      await page
+        .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+        .click();
       await expect
         .poll(() => new URL(page.url()).searchParams.getAll("source"))
         .toEqual([fixture.sourceId, fixture.officeSourceId]);
@@ -176,6 +182,15 @@ test.describe("/news 新闻与通知预览", () => {
       // Narrowing the same union to notices leaves only the office source's
       // rows, which is the AND of the type and source facets.
       await page.getByRole("radio", { name: /^(通知|Notice)$/i }).click();
+      // Type changes are also draft edits; URL and rows stay applied until Apply.
+      expect(new URL(page.url()).searchParams.get("type")).toBeNull();
+      await expect(items).toHaveCount(unionTotal);
+      await page
+        .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+        .click();
+      await expect
+        .poll(() => new URL(page.url()).searchParams.get("type"))
+        .toBe("notice");
       await expect(
         page.getByRole("radio", { name: /^(通知|Notice)$/i }),
       ).toBeChecked();
@@ -219,7 +234,9 @@ test.describe("/news 新闻与通知预览", () => {
       await dialog
         .getByRole("checkbox", { name: fixture.officeSourceName, exact: true })
         .check();
-      await dialog.getByRole("button", { name: /^(筛选|Filter)$/i }).click();
+      await dialog
+        .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+        .click();
       await expect
         .poll(() => new URL(page.url()).searchParams.get("query"))
         .toBe("publication");
@@ -251,7 +268,9 @@ test.describe("/news 新闻与通知预览", () => {
       await dialog
         .getByRole("checkbox", { name: fixture.officeSourceName, exact: true })
         .check();
-      await dialog.getByRole("button", { name: /^(筛选|Filter)$/i }).click();
+      await dialog
+        .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+        .click();
       await expect(dialog).toBeHidden();
       await expect
         .poll(() => new URL(page.url()).searchParams.getAll("source"))
@@ -316,7 +335,9 @@ test.describe("/news 新闻与通知预览", () => {
       await levelFilter
         .getByRole("checkbox", { name: /学校机关|^University$/i })
         .check();
-      await page.getByRole("button", { name: /^(筛选|Filter)$/i }).click();
+      await page
+        .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
+        .click();
       await expect(
         page.getByRole("link", { name: fixture.title, exact: true }),
       ).toBeVisible();

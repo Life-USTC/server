@@ -503,6 +503,7 @@ function closeMobileSidebar(): void {
               href={link.href}
               rel={link.rel}
               target={link.target}
+              onclick={closeMobileSidebar}
             >
               {link.label}
             </a>

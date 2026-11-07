@@ -21,6 +21,9 @@ export type HomeworkFormCommentsCopy = {
 };
 
 export type HomeworkTimestampCopy = HomeworkDueShortcutCopy & {
+  classDeadlinesLoading: string;
+  classDeadlinesFailed: string;
+  classDeadlinesRetry: string;
   advancedHide: string;
   advancedShow: string;
   calendarButtonLabel: string;

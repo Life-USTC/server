@@ -42,6 +42,8 @@ jobs:
       - uses: ./.github/actions/setup-bun-env
       - name: Verify development seed guard
         run: bash tests/ci/seed-guard.test.sh
+      - name: Verify RLS metadata collector safety
+        run: python3 scripts/operations/test_rls_metadata_audit.py
       - name: Generate application and database clients
         run: bun run app:prepare
       - name: Check Cloudflare bindings

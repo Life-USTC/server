@@ -20,6 +20,7 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
     : layoutUserSummary(locals.authUser);
 
   return {
+    shellTemplate: "standard" as const,
     demo: locals.demo ? getDemoView(locals.demo, locals.locale) : null,
     locale: locals.locale,
     copy,

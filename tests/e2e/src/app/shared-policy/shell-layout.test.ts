@@ -186,12 +186,24 @@ test("ui.workspace-footer-policy-2", { tag: "@Site/Web" }, async ({
       ]) {
         await gotoAndWaitForReady(page, path);
         await expect(page).toHaveURL(new RegExp(`${path}$`));
+        // The sidebar legal strip shares the landmark name with the public
+        // footer. These templates keep the strip without appending a footer.
+        await expect(page.locator("footer")).toHaveCount(0);
+        const legal = page.locator("[data-shell-legal-nav]");
         await expect(
-          page.getByRole("navigation", {
-            name: "Footer navigation",
-            exact: true,
-          }),
-        ).toHaveCount(0);
+          legal.and(
+            page.getByRole("navigation", {
+              name: "Footer navigation",
+              exact: true,
+            }),
+          ),
+        ).toHaveCount(1);
+        for (const href of ["/terms", "/privacy", "/usage/mobile"]) {
+          await expect(legal.locator(`a[href="${href}"]`)).toBeVisible();
+        }
+        await expect(
+          legal.getByRole("link", { name: "GitHub", exact: true }),
+        ).toBeVisible();
       }
       await isolatedWorker.database.owner.user.update({
         where: { id: shellUser.id },
