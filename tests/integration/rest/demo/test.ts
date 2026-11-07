@@ -517,11 +517,23 @@ test.describe("enabled demo", () => {
             { headers },
           );
           expect(response.status()).toBe(200);
-          expect(
-            commentsListResponseSchema.parse(await response.json()),
-          ).toMatchObject({
-            data: [],
-            pagination: { page: 2, pageSize: 5, total: 0 },
+          const comments = commentsListResponseSchema.parse(
+            await response.json(),
+          );
+          const course = query.startsWith("targetType=course");
+          expect(comments.data.map(({ id }) => id)).toEqual(
+            course
+              ? [
+                  "demo-comment-course-06",
+                  "demo-comment-course-07",
+                  "demo-comment-course-08",
+                  "demo-comment-course-09",
+                  "demo-comment-course-10",
+                ]
+              : [],
+          );
+          expect(comments).toMatchObject({
+            pagination: { page: 2, pageSize: 5, total: course ? 21 : 1 },
             meta: {
               hiddenCount: 0,
               viewer: { userId: null, isAuthenticated: false },

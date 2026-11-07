@@ -1,4 +1,5 @@
 import { getCommentRepliesRoute } from "@/lib/api/routes/comments-replies-route";
+import { getDemoCommentRepliesRoute } from "@/lib/api/routes/demo-catalog-read-routes";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import type { RequestHandler } from "./$types";
 
@@ -14,7 +15,9 @@ import type { RequestHandler } from "./$types";
  * @anonymous
  * @oauthScope community.comment:read
  */
-export const GET: RequestHandler = ({ request, params }) =>
-  observedApiRoute(() => getCommentRepliesRoute(request, { id: params.id }))(
-    request,
-  );
+export const GET: RequestHandler = ({ request, params, locals }) =>
+  locals.demo
+    ? getDemoCommentRepliesRoute(request, params.id, locals.locale)
+    : observedApiRoute(() =>
+        getCommentRepliesRoute(request, { id: params.id }),
+      )(request);
