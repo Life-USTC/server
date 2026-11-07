@@ -318,6 +318,19 @@ requirements:
     test:
       file: tests/integration/workspace-native-read-contract.test.ts
       name: calendar.native-navigation-context
+- id: calendar.stored-teaching-week
+  category: consistency
+  rule: Academic month, semester and week grids use the existing stored schedule teaching week rather than the grid row ordinal. A row with missing, invalid or conflicting teaching weeks displays the generic week label without inventing a number.
+  rationale: Month boundaries and adjusted class dates do not renumber the teaching week published for a course session.
+  acceptance:
+    given: The same November 6 course session has stored teaching week 10, with additional unknown or conflicting adjusted sessions in separate scenarios.
+    when: Build month, semester and week grids containing that date.
+    then:
+    - All three views retain teaching week 10 for an unambiguous row and the exact section link.
+    - Mixed or unknown rows use the generic week label, while a known first teaching week remains week 1.
+    test:
+      file: tests/unit/features/workspace/calendar-grid-teaching-weeks.test.ts
+      name: keeps the same stored week across month, semester and week grids
 capabilities:
   personal-calendar-view:
     title: Personal Calendar View

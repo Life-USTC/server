@@ -52,6 +52,7 @@ export const buildSessions = (
           badge: section.badge,
           courseName: section.course.namePrimary ?? "",
           date: schedule.date,
+          weekIndex: schedule.weekIndex ?? null,
           startTime: schedule.startTime,
           endTime: schedule.endTime,
           location: formatScheduleLocation(schedule),
