@@ -55,7 +55,7 @@ for (const locale of ["zh-cn", "en-us"] as const)
                   locale === "en-us" ? "Read only" : "只读",
                 );
                 const links = page.locator(
-                  '#main-content a[href^="/catalog/teachers/"]:visible',
+                  '#main-content a[href^="/catalog/teachers/"]:not([href*="#"]):visible',
                 );
                 await expect(links).toHaveCount(2);
                 expect(
@@ -66,6 +66,11 @@ for (const locale of ["zh-cn", "en-us"] as const)
                 await expect(links.first()).toContainText(
                   locale === "en-us" ? "Teacher Lin" : "林老师",
                 );
+                const counts = page
+                  .getByTestId("teacher-section-count")
+                  .filter({ visible: true });
+                await expect(counts).toHaveText(["2", "2"]);
+
                 await expect(
                   page.locator('script[src*="googletagmanager.com"]'),
                 ).toHaveCount(0);
