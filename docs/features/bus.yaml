@@ -253,6 +253,47 @@ requirements:
     test:
       file: tests/e2e/src/app/bus/presentation-contract.test.ts
       name: bus.responsive-route-surfaces
+- id: bus.home-countdown-date
+  category: presentation
+  rule: The homepage departure board names its actual current Shanghai service date. Long waits use hours
+    and remaining minutes instead of an unbounded minute count. Missing countdown facts never claim a bus
+    is departing now, and a board limited to the current service day never invents tomorrow departures.
+  acceptance:
+    given: The public hub board contains immediate, short, hourly, long and unknown waits.
+    when: The homepage projects those facts in Chinese and English on the request clock.
+    then:
+    - 59, 60, 61 and 274 minutes render as the appropriate minute or hour-plus-minute values.
+    - The service date and timetable origin remain explicit, and unknown minutes do not become departing-now.
+    test:
+      file: tests/unit/features/workspace/public-page-load.test.ts
+      name: shows service-day and readable countdown
+- id: bus.map-recovery-guidance
+  category: presentation
+  rule: The transit map places its graphic immediately below a compact legend and truthful interaction
+    guidance. Route pointer hover highlights existing routes; campus markers identify locations rather than
+    promising an unimplemented stop action. A working timetable link supplies stop and departure details.
+  acceptance:
+    given: A public transit map has an owned timetable at desktop and narrow mobile widths.
+    when: Chinese and English visitors read the legend and follow its timetable link.
+    then:
+    - The graphic starts immediately after the guidance without a tall vertically centered gap.
+    - Existing map geometry and readable campus labels remain intact, and the link opens the actual timetable.
+    test:
+      file: tests/e2e/src/app/bus-map/test.ts
+      name: bus.map-recovery-guidance
+- id: bus.map-active-routes-refresh
+  category: presentation
+  rule: The transit map recomputes route stroke and opacity when either the highlighted route or the
+    active-route set changes. A real refresh preserves route identity while showing current service facts.
+  acceptance:
+    given: An owned timetable changes an existing route between inactive and active service.
+    when: The visitor refreshes the actual map, then points at and leaves the active route.
+    then:
+    - The same route updates inactive, active and highlighted stroke and opacity values, then returns to the correct current active style.
+    - Removing the active service and refreshing restores the inactive style and removes the active dash pattern.
+    test:
+      file: tests/e2e/src/app/bus-map/test.ts
+      name: bus.map-active-routes-refresh
 - id: bus.map-usable-height
   category: presentation
   rule: The transit-map canvas uses the viewport below the topbar and page padding, without reserving

@@ -84,6 +84,41 @@ describe("public SSR runtime context", () => {
     appFetchMock.mockReset();
   });
 
+  it.each([false, true])(
+    "home degraded=%s keeps the matching cache admission policy",
+    async (degraded) => {
+      appFetchMock.mockResolvedValue(
+        new Response("<!doctype html><html></html>", {
+          headers: {
+            "Content-Type": "text/html",
+            "Cache-Control": "private, no-store",
+            "Cloudflare-CDN-Cache-Control": "no-store",
+            ...(degraded ? { "x-life-public-ssr-degraded": "1" } : {}),
+          },
+        }),
+      );
+      const response = await new PublicSsrEntrypoint(
+        { waitUntil: () => undefined },
+        {},
+      ).fetch(new Request("https://life-ustc.test/"));
+      if (degraded) {
+        expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+        expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+          "no-store",
+        );
+        expect(response.headers.has("Cache-Tag")).toBe(false);
+      } else {
+        expect(response.headers.get("Cache-Control")).toMatch(
+          /^public, max-age=0, s-maxage=[1-9]/,
+        );
+        expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toMatch(
+          /^public, max-age=/,
+        );
+        expect(response.headers.has("Cache-Tag")).toBe(true);
+      }
+    },
+  );
+
   it("rendering-and-cache.cache-layers-and-invalidation-13", async () => {
     let scheduler: unknown;
     appFetchMock.mockImplementation(

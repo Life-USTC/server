@@ -1,6 +1,8 @@
 <script lang="ts">
+import { Button } from "#lib/components/ui/button/index.js";
 import * as Empty from "#lib/components/ui/empty/index.js";
 import BusMapPageHeader from "@/features/bus/components/BusMapPageHeader.svelte";
+import BusMapVehicleGlyph from "@/features/bus/components/BusMapVehicleGlyph.svelte";
 import BusTransitSvg from "@/features/bus/components/BusTransitSvg.svelte";
 import type {
   BusMapCopy,
@@ -43,12 +45,23 @@ $: busMapView = buildBusMapViewState(mapData, dayTypeLabels, locale);
   }
 </style>
 
-<section class="bus-map-page grid grid-rows-[auto_minmax(0,1fr)] gap-5">
+<section class="bus-map-page grid grid-rows-[auto_auto_minmax(0,1fr)] gap-3">
   <BusMapPageHeader
     {copy}
     {refreshMap}
     {refreshing}
   />
+
+  <div class="grid min-w-0 gap-2 text-sm" data-testid="bus-map-legend">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <strong>{copy.legend.title}</strong>
+      <span class="inline-flex items-center gap-2"><span class="h-0.5 w-5 bg-blue-600" aria-hidden="true"></span>{copy.legend.route}</span>
+      <span class="inline-flex items-center gap-2"><svg width="24" height="16" viewBox="-12 -8 24 16" aria-hidden="true"><BusMapVehicleGlyph x={0} y={0} angle={0} color="#0969da" /></svg>{copy.legend.enRoute}</span>
+      <span class="inline-flex items-center gap-2"><svg width="24" height="16" viewBox="-12 -8 24 16" aria-hidden="true"><BusMapVehicleGlyph x={0} y={0} angle={0} color="#0969da" opacity={0.85} /></svg>{copy.legend.departingSoon}</span>
+      <Button href="/catalog/bus" variant="link" size="sm" class="h-auto px-0">{copy.backToBus}</Button>
+    </div>
+    <p class="text-muted-foreground">{copy.interactionHint}</p>
+  </div>
 
   {#if !mapData}
     <Empty.Root class="py-16">
@@ -58,7 +71,7 @@ $: busMapView = buildBusMapViewState(mapData, dayTypeLabels, locale);
       </Empty.Header>
     </Empty.Root>
   {:else}
-    <div class="bus-map-canvas flex min-h-0 min-w-0 items-center justify-center">
+    <div class="bus-map-canvas flex min-h-0 min-w-0 items-start justify-center">
       <BusTransitSvg
         activeRouteIds={busMapView.activeRouteIds}
         allRouteIds={busMapView.allRouteIds}

@@ -6,6 +6,7 @@ import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import { HOME_COMPACT_ITEM_COUNT } from "@/features/workspace/lib/anonymous-home-layout";
 import type { HomeCampusNow } from "@/features/workspace/server/anonymous-home-sections";
+import type { AppLocale } from "@/i18n/config";
 import { HOME_CAMPUS_NOW_PATH } from "@/lib/navigation/internal-routes";
 import { browser } from "$app/env";
 
@@ -23,10 +24,12 @@ import { browser } from "$app/env";
 let {
   busTitle,
   campusNow,
+  locale,
   weatherTitle,
   weatherLocationNames,
 }: {
   busTitle: string;
+  locale: AppLocale;
   campusNow: {
     busDepartingNow: string;
     busEmpty: string;
@@ -35,6 +38,8 @@ let {
     busUnavailable: string;
     busViewAll: string;
     title: string;
+    retryWeather: string;
+    retryBus: string;
     weatherHourly: string;
     weatherRange: string;
     weatherUnavailable: string;
@@ -44,30 +49,55 @@ let {
   weatherLocationNames: Record<string, string>;
 } = $props();
 
-let data = $state<HomeCampusNow | null>(null);
-let failed = $state(false);
+let weather = $state<HomeCampusNow["weather"] | undefined>();
+let bus = $state<HomeCampusNow["bus"] | undefined>();
+let weatherRetry = $state(0);
+let busRetry = $state(0);
 
+async function readCampusNow(
+  section: "weather" | "bus",
+  controller: AbortController,
+) {
+  const response = await fetch(`${HOME_CAMPUS_NOW_PATH}?section=${section}`, {
+    cache: "no-store",
+    headers: { accept: "application/json" },
+    signal: controller.signal,
+  });
+  if (!response.ok) throw new Error(`campus-now ${response.status}`);
+  return (await response.json()) as HomeCampusNow;
+}
 $effect(() => {
+  void weatherRetry;
+  void locale;
   if (!browser) return;
+  weather = undefined;
   const controller = new AbortController();
-  void (async () => {
-    try {
-      const response = await fetch(HOME_CAMPUS_NOW_PATH, {
-        headers: { accept: "application/json" },
-        signal: controller.signal,
-      });
-      if (!response.ok) throw new Error(`campus-now ${response.status}`);
-      const body = (await response.json()) as HomeCampusNow;
-      if (!controller.signal.aborted) data = body;
-    } catch {
-      if (!controller.signal.aborted) failed = true;
-    }
-  })();
+  void readCampusNow("weather", controller).then(
+    (body) => {
+      if (!controller.signal.aborted) weather = body.weather;
+    },
+    () => {
+      if (!controller.signal.aborted) weather = null;
+    },
+  );
   return () => controller.abort();
 });
-
-const weather = $derived(data?.weather ?? null);
-const bus = $derived(data?.bus ?? null);
+$effect(() => {
+  void busRetry;
+  void locale;
+  if (!browser) return;
+  bus = undefined;
+  const controller = new AbortController();
+  void readCampusNow("bus", controller).then(
+    (body) => {
+      if (!controller.signal.aborted) bus = body.bus;
+    },
+    () => {
+      if (!controller.signal.aborted) bus = null;
+    },
+  );
+  return () => controller.abort();
+});
 
 /**
  * Rows past the compact count are shipped to every viewport and revealed by the
@@ -142,7 +172,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
   refresh. The skeletons themselves carry no text and stay out of the tree.
 -->
 <section
-  aria-busy={!data && !failed}
+  aria-busy={weather === undefined || bus === undefined}
   class="grid min-w-0 gap-3 lg:col-span-2"
   data-testid="home-campus-now"
 >
@@ -153,11 +183,12 @@ function overflowClass(index: number, shown: string, hidden: string): string {
     board beside it had more rows than the weather had readings.
   -->
   <div class="grid min-w-0 items-start gap-3 sm:grid-cols-2">
-    <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4">
+    <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4" data-testid="home-weather" aria-busy={weather === undefined}>
       {@render heading(weatherTitle, CloudSunIcon, "/catalog/weather", campusNow.weatherViewAll)}
-      {#if failed || (data && (weather === null || weather.length === 0))}
+      {#if weather === null || weather?.length === 0}
         {@render note(campusNow.weatherUnavailable)}
-      {:else if !data}
+        <Button class="justify-self-start" variant="outline" size="sm" onclick={() => { weatherRetry += 1; }}>{campusNow.retryWeather}</Button>
+      {:else if weather === undefined}
         {@render weatherPlaceholder()}
       {:else}
         <dl class="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -202,11 +233,12 @@ function overflowClass(index: number, shown: string, hidden: string): string {
       {/if}
     </div>
 
-    <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4">
+    <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4" data-testid="home-bus" aria-busy={bus === undefined}>
       {@render heading(busTitle, BusFrontIcon, "/catalog/bus", campusNow.busViewAll)}
-      {#if failed || (data && bus === null)}
+      {#if bus === null}
         {@render note(campusNow.busUnavailable)}
-      {:else if !data}
+        <Button class="justify-self-start" variant="outline" size="sm" onclick={() => { busRetry += 1; }}>{campusNow.retryBus}</Button>
+      {:else if bus === undefined}
         {@render busPlaceholder()}
       {:else if bus && bus.departures.length === 0}
         {@render note(bus.emptyNote)}

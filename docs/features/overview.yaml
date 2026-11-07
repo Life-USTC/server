@@ -38,6 +38,50 @@ requirements:
     test:
       file: tests/e2e/src/app/workspace/overview/presentation-contract.test.ts
       name: overview.decision-page
+- id: overview.home-section-recovery
+  category: behavior
+  rule: Homepage sections isolate bounded reads and distinguish timeout from exception in sanitized
+    home.section.degraded events. A failed public editorial section makes the entire HTML representation
+    ineligible for shared caching; a successful empty section remains eligible. Notices, activities, weather and bus
+    each offer a retry that reads only that module through a no-store endpoint. The full news and notices
+    entry remains available during failure. Request success must not be described as a source update time.
+  acceptance:
+    given: An owned database contains a public current notice and a bus timetable.
+    when: A real table lock exhausts the homepage notice budget, then read permissions fail and recover.
+    then:
+    - The rest of the homepage stays usable, timeout and exception are observed, and degraded HTML is not retained by the shared SSR cache admission boundary.
+    - Module retries recover the actual notice, activity and bus read after the failure is removed, without application business writes.
+    - Chinese and English desktop and mobile visitors retain the working archive and article links.
+    test:
+      file: tests/e2e/src/app/workspace/overview/home-recovery.test.ts
+      name: overview.home-section-recovery
+- id: overview.home-activity-recovery
+  category: behavior
+  rule: A failed public campus-activity summary has its own no-store retry. Retrying preserves the
+    existing activity grouping and date semantics and does not re-read notices, weather or bus.
+  acceptance:
+    given: An owned database has a current public activity and its runtime SELECT permission is revoked.
+    when: The homepage degrades, then permission is restored and the visitor retries the activities module.
+    then:
+    - The actual activity and its working detail link recover without a page reload.
+    - The browser makes only the activities-module request and the activity's persisted facts remain unchanged.
+    test:
+      file: tests/e2e/src/app/workspace/overview/home-activity-recovery.test.ts
+      name: overview.home-activity-recovery
+- id: overview.deadline-state-labels
+  category: presentation
+  rule: Home urgency and focus items retain their actual due date and explicitly label incomplete due
+    homework and todos as overdue using the task-list instant contract. Completed items, advisory homework,
+    missing deadlines and future deadlines must not receive an overdue badge.
+  acceptance:
+    given: An owner has an incomplete overdue todo and a homework deadline later today.
+    when: Chinese and English desktop and mobile visitors read the homepage and follow the task link.
+    then:
+    - The old todo carries the overdue label and original date; the future homework has no overdue label.
+    - The direct task destination remains reachable and agrees with the task state.
+    test:
+      file: tests/e2e/src/app/workspace/overview/home-deadlines.test.ts
+      name: overview.home-deadline-state
 - id: overview.public-notice-headlines
   category: behavior
   rule: The home notice summary reads only a bounded prefix of public current publication headlines,

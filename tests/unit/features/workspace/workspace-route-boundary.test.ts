@@ -57,6 +57,39 @@ describe("home and signed workspace route boundary", () => {
     expect("actions" in homeRoute).toBe(false);
   });
 
+  it.each(["notices", "activities"])(
+    "marks a degraded %s home no-store for the real Worker admission boundary",
+    async (section) => {
+      loadHomePageMock.mockResolvedValue({
+        information: { notices: [], activities: [], [section]: null },
+      });
+      const homeRoute = await import("@/routes/+page.server");
+      const setHeaders = vi.fn();
+      await homeRoute.load({
+        ...routeEvent("https://example.test/"),
+        setHeaders,
+      } as never);
+      expect(setHeaders).toHaveBeenCalledWith({
+        "x-life-public-ssr-degraded": "1",
+        "Cache-Control": "private, no-store",
+        "Cloudflare-CDN-Cache-Control": "no-store",
+      });
+    },
+  );
+
+  it("keeps a successful empty home eligible for public caching", async () => {
+    loadHomePageMock.mockResolvedValue({
+      information: { notices: [], activities: [] },
+    });
+    const homeRoute = await import("@/routes/+page.server");
+    const setHeaders = vi.fn();
+    await homeRoute.load({
+      ...routeEvent("https://example.test/"),
+      setHeaders,
+    } as never);
+    expect(setHeaders).not.toHaveBeenCalled();
+  });
+
   it("permanently redirects anonymous public tab bookmarks", async () => {
     const homeRoute = await import("@/routes/+page.server");
 
