@@ -189,7 +189,7 @@ requirements:
 - id: ui.other-collection-order
   category: presentation
   topic: list-table
-  rule: Link and publication-source directories, workspace uploads, the three activity-reminder views, and administrative users, bus, OAuth and four moderation lists put their page heading before summaries and records; available endless-scroll controls follow the records. Data-column filters belong to their column headers; extra properties without displayed columns and the single Apply filters action belong to the page toolbar. Shared searches retain their whole-collection scope. Compact card views retain these controls in their collection header. Workspace uploads instead share one visible filter toolbar across table and card views, with Apply and Clear adjacent to the same draft fields; quota information precedes this collection panel. Their layout uses the shared primitives required by ui.layout-principles-4.
+  rule: Link and publication-source directories, workspace uploads, the three activity-reminder views, and administrative users, bus, OAuth and four moderation lists put their page heading before summaries and records; available endless-scroll controls follow the records. Data-column filters belong to their column headers; extra properties without displayed columns and the single Apply filters action belong to the page toolbar. Shared searches retain their whole-collection scope. Compact card views retain these controls in their collection header. Workspace uploads instead share one visible filename-search/common-upload-date/more-byte-size/applied-condition toolbar across table and card views. One native GET Apply and adjacent Reset operate on its retained draft, including from the More panel; quota information precedes this collection panel. Applied-chip removal clears only its own field and comparison bounds, pending responses preserve newer drafts, and no-files and no-match messages are distinct. Their layout uses the shared primitives required by ui.layout-principles-4.
   acceptance:
     given: Isolated uploads, subscriptions, notifications, accounts and moderation records populate the thirteen directory/workspace/administrative views alongside the application link registry and publication source fixture.
     when: A browser opens each view at mobile and desktop widths.
@@ -231,7 +231,7 @@ requirements:
 - id: ui.list-table-3
   category: presentation
   topic: list-table
-  rule: Every data column has a labeled filter in its corresponding heading; extra properties without a displayed column are grouped at the top of the page. Filters and sorting share one page draft and one Apply filters action. Popovers contain no separate Apply action. Categorical fields support multiple selections; numeric fields support equality, inequality, ordered and inclusive-range comparisons. An unrestricted selection displays only the localized Any label. Empty results retain all controls.
+  rule: Workspace uploads follow the shared toolbar exception in ui.other-collection-order. Other data columns have a labeled filter in their corresponding heading; extra properties without a displayed column are grouped at the top of the page. Filters and sorting share one page draft and one Apply filters action. Popovers contain no separate Apply action. Categorical fields support multiple selections; numeric fields support equality, inequality, ordered and inclusive-range comparisons. An unrestricted selection displays only the localized Any label. Empty results retain all controls.
   acceptance:
     given: The seeded course, teacher, and section collections expose their declared advanced filters.
     when: An anonymous browser opens each column and extra-property filter at desktop and mobile widths and inspects accessible controls, the page Apply action, and dismissal behavior.
@@ -244,7 +244,7 @@ requirements:
 - id: ui.list-table-4
   category: presentation
   topic: list-table
-  rule: The applied URL initializes one shared page draft. Closing, reopening or switching popovers retains unsaved selections and leaves the URL and results unchanged. The page Apply action commits those drafts without discarding fields edited after that submission. Explicit navigation, history traversal, clear and filter-removal actions initialize the draft from their target URL.
+  rule: In public course, teacher and teaching-section browse collections, the applied URL initializes one shared page draft. Closing, reopening or switching popovers retains unsaved selections and leaves the URL and results unchanged. The page Apply action commits those drafts without discarding fields edited after that submission. Explicit navigation, history traversal, clear and filter-removal actions initialize the draft from their target URL.
   acceptance:
     given: Course, teacher, and section URLs apply all advanced filters to a seeded matching result.
     when: The browser opens each column filter, changes its drafts, dismisses through an outside click and Escape, then reopens it.

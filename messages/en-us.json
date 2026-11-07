@@ -292,6 +292,14 @@
     }
   },
   "uploads": {
+    "searchFilename": "Search filenames",
+    "moreConditions": "More conditions",
+    "appliedConditions": "Applied conditions",
+    "removeCondition": "Remove condition: {condition}",
+    "reset": "Reset",
+    "newestFirst": "Order: newest uploads first.",
+    "noMatchTitle": "No uploads match these conditions",
+    "noMatchDescription": "Change or reset the conditions to see your files.",
     "title": "My Uploads",
     "description": "Manage files uploaded through comment attachments.",
     "uploadCardTitle": "Upload materials",
@@ -1362,6 +1370,7 @@
     "activitySummary": "Activity at a glance",
     "moreDetails": "More activity details",
     "poster": "Activity poster",
+    "posterFailed": "The activity poster could not load.",
     "earlierDates": "Show earlier dates",
     "organizerSearchPlaceholder": "Search organizer names…",
     "dateUnknownActivity": "Unknown activity date",
