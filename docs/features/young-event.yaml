@@ -439,6 +439,18 @@ requirements:
     test:
       file: tests/unit/features/young/young-calendar.test.ts
       name: young-event.web-calendar-density
+- id: young-event.web-calendar-date-ranges
+  category: presentation
+  rule: Public day calendars display a continuing cross-month activity as its exact date range, with complete readable title and location; registration mode uses its distinct registration endpoints.
+  acceptance:
+    given: 106 same-day starts and one continuing August-to-January activity with distinct September-to-October registration dates and long text.
+    when: Browse the real month-to-day drilldown and registration day views at desktop and phone widths.
+    then:
+    - The cross-month item is in the multi-day group with both activity dates, full title and location readable without clipping.
+    - Registration mode shows the registration endpoints rather than the activity dates; all original pagination and read-only state assertions remain.
+    test:
+      file: tests/e2e/src/app/young-events/test.ts
+      name: calendar has all pages, day drilldown, and independent registration times at 1280px
 - id: young-event.web-crawler-query-space
   category: presentation
   rule: Crawler discovery excludes query-bearing Young event list, calendar, detail and organizer URLs
