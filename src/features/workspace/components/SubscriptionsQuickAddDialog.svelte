@@ -14,6 +14,7 @@ import * as NativeSelect from "#lib/components/ui/native-select/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
+import SectionCardIdentity from "@/features/catalog/components/SectionCardIdentity.svelte";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import type {
   FormatMessage,
@@ -259,23 +260,10 @@ async function subscribeSelectedSections() {
                             onCheckedChange={() => toggleSection(section.id)}
                           />
                         </Item.Media>
-                        <Item.Content>
-                          <Item.Title>
-                            {namePrimary(section.course)}
-                          </Item.Title>
-                          <Item.Description>
-                            {section.code}
-                            {#if section.campus}
-                              · {namePrimary(section.campus)}
-                            {/if}
-                            {#if section.teachers.length > 0}
-                              · {section.teachers
-                                .map(namePrimary)
-                                .filter(Boolean)
-                                .join(", ")}
-                            {/if}
-                          </Item.Description>
-                        </Item.Content>
+                        <div class="min-w-0 flex-1">
+                          <SectionCardIdentity course={section.course} teachers={section.teachers} code={section.code} semester={{ nameCn: section.semester?.nameCn ?? section.semester?.namePrimary }} locale={signedData.locale} />
+                        </div>
+                        {#if section.campus}<Item.Footer>{namePrimary(section.campus)}</Item.Footer>{/if}
                         {#if subscribedSectionIdSet.has(section.id)}
                           <Item.Actions>
                             <Badge variant="secondary">

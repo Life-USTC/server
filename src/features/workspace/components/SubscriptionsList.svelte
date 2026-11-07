@@ -223,6 +223,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
         <WorkspaceCollection>
           {#snippet mobile()}
             <SubscriptionsCardsView
+              {locale}
               {readOnlyReason}
               workspaceCopy={workspaceCopy}
               requestRemoveSection={requestRemoveSection}

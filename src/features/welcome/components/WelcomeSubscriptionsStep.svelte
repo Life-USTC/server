@@ -9,11 +9,11 @@ import * as Field from "#lib/components/ui/field/index.js";
 import * as NativeSelect from "#lib/components/ui/native-select/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { Textarea } from "#lib/components/ui/textarea/index.js";
+import SectionCardIdentity from "@/features/catalog/components/SectionCardIdentity.svelte";
 import {
   GRADUATE_ACADEMIC_PORTAL_URL,
   UNDERGRADUATE_ACADEMIC_PORTAL_URL,
 } from "@/features/welcome/lib/welcome-academic-portals";
-import { formatSemesterName } from "@/lib/text/format-semester-name";
 import type {
   WelcomeBulkImportCopy,
   WelcomeCopy,
@@ -154,18 +154,15 @@ export let welcomeCopy: WelcomeCopy;
                     }}
                   />
                   <Field.Content>
-                    <Field.Label class="cursor-pointer" for={checkboxId}>
-                      <span class="sr-only">{formatCopy(welcomeCopy.selectSection, { code: section.code })} · </span>
-                      {displayName(section.course)}
-                    </Field.Label>
-                    <Field.Description>
-                      {section.code}
-                      {#if section.semester} · {formatSemesterName(locale, section.semester.nameCn ?? section.semester.namePrimary ?? "")}{/if}
-                      {#if section.campus} · {displayName(section.campus)}{/if}
-                      {#if section.teachers.length > 0}
-                        · {section.teachers.map(displayName).filter(Boolean).join(", ")}
-                      {/if}
-                    </Field.Description>
+                    <SectionCardIdentity course={section.course} teachers={section.teachers} code={section.code} semester={{ nameCn: section.semester?.nameCn ?? section.semester?.namePrimary }} {locale}>
+                      {#snippet title()}
+                        <Field.Label class="block w-full cursor-pointer break-words [overflow-wrap:anywhere]" for={checkboxId}>
+                          <span class="sr-only">{formatCopy(welcomeCopy.selectSection, { code: section.code })} · </span>
+                          {displayName(section.course)}
+                        </Field.Label>
+                      {/snippet}
+                    </SectionCardIdentity>
+                    {#if section.campus}<Field.Description>{displayName(section.campus)}</Field.Description>{/if}
                   </Field.Content>
                 </Field.Field>
               {/each}

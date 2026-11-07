@@ -299,7 +299,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
               .locator('[data-slot="field"]')
               .filter({ has: page.getByRole("checkbox") });
             const identity = matched.locator('[data-slot="field-label"]');
-            const details = matched.locator('[data-slot="field-description"]');
+            const details = matched.locator('[data-slot="item-content"]');
             await assertPriorityView({
               scope: matched,
               identity,
@@ -311,16 +311,19 @@ for (const locale of ["en-us", "zh-cn"] as const)
                     : DEV_SEED.course.nameCn,
                 ),
                 "section.teachers.namePrimary": text(
-                  details,
+                  details.locator('[data-slot="item-description"]'),
                   locale === "en-us"
                     ? DEV_SEED.teacher.nameEn
                     : DEV_SEED.teacher.nameCn,
                 ),
               },
               secondary: {
-                "section.code": text(details, DEV_SEED.section.code),
+                "section.code": text(
+                  details.locator('[data-slot="catalog-code"]'),
+                  DEV_SEED.section.code,
+                ),
                 "semester.nameCn": text(
-                  details,
+                  details.locator('[data-slot="catalog-code"] + span'),
                   locale === "en-us" ? "Spring 2026" : DEV_SEED.semesterNameCn,
                 ),
               },
