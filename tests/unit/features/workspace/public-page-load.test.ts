@@ -57,7 +57,9 @@ import { loadPublicLinksPage } from "@/features/catalog-links/server/public-link
 import { loadHomePage } from "@/features/workspace/server/anonymous-home-page-load";
 import {
   loadAnonymousHomeInformation,
+  loadHomeActivities,
   loadHomeCampusNow,
+  loadHomeNotices,
 } from "@/features/workspace/server/anonymous-home-sections";
 import { loadPublicBusPage } from "@/features/workspace/server/public-bus-page-load";
 import { getAnonymousHomePageCopy } from "@/lib/shell/page-copy";
@@ -273,7 +275,7 @@ describe("public page loaders", () => {
         "home.section.degraded",
         expect.objectContaining({
           section: "notices",
-          reason: "home section exceeded its budget",
+          reason: "timeout",
         }),
       );
       listPublicationHeadlinesMock.mockResolvedValue([]);
@@ -287,6 +289,96 @@ describe("public page loaders", () => {
       vi.useRealTimers();
     }
   });
+
+  it("retries only notices after a sanitized exception, preserving empty success", async () => {
+    listPublicationHeadlinesMock.mockRejectedValueOnce(
+      new Error("private postgres connection details"),
+    );
+    expect((await loadHomeNotices(campusNowInput)).notices).toBeNull();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "warn",
+      "home.section.degraded",
+      {
+        event: "home.section.degraded",
+        reason: "exception",
+        requestId: "request-1",
+        section: "notices",
+      },
+    );
+    listPublicationHeadlinesMock.mockResolvedValue([]);
+    expect((await loadHomeNotices(campusNowInput)).notices).toEqual([]);
+    expect(readYoungHomeActivitiesMock).not.toHaveBeenCalled();
+  });
+
+  it("retries only activities after a failure without repeating the other public modules", async () => {
+    readYoungHomeActivitiesMock.mockRejectedValueOnce(
+      new Error("activity permission denied"),
+    );
+    expect((await loadHomeActivities(campusNowInput)).activities).toBeNull();
+    readYoungHomeActivitiesMock.mockResolvedValue([]);
+    expect((await loadHomeActivities(campusNowInput)).activities).toEqual([]);
+    expect(listPublicationHeadlinesMock).not.toHaveBeenCalled();
+    expect(getNextDeparturesFromHubCampusMock).not.toHaveBeenCalled();
+    expect(readWeatherCacheMock).not.toHaveBeenCalled();
+  });
+
+  it("retries only the selected campus module", async () => {
+    await loadHomeCampusNow({ ...campusNowInput, section: "weather" });
+    expect(readWeatherCacheMock).toHaveBeenCalled();
+    expect(getNextDeparturesFromHubCampusMock).not.toHaveBeenCalled();
+    readWeatherCacheMock.mockClear();
+    await loadHomeCampusNow({ ...campusNowInput, section: "bus" });
+    expect(readWeatherCacheMock).not.toHaveBeenCalled();
+    expect(getNextDeparturesFromHubCampusMock).toHaveBeenCalledOnce();
+    expect(listPublicationHeadlinesMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [0, "Departing now", "即将发车"],
+    [59, "in 59 min", "59 分钟后"],
+    [60, "in 1 h", "1 小时后"],
+    [61, "in 1 h 1 min", "1 小时 1 分钟后"],
+    [274, "in 4 h 34 min", "4 小时 34 分钟后"],
+    [null, "", ""],
+  ])(
+    "shows service-day and readable countdown for %s minutes",
+    async (minutes, english, chinese) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-11-07T01:00:00Z"));
+      try {
+        getNextDeparturesFromHubCampusMock.mockResolvedValue({
+          originCampus: { namePrimary: "East" },
+          departures: [
+            {
+              tripId: 1,
+              destinationCampus: { id: 2, namePrimary: "West" },
+              departureTime: "13:34",
+              minutesUntilDeparture: minutes,
+            },
+          ],
+        });
+        for (const locale of ["en-us", "zh-cn"] as const) {
+          const result = await loadHomeCampusNow({
+            ...campusNowInput,
+            locale,
+            copy: getAnonymousHomePageCopy(locale),
+            section: "bus",
+          });
+          expect(result.bus?.departures[0]?.relativeLabel).toBe(
+            locale === "en-us" ? english : chinese,
+          );
+          expect(result.bus?.originNote).toMatch(
+            locale === "en-us" ? /^Today .*East$/ : /^今天.*East出发$/,
+          );
+        }
+        expect(getNextDeparturesFromHubCampusMock).toHaveBeenCalledWith(
+          expect.objectContaining({ atTime: "2026-11-07T01:00:00.000Z" }),
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
 
   it("loads only bus data for the public bus page", async () => {
     getBusTabDataMock.mockResolvedValue({ data: { routes: [] } });

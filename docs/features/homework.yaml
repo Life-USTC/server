@@ -75,7 +75,7 @@ requirements:
       name: joins concurrent deletion replays after the first tombstone commits
 - id: homework.web-table-filters
   category: presentation
-  rule: Workspace homework column and top-area filters share one draft and Apply action. Course, semester, section, completion and status badges allow multiple alternatives; title, description and Shanghai date comparisons combine across fields. Filtering preserves the viewer-specific advisory and pending semantics.
+  rule: Workspace homework search, common and more-condition controls share one toolbar draft and Apply action. Course, semester, section, personal completion and assignment attributes allow multiple alternatives; title, description and Shanghai date comparisons combine across fields. Filtering preserves the viewer-specific advisory and pending semantics.
   acceptance:
     given: Homework rows include overdue required work and advisory work before and after its deadline.
     when: The viewer combines course, semester, completion and badge filters.
@@ -590,13 +590,13 @@ requirements:
       name: homework.oauth-write-gates
 - id: homework.responsive-workspace-view
   category: presentation
-  rule: Workspace homework displays cards on mobile and lists on desktop. Every displayed column opens its filters from the desktop header or mobile collection header, including when no records match. Section identity, description and additional timestamps live in the top filter area. All controls edit a shared draft and one Apply action commits the filters. There is no view-mode control.
+  rule: Workspace homework displays cards on mobile and lists on desktop. One toolbar exposes title search, common personal-status/course/semester/deadline conditions, more section/assignment-attribute/description/timestamp conditions and applied-condition chips, including when no records match. Personal status and assignment attributes use distinct labels. All controls edit one retained draft, one Apply action commits the filters, and adjacent Reset clears draft and applied values; actual deadline ordering is visible. Table headings are plain labels and cards do not duplicate header controls. There is no view-mode control.
   acceptance:
     given: An authenticated owner subscribes to a section with actual homework records.
     when: The workspace renders at desktop and mobile widths and the viewer selects and applies every completion filter.
     then:
     - Desktop displays the homework list and mobile displays cards.
-    - The visible status header opens completion filters and selection works, including recovery from empty results.
+    - The common personal-status toolbar control opens completion filters and selection works, including recovery from empty results.
     - There is no display-mode selector or menu and no horizontal page overflow.
     test:
       file: tests/e2e/src/app/workspace/homeworks/presentation-contract.test.ts

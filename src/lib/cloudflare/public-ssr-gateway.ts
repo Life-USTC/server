@@ -22,6 +22,7 @@ export {
   resolveSectionDetailTabRedirect,
 };
 
+export const PUBLIC_SSR_DEGRADED_HEADER = "x-life-public-ssr-degraded";
 export const PUBLIC_SSR_HEADER = "x-life-public-ssr";
 export const PUBLIC_SSR_LOCALE_HEADER = "x-life-public-ssr-locale";
 export const PUBLIC_SSR_MODE_HEADER = "x-life-public-ssr-mode";

@@ -407,7 +407,9 @@ test.describe("仪表盘待办", () => {
           .first();
         await expect(addTodoButton).toBeVisible();
         await expect(addTodoButton).toBeEnabled();
-        const titleInput = page.getByLabel(/标题|Title/i);
+        const titleInput = page
+          .getByRole("dialog", { name: /^(新建待办|New Todo)$/i })
+          .getByRole("textbox", { name: /^(标题|Title)$/i });
         await addTodoButton.click();
         await expect(titleInput).toBeVisible();
         await titleInput.fill(title);

@@ -2,7 +2,6 @@
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
-import type { Snippet } from "svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -28,7 +27,6 @@ type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
 
 export let showPersonalStatus = false;
 export let readOnlyReason: string | null | undefined = null;
-export let filterControls: Snippet<[string[], string, string]>;
 export let locale: string;
 export let unknownSemesterLabel: string;
 export let filteredHomeworkItems: WorkspaceHomeworkItem[];
@@ -68,10 +66,10 @@ function propertyBadges(homework: WorkspaceHomeworkItem) {
   <Table.Root class="min-w-0 w-full" data-testid="workspace-homeworks-list">
     <Table.Header>
       <Table.Row>
-        <Table.Head>{@render filterControls(["course", "semester"], homeworksCopy.sectionLabel, "desktop")}</Table.Head>
-        <Table.Head>{@render filterControls(["title"], homeworksCopy.titleLabel, "desktop")}</Table.Head>
-        <Table.Head>{@render filterControls(["submissionDueAt"], homeworksCopy.submissionDue, "desktop")}</Table.Head>
-        <Table.Head>{@render filterControls(["completion", "flags"], homeworksCopy.statusLabel, "desktop")}</Table.Head>
+        <Table.Head>{homeworksCopy.sectionLabel}</Table.Head>
+        <Table.Head>{homeworksCopy.titleLabel}</Table.Head>
+        <Table.Head>{homeworksCopy.submissionDue}</Table.Head>
+        <Table.Head>{homeworksCopy.statusLabel}</Table.Head>
         <Table.Head>
           <span class="sr-only">{homeworksCopy.markComplete}</span>
         </Table.Head>

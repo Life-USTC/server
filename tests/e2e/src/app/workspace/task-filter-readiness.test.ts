@@ -34,14 +34,31 @@ for (const tab of ["homeworks", "todos", "exams"] as const) {
     try {
       await page.goto(`/workspace/${tab}`, { waitUntil: "commit" });
       const trigger = page
-        .locator('[data-slot="table-column-header"]')
+        .locator(
+          tab === "exams"
+            ? '[data-slot="table-column-header"]'
+            : '[data-slot="workspace-task-filter-toolbar"]',
+        )
         .getByRole("button", {
-          name: tab === "exams" ? /^(日期|Date)$/i : /^(状态|Status)$/i,
+          name:
+            tab === "exams"
+              ? /^(日期|Date)$/i
+              : tab === "homeworks"
+                ? /^(我的状态|My status)$/i
+                : /^(状态|Status)$/i,
         })
         .filter({ visible: true })
         .first();
       await expect(trigger).toBeVisible();
       await expect(trigger).toBeDisabled();
+      if (tab !== "exams") {
+        const toolbar = page.locator(
+          '[data-slot="workspace-task-filter-toolbar"]',
+        );
+        await expect(toolbar.getByRole("searchbox")).toBeDisabled();
+        for (const button of await toolbar.getByRole("button").all())
+          await expect(button).toBeDisabled();
+      }
 
       releaseScripts();
       await waitForUiSettled(page);
