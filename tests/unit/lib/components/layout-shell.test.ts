@@ -101,8 +101,10 @@ describe("application shell compact brand", () => {
 
     expect(topbar).toContain("data-shell-brand");
     expect(topbar).toContain("min-[320px]:inline-flex");
-    expect(topbar).toMatch(/class="hidden size-11/);
-    expect(topbar).not.toMatch(/class="inline-flex size-11/);
+    // The visible Home / Demo todos caption needs width beyond a square icon.
+    // Keep the 44px target and the same below-320px hiding boundary.
+    expect(topbar).toMatch(/class="hidden h-11 min-h-11 min-w-11/);
+    expect(topbar).not.toMatch(/class="inline-flex (?:size|h)-11/);
   });
 });
 

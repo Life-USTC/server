@@ -13,6 +13,8 @@ export type ShellLink = {
   disabledReason?: string;
   ariaLabel?: string;
   badge?: number | null;
+  /** Readable, non-modal explanation of a destination or its existing count. */
+  discoveryHint?: { text: string; label: string; description: string };
   glyph?: ShellGlyph;
   href: string;
   icon?: Component;

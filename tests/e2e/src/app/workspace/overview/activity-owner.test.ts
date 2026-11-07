@@ -185,7 +185,10 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
             ]);
           await page
             .getByTestId("app-sidebar")
-            .getByRole("link", { name: "Life@USTC", exact: true })
+            .getByRole("link", {
+              name: /^Life@USTC: (Home|首页)$/,
+              exact: true,
+            })
             .filter({ visible: true })
             .click();
           await expect(page).toHaveURL(`${calendar.origin}/`);
@@ -255,7 +258,7 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
       }
       await page.context().clearCookies();
       await page
-        .getByRole("link", { name: "Life@USTC", exact: true })
+        .getByRole("link", { name: /^Life@USTC: (Home|首页)$/, exact: true })
         .filter({ visible: true })
         .first()
         .click();

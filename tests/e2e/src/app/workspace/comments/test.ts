@@ -60,9 +60,10 @@ test.describe("仪表盘无效标签（comments）", () => {
         await expect(page.locator("#app-user-menu")).toBeVisible();
 
         await expect(
-          page
-            .getByTestId("app-sidebar")
-            .getByRole("link", { name: "Life@USTC", exact: true }),
+          page.getByTestId("app-sidebar").getByRole("link", {
+            name: /^Life@USTC: (Home|首页)$/,
+            exact: true,
+          }),
         ).toHaveAttribute("aria-current", "page");
         await expect(page.getByTestId("home-personal-overview")).toBeVisible();
       });

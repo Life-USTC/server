@@ -36,7 +36,10 @@ let {
 // biome-ignore lint/correctness/useHookAtTopLevel: useSidebar is a Svelte context helper, not a React hook
 const sidebar = Sidebar.useSidebar();
 
-const showAccount = $derived(viewerLoading || Boolean(user));
+// CSS-hidden triggers still create visible portals when a shared menu opens.
+const showAccount = $derived(
+  !sidebar.isMobile && (viewerLoading || Boolean(user)),
+);
 const accountCollapsed = $derived(sidebar.state === "collapsed");
 </script>
 

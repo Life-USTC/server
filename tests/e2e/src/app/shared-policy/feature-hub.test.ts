@@ -27,7 +27,7 @@ const labels = {
     empty: "没有匹配的功能。",
     day: "日程",
     courses: "课程",
-    activities: "第二课堂",
+    activities: "活动",
     apps: "应用",
     campus: "校园",
     account: "账户",
@@ -310,7 +310,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         await hub.locator('a[href="/catalog/courses"]').click();
         await expect(page).toHaveURL(/\/catalog\/courses$/);
         await page
-          .getByRole("link", { name: "Life@USTC", exact: true })
+          .getByRole("link", { name: /^Life@USTC: (Home|首页)$/, exact: true })
           .filter({ visible: true })
           .first()
           .click();

@@ -422,8 +422,42 @@ function toSidebarLink(
   copy: LayoutCopy,
   context: SidebarContext,
 ): ShellLink {
-  const { description: _description, ...link } = feature;
-  return { ...link, items: sidebarItems(feature, copy, context) };
+  const { description, ...link } = feature;
+  const explanation = copy.shell.discovery;
+  const label = explanation.explainDestination.replace(
+    "{destination}",
+    () => feature.label,
+  );
+  let discoveryHint: ShellLink["discoveryHint"];
+  if (feature.id === "mcp") {
+    discoveryHint = {
+      text: explanation.information,
+      label: `${explanation.information}: ${label}`,
+      description,
+    };
+  } else if (feature.badge != null && feature.badge > 0) {
+    switch (feature.id) {
+      case "activityNotifications":
+      case "calendar":
+      case "exams":
+      case "homeworks":
+      case "subscriptions":
+      case "todos": {
+        const hint = explanation.counts[feature.id];
+        const text = `${feature.badge} ${hint.unit}`;
+        discoveryHint = {
+          text,
+          label: `${text}: ${label}`,
+          description: `${text}. ${hint.description}`,
+        };
+      }
+    }
+  }
+  return {
+    ...link,
+    discoveryHint,
+    items: sidebarItems(feature, copy, context),
+  };
 }
 
 export function buildShellNavGroups(

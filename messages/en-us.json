@@ -3251,7 +3251,7 @@
         "settings": "Profile, preferences, linked accounts, and security",
         "mobileApp": "Schedules, shuttles, courses, and homework in your pocket",
         "prestoBot": "Check schedules, homework, and shuttles from chat",
-        "mcp": "Connect AI assistants to your data over MCP",
+        "mcp": "Connect a compatible AI assistant through MCP to query courses, schedules, homework and shuttles. Personal data requires the appropriate authorization.",
         "cli": "Use Life@USTC from the terminal",
         "adminUsers": "Search accounts, manage roles, and handle suspensions",
         "adminModeration": "Review comment, description, homework, and suspension queues",
@@ -3264,6 +3264,39 @@
       "subscriptions": "Section subscriptions",
       "courses": "Browse courses",
       "sections": "Browse sections"
+    },
+    "discovery": {
+      "mcpLabel": "AI assistants (MCP)",
+      "information": "Info",
+      "explainDestination": "{destination}: details",
+      "home": "Home",
+      "demoHome": "Demo todos",
+      "counts": {
+        "activityNotifications": {
+          "unit": "unread",
+          "description": "Unread activity notifications that have not expired."
+        },
+        "todos": {
+          "unit": "pending",
+          "description": "Your incomplete todos, including undated and overdue items."
+        },
+        "homeworks": {
+          "unit": "pending",
+          "description": "Incomplete homework from subscribed, non-retired sections. Teaching-assistant subscriptions omit past deadlines; undated deadlines remain."
+        },
+        "exams": {
+          "unit": "exams",
+          "description": "Exams in subscribed, non-retired sections: future dates and today’s arrangements not known to have ended, including today’s unknown times."
+        },
+        "subscriptions": {
+          "unit": "subscribed",
+          "description": "Subscribed teaching sections, including historical and retired subscriptions."
+        },
+        "calendar": {
+          "unit": "items",
+          "description": "Calendar summary, not this view’s result count: current-term subscribed class meetings and exam records, plus incomplete homework and todo deadlines in the term. Second Classroom is excluded. Without a current term, todo dates use the surrounding six months."
+        }
+      }
     }
   }
 }

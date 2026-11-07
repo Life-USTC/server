@@ -151,7 +151,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             await expect(current).toHaveText(organizerName);
             await page.locator('[data-slot="sidebar-rail"]').click();
             const ancestor = nav.locator('button[aria-current="location"]');
-            const name = locale === "en-us" ? "Activities" : "第二课堂";
+            const name = locale === "en-us" ? "Activities" : "活动";
             await expect(ancestor).toHaveAccessibleName(name);
             await expect(ancestor).toHaveAttribute("title", name);
             await expect(ancestor).toHaveAttribute("data-active", "true");

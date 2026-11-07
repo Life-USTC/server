@@ -384,3 +384,103 @@ vi.mock("@lucide/svelte/icons/terminal", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/user-cog", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/users", () => ({ default: () => null }));
 vi.mock("@lucide/svelte/icons/wrench", () => ({ default: () => null }));
+
+const discoveryUser = { signedIn: true, isAdmin: false };
+const discoveryNavigation = {
+  userId: "fixture",
+  calendarItemsCount: 37,
+  examsCount: 1,
+  pendingHomeworksCount: 3,
+  pendingTodosCount: 4,
+  subscribedSectionCount: 5,
+  unreadActivityNotificationsCount: 6,
+};
+const discoveryContext = {
+  pathname: "/catalog/sections/123",
+  pageData: {},
+  navigation: discoveryNavigation,
+};
+const discoveryExpected = [
+  ["/workspace/calendar", 37],
+  ["/workspace/homeworks", 3],
+  ["/workspace/todos", 4],
+  ["/workspace/exams", 1],
+  ["/workspace/subscriptions", 5],
+  ["/workspace/subscriptions/activities?view=notifications", 6],
+] as const;
+describe("shell discovery remains a presentation of existing destinations and counts", () => {
+  test.each(["en-us", "zh-cn"] as const)(
+    "explains each real summary field without changing its value or destination in %s",
+    (locale) => {
+      const groups = buildShellNavGroups(
+        buildLayoutCopy(locale),
+        discoveryUser,
+        discoveryContext,
+      );
+      const links = groups.flatMap((group) => group.links);
+      expect(
+        links
+          .filter((link) => link.badge != null)
+          .map((link) => [link.href, link.badge]),
+      ).toEqual(discoveryExpected);
+      for (const [href, count] of discoveryExpected) {
+        const link = links.find((item) => item.href === href);
+        expect(link?.discoveryHint?.text).toMatch(new RegExp(`^${count} `));
+        const scope = {
+          "/workspace/calendar":
+            locale === "en-us" ? "not this view" : "非当前视图",
+          "/workspace/homeworks":
+            locale === "en-us" ? "Teaching-assistant" : "助教订阅",
+          "/workspace/todos":
+            locale === "en-us" ? "undated and overdue" : "未定日期和已逾期",
+          "/workspace/exams": locale === "en-us" ? "today" : "今日",
+          "/workspace/subscriptions":
+            locale === "en-us" ? "historical and retired" : "历史及已退役",
+          "/workspace/subscriptions/activities?view=notifications":
+            locale === "en-us" ? "not expired" : "未过期",
+        };
+        expect(link?.discoveryHint?.description).toContain(scope[href]);
+        expect(link?.discoveryHint?.label).toContain(link?.label);
+        expect(link?.ariaLabel).toBe(link?.label);
+      }
+      const mcp = links.find((link) => link.id === "mcp");
+      expect(mcp).toMatchObject({
+        href: "/usage/mcp",
+        label: locale === "en-us" ? "AI assistants (MCP)" : "AI 助手（MCP）",
+      });
+      expect(mcp?.discoveryHint?.label).toContain(mcp?.discoveryHint?.text);
+      expect(mcp?.discoveryHint?.description).toContain(
+        locale === "en-us" ? "Personal data requires" : "个人数据需",
+      );
+      expect(groups.find((group) => group.id === "activities")?.label).toBe(
+        locale === "en-us" ? "Activities" : "活动",
+      );
+    },
+  );
+  test("does not manufacture a zero count or expose personal summary to an anonymous navigation", () => {
+    const copy = buildLayoutCopy("en-us");
+    const unknown = buildShellNavGroups(copy, discoveryUser, {
+      ...discoveryContext,
+      navigation: null,
+    }).flatMap((group) => group.links);
+    expect(unknown.filter((link) => link.badge != null)).toEqual([]);
+    expect(
+      unknown.filter((link) => link.discoveryHint).map((link) => link.id),
+    ).toEqual(["mcp"]);
+    const anonymous = buildShellNavGroups(copy, null, discoveryContext).flatMap(
+      (group) => group.links,
+    );
+    expect(anonymous.filter((link) => link.badge != null)).toEqual([]);
+    expect(anonymous.some((link) => link.href === "/workspace/todos")).toBe(
+      false,
+    );
+    const zero = buildShellNavGroups(copy, discoveryUser, {
+      ...discoveryContext,
+      navigation: { ...discoveryNavigation, pendingTodosCount: 0 },
+    })
+      .flatMap((group) => group.links)
+      .find((link) => link.id === "todos");
+    expect(zero?.badge).toBe(0);
+    expect(zero?.discoveryHint).toBeUndefined();
+  });
+});

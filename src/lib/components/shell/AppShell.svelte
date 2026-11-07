@@ -506,6 +506,12 @@ let hideSignIn = $derived(
   Boolean(viewerDemo) || isSignInPath(routePage.url.pathname),
 );
 let showFooter = $derived(!viewerDemo && presentation.footer === "public");
+const homeHref = $derived(viewerDemo ? "/workspace/todos" : "/");
+const homeLabel = $derived(
+  viewerDemo
+    ? data.copy.shell.discovery.demoHome
+    : data.copy.shell.discovery.home,
+);
 let mainContentLabel = $derived(resolveMainContentLabel(routePage.data));
 let globalSearchShortcutLabel = $derived(
   isApplePlatform()
@@ -534,7 +540,8 @@ let globalSearchShortcutLabel = $derived(
       focused
       globalSearchShortcutLabel={globalSearchShortcutLabel}
       unavailableReason={viewerDemo?.unavailableReason}
-      homeHref={viewerDemo ? "/workspace/todos" : "/"}
+      {homeHref}
+        {homeLabel}
       hideSignIn={hideSignIn}
       locale={data.locale}
       localeMenuOpen={localeMenuOpen}
@@ -579,7 +586,8 @@ let globalSearchShortcutLabel = $derived(
         isActiveLink={isActiveLink}
         isAncestorLink={isAncestorLink}
         navGroups={navGroups}
-        homeHref={viewerDemo ? "/workspace/todos" : "/"}
+        {homeHref}
+        {homeLabel}
         profileHref={profileHref}
         setUserMenuOpen={setUserMenuOpen}
         showAccountFooter={!showFooter && !viewerDemo}
@@ -599,7 +607,8 @@ let globalSearchShortcutLabel = $derived(
           copy={data.copy}
           globalSearchShortcutLabel={globalSearchShortcutLabel}
           unavailableReason={viewerDemo?.unavailableReason}
-          homeHref={viewerDemo ? "/workspace/todos" : "/"}
+          {homeHref}
+        {homeLabel}
           hideSignIn={hideSignIn}
           locale={data.locale}
           localeMenuOpen={localeMenuOpen}

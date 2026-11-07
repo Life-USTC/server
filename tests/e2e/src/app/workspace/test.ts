@@ -64,7 +64,7 @@ test.describe("仪表盘", () => {
         ).toHaveCount(0);
         await expect(
           appSidebar(page).getByRole("link", {
-            name: "Life@USTC",
+            name: /^Life@USTC: (Home|首页)$/,
             exact: true,
           }),
         ).toHaveAttribute("href", "/");

@@ -37,6 +37,7 @@ let {
   dockAboveFooter = false,
   footerLinks = [],
   homeHref = "/",
+  homeLabel = copy.shell.discovery.home,
   isActiveLink,
   isAncestorLink,
   navGroups,
@@ -56,6 +57,7 @@ let {
   /** Legal/help links for catalog detail chrome (public footer omitted there). */
   footerLinks?: ShellLink[];
   homeHref?: string;
+  homeLabel?: string;
   isActiveLink: (link: ShellLink) => boolean;
   isAncestorLink: (link: ShellLink) => boolean;
   navGroups: ShellNavGroup[];
@@ -69,6 +71,10 @@ let {
 } = $props();
 
 const sidebar = Sidebar.useSidebar();
+const discoveryId = $props.id();
+function hintId(link: ShellLink, mobile: boolean) {
+  return `${discoveryId}-${mobile ? "mobile" : "desktop"}-${link.id ?? encodeURIComponent(link.href)}`;
+}
 function revealCurrent(node: HTMLElement, active: boolean) {
   function reveal(active: boolean) {
     if (active)
@@ -143,6 +149,21 @@ function closeMobileSidebar(): void {
   {/if}
 {/snippet}
 
+{#snippet navigationHint(link: ShellLink, mobile: boolean, hasChildren = false)}
+  {#if link.discoveryHint}
+    <details class="group-data-[collapsible=icon]:hidden" data-shell-nav-hint>
+      <summary
+        aria-label={link.discoveryHint.label}
+        data-shell-count-value={link.badge ?? undefined}
+        class={cn("absolute top-0 flex min-h-11 min-w-11 max-w-24 cursor-pointer list-none items-center justify-center gap-1 rounded-md px-1 text-xs hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring md:min-h-8 md:min-w-8 [&::-webkit-details-marker]:hidden", hasChildren ? "right-8 max-w-19" : "right-1")}
+      >
+        <span class="min-w-0 [overflow-wrap:anywhere]">{link.discoveryHint.text}</span><svg class="size-3 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="6" /><path stroke-linecap="round" d="M8 7v4m0-7v.01" /></svg>
+      </summary>
+      <p id={hintId(link, mobile)} class="mx-1 mt-1 rounded-md border p-2 text-xs leading-relaxed [overflow-wrap:anywhere]" data-shell-nav-hint-body>{link.discoveryHint.description}</p>
+    </details>
+  {/if}
+{/snippet}
+
 {#snippet navigation(groups: ShellNavGroup[], mobile: boolean)}
   <nav
     aria-label={sectionSidebar?.navLabel ?? copy.shell.primaryNavigation}
@@ -156,12 +177,12 @@ function closeMobileSidebar(): void {
         <Sidebar.MenuItem>
           {#if sectionSidebar}
             {@const section = sectionSidebar}
-            <Sidebar.MenuButton tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? "Life@USTC" : undefined}>
+            <Sidebar.MenuButton class="h-auto min-h-11 py-1.5" tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? `${homeLabel} · Life@USTC` : undefined}>
               {#snippet child({ props })}
                 <a
                   {...props}
                   href={homeHref}
-                  aria-label="Life@USTC"
+                  aria-label={`Life@USTC: ${homeLabel}`}
                   onclick={closeMobileSidebar}
                 >
                   <img
@@ -170,7 +191,7 @@ function closeMobileSidebar(): void {
                     alt=""
                     aria-hidden="true"
                   />
-                  <span>Life@USTC</span>
+                  <span class="grid min-w-0"><span>Life@USTC</span>{" "}<span class="text-xs font-normal text-muted-foreground">{homeLabel}</span></span>
                 </a>
               {/snippet}
             </Sidebar.MenuButton>
@@ -188,13 +209,13 @@ function closeMobileSidebar(): void {
               {/snippet}
             </Sidebar.MenuButton>
           {:else}
-            <Sidebar.MenuButton isActive={showActiveState(currentPathname === "/")} tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? "Life@USTC" : undefined}>
+            <Sidebar.MenuButton class="h-auto min-h-11 py-1.5" isActive={showActiveState(currentPathname === "/")} tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? `${homeLabel} · Life@USTC` : undefined}>
               {#snippet child({ props })}
                 <a
                   {...props}
                   id="app-logo"
                   href={homeHref}
-                  aria-label="Life@USTC"
+                  aria-label={`Life@USTC: ${homeLabel}`}
                   aria-current={showActiveState(currentPathname === "/") ? "page" : undefined}
                   onclick={closeMobileSidebar}
                 >
@@ -204,7 +225,7 @@ function closeMobileSidebar(): void {
                     alt=""
                     aria-hidden="true"
                   />
-                  <span>Life@USTC</span>
+                  <span class="grid min-w-0"><span>Life@USTC</span>{" "}<span class="text-xs font-normal text-muted-foreground">{homeLabel}</span></span>
                 </a>
               {/snippet}
             </Sidebar.MenuButton>
@@ -302,9 +323,7 @@ function closeMobileSidebar(): void {
                       <Sidebar.MenuItem>
                         <Sidebar.MenuButton
                           isActive={active}
-                          class={onPath
-                            ? "bg-sidebar-accent/50 font-medium"
-                            : undefined}
+                          class={cn(onPath && "bg-sidebar-accent/50 font-medium", link.discoveryHint && "h-auto min-h-11 py-1.5 md:min-h-8 [&>span:last-child]:whitespace-normal! [&>span:last-child]:[overflow-wrap:anywhere]", link.discoveryHint && (link.badge != null ? "pe-28!" : "pe-16!"))}
                           data-shell-ancestor={onPath ? "true" : undefined}
                           tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? link.label : undefined}
                         >
@@ -314,6 +333,7 @@ function closeMobileSidebar(): void {
                               href={link.href}
                               use:revealCurrent={active}
                               aria-label={link.ariaLabel}
+                              aria-describedby={link.discoveryHint ? hintId(link, mobile) : undefined}
                               aria-current={active
                                 ? "page"
                                 : onPath
@@ -337,7 +357,7 @@ function closeMobileSidebar(): void {
                           class={cn(
                             // WCAG 2.2 SC 2.5.8 needs 24x24; the chevron stays 16px.
                             "top-1 w-6 peer-data-[size=default]/menu-button:top-1",
-                            link.badge != null && link.badge > 0 && "right-8",
+                            link.discoveryHint ? "right-1" : link.badge != null && link.badge > 0 && "right-8",
                           )}
                           onclick={(event) => {
                             event.preventDefault();
@@ -352,7 +372,9 @@ function closeMobileSidebar(): void {
                             class={submenuOpen ? "rotate-90" : undefined}
                           />
                         </Sidebar.MenuAction>
-                        {#if link.badge != null && link.badge > 0}
+                        {#if link.discoveryHint}
+                          {@render navigationHint(link, mobile, Boolean(link.items?.length))}
+                        {:else if link.badge != null && link.badge > 0}
                           <Sidebar.MenuBadge>{link.badge}</Sidebar.MenuBadge>
                         {/if}
 
@@ -427,9 +449,7 @@ function closeMobileSidebar(): void {
                       <Sidebar.MenuItem>
                         <Sidebar.MenuButton
                           isActive={active}
-                          class={onPath
-                            ? "bg-sidebar-accent/50 font-medium"
-                            : undefined}
+                          class={cn(onPath && "bg-sidebar-accent/50 font-medium", link.discoveryHint && "h-auto min-h-11 py-1.5 md:min-h-8 [&>span:last-child]:whitespace-normal! [&>span:last-child]:[overflow-wrap:anywhere]", link.discoveryHint && (link.badge != null ? "pe-28!" : "pe-16!"))}
                           data-shell-ancestor={onPath ? "true" : undefined}
                           tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? link.label : undefined}
                         >
@@ -439,6 +459,7 @@ function closeMobileSidebar(): void {
                               href={link.href}
                               use:revealCurrent={active}
                               aria-label={link.ariaLabel}
+                              aria-describedby={link.discoveryHint ? hintId(link, mobile) : undefined}
                               aria-current={active
                                 ? "page"
                                 : onPath
@@ -456,7 +477,9 @@ function closeMobileSidebar(): void {
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>
-                        {#if link.badge != null && link.badge > 0}
+                        {#if link.discoveryHint}
+                          {@render navigationHint(link, mobile, Boolean(link.items?.length))}
+                        {:else if link.badge != null && link.badge > 0}
                           <Sidebar.MenuBadge>{link.badge}</Sidebar.MenuBadge>
                         {/if}
                       </Sidebar.MenuItem>
