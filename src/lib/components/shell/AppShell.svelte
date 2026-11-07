@@ -463,8 +463,18 @@ let navGroups = $derived(
             "/catalog/courses",
             "/catalog/sections",
             "/catalog/teachers",
+            "/account/settings/profile",
           ].includes(link.href)
-            ? link
+            ? link.href === "/account/settings/profile"
+              ? {
+                  ...link,
+                  items: link.items?.map((item) =>
+                    item.href === "/account/settings/profile"
+                      ? item
+                      : { ...item, disabledReason: viewerDemo?.unavailableReason },
+                  ),
+                }
+              : link
             : { ...link, disabledReason: viewerDemo?.unavailableReason },
         ),
       }))
