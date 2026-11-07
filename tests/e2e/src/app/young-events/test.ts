@@ -454,8 +454,7 @@ for (const width of [1280, 390]) {
               .filter({ visible: true }),
           ).toHaveCount(0);
           await root
-            .getByRole("link", { name: /^(上一段|Previous|上一)/ })
-            .first()
+            .getByRole("link", { name: /^(前一天|Previous day)$/ })
             .click();
           await expect(
             root

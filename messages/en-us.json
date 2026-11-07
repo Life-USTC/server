@@ -832,7 +832,9 @@
     "description": "Hi {name}, this workspace brings together your courses, homework, and schedule.",
     "descriptionV2": "Hi, {name}",
     "fallbackName": "Guest",
-    "calendarViewSemester": "This semester",
+    "calendarViewSemester": "Semester",
+    "calendarViewLabel": "Calendar view",
+    "calendarNavigationLabel": "Calendar period navigation",
     "calendarViewDay": "Day",
     "calendarDay": {
       "prev": "Previous day",
@@ -840,11 +842,11 @@
       "label": "Date"
     },
     "calendarDayAgendaLabel": "Daily agenda",
-    "calendarViewMonth": "This month",
-    "calendarViewWeek": "This week",
+    "calendarViewMonth": "Month",
+    "calendarViewWeek": "Week",
     "calendarSemesterPrev": "Previous semester",
     "calendarSemesterNext": "Next semester",
-    "calendarAgendaLabel": "Weekly agenda",
+    "calendarAgendaLabel": "Calendar agenda",
     "calendarAgendaEmpty": "No events",
     "calendarMoreActions": "More calendar actions",
     "calendarWeek": {

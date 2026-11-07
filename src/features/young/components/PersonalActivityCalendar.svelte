@@ -128,13 +128,13 @@ function move(direction: number) {
 
 <section class="grid gap-4" aria-label={text.calendar}>
   <div class="flex flex-wrap items-end gap-3">
-    <Field.Field class="w-auto"><Field.FieldLabel for="personal-activity-date">{text.calendar}</Field.FieldLabel><Input id="personal-activity-date" class={toolbarFieldClass} type="date" value={selectedDate} onchange={(event) => { if (event.currentTarget.value) selectedDate = event.currentTarget.value; }} /></Field.Field>
-    <ToggleGroup.Root type="single" bind:value={() => view, (value) => { if (value) view = value; }} variant="outline" aria-label={text.calendar}>
+    <Field.Field class="w-auto"><Field.FieldLabel for="personal-activity-date">{copy.workspace.calendarDay.label}</Field.FieldLabel><Input id="personal-activity-date" class={toolbarFieldClass} type="date" value={selectedDate} onchange={(event) => { if (event.currentTarget.value) selectedDate = event.currentTarget.value; }} /></Field.Field>
+    <ToggleGroup.Root type="single" bind:value={() => view, (value) => { if (value) view = value; }} variant="outline" aria-label={copy.workspace.calendarViewLabel}>
       <ToggleGroup.Item value="day">{text.day}</ToggleGroup.Item><ToggleGroup.Item value="week">{text.week}</ToggleGroup.Item><ToggleGroup.Item value="month">{text.month}</ToggleGroup.Item>
     </ToggleGroup.Root>
-    <Button variant="outline" class={toolbarControlClass} onclick={() => move(-1)}>{copy.common.previous}</Button>
+    <Button variant="outline" aria-label={view === "day" ? copy.workspace.calendarDay.prev : view === "week" ? copy.workspace.calendarWeek.prev : copy.sectionDetail.previousMonth} class={toolbarControlClass} onclick={() => move(-1)}>{copy.common.previous}</Button>
     <Button variant="outline" class={toolbarControlClass} onclick={() => selectedDate = shanghaiDayjs().format("YYYY-MM-DD")}>{copy.workspace.todayAction}</Button>
-    <Button variant="outline" class={toolbarControlClass} onclick={() => move(1)}>{copy.common.next}</Button>
+    <Button variant="outline" aria-label={view === "day" ? copy.workspace.calendarDay.next : view === "week" ? copy.workspace.calendarWeek.next : copy.sectionDetail.nextMonth} class={toolbarControlClass} onclick={() => move(1)}>{copy.common.next}</Button>
     <Button href="/workspace/subscriptions/activities" variant="link">{text.manage}</Button>
   </div>
   {#if loading || itemsOwnerId !== ownerId || itemsLocale !== locale}<p role="status">{text.loading}</p>
