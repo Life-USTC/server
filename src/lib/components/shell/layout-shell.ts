@@ -14,19 +14,8 @@ type FooterCopy = {
   terms: string;
 };
 
-const workspaceRoots = ["/admin", "/workspace", "/account/settings"];
-
 function matchesPathRoot(pathname: string, root: string) {
   return pathname === root || pathname.startsWith(`${root}/`);
-}
-
-export function isDetailWorkspacePath(pathname: string) {
-  return /^\/catalog\/(courses|sections|teachers)\/[^/]+/.test(pathname);
-}
-
-export function isYoungEventDetailPath(pathname: string) {
-  const match = pathname.match(/^\/catalog\/young-events\/([^/]+)$/);
-  return match != null && match[1] !== "calendar" && match[1] !== "organizers";
 }
 
 export function isOnboardingPath(pathname: string) {
@@ -37,10 +26,6 @@ export function isSignInPath(pathname: string) {
   return (
     pathname === "/account/sign-in" || pathname.startsWith("/account/sign-in/")
   );
-}
-
-export function shouldUseFocusedShell(pathname: string) {
-  return isOnboardingPath(pathname) || isSignInPath(pathname);
 }
 
 /** Matches `min-h-14` on mobile primary / admin tab bars. */
@@ -54,16 +39,6 @@ export function resolveMobileToastBottomOffset(showMobileTabBar: boolean) {
     return `calc(${MOBILE_SHELL_TAB_BAR_HEIGHT} + ${safeArea} + ${MOBILE_TOAST_EDGE_GAP})`;
   }
   return `calc(${safeArea} + ${MOBILE_TOAST_EDGE_GAP})`;
-}
-
-export function shouldShowAppFooter(pathname: string, signedIn: boolean) {
-  if (isDetailWorkspacePath(pathname)) return false;
-  if (shouldUseFocusedShell(pathname)) return false;
-  if (workspaceRoots.some((root) => matchesPathRoot(pathname, root))) {
-    return false;
-  }
-  if (signedIn && pathname === "/") return false;
-  return true;
 }
 
 export function resolveProfileHref(user: ShellUser) {

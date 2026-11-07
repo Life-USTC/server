@@ -6,6 +6,7 @@ import {
   getCloudflareMaintenanceHyperdriveConnectionString,
   hasCloudflareRuntimeEnv,
 } from "@/lib/adapters/cloudflare-runtime";
+import { RUNTIME_DATABASE_POOL_CAPACITY } from "@/lib/db/runtime-pool-capacity";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { getSafeErrorName } from "@/lib/log/safe-error-name";
 import { writeDatabaseEventAnalytics } from "@/lib/metrics/analytics-engine";
@@ -138,7 +139,7 @@ export function createPrismaAdapter(
       // the request completes. Concurrent queries (Promise.all, RLS tx +
       // session lookup) otherwise open up to pg's default of 10 connections;
       // cap the pool so a single request can never open more than 3.
-      max: 3,
+      max: RUNTIME_DATABASE_POOL_CAPACITY,
       // Keep a short idle timeout as a safety net for clients created outside
       // the managed request context.
       idleTimeoutMillis: 5_000,

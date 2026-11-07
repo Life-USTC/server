@@ -61,6 +61,28 @@ async function renderedComponents(root: string) {
 }
 
 it("ui.list-table-9", async () => {
+  // The shell directory is allowed only as same-page anchors. Sidebar destinations
+  // remain route-owned rather than being copied into per-page tab bars.
+  const { detailNavigation } = await import(
+    "@/lib/components/shell/detail-navigation"
+  );
+  const { buildLayoutCopy } = await import("@/lib/shell/layout-server-data");
+  const directory = detailNavigation(
+    {
+      shellDetail: "section",
+      section: { course: { jwId: 400, nameCn: "Course" } },
+    },
+    "/catalog/sections/1800",
+    buildLayoutCopy("en-us"),
+  );
+  expect(directory?.anchors.map((item) => item.href)).toEqual([
+    "#introduction",
+    "#calendar",
+    "#exams",
+    "#homework",
+    "#comments",
+    "#overview",
+  ]);
   const sidebarRouteOwners = [
     "src/features/young/components/YoungEventsPage.svelte",
     "src/features/young/components/YoungEventDetailPage.svelte",

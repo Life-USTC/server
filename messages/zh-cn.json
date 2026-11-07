@@ -292,6 +292,14 @@
     }
   },
   "uploads": {
+    "searchFilename": "搜索文件名",
+    "moreConditions": "更多条件",
+    "appliedConditions": "已应用条件",
+    "removeCondition": "移除条件：{condition}",
+    "reset": "重置",
+    "newestFirst": "排序：上传时间从新到旧。",
+    "noMatchTitle": "没有符合条件的上传文件",
+    "noMatchDescription": "调整或重置筛选条件以查看你的文件。",
     "title": "我的上传",
     "description": "管理通过评论附件上传的文件。",
     "uploadCardTitle": "上传资料",
@@ -832,7 +840,9 @@
     "description": "你好，{name}。这里集中展示你的课程、作业与安排。",
     "descriptionV2": "你好，{name}",
     "fallbackName": "访客",
-    "calendarViewSemester": "本学期",
+    "calendarViewSemester": "学期",
+    "calendarViewLabel": "日历视图",
+    "calendarNavigationLabel": "日历期间导航",
     "calendarViewDay": "日",
     "calendarDay": {
       "prev": "前一天",
@@ -840,11 +850,11 @@
       "label": "日期"
     },
     "calendarDayAgendaLabel": "每日议程",
-    "calendarViewMonth": "本月",
-    "calendarViewWeek": "本周",
+    "calendarViewMonth": "月",
+    "calendarViewWeek": "周",
     "calendarSemesterPrev": "上一学期",
     "calendarSemesterNext": "下一学期",
-    "calendarAgendaLabel": "每周日程",
+    "calendarAgendaLabel": "日历议程",
     "calendarAgendaEmpty": "暂无安排",
     "calendarMoreActions": "更多日历操作",
     "calendarWeek": {
@@ -3045,6 +3055,7 @@
     "activitySummary": "活动概览",
     "moreDetails": "更多活动资料",
     "poster": "活动海报",
+    "posterFailed": "活动海报加载失败。",
     "earlierDates": "查看此前日期",
     "organizerSearchPlaceholder": "按主办方名称搜索…",
     "dateUnknownActivity": "活动时间未知",
@@ -3180,6 +3191,18 @@
     "noDataDescription": "请先导入或启用班车时刻表版本后再查看线路图。"
   },
   "shell": {
+    "currentLocation": "当前位置",
+    "detailNavigation": {
+      "label": "本页目录",
+      "relatedCourse": "查看所属课程",
+      "introduction": "简介",
+      "calendar": "日历",
+      "exams": "考试",
+      "homework": "作业",
+      "comments": "评论",
+      "sections": "教学班",
+      "overview": "更多资料"
+    },
     "menu": "菜单",
     "scrollRegion": "主要内容滚动区域",
     "toggleSidebar": "切换侧边栏",

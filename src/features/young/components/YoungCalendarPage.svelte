@@ -123,12 +123,23 @@ function unknownDatesHref() {
 
 const calendarLabels = $derived({
   agenda: youngCopy.agenda,
+  viewLabel: copy.workspace.calendarViewLabel,
   earlierDates: youngCopy.earlierDates,
   day: youngCopy.day,
   month: youngCopy.month,
   moreEvents: youngCopy.moreEvents,
-  next: youngCopy.next,
-  previous: youngCopy.previous,
+  next:
+    view === "day"
+      ? copy.workspace.calendarDay.next
+      : view === "week"
+        ? copy.workspace.calendarWeek.next
+        : copy.sectionDetail.nextMonth,
+  previous:
+    view === "day"
+      ? copy.workspace.calendarDay.prev
+      : view === "week"
+        ? copy.workspace.calendarWeek.prev
+        : copy.sectionDetail.previousMonth,
   sourceMissing: youngCopy.sourceMissing,
   today: youngCopy.today,
   week: youngCopy.week,

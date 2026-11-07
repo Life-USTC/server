@@ -2,55 +2,59 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  isDetailWorkspacePath,
   isOnboardingPath,
   isSignInPath,
-  isYoungEventDetailPath,
   resolveMobileToastBottomOffset,
   resolveShellTheme,
-  shouldShowAppFooter,
-  shouldUseFocusedShell,
 } from "@/lib/components/shell/layout-shell";
+import { shellPresentation } from "@/lib/components/shell/shell-templates";
 
-describe("application shell footer policy", () => {
+describe("application shell template footer policy", () => {
   it.each([
-    ["/catalog/courses/123", true],
-    ["/catalog/sections/123/homework", true],
-    ["/catalog/teachers/123", true],
-    ["/catalog/courses", false],
-  ])("identifies detail workspace path %s", (pathname, expected) => {
-    expect(isDetailWorkspacePath(pathname)).toBe(expected);
-  });
-
-  it.each([
-    ["/catalog/young-events/82b85f9952501a0c0303ac31652f19e9", true],
-    ["/catalog/young-events", false],
-    ["/catalog/young-events/calendar", false],
-    ["/catalog/young-events/organizers", false],
-    ["/catalog/young-events/organizers/dev-scenario-young-organizer", false],
-  ])("identifies young event banner path %s", (pathname, expected) => {
-    expect(isYoungEventDetailPath(pathname)).toBe(expected);
-  });
-
-  it.each([
-    ["/", false, true],
-    ["/", true, false],
-    ["/workspace", true, false],
-    ["/workspace/exams", true, false],
-    ["/account/settings/profile", true, false],
-    ["/admin/oauth", true, false],
-    ["/account/welcome", true, false],
-    ["/account/sign-in", false, false],
-    ["/catalog/courses", false, true],
-    ["/catalog/courses", true, true],
-    ["/guides/markdown-support", true, true],
-    ["/catalog/courses/123", false, false],
+    ["standard", false, "public"],
+    ["standard", true, "public"],
+    ["home", false, "public"],
+    ["home", true, "sidebar"],
+    ["workspace", true, "sidebar"],
+    ["settings", true, "sidebar"],
+    ["academic-detail", false, "sidebar"],
+    ["academic-detail", true, "sidebar"],
+    ["young-detail", false, "public"],
+    ["young-detail", true, "public"],
+    ["focused", false, "none"],
+    ["focused", true, "none"],
   ])(
-    "pathname %s with signedIn=%s shows footer=%s",
-    (pathname, signedIn, expected) => {
-      expect(shouldShowAppFooter(pathname, signedIn)).toBe(expected);
+    "template %s with signedIn=%s places legal links in %s",
+    (template, signedIn, footer) => {
+      expect(shellPresentation(template, Boolean(signedIn)).footer).toBe(
+        footer,
+      );
     },
   );
+  it.each([
+    "workspace",
+    "settings",
+    "academic-detail",
+    "young-detail",
+    "standard",
+    "home",
+  ])("keeps %s in the full shell", (template) => {
+    expect(shellPresentation(template, true).focused).toBe(false);
+  });
+  it("declares nested scroll only for academic details", () => {
+    for (const template of [
+      "workspace",
+      "settings",
+      "academic-detail",
+      "young-detail",
+      "standard",
+      "home",
+      "focused",
+    ])
+      expect(shellPresentation(template, false).detailScroll).toBe(
+        template === "academic-detail",
+      );
+  });
 });
 
 describe("application shell focused chrome", () => {
@@ -63,16 +67,9 @@ describe("application shell focused chrome", () => {
     expect(isOnboardingPath(pathname)).toBe(expected);
   });
 
-  it.each([
-    ["/account/welcome", true],
-    ["/account/welcome/", true],
-    ["/account/sign-in", true],
-    ["/account/sign-in-other", false],
-    ["/account/sign-in/nested", true],
-    ["/account/settings", false],
-    ["/workspace/overview", false],
-  ])("pathname %s uses focused shell=%s", (pathname, expected) => {
-    expect(shouldUseFocusedShell(pathname)).toBe(expected);
+  it("uses focused chrome only when declared by its owning route", () => {
+    expect(shellPresentation("focused", false).focused).toBe(true);
+    expect(shellPresentation("/account/sign-in", false).focused).toBe(false);
   });
 
   it.each([

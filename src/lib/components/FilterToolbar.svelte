@@ -5,6 +5,7 @@ import { toolbarControlClass } from "#lib/components/toolbar-control.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Sheet from "#lib/components/ui/sheet/index.js";
+import { cn } from "#lib/utils.js";
 import { afterNavigate } from "$app/navigation";
 
 let {
@@ -14,6 +15,9 @@ let {
   filterTitle = "",
   activeCount = 0,
   open = $bindable(false),
+  disabled = false,
+  showFilterLabel = false,
+  advancedBeforeActions = false,
 }: {
   primary: Snippet;
   advanced?: Snippet;
@@ -21,6 +25,9 @@ let {
   filterTitle?: string;
   activeCount?: number;
   open?: boolean;
+  disabled?: boolean;
+  showFilterLabel?: boolean;
+  advancedBeforeActions?: boolean;
 } = $props();
 
 let narrow = $state(false);
@@ -48,9 +55,9 @@ onMount(() => {
     <Sheet.Root bind:open>
       <Sheet.Trigger>
         {#snippet child({ props })}
-          <Button {...props} type="button" variant="outline" class="{toolbarControlClass} order-2 md:order-4">
+          <Button {...props} type="button" variant="outline" class={cn(toolbarControlClass, !advancedBeforeActions && "order-2 md:order-4")} {disabled}>
             <SlidersHorizontalIcon data-icon="inline-start" aria-hidden="true" />
-            <span class="max-md:sr-only">{filterTitle}</span>
+            <span class={cn(!showFilterLabel && "max-md:sr-only")}>{filterTitle}</span>
             {#if activeCount}<Badge variant="secondary">{activeCount}</Badge>{/if}
           </Button>
         {/snippet}

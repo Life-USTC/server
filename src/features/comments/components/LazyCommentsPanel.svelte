@@ -1,8 +1,6 @@
 <script lang="ts">
 import { type ComponentProps, onMount } from "svelte";
-import * as Alert from "#lib/components/ui/alert/index.js";
-import { Button } from "#lib/components/ui/button/index.js";
-import { Skeleton } from "#lib/components/ui/skeleton/index.js";
+import LazyModuleStatus from "#lib/components/LazyModuleStatus.svelte";
 import type CommentsPanelComponent from "./CommentsPanel.svelte";
 
 type PanelProps = ComponentProps<typeof CommentsPanelComponent>;
@@ -17,18 +15,28 @@ export let readOnlyReason: string | undefined = undefined;
 
 let CommentsPanel: typeof CommentsPanelComponent | null = null;
 let loadError = false;
+let loading = false;
+let destroyed = false;
 
 async function loadPanel() {
+  if (destroyed || loading) return;
+  loading = true;
   loadError = false;
   try {
-    CommentsPanel = (await import("./CommentsPanel.svelte")).default;
+    const result = await import("./CommentsPanel.svelte");
+    if (!destroyed) CommentsPanel = result.default;
   } catch {
-    loadError = true;
+    if (!destroyed) loadError = true;
+  } finally {
+    if (!destroyed) loading = false;
   }
 }
 
 onMount(() => {
   void loadPanel();
+  return () => {
+    destroyed = true;
+  };
 });
 </script>
 
@@ -42,18 +50,7 @@ onMount(() => {
     {heading}
     {readOnlyReason}
   />
-{:else if loadError}
-  <Alert.Root variant="destructive">
-    <Alert.Description>{copy.loadFailed}</Alert.Description>
-    <Alert.Action>
-      <Button size="sm" variant="ghost" onclick={() => void loadPanel()}>
-        {copy.retry}
-      </Button>
-    </Alert.Action>
-  </Alert.Root>
 {:else}
-  <div class="grid gap-3" aria-busy="true" aria-label={heading}>
-    <Skeleton class="h-5 w-24" />
-    <Skeleton class="h-16 w-full" />
-  </div>
+  <h2 class="mb-3 text-lg font-semibold tracking-tight">{heading}</h2>
+  <LazyModuleStatus failed={loadError} {heading} loadFailed={copy.loadFailed} retry={copy.retry} onRetry={() => void loadPanel()} />
 {/if}
