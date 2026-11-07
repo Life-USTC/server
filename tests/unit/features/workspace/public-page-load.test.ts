@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   getBusTabDataMock,
@@ -80,6 +80,11 @@ const event = {
 };
 
 describe("public page loaders", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     getBusTabDataMock.mockReset();
     getNextDeparturesFromHubCampusMock.mockReset();
@@ -239,8 +244,120 @@ describe("public page loaders", () => {
       "warn",
       "home.section.degraded",
       expect.objectContaining({ section: "weather" }),
+      expect.objectContaining({ message: "weather upstream down" }),
     );
   });
+
+  it.each([
+    "transport",
+    "postgres",
+    "lookalike-timeout",
+    "message-getter",
+    "revoked-proxy",
+  ] as const)(
+    "logs failed home sections through production-safe errors (%s)",
+    async (kind) => {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("LOG_LEVEL", "warn");
+      const actual = await vi.importActual<
+        typeof import("@/lib/log/app-logger")
+      >("@/lib/log/app-logger");
+      logAppEventMock.mockImplementation(actual.logAppEvent);
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const canaries = [
+        "private-canary-message",
+        "SELECT fake_canary WHERE actor = $1",
+        "private-canary-parameter",
+        "private-canary-host.invalid",
+        "private-canary-stack",
+      ];
+      const message = canaries.join(" | ");
+      const messageGetter = vi.fn(() => {
+        throw new Error("private-canary-getter");
+      });
+      const revocable = Proxy.revocable({}, {});
+      const failure =
+        kind === "revoked-proxy"
+          ? revocable.proxy
+          : kind === "message-getter"
+            ? Object.defineProperty(new Error(), "message", {
+                get: messageGetter,
+              })
+            : kind === "transport"
+              ? new Error(message, {
+                  cause: Object.assign(new Error(message), {
+                    code: "ECONNREFUSED",
+                    host: canaries[3],
+                  }),
+                })
+              : kind === "postgres"
+                ? Object.assign(new Error(message), {
+                    name: "PrismaClientKnownRequestError",
+                    code: "P2010",
+                    meta: {
+                      code: "42501",
+                      sql: canaries[1],
+                      parameters: [canaries[2]],
+                    },
+                  })
+                : Object.assign(new Error("home section exceeded its budget"), {
+                    name: "TimeoutError",
+                  });
+      if (kind === "revoked-proxy") revocable.revoke();
+      else Object.defineProperty(failure, "stack", { value: canaries[4] });
+      listPublicationHeadlinesMock.mockRejectedValue(failure);
+      const requestId = "00000000-0000-4000-8000-000000001521";
+
+      expect(
+        await loadAnonymousHomeInformation({ locale: "en-us", requestId }),
+      ).toEqual({ activities: [], notices: null });
+      expect(logAppEventMock).toHaveBeenCalledOnce();
+      const call = logAppEventMock.mock.calls[0];
+      expect(call?.slice(0, 3)).toEqual([
+        "warn",
+        "home.section.degraded",
+        {
+          event: "home.section.degraded",
+          requestId,
+          section: "notices",
+          reason: "exception",
+        },
+      ]);
+      // Compare identity without a deep matcher probing a revoked Proxy.
+      expect(Object.is(call?.[3], failure)).toBe(true);
+      expect(warn).toHaveBeenCalledOnce();
+      const output = String(warn.mock.calls[0]?.[0]);
+      const record = JSON.parse(output);
+      expect(record).toMatchObject({
+        environment: "production",
+        event: "home.section.degraded",
+        requestId,
+        section: "notices",
+      });
+      expect(record.error).toEqual(
+        kind === "transport"
+          ? { name: "Error", transportCode: "ECONNREFUSED" }
+          : kind === "postgres"
+            ? {
+                name: "PrismaClientKnownRequestError",
+                code: "42501",
+                prismaCode: "P2010",
+              }
+            : {
+                name:
+                  kind === "revoked-proxy"
+                    ? "UnknownError"
+                    : kind === "message-getter"
+                      ? "Error"
+                      : "TimeoutError",
+              },
+      );
+      expect(messageGetter).not.toHaveBeenCalled();
+      expect(record.reason).toBe("exception");
+      for (const canary of [...canaries, "home section exceeded its budget"])
+        expect(output).not.toContain(canary);
+    },
+  );
 
   it("keeps the home notice summary independent of the full list count", async () => {
     listPublicationHeadlinesMock.mockResolvedValue([
@@ -261,6 +378,13 @@ describe("public page loaders", () => {
   it("distinguishes a timed-out notice summary from an empty success", async () => {
     vi.useFakeTimers();
     try {
+      vi.stubEnv("NODE_ENV", "production");
+      vi.stubEnv("LOG_LEVEL", "warn");
+      const actual = await vi.importActual<
+        typeof import("@/lib/log/app-logger")
+      >("@/lib/log/app-logger");
+      logAppEventMock.mockImplementation(actual.logAppEvent);
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
       listPublicationHeadlinesMock.mockImplementation(
         () => new Promise(() => {}),
       );
@@ -275,9 +399,24 @@ describe("public page loaders", () => {
         "home.section.degraded",
         expect.objectContaining({
           section: "notices",
-          reason: "timeout",
+          reason: "budget_exceeded",
+        }),
+        expect.objectContaining({
+          name: "TimeoutError",
+          message: "home section exceeded its budget",
         }),
       );
+      expect(warn).toHaveBeenCalledOnce();
+      const output = String(warn.mock.calls[0]?.[0]);
+      expect(JSON.parse(output)).toMatchObject({
+        event: "home.section.degraded",
+        requestId: "timeout",
+        section: "notices",
+        reason: "budget_exceeded",
+        error: { name: "TimeoutError" },
+      });
+      expect(output).not.toContain("home section exceeded its budget");
+      expect(output).not.toContain("stack");
       listPublicationHeadlinesMock.mockResolvedValue([]);
       expect(
         await loadAnonymousHomeInformation({
@@ -291,9 +430,8 @@ describe("public page loaders", () => {
   });
 
   it("retries only notices after a sanitized exception, preserving empty success", async () => {
-    listPublicationHeadlinesMock.mockRejectedValueOnce(
-      new Error("private postgres connection details"),
-    );
+    const failure = new Error("private postgres connection details");
+    listPublicationHeadlinesMock.mockRejectedValueOnce(failure);
     expect((await loadHomeNotices(campusNowInput)).notices).toBeNull();
     expect(logAppEventMock).toHaveBeenCalledWith(
       "warn",
@@ -304,6 +442,7 @@ describe("public page loaders", () => {
         requestId: "request-1",
         section: "notices",
       },
+      failure,
     );
     listPublicationHeadlinesMock.mockResolvedValue([]);
     expect((await loadHomeNotices(campusNowInput)).notices).toEqual([]);

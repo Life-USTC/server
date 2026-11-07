@@ -8,6 +8,8 @@ import type { AppLocale } from "@/i18n/config";
 import type { WorkspaceNavigationSummary } from "@/lib/shell/shell-bootstrap";
 import enUs from "../../../../messages/en-us.json";
 import zhCn from "../../../../messages/zh-cn.json";
+import { getDemoCalendar } from "./demo-calendar";
+import { readDemoCalendarEvents } from "./demo-calendar-events";
 import { getDemoExamsTabData, getDemoUpcomingExamsCount } from "./demo-exams";
 import { getDemoHomeworks, getDemoHomeworksTabData } from "./demo-homeworks";
 import {
@@ -44,7 +46,13 @@ export function getDemoNavigation(
     pendingTodosCount: getDemoTodos("zh-cn").filter((todo) => !todo.completed)
       .length,
     unreadActivityNotificationsCount: 0,
-    calendarItemsCount: 0,
+    calendarItemsCount: (() => {
+      const calendar = getDemoCalendar(identity, "zh-cn");
+      return readDemoCalendarEvents("zh-cn", {
+        dateFrom: String(calendar.semesterStart),
+        dateTo: String(calendar.semesterEnd),
+      }).pagination.total;
+    })(),
     examsCount: getDemoUpcomingExamsCount(identity),
     pendingHomeworksCount: getDemoHomeworks("zh-cn").filter(
       (homework) => homework.completionRequired && !homework.completion,
@@ -56,7 +64,8 @@ export function getDemoNavigation(
 export function getDemoWorkspacePage(
   identity: DemoIdentity,
   locale: AppLocale,
-  tab: "todos" | "subscriptions" | "homeworks" | "exams",
+  tab: "todos" | "subscriptions" | "homeworks" | "exams" | "calendar",
+  calendarSemesterId?: number,
 ) {
   const demo = getDemoView(identity, locale);
   const copy = getWorkspacePageCopy(locale);
@@ -76,7 +85,19 @@ export function getDemoWorkspacePage(
       user: { id: userId, name: demo.displayName, username: null },
     },
     subscribedSectionCount,
-    overview: null,
+    overview:
+      tab === "calendar"
+        ? {
+            calendar: getDemoCalendar(identity, locale, calendarSemesterId),
+            currentTermName: null,
+            dueToday: [],
+            hasAnySelection: true,
+            hasCurrentTermSelection: true,
+            overviewLinks: [],
+            pendingHomeworks: [],
+            todaySessions: [],
+          }
+        : null,
     links: null,
     homeworks: tab === "homeworks" ? getDemoHomeworksTabData(locale) : null,
     subscriptions:

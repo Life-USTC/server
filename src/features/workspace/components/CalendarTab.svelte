@@ -10,6 +10,7 @@ import {
   buildWorkspaceAgendaDays,
   type WorkspaceAgendaDay,
 } from "@/features/workspace/lib/workspace-agenda";
+import { workspaceCalendarOwner } from "@/features/workspace/lib/workspace-calendar-owner";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
 import PersonalActivityCalendar from "@/features/young/components/PersonalActivityCalendar.svelte";
 import {
@@ -117,7 +118,8 @@ let youngLoading = true;
 let youngOwnerId = "";
 let youngController: AbortController | undefined;
 let requestedRange = "";
-$: ownerId = $shellViewer.viewer?.id ?? "";
+$: calendarOwner = workspaceCalendarOwner($shellViewer, signedData.demo);
+$: ownerId = calendarOwner.id;
 $: visibleYoungItems = youngOwnerId === ownerId ? youngItems : [];
 $: activityCopy = getWorkspacePageCopy(
   signedData.locale === "en-us" ? "en-us" : "zh-cn",
@@ -130,7 +132,7 @@ $: requestKey =
   signedData.navStats.user.id === ownerId &&
   hasWorkspaceSubscriptions(signedData) &&
   rangeKeys.length
-    ? `${ownerId}:${signedData.locale}:${rangeKeys[0]}:${rangeKeys[rangeKeys.length - 1]}`
+    ? `${calendarOwner.epoch}:${signedData.locale}:${rangeKeys[0]}:${rangeKeys[rangeKeys.length - 1]}`
     : "";
 $: if (browser && requestKey !== requestedRange) {
   requestedRange = requestKey;
@@ -139,9 +141,19 @@ $: if (browser && requestKey !== requestedRange) {
   youngFailed = false;
   youngLoading = Boolean(requestKey);
   if (requestKey)
-    void loadYoung(ownerId, rangeKeys[0], rangeKeys[rangeKeys.length - 1]);
+    void loadYoung(
+      ownerId,
+      calendarOwner.epoch,
+      rangeKeys[0],
+      rangeKeys[rangeKeys.length - 1],
+    );
 }
-async function loadYoung(requestOwnerId: string, from: string, to: string) {
+async function loadYoung(
+  requestOwnerId: string,
+  requestEpoch: string,
+  from: string,
+  to: string,
+) {
   const controller = new AbortController();
   youngController = controller;
   youngOwnerId = requestOwnerId;
@@ -150,21 +162,21 @@ async function loadYoung(requestOwnerId: string, from: string, to: string) {
     if (
       !controller.signal.aborted &&
       signedData.navStats.user.id === requestOwnerId &&
-      $shellViewer.viewer?.id === requestOwnerId
+      calendarOwner.epoch === requestEpoch
     )
       youngItems = items.filter((item) => item.type === "young_event");
   } catch {
     if (
       !controller.signal.aborted &&
       signedData.navStats.user.id === requestOwnerId &&
-      $shellViewer.viewer?.id === requestOwnerId
+      calendarOwner.epoch === requestEpoch
     )
       youngFailed = true;
   } finally {
     if (
       !controller.signal.aborted &&
       signedData.navStats.user.id === requestOwnerId &&
-      $shellViewer.viewer?.id === requestOwnerId
+      calendarOwner.epoch === requestEpoch
     )
       youngLoading = false;
   }
