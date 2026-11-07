@@ -449,7 +449,36 @@ test("calendar.mobile-long-semester-owner-isolation", {
       await page.setViewportSize({ width: 390, height: 844 });
       await owner(page, fixture, 0);
       await gotoAndWaitForReady(page, fixture.academicUrl());
-      await page.getByRole("radio", { name: /^(Semester|学期)$/ }).click();
+      // Join real data containing the far-end fixture before testing its render.
+      const [semesterResponse] = await Promise.all([
+        page.waitForResponse(async (response) => {
+          const url = new URL(response.url());
+          const from = url.searchParams.get("dateFrom");
+          const to = url.searchParams.get("dateTo");
+          if (
+            url.origin !== fixture.origin ||
+            url.pathname !== "/api/workspace/calendar/events" ||
+            response.request().method() !== "GET" ||
+            !from ||
+            !to ||
+            from > "2027-04-12" ||
+            to < "2027-04-12"
+          )
+            return false;
+          const body: { data?: Array<{ youngId: string | null }> } =
+            await response.json();
+          return (
+            Array.isArray(body.data) &&
+            body.data.some((item) => item.youngId === `${prefix}-last`)
+          );
+        }),
+        page.getByRole("radio", { name: /^(Semester|学期)$/ }).click(),
+      ]);
+      expect(semesterResponse.status()).toBe(200);
+      const calendarModule = page
+        .getByTestId("workspace-calendar-mobile-toolbar")
+        .locator("xpath=ancestor::section[1]");
+      await expect(calendarModule.getByRole("status")).toHaveCount(0);
       const agenda = page
         .getByTestId("calendar-agenda")
         .filter({ visible: true });
