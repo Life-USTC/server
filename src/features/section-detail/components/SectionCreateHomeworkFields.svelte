@@ -8,6 +8,7 @@ import type {
 } from "./section-create-homework-types";
 
 export let applyDueAtSemesterEnd: () => void;
+export let classSectionJwId: number | string | null | undefined = undefined;
 export let classStarts: string[] = [];
 export let locale: string;
 export let applyDueInMonth: () => void;
@@ -47,7 +48,8 @@ $: homeworkTimestampCapabilities = {
     <p class="text-sm font-medium">{sectionLabel}</p>
   </Field.Field>
   <HomeworkEditorFields
-    {classStarts}
+    sectionJwId={classSectionJwId}
+  {classStarts}
     {locale}
     actions={homeworkTimestampActions}
     bind:advancedOpen={advancedOpen}

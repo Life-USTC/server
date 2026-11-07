@@ -4,6 +4,7 @@ import {
   homeworkDueAtSemesterEnd,
   homeworkDueInDays,
   homeworkDueInMonths,
+  homeworkSemesterShortcutCapabilities,
   homeworkStartAtSemesterStart,
   homeworkTimestampNow,
   initialHomeworkTimestampDraft,
@@ -51,5 +52,34 @@ describe("homework 时间戳默认值", () => {
     expect(initialCreateHomeworkDraft).toBe(initialHomeworkTimestampDraft);
     expect(initialHomeworkDraft).toBe(initialHomeworkTimestampDraft);
     expect(sectionHomeworkDueInDays).toBe(homeworkDueInDays);
+  });
+});
+
+describe("semester shortcut policy across create and edit entrances", () => {
+  const now = new Date("2026-11-06T16:30:00Z");
+  it.each([
+    [null, null, false, false],
+    ["2026-02-01", "2026-11-06", true, false],
+    ["2026-02-01", "2026-11-07", true, true],
+    ["2026-02-01", "2026-11-08", true, true],
+  ])(
+    "uses Shanghai end-of-day for %s / %s",
+    (semesterStart, semesterEnd, hasSemesterStart, hasSemesterEnd) => {
+      expect(
+        homeworkSemesterShortcutCapabilities({
+          semesterStart,
+          semesterEnd,
+          now,
+        }),
+      ).toEqual({ hasSemesterStart, hasSemesterEnd });
+    },
+  );
+  it("does not suggest a deadline at the current minute or earlier", () => {
+    expect(
+      homeworkSemesterShortcutCapabilities({
+        semesterEnd: "2026-11-07",
+        now: new Date("2026-11-07T15:59:00Z"),
+      }),
+    ).toEqual({ hasSemesterStart: false, hasSemesterEnd: false });
   });
 });

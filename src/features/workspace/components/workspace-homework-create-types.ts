@@ -33,6 +33,7 @@ export type WorkspaceHomeworkCreateSection = {
   courseName?: string | null;
   id: number | string;
   nextClassStarts?: string[];
+  jwId?: number | null;
   semesterEnd?: string | null;
   semesterStart?: string | null;
   semesterName?: string | null;

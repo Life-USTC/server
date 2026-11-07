@@ -3,6 +3,7 @@ import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import HomeworkEditorFields from "@/features/homeworks/components/HomeworkEditorFields.svelte";
+import { homeworkSemesterShortcutCapabilities } from "@/features/homeworks/lib/homework-timestamp-defaults";
 import type {
   SectionHomeworkCopy,
   SectionHomeworkDisplay,
@@ -13,6 +14,7 @@ import type {
 } from "./section-homework-display-types";
 
 export let applyDueAtSemesterEnd: SectionHomeworkTimestampAction;
+export let classSectionJwId: number | string | null | undefined = undefined;
 export let classStarts: string[] = [];
 export let locale: string;
 export let applyDueInMonth: SectionHomeworkTimestampAction;
@@ -32,6 +34,7 @@ export let semesterDate: SectionHomeworkSemesterDate;
 export let updateHomework: SectionHomeworkSubmitHandler;
 
 let advancedOpen = false;
+const shortcutReferenceNow = new Date();
 
 $: homeworkTimestampActions = {
   dueAtSemesterEnd: applyDueAtSemesterEnd,
@@ -41,10 +44,11 @@ $: homeworkTimestampActions = {
   startAtSemesterStart: applyStartAtSemesterStart,
   startNow: applyStartNow,
 };
-$: homeworkTimestampCapabilities = {
-  hasSemesterEnd: Boolean(semesterDate("end")),
-  hasSemesterStart: Boolean(semesterDate("start")),
-};
+$: homeworkTimestampCapabilities = homeworkSemesterShortcutCapabilities({
+  semesterEnd: semesterDate("end"),
+  semesterStart: semesterDate("start"),
+  now: shortcutReferenceNow,
+});
 </script>
 
 <form
@@ -53,7 +57,8 @@ $: homeworkTimestampCapabilities = {
 >
   <Field.Group>
     <HomeworkEditorFields
-      {classStarts}
+      sectionJwId={classSectionJwId}
+  {classStarts}
       {locale}
       actions={homeworkTimestampActions}
       bind:advancedOpen={advancedOpen}

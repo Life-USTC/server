@@ -5,6 +5,7 @@ import { toolbarControlClass } from "#lib/components/toolbar-control.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { cn } from "#lib/utils.js";
 
+export let canWriteShared = false;
 export let readOnlyReason: string | null | undefined = null;
 export let homeworksCopy: Record<string, string>;
 export let openCreateHomeworkDialog: () => void;
@@ -20,7 +21,7 @@ onMount(() => {
     class={cn(toolbarControlClass, "w-11 md:w-auto md:min-w-28")}
     data-testid="workspace-homeworks-add"
     type="button"
-    disabled={!ready || Boolean(readOnlyReason)}
+    disabled={!ready || !canWriteShared || Boolean(readOnlyReason)}
     title={readOnlyReason ?? undefined}
     onclick={openCreateHomeworkDialog}
   >
