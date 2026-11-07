@@ -23,6 +23,14 @@ async function open(
     ]);
   await page.goto("/catalog/bus");
   if (waitForPreferences) await waitForUiSettled(page);
+  else {
+    // Keep preference reads unresolved, but interact only after handlers attach.
+    await page.waitForFunction(
+      () => document.documentElement.dataset.lifeUstcHydrated === "true",
+      null,
+      { timeout: 10_000 },
+    );
+  }
   await openControls(page);
   await expect(
     page
