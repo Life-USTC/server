@@ -248,4 +248,127 @@ describe("fixed demo community", () => {
     expect(fresh.data[0].author?.name).toBe("Sample student Xia");
     expect(flatten(fresh.data[0].replies)).toHaveLength(10);
   });
+  for (const locale of ["en-us", "zh-cn"] as const) {
+    it(`isolates known Young targets, real root/reply windows and permalinks in ${locale}`, async () => {
+      const response = getDemoCommentsRoute(
+        request("targetType=young-event&youngId=demo-young-1"),
+        locale,
+      );
+      expect(response.status).toBe(200);
+      const first = commentsListResponseSchema.parse(await response.json());
+      expect(first.pagination).toEqual({
+        page: 1,
+        pageSize: 20,
+        total: 21,
+        totalPages: 2,
+      });
+      expect(first.meta.target).toMatchObject({
+        type: "young-event",
+        youngId: "demo-young-1",
+        youngEventId: 700001,
+      });
+      expect(first.meta.viewer).toMatchObject({
+        userId: null,
+        isAuthenticated: false,
+      });
+      expect(first.data.map(({ id }) => id)).toEqual(
+        Array.from(
+          { length: 20 },
+          (_, index) =>
+            `demo-comment-young-${String(index + 1).padStart(2, "0")}`,
+        ),
+      );
+      expect(flatten(first.data[0].replies)).toHaveLength(10);
+      for (const node of flatten(first.data)) {
+        expect(node).toMatchObject({
+          isAnonymous: false,
+          canReply: false,
+          canReact: false,
+          canEdit: false,
+          canDelete: false,
+        });
+        expect(node.author?.name).toContain(
+          locale === "en-us" ? "Sample student" : "样例同学",
+        );
+        expect(node.renderedBody).toContain("<strong>");
+        expect(node.reactions[0]?.count).toBeGreaterThan(0);
+      }
+      const second = commentsListResponseSchema.parse(
+        await getDemoCommentsRoute(
+          request("targetType=young-event&targetId=demo-young-1&page=2"),
+          locale,
+        ).json(),
+      );
+      expect(second.data.map(({ id }) => id)).toEqual([
+        "demo-comment-young-21",
+      ]);
+      const continuation = getDemoCommunityReplies(
+        "demo-comment-young-01",
+        locale,
+        first.data[0].repliesNextCursor ?? undefined,
+        10,
+      );
+      expect(continuation.ok).toBe(true);
+      if (!continuation.ok) throw new Error("Missing fixed Young continuation");
+      expect(continuation.nextCursor).toBeNull();
+      expect(flatten(continuation.thread).map(({ id }) => id)).toEqual([
+        "demo-comment-young-01",
+        "demo-comment-young-reply-11",
+      ]);
+      const focused = getDemoCommunityComment(
+        "demo-comment-young-reply-03",
+        locale,
+      );
+      expect(
+        flatten(focused?.thread ?? []).find(
+          ({ id }) => id === "demo-comment-young-reply-03",
+        )?.parentId,
+      ).toBe("demo-comment-young-reply-02");
+      expect(
+        getDemoCommunityPermalink("demo-comment-young-reply-11", locale),
+      ).toBe(
+        "/catalog/young-events/demo-young-1#comment-demo-comment-young-reply-11",
+      );
+      for (const [id, total] of [
+        ["demo-young-2", 1],
+        ["demo-young-3", 0],
+      ] as const) {
+        const body = commentsListResponseSchema.parse(
+          await getDemoCommentsRoute(
+            request(`targetType=young-event&youngId=${id}`),
+            locale,
+          ).json(),
+        );
+        expect(body.pagination.total).toBe(total);
+        expect(
+          flatten(body.data).some(({ id }) =>
+            id.startsWith("demo-comment-course"),
+          ),
+        ).toBe(false);
+      }
+      for (const query of [
+        "targetType=young-event&youngId=real-young-id",
+        "targetType=young-event&youngId=demo-young-1&targetId=demo-young-2",
+        "targetType=young-event&youngId=demo-young-1&courseJwId=920001",
+      ])
+        expect(getDemoCommentsRoute(request(query), locale).status).toBe(404);
+      const wrongCursor = btoa(
+        JSON.stringify({
+          version: 1,
+          rootId: "demo-comment-young-01",
+          id: "demo-comment-young-reply-10",
+          createdAt: "2026-09-23T00:00:00.000Z",
+        }),
+      );
+      expect(
+        getDemoCommunityReplies(
+          "demo-comment-young-01",
+          locale,
+          wrongCursor,
+          10,
+        ),
+      ).toEqual({ ok: false, error: "invalid_cursor" });
+      expect(getDemoCommunityRecords(locale)).toHaveLength(36);
+    });
+  }
 });

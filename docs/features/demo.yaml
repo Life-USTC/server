@@ -14,6 +14,39 @@ access:
   admin: Admin capabilities are never simulated.
   agent: Demo identity supplies no OAuth, GraphQL or MCP authority.
 requirements:
+- id: demo.young-projection
+  category: privacy
+  rule: The existing Young event list, detail, calendar, organizer directory and organizer detail
+    project one sealed bilingual graph of 42 fictional events and 22 organizers. Home preserves
+    its five existing titles, dates, keys and fictional metadata and links to these known details.
+    Event, organizer and organizer-event twenty-row pages continue actual fixture records. Web
+    table choice filters retain same-field OR and cross-field AND, numeric and date operations;
+    REST keeps its existing single-category query contract. Activity and registration clocks,
+    missing dates, cross-day windows, signup membership and missing sources remain distinct facts.
+    Shanghai time is fixed at 2026-09-24T09:00:00+08:00; public day, Sunday week and naturally padded
+    month ranges and today indicators use that same clock. Calendar conflicts project the existing
+    Demo personal calendar through the ordinary interval rules, without a private reader or viewer.
+    Known event discussion targets retain named fictional threads, twenty-root and ten-reply
+    windows, reactions and permalinks. Poster reads serve only graph-associated local fixed raster
+    bytes. Trusted Demo branches bypass database, R2, cache, provider and upstream reads. Subscription
+    facts are explicitly fixed read-only samples; subscription, follow, reminder, management and
+    external signup controls are disabled from SSR. Root/page epochs retire old rows and component
+    reads across mode, locale, exit and re-entry. Ordinary user delegates and behavior remain intact.
+    Personal activity subscription and notification workspaces and website pages remain future
+    parts of the parent full-site task; disabled controls do not complete those families.
+  acceptance:
+    given: A trusted Demo in either locale and an independently readable ordinary Young event.
+    when: Browse all five pages, continue their pages, filter, switch calendar axes and ranges,
+      read fixed discussions and posters, switch owners and attempt foreign reads or writes.
+    then:
+    - Counts, Home facts, organizers and the three continued lists agree with the fixed graph.
+    - Sunday ranges, signup and activity dates, unknowns and known personal conflicts stay distinct.
+    - Named discussion pagination, focus and local poster bytes preserve the ordinary read contracts.
+    - Unknown IDs or poster paths never fall back; writes and external actions remain disabled.
+    - Late ordinary rows or retired locale samples cannot overwrite the current Demo owner.
+    test:
+      file: tests/integration/rest/demo/young.test.ts
+      name: demo Young graph, fixed dates and sealed effects en-us
 - id: demo.news-projection
   category: privacy
   rule: Existing news list, detail and source pages project 22 sealed bilingual fictional publications.
@@ -28,7 +61,7 @@ requirements:
     visibly disabled; a fixed local asset download is read-only. Root/page epochs and the existing
     endless-list identity guards retire old responses across mode, locale and session changes.
     Writes, ingestion, management and unsupported families remain forbidden; ordinary readers delegate
-    to the existing services and retain their behavior. Public activity and websites remain under the
+    to the existing services and retain their behavior. Personal activity workspaces and websites remain under the
     parent full-site task.
   acceptance:
     given: A trusted demo in either locale and viewport and an independently readable ordinary publication.
@@ -74,7 +107,7 @@ requirements:
     derives from the existing academic samples and fixed reference clock, without granting a real
     authenticated viewer. Session generations own client reads; exit, re-entry and late responses cannot
     restore an earlier identity. Public sample content is explicitly fictional, never an official notice,
-    current weather observation or actual departure. Unfinished public activity and
+    current weather observation or actual departure. Unfinished personal activity workspace and
     website destinations remain visibly unavailable under the parent full-site task. Pinning, link
     resolution, external navigation and writes stay forbidden. Ordinary Home behavior is unchanged.
   acceptance:
@@ -793,3 +826,44 @@ capabilities:
       - Follow Home notices, source facets and the known reprint sibling
       requirement_refs:
       - demo.news-projection
+
+  demo-young:
+    title: Read-only Demo Young Events
+    auth: anon
+    web:
+      pages:
+      - /catalog/young-events
+      - /catalog/young-events/[youngId]
+      - /catalog/young-events/calendar
+      - /catalog/young-events/organizers
+      - /catalog/young-events/organizers/[organizerId]
+    rest:
+      routes:
+      - method: GET
+        path: /api/catalog/young-events
+        reference_only: true
+      - method: GET
+        path: /api/catalog/young-events/{youngId}
+        reference_only: true
+      - method: GET
+        path: /api/catalog/young-organizers
+        reference_only: true
+      - method: GET
+        path: /api/catalog/young-organizers/{organizerId}
+        reference_only: true
+      - method: GET
+        path: /api/catalog/young-events/{youngId}/image
+        reference_only: true
+      - method: GET
+        path: /api/catalog/young-events/images/{path}
+        reference_only: true
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Continue event, organizer and organizer-event sample pages
+      - Filter existing columns and inspect day, Sunday week and month calendar views
+      - Read named discussion threads, fixed subscription facts and the local poster
+      requirement_refs:
+      - demo.young-projection

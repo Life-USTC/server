@@ -1,16 +1,24 @@
 import { error } from "@sveltejs/kit";
+import { getDemoYoungOrganizerPage } from "@/features/demo/server/demo-young-page";
 import { loadYoungOrganizerDetailPage } from "@/features/young/server/young-page-load";
 import { updateSocialMetadata } from "@/lib/social-metadata";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
   const [data, layoutData] = await Promise.all([
-    loadYoungOrganizerDetailPage({
-      locals: event.locals,
-      request: event.request,
-      url: event.url,
-      organizerId: event.params.organizerId,
-    }),
+    event.locals.demo
+      ? getDemoYoungOrganizerPage(
+          event.locals.demo,
+          event.locals.locale,
+          event.url,
+          event.params.organizerId,
+        )
+      : loadYoungOrganizerDetailPage({
+          locals: event.locals,
+          request: event.request,
+          url: event.url,
+          organizerId: event.params.organizerId,
+        }),
     event.parent(),
   ]);
 

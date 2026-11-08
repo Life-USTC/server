@@ -21,6 +21,15 @@ import YoungSourceNote from "./YoungSourceNote.svelte";
 import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
 type Props = {
+  readOnly?: boolean;
+  readOnlyReason?: string;
+  readOnlyLabel?: string;
+  subscriptionState?: {
+    subscribed: boolean;
+    remindSignup?: boolean;
+    remindDeadline?: boolean;
+    remindStart?: boolean;
+  };
   copy: AppPageCopy;
   organizer: YoungOrganizerSummary;
   source: YoungSourceFreshness;
@@ -28,7 +37,17 @@ type Props = {
   endless: EndlessScrollState;
 };
 
-let { copy, organizer, source, events, endless }: Props = $props();
+let {
+  readOnly = false,
+  readOnlyReason = "",
+  readOnlyLabel = "",
+  subscriptionState,
+  copy,
+  organizer,
+  source,
+  events,
+  endless,
+}: Props = $props();
 
 const youngCopy = $derived(copy.youngEvents);
 
@@ -93,7 +112,7 @@ function formatRange(event: YoungEventSummary) {
         </div>
       </Panel>
   {#snippet aside()}
-    <YoungSubscriptionControl id={organizer.id} kind="organizers" copy={youngCopy.workspace} />
+    <YoungSubscriptionControl {readOnly} {readOnlyReason} {readOnlyLabel} initialState={subscriptionState} id={organizer.id} kind="organizers" copy={youngCopy.workspace} />
     <DetailDefinitionList
       items={[
         { label: youngCopy.organizerEvents, value: String(organizer.totalCount) },

@@ -237,7 +237,6 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           privateHeaders(response);
         }
         for (const path of [
-          "/catalog/young-events",
           "/catalog/links",
           "/api/catalog/links/resolve?slug=sample",
           "/_internal/home/unknown",

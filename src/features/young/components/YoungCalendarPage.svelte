@@ -3,6 +3,7 @@ import CollectionPage from "#lib/components/CollectionPage.svelte";
 import YoungCalendar from "@/features/young/components/YoungCalendar.svelte";
 import {
   fetchPersonalCalendar,
+  type PersonalCalendarItem,
   PersonalCalendarRequestError,
 } from "@/features/young/lib/personal-calendar-client";
 import { youngCalendarConflicts } from "@/features/young/lib/young-calendar-conflicts";
@@ -17,6 +18,9 @@ import { youngDetailHref } from "../lib/young-navigation";
 import YoungSourceNote from "./YoungSourceNote.svelte";
 
 type Props = {
+  readOnly?: boolean;
+  referenceNow?: string;
+  demoCalendarItems?: PersonalCalendarItem[];
   anchorDate: string;
   copy: AppPageCopy;
   data: YoungCalendarEvent[];
@@ -29,6 +33,9 @@ type Props = {
 };
 
 let {
+  readOnly = false,
+  referenceNow,
+  demoCalendarItems,
   anchorDate,
   copy,
   data,
@@ -55,6 +62,14 @@ $effect(() => {
   const controller = new AbortController();
   conflictIds = new Set();
   if (basis !== "activity") return;
+  if (readOnly) {
+    conflictIds = youngCalendarConflicts(
+      currentEvents,
+      demoCalendarItems ?? [],
+    );
+    conflictStatus = "ready";
+    return;
+  }
   conflictStatus = "loading";
   if (viewerStatus === "loading") return;
   if (viewerStatus === "error") {
@@ -168,7 +183,7 @@ const calendarLabels = $derived({
           </a>
         </p>
       {/if}
-    <YoungCalendar
+    <YoungCalendar {referenceNow}
       {conflictIds}
       conflictLabel={youngCopy.workspace.conflict}
       {anchorDate}

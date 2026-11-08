@@ -416,8 +416,13 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           if (!title)
             throw new Error("Calendar fixture needs both course titles");
           const names = labels(locale);
-          for (const meeting of meetings) {
-            await gotoAndWaitForReady(page, academicUrl(fixture, meeting.date));
+          for (const [index, meeting] of meetings.entries()) {
+            // Keep the cross-date journey in one document using the real period controls.
+            if (index === 0)
+              await gotoAndWaitForReady(
+                page,
+                academicUrl(fixture, meeting.date),
+              );
             for (const name of Object.values(names)) {
               await expect(
                 page.getByRole("radio", { name, exact: true }),

@@ -1,3 +1,4 @@
+import { getDemoYoungEventRoute } from "@/lib/api/routes/demo-young-route";
 import { getYoungEventDetailRoute } from "@/lib/api/routes/young-event-routes";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import type { RequestHandler } from "./$types";
@@ -9,7 +10,9 @@ import type { RequestHandler } from "./$types";
  * @response 400:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
-export const GET: RequestHandler = ({ request, params }) =>
-  observedApiRoute(() =>
-    getYoungEventDetailRoute(request, { youngId: params.youngId }),
-  )(request);
+export const GET: RequestHandler = ({ request, params, locals }) =>
+  locals.demo
+    ? getDemoYoungEventRoute(request, locals.locale, params.youngId)
+    : observedApiRoute(() =>
+        getYoungEventDetailRoute(request, { youngId: params.youngId }),
+      )(request);

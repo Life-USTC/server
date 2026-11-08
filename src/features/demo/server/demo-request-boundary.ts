@@ -42,6 +42,25 @@ function isDemoCatalogPage(path: string) {
   );
 }
 
+function isDemoYoungPage(path: string) {
+  return (
+    path === "/catalog/young-events" ||
+    path === "/catalog/young-events/calendar" ||
+    path === "/catalog/young-events/organizers" ||
+    /^\/catalog\/young-events\/(?:organizers\/)?[^/]+$/.test(path)
+  );
+}
+function isDemoYoungRead(path: string) {
+  return (
+    isDemoYoungPage(path.replace(/\/__data\.json$/, "")) ||
+    path === "/api/catalog/young-events" ||
+    path === "/api/catalog/young-organizers" ||
+    /^\/api\/catalog\/young-(?:events|organizers)\/[^/]+$/.test(path) ||
+    /^\/api\/catalog\/young-events\/[^/]+\/image$/.test(path) ||
+    /^\/api\/catalog\/young-events\/images\/.+$/.test(path)
+  );
+}
+
 function isDemoNewsPage(path: string) {
   return (
     path === "/news" || path === "/news/sources" || /^\/news\/[^/]+$/.test(path)
@@ -63,6 +82,7 @@ function isDemoCommentPage(path: string) {
 
 function isDemoCatalogRead(path: string) {
   return (
+    isDemoYoungRead(path) ||
     isDemoNewsRead(path) ||
     isDemoCatalogPage(path.replace(/\/__data\.json$/, "")) ||
     [
@@ -139,6 +159,7 @@ export async function resolveDemoBoundary(
       ].includes(url.pathname) ||
         isDemoCatalogPage(url.pathname) ||
         isDemoNewsPage(url.pathname) ||
+        isDemoYoungPage(url.pathname) ||
         isDemoCommentPage(url.pathname)) &&
       request.headers.get("accept")?.includes("text/html")
     ) {

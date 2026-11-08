@@ -22,6 +22,9 @@ let {
   copy,
   initialState,
   compact = false,
+  readOnly = false,
+  readOnlyReason = "",
+  readOnlyLabel = "",
 }: {
   id: string;
   kind?: "events" | "organizers";
@@ -33,6 +36,9 @@ let {
     remindStart?: boolean;
   };
   compact?: boolean;
+  readOnly?: boolean;
+  readOnlyReason?: string;
+  readOnlyLabel?: string;
 } = $props();
 let subscribed = $state(untrack(() => initialState?.subscribed ?? false));
 let loaded = $state(untrack(() => initialState != null));
@@ -65,6 +71,16 @@ const reminderSummary = $derived(
 
 $effect(() => {
   const url = endpoint;
+  if (readOnly) {
+    subscribed = initialState?.subscribed ?? false;
+    remindSignup = initialState?.remindSignup ?? false;
+    remindDeadline = initialState?.remindDeadline ?? false;
+    remindStart = initialState?.remindStart ?? false;
+    loaded = true;
+    signedIn = false;
+    failed = false;
+    return;
+  }
   if (initialState) {
     const serverState = [
       id,
@@ -139,11 +155,13 @@ $effect(() => {
 });
 
 async function retry() {
+  if (readOnly) return;
   if (viewerStatus === "error") await shellViewer.retry();
   else refresh++;
 }
 
 async function save(next: boolean) {
+  if (readOnly) return;
   if (!signedIn) {
     await goto(
       `/account/sign-in?callbackUrl=${encodeURIComponent(page.url.pathname + page.url.search)}`,
@@ -176,6 +194,7 @@ async function save(next: boolean) {
 }
 </script>
 
+{#if readOnly}<div class="grid gap-1 text-sm" data-testid="demo-young-subscription-facts"><p>{readOnlyLabel}</p><Field.Field orientation="horizontal"><Checkbox id={`${prefix}-fixed-fact`} checked={subscribed} disabled /><Field.FieldLabel for={`${prefix}-fixed-fact`}>{kind === "events" ? copy.subscribed : copy.followed}</Field.FieldLabel></Field.Field><p>{readOnlyReason}</p></div>{/if}
 {#if compact}
   {#if failed}
     <span class="sr-only" role="alert">{copy.failed}</span>
@@ -183,7 +202,7 @@ async function save(next: boolean) {
   {:else}
     <Button
       class="shrink-0"
-      disabled={!loaded || busy}
+      disabled={readOnly || !loaded || busy}
       variant="outline"
       onclick={() => save(!subscribed)}
     >
@@ -198,11 +217,13 @@ async function save(next: boolean) {
         <Button variant="outline" onclick={retry}>{copy.retry}</Button>
       {:else}
         <Button
-          disabled={!loaded || busy}
+          disabled={readOnly || !loaded || busy}
           variant="outline"
           onclick={() => save(!subscribed)}
         >
-          {!loaded
+          {readOnly
+            ? kind === "events" ? subscribed ? copy.unsubscribe : copy.subscribe : subscribed ? copy.unfollow : copy.follow
+            : !loaded
             ? copy.loading
             : !signedIn
               ? copy.signin
@@ -212,9 +233,9 @@ async function save(next: boolean) {
         </Button>
       {/if}
     {#if subscribed && loaded && !failed}<Badge variant="secondary">{kind === "events" ? copy.subscribed : copy.followed}</Badge>{/if}
-    {#if !initialState}<Button href="/workspace/subscriptions/activities" variant="link">{copy.manage}</Button>{/if}
+    {#if readOnly}<Button disabled variant="link">{copy.manage}</Button>{:else if !initialState}<Button href="/workspace/subscriptions/activities" variant="link">{copy.manage}</Button>{/if}
     </div>
-  {#if !initialState}<p class="text-muted-foreground text-sm">{kind === "events" ? copy.hint : copy.followHint}</p>{/if}
+  {#if !initialState && !readOnly}<p class="text-muted-foreground text-sm">{kind === "events" ? copy.hint : copy.followHint}</p>{/if}
     {#if kind === "events" && subscribed && loaded && !failed}
       <div class="text-muted-foreground text-sm">{copy.reminderSummary.replace("{value}", reminderSummary)}</div>
       <Collapsible.Root class="group/reminders">
@@ -228,7 +249,7 @@ async function save(next: boolean) {
         </Collapsible.Trigger>
         <Collapsible.Content>
           <div class="grid gap-3 pt-3">
-            <Field.FieldSet disabled={busy}>
+            <Field.FieldSet disabled={readOnly || busy}>
               <Field.FieldLegend class="sr-only">{copy.reminderSettings}</Field.FieldLegend>
               <Field.FieldGroup>
               <Field.Field orientation="horizontal"><Checkbox id={`${prefix}-signup`} bind:checked={remindSignup} /><Field.FieldLabel for={`${prefix}-signup`}>{copy.signupReminder}</Field.FieldLabel></Field.Field>
@@ -236,7 +257,7 @@ async function save(next: boolean) {
               <Field.Field orientation="horizontal"><Checkbox id={`${prefix}-start`} bind:checked={remindStart} /><Field.FieldLabel for={`${prefix}-start`}>{copy.startReminder}</Field.FieldLabel></Field.Field>
               </Field.FieldGroup>
             </Field.FieldSet>
-          <Button class="justify-self-start" disabled={busy} variant="outline" onclick={() => save(true)}>{copy.save}</Button>
+          <Button class="justify-self-start" disabled={readOnly || busy} variant="outline" onclick={() => save(true)}>{copy.save}</Button>
           </div>
         </Collapsible.Content>
       </Collapsible.Root>
