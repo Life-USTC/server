@@ -176,7 +176,9 @@ for (const suffix of ["", "/image"]) {
   }, async ({ request, run }) => {
     await run(async () => {
       const response = await request.get(
-        `${base}/missing-${crypto.randomUUID()}${suffix}`,
+        suffix
+          ? `${base}/by-id/missing-${crypto.randomUUID()}${suffix}`
+          : `${base}/missing-${crypto.randomUUID()}`,
       );
       expect(response.status()).toBe(404);
       expect((await response.json()).error).toEqual(expect.any(String));
@@ -188,7 +190,7 @@ test("known ended event without a poster returns 404", {
   tag: "@Young/REST",
 }, async ({ request, events, run }) => {
   await run(async () => {
-    const response = await request.get(`${base}/${events.endedId}/image`);
+    const response = await request.get(`${base}/by-id/${events.endedId}/image`);
     expect(response.status()).toBe(404);
     expect((await response.json()).error).toEqual(expect.any(String));
   });
