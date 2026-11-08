@@ -113,7 +113,7 @@ async function expectDemoCalendarRange(
   if (view === "month" || view === "semester") {
     if (gridLimited) {
       // The existing four-chip desktop cap leaves later-starting Young 28 in this summary;
-      // its complete title/time/link remains covered by the day view above.
+      // Day view retains all three Young links.
       await expect(
         day("2026-09-24").getByText(english ? "1 more" : "还有 1 项", {
           exact: true,
