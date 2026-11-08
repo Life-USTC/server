@@ -13,14 +13,19 @@ void cancelled.catch(() => undefined);
 
 async function start(options, outboundJson) {
   if (outboundJson) {
+    const responses = new Map(
+      (Array.isArray(outboundJson) ? outboundJson : [outboundJson]).map(
+        ({ url, json }) => [url, json],
+      ),
+    );
     // Functions stay in the owned child; IPC carries only the case's JSON input.
     options = {
       ...options,
       dev: {
         ...options.dev,
         outboundService: (request) =>
-          request.method === "GET" && request.url === outboundJson.url
-            ? Response.json(outboundJson.json)
+          request.method === "GET" && responses.has(request.url)
+            ? Response.json(responses.get(request.url))
             : globalThis.fetch(request.url, request),
       },
     };
