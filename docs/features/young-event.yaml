@@ -305,6 +305,19 @@ requirements:
     test:
       file: tests/e2e/src/app/young-events/public-browse-contract.test.ts
       name: young-event.web-organizer-order
+- id: young-event.unambiguous-poster-resolver
+  category: behavior
+  rule: The canonical by-id poster resolver accepts every existing event ID without changing legacy resolver behavior or any immutable inline image URL, bytes or cache policy.
+  acceptance:
+    given: An owned event has ID images while a distinct owned inline image has path image.
+    when: Real HTTP requests resolve both event posters, the legacy endpoint and immutable images without following redirects.
+    then:
+    - Canonical by-id requests for images and an ordinary event return no-store redirects to their current poster.
+    - The legacy ordinary resolver remains a no-store redirect and the ambiguous legacy URI remains the original immutable inline image.
+    - Immutable images retain their exact bytes and conditional cache responses without external fetches.
+    test:
+      file: tests/integration/rest/young-events/image-route-collision.test.ts
+      name: canonical Young poster resolution preserves legacy inline image resources
 - id: young-event.web-poster-recovery
   category: presentation
   rule: The activity poster reserves a four-to-three frame before image bytes arrive, with a capped
@@ -664,8 +677,12 @@ capabilities:
       - path: /api/catalog/young-organizers/[organizerId]
         notes:
         - 404 when the organizer ID is unknown.
+      - path: /api/catalog/young-events/by-id/[youngId]/image
+        notes:
+        - Canonical event-ID resolver, including the ID images. Returns an uncached 302 to the current immutable local poster URL, or an uncached 404 for an unknown event or missing poster.
       - path: /api/catalog/young-events/[youngId]/image
         notes:
+        - Legacy compatibility resolver. The exact /api/catalog/young-events/images/image URI retains its existing inline-image meaning; use the canonical by-id resolver for event ID images.
         - Resolves the current poster with an uncached 302 redirect to its local image-path URL; unknown events or missing posters return an uncached 404.
         - Public event imageUrl values identify the poster path directly, so a replacement poster has a different URL.
       - path: /api/catalog/young-events/images/[...path]

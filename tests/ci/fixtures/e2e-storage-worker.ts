@@ -201,7 +201,8 @@ export default {
       const image =
         key && /^publications\/images\/url-sha256\/[0-9a-f]{64}$/.test(key);
       const youngPoster =
-        key === "young-events/images/group1/contract/poster.jpg";
+        key === "young-events/images/group1/contract/poster.jpg" ||
+        key === "young-events/images/image";
       if (
         !key ||
         !(

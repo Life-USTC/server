@@ -9851,7 +9851,7 @@
     "/api/catalog/young-events/{youngId}/image": {
       "get": {
         "operationId": "get-api-catalog-young-events-youngId-image",
-        "summary": "Redirect to the current immutable poster representation",
+        "summary": "Legacy event-poster resolver; prefer /api/catalog/young-events/by-id/{youngId}/image",
         "tags": [
           "catalog.young-events"
         ],
@@ -10802,6 +10802,53 @@
                 }
               }
             },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/catalog/young-events/by-id/{youngId}/image": {
+      "get": {
+        "operationId": "get-api-catalog-young-events-by-id-youngId-image",
+        "summary": "Resolve any event ID to its current immutable poster representation",
+        "tags": [
+          "catalog.young-events"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "youngId",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Upstream young.ustc.edu.cn event identifier."
+            },
+            "required": true,
+            "description": "Upstream young.ustc.edu.cn event identifier."
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Response 302"
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
             "content": {
               "application/json": {
                 "schema": {
