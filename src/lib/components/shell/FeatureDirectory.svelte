@@ -9,6 +9,7 @@ import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
 import { getShellViewer } from "#lib/shell/shell-viewer.js";
+import { demoNavigationLink } from "@/features/demo/lib/demo-navigation";
 
 /**
  * The product directory: every destination the shell knows about, grouped by
@@ -32,18 +33,31 @@ let query = $state("");
 
 const hub = $derived(copy.nav.hub);
 const viewer = $derived($shellViewer.viewer);
+const demo = $derived($shellViewer.demo);
 const groups = $derived(
   filterShellFeatures(
     buildShellFeatureGroups(
       copy,
-      viewer ? { signedIn: true, isAdmin: viewer.isAdmin } : null,
-    ),
+      demo
+        ? { signedIn: true, isAdmin: false }
+        : viewer
+          ? { signedIn: true, isAdmin: viewer.isAdmin }
+          : null,
+    ).map((group) => ({
+      ...group,
+      features: group.features.map((feature) =>
+        demo ? demoNavigationLink(feature, demo.unavailableReason) : feature,
+      ),
+    })),
     query,
   ),
 );
 </script>
 
 <div class="grid min-w-0 gap-4" data-feature-directory>
+  {#if demo}
+    <p id={`${searchId}-demo-unavailable`} class="text-muted-foreground text-sm">{demo.unavailableReason}</p>
+  {/if}
   <FilterToolbar>
     {#snippet primary()}
       <SearchField
@@ -67,7 +81,7 @@ const groups = $derived(
     stretched every card beside them to match.
   -->
   <div class="grid gap-5" data-feature-hub>
-    {#if $shellViewer.status === "ready" && !viewer}
+    {#if $shellViewer.status === "ready" && !viewer && !demo}
       <p class="text-muted-foreground text-sm">
         {hub.signInPrompt}
         <Button href={`/account/sign-in?callbackUrl=${encodeURIComponent(signInCallbackUrl)}`} variant="link" class="h-auto min-h-6 p-0 align-baseline underline md:min-h-6">{copy.menu.signIn}</Button>
@@ -90,7 +104,7 @@ const groups = $derived(
             <div class="grid min-w-0 gap-0.5" data-feature-entry>
               <Item.Root size="sm" class="items-start py-2">
                 {#snippet child({ props })}
-                  <a href={feature.href} {...props}>
+                  <svelte:element this={feature.disabledReason ? "div" : "a"} href={feature.disabledReason ? undefined : feature.href} role={feature.disabledReason ? "link" : undefined} aria-disabled={feature.disabledReason ? true : undefined} aria-describedby={feature.disabledReason ? `${searchId}-demo-unavailable` : undefined} tabindex={feature.disabledReason ? -1 : undefined} {...props}>
                     <Item.Media variant="icon" class="text-muted-foreground">
                       {#if feature.glyph}
                         <SettingsGlyph name={feature.glyph} />
@@ -100,17 +114,18 @@ const groups = $derived(
                       {/if}
                     </Item.Media>
                     <Item.Content class="gap-0.5">
-                      <Item.Title class="group-hover/item:underline">{feature.label}</Item.Title>
+                      <Item.Title class={feature.disabledReason ? "" : "group-hover/item:underline"}>{feature.label}</Item.Title>
                       <Item.Description class="text-xs">{feature.description}</Item.Description>
+                      {#if feature.disabledReason}<Item.Description class="text-xs">{feature.disabledReason}</Item.Description>{/if}
                     </Item.Content>
-                  </a>
+                  </svelte:element>
                 {/snippet}
               </Item.Root>
               {#if extras.length > 0}
                 <!-- Aligned under the row description: 0.75rem row padding + 1rem icon + 0.625rem gap. -->
                 <div class="flex flex-wrap gap-1 pl-[2.375rem]">
                   {#each extras as item (item.href)}
-                    <Button href={item.href} variant="outline" size="xs" class="min-h-6 font-normal text-muted-foreground md:min-h-6">{item.label}</Button>
+                    <Button href={item.disabledReason ? undefined : item.href} disabled={Boolean(item.disabledReason)} aria-describedby={item.disabledReason ? `${searchId}-demo-unavailable` : undefined} variant="outline" size="xs" class="min-h-6 font-normal text-muted-foreground md:min-h-6">{item.label}</Button>
                   {/each}
                 </div>
               {/if}

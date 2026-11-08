@@ -1,3 +1,5 @@
+import type { DemoIdentity } from "@/features/demo/lib/demo-types";
+import { getDemoHomePage } from "@/features/demo/server/demo-home";
 import { getAnonymousHomePageCopy } from "@/features/workspace/server/workspace-page-copy";
 import type { WorkspacePageLoadEvent } from "@/features/workspace/server/workspace-page-load-types";
 import { logAppEvent } from "@/lib/log/app-logger";
@@ -14,7 +16,12 @@ import { loadAnonymousHomeInformation } from "./anonymous-home-sections";
  * shadow the root layout's `LayoutCopy` in merged page data — the directory on
  * `/` is built from that layout copy.
  */
-export async function loadHomePage({ locals }: WorkspacePageLoadEvent) {
+export async function loadHomePage({
+  locals,
+}: WorkspacePageLoadEvent & {
+  locals: WorkspacePageLoadEvent["locals"] & { demo?: DemoIdentity | null };
+}) {
+  if (locals.demo) return getDemoHomePage(locals.demo, locals.locale);
   const startMs = monotonicNowMs();
   const locale = locals.locale;
   const homeCopy = getAnonymousHomePageCopy(locale);

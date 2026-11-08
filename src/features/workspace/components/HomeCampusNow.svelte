@@ -4,6 +4,9 @@ import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import CloudSunIcon from "@lucide/svelte/icons/cloud-sun";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
+import { getShellViewer } from "#lib/shell/shell-viewer.js";
+import { homePublicReadEpoch } from "@/features/demo/lib/demo-home-owner";
+import type { DemoView } from "@/features/demo/lib/demo-types";
 import { HOME_COMPACT_ITEM_COUNT } from "@/features/workspace/lib/anonymous-home-layout";
 import type { HomeCampusNow } from "@/features/workspace/server/anonymous-home-sections";
 import type { AppLocale } from "@/i18n/config";
@@ -27,6 +30,7 @@ let {
   locale,
   weatherTitle,
   weatherLocationNames,
+  demo = null,
 }: {
   busTitle: string;
   locale: AppLocale;
@@ -47,10 +51,22 @@ let {
   };
   weatherTitle: string;
   weatherLocationNames: Record<string, string>;
+  demo?: DemoView | null;
 } = $props();
 
-let weather = $state<HomeCampusNow["weather"] | undefined>();
-let bus = $state<HomeCampusNow["bus"] | undefined>();
+const shellViewer = getShellViewer();
+const restricted = $derived(Boolean(demo || $shellViewer.demo));
+const readEpoch = $derived(homePublicReadEpoch($shellViewer, demo));
+let weatherResponse = $state<HomeCampusNow["weather"] | undefined>();
+let busResponse = $state<HomeCampusNow["bus"] | undefined>();
+let weatherEpoch = $state("");
+let busEpoch = $state("");
+const weather = $derived(
+  readEpoch && weatherEpoch === readEpoch ? weatherResponse : undefined,
+);
+const bus = $derived(
+  readEpoch && busEpoch === readEpoch ? busResponse : undefined,
+);
 let weatherRetry = $state(0);
 let busRetry = $state(0);
 
@@ -69,15 +85,24 @@ async function readCampusNow(
 $effect(() => {
   void weatherRetry;
   void locale;
+  const epoch = readEpoch;
   if (!browser) return;
-  weather = undefined;
+  weatherResponse = undefined;
+  weatherEpoch = "";
+  if (!epoch) return;
   const controller = new AbortController();
   void readCampusNow("weather", controller).then(
     (body) => {
-      if (!controller.signal.aborted) weather = body.weather;
+      if (!controller.signal.aborted && readEpoch === epoch) {
+        weatherResponse = body.weather;
+        weatherEpoch = epoch;
+      }
     },
     () => {
-      if (!controller.signal.aborted) weather = null;
+      if (!controller.signal.aborted && readEpoch === epoch) {
+        weatherResponse = null;
+        weatherEpoch = epoch;
+      }
     },
   );
   return () => controller.abort();
@@ -85,15 +110,24 @@ $effect(() => {
 $effect(() => {
   void busRetry;
   void locale;
+  const epoch = readEpoch;
   if (!browser) return;
-  bus = undefined;
+  busResponse = undefined;
+  busEpoch = "";
+  if (!epoch) return;
   const controller = new AbortController();
   void readCampusNow("bus", controller).then(
     (body) => {
-      if (!controller.signal.aborted) bus = body.bus;
+      if (!controller.signal.aborted && readEpoch === epoch) {
+        busResponse = body.bus;
+        busEpoch = epoch;
+      }
     },
     () => {
-      if (!controller.signal.aborted) bus = null;
+      if (!controller.signal.aborted && readEpoch === epoch) {
+        busResponse = null;
+        busEpoch = epoch;
+      }
     },
   );
   return () => controller.abort();
@@ -123,7 +157,9 @@ function overflowClass(index: number, shown: string, hidden: string): string {
     </h3>
     <Button
       class="h-auto min-h-6 gap-0.5 px-0 text-muted-foreground md:min-h-6"
-      href={viewAllHref}
+      href={restricted ? undefined : viewAllHref}
+      disabled={restricted}
+      aria-describedby={restricted ? "demo-unavailable" : undefined}
       size="sm"
       variant="link"
     >

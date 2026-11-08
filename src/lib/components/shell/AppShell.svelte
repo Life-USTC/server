@@ -43,6 +43,7 @@ import {
   type ShellViewerState,
 } from "#lib/shell/shell-viewer.js";
 import { cn } from "#lib/utils.js";
+import { demoNavigationLink } from "@/features/demo/lib/demo-navigation";
 import type { DemoView } from "@/features/demo/lib/demo-types";
 import { afterNavigate, goto } from "$app/navigation";
 import { navigating, page as routePage } from "$app/state";
@@ -454,31 +455,7 @@ let navGroups = $derived(
     ? fullNavGroups.map((group) => ({
         ...group,
         links: group.links.map((link) =>
-          [
-            "/workspace/todos",
-            "/workspace/subscriptions",
-            "/workspace/homeworks",
-            "/workspace/exams",
-            "/workspace/calendar",
-            "/catalog/courses",
-            "/catalog/sections",
-            "/catalog/teachers",
-            "/account/settings/profile",
-          ].includes(link.href)
-            ? link.href === "/account/settings/profile"
-              ? {
-                  ...link,
-                  items: link.items?.map((item) =>
-                    item.href === "/account/settings/profile"
-                      ? item
-                      : {
-                          ...item,
-                          disabledReason: viewerDemo?.unavailableReason,
-                        },
-                  ),
-                }
-              : link
-            : { ...link, disabledReason: viewerDemo?.unavailableReason },
+          demoNavigationLink(link, viewerDemo?.unavailableReason ?? ""),
         ),
       }))
     : fullNavGroups,
@@ -522,7 +499,7 @@ let hideSignIn = $derived(
   Boolean(viewerDemo) || isSignInPath(routePage.url.pathname),
 );
 let showFooter = $derived(!viewerDemo && presentation.footer === "public");
-const homeHref = $derived(viewerDemo ? "/workspace/todos" : "/");
+const homeHref = "/";
 const homeLabel = $derived(
   viewerDemo
     ? data.copy.shell.discovery.demoHome

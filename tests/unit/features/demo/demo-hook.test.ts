@@ -66,6 +66,12 @@ async function request(
 }
 
 it.each([
+  "/",
+  "/__data.json",
+  "/_internal/home/viewer",
+  "/_internal/home/campus-now?section=bus",
+  "/_internal/home/notices",
+  "/_internal/home/activities",
   "/workspace/todos",
   "/workspace/todos/__data.json",
   "/api/workspace/todos",

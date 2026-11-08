@@ -299,8 +299,8 @@ for (const locale of ["en-us", "zh-cn"] as const)
                 );
                 await expect(page.getByTestId("demo-notice")).toContainText(
                   locale === "en-us"
-                    ? "Browse sample calendar, todos, homework, exams, subscriptions, catalog details and account profile. Changes and external actions are disabled."
-                    : "你可以浏览日历、待办、作业、考试、订阅、课程目录详情和账户资料样例，无法修改数据或执行外部操作。",
+                    ? "Browse sample Home, calendar, todos, homework, exams, subscriptions, catalog details and account profile. Changes and external actions are disabled."
+                    : "你可以浏览首页、日历、待办、作业、考试、订阅、课程目录详情和账户资料样例，无法修改数据或执行外部操作。",
                 );
                 await expect(page.locator("#name")).toHaveValue(identity);
                 await expect(page.locator("#username")).toHaveValue(

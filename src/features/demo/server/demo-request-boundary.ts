@@ -106,6 +106,7 @@ export async function resolveDemoBoundary(
     if (
       request.method === "GET" &&
       ([
+        "/",
         "/workspace/todos",
         "/workspace/subscriptions",
         "/workspace/homeworks",
@@ -139,6 +140,12 @@ export async function resolveDemoBoundary(
   if (
     !read ||
     (![
+      "/",
+      "/__data.json",
+      "/_internal/home/viewer",
+      "/_internal/home/campus-now",
+      "/_internal/home/notices",
+      "/_internal/home/activities",
       "/workspace/todos",
       "/workspace/todos/__data.json",
       "/api/workspace/todos",

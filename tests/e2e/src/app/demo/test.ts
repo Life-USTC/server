@@ -34,7 +34,7 @@ const copy = {
     heading: "Todos",
     identity: "Demo account · Read only",
     readOnly:
-      "Browse sample calendar, todos, homework, exams, subscriptions, catalog details and account profile. Changes and external actions are disabled.",
+      "Browse sample Home, calendar, todos, homework, exams, subscriptions, catalog details and account profile. Changes and external actions are disabled.",
     unavailable: "Other features are not available in this demo yet.",
     language: "Language selector",
     all: "All",
@@ -59,7 +59,7 @@ const copy = {
     heading: "待办",
     identity: "演示账户 · 只读",
     readOnly:
-      "你可以浏览日历、待办、作业、考试、订阅、课程目录详情和账户资料样例，无法修改数据或执行外部操作。",
+      "你可以浏览首页、日历、待办、作业、考试、订阅、课程目录详情和账户资料样例，无法修改数据或执行外部操作。",
     unavailable: "其他功能暂未开放演示。",
     language: "语言选择",
     all: "全部",
@@ -112,13 +112,13 @@ async function enterDemo(page: Page, locale: Locale) {
     copy[locale].identity,
   );
   const demoHome = page.getByRole("link", {
-    name: locale === "en-us" ? "Life@USTC: Demo todos" : "Life@USTC: 演示待办",
+    name: locale === "en-us" ? "Life@USTC: Demo Home" : "Life@USTC: 演示首页",
     exact: true,
   });
   await expect(demoHome).toHaveCount(1);
-  await expect(demoHome).toHaveAttribute("href", "/workspace/todos");
+  await expect(demoHome).toHaveAttribute("href", "/");
   await expect(
-    demoHome.getByText(locale === "en-us" ? "Demo todos" : "演示待办", {
+    demoHome.getByText(locale === "en-us" ? "Demo Home" : "演示首页", {
       exact: true,
     }),
   ).toBeVisible();

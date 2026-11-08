@@ -12,6 +12,9 @@ import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
 import { getShellViewer } from "#lib/shell/shell-viewer.js";
 import { cn } from "#lib/utils.js";
+import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
+import { homePublicReadEpoch } from "@/features/demo/lib/demo-home-owner";
+import type { DemoView } from "@/features/demo/lib/demo-types";
 import HomeCampusNow from "@/features/workspace/components/HomeCampusNow.svelte";
 import { HOME_COMPACT_ITEM_COUNT } from "@/features/workspace/lib/anonymous-home-layout";
 import type { loadHomePage } from "@/features/workspace/server/anonymous-home-page-load";
@@ -27,6 +30,8 @@ import {
 
 type HomePageData = Awaited<ReturnType<typeof loadHomePage>> & {
   copy: LayoutCopy;
+  demo?: DemoView | null;
+  homeSampleNotice?: string;
 };
 
 let {
@@ -40,24 +45,53 @@ let {
 } = $props();
 
 const shellViewer = getShellViewer();
+const pageDemo = $derived(data.demo ?? null);
+const demo = $derived(pageDemo ?? $shellViewer.demo ?? null);
+const hasPersonalOverview = $derived(
+  Boolean(pageDemo || $shellViewer.demo || $shellViewer.viewer),
+);
+const publicReadEpoch = $derived(homePublicReadEpoch($shellViewer, pageDemo));
+// Trusted SSR demo samples may render while bootstrap verifies client ownership.
+const publicDataReady = $derived(
+  Boolean(
+    publicReadEpoch ||
+      (pageDemo &&
+        $shellViewer.demo?.fixtureVersion === pageDemo.fixtureVersion &&
+        $shellViewer.demo?.expiresAt === pageDemo.expiresAt),
+  ),
+);
 const home = $derived(data.homeCopy.homepage);
 const info = $derived(home.information);
 const campusNow = $derived(info.campusNow);
 const pub = $derived(home.publicWorkspace);
 let recoveredNotices = $state<HomeListItem[] | undefined>();
 let recoveredActivities = $state<HomeActivityItem[] | undefined>();
+let recoveredEpoch = $state("");
 let noticeLoading = $state(false);
 let activityLoading = $state(false);
 let noticeRequest: AbortController | undefined;
 let activityRequest: AbortController | undefined;
-const notices = $derived(recoveredNotices ?? data.information.notices);
-const activities = $derived(recoveredActivities ?? data.information.activities);
+const notices = $derived(
+  publicDataReady
+    ? ((recoveredEpoch === publicReadEpoch ? recoveredNotices : undefined) ??
+        data.information.notices)
+    : null,
+);
+const activities = $derived(
+  publicDataReady
+    ? ((recoveredEpoch === publicReadEpoch ? recoveredActivities : undefined) ??
+        data.information.activities)
+    : null,
+);
 $effect(() => {
   void data.information.notices;
   void data.information.activities;
   void data.locale;
+  void pageDemo?.expiresAt;
+  void publicReadEpoch;
   recoveredNotices = undefined;
   recoveredActivities = undefined;
+  recoveredEpoch = "";
   noticeLoading = false;
   activityLoading = false;
   return () => {
@@ -66,6 +100,8 @@ $effect(() => {
   };
 });
 async function retryPublicList(section: "notices" | "activities") {
+  const epoch = publicReadEpoch;
+  if (!epoch) return;
   if (section === "notices" ? noticeLoading : activityLoading) return;
   const controller = new AbortController();
   if (section === "notices") {
@@ -86,7 +122,8 @@ async function retryPublicList(section: "notices" | "activities") {
     );
     if (!response.ok) throw new Error("Home summary unavailable");
     const body: Partial<AnonymousHomeInformation> = await response.json();
-    if (controller.signal.aborted) return;
+    if (controller.signal.aborted || publicReadEpoch !== epoch) return;
+    recoveredEpoch = epoch;
     if (section === "notices" && body.notices != null)
       recoveredNotices = body.notices;
     if (section === "activities" && body.activities != null)
@@ -94,7 +131,7 @@ async function retryPublicList(section: "notices" | "activities") {
   } catch {
     // Keep this module unavailable and its full-list link usable for another retry.
   } finally {
-    if (!controller.signal.aborted) {
+    if (!controller.signal.aborted && publicReadEpoch === epoch) {
       if (section === "notices") noticeLoading = false;
       else activityLoading = false;
     }
@@ -138,7 +175,9 @@ function overflowClass(index: number, shown: string, hidden: string): string {
     </svelte:element>
     <Button
       class="h-auto min-h-6 gap-0.5 px-0 text-muted-foreground md:min-h-6"
-      href={viewAllHref}
+      href={demo ? undefined : viewAllHref}
+      disabled={Boolean(demo)}
+      aria-describedby={demo ? "demo-unavailable" : undefined}
       size="sm"
       variant="link"
     >
@@ -167,7 +206,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
           size="sm"
         >
           {#snippet child({ props })}
-            <a href={item.href} {...props}>
+            <svelte:element this={demo ? "div" : "a"} href={demo ? undefined : item.href} role={demo ? "link" : undefined} aria-disabled={demo ? true : undefined} aria-describedby={demo ? "demo-unavailable" : undefined} tabindex={demo ? -1 : undefined} {...props}>
               <Item.Content class="min-w-0 gap-0.5">
                 <Item.Title class={activity ? "block w-full line-clamp-none [overflow-wrap:anywhere]" : "break-words"}>{item.title}</Item.Title>
                 {#if item.meta || item.dateLabel}
@@ -179,7 +218,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
                   </Item.Description>
                 {/if}
               </Item.Content>
-            </a>
+            </svelte:element>
           {/snippet}
         </Item.Root>
       {/each}
@@ -192,6 +231,10 @@ function overflowClass(index: number, shown: string, hidden: string): string {
 </svelte:head>
 
 <div class="grid min-w-0 gap-6 pb-2 lg:gap-8">
+  {#if demo}
+    <DemoNotice {demo} locale={data.locale} />
+    {#if data.homeSampleNotice}<p data-testid="demo-home-samples" class="text-pretty text-sm text-muted-foreground">{data.homeSampleNotice}</p>{/if}
+  {/if}
   <header class="flex min-w-0 flex-wrap items-center justify-between gap-4">
     <div class="grid min-w-0 gap-1">
       <h1 class="text-pretty font-semibold text-xl tracking-tight sm:text-2xl">{pub.title}</h1>
@@ -203,35 +246,40 @@ function overflowClass(index: number, shown: string, hidden: string): string {
     </Button>
   </header>
 
-  {#if $shellViewer.viewer}
+  {#if hasPersonalOverview}
     {#await import("./HomePersonalOverview.svelte")}
       <Skeleton class="h-48 w-full" aria-hidden="true" />
     {:then { default: HomePersonalOverview }}
-      <HomePersonalOverview copy={home.personal} locale={data.locale} {snapshotAt} {overviewWeek} />
+      <HomePersonalOverview copy={home.personal} locale={data.locale} {snapshotAt} {overviewWeek} demo={pageDemo} />
     {/await}
   {/if}
 
-  <div class={cn("grid min-w-0 gap-6", !$shellViewer.viewer && "xl:grid-cols-[minmax(0,1fr)_minmax(15rem,18rem)] xl:items-start")}>
+  <div class={cn("grid min-w-0 gap-6", !hasPersonalOverview && "xl:grid-cols-[minmax(0,1fr)_minmax(15rem,18rem)] xl:items-start")}>
     <div class="grid min-w-0 gap-6 lg:grid-cols-2 lg:gap-x-10 lg:gap-y-8">
       <HomeCampusNow
+        demo={pageDemo}
         busTitle={pub.cards.bus.title}
         locale={data.locale}
         {campusNow}
         weatherLocationNames={data.homeCopy.weather.locationNames}
         weatherTitle={data.homeCopy.weather.title}
       />
-      <section class="grid min-w-0 content-start gap-2" data-testid="home-notices" aria-busy={noticeLoading}>
+      <section class="grid min-w-0 content-start gap-2" data-testid="home-notices" aria-busy={!publicDataReady || noticeLoading}>
         {@render heading("h2", BellIcon, info.notices.title, "/news", info.notices.viewAll)}
-        {#if notices === null}
+        {#if !publicDataReady}
+          <Skeleton class="h-24 w-full" aria-hidden="true" />
+        {:else if notices === null}
           {@render note(info.notices.unavailable)}
           <Button class="justify-self-start" variant="outline" size="sm" disabled={noticeLoading} onclick={() => retryPublicList("notices")}>{info.notices.retry}</Button>
         {:else}
           {@render itemList(notices, info.notices.empty)}
         {/if}
       </section>
-      <section class="grid min-w-0 content-start gap-2" data-testid="home-activities" aria-busy={activityLoading}>
+      <section class="grid min-w-0 content-start gap-2" data-testid="home-activities" aria-busy={!publicDataReady || activityLoading}>
         {@render heading("h2", SparklesIcon, info.activities.title, "/catalog/young-events", info.activities.viewAll)}
-        {#if activities === null}
+        {#if !publicDataReady}
+          <Skeleton class="h-24 w-full" aria-hidden="true" />
+        {:else if activities === null}
           {@render note(info.activities.unavailable)}
           <Button class="justify-self-start" variant="outline" size="sm" disabled={activityLoading} onclick={() => retryPublicList("activities")}>{info.activities.retry}</Button>
         {:else if activities.length === 0}
@@ -250,7 +298,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
       </section>
     </div>
 
-    {#if !$shellViewer.viewer}
+    {#if !hasPersonalOverview}
       <Card.Root class="gap-4" data-testid="home-sign-in">
         <Card.Header>
           <Card.Title>{info.signInPrompt.title}</Card.Title>

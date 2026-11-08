@@ -1,8 +1,10 @@
+import { getDemoHomeCampusNow } from "@/features/demo/server/demo-home";
 import {
   type HomeCampusNow,
   loadHomeCampusNow,
 } from "@/features/workspace/server/anonymous-home-sections";
 import { getAnonymousHomePageCopy } from "@/features/workspace/server/workspace-page-copy";
+import { privateSessionJson } from "@/lib/api/internal-session-response";
 import { logRouteFailure } from "@/lib/log/app-logger";
 import type { RequestHandler } from "./$types";
 
@@ -35,6 +37,15 @@ function json(payload: HomeCampusNow, status = 200) {
 
 export const GET: RequestHandler = async ({ locals, url }) => {
   const locale = locals.locale;
+  if (locals.demo) {
+    const section = url.searchParams.get("section");
+    return privateSessionJson(
+      getDemoHomeCampusNow(
+        locale,
+        section === "bus" || section === "weather" ? section : undefined,
+      ),
+    );
+  }
   try {
     return json(
       await loadHomeCampusNow({

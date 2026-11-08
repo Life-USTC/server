@@ -1,3 +1,4 @@
+import { getDemoHomeOverview } from "@/features/demo/server/demo-home";
 import { loadSignedWorkspacePage } from "@/features/workspace/server/workspace-page-load";
 import {
   privateSessionJson,
@@ -9,6 +10,19 @@ import type { RequestHandler } from "./$types";
 export const GET: RequestHandler = async (event) => {
   const rejected = rejectBearerOnSessionRoute(event.request);
   if (rejected) return rejected;
+  if (event.locals.demo) {
+    const overview = getDemoHomeOverview(
+      event.locals.demo,
+      event.locals.locale,
+      event.url.searchParams,
+    );
+    return overview
+      ? privateSessionJson(overview)
+      : privateSessionJson(
+          { error: "DEMO_HOME_RANGE_INVALID" },
+          { status: 400 },
+        );
+  }
   const userId = event.locals.authUser?.id;
   if (!userId) return privateSessionJson({ signedIn: false });
   try {
