@@ -40,7 +40,7 @@ import {
 const PIC_PATH = "group1/M00/31/B5/wKgUEWpR3ciAJX_MAABnEoFLBaI860.jpg";
 const R2_KEY = `young-events/images/${PIC_PATH}`;
 const ORIGIN_URL = `https://young.ustc.edu.cn/login/${PIC_PATH}`;
-const ROUTE_URL = "https://life.test/api/catalog/young-events/42/image";
+const ROUTE_URL = "https://life.test/api/catalog/young-events/by-id/42/image";
 
 function stream(value: string) {
   return new ReadableStream<Uint8Array>({

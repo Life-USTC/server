@@ -65,11 +65,15 @@ const paths = openApi.paths as Record<string, Record<string, Operation>>;
 
 describe("OpenAPI rate-limit response contract", () => {
   it("documents the current-poster resolver as an uncached redirect, without storage retry responses", () => {
-    const responses =
-      paths["/api/catalog/young-events/{youngId}/image"]?.get?.responses;
-    expect(responses).toHaveProperty("302");
-    expect(responses).toHaveProperty("404");
-    expect(responses).not.toHaveProperty("503");
+    for (const path of [
+      "/api/catalog/young-events/by-id/{youngId}/image",
+      "/api/catalog/young-events/{youngId}/image",
+    ]) {
+      const responses = paths[path]?.get?.responses;
+      expect(responses).toHaveProperty("302");
+      expect(responses).toHaveProperty("404");
+      expect(responses).not.toHaveProperty("503");
+    }
   });
 
   it("documents 429/503 on protected mutations and dependency failures on reads", () => {
