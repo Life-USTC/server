@@ -99,6 +99,44 @@ describe("iCalendar room maps", () => {
     );
     expect(unfolded(calendar).match(/^ATTACH[^\r\n]+/gm)).toHaveLength(1);
   });
+  it("exports expanded unknown room codes without inventing map attachments", () => {
+    for (const raw of ["Ⅷ".repeat(17), "ﬄ".repeat(22), "A".repeat(65)]) {
+      const calendar = new ICalCalendar();
+      createScheduleEvent(
+        schedule(raw),
+        section,
+        calendar,
+        geo,
+        assets,
+        "en-us",
+      );
+      createExamEvent(exam([raw]), section, calendar, geo, assets, "en-us");
+      expect(calendar.events()).toHaveLength(2);
+      expect(unfolded(calendar).match(/^ATTACH[^\r\n]+/gm) ?? []).toEqual([]);
+      expect(unfolded(calendar)).not.toContain("Room map:");
+    }
+    const known = new ICalCalendar();
+    createScheduleEvent(
+      schedule(" ３ａ２０４ "),
+      section,
+      known,
+      geo,
+      assets,
+      "en-us",
+    );
+    createExamEvent(
+      exam([" ３ａ２０４ "]),
+      section,
+      known,
+      geo,
+      assets,
+      "en-us",
+    );
+    expect(unfolded(known).match(/^ATTACH[^\r\n]+/gm)).toEqual([
+      "ATTACH:https://static.life-ustc.tiankaima.dev/imgs/rooms/3A204.png",
+      "ATTACH:https://static.life-ustc.tiankaima.dev/imgs/rooms/3A204.png",
+    ]);
+  });
   it("room-map.calendar", () => {
     const calendar = new ICalCalendar();
     const schedule = {

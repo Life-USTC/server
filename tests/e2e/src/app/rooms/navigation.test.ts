@@ -1,5 +1,7 @@
 import { expect } from "@playwright/test";
+import { withBrowserWorkflow } from "../../../utils/browser-workflow";
 import { test as catalogTest } from "../../../utils/catalog-browser-fixture";
+import { test as ownedTest } from "../../../utils/owned-worker";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 const rooms = [
@@ -120,7 +122,10 @@ test(
         .getByRole("textbox", { name: /教室编号|Room code/ })
         .fill("3a204");
       await page.getByRole("button", { name: /^(查询|Look up)$/ }).click();
-      await expect(page).toHaveURL(/\?room=3A204$/);
+      await expect(page).toHaveURL(/\?room=3a204$/);
+      await expect(
+        page.getByRole("textbox", { name: /教室编号|Room code/ }),
+      ).toHaveValue("3a204");
       await page.setViewportSize({ width: 390, height: 844 });
       await info.attach("rooms-selected-mobile", {
         body: await page.screenshot({ fullPage: true }),
@@ -192,3 +197,97 @@ test("room-map.optional-campus-failure", { tag: "@RoomMap/Web" }, async ({
     }
   });
 });
+
+const normalizationTest = ownedTest.extend({
+  workerOutboundJson: [
+    {
+      url: "https://static.life-ustc.tiankaima.dev/room_maps.json",
+      json: { rooms },
+    },
+    {
+      url: "https://static.life-ustc.tiankaima.dev/building_img_rules.json",
+      json: [],
+    },
+  ],
+});
+normalizationTest(
+  "room-map.raw-code-normalization",
+  { tag: "@RoomMap/Web" },
+  async ({ page, isolatedWorker, run }) => {
+    await withBrowserWorkflow(page, (workflow) =>
+      workflow.run(() =>
+        run(() =>
+          workflow.body(async () => {
+            await page.context().addCookies([
+              {
+                name: "NEXT_LOCALE",
+                value: "en-us",
+                url: isolatedWorker.origin,
+              },
+            ]);
+            // Only the static image bytes are owned here; map responses use the real Worker/service.
+            await page.route(
+              "https://static.life-ustc.tiankaima.dev/imgs/rooms/3A204.png",
+              (route) =>
+                route.fulfill({
+                  contentType: "image/svg+xml",
+                  body: '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><text x="20" y="40">Owned room 3A204</text></svg>',
+                }),
+            );
+            await gotoAndWaitForReady(page, "/catalog/rooms");
+            const field = page.getByRole("textbox", {
+              name: "Room code",
+              exact: true,
+            });
+            const preview = page.getByTestId("room-map-preview");
+            for (const [raw, canonical, status] of [
+              ["Ⅷ".repeat(17), "VIII".repeat(17), "unavailable"],
+              ["ﬄ".repeat(22), "FFL".repeat(22), "unavailable"],
+              ["３ａ２０４", "3A204", "highlighted"],
+            ] as const) {
+              await field.fill(raw);
+              const [response] = await Promise.all([
+                page.waitForResponse(
+                  (response) =>
+                    new URL(response.url()).pathname ===
+                      `/api/catalog/rooms/${encodeURIComponent(raw)}/map` &&
+                    response.request().method() === "GET",
+                ),
+                page
+                  .getByRole("button", { name: "Look up", exact: true })
+                  .click(),
+              ]);
+              expect(response.status()).toBe(200);
+              expect(await response.json()).toMatchObject({
+                code: canonical,
+                status,
+              });
+              expect(new URL(page.url()).searchParams.get("room")).toBe(raw);
+              await expect(field).toHaveValue(raw);
+              if (status === "unavailable") {
+                await expect(preview).toContainText(
+                  "A map is not available for this room yet.",
+                );
+                await expect(preview.getByRole("img")).toHaveCount(0);
+              } else {
+                await expect(preview).toContainText("Room highlighted");
+                await expect(preview.getByRole("img")).toHaveAttribute(
+                  "src",
+                  "https://static.life-ustc.tiankaima.dev/imgs/rooms/3A204.png",
+                );
+              }
+            }
+            // Direct raw HTTP negatives exercise the same schema; the input's maxlength is not a server guard.
+            for (const raw of ["A".repeat(65), "invalid_code"]) {
+              const response = await page.request.get(
+                `/api/catalog/rooms/${encodeURIComponent(raw)}/map`,
+              );
+              expect(response.status()).toBe(400);
+              await response.body();
+            }
+          }),
+        ),
+      ),
+    );
+  },
+);
