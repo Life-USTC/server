@@ -859,6 +859,8 @@ requirements:
   rule: Account settings uses the level-2 sidebar as its section navigation. The rail is vertical on desktop
     and inside the mobile shell menu. The active destination has aria-current=page and stays inside the
     navigation viewport; keyboard Tab and Enter reach every settings section.
+    Initial sidebar layout changes keep the current destination visible until user scroll, pointer/touch/keyboard
+    input or focus on another navigation item takes control for that opening.
   rationale: Public catalog details use continuous reading streams. Young catalog view switches use a
     separate browse-navigation component; they are not contextual section rails.
   acceptance:

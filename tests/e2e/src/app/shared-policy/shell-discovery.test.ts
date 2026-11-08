@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { createDeferred } from "../../../../shared/deferred";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -216,6 +217,8 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                                 text: element.textContent,
                                 width: element.clientWidth,
                                 scrollWidth: element.scrollWidth,
+                                left: element.getBoundingClientRect().left,
+                                right: element.getBoundingClientRect().right,
                               }
                             : null;
                         return {
@@ -229,6 +232,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               await expect
                 .poll(async () => (await readFacts()).map((item) => item.count))
                 .toEqual(fixture.expected);
+              await page.evaluate(() => document.fonts.ready);
               const facts = await readFacts();
               const mcp = nav.locator('a[href="/usage/mcp"]');
               const root = nav.locator('a[href="/"]').first();
@@ -243,12 +247,16 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                 hints: await nav.locator("[data-shell-nav-hint]").count(),
                 accountRoutes: routes,
               };
-              await page.evaluate(() => document.fonts.ready);
               await info.attach(`discovery-nav-${locale}-${width}`, {
                 body: await page.screenshot(),
                 contentType: "image/png",
               });
               for (const fact of facts) {
+                if (fact.geometry.label && fact.geometry.summary)
+                  expect(
+                    fact.geometry.label.right,
+                    `${fact.href} label/count overlap`,
+                  ).toBeLessThanOrEqual(fact.geometry.summary.left);
                 for (const [kind, box] of Object.entries(fact.geometry)) {
                   // A visible container can still clip an unbroken destination word.
                   // Check its own content width, rather than only document overflow.
@@ -473,3 +481,212 @@ for (const locale of ["en-us", "zh-cn"] as const) {
     );
   }
 }
+
+test(
+  "shell.discovery late real counts keep the active settings destination readable",
+  {
+    tag: "@Site/Web",
+  },
+  async ({ page, isolatedWorker, preferenceFlow, account }, info) => {
+    await preferenceFlow.prepare(async () => {
+      await isolatedWorker.database.owner.user.update({
+        where: { id: account.id },
+        data: {
+          name: "Sidebar reveal fixture",
+          username: "sidebar-reveal-fixture",
+        },
+      });
+      await isolatedWorker.database.owner.youngNotification.create({
+        data: {
+          userId: account.id,
+          kind: "late_navigation",
+          title: "Late count fixture",
+          body: "Owned navigation sample",
+          dedupeKey: crypto.randomUUID(),
+        },
+      });
+    });
+    await preferenceFlow.run(async () => {
+      await page.setViewportSize({ width: 390, height: 950 });
+      await page
+        .context()
+        .addCookies([
+          { name: "NEXT_LOCALE", value: "en-us", url: isolatedWorker.origin },
+        ]);
+      const captured = createDeferred();
+      // Observe early rejection without replacing the promise awaited below.
+      void captured.promise.catch(() => {});
+      const release = createDeferred();
+      preferenceFlow.onClosing(() => {
+        release.resolve();
+        captured.reject(
+          new Error("Scenario closed before shell bootstrap capture"),
+        );
+      });
+      await preferenceFlow.route(
+        page,
+        "**/_internal/shell-bootstrap",
+        async (route) => {
+          try {
+            const response = await route.fetch();
+            expect(response.status()).toBe(200);
+            const body = await response.json();
+            expect(body.viewer).toMatchObject({
+              id: account.id,
+              name: "Sidebar reveal fixture",
+              username: "sidebar-reveal-fixture",
+            });
+            expect(body.navigation).toMatchObject({
+              userId: account.id,
+              unreadActivityNotificationsCount: 1,
+            });
+            captured.resolve();
+            await release.promise;
+            await route.fulfill({ response });
+          } catch (error) {
+            captured.reject(error);
+            throw error;
+          }
+        },
+      );
+      try {
+        await Promise.all([
+          page.goto("/account/settings/danger", {
+            waitUntil: "domcontentloaded",
+          }),
+          captured.promise,
+        ]);
+        await page.waitForFunction(
+          () => document.documentElement.dataset.lifeUstcHydrated === "true",
+        );
+        await expect(
+          page.getByRole("heading", {
+            level: 1,
+            name: "Danger zone",
+            exact: true,
+          }),
+        ).toBeVisible();
+        await page
+          .locator('[data-shell-topbar] [data-slot="sidebar-trigger"]')
+          .click();
+        const nav = page.getByTestId("settings-sidebar");
+        const active = nav.locator('a[aria-current="page"]');
+        const sheet = page.locator(
+          '[data-slot="sidebar"][data-mobile="true"][role="dialog"]',
+        );
+        await expect(sheet).toBeVisible();
+        await expect(active).toBeVisible();
+        await expect(active).toHaveAttribute(
+          "href",
+          "/account/settings/danger",
+        );
+        const activeVisible = () =>
+          active.evaluate((node) => {
+            const viewport = node.closest('[data-slot="sidebar-content"]');
+            if (!viewport) return false;
+            const item = node.getBoundingClientRect(),
+              box = viewport.getBoundingClientRect(),
+              style = getComputedStyle(viewport);
+            return (
+              item.width > 0 &&
+              item.height > 0 &&
+              Math.min(
+                innerWidth,
+                box.right - Number.parseFloat(style.borderRightWidth),
+              ) >
+                Math.max(
+                  0,
+                  box.left + Number.parseFloat(style.borderLeftWidth),
+                ) &&
+              Math.min(
+                innerHeight,
+                box.bottom - Number.parseFloat(style.borderBottomWidth),
+              ) >
+                Math.max(
+                  0,
+                  box.top + Number.parseFloat(style.borderTopWidth),
+                ) &&
+              item.left >=
+                Math.max(
+                  0,
+                  box.left + Number.parseFloat(style.borderLeftWidth),
+                ) &&
+              item.right <=
+                Math.min(
+                  innerWidth,
+                  box.right - Number.parseFloat(style.borderRightWidth),
+                ) &&
+              item.top >=
+                Math.max(
+                  0,
+                  box.top + Number.parseFloat(style.borderTopWidth),
+                ) &&
+              item.bottom <=
+                Math.min(
+                  innerHeight,
+                  box.bottom - Number.parseFloat(style.borderBottomWidth),
+                )
+            );
+          });
+        await expect.poll(activeVisible).toBe(true);
+        const activity = nav.locator(
+          'a[data-slot="sidebar-menu-button"][href="/workspace/subscriptions/activities?view=notifications"]',
+        );
+        const row = activity.locator(
+          'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
+        );
+        await expect(
+          row.locator("summary[data-shell-count-value]"),
+        ).toHaveCount(0);
+        const response = preferenceFlow.waitForResponse(page, (res) =>
+          res.url().endsWith("/_internal/shell-bootstrap"),
+        );
+        release.resolve();
+        await response;
+        await expect(sheet).toBeVisible();
+        await expect(active).toBeVisible();
+        const summary = row.locator("summary[data-shell-count-value]");
+        await expect(summary).toBeVisible();
+        await expect(summary).toHaveAttribute("data-shell-count-value", "1");
+        await expect(summary).toHaveText("1 unread");
+        await expect.poll(activeVisible).toBe(true);
+        const label = activity.locator(":scope > span:last-child");
+        await expect(label).toBeVisible();
+        await expect(label).toHaveText("Activity subscriptions");
+        const readable = await row.evaluate((element) => {
+          const a = element.querySelector('a[data-slot="sidebar-menu-button"]');
+          const label = a?.querySelector(":scope > span:last-child"),
+            summary = element.querySelector("summary[data-shell-count-value]");
+          return (
+            label instanceof HTMLElement &&
+            summary instanceof HTMLElement &&
+            label.getBoundingClientRect().width > 0 &&
+            label.getBoundingClientRect().height > 0 &&
+            summary.getBoundingClientRect().width > 0 &&
+            summary.getBoundingClientRect().height > 0 &&
+            label.clientWidth > 0 &&
+            summary.clientWidth > 0 &&
+            label.getBoundingClientRect().right <=
+              summary.getBoundingClientRect().left &&
+            label.scrollWidth <= label.clientWidth &&
+            summary.scrollWidth <= summary.clientWidth
+          );
+        });
+        expect(readable).toBe(true);
+      } finally {
+        release.resolve();
+        const sheet = page.locator(
+          '[data-slot="sidebar"][data-mobile="true"][role="dialog"]',
+        );
+        if (
+          !page.isClosed() &&
+          (await sheet.count()) === 1 &&
+          (await sheet.isVisible())
+        )
+          await sheet.screenshot({
+            path: info.outputPath("late-count-settings-390.png"),
+          });
+      }
+    });
+  },
+);
