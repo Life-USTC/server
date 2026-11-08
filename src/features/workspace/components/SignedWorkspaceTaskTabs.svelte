@@ -129,6 +129,7 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
 {:else if activeTab === "exams" && signedData.subscriptions}
   {@const examSignedData = signedData as SignedWorkspaceExamData}
   <ExamsTab
+    pageDemo={signedData.demo}
     {workspaceCopy}
     {subscriptionsCopy}
     {sectionCopy}

@@ -2220,7 +2220,7 @@
     "description": "Browse read-only sample todos and subscriptions without creating an account.",
     "displayName": "Demo account · Read only",
     "linksSamples": "Website names and destinations come from the public catalog. Pins and visit counts below are fictional examples; visiting external sites and changing pins are disabled.",
-    "readOnlyReason": "Browse sample Home, calendar, todos, homework, exams, subscriptions, catalog details, account profile, news, sources, activities, organizers, weather, buses, route map and websites. Changes and external actions are disabled.",
+    "readOnlyReason": "Browse sample Home, calendar, todos, homework, exams, subscriptions, catalog details, account profile, news, sources, activities, organizers, weather, buses, route map, websites and room maps. Changes and external actions are disabled.",
     "exit": "Exit demo",
     "newsSamples": "All news, sources, images and attachments here are fixed fictional samples, not school publications.",
     "newsExternalUnavailable": "The fictional source page is unavailable in this read-only demo.",

@@ -14,6 +14,29 @@ access:
   admin: Admin capabilities are never simulated.
   agent: Demo identity supplies no OAuth, GraphQL or MCP authority.
 requirements:
+- id: demo.room-map-projection
+  category: privacy
+  rule: The existing classroom directory, lookup, preview and zoom controls project one closed
+    fictional floor graph. DEMO-101 is highlighted, DEMO-1 has an overview, and DEMO-NONE honestly
+    has no image. Original room-code normalization and validation remain intact; foreign codes
+    never fall through to real manifests, building rules, database or static upstream reads.
+    Only the two associated same-origin code-native schematic images can be loaded or opened;
+    their bilingual labels explicitly disclaim actual university geography. Image GET, HEAD,
+    content type and conditional ETags retain private Demo cache isolation. Shared previews receive
+    their actual page owner and locale and compare them to the root session generation, retiring
+    old maps and requests before applying another mode or language. Existing classroom and exam
+    room facts stay unchanged, including unknowns; ordinary map readers keep their behavior.
+  acceptance:
+    given: A trusted Demo, alongside an independently readable ordinary map for the same room code.
+    when: Browse the directory, query all three states, normalize a code, open and zoom a map,
+      read its local images, switch identity or locale and attempt foreign reads or writes.
+    then:
+    - Directory, page data, map JSON and associated images agree without durable or external effects.
+    - Only valid closed codes and image names succeed; unknown codes return 404 without a real-service fallback.
+    - All previews discard old identity and language responses while preserving ordinary lookup and zoom behavior.
+    test:
+      file: tests/e2e/src/app/demo/rooms.test.ts
+      name: 'demo rooms: fixed directory, map statuses and zoom en-us 1280'
 - id: demo.website-projection
   category: privacy
   rule: The existing website directory retains its static names, URLs, slugs, groups and bilingual
@@ -464,6 +487,31 @@ requirements:
       file: tests/e2e/src/app/demo/exams.test.ts
       name: 'demo.exams: read-only browsing zh-cn 1280'
 capabilities:
+  demo-room-maps:
+    title: Read-only Demo Room Maps
+    description: Fictional directory and local schematic maps in the existing classroom lookup and preview.
+    auth: anon
+    web:
+      pages:
+      - /catalog/rooms
+    rest:
+      routes:
+      - method: GET
+        path: /api/catalog/rooms/{code}/map
+        reference_only: true
+      - method: GET
+        path: /api/catalog/rooms/images/{name}.svg
+        reference_only: true
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Browse fictional room and floor choices and all three map states
+      - Open, zoom and reset the local fictional schematic
+      - Preserve unknown room facts and retire old identity or locale reads
+      requirement_refs:
+      - demo.room-map-projection
   demo-websites:
     title: Read-only Demo Websites
     description: The existing static directory with fictional personal pins, visits and shared Home links.

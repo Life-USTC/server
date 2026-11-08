@@ -11,6 +11,8 @@ import * as Accordion from "#lib/components/ui/accordion/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
+import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
+import type { DemoView } from "@/features/demo/lib/demo-types";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import type {
   RoomMapBuilding,
@@ -22,10 +24,14 @@ let {
   copy,
   buildings = [],
   initialRoom = "",
+  pageDemo = null,
+  locale = "",
 }: {
   copy: RoomMapCopy;
   buildings?: RoomMapBuilding[];
   initialRoom?: string;
+  pageDemo?: DemoView | null;
+  locale?: string;
 } = $props();
 let input = $state(untrack(() => initialRoom));
 let rawRoom = $derived(initialRoom.trim());
@@ -120,9 +126,13 @@ function floorLabel(floor: string) {
     </form>
   {/snippet}
 
+  {#if pageDemo}<DemoNotice demo={pageDemo} locale={locale === "en-us" ? "en-us" : "zh-cn"} />{/if}
+
   {#if selectedRoom}
     {#key `${rawRoom}:${searchRevision}`}
       <RoomMapPreview
+        {pageDemo}
+        {locale}
         code={rawRoom}
         {copy}
         className="w-full"

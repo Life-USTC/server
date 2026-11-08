@@ -59,7 +59,7 @@ test(
         );
         await route.fulfill({
           json: {
-            code,
+            code: code === "3a204" ? "3A204" : code,
             building: "三教主",
             floor: "2",
             status: "highlighted",
