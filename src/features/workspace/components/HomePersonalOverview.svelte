@@ -185,6 +185,7 @@ async function submitWorkspaceLinkPin(slug: string, action: "pin" | "unpin") {
         </Alert.Root>
       {/if}
       <OverviewTab
+        readOnlyReason={demo?.readOnlyReason}
         workspaceCopy={workspacePageCopy.workspace}
         subscriptionsCopy={workspacePageCopy.subscriptions}
         signedData={overview}

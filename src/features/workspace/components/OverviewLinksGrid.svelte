@@ -1,4 +1,6 @@
 <script lang="ts">
+export let readOnlyReason: string | undefined = undefined;
+
 import { catalogLinkVisitHref } from "@/features/catalog-links/lib/catalog-links";
 import { WORKSPACE_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
 import type {
@@ -49,10 +51,14 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
     <div class="grid min-w-0 grid-cols-1 gap-1 sm:grid-cols-2 xl:grid-cols-4">
       {#each previewLinks as link}
         <div class="group relative min-w-0">
-          <a
+          <svelte:element
+            this={readOnlyReason ? "button" : "a"}
+            disabled={readOnlyReason ? true : undefined}
+            type={readOnlyReason ? "button" : undefined}
+            title={readOnlyReason}
             class="flex w-full min-w-0 items-start gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-muted/50"
             class:pe-10={true}
-            href={catalogLinkVisitHref(link.slug)}
+            href={readOnlyReason ? undefined : catalogLinkVisitHref(link.slug)}
             rel="noopener noreferrer"
             target="_blank"
           >
@@ -67,12 +73,14 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
               <span class="line-clamp-2 text-muted-foreground text-xs"
                 >{link.description}</span
               >
+              {#if readOnlyReason}<span class="text-muted-foreground text-xs">{workspaceCopy.linkHub.filterVisits}: {link.clickCount}</span>{/if}
             </span>
-          </a>
+          </svelte:element>
           <div
-            class={`absolute top-2 right-1 ${link.isPinned ? "" : "md:pointer-events-none md:opacity-0 md:transition-opacity md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100"}`}
+            class={`absolute top-2 right-1 ${link.isPinned || readOnlyReason ? "" : "md:pointer-events-none md:opacity-0 md:transition-opacity md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100"}`}
           >
             <LinksTabPinButton
+        {readOnlyReason}
               {link}
               linkReturnTo={workspaceTabHref("overview")}
               {pinAction}

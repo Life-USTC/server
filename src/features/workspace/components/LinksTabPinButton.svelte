@@ -1,4 +1,6 @@
 <script lang="ts">
+export let readOnlyReason: string | undefined = undefined;
+
 import Pin from "@lucide/svelte/icons/pin";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Tooltip from "#lib/components/ui/tooltip/index.js";
@@ -24,6 +26,7 @@ export let updatingCatalogLinkSlug: string | null;
     method="POST"
     onsubmit={(event) => {
       event.preventDefault();
+      if (readOnlyReason) return;
       void submitWorkspaceLinkPin(link.slug, pinAction(link));
     }}
   >
@@ -35,7 +38,8 @@ export let updatingCatalogLinkSlug: string | null;
         <Button
           {...props}
           aria-label={pinLabel(link)}
-          disabled={updatingCatalogLinkSlug === link.slug}
+          disabled={Boolean(readOnlyReason) || updatingCatalogLinkSlug === link.slug}
+          title={readOnlyReason}
           size="icon-sm"
           type="submit"
           variant={link.isPinned ? "secondary" : "outline"}

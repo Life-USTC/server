@@ -1,4 +1,7 @@
 <script lang="ts">
+export let visitCountLabel: string | undefined = undefined;
+export let readOnlyReason: string | undefined = undefined;
+
 import * as Item from "#lib/components/ui/item/index.js";
 import { cn } from "#lib/utils.js";
 import { catalogLinkVisitHref } from "@/features/catalog-links/lib/catalog-links";
@@ -22,10 +25,14 @@ function visitLinkClass(props: Record<string, unknown>) {
     variant="outline"
   >
     {#snippet child({ props })}
-      <a
+      <svelte:element
+            this={readOnlyReason ? "button" : "a"}
+            disabled={readOnlyReason ? true : undefined}
+            type={readOnlyReason ? "button" : undefined}
+            title={readOnlyReason}
         {...props}
         class={visitLinkClass(props)}
-        href={catalogLinkVisitHref(link.slug)}
+        href={readOnlyReason ? undefined : catalogLinkVisitHref(link.slug)}
         rel="noopener noreferrer"
         target="_blank"
       >
@@ -37,8 +44,9 @@ function visitLinkClass(props: Record<string, unknown>) {
           <Item.Description class="line-clamp-2">
             {link.description}
           </Item.Description>
+          {#if readOnlyReason && visitCountLabel}<p class="text-muted-foreground text-xs">{visitCountLabel}: {link.clickCount}</p>{/if}
         </Item.Content>
-      </a>
+      </svelte:element>
     {/snippet}
   </Item.Root>
 </div>

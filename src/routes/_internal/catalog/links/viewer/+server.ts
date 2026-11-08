@@ -1,4 +1,5 @@
 import { getSignedInCatalogLinksData } from "@/features/catalog-links/server/catalog-link-data";
+import { getDemoCatalogLinksData } from "@/features/demo/server/demo-links";
 import {
   privateSessionJson,
   rejectBearerOnSessionRoute,
@@ -8,6 +9,11 @@ import type { RequestHandler } from "./$types";
 export const GET: RequestHandler = async ({ locals, request }) => {
   const rejected = rejectBearerOnSessionRoute(request);
   if (rejected) return rejected;
+  if (locals.demo)
+    return privateSessionJson({
+      signedIn: false,
+      links: getDemoCatalogLinksData(locals.locale).catalogLinks,
+    });
   const userId = locals.authUser?.id;
   if (!userId) return privateSessionJson({ signedIn: false, links: null });
   try {
