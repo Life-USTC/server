@@ -14,6 +14,31 @@ access:
   admin: Admin capabilities are never simulated.
   agent: Demo identity supplies no OAuth, GraphQL or MCP authority.
 requirements:
+- id: demo.community-projection
+  category: privacy
+  rule: Existing catalog and homework discussions share 25 fixed public active roots and 36 named,
+    non-anonymous nodes from two explicitly fictional authors. The main course has 21 roots and an
+    eleven-reply thread; section, teacher, section-teacher and homework targets each add one root.
+    Root pagination retains the existing twenty-root page and ten-descendant preview, chronological
+    createdAt/ID ordering, root-bound reply cursors and focused/permalink navigation. Root totals never
+    include replies. Locale changes content and presentation without changing identities or counts.
+    These reads resolve only fixed targets before authentication, database, storage or outbound adapters.
+    All write permissions remain false with visible read-only guidance; reaction totals stay readable,
+    while copying links, locating comments and continuing pages remain usable. Author names and local
+    avatars retain the existing presentation without new profile links or public-user read authority.
+    No attachments, external images, link previews or governance identities are simulated.
+  acceptance:
+    given: A trusted demo in either locale and viewport, alongside independent real accounts and comments.
+    when: Browse catalog and homework discussions, continue roots and replies, and open off-page and
+      beyond-preview comment links; attempt writes and invalid targets, cursors or identities.
+    then:
+    - Page and API nodes, authors, reactions, target metadata and root totals agree; both continuations exhaust without duplicates.
+    - Focused reads and canonical links locate the existing fixed target and requested node, including nested replies.
+    - Writes and real-user profile routes remain forbidden; failures never fall back to real services or produce durable effects.
+    - Identity transitions discard old responses, and ordinary session and OAuth comment behavior remains unchanged.
+    test:
+      file: tests/integration/rest/demo/community.test.ts
+      name: demo community reads share fixed threads, pagination and no live effects en-us
 - id: demo.profile-projection
   category: privacy
   rule: The existing /account/settings/profile page, page-data and same-origin account profile GET/HEAD API
@@ -114,6 +139,7 @@ requirements:
   - demo-homeworks
   - demo-exams
   - demo-profile
+  - demo-community
   expectation:
     kind: authorization
     surface: service
@@ -142,7 +168,8 @@ requirements:
     subscriptions HTML/page-data, the course, section and teacher listings, the three supported catalog-detail pages and their page-data,
     GET /api/catalog/courses, GET /api/catalog/sections, GET /api/catalog/teachers,
     GET /api/workspace/todos, GET /api/workspace/subscriptions/current, section detail/personal reads,
-    fixture descriptions/comments, homework list/detail/audit reads and shell bootstrap. Same-origin locale-cookie updates are allowed. Entry and exit are cookie controls. Every other request is denied before its route runs, including visit-recording GET, uploads,
+    fixture descriptions/comments, fixed comment focused/reply reads and canonical comment links,
+    homework list/detail/audit reads and shell bootstrap. Same-origin locale-cookie updates are allowed. Entry and exit are cookie controls. Every other request is denied before its route runs, including visit-recording GET, uploads,
     private exports, administrator routes, GraphQL and MCP.
   acceptance:
     given: A signed demo and unrelated real private data in an isolated actual Worker.
@@ -192,7 +219,7 @@ requirements:
   category: consistency
   rule: Demo subscription links open the existing section, course and teacher detail pages using the same
     three fixed sections, two teachers and localized course identities. Section schedules and exams use fixed
-    dates; descriptions and empty discussions retain existing response shapes and an anonymous viewer.
+    dates; descriptions and fixed public discussions retain existing response shapes and an anonymous viewer.
     Only fixture identifiers and matching target aliases resolve; unknown or mixed targets cannot access
     ordinary data. Calendar exports, subscriptions, homework creation, description edits and comments are
     visibly disabled. Teacher, course and section collections and fixture homework details are read-only.
@@ -307,6 +334,37 @@ requirements:
       file: tests/e2e/src/app/demo/exams.test.ts
       name: 'demo.exams: read-only browsing zh-cn 1280'
 capabilities:
+  demo-community:
+    title: Read-only Demo Discussions
+    description: Fixed named discussions on existing catalog and homework targets, without real-user or agent authority.
+    auth: anon
+    web:
+      pages:
+      - /catalog/courses/[jwId]
+      - /catalog/sections/[jwId]
+      - /catalog/teachers/[id]
+      - /community/comments/[id]
+    rest:
+      routes:
+      - method: GET
+        path: /api/community/comments
+        reference_only: true
+      - method: GET
+        path: /api/community/comments/[id]
+        reference_only: true
+      - method: GET
+        path: /api/community/comments/[id]/replies
+        reference_only: true
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Read named sample comments, nested replies, Markdown and fixed reaction counts
+      - Continue root pages and reply previews through existing controls
+      - Copy and open canonical links to fixed comments beyond initial pages
+      requirement_refs:
+      - demo.community-projection
   demo-profile:
     title: Demo account profile
     description: Fixed read-only presentation data on the existing profile settings page and account profile API.
@@ -432,7 +490,7 @@ capabilities:
       kind: interaction
       items:
       - Follow sample subscriptions to section, course and teacher details
-      - Read fixed descriptions, schedules, exams and empty discussions
+      - Read fixed descriptions, schedules, exams and public discussions
       - View disabled mutation and export controls
       requirement_refs:
       - demo.catalog-projection
