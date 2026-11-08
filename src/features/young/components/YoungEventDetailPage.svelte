@@ -97,8 +97,8 @@ const badges = $derived(
 );
 const statusLabel = $derived(
   youngEventStatusLabel(event, {
-    statusOpen: youngCopy.statusOpen,
-    statusClosed: youngCopy.statusClosed,
+    statusActive: youngCopy.statusActive,
+    statusEnded: youngCopy.statusEnded,
   }),
 );
 const statusToken = $derived(

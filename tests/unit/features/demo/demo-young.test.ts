@@ -236,12 +236,25 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           }).data,
         ),
       ).toEqual(["demo-young-42"]);
+      const statusLabels =
+        locale === "en-us"
+          ? {
+              statusOpen: "Current signup list",
+              statusClosed: "Historical activity list",
+            }
+          : { statusOpen: "当前报名列表", statusClosed: "历史活动列表" };
       expect(
         getDemoYoungEvents(locale, {
-          tableFilters: { status: "Open" },
-          tableStatusLabels: { statusOpen: "Open", statusClosed: "Closed" },
+          tableFilters: { status: statusLabels.statusOpen },
+          tableStatusLabels: statusLabels,
         }).pagination.total,
       ).toBe(31);
+      expect(
+        getDemoYoungEvents(locale, {
+          tableFilters: { status: statusLabels.statusClosed },
+          tableStatusLabels: statusLabels,
+        }).pagination.total,
+      ).toBe(11);
       expect(
         getDemoYoungEvents(locale, {
           tableFilters: { startAt: "2026-09-24", startAtOp: "eq" },
