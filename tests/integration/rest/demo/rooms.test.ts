@@ -91,6 +91,20 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             "https://static.life-ustc.tiankaima.dev/imgs/ordinary-1544-floor.png",
         });
       }
+      for (const code of ["images", "IMAGES"]) {
+        const ordinary = await request.get(mapPath(code), {
+          headers: { cookie: ordinaryCookie },
+        });
+        expect(ordinary.status()).toBe(200);
+        expect(await ordinary.json()).toEqual({
+          code: "IMAGES",
+          building: null,
+          floor: null,
+          status: "unavailable",
+          imageUrl: null,
+          sourceImageUrl: null,
+        });
+      }
       for (const [name] of assets) {
         const ordinaryAsset = await request.get(`${assetBase}${name}`, {
           headers: { cookie: ordinaryCookie },
@@ -216,6 +230,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         ).toEqual(expected[0]);
         await read(mapPath("REAL-1544"), 404);
         await read(mapPath("DEMO-UNKNOWN"), 404);
+        await read(mapPath("images"), 404);
         // Raw length is bounded before NFKC; these valid expanded codes are foreign.
         for (const code of ["Ⅷ".repeat(17), "ﬄ".repeat(22)])
           await read(mapPath(code), 404);
@@ -250,7 +265,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           }
         }
         await read(`${assetBase}unknown.svg`, 404);
-        await read(`${assetBase}${"x".repeat(65)}`, 400);
+        await read(`${assetBase}${"x".repeat(61)}.svg`, 400);
         await read(`${assetBase}demo-floor.svg?unknown=1`, 400);
         const targets = [
           pagePath,

@@ -3,7 +3,7 @@ import { getDemoRoomMapAssetRoute } from "@/lib/api/routes/demo-room-map-route";
 import type { RequestHandler } from "./$types";
 
 /**
- * Read a fixed local schematic only within a trusted Demo session.
+ * Read a fixed local .svg schematic by basename within a trusted Demo session.
  * @pathParams roomMapImageNamePathParamsSchema
  * @response binary
  * @response 304

@@ -7,5 +7,6 @@ export const roomMapCodePathParamsSchema = z.object({ code: roomCodeSchema });
 export const roomMapResponseSchema = roomMapSchema;
 
 export const roomMapImageNamePathParamsSchema = z.object({
-  name: z.string().min(1).max(64),
+  // The route supplies the basename; the fixed .svg suffix completes max 64.
+  name: z.string().min(1).max(60),
 });

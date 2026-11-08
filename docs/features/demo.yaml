@@ -494,7 +494,14 @@ capabilities:
     web:
       pages:
       - /catalog/rooms
-    rest: unavailable
+    rest:
+      routes:
+      - method: GET
+        path: /api/catalog/rooms/{code}/map
+        reference_only: true
+      - method: GET
+        path: /api/catalog/rooms/images/{name}.svg
+        reference_only: true
     graphql: unavailable
     mcp: unavailable
     presentation:

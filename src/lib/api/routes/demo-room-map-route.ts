@@ -33,7 +33,7 @@ export async function getDemoRoomMapAssetRoute(request: Request, name: string) {
     "Invalid room map image name",
   );
   if (parsed instanceof Response) return parsed;
-  const asset = getDemoRoomMapAsset(parsed.name);
+  const asset = getDemoRoomMapAsset(`${parsed.name}.svg`);
   if (!asset) return errorResponse("Demo room map image not found", 404);
   const headers = new Headers({
     "Content-Type": asset.contentType,

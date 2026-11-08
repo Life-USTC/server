@@ -9553,10 +9553,10 @@
         }
       }
     },
-    "/api/catalog/rooms/images/{name}": {
+    "/api/catalog/rooms/images/{name}.svg": {
       "get": {
-        "operationId": "get-api-catalog-rooms-images-name",
-        "summary": "Read a fixed local schematic only within a trusted Demo session",
+        "operationId": "get-api-catalog-rooms-images-name.svg",
+        "summary": "Read a fixed local .svg schematic by basename within a trusted Demo session",
         "tags": [
           "catalog.rooms"
         ],
@@ -9567,7 +9567,7 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 64
+              "maxLength": 60
             },
             "required": true
           }
