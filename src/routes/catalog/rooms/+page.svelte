@@ -6,6 +6,8 @@ export let data: PageData;
 </script>
 
 <RoomMapLookupPage
+  pageDemo={data.demo}
+  locale={data.locale}
   buildings={data.buildings}
   copy={data.copy}
   initialRoom={data.initialRoom}

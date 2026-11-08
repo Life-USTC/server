@@ -113,10 +113,15 @@ for (const [locale, width] of [
               await expect(page.getByTestId("demo-notice")).toBeVisible();
               await expect(
                 page.getByTestId("demo-young-workspace-fictional"),
-              ).toContainText(
+              ).toHaveText(
                 locale === "en-us"
-                  ? "fixed fictional examples"
-                  : "固定虚构样例",
+                  ? "Fixed fictional subscriptions and notifications."
+                  : "固定虚构的订阅和通知样例。",
+              );
+              await expect(page.getByTestId("demo-notice")).toContainText(
+                locale === "en-us"
+                  ? "Changes and external actions are disabled."
+                  : "无法修改数据或执行外部操作。",
               );
               const rows = row(page, view);
               await expect(rows).toHaveCount(20);
@@ -152,8 +157,37 @@ for (const [locale, width] of [
                 }
                 await page.locator("#main-content").focus();
                 await page.keyboard.press("Control+Home");
+                await expect
+                  .poll(() =>
+                    page.evaluate(
+                      () =>
+                        document.scrollingElement !== null &&
+                        [
+                          document.scrollingElement,
+                          ...document.querySelectorAll(
+                            "[data-shell-scroll-container]",
+                          ),
+                        ].every((element) => element.scrollTop === 0),
+                    ),
+                  )
+                  .toBe(true);
+                const heading = page.getByRole("heading", { level: 1 });
+                await expect(heading).toBeVisible();
+                await expect(heading).toBeInViewport({ ratio: 1 });
+                await expect
+                  .poll(() =>
+                    heading.evaluate((element) => {
+                      const rect = element.getBoundingClientRect();
+                      const hit = document.elementFromPoint(
+                        rect.x + rect.width / 2,
+                        rect.y + rect.height / 2,
+                      );
+                      return hit !== null && element.contains(hit);
+                    }),
+                  )
+                  .toBe(true);
                 await page.screenshot({
-                  path: `/tmp/life1548-after-activities-${locale}-${width}.png`,
+                  path: `/tmp/life1548-after-activities-${locale}-${width}-settled.png`,
                   fullPage: true,
                 });
               }
@@ -366,10 +400,15 @@ for (const mode of ["ordinary", "locale"] as const) {
               );
               await expect(
                 page.getByTestId("demo-young-workspace-fictional"),
-              ).toContainText(
+              ).toHaveText(
                 mode === "ordinary"
-                  ? "fixed fictional examples"
-                  : "固定虚构样例",
+                  ? "Fixed fictional subscriptions and notifications."
+                  : "固定虚构的订阅和通知样例。",
+              );
+              await expect(page.getByTestId("demo-notice")).toContainText(
+                mode === "ordinary"
+                  ? "Changes and external actions are disabled."
+                  : "无法修改数据或执行外部操作。",
               );
               const currentRows = row(page, "notifications");
               await expect
@@ -571,7 +610,10 @@ test("demo young workspace uses native locale, exit and re-entry", {
           await expect(row(page, "notifications")).toHaveCount(20);
           await expect(
             page.getByTestId("demo-young-workspace-fictional"),
-          ).toContainText("固定虚构样例");
+          ).toHaveText("固定虚构的订阅和通知样例。");
+          await expect(page.getByTestId("demo-notice")).toContainText(
+            "无法修改数据或执行外部操作。",
+          );
           const bootstrap = await page.request.get(
             "/_internal/shell-bootstrap",
           );

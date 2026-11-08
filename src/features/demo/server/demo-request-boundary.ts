@@ -35,6 +35,7 @@ type DemoBoundary = {
 function isDemoCatalogPage(path: string) {
   return (
     [
+      "/catalog/rooms",
       "/catalog/links",
       "/catalog/weather",
       "/catalog/bus",
@@ -103,6 +104,8 @@ function isDemoCatalogRead(path: string) {
       "/api/catalog/bus/routes",
       "/api/catalog/bus/next",
     ].includes(path) ||
+    /^\/api\/catalog\/rooms\/[^/]+\/map$/.test(path) ||
+    /^\/api\/catalog\/rooms\/images\/[^/]+$/.test(path) ||
     path === "/api/catalog/courses" ||
     path === "/api/catalog/sections" ||
     path === "/api/catalog/teachers" ||

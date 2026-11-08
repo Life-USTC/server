@@ -9553,6 +9553,63 @@
         }
       }
     },
+    "/api/catalog/rooms/images/{name}.svg": {
+      "get": {
+        "operationId": "get-api-catalog-rooms-images-name.svg",
+        "summary": "Read a fixed local .svg schematic by basename within a trusted Demo session",
+        "tags": [
+          "catalog.rooms"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Binary response",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Response 304"
+          },
+          "400": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/openApiErrorSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/catalog/sections/{jwId}/calendar.ics": {
       "get": {
         "operationId": "getSectionCalendar",

@@ -87,7 +87,10 @@ export const test = base.extend<
   {
     isolatedWorker: IsolatedWorker;
     workerBindings: Record<string, string>;
-    workerOutboundJson: { url: string; json: unknown } | undefined;
+    workerOutboundJson:
+      | { url: string; json: unknown }
+      | { url: string; json: unknown }[]
+      | undefined;
     _workerResources: { start: () => Promise<IsolatedWorker> };
   },
   {

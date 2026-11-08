@@ -21,3 +21,12 @@ export function workspaceCalendarOwner(
   const id = shell.viewer?.id ?? "";
   return { id, epoch: id };
 }
+
+/** Public data is shared by ordinary viewers, but never across a Demo transition. */
+export function homePublicReadEpoch(
+  shell: ShellViewerState,
+  pageDemo?: DemoIdentity | null,
+) {
+  if (shell.demo) return workspaceCalendarOwner(shell, pageDemo).epoch;
+  return pageDemo ? "" : "public";
+}

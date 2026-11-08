@@ -153,7 +153,7 @@ test("demo course listing isolates live data and agrees with native catalog quer
           "/api/community/comments?targetType=course&targetId=201&courseJwId=920099",
           404,
         ],
-        ["/catalog/rooms", 403],
+        ["/api/catalog/rooms/3A204/private", 403],
         ["/catalog/sections/910001/private", 403],
         ["/api/catalog/links/resolve?slug=jw", 403],
       ] as const) {

@@ -2220,7 +2220,7 @@
     "description": "Browse read-only sample todos and subscriptions without creating an account.",
     "displayName": "Demo account · Read only",
     "linksSamples": "Website names and destinations come from the public catalog. Pins and visit counts below are fictional examples; visiting external sites and changing pins are disabled.",
-    "readOnlyReason": "Browse sample Home, calendar, todos, homework, exams, subscriptions, catalog details, account profile, news, sources, activities, organizers, weather, buses, route map and websites. Changes and external actions are disabled.",
+    "readOnlyReason": "Browse sample Home, calendar, todos, homework, exams, subscriptions, catalog details, account profile, news, sources, activities, organizers, weather, buses, route map, websites and room maps. Changes and external actions are disabled.",
     "exit": "Exit demo",
     "newsSamples": "All news, sources, images and attachments here are fixed fictional samples, not school publications.",
     "newsExternalUnavailable": "The fictional source page is unavailable in this read-only demo.",
@@ -2229,7 +2229,7 @@
     "unavailableReason": "Other features are not available in this demo yet.",
     "referenceTime": "Sample time (Shanghai)",
     "youngSamples": "All activities, organizers, posters and subscription facts here are fixed fictional samples, not school activities or live collection results.",
-    "youngWorkspaceSamples": "These subscriptions and notifications are fixed fictional examples. Browsing them does not change your subscriptions, send reminders or register you for activities.",
+    "youngWorkspaceSamples": "Fixed fictional subscriptions and notifications.",
     "youngSubscriptionFacts": "Fixed fictional subscription facts · Read only"
   },
   "signIn": {
