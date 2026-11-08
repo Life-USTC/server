@@ -12,6 +12,7 @@ import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { DEMO_BUS_HUB, getDemoBusNext, getDemoBusTimetable } from "./demo-bus";
 import { getDemoCalendar } from "./demo-calendar";
 import { getDemoHomeworksTabData } from "./demo-homeworks";
+import { getDemoNewsHomeNotices } from "./demo-news";
 import { getDemoTodos } from "./demo-todos";
 import { getDemoWeatherSnapshot } from "./demo-weather";
 import {
@@ -26,21 +27,6 @@ export function getDemoHomeInformation(
 ): AnonymousHomeInformation {
   const english = locale === "en-us";
   const reference = shanghaiDayjs(DEMO_REFERENCE_NOW);
-  const titles = english
-    ? [
-        "Sample reading room hours",
-        "Sample study group registration",
-        "Sample library workshop",
-        "Sample campus walk",
-        "Sample learning resources",
-      ]
-    : [
-        "虚构阅览室开放时间",
-        "虚构学习小组报名",
-        "虚构图书馆工作坊",
-        "虚构校园漫步",
-        "虚构学习资源介绍",
-      ];
   const activities = english
     ? [
         "Fictional algebra discussion",
@@ -56,17 +42,8 @@ export function getDemoHomeInformation(
         "虚构学习交流",
         "虚构科学速写",
       ];
-  const meta = english
-    ? "Fictional demo sample · Not a school announcement"
-    : "虚构演示样例 · 非学校通知";
   return {
-    notices: titles.map((title, index) => ({
-      key: `demo-notice-${index + 1}`,
-      href: "/news",
-      title,
-      meta,
-      dateLabel: reference.subtract(index, "day").format("YYYY-MM-DD"),
-    })),
+    notices: getDemoNewsHomeNotices(locale),
     activities: activities.map((title, index) => ({
       key: `demo-home-activity-${index + 1}`,
       href: "/catalog/young-events",

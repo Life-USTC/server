@@ -618,14 +618,29 @@ for (const locale of ["en-us", "zh-cn"] as const)
                   await expect(rows.filter({ visible: true })).toHaveCount(
                     width === 390 ? 3 : 5,
                   );
-                  await expect(
-                    page.getByTestId(`home-${module}`).locator("a[href]"),
-                  ).toHaveCount(0);
-                  await expect(
-                    page
-                      .getByTestId(`home-${module}`)
-                      .locator('[data-slot="item"][aria-disabled="true"]'),
-                  ).toHaveCount(5);
+                  if (module === "activities") {
+                    await expect(
+                      page.getByTestId(`home-${module}`).locator("a[href]"),
+                    ).toHaveCount(0);
+                    await expect(
+                      page
+                        .getByTestId(`home-${module}`)
+                        .locator('[data-slot="item"][aria-disabled="true"]'),
+                    ).toHaveCount(5);
+                  } else {
+                    await expect(
+                      page
+                        .getByTestId("home-notices")
+                        .locator(
+                          'a[data-slot="item"][href^="/news/demo-news-"]',
+                        ),
+                    ).toHaveCount(5);
+                    await expect(
+                      page
+                        .getByTestId("home-notices")
+                        .locator('a[href="/news"]'),
+                    ).toHaveCount(1);
+                  }
                   for (const row of await rows.filter({ visible: true }).all())
                     await expectReadable(row);
                 }
@@ -649,7 +664,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
                   "overview-focus-title",
                 ])
                   await expectReadable(page.getByTestId(id));
-                for (const id of ["home-notices", "home-activities"])
+                for (const id of ["home-activities"])
                   await expect(
                     page.getByTestId(id).locator("a[href]"),
                   ).toHaveCount(0);
@@ -677,10 +692,14 @@ for (const locale of ["en-us", "zh-cn"] as const)
                 ).not.toHaveCount(0);
                 await expect(
                   directory.locator(
-                    'a[href="/catalog/links"], a[href="/news"], a[href="/catalog/young-events"]',
+                    'a[href="/catalog/links"], a[href="/catalog/young-events"]',
                   ),
                 ).toHaveCount(0);
-                for (const href of ["/catalog/weather", "/catalog/bus"])
+                for (const href of [
+                  "/catalog/weather",
+                  "/catalog/bus",
+                  "/news",
+                ])
                   await expect(
                     directory.locator(`a[href="${href}"]`),
                   ).toHaveCount(1);

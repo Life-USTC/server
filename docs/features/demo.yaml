@@ -14,6 +14,35 @@ access:
   admin: Admin capabilities are never simulated.
   agent: Demo identity supplies no OAuth, GraphQL or MCP authority.
 requirements:
+- id: demo.news-projection
+  category: privacy
+  rule: Existing news list, detail and source pages project 22 sealed bilingual fictional publications.
+    Home notices preserve their first five titles, dates and order and link to those same details.
+    The existing twenty-row pagination, explicit known reprint pair, source and organization filters,
+    empty source, first-scalar and repeated multi-value query semantics remain available. Fixed source
+    counts and latest dates derive from that graph; ordinary SQL and normalization remain unchanged.
+    Markdown, tables and a local raster diagram retain the existing reader. Current localized revisions
+    alone authorize body_markdown, media and asset bytes; body_html and raw_page are not associated.
+    Image source IDs hash original URL text, while object keys and ETags identify actual content bytes.
+    Trusted reads bypass real database, R2, cache and origin adapters. Source-page external links are
+    visibly disabled; a fixed local asset download is read-only. Root/page epochs and the existing
+    endless-list identity guards retire old responses across mode, locale and session changes.
+    Writes, ingestion, management and unsupported families remain forbidden; ordinary readers delegate
+    to the existing services and retain their behavior. Public activity and websites remain under the
+    parent full-site task.
+  acceptance:
+    given: A trusted demo in either locale and viewport and an independently readable ordinary publication.
+    when: Browse news, continue pages, filter and fold the known corpus, follow Home and source links,
+      read Markdown, diagram and attachment bytes, switch identities and attempt foreign reads or writes.
+    then:
+    - The unfolded list has 22 publications and the explicitly related reprint pair folds to 21 groups.
+    - Source counts, empty pages and Home facts agree with the same graph, without real business IO.
+    - Known revision objects, image URL IDs, bytes, content types, HEAD and conditional ETags agree.
+    - Unknown IDs, hashes, kinds and invalid values never fall through to real data or providers.
+    - External actions stay disabled and late ordinary rows cannot reappear in demo mode.
+    test:
+      file: tests/integration/rest/demo/news.test.ts
+      name: demo news seals pages, queries, revision bytes and effects en-us
 - id: demo.campus-projection
   category: privacy
   rule: The existing weather, bus planner and SVG route map share sealed fictional data and the
@@ -45,7 +74,7 @@ requirements:
     derives from the existing academic samples and fixed reference clock, without granting a real
     authenticated viewer. Session generations own client reads; exit, re-entry and late responses cannot
     restore an earlier identity. Public sample content is explicitly fictional, never an official notice,
-    current weather observation or actual departure. Unfinished news, public activity and
+    current weather observation or actual departure. Unfinished public activity and
     website destinations remain visibly unavailable under the parent full-site task. Pinning, link
     resolution, external navigation and writes stay forbidden. Ordinary Home behavior is unchanged.
   acceptance:
@@ -728,3 +757,39 @@ capabilities:
       - Open and refresh the existing pure SVG schematic map
       requirement_refs:
       - demo.campus-projection
+
+  demo-news:
+    title: Read-only Demo News
+    auth: anon
+    web:
+      pages:
+      - /news
+      - /news/[id]
+      - /news/sources
+    rest:
+      routes:
+      - method: GET
+        path: /api/publications
+        reference_only: true
+      - method: GET
+        path: /api/publications/{id}
+        reference_only: true
+      - method: GET
+        path: /api/publications/sources
+        reference_only: true
+      - method: GET
+        path: /api/publications/objects/{kind}/{sha256}
+        reference_only: true
+      - method: GET
+        path: /api/publications/images/{hash}
+        reference_only: true
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Browse and filter the existing news list and continue its second page
+      - Read fixed fictional Markdown, image and downloadable local attachment
+      - Follow Home notices, source facets and the known reprint sibling
+      requirement_refs:
+      - demo.news-projection

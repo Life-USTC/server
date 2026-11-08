@@ -42,12 +42,28 @@ function isDemoCatalogPage(path: string) {
   );
 }
 
+function isDemoNewsPage(path: string) {
+  return (
+    path === "/news" || path === "/news/sources" || /^\/news\/[^/]+$/.test(path)
+  );
+}
+function isDemoNewsRead(path: string) {
+  return (
+    isDemoNewsPage(path.replace(/\/__data\.json$/, "")) ||
+    path === "/api/publications" ||
+    /^\/api\/publications\/[^/]+$/.test(path) ||
+    /^\/api\/publications\/objects\/[^/]+\/[^/]+$/.test(path) ||
+    /^\/api\/publications\/images\/[^/]+$/.test(path)
+  );
+}
+
 function isDemoCommentPage(path: string) {
   return /^\/community\/comments\/demo-comment-[a-z0-9-]+$/.test(path);
 }
 
 function isDemoCatalogRead(path: string) {
   return (
+    isDemoNewsRead(path) ||
     isDemoCatalogPage(path.replace(/\/__data\.json$/, "")) ||
     [
       "/api/catalog/weather",
@@ -122,6 +138,7 @@ export async function resolveDemoBoundary(
         "/account/settings/profile",
       ].includes(url.pathname) ||
         isDemoCatalogPage(url.pathname) ||
+        isDemoNewsPage(url.pathname) ||
         isDemoCommentPage(url.pathname)) &&
       request.headers.get("accept")?.includes("text/html")
     ) {
