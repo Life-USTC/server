@@ -23,6 +23,7 @@ export function isDemoNavigationDestination(href: string) {
     "/catalog/young-events/calendar",
     "/catalog/young-events/organizers",
     "/",
+    "/search",
     "/workspace/todos",
     "/workspace/subscriptions",
     "/workspace/subscriptions/activities",

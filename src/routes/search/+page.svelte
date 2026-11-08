@@ -5,6 +5,7 @@ import { get } from "svelte/store";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import * as Field from "#lib/components/ui/field/index.js";
 import * as InputGroup from "#lib/components/ui/input-group/index.js";
+import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
 import GlobalSearchResults from "@/features/search/components/GlobalSearchResults.svelte";
 import {
   GLOBAL_SEARCH_MAX_QUERY_LENGTH,
@@ -18,6 +19,7 @@ import {
   GLOBAL_SEARCH_LISTBOX_ID,
   globalSearchItemDomId,
 } from "@/features/search/lib/global-search-keyboard";
+import { globalSearchRequestContext } from "@/features/search/lib/global-search-owner";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { afterNavigate, goto } from "$app/navigation";
 import { page as routePage } from "$app/state";
@@ -31,13 +33,14 @@ let { data }: Props = $props();
 
 let inputElement: HTMLInputElement | null = $state(null);
 const shellViewer = getShellViewer();
-let viewerId: string | null = $state(null);
+let mounted = $state(false);
+const requestContext = $derived(
+  globalSearchRequestContext($shellViewer, data.locale, data.demo),
+);
 
 const search = createGlobalSearchController({
-  getRequestContext: () => ({
-    includeWorkspace: viewerId !== null,
-    locale: data.locale,
-  }),
+  getRequestContext: () =>
+    globalSearchRequestContext(get(shellViewer), data.locale, data.demo),
   limit: GLOBAL_SEARCH_PAGE_LIMIT,
   urlSync: {
     getPageUrl: () => new URL(routePage.url.href),
@@ -69,26 +72,22 @@ function pickExample(example: string) {
 
 let urlSyncMount: ReturnType<typeof mountGlobalSearchUrlSync>;
 
+$effect.pre(() => {
+  if (mounted) search.refreshRequestContext(requestContext);
+});
+
 onMount(() => {
-  const unsubscribe = shellViewer.subscribe(({ status, viewer }) => {
-    const nextViewerId = status === "ready" ? (viewer?.id ?? null) : null;
-    if (nextViewerId === viewerId) return;
-    viewerId = nextViewerId;
-    // Cancel the previous identity's request and remove its results before
-    // repeating the current query with the newly resolved private scope.
-    const currentQuery = get(search.query);
-    search.reset();
-    search.applyQueryFromUrl(currentQuery, true);
-  });
+  search.refreshRequestContext(requestContext);
   urlSyncMount = mountGlobalSearchUrlSync(search, {
     getPageUrl: () => new URL(routePage.url.href),
   });
+  mounted = true;
   // Keep the top-bar Ctrl-K control primary: only autofocus when a query is already present.
   if (new URL(routePage.url.href).searchParams.get("q")?.trim()) {
     queueMicrotask(() => inputElement?.focus());
   }
   return () => {
-    unsubscribe();
+    mounted = false;
     search.reset();
   };
 });
@@ -138,6 +137,7 @@ afterNavigate(({ to, shallow, type }) => {
   </Field.Field>
   {/snippet}
 
+    {#if data.demo}<DemoNotice demo={data.demo} locale={data.locale} />{/if}
     <GlobalSearchResults
       activeItemId={$activeItemId}
       copy={data.copy}
@@ -146,7 +146,7 @@ afterNavigate(({ to, shallow, type }) => {
       onPickExample={pickExample}
       showHint={$showHint}
       showInitialHint={$showInitialHint}
-      signedIn={viewerId !== null}
+      signedIn={requestContext.includeWorkspace}
       variant="page"
       onResultKeydown={(event, itemIndex) =>
         handleResultKeydown(event, itemIndex, inputElement)}

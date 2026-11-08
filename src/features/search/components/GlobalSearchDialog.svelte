@@ -1,8 +1,8 @@
 <script lang="ts">
 import SearchIcon from "@lucide/svelte/icons/search";
 import XIcon from "@lucide/svelte/icons/x";
-import { createEventDispatcher } from "svelte";
-import { writable } from "svelte/store";
+import { createEventDispatcher, onMount } from "svelte";
+import { get, writable } from "svelte/store";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
@@ -16,32 +16,44 @@ import {
   GLOBAL_SEARCH_MIN_QUERY_LENGTH,
 } from "@/features/search/lib/global-search-client";
 import { createGlobalSearchController } from "@/features/search/lib/global-search-controller";
-import {
-  GLOBAL_SEARCH_LISTBOX_ID,
-  globalSearchItemDomId,
-} from "@/features/search/lib/global-search-keyboard";
+import { globalSearchItemDomId } from "@/features/search/lib/global-search-keyboard";
+import { globalSearchRequestContext } from "@/features/search/lib/global-search-owner";
 import type { GlobalSearchResultItem } from "@/features/search/server/global-search-types";
 import type { AppLocale } from "@/i18n/config";
+import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { goto } from "$app/navigation";
 
 export let copy: LayoutCopy["globalSearch"];
 export let locale: AppLocale;
 export let open = false;
-export let signedIn = false;
 
 const dispatch = createEventDispatcher<{
   openChange: boolean;
 }>();
+const shellViewer = getShellViewer();
+let mounted = false;
+const scopeId = "global-search-dialog";
+$: requestContext = globalSearchRequestContext(
+  $shellViewer,
+  locale,
+  $shellViewer.demo,
+);
+$: searchContext = {
+  ...requestContext,
+  enabled: requestContext.enabled !== false && open,
+};
 
 let inputElement: HTMLInputElement | null = null;
 const dialogOpen = writable(false);
 $: dialogOpen.set(open);
 
 const search = createGlobalSearchController({
-  getRequestContext: () => ({
-    includeWorkspace: signedIn,
-    locale,
-  }),
+  scopeId,
+  getRequestContext: () => {
+    const shell = get(shellViewer);
+    const context = globalSearchRequestContext(shell, locale, shell.demo);
+    return { ...context, enabled: context.enabled !== false && open };
+  },
   limit: GLOBAL_SEARCH_DIALOG_LIMIT,
   showInitialHintDeps: dialogOpen,
   getShowInitialHint: ({ hasSearched, query }) =>
@@ -68,6 +80,16 @@ const {
   navigateTo,
 } = search;
 
+$: if (mounted) search.refreshRequestContext(searchContext);
+
+onMount(() => {
+  mounted = true;
+  return () => {
+    mounted = false;
+    reset();
+  };
+});
+
 function navigateToItem(item: GlobalSearchResultItem) {
   if (item.external) {
     window.open(item.href, "_blank", "noopener,noreferrer");
@@ -82,7 +104,9 @@ function handleOpenChange(nextOpen: boolean) {
   if (!nextOpen) reset();
 }
 
-$: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
+$: placeholder = requestContext.includeWorkspace
+  ? copy.placeholderSignedIn
+  : copy.placeholder;
 $: viewAllHref =
   $query.trim().length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH
     ? `/search?q=${encodeURIComponent($query.trim())}`
@@ -90,7 +114,7 @@ $: viewAllHref =
 
 function openSearchPage() {
   handleOpenChange(false);
-  void goto(viewAllHref);
+  void goto(viewAllHref, { refreshAll: true });
 }
 
 $: if (open) {
@@ -115,10 +139,10 @@ $: if (open) {
               bind:ref={inputElement}
               bind:value={$query}
               aria-activedescendant={$activeItemId
-                ? globalSearchItemDomId($activeItemId)
+                ? globalSearchItemDomId($activeItemId, scopeId)
                 : undefined}
               aria-busy={$isSearching}
-              aria-controls={GLOBAL_SEARCH_LISTBOX_ID}
+              aria-controls={`${scopeId}-listbox`}
               aria-expanded={$canNavigateResults}
               class="h-9 min-w-0 rounded-none border-0 bg-transparent px-0 text-base outline-none md:text-sm"
               id="global-search-dialog-input"
@@ -145,15 +169,20 @@ $: if (open) {
       </div>
     </Dialog.Header>
 
+    {#if $shellViewer.demo}
+      <p class="px-4 py-2 text-sm text-muted-foreground" data-testid="demo-search-notice">{$shellViewer.demo.displayName}</p>
+    {/if}
     <ScrollArea class="max-h-[min(60vh,28rem)]">
       <div class="min-h-32 p-2">
         <GlobalSearchResults
+          {scopeId}
           activeItemId={$activeItemId}
           {copy}
           groups={$groups}
           isSearching={$isSearching}
           showHint={$showHint}
           showInitialHint={$showInitialHint}
+          signedIn={requestContext.includeWorkspace}
           onResultKeydown={(event, itemIndex) =>
             handleResultKeydown(event, itemIndex, inputElement)}
           onSelect={navigateTo}

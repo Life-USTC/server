@@ -55,7 +55,7 @@ export let actions: Snippet<[WorkspaceOverviewLinkItem]> | undefined =
     <Table.Body>
       <Table.Row><Table.Head scope="rowgroup" colspan={actions ? 3 : 2}>{entry.label}</Table.Head></Table.Row>
       {#each entry.links as link}
-        <Table.Row class="group">
+        <Table.Row class="group" data-catalog-link-slug={link.slug} tabindex={-1}>
           <Table.Cell class="p-0">
             <CatalogLinkTableCell {visitCountLabel} {readOnlyReason} {link}>
               <span class="flex min-w-0 items-center gap-2">

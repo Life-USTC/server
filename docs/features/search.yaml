@@ -18,6 +18,24 @@ access:
   agent: Cross-domain global discovery is a Web and REST surface. MCP catalog search tools remain owned
     by their catalog features.
 requirements:
+- id: search.request-authority
+  category: authorization
+  rule: Search page and dialog responses belong to the current root identity, locale and scope.
+    Demo is distinct from anonymous even though both have no real principal; its matching root/page
+    fixture generation and expiry own fictional results. Getters read current authority before
+    accepting responses, including before a UI refresh. Identity, language, expiry, URL-query clearing
+    and destruction retire old requests and visible results. Page and dialog use separate accessible
+    result identities so keyboard focus stays inside the active search surface. Explicit View all
+    navigation refreshes target layout and page data even when the query URL is unchanged.
+  acceptance:
+    given: A real-owner search response is held while the current authority changes to Demo.
+    when: Release the old response before a presentation refresh or reset has run.
+    then:
+    - The old private result is rejected using current authority rather than a stale cached context.
+    - No old result or searching state is restored; ordinary default search behavior is preserved.
+    test:
+      file: tests/unit/features/search/global-search-controller.test.ts
+      name: rejects a held response against the current authority even before the UI refreshes
 - id: search.rest-query-bound
   category: validation
   rule: REST global search accepts trimmed query strings of at most 200 characters, matching catalog list
@@ -103,7 +121,7 @@ capabilities:
         method: GET
         notes:
         - Accepts q or query, locale, optional limit, and scope catalog or workspace.
-        - Workspace scope requires a resolved signed-in viewer.
+        - Real personal results require a resolved signed-in viewer; trusted Demo returns its fictional graph without a real principal.
     graphql: unavailable
     mcp: unavailable
     presentation:

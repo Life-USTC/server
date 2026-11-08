@@ -15,7 +15,7 @@ import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
 import { cn } from "#lib/utils.js";
 import {
   flattenSearchGroups,
-  GLOBAL_SEARCH_LISTBOX_ID,
+  GLOBAL_SEARCH_SCOPE_ID,
   globalSearchItemDomId,
 } from "@/features/search/lib/global-search-keyboard";
 import type {
@@ -33,6 +33,7 @@ export let showHint = false;
 export let showInitialHint = false;
 export let signedIn = false;
 export let variant: "dialog" | "page" = "dialog";
+export let scopeId = GLOBAL_SEARCH_SCOPE_ID;
 export let onSelect: (item: GlobalSearchResultItem) => void = () => {};
 export let onResultKeydown: (event: KeyboardEvent, itemIndex: number) => void =
   () => {};
@@ -84,21 +85,21 @@ $: showEmpty =
     <Empty.Title>{copy.noResults}</Empty.Title>
   </Empty.Root>
 {:else}
-  <div aria-label={copy.title} id={GLOBAL_SEARCH_LISTBOX_ID} role="listbox">
+  <div aria-label={copy.title} id={`${scopeId}-listbox`} role="listbox">
     {#each groups as group, groupIndex (group.type)}
       {@const Icon = groupIcons[group.type]}
       {#if groupIndex > 0}
-        <Separator class="my-2" />
+        <Separator decorative class="my-2" />
       {/if}
       <div class="px-2 py-1">
         <p
           class="px-2 py-1 font-medium text-muted-foreground text-xs uppercase tracking-wide"
-          id={`global-search-group-${group.type}`}
+          id={`${scopeId}-group-${group.type}`}
         >
           {copy.groups[group.type]}
         </p>
         <ul
-          aria-labelledby={`global-search-group-${group.type}`}
+          aria-labelledby={`${scopeId}-group-${group.type}`}
           class="grid gap-1"
           role="group"
         >
@@ -109,7 +110,7 @@ $: showEmpty =
             {@const isActive = activeItemId === item.id}
             <li role="presentation">
               <button
-                id={globalSearchItemDomId(item.id)}
+                id={globalSearchItemDomId(item.id, scopeId)}
                 aria-selected={isActive}
                 class={cn(
                   "hover:bg-muted flex w-full min-w-0 items-start gap-3 rounded-md px-2 py-2 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
