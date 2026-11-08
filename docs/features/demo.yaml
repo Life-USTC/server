@@ -14,6 +14,29 @@ access:
   admin: Admin capabilities are never simulated.
   agent: Demo identity supplies no OAuth, GraphQL or MCP authority.
 requirements:
+- id: demo.campus-projection
+  category: privacy
+  rule: The existing weather, bus planner and SVG route map share sealed fictional data and the
+    fixed reference clock with Home. Weather preserves both campuses, hourly and daily forecasts
+    without inventing a provider or observation. Timetable, route search, departures and the schematic
+    map use one closed graph; valid date and day-type browsing is read-only. Trusted demo SSR,
+    page-data and exact read APIs branch before real services, authentication and durable adapters.
+    Unknown query keys, duplicate keys, real IDs, unrelated dates and versions fail closed.
+    Demo never reads, removes or writes ordinary recent-route storage or account preferences.
+    Page and root session epochs retire old planners and reads across identity changes. Ordinary
+    viewers retain existing preferences, live clocks and service behavior. No external map is loaded.
+  acceptance:
+    given: A trusted demo in either locale and viewport, alongside ordinary browser preferences.
+    when: Browse weather, planner filters and the schematic map, read their APIs, switch identities
+      and attempt unknown targets, invalid queries or writes.
+    then:
+    - Home, full pages, map and APIs agree on fixed weather, routes, stops, trips and reference time.
+    - Fictional labeling is visible; no real provider, bus, database or storage effects occur.
+    - Demo browsing does not access ordinary recent-route preferences, and late ordinary reads cannot reappear.
+    - Existing anonymous and signed-in behavior remains available outside demo mode.
+    test:
+      file: tests/integration/rest/demo/campus.test.ts
+      name: demo campus isolates fixed weather, bus graph and effects en-us
 - id: demo.home-projection
   category: privacy
   rule: The existing Home retains personal overview, campus snapshot, notice and activity summaries and
@@ -22,7 +45,7 @@ requirements:
     derives from the existing academic samples and fixed reference clock, without granting a real
     authenticated viewer. Session generations own client reads; exit, re-entry and late responses cannot
     restore an earlier identity. Public sample content is explicitly fictional, never an official notice,
-    current weather observation or actual departure. Unfinished news, public activity, weather, bus and
+    current weather observation or actual departure. Unfinished news, public activity and
     website destinations remain visibly unavailable under the parent full-site task. Pinning, link
     resolution, external navigation and writes stay forbidden. Ordinary Home behavior is unchanged.
   acceptance:
@@ -672,3 +695,36 @@ capabilities:
       - Follow teacher and teaching section details with read-only labeling
       requirement_refs:
       - demo.teacher-list-projection
+
+  demo-campus:
+    title: Read-only Demo Weather and Bus
+    auth: anon
+    web:
+      pages:
+      - /catalog/weather
+      - /catalog/bus
+      - /catalog/bus/map
+    rest:
+      routes:
+      - method: GET
+        path: /api/catalog/weather
+        reference_only: true
+      - method: GET
+        path: /api/catalog/bus
+        reference_only: true
+      - method: GET
+        path: /api/catalog/bus/routes
+        reference_only: true
+      - method: GET
+        path: /api/catalog/bus/next
+        reference_only: true
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Browse both weather campuses and hourly and daily samples
+      - Filter the fixed timetable without changing ordinary recent routes or preferences
+      - Open and refresh the existing pure SVG schematic map
+      requirement_refs:
+      - demo.campus-projection

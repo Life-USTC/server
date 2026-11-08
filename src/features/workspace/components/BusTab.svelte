@@ -22,7 +22,6 @@ import type {
   WorkspaceBusCopy,
   WorkspaceBusData,
 } from "@/features/workspace/lib/bus-tab-types";
-import { apiClient } from "@/lib/api/client";
 import {
   getLocalStorageItem,
   removeLocalStorageItem,
@@ -38,6 +37,8 @@ export let busCopy: WorkspaceBusCopy;
 export let bus: WorkspaceBusData | null;
 export let compact = false;
 export let savePreferences = false;
+/** Trusted page mode: never use ordinary browser/account preferences. */
+export let readOnly = false;
 export let showPageHeader = false;
 export let onPlannerChange: (() => void) | undefined = undefined;
 
@@ -59,10 +60,12 @@ let draftInitialized = false;
 const formId = "bus-table-filters";
 let busLoading = !bus;
 let busLoadFailed = false;
+let busController: AbortController | null = null;
 const state = createBusTabState({
   getBus: () => loadedBus,
   getBusCopy: () => busCopy,
-  getSavePreferences: () => savePreferences,
+  getSavePreferences: () => savePreferences && !readOnly,
+  getFixedClock: () => readOnly,
   invalidate: () => {
     busStateVersion += 1;
   },
@@ -70,28 +73,36 @@ const state = createBusTabState({
 let busApplicableRoutes: ReturnType<typeof state.applicableRoutes> = [];
 
 async function loadPublicBusData() {
-  if (loadedBus) return;
+  if (loadedBus || readOnly) return;
+  busController?.abort();
+  const controller = new AbortController();
+  busController = controller;
   busLoading = true;
   busLoadFailed = false;
   try {
-    const result = await apiClient.GET<WorkspaceBusData>("/api/catalog/bus");
-    if (!result.response.ok || !result.data) {
+    const response = await fetch("/api/catalog/bus", {
+      credentials: "same-origin",
+      signal: controller.signal,
+    });
+    if (!response.ok) {
       busLoadFailed = true;
       return;
     }
-    loadedBus = result.data;
+    const result = (await response.json()) as WorkspaceBusData;
+    if (controller.signal.aborted || readOnly) return;
+    loadedBus = result;
     state.initializeWhenNeeded();
     restoreRecentRoute();
     synchronizeDraft();
   } catch {
-    busLoadFailed = true;
+    if (!controller.signal.aborted && !readOnly) busLoadFailed = true;
   } finally {
-    busLoading = false;
+    if (!controller.signal.aborted && !readOnly) busLoading = false;
   }
 }
 
 function restoreRecentRoute() {
-  if (savePreferences || !loadedBus) return;
+  if (readOnly || savePreferences || !loadedBus) return;
 
   try {
     const stored = JSON.parse(
@@ -127,6 +138,7 @@ function restoreRecentRoute() {
 
 function saveRecentRoute() {
   if (
+    readOnly ||
     savePreferences ||
     state.values.busStartCampusId == null ||
     state.values.busEndCampusId == null
@@ -213,7 +225,10 @@ onMount(() => {
   restoreRecentRoute();
   synchronizeDraft();
   void loadPublicBusData();
-  return cleanup;
+  return () => {
+    busController?.abort();
+    cleanup();
+  };
 });
 
 $: {
@@ -241,6 +256,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
       <BusTabSettings
         bus={loadedBus}
         idPrefix="bus-settings"
+        wrapLabels={readOnly}
         {busCopy}
         busDayType={plannerDraft.dayType}
         busEndCampusId={plannerDraft.endCampusId}

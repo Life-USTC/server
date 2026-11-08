@@ -23,6 +23,7 @@ type BusTabPlannerControllerInput = {
   getBusShowDepartedTrips: () => boolean;
   getBusStartCampusId: () => number | null;
   getSavePreferences: () => boolean;
+  getFixedClock?: () => boolean;
   setBusDayType: (value: BusDayType) => void;
   setBusEndCampusId: (value: number | null) => void;
   setBusNow: (value: Date) => void;
@@ -102,6 +103,13 @@ export function createBusTabPlannerController(
 
   function mount() {
     initializeBusPlanner();
+    if (input.getFixedClock?.()) {
+      input.setBusPlannerReady(true);
+      return () => {
+        const timer = input.getBusPreferenceSaveTimer();
+        if (timer) clearTimeout(timer);
+      };
+    }
     const liveNow = new Date();
     input.setBusDayType(resolveClientBusDayType(liveNow));
     input.setBusNow(liveNow);

@@ -13,11 +13,13 @@ export function createBusTabState({
   getBus,
   getBusCopy,
   getSavePreferences,
+  getFixedClock = () => false,
   invalidate,
 }: {
   getBus: () => WorkspaceBusData | null;
   getBusCopy: () => WorkspaceBusCopy;
   getSavePreferences: () => boolean;
+  getFixedClock?: () => boolean;
   invalidate: () => void;
 }) {
   const values = {
@@ -43,6 +45,7 @@ export function createBusTabState({
     getBusShowDepartedTrips: () => values.busShowDepartedTrips,
     getBusStartCampusId: () => values.busStartCampusId,
     getSavePreferences,
+    getFixedClock,
     setBusDayType: (value) => {
       values.busDayType = value;
       invalidate();

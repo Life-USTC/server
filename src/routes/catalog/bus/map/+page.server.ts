@@ -1,3 +1,8 @@
+import { getDemoBusMap } from "@/features/demo/server/demo-bus";
+import {
+  getDemoCopy,
+  getDemoView,
+} from "@/features/demo/server/demo-workspace";
 import type { AppLocale } from "@/i18n/config";
 import enUsMessages from "../../../../../messages/en-us.json";
 import zhCnMessages from "../../../../../messages/zh-cn.json";
@@ -9,9 +14,6 @@ const messages = {
 } satisfies Record<AppLocale, typeof enUsMessages>;
 
 export const load: PageServerLoad = async ({ locals }) => {
-  const { getBusMapData } = await import(
-    "@/features/bus/server/bus-transit-map"
-  );
   const copy = messages[locals.locale];
   return {
     copy: {
@@ -19,9 +21,13 @@ export const load: PageServerLoad = async ({ locals }) => {
       busMap: copy.busMap,
       metadata: copy.metadata.pages,
     },
-    data: await getBusMapData({
-      locale: locals.locale === "en-us" ? "en-us" : "zh-cn",
-    }),
+    sampleNotice: locals.demo ? getDemoCopy(locals.locale).campusSamples : null,
+    demo: locals.demo ? getDemoView(locals.demo, locals.locale) : null,
+    data: locals.demo
+      ? getDemoBusMap(locals.locale)
+      : await (
+          await import("@/features/bus/server/bus-transit-map")
+        ).getBusMapData({ locale: locals.locale }),
     locale: locals.locale,
   };
 };

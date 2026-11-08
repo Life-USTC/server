@@ -34,7 +34,7 @@ const copy = {
     heading: "Todos",
     identity: "Demo account · Read only",
     readOnly:
-      "Browse sample Home, calendar, todos, homework, exams, subscriptions, catalog details and account profile. Changes and external actions are disabled.",
+      "Browse sample Home, calendar, todos, homework, exams, subscriptions, catalog details, account profile, weather, buses and route map. Changes and external actions are disabled.",
     unavailable: "Other features are not available in this demo yet.",
     language: "Language selector",
     all: "All",
@@ -59,7 +59,7 @@ const copy = {
     heading: "待办",
     identity: "演示账户 · 只读",
     readOnly:
-      "你可以浏览首页、日历、待办、作业、考试、订阅、课程目录详情和账户资料样例，无法修改数据或执行外部操作。",
+      "你可以浏览首页、日历、待办、作业、考试、订阅、课程目录详情、账户资料、天气、校车和线路图样例，无法修改数据或执行外部操作。",
     unavailable: "其他功能暂未开放演示。",
     language: "语言选择",
     all: "全部",

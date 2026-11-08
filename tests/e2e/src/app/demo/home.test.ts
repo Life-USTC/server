@@ -649,15 +649,16 @@ for (const locale of ["en-us", "zh-cn"] as const)
                   "overview-focus-title",
                 ])
                   await expectReadable(page.getByTestId(id));
-                for (const id of [
-                  "home-notices",
-                  "home-activities",
-                  "home-weather",
-                  "home-bus",
-                ])
+                for (const id of ["home-notices", "home-activities"])
                   await expect(
                     page.getByTestId(id).locator("a[href]"),
                   ).toHaveCount(0);
+                for (const family of ["weather", "bus"])
+                  await expect(
+                    page
+                      .getByTestId(`home-${family}`)
+                      .locator(`a[href="/catalog/${family}"]`),
+                  ).toHaveCount(1);
                 const directory = page.locator("[data-feature-directory]");
                 await expect(
                   directory.locator('a[href="/catalog/sections"]'),
@@ -676,9 +677,13 @@ for (const locale of ["en-us", "zh-cn"] as const)
                 ).not.toHaveCount(0);
                 await expect(
                   directory.locator(
-                    'a[href="/catalog/links"], a[href="/catalog/bus"], a[href="/catalog/weather"], a[href="/news"], a[href="/catalog/young-events"]',
+                    'a[href="/catalog/links"], a[href="/news"], a[href="/catalog/young-events"]',
                   ),
                 ).toHaveCount(0);
+                for (const href of ["/catalog/weather", "/catalog/bus"])
+                  await expect(
+                    directory.locator(`a[href="${href}"]`),
+                  ).toHaveCount(1);
                 await expectReadable(
                   directory.locator(`#home-feature-search-demo-unavailable`),
                 );

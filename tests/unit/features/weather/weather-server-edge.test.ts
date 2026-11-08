@@ -154,6 +154,8 @@ describe("weather server edges", () => {
     gaoxinSnapshot.resolve(null);
 
     await expect(page).resolves.toEqual({
+      sampleNotice: null,
+      demo: null,
       copy: { weather: { title: "天气" } },
       locale: "en-us",
       locations: [

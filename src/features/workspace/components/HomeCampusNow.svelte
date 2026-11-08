@@ -55,7 +55,6 @@ let {
 } = $props();
 
 const shellViewer = getShellViewer();
-const restricted = $derived(Boolean(demo || $shellViewer.demo));
 const readEpoch = $derived(homePublicReadEpoch($shellViewer, demo));
 let weatherResponse = $state<HomeCampusNow["weather"] | undefined>();
 let busResponse = $state<HomeCampusNow["bus"] | undefined>();
@@ -157,9 +156,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
     </h3>
     <Button
       class="h-auto min-h-6 gap-0.5 px-0 text-muted-foreground md:min-h-6"
-      href={restricted ? undefined : viewAllHref}
-      disabled={restricted}
-      aria-describedby={restricted ? "demo-unavailable" : undefined}
+      href={viewAllHref}
       size="sm"
       variant="link"
     >
