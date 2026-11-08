@@ -34,7 +34,12 @@ type DemoBoundary = {
 
 function isDemoCatalogPage(path: string) {
   return (
-    ["/catalog/weather", "/catalog/bus", "/catalog/bus/map"].includes(path) ||
+    [
+      "/catalog/links",
+      "/catalog/weather",
+      "/catalog/bus",
+      "/catalog/bus/map",
+    ].includes(path) ||
     path === "/catalog/courses" ||
     path === "/catalog/sections" ||
     path === "/catalog/teachers" ||
@@ -87,6 +92,8 @@ function isDemoCatalogRead(path: string) {
     isDemoNewsRead(path) ||
     isDemoCatalogPage(path.replace(/\/__data\.json$/, "")) ||
     [
+      "/api/catalog/links",
+      "/_internal/catalog/links/viewer",
       "/api/catalog/weather",
       "/api/catalog/bus",
       "/api/catalog/bus/routes",

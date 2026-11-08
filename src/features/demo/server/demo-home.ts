@@ -12,6 +12,7 @@ import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { DEMO_BUS_HUB, getDemoBusNext, getDemoBusTimetable } from "./demo-bus";
 import { getDemoCalendar } from "./demo-calendar";
 import { getDemoHomeworksTabData } from "./demo-homeworks";
+import { getDemoCatalogLinksData } from "./demo-links";
 import { getDemoNewsHomeNotices } from "./demo-news";
 import { getDemoTodos } from "./demo-todos";
 import { getDemoWeatherSnapshot } from "./demo-weather";
@@ -146,7 +147,7 @@ export function getDemoHomeOverview(
       ),
       hasAnySelection: source.subscribedSectionCount > 0,
       hasCurrentTermSelection: true,
-      overviewLinks: [],
+      overviewLinks: getDemoCatalogLinksData(locale).overviewLinks,
       pendingHomeworks,
       todaySessions: calendar.allSessions.filter(
         (session) => session.dateKey === calendar.todayDate,
