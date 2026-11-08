@@ -79,8 +79,8 @@ export async function loadYoungEventsPage({ locals, url }: AppPageLoadEvent) {
     listYoungEvents({
       tableFilters,
       tableStatusLabels: {
-        statusOpen: copy.youngEvents.statusOpen,
-        statusClosed: copy.youngEvents.statusClosed,
+        statusOpen: copy.youngEvents.statusActive,
+        statusClosed: copy.youngEvents.statusEnded,
       },
       active: filters.active,
       category: filters.category,

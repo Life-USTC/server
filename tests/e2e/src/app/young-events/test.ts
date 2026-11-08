@@ -150,10 +150,70 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
     preferenceFlow,
     youngPublicState: _youngPublicState,
   }) => {
+    const variants = [
+      {
+        youngId: "membership-no-signup",
+        name: "No signup current member",
+        isActive: true,
+        requiresSignup: false,
+      },
+      {
+        youngId: "membership-future-signup",
+        name: "Future signup current member",
+        isActive: true,
+        requiresSignup: true,
+        applyStartAt: new Date("2090-01-01T01:00:00Z"),
+        applyEndAt: new Date("2090-02-01T01:00:00Z"),
+      },
+      {
+        youngId: "membership-closed-signup",
+        name: "Closed signup current member",
+        isActive: true,
+        requiresSignup: true,
+        applyStartAt: new Date("2000-01-01T01:00:00Z"),
+        applyEndAt: new Date("2000-02-01T01:00:00Z"),
+      },
+      {
+        youngId: "membership-historical-future",
+        name: "Future activity historical member",
+        isActive: false,
+        startAt: new Date("2090-01-01T01:00:00Z"),
+        endAt: new Date("2090-01-01T02:00:00Z"),
+      },
+      {
+        youngId: "membership-upstream-status",
+        name: "Explicit upstream status",
+        isActive: false,
+        status: "审核中",
+      },
+    ];
+    await preferenceFlow.prepare(() =>
+      isolatedWorker.database.owner.youngEvent.createMany({
+        data: variants.map((event) => ({ ...event, rawJson: {} })),
+      }),
+    );
     await preferenceFlow.run(async () => {
-      for (const [locale, activeStatus, endedStatus] of [
-        ["en-us", "SIGNUP", "Ended"],
-        ["zh-cn", "报名中", "已结束"],
+      for (const [
+        locale,
+        activeStatus,
+        endedStatus,
+        currentBadge,
+        historicalBadge,
+      ] of [
+        [
+          "en-us",
+          "CURRENT",
+          "Historical",
+          "Current signup list",
+          "Historical activity list",
+        ],
+        [
+          "zh-cn",
+          "当前报名列表",
+          "历史活动列表",
+          "当前报名列表",
+          "历史活动列表",
+        ],
       ]) {
         await page
           .context()
@@ -181,7 +241,42 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
               'a[href="/catalog/young-events/dev-scenario-young-event-ended"]:visible',
             ),
           ).toHaveCount(active ? 0 : 1);
+          for (const event of variants) {
+            const shown = event.status == null && event.isActive === active;
+            const link = page.locator(
+              `a[href="/catalog/young-events/${event.youngId}"]:visible`,
+            );
+            await expect(link).toHaveCount(shown ? 1 : 0);
+            if (shown)
+              await expect(
+                page
+                  .locator('[data-slot="table-row"]:visible')
+                  .filter({ has: link })
+                  .locator("[data-status-token]"),
+              ).toHaveText(active ? currentBadge : historicalBadge);
+          }
         }
+        const upstream = await openYoungTableField(page, "status");
+        await upstream.locator("input").fill("审核中");
+        await applyYoungTableFilters(page);
+        await expect(page).toHaveURL(
+          (url) => url.searchParams.get("status") === "审核中",
+        );
+        const raw = page.locator(
+          'a[href="/catalog/young-events/membership-upstream-status"]:visible',
+        );
+        await expect(raw).toHaveCount(1);
+        await expect(
+          page
+            .locator('[data-slot="table-row"]:visible')
+            .filter({ has: raw })
+            .locator("[data-status-token]"),
+        ).toHaveText("审核中");
+        await expect(
+          page.locator(
+            `a[href="/catalog/young-events/${DEV_SEED.youngEvent.youngId}"]:visible`,
+          ),
+        ).toHaveCount(0);
       }
     });
   });
