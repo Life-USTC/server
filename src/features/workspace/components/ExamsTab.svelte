@@ -1,4 +1,7 @@
 <script lang="ts">
+import type { DemoIdentity } from "@/features/demo/lib/demo-types";
+export let pageDemo: DemoIdentity | null | undefined = null;
+
 import { Button } from "#lib/components/ui/button/index.js";
 import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import { createExamTabDisplayActions } from "@/features/workspace/lib/exams-tab-display";
@@ -121,6 +124,7 @@ $: showClearExamFilter =
         </div>
         {#if mobileView === "cards"}
           <ExamsCardsView
+            {pageDemo}
             {locale}
             unknownSemesterLabel={signedData.copy.common.unknown}
             {workspaceCopy}
@@ -138,6 +142,7 @@ $: showClearExamFilter =
           />
         {:else}
           <ExamsListView
+            {pageDemo}
         filterControls={columnFilter}
             {examMetadataLabels}
             {locale}
@@ -158,6 +163,7 @@ $: showClearExamFilter =
       {/snippet}
       {#snippet desktop()}
         <ExamsListView
+            {pageDemo}
         filterControls={columnFilter}
           {examMetadataLabels}
           {locale}

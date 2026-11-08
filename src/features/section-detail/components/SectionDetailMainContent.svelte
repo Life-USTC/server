@@ -252,6 +252,8 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
           {#if SectionCalendarTab}
             <svelte:component this={SectionCalendarTab}
               roomMapCopy={roomMapCopy}
+              pageDemo={data.demo}
+              locale={data.locale}
               sectionCalendarEvents={sectionCalendarEvents}
               sectionCopy={sectionCopy}
               unscheduledCalendarEvents={unscheduledCalendarEvents}
@@ -272,6 +274,8 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
               fmtDate={fmtDate}
               heading={sectionCopy.tabs.exams}
               roomMapCopy={roomMapCopy}
+              pageDemo={data.demo}
+              locale={data.locale}
               sectionCopy={sectionCopy}
              />
           {:else}

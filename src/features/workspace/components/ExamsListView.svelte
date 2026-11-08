@@ -1,4 +1,7 @@
 <script lang="ts">
+import type { DemoIdentity } from "@/features/demo/lib/demo-types";
+export let pageDemo: DemoIdentity | null | undefined = null;
+
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import type { Snippet } from "svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
@@ -84,7 +87,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
             {#if exam.rooms}
               <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
                 {#each splitRoomLabels(exam.rooms) as room (room)}
-                  <RoomMapPreview code={room} copy={workspaceCopy.roomMap} />
+                  <RoomMapPreview {pageDemo} {locale} code={room} copy={workspaceCopy.roomMap} />
                 {/each}
               </div>
             {:else}

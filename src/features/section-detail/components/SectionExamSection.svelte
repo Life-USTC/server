@@ -1,4 +1,8 @@
 <script lang="ts">
+import type { DemoIdentity } from "@/features/demo/lib/demo-types";
+export let pageDemo: DemoIdentity | null | undefined = null;
+export let locale = "";
+
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import * as Table from "#lib/components/ui/table/index.js";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
@@ -62,7 +66,7 @@ export let sectionCopy: SectionExamCopy;
               {#if event.roomCodes?.length}
                 <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
                   {#each event.roomCodes as room (room)}
-                    <RoomMapPreview code={room} copy={roomMapCopy} />
+                    <RoomMapPreview {pageDemo} {locale} code={room} copy={roomMapCopy} />
                   {/each}
                 </div>
               {:else}
