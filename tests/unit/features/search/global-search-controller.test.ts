@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { GLOBAL_SEARCH_DEBOUNCE_MS } from "@/features/search/lib/global-search-client";
 import {
   createGlobalSearchController,
+  type GlobalSearchRequestContext,
   mountGlobalSearchUrlSync,
 } from "@/features/search/lib/global-search-controller";
 
@@ -19,6 +20,198 @@ function mockSearchFetch(body: unknown) {
 }
 
 describe("createGlobalSearchController", () => {
+  it("rejects a held response against the current authority even before the UI refreshes", async () => {
+    vi.useFakeTimers();
+    let release: ((response: unknown) => void) | undefined;
+    let context: GlobalSearchRequestContext = {
+      locale: "en-us",
+      ownerKey: "real-owner",
+      includeWorkspace: true,
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise((resolve) => {
+            release = resolve;
+          }),
+      ),
+    );
+    const controller = createGlobalSearchController({
+      limit: 5,
+      getRequestContext: () => context,
+    });
+    try {
+      controller.applyQueryFromUrl("algebra", true);
+      context = { ...context, ownerKey: "demo:workspace-v1:replacement" };
+      // No refresh/reset: response ownership must read the latest authority itself.
+      release?.({
+        ok: true,
+        json: async () => ({
+          groups: [
+            {
+              type: "todos",
+              items: [
+                {
+                  id: "private",
+                  title: "Real private result",
+                  href: "/workspace/todos",
+                  description: null,
+                },
+              ],
+            },
+          ],
+        }),
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(get(controller.groups)).toEqual([]);
+      expect(get(controller.isSearching)).toBe(false);
+    } finally {
+      controller.reset();
+      vi.useRealTimers();
+    }
+  });
+  it("retires held ordinary results before Demo and locale replacement responses", async () => {
+    vi.useFakeTimers();
+    const item = (title: string) => ({
+      type: "todos",
+      items: [
+        { id: "todo:1", title, description: null, href: "/workspace/todos" },
+      ],
+    });
+    let release: ((response: unknown) => void) | undefined;
+    let context: GlobalSearchRequestContext = {
+      locale: "en-us",
+      ownerKey: "real-owner",
+      includeWorkspace: true,
+    };
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            release = resolve;
+          }),
+      )
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ groups: [item("Fictional")] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ groups: [item("虚构")] }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const controller = createGlobalSearchController({
+      limit: 5,
+      getRequestContext: () => context,
+    });
+    try {
+      controller.refreshRequestContext();
+      controller.applyQueryFromUrl("algebra", true);
+      context = {
+        locale: "en-us",
+        ownerKey: "demo:workspace-v1:one",
+        includeWorkspace: true,
+      };
+      controller.refreshRequestContext();
+      expect(get(controller.groups)).toEqual([]);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(get(controller.groups)).toEqual([item("Fictional")]);
+      release?.({
+        ok: true,
+        json: async () => ({ groups: [item("Real private result")] }),
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(get(controller.groups)).toEqual([item("Fictional")]);
+      context = { ...context, locale: "zh-cn" };
+      controller.refreshRequestContext();
+      expect(get(controller.groups)).toEqual([]);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(get(controller.groups)).toEqual([item("虚构")]);
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+      expect(fetchMock.mock.calls[2][0]).toContain("locale=zh-cn");
+    } finally {
+      controller.reset();
+      vi.useRealTimers();
+    }
+  });
+
+  it("clears visible Demo results at expiry and admits only a renewed generation", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    const groups = [
+      {
+        type: "todos",
+        items: [
+          {
+            id: "todo:demo",
+            title: "Fictional",
+            description: null,
+            href: "/workspace/todos",
+          },
+        ],
+      },
+    ];
+    const fetchMock = mockSearchFetch({ groups });
+    vi.stubGlobal("fetch", fetchMock);
+    let context: GlobalSearchRequestContext = {
+      locale: "en-us",
+      ownerKey: "demo:one",
+      includeWorkspace: true,
+      expiresAt: 1_500,
+    };
+    const controller = createGlobalSearchController({
+      limit: 5,
+      getRequestContext: () => context,
+    });
+    try {
+      controller.refreshRequestContext();
+      controller.applyQueryFromUrl("algebra", true);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(get(controller.groups)).toEqual(groups);
+      await vi.advanceTimersByTimeAsync(500);
+      expect(get(controller.groups)).toEqual([]);
+      expect(get(controller.isSearching)).toBe(false);
+      controller.applyQueryFromUrl("algebra", true);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      context = { ...context, ownerKey: "demo:renewed", expiresAt: 3_000 };
+      controller.refreshRequestContext();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(get(controller.groups)).toEqual(groups);
+    } finally {
+      controller.reset();
+      vi.useRealTimers();
+    }
+  });
+
+  it("cannot restore a held result after the URL query was cleared", async () => {
+    let release: ((response: unknown) => void) | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise((resolve) => {
+            release = resolve;
+          }),
+      ),
+    );
+    const controller = createGlobalSearchController({ limit: 5 });
+    controller.applyQueryFromUrl("algebra", true);
+    controller.applyQueryFromUrl("", true);
+    release?.({
+      ok: true,
+      json: async () => ({ groups: [{ type: "todos", items: [] }] }),
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(get(controller.query)).toBe("");
+    expect(get(controller.groups)).toEqual([]);
+    expect(get(controller.isSearching)).toBe(false);
+    controller.reset();
+  });
   it("debounces search and fetches with the configured limit", async () => {
     vi.useFakeTimers();
     const fetchMock = mockSearchFetch({

@@ -9,15 +9,12 @@ export let onOpen: () => void;
 export let shortcutLabel: string;
 export let signedIn = false;
 export let variant: "desktop" | "mobile" = "desktop";
-export let disabledReason: string | undefined = undefined;
 
 $: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
 </script>
 
 {#if variant === "desktop"}
   <Button
-    disabled={Boolean(disabledReason)}
-    title={disabledReason}
     class="h-8 w-full max-w-sm justify-start gap-2 px-3 text-muted-foreground lg:max-w-md"
     onclick={onOpen}
     type="button"
@@ -32,8 +29,6 @@ $: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
   </Button>
 {:else}
   <Button
-    disabled={Boolean(disabledReason)}
-    title={disabledReason}
     aria-label={copy.openSearch}
     class="size-11"
     onclick={onOpen}

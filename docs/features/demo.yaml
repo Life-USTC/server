@@ -60,6 +60,27 @@ requirements:
     test:
       file: tests/e2e/src/app/demo/rooms.test.ts
       name: 'demo rooms: fixed directory, map statuses and zoom en-us 1280'
+- id: demo.search-projection
+  category: privacy
+  rule: The existing global search page, top-bar dialog and GET /api/search browse the same
+    fictional catalog and workspace graph. Catalog word and SQL-pattern semantics, query aliases,
+    validation, scopes, group order and per-group limits match ordinary search. Workspace scope
+    includes the six homework and three todo samples, including historical and completed facts;
+    it never grants a real principal. Website matches retain the public bilingual/pinyin search
+    and enter the existing directory at a known visible entry, without external visits. Trusted
+    Demo reads branch before ordinary authentication, database, caches or durable observations,
+    with private no-store responses. Invalid, expired or mixed identities and all writes remain
+    rejected; ordinary viewers keep their existing search and external-link behavior.
+  acceptance:
+    given: A trusted Demo and an ordinary owner with independently seeded searchable private records.
+    when: Search both scopes and languages, exercise aliases and validation, and follow known results.
+    then:
+    - Groups, identifiers, localized labels and destinations agree with the existing fictional graph.
+    - Ordinary positive controls return their own records; Demo never returns those private records.
+    - Complete persisted state remains unchanged and Demo performs no binding or external effects.
+    test:
+      file: tests/integration/rest/demo/search.test.ts
+      name: demo search seals shared catalog and workspace facts and effects en-us
 - id: demo.website-projection
   category: privacy
   rule: The existing website directory retains its static names, URLs, slugs, groups and bilingual
@@ -534,6 +555,23 @@ capabilities:
       - Preserve unknown room facts and retire old identity or locale reads
       requirement_refs:
       - demo.room-map-projection
+  demo-search:
+    title: Read-only Demo Search
+    description: Existing global discovery over the shared fictional catalog and workspace samples.
+    auth: anon
+    web:
+      pages:
+      - /search
+    rest: unavailable
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Search the existing page or lazy top-bar dialog and follow internal destinations
+      - Locate a known website inside the existing directory without an external visit
+      requirement_refs:
+      - demo.search-projection
   demo-websites:
     title: Read-only Demo Websites
     description: The existing static directory with fictional personal pins, visits and shared Home links.

@@ -28,10 +28,8 @@ export type GlobalSearchUrlSyncOptions = {
 
 export type GlobalSearchControllerOptions = {
   limit: number;
-  getRequestContext?: () => {
-    includeWorkspace?: boolean;
-    locale: AppLocale;
-  };
+  scopeId?: string;
+  getRequestContext?: () => GlobalSearchRequestContext;
   urlSync?: GlobalSearchUrlSyncOptions;
   showInitialHintDeps?: Readable<unknown>;
   getShowInitialHint?: (state: {
@@ -39,6 +37,14 @@ export type GlobalSearchControllerOptions = {
     query: string;
   }) => boolean;
   onNavigate?: (item: GlobalSearchResultItem) => void;
+};
+
+export type GlobalSearchRequestContext = {
+  includeWorkspace?: boolean;
+  locale: AppLocale;
+  ownerKey?: string;
+  enabled?: boolean;
+  expiresAt?: number;
 };
 
 export type GlobalSearchController = {
@@ -53,6 +59,7 @@ export type GlobalSearchController = {
   showInitialHint: Readable<boolean>;
   canNavigateResults: Readable<boolean>;
   reset: () => void;
+  refreshRequestContext: (context?: GlobalSearchRequestContext) => void;
   resetSelection: () => void;
   applyQueryFromUrl: (urlQuery: string, runImmediately?: boolean) => void;
   scheduleSearch: () => void;
@@ -83,6 +90,22 @@ export function createGlobalSearchController(
   let searchGeneration = 0;
   let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
   let activeSearchController: AbortController | undefined;
+  let expiryTimer: ReturnType<typeof setTimeout> | undefined;
+  let previousContextKey: string | undefined;
+
+  const requestContext = (): GlobalSearchRequestContext =>
+    options.getRequestContext?.() ?? { locale: DEFAULT_LOCALE };
+  const isEnabled = (context: GlobalSearchRequestContext) =>
+    context.enabled !== false &&
+    (context.expiresAt === undefined || context.expiresAt > Date.now());
+  const contextKey = (context: GlobalSearchRequestContext) =>
+    JSON.stringify([
+      context.ownerKey,
+      context.locale,
+      Boolean(context.includeWorkspace),
+      context.expiresAt,
+      isEnabled(context),
+    ]);
 
   const flatItems = derived(groups, ($groups) => flattenSearchGroups($groups));
 
@@ -132,6 +155,8 @@ export function createGlobalSearchController(
   }
 
   function reset() {
+    clearTimeout(expiryTimer);
+    previousContextKey = undefined;
     clearSearchDebounce();
     abortActiveSearch();
     searchGeneration += 1;
@@ -140,6 +165,23 @@ export function createGlobalSearchController(
     hasSearched.set(false);
     isSearching.set(false);
     activeIndex.set(-1);
+  }
+
+  function refreshRequestContext(context = requestContext()) {
+    const key = contextKey(context);
+    if (key === previousContextKey) return;
+    const currentQuery = get(query);
+    reset();
+    previousContextKey = key;
+    query.set(currentQuery);
+    if (!isEnabled(context)) return;
+    if (context.expiresAt !== undefined)
+      expiryTimer = setTimeout(
+        refreshRequestContext,
+        Math.max(0, context.expiresAt - Date.now()),
+      );
+    if (currentQuery.trim().length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH)
+      void runSearch();
   }
 
   function updateUrlQuery(nextQuery: string) {
@@ -165,6 +207,12 @@ export function createGlobalSearchController(
   }
 
   async function runSearch() {
+    const context = requestContext();
+    if (!isEnabled(context)) {
+      refreshRequestContext();
+      return;
+    }
+    const owner = contextKey(context);
     const trimmed = get(query).trim();
     if (trimmed.length < GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
       groups.set([]);
@@ -181,16 +229,25 @@ export function createGlobalSearchController(
 
     try {
       const body = await fetchGlobalSearch(trimmed, options.limit, {
-        ...(options.getRequestContext?.() ?? { locale: DEFAULT_LOCALE }),
+        ...context,
         signal: requestController.signal,
       });
-      if (generation !== searchGeneration) return;
+      if (
+        generation !== searchGeneration ||
+        owner !== contextKey(requestContext())
+      )
+        return;
       groups.set(body.groups ?? []);
     } catch {
-      if (generation !== searchGeneration) return;
+      if (
+        generation !== searchGeneration ||
+        owner !== contextKey(requestContext())
+      )
+        return;
       groups.set([]);
     } finally {
       if (generation === searchGeneration) {
+        if (owner !== contextKey(requestContext())) groups.set([]);
         activeSearchController = undefined;
         isSearching.set(false);
       }
@@ -219,6 +276,9 @@ export function createGlobalSearchController(
   }
 
   function applyQueryFromUrl(urlQuery: string, runImmediately = false) {
+    clearSearchDebounce();
+    abortActiveSearch();
+    searchGeneration += 1;
     query.set(urlQuery);
     if (urlQuery.trim().length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH) {
       if (runImmediately) {
@@ -267,6 +327,7 @@ export function createGlobalSearchController(
     inputElement: HTMLInputElement | null,
   ) {
     handleSearchListboxKeydown({
+      scopeId: options.scopeId,
       activeIndex: get(activeIndex),
       event,
       inputElement,
@@ -288,6 +349,7 @@ export function createGlobalSearchController(
       activeIndex.set(itemIndex);
     }
     handleSearchListboxKeydown({
+      scopeId: options.scopeId,
       activeIndex: itemIndex,
       event,
       inputElement,
@@ -318,6 +380,7 @@ export function createGlobalSearchController(
     showInitialHint,
     canNavigateResults,
     reset,
+    refreshRequestContext,
     resetSelection,
     applyQueryFromUrl,
     scheduleSearch,

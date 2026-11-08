@@ -1,4 +1,6 @@
 import { CATALOG_SEARCH_MAX_LENGTH } from "@/features/catalog/lib/catalog-list-query";
+import { searchDemoGlobally } from "@/features/demo/server/demo-global-search";
+import { setDemoPrivateHeaders } from "@/features/demo/server/demo-request-boundary";
 import { searchGlobally } from "@/features/search/server/global-search-service";
 import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
 import { resolvePublicCatalogLocale } from "@/lib/api/routes/request-locale";
@@ -10,6 +12,29 @@ import {
 
 const MAX_LIMIT = 25;
 const SEARCH_SCOPES = new Set(["catalog", "workspace"]);
+
+export function getDemoGlobalSearchRoute(request: Request) {
+  const parsed = parseSearchQuery(request);
+  if (parsed instanceof Response) {
+    setDemoPrivateHeaders(parsed.headers);
+    return parsed;
+  }
+  const locale = resolvePublicCatalogLocale(request);
+  if (locale instanceof Response) {
+    setDemoPrivateHeaders(locale.headers);
+    return locale;
+  }
+  const response = jsonResponse(
+    searchDemoGlobally({
+      query: parsed.query,
+      limit: parsed.limit,
+      locale: locale.locale,
+      includeWorkspace: parsed.scope === "workspace",
+    }),
+  );
+  setDemoPrivateHeaders(response.headers);
+  return response;
+}
 
 function parseSearchQuery(request: Request) {
   const searchParams = new URL(request.url).searchParams;

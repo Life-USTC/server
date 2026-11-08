@@ -5,13 +5,17 @@ import type {
 
 export const GLOBAL_SEARCH_LISTBOX_ID = "global-search-listbox";
 export const GLOBAL_SEARCH_ITEM_ID_PREFIX = "global-search-item-";
+export const GLOBAL_SEARCH_SCOPE_ID = "global-search";
 
 export function flattenSearchGroups(groups: GlobalSearchResultGroup[]) {
   return groups.flatMap((group) => group.items);
 }
 
-export function globalSearchItemDomId(itemId: string) {
-  return `${GLOBAL_SEARCH_ITEM_ID_PREFIX}${itemId}`;
+export function globalSearchItemDomId(
+  itemId: string,
+  scopeId = GLOBAL_SEARCH_SCOPE_ID,
+) {
+  return `${scopeId}-item-${itemId}`;
 }
 
 export function moveSearchActiveIndex(
@@ -34,6 +38,7 @@ export function focusSearchResultItem(
   items: GlobalSearchResultItem[],
   index: number,
   inputElement?: HTMLInputElement | null,
+  scopeId?: string,
 ) {
   if (index < 0) {
     inputElement?.focus();
@@ -43,7 +48,9 @@ export function focusSearchResultItem(
   const item = items[index];
   if (!item) return;
 
-  const element = document.getElementById(globalSearchItemDomId(item.id));
+  const element = document.getElementById(
+    globalSearchItemDomId(item.id, scopeId),
+  );
   if (!(element instanceof HTMLElement)) return;
   element.focus();
   element.scrollIntoView({ block: "nearest" });
@@ -61,6 +68,7 @@ export function handleSearchListboxKeydown(input: {
   activeIndex: number;
   event: KeyboardEvent;
   inputElement?: HTMLInputElement | null;
+  scopeId?: string;
   isInteractive: boolean;
   items: GlobalSearchResultItem[];
   onActiveIndexChange: (index: number) => void;
@@ -78,7 +86,7 @@ export function handleSearchListboxKeydown(input: {
       "down",
     );
     input.onActiveIndexChange(nextIndex);
-    focusSearchResultItem(items, nextIndex, input.inputElement);
+    focusSearchResultItem(items, nextIndex, input.inputElement, input.scopeId);
     return true;
   }
 
@@ -90,7 +98,7 @@ export function handleSearchListboxKeydown(input: {
       "up",
     );
     input.onActiveIndexChange(nextIndex);
-    focusSearchResultItem(items, nextIndex, input.inputElement);
+    focusSearchResultItem(items, nextIndex, input.inputElement, input.scopeId);
     return true;
   }
 

@@ -30,7 +30,6 @@ interface Props {
   signedIn?: boolean;
   /** Hide the Sign in control when the visitor is already on the sign-in route. */
   hideSignIn?: boolean;
-  unavailableReason?: string | undefined;
   homeHref?: string;
   homeLabel?: string;
 }
@@ -53,7 +52,6 @@ let {
   viewerLoading = false,
   signedIn = false,
   hideSignIn = false,
-  unavailableReason = undefined,
   homeHref = "/",
   homeLabel = copy.shell.discovery.home,
 }: Props = $props();
@@ -97,7 +95,6 @@ let {
     {#if !focused}
       <div class="hidden min-w-0 flex-1 justify-center px-4 md:flex">
         <GlobalSearchTrigger
-          disabledReason={unavailableReason}
           copy={copy.globalSearch}
           onOpen={onOpenGlobalSearch}
           shortcutLabel={globalSearchShortcutLabel}
@@ -111,7 +108,6 @@ let {
       {#if !focused}
         <div class="md:hidden">
           <GlobalSearchTrigger
-            disabledReason={unavailableReason}
             copy={copy.globalSearch}
             onOpen={onOpenGlobalSearch}
             shortcutLabel={globalSearchShortcutLabel}

@@ -172,6 +172,7 @@ export async function resolveDemoBoundary(
         "/workspace/exams",
         "/workspace/calendar",
         "/account/settings/profile",
+        "/search",
       ].includes(url.pathname) ||
         isDemoCatalogPage(url.pathname) ||
         isDemoNewsPage(url.pathname) ||
@@ -203,6 +204,9 @@ export async function resolveDemoBoundary(
     (![
       "/",
       "/__data.json",
+      "/search",
+      "/search/__data.json",
+      "/api/search",
       "/_internal/home/viewer",
       "/_internal/home/campus-now",
       "/_internal/home/notices",

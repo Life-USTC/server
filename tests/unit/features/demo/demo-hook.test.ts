@@ -68,6 +68,10 @@ async function request(
 it.each([
   "/",
   "/__data.json",
+  "/search",
+  "/search?q=algebra",
+  "/search/__data.json?q=algebra",
+  "/api/search?q=algebra&scope=workspace&locale=en-us",
   "/_internal/home/viewer",
   "/_internal/home/campus-now?section=bus",
   "/_internal/home/notices",
@@ -219,6 +223,11 @@ it.each([
   ["PATCH", "/api/account/profile"],
   ["GET", "/community/users/demo-student"],
   ["GET", "/api/community/users/demo-student"],
+  ["GET", "/search/__data.json/__data.json"],
+  ["GET", "/api/search/private"],
+  ...["/search", "/search/__data.json", "/api/search"].flatMap((path) =>
+    ["POST", "PUT", "PATCH", "DELETE"].map((method) => [method, path]),
+  ),
 ])(
   "rejects %s %s before session, resolver and persistent telemetry",
   async (method, path) => {
@@ -232,17 +241,20 @@ it.each([
   },
 );
 
-it.each(["/account/settings/profile", "/api/account/profile"])(
-  "allows HEAD without resolving a real session at %s",
-  async (path) => {
-    const result = await request(path, "HEAD");
-    expect(result.response.status).toBe(200);
-    expect(result.locals.authUser).toBeNull();
-    expect(result.resolve).toHaveBeenCalledOnce();
-    expect(session).not.toHaveBeenCalled();
-    expect(persist).not.toHaveBeenCalled();
-  },
-);
+it.each([
+  "/account/settings/profile",
+  "/api/account/profile",
+  "/search",
+  "/search/__data.json",
+  "/api/search?q=algebra&scope=workspace",
+])("allows HEAD without resolving a real session at %s", async (path) => {
+  const result = await request(path, "HEAD");
+  expect(result.response.status).toBe(200);
+  expect(result.locals.authUser).toBeNull();
+  expect(result.resolve).toHaveBeenCalledOnce();
+  expect(session).not.toHaveBeenCalled();
+  expect(persist).not.toHaveBeenCalled();
+});
 
 it("rejects invalid and mixed identities without resolving a real session", async () => {
   for (const [cookie, status] of [
