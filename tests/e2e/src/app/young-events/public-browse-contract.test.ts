@@ -268,13 +268,11 @@ test("young table numeric comparisons run before pagination and preserve choices
   });
 });
 
-test("young-event.web-browse-context", { tag: "@Young/Web" }, async ({
-  page,
-  fixture,
-  preferenceFlow,
-}) => {
-  await preferenceFlow.run(async () => {
-    for (const width of [1280, 390]) {
+for (const width of [1280, 390]) {
+  test(`young-event.web-browse-context ${width}`, {
+    tag: "@Young/Web",
+  }, async ({ page, fixture, preferenceFlow }) => {
+    await preferenceFlow.run(async () => {
       await page.setViewportSize({ width, height: 844 });
       const filters = {
         search: fixture.search,
@@ -380,9 +378,9 @@ test("young-event.web-browse-context", { tag: "@Young/Web" }, async ({
       );
       await expect(eventLink(page, fixture, 7)).toBeVisible();
       await expect(eventLink(page, fixture, 10)).toBeVisible();
-    }
+    });
   });
-});
+}
 
 test("young-event.web-organizer-order", { tag: "@Young/Web" }, async ({
   page,

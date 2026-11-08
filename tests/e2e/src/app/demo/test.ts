@@ -81,6 +81,52 @@ const copy = {
 } as const;
 type Locale = keyof typeof copy;
 
+async function expectReadOnlyCommentActions(page: Page, id: string) {
+  const comment = page.locator(`#comment-${id}`);
+  const permalink = comment.locator(`a[href="#comment-${id}"]`);
+  const menu = comment
+    .getByRole("button", { name: /^(更多操作|More actions)$/ })
+    .first();
+  await comment.scrollIntoViewIfNeeded();
+  await permalink.click();
+  await expect(page).toHaveURL((url) => url.hash === `#comment-${id}`);
+  await expect
+    .poll(() =>
+      Promise.all(
+        [permalink, menu].map((target) =>
+          target.evaluate((element) => {
+            const bounds = element.getBoundingClientRect();
+            const header = document.querySelector("header");
+            const hit = document.elementFromPoint(
+              bounds.left + bounds.width / 2,
+              bounds.top + bounds.height / 2,
+            );
+            return Boolean(
+              header &&
+                bounds.width > 0 &&
+                bounds.height > 0 &&
+                bounds.top >= header.getBoundingClientRect().bottom &&
+                bounds.left >= 0 &&
+                bounds.right <= document.documentElement.clientWidth &&
+                bounds.bottom <= innerHeight &&
+                hit &&
+                (hit === element || element.contains(hit)),
+            );
+          }),
+        ),
+      ),
+    )
+    .toEqual([true, true]);
+  await menu.click();
+  const actions = page.getByRole("menu");
+  await expect(
+    actions.getByRole("menuitem", { name: /^(复制链接|Copy link)$/ }),
+  ).toBeVisible();
+  await expect(actions.getByRole("menuitem")).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  await expect(actions).toBeHidden();
+}
+
 async function enterDemo(page: Page, locale: Locale) {
   await gotoAndWaitForReady(page, "/account/sign-in", {
     browserHealth: {},
@@ -1036,6 +1082,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
           sampleDescription,
         );
         await page.locator("#comments").scrollIntoViewIfNeeded();
+        await expectReadOnlyCommentActions(page, "demo-comment-course-03");
         await expect(
           page
             .locator("#comments")
