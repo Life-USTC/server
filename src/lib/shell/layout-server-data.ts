@@ -85,7 +85,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       youngOrganizers: messages.youngEvents.organizersTitle,
       mobileApp: messages.metadata.pages.mobileApp,
       prestoBot: messages.metadata.pages.prestoBot,
-      mcp: messages.metadata.pages.mcp,
+      mcp: messages.shell.discovery.mcpLabel,
       cli: messages.metadata.pages.cli,
       groups: messages.shell.groups,
       hub: messages.shell.hub,
@@ -126,6 +126,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       mobileApp: messages.homepage.actions.mobileApp,
     },
     shell: {
+      discovery: messages.shell.discovery,
       currentLocation: messages.shell.currentLocation,
       detailNavigation: messages.shell.detailNavigation,
       closeNavigation: messages.shell.closeNavigation,

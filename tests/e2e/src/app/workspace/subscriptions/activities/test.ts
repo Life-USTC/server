@@ -5,6 +5,7 @@ import {
   expandDaySidebarGroup,
   sidebarNavigationLink,
 } from "../../../../../utils/locators";
+import { expectNavigationCount } from "../../../../../utils/navigation-count";
 import { observeAction } from "../../../../../utils/observed-action";
 import {
   gotoAndWaitForReady,
@@ -30,7 +31,9 @@ test("活动、主办方订阅和提醒入口可用", { tag: "@Young/Web" }, asy
     );
     expect(response?.ok()).toBe(true);
     await expandDaySidebarGroup(page);
-    await expect(sidebarNavigationLink(page, /^Life@USTC$/)).toBeVisible();
+    await expect(
+      sidebarNavigationLink(page, /^Life@USTC: (?:Home|首页)$/),
+    ).toBeVisible();
     // This consumer starts from independently arranged state; it never relies on
     // one of the subscription mutation journeys having run first.
     const views = [
@@ -576,23 +579,21 @@ test("reading the last unread reminder on page two returns to the remaining remi
       .locator('[data-shell-navigation="desktop"]')
       .getByRole("link", { name: /^(活动提醒|Activity reminders)$/ });
     await expect(reminderNavigation).toHaveAttribute("aria-current", "page");
-    const reminderBadge = page
-      .locator(
-        '[data-shell-navigation="desktop"] [data-slot="sidebar-menu-item"]',
-      )
-      .filter({
-        has: page.getByRole("link", {
-          name: /^(活动订阅|Activity subscriptions)$/,
-        }),
-      })
-      .locator('[data-slot="sidebar-menu-badge"]');
-    await expect(reminderBadge).toHaveText("21");
+    const navigation = page.locator('[data-shell-navigation="desktop"]');
+    const remindersHref =
+      "/workspace/subscriptions/activities?view=notifications";
+    await expect(
+      navigation.locator(
+        `a[data-slot="sidebar-menu-button"][href="${remindersHref}"]`,
+      ),
+    ).toHaveAccessibleName(/^(活动订阅|Activity subscriptions)$/);
+    await expectNavigationCount(navigation, remindersHref, 21, /unread|未读/);
     await page
       .locator("main")
       .getByRole("button", { name: /^(标记已读|Mark read)$/ })
       .click();
     await expect(page).toHaveURL(/view=notifications&unread=true&page=1/);
-    await expect(reminderBadge).toHaveText("20");
+    await expectNavigationCount(navigation, remindersHref, 20, /unread|未读/);
     expect(await notifications()).toEqual(
       before.map((item, index) => ({
         ...item,

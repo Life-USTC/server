@@ -32,6 +32,7 @@ interface Props {
   hideSignIn?: boolean;
   unavailableReason?: string | undefined;
   homeHref?: string;
+  homeLabel?: string;
 }
 
 let {
@@ -54,6 +55,7 @@ let {
   hideSignIn = false,
   unavailableReason = undefined,
   homeHref = "/",
+  homeLabel = copy.shell.discovery.home,
 }: Props = $props();
 </script>
 
@@ -74,13 +76,13 @@ let {
     {/if}
 
     <a
-      aria-label="Life@USTC"
-      class="hidden size-11 min-h-11 min-w-0 shrink-0 items-center justify-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 min-[320px]:inline-flex sm:w-auto sm:px-2 {focused
+      aria-label={`Life@USTC: ${homeLabel}`}
+      class="hidden h-11 min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 min-[320px]:inline-flex px-1 sm:px-2 {focused
         ? ''
         : 'lg:hidden'}"
       data-shell-brand
       href={homeHref}
-      title="Life@USTC"
+      title={homeLabel}
     >
       <img
         class="size-7 rounded-md"
@@ -89,6 +91,7 @@ let {
         aria-hidden="true"
       />
       <span class="sr-only sm:not-sr-only">Life@USTC</span>
+      <span class="text-xs font-normal">{homeLabel}</span>
     </a>
 
     {#if !focused}

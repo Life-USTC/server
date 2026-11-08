@@ -151,7 +151,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             await expect(current).toHaveText(organizerName);
             await page.locator('[data-slot="sidebar-rail"]').click();
             const ancestor = nav.locator('button[aria-current="location"]');
-            const name = locale === "en-us" ? "Activities" : "第二课堂";
+            const name = locale === "en-us" ? "Activities" : "活动";
             await expect(ancestor).toHaveAccessibleName(name);
             await expect(ancestor).toHaveAttribute("title", name);
             await expect(ancestor).toHaveAttribute("data-active", "true");
@@ -388,6 +388,20 @@ for (const mode of [
           () => document.documentElement.dataset.lifeUstcHydrated === "true",
         );
         const inner = page.locator("[data-detail-scroll-container]");
+        // Public lazy modules settle independently of the held personal bootstrap.
+        for (const [id, empty] of [
+          ["introduction", "No description yet"],
+          ["calendar", "No schedule or exam events available for this section"],
+          ["exams", "No exam arrangements available yet"],
+          ["homework", "No homework listed."],
+          ["comments", "No comments yet"],
+        ] as const)
+          await expect(
+            page.locator(`#${id}`).getByTestId("compact-empty"),
+          ).toContainText(empty);
+        await expect(
+          page.locator('#comments [data-slot="skeleton"]'),
+        ).toHaveCount(0);
         if (mode === "scroll") {
           await inner.hover();
           await page.mouse.wheel(0, -10000);

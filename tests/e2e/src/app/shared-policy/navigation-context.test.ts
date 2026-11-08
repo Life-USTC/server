@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import type { TestPrismaClient } from "../../../../shared/prisma";
 import type { IsolatedWorker } from "../../../utils/isolated-worker";
+import { expectNavigationCount } from "../../../utils/navigation-count";
 import { test } from "../../../utils/navigation-policy-fixture";
 import { waitForUiSettled } from "../../../utils/page-ready";
 
@@ -252,15 +253,15 @@ test("ui.navigation-landmarks-6", { tag: "@Site/Web" }, async ({
         await expect(reminders).toBeVisible();
         await expect(publicNotices).toHaveAccessibleName("News & Notices");
         await expect(reminders).toHaveAccessibleName("Activity subscriptions");
-        const badge = reminders
-          .locator("..")
-          .locator('[data-slot="sidebar-menu-badge"]');
-        await expect(badge).toHaveText(String(owner === 0 ? 2 : 1));
-        await expect(
-          publicNotices
-            .locator("..")
-            .locator('[data-slot="sidebar-menu-badge"]'),
-        ).toHaveCount(0);
+        const remindersHref =
+          "/workspace/subscriptions/activities?view=notifications";
+        await expectNavigationCount(
+          shell,
+          remindersHref,
+          owner === 0 ? 2 : 1,
+          "unread",
+        );
+        await expectNavigationCount(shell, "/news", 0, "unread");
         await reminders.click();
         await expect(page).toHaveURL(
           /\/workspace\/subscriptions\/activities\?view=notifications$/,
@@ -321,14 +322,12 @@ test("ui.navigation-landmarks-6", { tag: "@Site/Web" }, async ({
           main.getByRole("button", { name: "Mark read", exact: true }),
         ).toHaveCount(owner === 0 ? 1 : 0);
         const updatedShell = await sidebar(page, width);
-        const updatedBadge = updatedShell
-          .locator(
-            'a[href="/workspace/subscriptions/activities?view=notifications"]',
-          )
-          .locator("..")
-          .locator('[data-slot="sidebar-menu-badge"]');
-        if (owner === 0) await expect(updatedBadge).toHaveText("1");
-        else await expect(updatedBadge).toHaveCount(0);
+        await expectNavigationCount(
+          updatedShell,
+          remindersHref,
+          owner === 0 ? 1 : 0,
+          "unread",
+        );
       }
     }
   });

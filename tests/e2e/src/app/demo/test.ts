@@ -111,6 +111,17 @@ async function enterDemo(page: Page, locale: Locale) {
   await expect(page.getByTestId("demo-notice")).toContainText(
     copy[locale].identity,
   );
+  const demoHome = page.getByRole("link", {
+    name: locale === "en-us" ? "Life@USTC: Demo todos" : "Life@USTC: 演示待办",
+    exact: true,
+  });
+  await expect(demoHome).toHaveCount(1);
+  await expect(demoHome).toHaveAttribute("href", "/workspace/todos");
+  await expect(
+    demoHome.getByText(locale === "en-us" ? "Demo todos" : "演示待办", {
+      exact: true,
+    }),
+  ).toBeVisible();
   await expect(page.locator('script[src*="googletagmanager.com"]')).toHaveCount(
     0,
   );

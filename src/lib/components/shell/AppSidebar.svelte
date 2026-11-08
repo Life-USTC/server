@@ -37,6 +37,7 @@ let {
   dockAboveFooter = false,
   footerLinks = [],
   homeHref = "/",
+  homeLabel = copy.shell.discovery.home,
   isActiveLink,
   isAncestorLink,
   navGroups,
@@ -56,6 +57,7 @@ let {
   /** Legal/help links for catalog detail chrome (public footer omitted there). */
   footerLinks?: ShellLink[];
   homeHref?: string;
+  homeLabel?: string;
   isActiveLink: (link: ShellLink) => boolean;
   isAncestorLink: (link: ShellLink) => boolean;
   navGroups: ShellNavGroup[];
@@ -69,15 +71,95 @@ let {
 } = $props();
 
 const sidebar = Sidebar.useSidebar();
+const discoveryId = $props.id();
+function hintId(link: ShellLink, mobile: boolean) {
+  return `${discoveryId}-${mobile ? "mobile" : "desktop"}-${link.id ?? encodeURIComponent(link.href)}`;
+}
 function revealCurrent(node: HTMLElement, active: boolean) {
-  function reveal(active: boolean) {
-    if (active)
-      void tick().then(() =>
-        node.scrollIntoView({ block: "nearest", inline: "nearest" }),
-      );
+  let current = false;
+  let cancel = () => {};
+  // A pathname change retires the old reveal owner, even if its boolean stays true.
+  $effect(() => {
+    currentPathname;
+    return cancel;
+  });
+  function reveal(next: boolean) {
+    if (next === current) return;
+    current = next;
+    cancel();
+    if (!next) return;
+    const owner = node.closest("nav[data-shell-navigation]");
+    const viewport = node.closest('[data-slot="sidebar-content"]');
+    const flow = node.closest('[data-slot="sidebar-flow"]');
+    if (!owner || !viewport || !flow) return;
+    const pathname = currentPathname;
+    const sheet = node.closest('[data-slot="sidebar"][data-mobile="true"]');
+    let cancelled = false;
+    let observer: ResizeObserver | undefined;
+    const stop = () => {
+      cancelled = true;
+      observer?.disconnect();
+      for (const type of ["wheel", "touchstart", "pointerdown", "keydown"])
+        owner.removeEventListener(type, stop, true);
+      viewport.removeEventListener("focusin", onFocus, true);
+    };
+    const onFocus = (event: Event) => {
+      if (event.target !== node) stop();
+    };
+    cancel = stop;
+    // User navigation takes ownership; background data cannot restart this owner.
+    for (const type of ["wheel", "touchstart", "pointerdown", "keydown"])
+      owner.addEventListener(type, stop, { capture: true, passive: true });
+    viewport.addEventListener("focusin", onFocus, true);
+    void tick().then(() => {
+      if (cancelled) return;
+      observer = new ResizeObserver(() => {
+        if (
+          cancelled ||
+          !node.isConnected ||
+          currentPathname !== pathname ||
+          node.closest("nav[data-shell-navigation]") !== owner ||
+          node.closest('[data-slot="sidebar-content"]') !== viewport ||
+          node.closest('[data-slot="sidebar-flow"]') !== flow ||
+          (sheet && sheet.getAttribute("data-state") !== "open") ||
+          node.closest('[data-slot="collapsible-content"][data-state="closed"]')
+        ) {
+          stop();
+          return;
+        }
+        const item = node.getBoundingClientRect();
+        const box = viewport.getBoundingClientRect();
+        const style = getComputedStyle(viewport);
+        const left = Math.max(
+          0,
+          box.left + Number.parseFloat(style.borderLeftWidth),
+        );
+        const right = Math.min(
+          innerWidth,
+          box.right - Number.parseFloat(style.borderRightWidth),
+        );
+        const top = Math.max(
+          0,
+          box.top + Number.parseFloat(style.borderTopWidth),
+        );
+        const bottom = Math.min(
+          innerHeight,
+          box.bottom - Number.parseFloat(style.borderBottomWidth),
+        );
+        if (
+          item.left < left ||
+          item.right > right ||
+          item.top < top ||
+          item.bottom > bottom
+        )
+          node.scrollIntoView({ block: "nearest", inline: "nearest" });
+      });
+      observer.observe(flow);
+      observer.observe(viewport);
+    });
   }
   reveal(active);
-  return { update: reveal };
+  return { update: reveal, destroy: () => cancel() };
 }
 const groupOpen = $state<Record<string, boolean>>({});
 let savedSubmenus = $state<Record<string, boolean>>({});
@@ -143,6 +225,21 @@ function closeMobileSidebar(): void {
   {/if}
 {/snippet}
 
+{#snippet navigationHint(link: ShellLink, mobile: boolean, hasChildren = false)}
+  {#if link.discoveryHint}
+    <details class="group-data-[collapsible=icon]:hidden" data-shell-nav-hint>
+      <summary
+        aria-label={link.discoveryHint.label}
+        data-shell-count-value={link.badge ?? undefined}
+        class={cn("absolute top-0 flex min-h-11 min-w-11 max-w-24 cursor-pointer list-none items-center justify-center gap-1 rounded-md px-1 text-xs hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring md:min-h-8 md:min-w-8 [&::-webkit-details-marker]:hidden", hasChildren ? "right-8 max-w-19" : "right-1")}
+      >
+        <span class="min-w-0 [overflow-wrap:anywhere]">{link.discoveryHint.text}</span><svg class="size-3 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="6" /><path stroke-linecap="round" d="M8 7v4m0-7v.01" /></svg>
+      </summary>
+      <p id={hintId(link, mobile)} class="mx-1 mt-1 rounded-md border p-2 text-xs leading-relaxed [overflow-wrap:anywhere]" data-shell-nav-hint-body>{link.discoveryHint.description}</p>
+    </details>
+  {/if}
+{/snippet}
+
 {#snippet navigation(groups: ShellNavGroup[], mobile: boolean)}
   <nav
     aria-label={sectionSidebar?.navLabel ?? copy.shell.primaryNavigation}
@@ -156,12 +253,12 @@ function closeMobileSidebar(): void {
         <Sidebar.MenuItem>
           {#if sectionSidebar}
             {@const section = sectionSidebar}
-            <Sidebar.MenuButton tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? "Life@USTC" : undefined}>
+            <Sidebar.MenuButton class="h-auto min-h-11 py-1.5" tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? `${homeLabel} · Life@USTC` : undefined}>
               {#snippet child({ props })}
                 <a
                   {...props}
                   href={homeHref}
-                  aria-label="Life@USTC"
+                  aria-label={`Life@USTC: ${homeLabel}`}
                   onclick={closeMobileSidebar}
                 >
                   <img
@@ -170,7 +267,7 @@ function closeMobileSidebar(): void {
                     alt=""
                     aria-hidden="true"
                   />
-                  <span>Life@USTC</span>
+                  <span class="grid min-w-0"><span>Life@USTC</span>{" "}<span class="text-xs font-normal">{homeLabel}</span></span>
                 </a>
               {/snippet}
             </Sidebar.MenuButton>
@@ -188,13 +285,13 @@ function closeMobileSidebar(): void {
               {/snippet}
             </Sidebar.MenuButton>
           {:else}
-            <Sidebar.MenuButton isActive={showActiveState(currentPathname === "/")} tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? "Life@USTC" : undefined}>
+            <Sidebar.MenuButton class="h-auto min-h-11 py-1.5" isActive={showActiveState(currentPathname === "/")} tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? `${homeLabel} · Life@USTC` : undefined}>
               {#snippet child({ props })}
                 <a
                   {...props}
                   id="app-logo"
                   href={homeHref}
-                  aria-label="Life@USTC"
+                  aria-label={`Life@USTC: ${homeLabel}`}
                   aria-current={showActiveState(currentPathname === "/") ? "page" : undefined}
                   onclick={closeMobileSidebar}
                 >
@@ -204,7 +301,7 @@ function closeMobileSidebar(): void {
                     alt=""
                     aria-hidden="true"
                   />
-                  <span>Life@USTC</span>
+                  <span class="grid min-w-0"><span>Life@USTC</span>{" "}<span class="text-xs font-normal">{homeLabel}</span></span>
                 </a>
               {/snippet}
             </Sidebar.MenuButton>
@@ -214,6 +311,7 @@ function closeMobileSidebar(): void {
     </Sidebar.Header>
 
     <Sidebar.Content>
+      <div class="flex min-w-0 shrink-0 flex-col" data-slot="sidebar-flow">
       {#each groups as group, index}
         {@const isCollapsed = !mobile && sidebar.state === "collapsed"}
         {@const groupKey = group.id ?? `group-${index}`}
@@ -302,9 +400,7 @@ function closeMobileSidebar(): void {
                       <Sidebar.MenuItem>
                         <Sidebar.MenuButton
                           isActive={active}
-                          class={onPath
-                            ? "bg-sidebar-accent/50 font-medium"
-                            : undefined}
+                          class={cn(onPath && "bg-sidebar-accent/50 font-medium", link.discoveryHint && "h-auto min-h-11 py-1.5 md:min-h-8 [&>span:last-child]:whitespace-normal! [&>span:last-child]:[overflow-wrap:anywhere] transition-[width,height]", link.discoveryHint && (link.badge != null ? "pe-28!" : "pe-16!"))}
                           data-shell-ancestor={onPath ? "true" : undefined}
                           tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? link.label : undefined}
                         >
@@ -314,6 +410,7 @@ function closeMobileSidebar(): void {
                               href={link.href}
                               use:revealCurrent={active}
                               aria-label={link.ariaLabel}
+                              aria-describedby={link.discoveryHint ? hintId(link, mobile) : undefined}
                               aria-current={active
                                 ? "page"
                                 : onPath
@@ -327,7 +424,7 @@ function closeMobileSidebar(): void {
                                 {@const Icon = link.icon}
                                 <Icon />
                               {/if}
-                              <span class="font-medium">{link.label}</span>
+                              <span class={cn("font-medium", link.discoveryHint && "min-w-0 flex-1")}>{link.label}</span>
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>
@@ -337,7 +434,7 @@ function closeMobileSidebar(): void {
                           class={cn(
                             // WCAG 2.2 SC 2.5.8 needs 24x24; the chevron stays 16px.
                             "top-1 w-6 peer-data-[size=default]/menu-button:top-1",
-                            link.badge != null && link.badge > 0 && "right-8",
+                            link.discoveryHint ? "right-1" : link.badge != null && link.badge > 0 && "right-8",
                           )}
                           onclick={(event) => {
                             event.preventDefault();
@@ -352,7 +449,9 @@ function closeMobileSidebar(): void {
                             class={submenuOpen ? "rotate-90" : undefined}
                           />
                         </Sidebar.MenuAction>
-                        {#if link.badge != null && link.badge > 0}
+                        {#if link.discoveryHint}
+                          {@render navigationHint(link, mobile, Boolean(link.items?.length))}
+                        {:else if link.badge != null && link.badge > 0}
                           <Sidebar.MenuBadge>{link.badge}</Sidebar.MenuBadge>
                         {/if}
 
@@ -439,9 +538,7 @@ function closeMobileSidebar(): void {
                       <Sidebar.MenuItem>
                         <Sidebar.MenuButton
                           isActive={active}
-                          class={onPath
-                            ? "bg-sidebar-accent/50 font-medium"
-                            : undefined}
+                          class={cn(onPath && "bg-sidebar-accent/50 font-medium", link.discoveryHint && "h-auto min-h-11 py-1.5 md:min-h-8 [&>span:last-child]:whitespace-normal! [&>span:last-child]:[overflow-wrap:anywhere] transition-[width,height]", link.discoveryHint && (link.badge != null ? "pe-28!" : "pe-16!"))}
                           data-shell-ancestor={onPath ? "true" : undefined}
                           tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? link.label : undefined}
                         >
@@ -451,6 +548,7 @@ function closeMobileSidebar(): void {
                               href={link.href}
                               use:revealCurrent={active}
                               aria-label={link.ariaLabel}
+                              aria-describedby={link.discoveryHint ? hintId(link, mobile) : undefined}
                               aria-current={active
                                 ? "page"
                                 : onPath
@@ -464,11 +562,13 @@ function closeMobileSidebar(): void {
                                 {@const Icon = link.icon}
                                 <Icon />
                               {/if}
-                              <span class="font-medium">{link.label}</span>
+                              <span class={cn("font-medium", link.discoveryHint && "min-w-0 flex-1")}>{link.label}</span>
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>
-                        {#if link.badge != null && link.badge > 0}
+                        {#if link.discoveryHint}
+                          {@render navigationHint(link, mobile, Boolean(link.items?.length))}
+                        {:else if link.badge != null && link.badge > 0}
                           <Sidebar.MenuBadge>{link.badge}</Sidebar.MenuBadge>
                         {/if}
                       </Sidebar.MenuItem>
@@ -480,6 +580,7 @@ function closeMobileSidebar(): void {
           </Sidebar.Group>
         </Collapsible.Root>
       {/each}
+      </div>
     </Sidebar.Content>
   </nav>
 {/snippet}

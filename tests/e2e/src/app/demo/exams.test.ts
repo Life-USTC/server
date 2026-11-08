@@ -1,6 +1,7 @@
 import { expect } from "@playwright/test";
 import { createSignedDemoCookie } from "../../../../shared/demo-token";
 import { withBrowserWorkflow } from "../../../utils/browser-workflow";
+import { expectNavigationCount } from "../../../utils/navigation-count";
 import { test as workerTest } from "../../../utils/owned-worker";
 import {
   expectNoPageHorizontalOverflow,
@@ -54,9 +55,12 @@ for (const locale of ["zh-cn", "en-us"] as const) {
           });
           if (width === 1280) {
             const link = page.locator('a[href="/workspace/exams"]:visible');
-            await expect(
-              link.locator("..").locator('[data-slot="sidebar-menu-badge"]'),
-            ).toHaveText("2");
+            await expectNavigationCount(
+              page.locator('[data-shell-navigation="desktop"]'),
+              "/workspace/exams",
+              2,
+              locale === "en-us" ? "exams" : "考试",
+            );
             await link.click();
             await waitForUiSettled(page);
           } else {

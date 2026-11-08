@@ -3243,7 +3243,7 @@
       "day": "日程",
       "courses": "课程",
       "campus": "校园",
-      "activities": "第二课堂",
+      "activities": "活动",
       "account": "账户",
       "apps": "应用",
       "admin": "管理"
@@ -3276,7 +3276,7 @@
         "settings": "资料、偏好、关联账户与安全设置",
         "mobileApp": "把课表、校车、课程与作业装进口袋",
         "prestoBot": "在聊天中查询课表、作业与校车",
-        "mcp": "让 AI 助手通过 MCP 访问你的数据",
+        "mcp": "通过 MCP 连接兼容的 AI 助手，查询课程、课表、作业和校车。个人数据需按权限授权。",
         "cli": "在终端中使用 Life@USTC",
         "adminUsers": "搜索账户、调整权限并处理封禁",
         "adminModeration": "处理评论、简介、作业与封禁队列",
@@ -3289,6 +3289,39 @@
       "subscriptions": "教学班订阅",
       "courses": "浏览课程",
       "sections": "浏览教学班"
+    },
+    "discovery": {
+      "mcpLabel": "AI 助手（MCP）",
+      "information": "说明",
+      "explainDestination": "{destination}：说明",
+      "home": "首页",
+      "demoHome": "演示待办",
+      "counts": {
+        "activityNotifications": {
+          "unit": "未读",
+          "description": "未读且未过期的活动通知。"
+        },
+        "todos": {
+          "unit": "未完成",
+          "description": "你的未完成待办，包含未定日期和已逾期的待办。"
+        },
+        "homeworks": {
+          "unit": "未完成",
+          "description": "已订阅且未退役教学班的未完成作业。助教订阅不计已截止项，未定截止的作业仍计入。"
+        },
+        "exams": {
+          "unit": "考试",
+          "description": "已订阅且未退役教学班的未来考试，以及今日尚未判定结束的考试（含今日时间未知的安排）。"
+        },
+        "subscriptions": {
+          "unit": "已订阅",
+          "description": "已订阅的教学班，包含历史及已退役教学班订阅。"
+        },
+        "calendar": {
+          "unit": "汇总项",
+          "description": "日历汇总，非当前视图条数：本学期订阅课次、考试记录，以及学期内未完成的作业和待办截止项。不含第二课堂；无当前学期时，待办日期取前后六个月。"
+        }
+      }
     }
   }
 }

@@ -77,7 +77,7 @@ test.describe("/account/settings 设置中心", () => {
       await expect(page.getByTestId("settings-sidebar-back")).toHaveCount(0);
       const appSidebar = page.getByTestId("app-sidebar");
       const home = appSidebar.getByRole("link", {
-        name: "Life@USTC",
+        name: /^Life@USTC: (Home|首页)$/,
         exact: true,
       });
       await expect(home).toBeVisible();

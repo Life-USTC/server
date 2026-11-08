@@ -145,7 +145,7 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
       /^(教师|Teachers)$/i,
       /^(移动应用|Mobile App)$/i,
       /^(Presto 机器人|Presto Bot)$/i,
-      /^MCP$/i,
+      /^(?:AI assistants \(MCP\)|AI 助手（MCP）)$/,
       /^(命令行|CLI)$/i,
     ]) {
       await expect(sidebar.getByRole("link", { name })).toBeVisible();
@@ -420,7 +420,10 @@ shellTest(
           navigation.getByRole("link", { name: /^(总览|Overview)$/i }),
         ).toHaveCount(0);
         await expect(
-          sidebar.getByRole("link", { name: "Life@USTC", exact: true }),
+          sidebar.getByRole("link", {
+            name: /^Life@USTC: (Home|首页)$/,
+            exact: true,
+          }),
         ).toHaveAttribute("href", "/");
 
         await expect(
@@ -652,7 +655,7 @@ shellTest(
 
         // The empty overview exposes a real course discovery link outside the collapsed group.
         await navigation
-          .getByRole("link", { name: "Life@USTC", exact: true })
+          .getByRole("link", { name: /^Life@USTC: (Home|首页)$/, exact: true })
           .click();
         await expect(catalog).toHaveAttribute("aria-expanded", "false");
         await page

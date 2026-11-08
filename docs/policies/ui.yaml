@@ -859,6 +859,8 @@ requirements:
   rule: Account settings uses the level-2 sidebar as its section navigation. The rail is vertical on desktop
     and inside the mobile shell menu. The active destination has aria-current=page and stays inside the
     navigation viewport; keyboard Tab and Enter reach every settings section.
+    Initial sidebar layout changes keep the current destination visible until user scroll, pointer/touch/keyboard
+    input or focus on another navigation item takes control for that opening.
   rationale: Public catalog details use continuous reading streams. Young catalog view switches use a
     separate browse-navigation component; they are not contextual section rails.
   acceptance:
@@ -1942,6 +1944,33 @@ requirements:
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.public-legal-help-navigation
+- id: ui.navigation-discovery
+  category: presentation
+  topic: navigation-landmarks
+  rule: Existing shell destinations explain their purpose without changing URLs, role visibility, static preference keys, or count algorithms. The MCP destination names AI assistants and explains supported queries and personal authorization through a keyboard- and touch-readable disclosure. Positive navigation counts show a short unit and an equally reachable explanation of the actual summary field. Their information controls are siblings of navigation links, never nested interactive controls or substitutes for navigation. The root brand exposes its actual Home destination, or Demo todos when it points to the read-only demo. The Chinese Activities group is distinct from its Second Classroom destination.
+  acceptance:
+    given: A signed-in user with real subscribed-section, schedule, exam, homework, todo and notification records opens a teaching-section detail in English or Chinese on desktop or mobile.
+    when: The user opens count and MCP explanations by keyboard and touch, then follows the actual destination links.
+    then:
+    - Each count remains the service's real value; explanations distinguish incomplete, unread, future or summary scope and never invent zero while data is unavailable.
+    - Explanations are readable in the navigation context, do not change the current URL, and do not obstruct navigation or alter disclosure preferences.
+    - Home and demo root labels describe their real destinations, and the Chinese group label no longer duplicates its child label.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-discovery.test.ts
+      name: shell.discovery scope and signed-in account en-us 390
+- id: ui.account-menu-responsive-owner
+  category: presentation
+  topic: navigation-landmarks
+  rule: The shell mounts an account menu only at its visible responsive location. Desktop public footers and mobile sidebar drawers must not open duplicate portaled menus through shared state. Existing profile/settings destinations and menu state ownership remain unchanged.
+  acceptance:
+    given: A signed-in user visits academic detail, settings, Second Classroom and the workspace.
+    when: The user opens the account menu with Enter, closes with Escape, selects Settings with the keyboard, and resizes an open mobile menu to desktop.
+    then:
+    - Exactly one account menu opens from the visible trigger; no ghost menu is created by a CSS-hidden footer trigger.
+    - Escape restores focus, Settings reaches its real route and closes the menu/drawer, and resizing leaves at most one visible-owner menu.
+    test:
+      file: tests/e2e/src/app/shared-policy/shell-discovery.test.ts
+      name: shell.discovery scope and signed-in account en-us 390
 topics:
 - id: layout-principles
   title: Layout Principles
@@ -2049,6 +2078,7 @@ topics:
   - ui.profile-count-copy
 - id: navigation-landmarks
   title: Navigation Landmarks
+
 rationale:
 - Mobile catalog detail order has one owner, ui.layout-principles-3; the identical detail-two-column-stream
   restatement was removed without changing the required order.

@@ -272,9 +272,11 @@ test.describe("/community/users/[identifier]", () => {
       await expect(
         page.getByRole("heading", { name: /页面不存在|Page Not Found/i }),
       ).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: /返回首页|Home/i }),
-      ).toBeVisible();
+      const home = page.locator("main").getByRole("link", {
+        name: /^(?:返回首页|Back to Home)$/,
+      });
+      await expect(home).toBeVisible();
+      await expect(home).toHaveAttribute("href", "/");
     });
   });
 });
