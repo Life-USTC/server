@@ -9,9 +9,11 @@ import type {
 import { getAnonymousHomePageCopy } from "@/features/workspace/server/workspace-page-copy";
 import type { AppLocale } from "@/i18n/config";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import { DEMO_BUS_HUB, getDemoBusNext, getDemoBusTimetable } from "./demo-bus";
 import { getDemoCalendar } from "./demo-calendar";
 import { getDemoHomeworksTabData } from "./demo-homeworks";
 import { getDemoTodos } from "./demo-todos";
+import { getDemoWeatherSnapshot } from "./demo-weather";
 import {
   getDemoCopy,
   getDemoView,
@@ -95,22 +97,25 @@ export function getDemoHomeCampusNow(
   section?: "bus" | "weather",
 ): HomeCampusNow {
   const english = locale === "en-us";
-  const reference = shanghaiDayjs(DEMO_REFERENCE_NOW);
   return {
     weather:
       section === "bus"
         ? null
-        : (["ustc-main", "ustc-gaoxin"] as const).map((locationKey, index) => ({
-            locationKey,
-            temperature: `${24 + index}°C`,
-            condition: english ? "Fictional · Sunny" : "虚构 · 晴",
-            rangeLabel: "20–27°C",
-            hourly: [0, 1, 2].map((hour) => ({
-              key: `${locationKey}-${hour}`,
-              label: reference.add(hour, "hour").format("HH:mm"),
-              temperature: `${24 + index + hour}°C`,
-            })),
-          })),
+        : (["ustc-main", "ustc-gaoxin"] as const).map((locationKey) => {
+            const snapshot = getDemoWeatherSnapshot(locationKey, locale);
+            const today = snapshot.daily[0];
+            return {
+              locationKey,
+              temperature: `${snapshot.current.temperature}°C`,
+              condition: snapshot.current.condition.text,
+              rangeLabel: `${today.temperatureLow}–${today.temperatureHigh}°C`,
+              hourly: snapshot.hourly.slice(0, 3).map((hour) => ({
+                key: `${locationKey}-${hour.at}`,
+                label: shanghaiDayjs(hour.at).format("HH:mm"),
+                temperature: `${hour.temperature}°C`,
+              })),
+            };
+          }),
     bus:
       section === "weather"
         ? null
@@ -119,16 +124,23 @@ export function getDemoHomeCampusNow(
               ? "Fictional departures from Sample Campus · Not a real timetable"
               : "虚构样例校区班次 · 非真实时刻表",
             emptyNote: english ? "No fictional departures" : "暂无虚构班次",
-            departures: [5, 20, 35, 50, 65].map((minutes, index) => ({
-              key: `demo-bus-${index + 1}`,
-              destination: english
-                ? `Sample destination ${index + 1}`
-                : `虚构目的地 ${index + 1}`,
-              departureTime: reference.add(minutes, "minute").format("HH:mm"),
-              relativeLabel: english
-                ? `In ${minutes} min`
-                : `${minutes} 分钟后`,
-            })),
+            departures: (getDemoBusTimetable(locale)?.campuses ?? [])
+              .filter((campus) => campus.id !== DEMO_BUS_HUB)
+              .flatMap(
+                (campus) =>
+                  getDemoBusNext(locale, {
+                    originCampusId: DEMO_BUS_HUB,
+                    destinationCampusId: campus.id,
+                  })?.departures ?? [],
+              )
+              .map((departure) => ({
+                key: `demo-bus-${departure.tripId}`,
+                destination: departure.destinationCampus?.namePrimary ?? "",
+                departureTime: departure.departureTime ?? "",
+                relativeLabel: english
+                  ? `In ${departure.minutesUntilDeparture} min`
+                  : `${departure.minutesUntilDeparture} 分钟后`,
+              })),
           },
   };
 }

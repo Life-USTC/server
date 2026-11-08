@@ -239,8 +239,6 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         for (const path of [
           "/news",
           "/catalog/young-events",
-          "/catalog/weather",
-          "/catalog/bus",
           "/catalog/links",
           "/api/catalog/links/resolve?slug=sample",
           "/_internal/home/unknown",

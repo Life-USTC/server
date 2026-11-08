@@ -11,6 +11,7 @@ import type {
 import BusCampusPickerGroup from "./BusCampusPickerGroup.svelte";
 
 export let idPrefix: string;
+export let wrapLabels = false;
 export let bus: WorkspaceBusData;
 export let busCopy: WorkspaceBusCopy;
 export let busDayType: "weekday" | "saturday" | "sunday";
@@ -36,6 +37,7 @@ function selectDayType(value: string) {
     <Field.Group class="gap-3">
       <BusCampusPickerGroup
         campuses={bus.campuses}
+        {wrapLabels}
         disabled={!busPlannerReady}
         label={busCopy.planner.start}
         onSelect={selectBusStart}
@@ -60,6 +62,7 @@ function selectDayType(value: string) {
 
       <BusCampusPickerGroup
         campuses={bus.campuses}
+        {wrapLabels}
         disabled={!busPlannerReady}
         label={busCopy.planner.end}
         onSelect={selectBusEnd}

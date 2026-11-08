@@ -5,6 +5,8 @@ import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import type { BusUserPreferenceSummary } from "@/features/bus/lib/bus-types";
+import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
+import { homePublicReadEpoch } from "@/features/demo/lib/demo-home-owner";
 import BusTab from "@/features/workspace/components/BusTab.svelte";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import type { PageData } from "./$types";
@@ -17,7 +19,12 @@ $: viewerId = $shellViewer.viewer?.id ?? null;
 $: viewerStatus = $shellViewer.status;
 let mounted = false;
 let resolvedViewerId: string | null | undefined;
-$: viewerIdentity = `${viewerStatus}:${viewerId ?? ""}`;
+$: demoRestricted = Boolean(data.demo || $shellViewer.demo);
+$: readEpoch =
+  !mounted && data.demo
+    ? "demo-ssr"
+    : homePublicReadEpoch($shellViewer, data.demo);
+$: viewerIdentity = `${viewerStatus}:${viewerId ?? ""}:${readEpoch}:${data.demo ? data.locale : ""}`;
 $: if (mounted) resetPreferences(viewerIdentity);
 function resetPreferences(_identity: string) {
   preferencesController?.abort();
@@ -47,10 +54,10 @@ async function loadPreferences() {
   preferencesController = controller;
   preferencesReady = false;
   preferencesFailed = false;
-  if (!viewerId) {
-    busData = data.bus;
+  if (demoRestricted || !viewerId) {
+    busData = readEpoch ? data.bus : null;
     signedIn = false;
-    preferencesReady = true;
+    preferencesReady = Boolean(readEpoch);
     return;
   }
   try {
@@ -59,7 +66,7 @@ async function loadPreferences() {
       credentials: "same-origin",
       signal: controller.signal,
     });
-    if (controller.signal.aborted) return;
+    if (controller.signal.aborted || demoRestricted) return;
     if (response.status === 401) {
       signedIn = false;
       preferencesReady = true;
@@ -69,7 +76,7 @@ async function loadPreferences() {
     const result = (await response.json()) as {
       preference: BusUserPreferenceSummary;
     };
-    if (controller.signal.aborted) return;
+    if (controller.signal.aborted || demoRestricted) return;
     busData = data.bus ? { ...data.bus, preferences: result.preference } : null;
     signedIn = true;
     if (!plannerInteracted) plannerVersion += 1;
@@ -97,7 +104,8 @@ onMount(() => {
 
 <CollectionPage description={data.copy.workspace.nav.bus.description} panel={false} title={data.copy.workspace.nav.bus.title}>
 
-  {#if preferencesFailed}
+  {#if data.demo}<DemoNotice demo={data.demo} locale={data.locale} /><p class="mb-4 text-sm" data-testid="demo-campus-fictional">{data.sampleNotice}</p>{/if}
+  {#if preferencesFailed && !demoRestricted}
     <Alert.Root variant="destructive">
       <Alert.Description>{data.copy.bus.preferencesLoadFailed}</Alert.Description>
       <Button variant="outline" onclick={() => void retryPreferences()}>{data.copy.bus.retry}</Button>
@@ -105,13 +113,16 @@ onMount(() => {
   {:else if !preferencesReady}
     <Skeleton class="h-9 w-32" />
   {/if}
-  {#key plannerVersion}
+  {#if readEpoch}
+  {#key `${plannerVersion}:${readEpoch}`}
   <BusTab
     busCopy={data.copy.bus}
     bus={busData}
     compact
-    savePreferences={signedIn && preferencesReady}
+    readOnly={demoRestricted}
+    savePreferences={!demoRestricted && signedIn && preferencesReady}
     onPlannerChange={() => { plannerInteracted = true; }}
   />
   {/key}
+  {/if}
 </CollectionPage>
