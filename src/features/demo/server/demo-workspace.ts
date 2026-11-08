@@ -17,6 +17,7 @@ import {
   getDemoSubscriptionsTabData,
 } from "./demo-subscriptions";
 import { getDemoTodos } from "./demo-todos";
+import { getDemoUnreadYoungNotificationsCount } from "./demo-young-workspace";
 
 export function getDemoCopy(locale: AppLocale) {
   return (locale === "en-us" ? enUs : zhCn).demo;
@@ -45,7 +46,7 @@ export function getDemoNavigation(
     userId: `demo:${identity.fixtureVersion}`,
     pendingTodosCount: getDemoTodos("zh-cn").filter((todo) => !todo.completed)
       .length,
-    unreadActivityNotificationsCount: 0,
+    unreadActivityNotificationsCount: getDemoUnreadYoungNotificationsCount(),
     calendarItemsCount: (() => {
       const calendar = getDemoCalendar(identity, "zh-cn");
       return readDemoCalendarEvents("zh-cn", {

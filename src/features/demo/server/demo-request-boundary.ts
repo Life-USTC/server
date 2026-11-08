@@ -57,7 +57,11 @@ function isDemoYoungRead(path: string) {
     path === "/api/catalog/young-organizers" ||
     /^\/api\/catalog\/young-(?:events|organizers)\/[^/]+$/.test(path) ||
     /^\/api\/catalog\/young-events\/[^/]+\/image$/.test(path) ||
-    /^\/api\/catalog\/young-events\/images\/.+$/.test(path)
+    /^\/api\/catalog\/young-events\/images\/.+$/.test(path) ||
+    /^\/api\/workspace\/young-(?:event|organizer)-subscriptions(?:\/[^/]+)?$/.test(
+      path,
+    ) ||
+    path === "/api/workspace/young-notifications"
   );
 }
 
@@ -152,6 +156,7 @@ export async function resolveDemoBoundary(
         "/",
         "/workspace/todos",
         "/workspace/subscriptions",
+        "/workspace/subscriptions/activities",
         "/workspace/homeworks",
         "/workspace/exams",
         "/workspace/calendar",
@@ -196,6 +201,8 @@ export async function resolveDemoBoundary(
       "/api/workspace/todos",
       "/workspace/subscriptions",
       "/workspace/subscriptions/__data.json",
+      "/workspace/subscriptions/activities",
+      "/workspace/subscriptions/activities/__data.json",
       "/api/workspace/subscriptions/current",
       "/workspace/homeworks",
       "/workspace/homeworks/__data.json",

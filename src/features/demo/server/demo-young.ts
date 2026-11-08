@@ -62,15 +62,19 @@ export function getDemoYoungRecords(locale: AppLocale): YoungEventDetail[] {
         ? null
         : number === 11
           ? stamp(-7)
-          : stamp(index < 5 ? index : index % 14);
+          : number === 28
+            ? stamp(0, "09:30:00")
+            : stamp(index < 5 ? index : index % 14);
     const endAt =
       startAt == null
         ? null
-        : number === 9
-          ? stamp((index % 14) + 1, "10:30:00")
-          : number === 11
-            ? stamp(-7, "09:30:00")
-            : `${startAt.slice(0, 10)}T09:30:00+08:00`;
+        : number === 28
+          ? stamp(0, "10:30:00")
+          : number === 9
+            ? stamp((index % 14) + 1, "10:30:00")
+            : number === 11
+              ? stamp(-7, "09:30:00")
+              : `${startAt.slice(0, 10)}T09:30:00+08:00`;
     const categoryCode = index % 2 === 0 ? "0" : "1";
     const record: YoungEventDetail = {
       youngId,
@@ -114,15 +118,19 @@ export function getDemoYoungRecords(locale: AppLocale): YoungEventDetail[] {
       applyStartAt:
         number === 8 || number === 13
           ? null
-          : stamp(number === 6 ? 3 : -3, "09:00:00"),
+          : number === 28
+            ? stamp(0, "08:00:00")
+            : stamp(number === 6 ? 3 : -3, "09:00:00"),
       applyEndAt:
         number === 8 || number === 13
           ? null
-          : stamp(number === 12 ? -1 : number === 6 ? 5 : 2, "18:00:00"),
+          : number === 28
+            ? stamp(0, "09:15:00")
+            : stamp(number === 12 ? -1 : number === 6 ? 5 : 2, "18:00:00"),
       isActive: number !== 10 && number < 33,
       sourceMissing: number === 9,
       lastSeenAt: null,
-      createdAt: null,
+      createdAt: number === 28 ? stamp(-1, "14:00:00") : null,
       activityLevel: index % 2 === 0 ? "校级" : "院级",
       module: ["德", "智", "体", "美", "劳"][index % 5] ?? "智",
       form: "现场参与",
@@ -420,7 +428,13 @@ export function getDemoYoungHomeActivities(locale: AppLocale) {
     }));
 }
 
-/** Presentation facts only; never a workspace subscription or principal. */
+const subscribedEventNumbers = new Set([
+  1,
+  9,
+  ...Array.from({ length: 19 }, (_, index) => index + 24),
+]);
+
+/** Fixed fictional membership shared by public and workspace projections, never a principal. */
 export function getDemoYoungSubscriptionFacts(
   kind: "events" | "organizers",
   id: string,
@@ -428,9 +442,16 @@ export function getDemoYoungSubscriptionFacts(
   const allowed = kind === "events" ? DEMO_YOUNG_IDS : DEMO_YOUNG_ORGANIZER_IDS;
   if (!allowed.includes(id)) return null;
   return {
-    subscribed: id === allowed[0],
+    subscribed:
+      kind === "events"
+        ? subscribedEventNumbers.has(DEMO_YOUNG_IDS.indexOf(id) + 1)
+        : DEMO_YOUNG_ORGANIZER_IDS.indexOf(id) < 21,
     ...(kind === "events"
-      ? { remindSignup: true, remindDeadline: false, remindStart: true }
+      ? {
+          remindSignup: true,
+          remindDeadline: id === "demo-young-28",
+          remindStart: true,
+        }
       : {}),
   };
 }

@@ -152,7 +152,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             pendingTodosCount: 2,
             pendingHomeworksCount: 3,
             examsCount: 2,
-            calendarItemsCount: 9,
+            calendarItemsCount: 30,
           },
         });
         expect(

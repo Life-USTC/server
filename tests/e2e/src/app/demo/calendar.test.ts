@@ -133,7 +133,7 @@ test("demo.calendar: exit and history cannot restore a held previous demo calend
         const response = await route.fetch();
         expect(response.status()).toBe(200);
         const body = await response.json();
-        expect(body.pagination.total).toBe(9);
+        expect(body.pagination.total).toBe(30);
         expect(
           body.data.some((item: { type: string }) => item.type === "schedule"),
         ).toBe(true);
@@ -382,7 +382,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
               page.locator(
                 'a[href="/workspace/subscriptions/activities"]:visible',
               ),
-            ).toHaveCount(0);
+            ).toHaveCount(width === 390 ? 0 : 1);
             if (width === 390) {
               await page
                 .getByRole("button", {
@@ -391,16 +391,20 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                 })
                 .click();
               await expect(page.getByRole("menuitem")).toHaveCount(1);
-              await expect(page.getByRole("menuitem")).toBeDisabled();
+              await expect(page.getByRole("menuitem")).toBeEnabled();
+              await expect(page.getByRole("menuitem")).toHaveAttribute(
+                "href",
+                "/workspace/subscriptions/activities",
+              );
               await page.keyboard.press("Escape");
             }
             const api = await page.request.get(
-              "/api/workspace/calendar/events?dateFrom=2026-09-01&dateTo=2027-01-24&pageSize=2&page=5",
+              "/api/workspace/calendar/events?dateFrom=2026-09-01&dateTo=2027-01-24&pageSize=2&page=15",
             );
             expect(api.status()).toBe(200);
             expect(await api.json()).toMatchObject({
-              data: [{ type: "exam" }],
-              pagination: { total: 9, totalPages: 5 },
+              data: [{ type: "exam" }, { type: "exam" }],
+              pagination: { total: 30, totalPages: 15 },
             });
             expect(api.headers()["cache-control"]).toBe("private, no-store");
             const bootstrap = await page.request.get(
@@ -408,7 +412,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             );
             expect(await bootstrap.json()).toMatchObject({
               viewer: null,
-              navigation: { calendarItemsCount: 9 },
+              navigation: { calendarItemsCount: 30 },
             });
             const effectsResponse = await request.get(probe, {
               headers: secret,

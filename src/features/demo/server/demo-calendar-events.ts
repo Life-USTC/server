@@ -31,6 +31,7 @@ import { getDemoCatalogSection } from "./demo-catalog";
 import { getDemoHomeworks } from "./demo-homeworks";
 import { getDemoSubscribedSections } from "./demo-subscriptions";
 import { getDemoTodos } from "./demo-todos";
+import { getDemoSubscribedYoungCalendarItems } from "./demo-young-workspace";
 
 /** Reuse the existing fixed records; no recurring classes or personal events are invented. */
 export function getDemoCalendarEvents(
@@ -130,7 +131,12 @@ export function getDemoCalendarEvents(
       }),
     );
   // Stable equal-time ordering follows the same source order as the live reader.
-  return [...academic, ...homeworks, ...todos].sort(
+  return [
+    ...getDemoSubscribedYoungCalendarItems(locale),
+    ...academic,
+    ...homeworks,
+    ...todos,
+  ].sort(
     (a, b) =>
       (a.at ? Date.parse(a.at) : Number.MAX_SAFE_INTEGER) -
       (b.at ? Date.parse(b.at) : Number.MAX_SAFE_INTEGER),

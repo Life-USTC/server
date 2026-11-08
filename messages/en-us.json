@@ -2228,6 +2228,7 @@
     "unavailableReason": "Other features are not available in this demo yet.",
     "referenceTime": "Sample time (Shanghai)",
     "youngSamples": "All activities, organizers, posters and subscription facts here are fixed fictional samples, not school activities or live collection results.",
+    "youngWorkspaceSamples": "These subscriptions and notifications are fixed fictional examples. Browsing them does not change your subscriptions, send reminders or register you for activities.",
     "youngSubscriptionFacts": "Fixed fictional subscription facts · Read only"
   },
   "signIn": {
