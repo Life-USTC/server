@@ -530,11 +530,15 @@ for (const locale of ["zh-cn", "en-us"] as const) {
           for (const action of await actions.all())
             await expect(action).toBeDisabled();
         }
-        await expect(
-          page
-            .getByRole("main")
-            .getByRole("button", { name: text.activities, exact: true }),
-        ).toBeDisabled();
+        const activitySubscriptions = page
+          .getByRole("main")
+          .getByRole("link", { name: text.activities, exact: true });
+        await expect(activitySubscriptions).toBeVisible();
+        await expect(activitySubscriptions).toBeEnabled();
+        await expect(activitySubscriptions).toHaveAttribute(
+          "href",
+          "/workspace/subscriptions/activities",
+        );
         await expect(
           page
             .getByRole("main")

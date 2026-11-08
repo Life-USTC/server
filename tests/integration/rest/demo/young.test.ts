@@ -13,6 +13,10 @@ import {
   youngEventDetailSchema,
   youngOrganizerSummarySchema,
 } from "../../../../src/lib/api/schemas/young-event-schemas";
+import {
+  youngEventSubscriptionStateSchema,
+  youngOrganizerSubscriptionStateSchema,
+} from "../../../../src/lib/api/schemas/young-workspace-schemas";
 import { isRecord } from "../../../../src/lib/is-record";
 import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
 import { test } from "../../../e2e/utils/owned-worker";
@@ -527,12 +531,41 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               ).body();
             await (await read(path, 403, "POST")).body();
           }
+          const eventState = await (
+            await read("/api/workspace/young-event-subscriptions/demo-young-1")
+          ).json();
+          expect(youngEventSubscriptionStateSchema.parse(eventState)).toEqual(
+            eventState,
+          );
+          expect(eventState).toEqual({
+            youngId: "demo-young-1",
+            subscribed: true,
+            remindSignup: true,
+            remindDeadline: false,
+            remindStart: true,
+          });
+          const organizerState = await (
+            await read(
+              "/api/workspace/young-organizer-subscriptions/demo-young-organizer-1",
+            )
+          ).json();
+          expect(
+            youngOrganizerSubscriptionStateSchema.parse(organizerState),
+          ).toEqual(organizerState);
+          expect(organizerState).toEqual({
+            organizerId: "demo-young-organizer-1",
+            subscribed: true,
+          });
           for (const path of [
             "/api/workspace/young-event-subscriptions/demo-young-1",
             "/api/workspace/young-organizer-subscriptions/demo-young-organizer-1",
-          ])
-            for (const method of ["GET", "POST", "PUT", "DELETE"])
+          ]) {
+            expect(await (await read(path, 200, "HEAD")).body()).toHaveLength(
+              0,
+            );
+            for (const method of ["POST", "PUT", "DELETE"])
               await (await read(path, 403, method)).body();
+          }
         },
       );
     });
