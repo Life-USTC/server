@@ -3,6 +3,8 @@ import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import { getShellViewer } from "#lib/shell/shell-viewer.js";
+import type { DemoView } from "@/features/demo/lib/demo-types";
+import { workspaceCalendarOwner } from "@/features/workspace/lib/workspace-calendar-owner";
 import { createWorkspaceCalendarDisplayActions } from "@/features/workspace/lib/workspace-controller-calendar-display-actions";
 import { linkIconLabel } from "@/features/workspace/lib/workspace-link-icon";
 import {
@@ -23,17 +25,26 @@ let {
   locale,
   snapshotAt = null,
   overviewWeek = null,
+  demo = null,
 }: {
   copy: { failed: string; retry: string; title: string };
   locale: AppLocale;
   snapshotAt?: string | null;
   overviewWeek?: string | null;
+  demo?: DemoView | null;
 } = $props();
 
 const shellViewer = getShellViewer();
 const viewer = $derived($shellViewer.viewer);
+const owner = $derived.by(() => {
+  const current = workspaceCalendarOwner($shellViewer, demo);
+  return demo && current.id !== `demo:${demo.fixtureVersion}`
+    ? { id: "", epoch: "" }
+    : current;
+});
 const workspacePageCopy = $derived(getWorkspacePageCopy(locale));
 let overview = $state<OverviewSignedData | null>(null);
+let overviewEpoch = $state("");
 let failed = $state(false);
 let retry = $state(0);
 let pinError = $state<string | null>(null);
@@ -54,6 +65,7 @@ const { calendarTimelineItemsForDay } = createWorkspaceCalendarDisplayActions({
 
 async function load(
   ownerId: string,
+  ownerEpoch: string,
   atTime: string | null,
   previewWeek: string | null,
   requestLocale: AppLocale,
@@ -74,39 +86,54 @@ async function load(
     );
     if (!response.ok) throw new Error(`overview ${response.status}`);
     const body = (await response.json()) as OverviewSignedData;
-    if (controller.signal.aborted || $shellViewer.viewer?.id !== ownerId)
-      return;
-    if (!body.signedIn || body.navStats?.user.id !== ownerId) {
+    if (controller.signal.aborted || owner.epoch !== ownerEpoch) return;
+    if (
+      !body.signedIn ||
+      body.navStats?.user.id !== ownerId ||
+      (demo &&
+        (body.demo?.fixtureVersion !== demo.fixtureVersion ||
+          body.demo?.expiresAt !== demo.expiresAt))
+    ) {
       failed = true;
       return;
     }
     overview = { ...body, copy: getWorkspacePageCopy(requestLocale) };
+    overviewEpoch = ownerEpoch;
   } catch {
-    if (!controller.signal.aborted && $shellViewer.viewer?.id === ownerId) {
+    if (!controller.signal.aborted && owner.epoch === ownerEpoch) {
       failed = true;
     }
   }
 }
 
 $effect(() => {
-  const ownerId = viewer?.id;
+  const ownerId = owner.id;
+  const ownerEpoch = owner.epoch;
   const atTime = snapshotAt;
   const previewWeek = overviewWeek;
   const requestLocale = locale;
   void retry;
   overview = null;
+  overviewEpoch = "";
   failed = false;
   pinError = null;
   updatingCatalogLinkSlug = null;
   if (!browser || !ownerId) return;
   const controller = new AbortController();
-  void load(ownerId, atTime, previewWeek, requestLocale, controller);
+  void load(
+    ownerId,
+    ownerEpoch,
+    atTime,
+    previewWeek,
+    requestLocale,
+    controller,
+  );
   return () => controller.abort();
 });
 
 async function submitWorkspaceLinkPin(slug: string, action: "pin" | "unpin") {
   const ownerId = viewer?.id;
-  if (!ownerId || updatingCatalogLinkSlug) return;
+  if (demo || !ownerId || updatingCatalogLinkSlug) return;
   updatingCatalogLinkSlug = slug;
   pinError = null;
   try {
@@ -137,10 +164,10 @@ async function submitWorkspaceLinkPin(slug: string, action: "pin" | "unpin") {
 }
 </script>
 
-{#if viewer}
+{#if demo || $shellViewer.demo || owner.id}
   <section
     aria-label={copy.title}
-    aria-busy={!overview && !failed}
+    aria-busy={(!overview || overviewEpoch !== owner.epoch) && !failed}
     class="grid min-w-0 content-start gap-4"
     data-testid="home-personal-overview"
   >
@@ -151,7 +178,7 @@ async function submitWorkspaceLinkPin(slug: string, action: "pin" | "unpin") {
           {copy.retry}
         </Button>
       </Alert.Root>
-    {:else if overview && overview.navStats.user.id === viewer.id}
+    {:else if overview && overviewEpoch === owner.epoch && overview.navStats.user.id === owner.id}
       {#if pinError}
         <Alert.Root variant="destructive">
           <Alert.Description>{pinError}</Alert.Description>

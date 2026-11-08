@@ -1857,8 +1857,9 @@
     "enter": "进入演示",
     "description": "无需注册，浏览只读待办及订阅样例。",
     "displayName": "演示账户 · 只读",
-    "readOnlyReason": "你可以浏览日历、待办、作业、考试、订阅、课程目录详情和账户资料样例，无法修改数据或执行外部操作。",
+    "readOnlyReason": "你可以浏览首页、日历、待办、作业、考试、订阅、课程目录详情和账户资料样例，无法修改数据或执行外部操作。",
     "exit": "退出演示",
+    "homeSamples": "以下校园速览、通知和活动均为虚构演示样例，并非学校通知、实况天气或真实班次。",
     "unavailableReason": "其他功能暂未开放演示。",
     "referenceTime": "样例时间（上海）"
   },
@@ -3295,7 +3296,7 @@
       "information": "说明",
       "explainDestination": "{destination}：说明",
       "home": "首页",
-      "demoHome": "演示待办",
+      "demoHome": "演示首页",
       "counts": {
         "activityNotifications": {
           "unit": "未读",

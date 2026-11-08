@@ -2219,8 +2219,9 @@
     "enter": "Enter demo",
     "description": "Browse read-only sample todos and subscriptions without creating an account.",
     "displayName": "Demo account · Read only",
-    "readOnlyReason": "Browse sample calendar, todos, homework, exams, subscriptions, catalog details and account profile. Changes and external actions are disabled.",
+    "readOnlyReason": "Browse sample Home, calendar, todos, homework, exams, subscriptions, catalog details and account profile. Changes and external actions are disabled.",
     "exit": "Exit demo",
+    "homeSamples": "Campus snapshot, notices and activities below are fictional demo samples, not school announcements, live weather or real departures.",
     "unavailableReason": "Other features are not available in this demo yet.",
     "referenceTime": "Sample time (Shanghai)"
   },
@@ -3295,7 +3296,7 @@
       "information": "Info",
       "explainDestination": "{destination}: details",
       "home": "Home",
-      "demoHome": "Demo todos",
+      "demoHome": "Demo Home",
       "counts": {
         "activityNotifications": {
           "unit": "unread",

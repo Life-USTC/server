@@ -1,0 +1,192 @@
+import {
+  DEMO_REFERENCE_NOW,
+  type DemoIdentity,
+} from "@/features/demo/lib/demo-types";
+import type {
+  AnonymousHomeInformation,
+  HomeCampusNow,
+} from "@/features/workspace/server/anonymous-home-sections";
+import { getAnonymousHomePageCopy } from "@/features/workspace/server/workspace-page-copy";
+import type { AppLocale } from "@/i18n/config";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import { getDemoCalendar } from "./demo-calendar";
+import { getDemoHomeworksTabData } from "./demo-homeworks";
+import { getDemoTodos } from "./demo-todos";
+import {
+  getDemoCopy,
+  getDemoView,
+  getDemoWorkspacePage,
+} from "./demo-workspace";
+
+/** Sealed fictional editorial content: never a publication, provider or bus read. */
+export function getDemoHomeInformation(
+  locale: AppLocale,
+): AnonymousHomeInformation {
+  const english = locale === "en-us";
+  const reference = shanghaiDayjs(DEMO_REFERENCE_NOW);
+  const titles = english
+    ? [
+        "Sample reading room hours",
+        "Sample study group registration",
+        "Sample library workshop",
+        "Sample campus walk",
+        "Sample learning resources",
+      ]
+    : [
+        "虚构阅览室开放时间",
+        "虚构学习小组报名",
+        "虚构图书馆工作坊",
+        "虚构校园漫步",
+        "虚构学习资源介绍",
+      ];
+  const activities = english
+    ? [
+        "Fictional algebra discussion",
+        "Fictional physics reading",
+        "Fictional programming workshop",
+        "Fictional study exchange",
+        "Fictional science sketching",
+      ]
+    : [
+        "虚构代数讨论",
+        "虚构物理共读",
+        "虚构编程工作坊",
+        "虚构学习交流",
+        "虚构科学速写",
+      ];
+  const meta = english
+    ? "Fictional demo sample · Not a school announcement"
+    : "虚构演示样例 · 非学校通知";
+  return {
+    notices: titles.map((title, index) => ({
+      key: `demo-notice-${index + 1}`,
+      href: "/news",
+      title,
+      meta,
+      dateLabel: reference.subtract(index, "day").format("YYYY-MM-DD"),
+    })),
+    activities: activities.map((title, index) => ({
+      key: `demo-home-activity-${index + 1}`,
+      href: "/catalog/young-events",
+      title,
+      meta: english
+        ? "Fictional demo sample · Not a public event"
+        : "虚构演示样例 · 非真实公开活动",
+      dateLabel: reference.add(index, "day").format("YYYY-MM-DD"),
+      crossDay: false,
+    })),
+  };
+}
+
+export function getDemoHomePage(identity: DemoIdentity, locale: AppLocale) {
+  const homeCopy = getAnonymousHomePageCopy(locale);
+  return {
+    demo: getDemoView(identity, locale),
+    homeSampleNotice: getDemoCopy(locale).homeSamples,
+    homeCopy,
+    information: getDemoHomeInformation(locale),
+    locale,
+    mainContentLabel: homeCopy.homepage.publicWorkspace.title,
+  };
+}
+
+export function getDemoHomeCampusNow(
+  locale: AppLocale,
+  section?: "bus" | "weather",
+): HomeCampusNow {
+  const english = locale === "en-us";
+  const reference = shanghaiDayjs(DEMO_REFERENCE_NOW);
+  return {
+    weather:
+      section === "bus"
+        ? null
+        : (["ustc-main", "ustc-gaoxin"] as const).map((locationKey, index) => ({
+            locationKey,
+            temperature: `${24 + index}°C`,
+            condition: english ? "Fictional · Sunny" : "虚构 · 晴",
+            rangeLabel: "20–27°C",
+            hourly: [0, 1, 2].map((hour) => ({
+              key: `${locationKey}-${hour}`,
+              label: reference.add(hour, "hour").format("HH:mm"),
+              temperature: `${24 + index + hour}°C`,
+            })),
+          })),
+    bus:
+      section === "weather"
+        ? null
+        : {
+            originNote: english
+              ? "Fictional departures from Sample Campus · Not a real timetable"
+              : "虚构样例校区班次 · 非真实时刻表",
+            emptyNote: english ? "No fictional departures" : "暂无虚构班次",
+            departures: [5, 20, 35, 50, 65].map((minutes, index) => ({
+              key: `demo-bus-${index + 1}`,
+              destination: english
+                ? `Sample destination ${index + 1}`
+                : `虚构目的地 ${index + 1}`,
+              departureTime: reference.add(minutes, "minute").format("HH:mm"),
+              relativeLabel: english
+                ? `In ${minutes} min`
+                : `${minutes} 分钟后`,
+            })),
+          },
+  };
+}
+
+/** Queries may select fixture weeks, never a different clock or a real owner. */
+export function getDemoHomeOverview(
+  identity: DemoIdentity,
+  locale: AppLocale,
+  query = new URLSearchParams(),
+) {
+  const calendar = getDemoCalendar(identity, locale);
+  const snapshotAt = query.get("snapshotAt");
+  const overviewWeek = query.get("overviewWeek");
+  const firstVisibleDate = calendar.semesterWeeks[0]?.[0];
+  const lastVisibleDate = calendar.semesterWeeks.at(-1)?.at(-1);
+  if (
+    snapshotAt !== null &&
+    new Date(snapshotAt).getTime() !== new Date(DEMO_REFERENCE_NOW).getTime()
+  )
+    return null;
+  if (
+    overviewWeek !== null &&
+    (!/^\d{4}-\d{2}-\d{2}$/.test(overviewWeek) ||
+      shanghaiDayjs(overviewWeek).format("YYYY-MM-DD") !== overviewWeek ||
+      !firstVisibleDate ||
+      !lastVisibleDate ||
+      overviewWeek < firstVisibleDate ||
+      overviewWeek > lastVisibleDate)
+  )
+    return null;
+  const source = getDemoWorkspacePage(identity, locale, "calendar");
+  const pendingHomeworks = getDemoHomeworksTabData(
+    locale,
+  ).homeworkSummaries.filter(
+    (homework) => homework.completionRequired && !homework.completion,
+  );
+  return {
+    ...source,
+    tab: "overview" as const,
+    overviewWeek,
+    mainContentLabel: source.copy.workspace.nav.overview.title,
+    todos: getDemoTodos(locale),
+    overview: {
+      calendar,
+      currentTermName: calendar.activeCalendarSemesterName ?? null,
+      dueToday: pendingHomeworks.filter(
+        (homework) =>
+          homework.submissionDueAt &&
+          shanghaiDayjs(homework.submissionDueAt).format("YYYY-MM-DD") ===
+            calendar.todayDate,
+      ),
+      hasAnySelection: source.subscribedSectionCount > 0,
+      hasCurrentTermSelection: true,
+      overviewLinks: [],
+      pendingHomeworks,
+      todaySessions: calendar.allSessions.filter(
+        (session) => session.dateKey === calendar.todayDate,
+      ),
+    },
+  };
+}

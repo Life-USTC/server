@@ -14,6 +14,29 @@ access:
   admin: Admin capabilities are never simulated.
   agent: Demo identity supplies no OAuth, GraphQL or MCP authority.
 requirements:
+- id: demo.home-projection
+  category: privacy
+  rule: The existing Home retains personal overview, campus snapshot, notice and activity summaries and
+    the searchable feature directory. Trusted demo SSR, page-data and exact Home internal reads use
+    sealed fictional data without database, KV, object storage or provider access. Personal overview
+    derives from the existing academic samples and fixed reference clock, without granting a real
+    authenticated viewer. Session generations own client reads; exit, re-entry and late responses cannot
+    restore an earlier identity. Public sample content is explicitly fictional, never an official notice,
+    current weather observation or actual departure. Unfinished news, public activity, weather, bus and
+    website destinations remain visibly unavailable under the parent full-site task. Pinning, link
+    resolution, external navigation and writes stay forbidden. Ordinary Home behavior is unchanged.
+  acceptance:
+    given: A trusted demo in either locale and viewport, alongside an ordinary owner with private records.
+    when: Browse Home and its supported academic links, read Home internal endpoints, switch identities
+      and attempt unsupported destinations, writes and caller-supplied clocks.
+    then:
+    - Home data agrees with the existing sample calendar, homework, todo, exam and navigation facts.
+    - SSR, data and API responses remain private and no-store with no real service or durable effects.
+    - Every public module contains clearly fictional content and unfinished destinations explain their restriction.
+    - Identity changes discard old reads, while ordinary session Home continues to read its actual owner.
+    test:
+      file: tests/integration/rest/demo/home.test.ts
+      name: demo Home isolates fixed overview, public samples and effects en-us
 - id: demo.community-projection
   category: privacy
   rule: Existing catalog and homework discussions share 25 fixed public active roots and 36 named,
@@ -130,6 +153,7 @@ requirements:
 - id: demo.read-only-boundary
   category: authorization
   applies_to:
+  - demo-home
   - demo-todos
   - demo-subscriptions
   - demo-catalog-details
@@ -334,6 +358,24 @@ requirements:
       file: tests/e2e/src/app/demo/exams.test.ts
       name: 'demo.exams: read-only browsing zh-cn 1280'
 capabilities:
+  demo-home:
+    title: Read-only Demo Home
+    description: The existing Home with fixed academic overview and explicitly fictional campus summaries.
+    auth: anon
+    web:
+      pages:
+      - /
+    rest: unavailable
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Read the same academic facts as the supported demo pages
+      - Read explicitly fictional notice, activity, weather and bus samples
+      - Search the full feature directory with unfinished destinations disabled
+      requirement_refs:
+      - demo.home-projection
   demo-community:
     title: Read-only Demo Discussions
     description: Fixed named discussions on existing catalog and homework targets, without real-user or agent authority.
