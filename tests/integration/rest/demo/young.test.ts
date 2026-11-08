@@ -459,10 +459,27 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             data: [],
             pagination: { total: 0, totalPages: 1 },
           });
-          const imageRedirect = await read(`${events}/demo-young-1/image`, 302);
+          const imageRedirect = await read(
+            `${events}/by-id/demo-young-1/image`,
+            302,
+          );
           const posterPath = `${events}/images/demo-young-poster.png`;
           expect(imageRedirect.headers().location).toBe(posterPath);
           await imageRedirect.body();
+          const canonicalPoster = `${events}/by-id/demo-young-1/image`;
+          const posterHead = await read(canonicalPoster, 302, "HEAD");
+          expect(posterHead.headers().location).toBe(posterPath);
+          expect(await posterHead.body()).toHaveLength(0);
+          for (const [identity, status] of [
+            [expiredCookie, 401],
+            [`${cookie}; ${actor.cookie.name}=${actor.cookie.value}`, 403],
+          ] as const)
+            await (
+              await read(canonicalPoster, status, "GET", { cookie: identity })
+            ).body();
+          await (await read(canonicalPoster, 403, "POST")).body();
+          await (await read(`${canonicalPoster}?unexpected=1`, 400)).body();
+
           const poster = await read(posterPath),
             bytes = await poster.body();
           expect([...bytes.subarray(0, 8)]).toEqual([
@@ -490,7 +507,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           ).toHaveLength(0);
           for (const [path, status] of [
             [`${events}/${foreign.youngId}`, 404],
-            [`${events}/${foreign.youngId}/image`, 404],
+            [`${events}/by-id/${foreign.youngId}/image`, 404],
             [`${organizers}/${foreignOrganizer.id}`, 404],
             ["/catalog/young-events/unknown", 404],
             ["/catalog/young-events/organizers/unknown", 404],

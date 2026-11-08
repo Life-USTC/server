@@ -57,6 +57,7 @@ function isDemoYoungRead(path: string) {
     path === "/api/catalog/young-organizers" ||
     /^\/api\/catalog\/young-(?:events|organizers)\/[^/]+$/.test(path) ||
     /^\/api\/catalog\/young-events\/[^/]+\/image$/.test(path) ||
+    /^\/api\/catalog\/young-events\/by-id\/[^/]+\/image$/.test(path) ||
     /^\/api\/catalog\/young-events\/images\/.+$/.test(path) ||
     /^\/api\/workspace\/young-(?:event|organizer)-subscriptions(?:\/[^/]+)?$/.test(
       path,
