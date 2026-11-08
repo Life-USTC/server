@@ -39,6 +39,8 @@ requirements:
 - id: user.application-write-context
   category: authorization
   rule: Application-role writes to calendar tokens, reusable avatar choices and administrative profile or role fields carry the authenticated actor on the same database transaction as the write. Administrative updates retain serializable retries and establish their actor on each attempt. Authentication profile fields retain the existing separate auth role and column grants.
+    Serializable transaction retries remain capped at three attempts, including recognized PostgreSQL
+    write conflicts wrapped by Prisma raw-query errors; unrelated raw-query failures are not retried.
   acceptance:
     given: An isolated database rejects application User updates without the expected actor, while existing authentication column grants remain unchanged.
     when: Token initialization races, a recent session rotates its token, profile completion saves an avatar, a social account hook saves an upstream avatar and an administrator updates another user.
