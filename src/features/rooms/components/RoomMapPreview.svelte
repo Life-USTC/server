@@ -12,6 +12,9 @@ import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Popover from "#lib/components/ui/popover/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import { cn } from "#lib/utils.js";
+import { homePublicReadEpoch } from "@/features/demo/lib/demo-home-owner";
+import type { DemoIdentity } from "@/features/demo/lib/demo-types";
+import { getShellViewer } from "@/lib/shell/shell-viewer";
 import {
   formatRoomMapCopy,
   isRoomMapResult,
@@ -20,12 +23,18 @@ import {
 } from "../lib/room-map-types";
 
 export let code = "";
+export let pageDemo: DemoIdentity | null | undefined = null;
+export let locale = "";
 export let label: string | undefined = undefined;
 export let copy: RoomMapCopy;
 export let loadOnMount = false;
 export let inline = false;
 export let className = "";
 
+const shellViewer = getShellViewer();
+let mounted = false;
+let settledOwner = "";
+let mapEpoch = "";
 let map: RoomMapResult | null = null;
 let loading = false;
 let failed = false;
@@ -41,8 +50,27 @@ let suppressPreview = false;
 let requestController: AbortController | null = null;
 
 $: normalizedCode = code.trim().normalize("NFKC").toUpperCase();
-$: imageUrl = map?.imageUrl ?? map?.sourceImageUrl ?? null;
-$: statusLabel = map ? statusCopy(map.status) : "";
+$: readEpoch = homePublicReadEpoch($shellViewer, pageDemo);
+$: ownerEpoch = readEpoch ? `${readEpoch}:${locale}` : "";
+$: visibleMap =
+  ownerEpoch && mapEpoch === ownerEpoch && map?.code === normalizedCode
+    ? map
+    : null;
+$: imageUrl = allowedImage(
+  visibleMap?.imageUrl ?? visibleMap?.sourceImageUrl ?? null,
+);
+$: sourceImageUrl = allowedImage(visibleMap?.sourceImageUrl ?? null);
+$: statusLabel = visibleMap ? statusCopy(visibleMap.status) : "";
+$: if (mounted) synchronizeOwner(ownerEpoch, normalizedCode, loadOnMount);
+
+function synchronizeOwner(
+  epoch: string,
+  currentCode: string,
+  automatic: boolean,
+) {
+  retireOwner(epoch);
+  if (automatic && epoch && currentCode) void loadMap();
+}
 $: triggerLabel = formatRoomMapCopy(copy.triggerLabel, label ?? normalizedCode);
 $: mapAlt = formatRoomMapCopy(copy.mapAlt, normalizedCode);
 $: dialogTitle = formatRoomMapCopy(copy.dialogTitle, normalizedCode);
@@ -52,10 +80,33 @@ $: dialogDescription = formatRoomMapCopy(
 );
 
 onMount(() => {
-  if (loadOnMount) {
-    void loadMap();
-  }
+  mounted = true;
 });
+
+function retireOwner(epoch: string) {
+  if (epoch === settledOwner) return;
+  settledOwner = epoch;
+  requestController?.abort();
+  clearTimeout(closeTimer);
+  map = null;
+  mapEpoch = "";
+  requestCode = "";
+  loading = false;
+  failed = false;
+  previewOpen = false;
+  dialogOpen = false;
+  zoom = 1;
+}
+
+function allowedImage(url: string | null) {
+  if (!pageDemo || !url) return url;
+  return [
+    "/api/catalog/rooms/images/demo-floor.svg",
+    "/api/catalog/rooms/images/demo-room-101.svg",
+  ].includes(url)
+    ? url
+    : null;
+}
 
 onDestroy(() => {
   requestController?.abort();
@@ -100,11 +151,14 @@ function handleTriggerClick(event: MouseEvent) {
 
 async function loadMap() {
   const requestedCode = normalizedCode;
-  if (!requestedCode || (loading && requestCode === requestedCode)) return;
-  if (map?.code === requestedCode) return;
+  const epoch = ownerEpoch;
+  if (!epoch || !requestedCode || (loading && requestCode === requestedCode))
+    return;
+  if (map?.code === requestedCode && mapEpoch === epoch) return;
 
   requestController?.abort();
-  requestController = new AbortController();
+  const controller = new AbortController();
+  requestController = controller;
   requestCode = requestedCode;
   loading = true;
   failed = false;
@@ -115,19 +169,39 @@ async function loadMap() {
       `/api/catalog/rooms/${encodeURIComponent(requestedCode)}/map`,
       {
         headers: { accept: "application/json" },
-        signal: requestController.signal,
+        cache: pageDemo ? "no-store" : "default",
+        signal: controller.signal,
       },
     );
     if (!response.ok)
       throw new Error(`Room map request failed: ${response.status}`);
     const body: unknown = await response.json();
     if (!isRoomMapResult(body)) throw new Error("Invalid room map response");
-    if (requestCode === requestedCode) map = body;
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") return;
-    if (requestCode === requestedCode) failed = true;
+    if (
+      !controller.signal.aborted &&
+      requestController === controller &&
+      ownerEpoch === epoch &&
+      requestCode === requestedCode
+    ) {
+      map = body;
+      mapEpoch = epoch;
+    }
+  } catch {
+    if (
+      !controller.signal.aborted &&
+      requestController === controller &&
+      ownerEpoch === epoch &&
+      requestCode === requestedCode
+    )
+      failed = true;
   } finally {
-    if (requestCode === requestedCode) loading = false;
+    if (
+      !controller.signal.aborted &&
+      requestController === controller &&
+      ownerEpoch === epoch &&
+      requestCode === requestedCode
+    )
+      loading = false;
   }
 }
 
@@ -160,16 +234,16 @@ function handleWheel(event: WheelEvent) {
 
 {#snippet mapDetails()}
       <div class="grid gap-3">
-        <div class="flex items-start justify-between gap-2">
+        <div class="flex flex-wrap items-start justify-between gap-2">
           <div class="min-w-0">
             <p class="truncate font-medium">{normalizedCode}</p>
-            {#if map?.building || map?.floor}
+            {#if visibleMap?.building || visibleMap?.floor}
               <p class="text-muted-foreground text-xs">
-                {[map?.building, map?.floor].filter(Boolean).join(" · ")}
+                {[visibleMap?.building, visibleMap?.floor].filter(Boolean).join(" · ")}
               </p>
             {/if}
           </div>
-          {#if statusLabel}<Badge variant="secondary">{statusLabel}</Badge>{/if}
+          {#if statusLabel}<Badge class="h-auto max-w-full whitespace-normal text-left" variant="secondary">{statusLabel}</Badge>{/if}
         </div>
 
         {#if loading}
@@ -179,7 +253,7 @@ function handleWheel(event: WheelEvent) {
           <Alert.Root variant="destructive">
             <Alert.Description>{copy.fetchError}</Alert.Description>
           </Alert.Root>
-        {:else if map?.status === "unavailable" || !imageUrl}
+        {:else if visibleMap?.status === "unavailable" || !imageUrl}
           <Alert.Root>
             <Alert.Description>{copy.unavailableDescription}</Alert.Description>
           </Alert.Root>
@@ -191,7 +265,7 @@ function handleWheel(event: WheelEvent) {
             loading="lazy"
             src={imageUrl}
           />
-          {#if map?.status === "overview"}
+          {#if visibleMap?.status === "overview"}
             <p class="text-muted-foreground text-xs">{copy.overview}</p>
           {/if}
         {/if}
@@ -209,9 +283,9 @@ function handleWheel(event: WheelEvent) {
               <ZoomInIcon data-icon="inline-start" />
               {copy.openMap}
             </Button>
-            {#if map?.sourceImageUrl}
+            {#if sourceImageUrl}
               <Button
-                href={map.sourceImageUrl}
+                href={sourceImageUrl}
                 rel="noopener noreferrer"
                 size="sm"
                 target="_blank"
@@ -235,6 +309,7 @@ function handleWheel(event: WheelEvent) {
       {#snippet child({ props })}
         <Button
           {...props}
+          disabled={!ownerEpoch}
           bind:ref={trigger}
           aria-label={triggerLabel}
           class="max-w-full px-1.5"

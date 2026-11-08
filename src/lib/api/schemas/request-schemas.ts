@@ -5,7 +5,10 @@ export * from "./request-publication-read-schemas";
 export * from "./request-query-schemas";
 export * from "./request-schema-primitives";
 
-export { roomMapCodePathParamsSchema } from "./room-map-schemas";
+export {
+  roomMapCodePathParamsSchema,
+  roomMapImageNamePathParamsSchema,
+} from "./room-map-schemas";
 export { subscribedExamsQuerySchema } from "./subscribed-exams-schemas";
 export { subscriptionKindUpdateRequestSchema } from "./subscription-kind-schemas";
 export * from "./young-workspace-schemas";
