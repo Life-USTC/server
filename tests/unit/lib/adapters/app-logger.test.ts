@@ -159,6 +159,214 @@ describe("应用日志记录器", () => {
     expect(JSON.stringify(payload)).not.toContain("private");
   });
 
+  // Prisma 7.10.1 TransactionManagerError messages, independent of the logger's
+  // classifier. The query/commit/rollback operation vocabulary is closed.
+  it.each([
+    [
+      "Unable to start a transaction in the given time.",
+      { reason: "startup_timeout" },
+    ],
+    [
+      "Transaction not found. Transaction ID is invalid, refers to an old closed transaction Prisma doesn't have information about anymore, or was obtained before disconnecting.",
+      { reason: "not_found" },
+    ],
+    [
+      "Transaction already closed: A query cannot be executed on a committed transaction.",
+      { reason: "already_committed", operation: "query" },
+    ],
+    [
+      "Transaction already closed: A commit cannot be executed on a committed transaction.",
+      { reason: "already_committed", operation: "commit" },
+    ],
+    [
+      "Transaction already closed: A rollback cannot be executed on a committed transaction.",
+      { reason: "already_committed", operation: "rollback" },
+    ],
+    [
+      "Transaction already closed: A query cannot be executed on a transaction that was rolled back.",
+      { reason: "already_rolled_back", operation: "query" },
+    ],
+    [
+      "Transaction already closed: A commit cannot be executed on a transaction that was rolled back.",
+      { reason: "already_rolled_back", operation: "commit" },
+    ],
+    [
+      "Transaction already closed: A rollback cannot be executed on a transaction that was rolled back.",
+      { reason: "already_rolled_back", operation: "rollback" },
+    ],
+  ])(
+    "keeps a fixed reason for the exact P2028 template %s",
+    (message, transaction) => {
+      vi.stubEnv("NODE_ENV", "production");
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      for (const location of ["message", "meta.error"] as const) {
+        errorSpy.mockClear();
+        const error = Object.assign(
+          new Error(
+            location === "message"
+              ? `Transaction API error: ${message}`
+              : "private SQL and actor input",
+          ),
+          {
+            name: "PrismaClientKnownRequestError",
+            code: "P2028",
+            ...(location === "meta.error"
+              ? { meta: { error: message, secret: "private metadata" } }
+              : {}),
+          },
+        );
+        logRouteFailure("Read failed", 500, error);
+        expect(errorSpy).toHaveBeenCalledOnce();
+        const payload = String(errorSpy.mock.calls[0]?.[0]);
+        expect(JSON.parse(payload).error).toEqual({
+          name: "PrismaClientKnownRequestError",
+          prismaCode: "P2028",
+          transaction,
+        });
+        expect(payload).not.toContain(message);
+        expect(payload).not.toContain("private");
+        expect(payload).not.toContain("stack");
+      }
+    },
+  );
+
+  it.each([
+    "private SQL before Unable to start a transaction in the given time.",
+    "Unable to start a transaction in the given time. private actor after",
+    " Unable to start a transaction in the given time.",
+    "Unable to start a transaction in the given time.\n",
+    "Transaction API error: Transaction API error: Unable to start a transaction in the given time.",
+    "Transaction already closed: A private query cannot be executed on a committed transaction.",
+    "Transaction already closed: A query cannot be executed on a committed transaction.\n",
+    "A query cannot be executed on an expired transaction.",
+    "private startup timeout after 2000 ms",
+    "x".repeat(513),
+  ])("does not infer a transaction reason from other text: %s", (message) => {
+    vi.stubEnv("NODE_ENV", "production");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    logRouteFailure(
+      "Read failed",
+      500,
+      Object.assign(new Error(message), {
+        code: "P2028",
+        meta: { error: message },
+      }),
+    );
+    expect(JSON.parse(String(errorSpy.mock.calls[0]?.[0])).error).toEqual({
+      name: "Error",
+      prismaCode: "P2028",
+    });
+    expect(String(errorSpy.mock.calls[0]?.[0])).not.toContain(message);
+  });
+
+  it.each([undefined, "P2010"])(
+    "does not classify a known template with code %s",
+    (code) => {
+      vi.stubEnv("NODE_ENV", "production");
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      logRouteFailure(
+        "Read failed",
+        500,
+        Object.assign(
+          new Error(
+            "Transaction API error: Unable to start a transaction in the given time.",
+          ),
+          { code },
+        ),
+      );
+      const payload = JSON.parse(String(errorSpy.mock.calls[0]?.[0]));
+      expect(payload.error).not.toHaveProperty("transaction");
+      expect(String(errorSpy.mock.calls[0]?.[0])).not.toContain(
+        "Unable to start",
+      );
+    },
+  );
+
+  it.each(["meta", "cause"])(
+    "prefers structured execution timeout over an outer reason through %s",
+    (key) => {
+      vi.stubEnv("NODE_ENV", "production");
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const inner = Object.assign(new Error("private inner SQL"), {
+        code: "P2028",
+        meta: { operation: "commit", timeout: 5000, timeTaken: 5368 },
+      });
+      const outer = Object.assign(
+        new Error(
+          "Transaction API error: Unable to start a transaction in the given time.",
+        ),
+        { code: "P2028", [key]: inner },
+      );
+      Object.defineProperty(inner, "cause", { value: outer });
+      logRouteFailure("Read failed", 500, outer);
+      const payload = String(errorSpy.mock.calls[0]?.[0]);
+      expect(JSON.parse(payload).error.transaction).toEqual({
+        reason: "execution_timeout",
+        operation: "commit",
+        timeoutMs: 5000,
+        elapsedMs: 5368,
+      });
+      expect(payload).not.toContain("private");
+      expect(payload).not.toContain("Unable to start");
+    },
+  );
+
+  it("does not evaluate message or meta.error getters for reason classification", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const message = vi.fn(
+      () =>
+        "Transaction API error: Unable to start a transaction in the given time.",
+    );
+    const metaError = vi.fn(() => {
+      throw new Error("private getter");
+    });
+    const error = Object.assign(new Error("private"), {
+      code: "P2028",
+      meta: {},
+    });
+    Object.defineProperty(error, "message", { get: message });
+    Object.defineProperty(error.meta, "error", { get: metaError });
+    expect(() => logRouteFailure("Read failed", 500, error)).not.toThrow();
+    expect(message).not.toHaveBeenCalled();
+    expect(metaError).not.toHaveBeenCalled();
+    expect(JSON.parse(String(errorSpy.mock.calls[0]?.[0])).error).toEqual({
+      name: "Error",
+      prismaCode: "P2028",
+    });
+    expect(String(errorSpy.mock.calls[0]?.[0])).not.toContain("private");
+  });
+
+  it("ignores inherited messages and preserves bounded traversal with hostile causes", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const inherited = Object.assign(
+      Object.create({
+        name: "PrismaClientKnownRequestError",
+        message:
+          "Transaction API error: Unable to start a transaction in the given time.",
+      }),
+      { code: "P2028" },
+    );
+    const { proxy, revoke } = Proxy.revocable({}, {});
+    revoke();
+    inherited.cause = proxy;
+    expect(() => logRouteFailure("Read failed", 500, inherited)).not.toThrow();
+    expect(
+      JSON.parse(String(errorSpy.mock.calls[0]?.[0])).error,
+    ).not.toHaveProperty("transaction");
+    let deep: object = Object.assign(
+      new Error("Unable to start a transaction in the given time."),
+      { code: "P2028" },
+    );
+    for (let depth = 0; depth < 9; depth++) deep = { cause: deep };
+    errorSpy.mockClear();
+    expect(() => logRouteFailure("Read failed", 500, deep)).not.toThrow();
+    expect(
+      JSON.parse(String(errorSpy.mock.calls[0]?.[0])).error,
+    ).not.toHaveProperty("transaction");
+  });
+
   it.each([
     { operation: "private query", timeout: 5000, timeTaken: 5368 },
     { operation: "query", timeout: "5000", timeTaken: 5368 },
