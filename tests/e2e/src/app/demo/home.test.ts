@@ -340,7 +340,6 @@ test("demo.home: held bootstrap preserves read-only Home without a sign-in invit
           };
           const probeId = crypto.randomUUID();
           const probe = `/__test/community-effects?id=${probeId}`;
-          let probeAttempted = false;
           let probeRegistered = false;
           const viewerData = createDeferred<{
             navStats: { user: { id: string } };
@@ -387,7 +386,6 @@ test("demo.home: held bootstrap preserves read-only Home without a sign-in invit
             viewerData.reject(new Error("Home closed before viewer capture"));
           };
           try {
-            probeAttempted = true;
             const registration = await page.request.post(`${probe}&io=1`, {
               headers: secret,
             });
@@ -466,17 +464,15 @@ test("demo.home: held bootstrap preserves read-only Home without a sign-in invit
                 .catch((error: unknown) => errors.push(error));
             await Promise.all(operations);
             page.off("close", close);
-            if (probeAttempted) {
-              try {
-                const removed = await page.request.delete(probe, {
-                  headers: secret,
-                });
-                await removed.body();
-                if (probeRegistered) expect(removed.status()).toBe(204);
-                else expect([204, 404]).toContain(removed.status());
-              } catch (error) {
-                errors.push(error);
-              }
+            try {
+              const removed = await page.request.delete(probe, {
+                headers: secret,
+              });
+              await removed.body();
+              if (probeRegistered) expect(removed.status()).toBe(204);
+              else expect([204, 404]).toContain(removed.status());
+            } catch (error) {
+              errors.push(error);
             }
           }
           if (errors.length === 1) throw errors[0];
