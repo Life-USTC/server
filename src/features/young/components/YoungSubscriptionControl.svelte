@@ -1,6 +1,6 @@
 <script lang="ts">
 import { ChevronDownIcon } from "@lucide/svelte";
-import { untrack } from "svelte";
+import { onDestroy, untrack } from "svelte";
 import { toast } from "svelte-sonner";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
@@ -59,6 +59,24 @@ const prefix = $props.id();
 const shellViewer = getShellViewer();
 const viewerId = $derived($shellViewer.viewer?.id ?? null);
 const viewerStatus = $derived($shellViewer.status);
+let destroyed = false;
+onDestroy(() => {
+  destroyed = true;
+});
+const actionOwner = $derived(
+  JSON.stringify([
+    endpoint,
+    viewerId,
+    viewerStatus,
+    readOnly,
+    $shellViewer.demo?.fixtureVersion,
+    $shellViewer.demo?.expiresAt,
+  ]),
+);
+$effect(() => {
+  void actionOwner;
+  busy = false;
+});
 const reminderSummary = $derived(
   [
     remindSignup && copy.signupShort,
@@ -169,6 +187,8 @@ async function save(next: boolean) {
 
     return;
   }
+  const owner = actionOwner;
+  const current = () => !destroyed && !readOnly && owner === actionOwner;
   busy = true;
   try {
     const response = await fetch(endpoint, {
@@ -183,18 +203,19 @@ async function save(next: boolean) {
     });
     if (!response.ok) throw new Error(copy.failed);
     await response.json();
+    if (!current()) return;
     subscribed = next;
     toast.success(copy.saved);
     await invalidateAll();
   } catch {
-    toast.error(copy.failed);
+    if (current()) toast.error(copy.failed);
   } finally {
-    busy = false;
+    if (current()) busy = false;
   }
 }
 </script>
 
-{#if readOnly}<div class="grid gap-1 text-sm" data-testid="demo-young-subscription-facts"><p>{readOnlyLabel}</p><Field.Field orientation="horizontal"><Checkbox id={`${prefix}-fixed-fact`} checked={subscribed} disabled /><Field.FieldLabel for={`${prefix}-fixed-fact`}>{kind === "events" ? copy.subscribed : copy.followed}</Field.FieldLabel></Field.Field><p>{readOnlyReason}</p></div>{/if}
+{#if readOnly}<div class="grid gap-1 text-sm" data-testid="demo-young-subscription-facts"><p>{readOnlyLabel}</p><Field.Field orientation="horizontal"><Checkbox id={`${prefix}-fixed-fact`} checked={subscribed} disabled /><Field.FieldLabel for={`${prefix}-fixed-fact`}>{kind === "events" ? copy.subscribed : copy.followed}</Field.FieldLabel></Field.Field>{#if readOnlyReason}<p>{readOnlyReason}</p>{/if}</div>{/if}
 {#if compact}
   {#if failed}
     <span class="sr-only" role="alert">{copy.failed}</span>
@@ -233,7 +254,7 @@ async function save(next: boolean) {
         </Button>
       {/if}
     {#if subscribed && loaded && !failed}<Badge variant="secondary">{kind === "events" ? copy.subscribed : copy.followed}</Badge>{/if}
-    {#if readOnly}<Button disabled variant="link">{copy.manage}</Button>{:else if !initialState}<Button href="/workspace/subscriptions/activities" variant="link">{copy.manage}</Button>{/if}
+    {#if readOnly}<Button href={`/workspace/subscriptions/activities?view=${kind}`} variant="link">{copy.manage}</Button>{:else if !initialState}<Button href="/workspace/subscriptions/activities" variant="link">{copy.manage}</Button>{/if}
     </div>
   {#if !initialState && !readOnly}<p class="text-muted-foreground text-sm">{kind === "events" ? copy.hint : copy.followHint}</p>{/if}
     {#if kind === "events" && subscribed && loaded && !failed}

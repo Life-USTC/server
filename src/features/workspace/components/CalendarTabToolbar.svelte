@@ -78,10 +78,9 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
         </DropdownMenu.Trigger>
         <DropdownMenu.Content align="end" preventScroll={false}>
           <DropdownMenu.Group>
-            <DropdownMenu.Item disabled={Boolean(signedData.demo)}>
+            <DropdownMenu.Item>
               {#snippet child({ props })}
-                {#if signedData.demo}<span {...props} title={signedData.demo.readOnlyReason}>{activitiesManageLabel}</span>
-                {:else}<a {...props} href={activitiesManageHref}>{activitiesManageLabel}</a>{/if}
+                <a {...props} href={activitiesManageHref}>{activitiesManageLabel}</a>
               {/snippet}
             </DropdownMenu.Item>
             {#if signedData.calendarLinkState || signedData.calendarSubscriptionUrl}
@@ -96,7 +95,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
     </div>
   </div>
   <div class="hidden flex-wrap items-center gap-2 xl:flex xl:justify-end">
-    <Button class="min-w-28 md:min-w-28" href={signedData.demo ? undefined : activitiesManageHref} disabled={Boolean(signedData.demo)} title={signedData.demo?.readOnlyReason} variant="outline">
+    <Button class="min-w-28 md:min-w-28" href={activitiesManageHref} variant="outline">
       {activitiesManageLabel}
     </Button>
     {#if signedData.calendarLinkState || signedData.calendarSubscriptionUrl}

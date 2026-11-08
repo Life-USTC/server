@@ -30,11 +30,11 @@ async function expectDemoCalendarRange(
 ) {
   // Independent published fixture facts: Sunday weeks, fixed six-row month,
   // and the complete autumn semester including its final padded week.
-  const { start, count, events } = {
-    day: { start: "2026-09-24", count: 1, events: 2 },
-    week: { start: "2026-09-20", count: 7, events: 6 },
-    month: { start: "2026-08-30", count: 42, events: 7 },
-    semester: { start: "2026-08-30", count: 154, events: 9 },
+  const { start, count, events, gridEvents } = {
+    day: { start: "2026-09-24", count: 1, events: 5, gridEvents: 5 },
+    week: { start: "2026-09-20", count: 7, events: 11, gridEvents: 11 },
+    month: { start: "2026-08-30", count: 42, events: 29, gridEvents: 28 },
+    semester: { start: "2026-08-30", count: 154, events: 31, gridEvents: 30 },
   }[view];
   const dates = Array.from({ length: count }, (_, index) =>
     new Date(Date.parse(`${start}T00:00:00Z`) + index * 86_400_000)
@@ -64,7 +64,37 @@ async function expectDemoCalendarRange(
     .toEqual(dates.map((date) => (agenda ? `agenda-${date}` : date.slice(5))));
   if (!agenda)
     await expect(surface.getByRole("rowheader")).toHaveCount(count / 7);
-  await expect(surface.locator("a[href]")).toHaveCount(events);
+  await expect(surface.locator("a[href]")).toHaveCount(
+    agenda ? events : gridEvents,
+  );
+  // Young 9 spans October 2–3 and is rendered once on each day, while the
+  // calendar API and navigation count its single subscribed record only once.
+  const youngIds =
+    view === "day"
+      ? [1, 28, 29]
+      : view === "week"
+        ? [1, 28, 29, 30, 31]
+        : [
+            1, 9, 9, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
+            39, 40, 41, 42,
+          ];
+  const gridLimited = !agenda && (view === "month" || view === "semester");
+  const displayedYoungIds = gridLimited
+    ? youngIds.filter((id) => id !== 28)
+    : youngIds;
+  await expect
+    .poll(() =>
+      surface
+        .locator('a[href^="/catalog/young-events/"]')
+        .evaluateAll((elements) =>
+          elements.map((element) => element.getAttribute("href")).sort(),
+        ),
+    )
+    .toEqual(
+      displayedYoungIds
+        .map((id) => `/catalog/young-events/demo-young-${id}`)
+        .sort(),
+    );
   const day = (date: string): Locator =>
     agenda
       ? surface.locator(`section[aria-labelledby="agenda-${date}"]`)
@@ -81,6 +111,26 @@ async function expectDemoCalendarRange(
     await expect(course).toContainText("09:45");
   }
   if (view === "month" || view === "semester") {
+    if (gridLimited) {
+      // The existing four-chip desktop cap leaves later-starting Young 28 in this summary;
+      // Day view retains all three Young links.
+      await expect(
+        day("2026-09-24").getByText(english ? "1 more" : "还有 1 项", {
+          exact: true,
+        }),
+      ).toBeVisible();
+    }
+    for (const date of ["2026-10-02", "2026-10-03"]) {
+      const crossDay = day(date).locator(
+        'a[href="/catalog/young-events/demo-young-9"]',
+      );
+      await expect(crossDay).toHaveCount(1);
+      await expect(crossDay).toContainText(
+        english ? "Fictional activity 09" : "虚构活动 09",
+      );
+      await expect(crossDay).toContainText("08:30");
+      await expect(crossDay).toContainText("10:30");
+    }
     const homework = day("2026-09-27").locator(
       'a[href="/catalog/sections/910002?homeworkId=demo-homework-physics#homework"]',
     );
@@ -133,7 +183,7 @@ test("demo.calendar: exit and history cannot restore a held previous demo calend
         const response = await route.fetch();
         expect(response.status()).toBe(200);
         const body = await response.json();
-        expect(body.pagination.total).toBe(9);
+        expect(body.pagination.total).toBe(30);
         expect(
           body.data.some((item: { type: string }) => item.type === "schedule"),
         ).toBe(true);
@@ -256,7 +306,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
               await expectNavigationCount(
                 navigation,
                 "/workspace/calendar",
-                9,
+                30,
                 english ? "items" : "汇总项",
               );
               await page.screenshot({
@@ -382,7 +432,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
               page.locator(
                 'a[href="/workspace/subscriptions/activities"]:visible',
               ),
-            ).toHaveCount(0);
+            ).toHaveCount(width === 390 ? 0 : 1);
             if (width === 390) {
               await page
                 .getByRole("button", {
@@ -391,16 +441,20 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                 })
                 .click();
               await expect(page.getByRole("menuitem")).toHaveCount(1);
-              await expect(page.getByRole("menuitem")).toBeDisabled();
+              await expect(page.getByRole("menuitem")).toBeEnabled();
+              await expect(page.getByRole("menuitem")).toHaveAttribute(
+                "href",
+                "/workspace/subscriptions/activities",
+              );
               await page.keyboard.press("Escape");
             }
             const api = await page.request.get(
-              "/api/workspace/calendar/events?dateFrom=2026-09-01&dateTo=2027-01-24&pageSize=2&page=5",
+              "/api/workspace/calendar/events?dateFrom=2026-09-01&dateTo=2027-01-24&pageSize=2&page=15",
             );
             expect(api.status()).toBe(200);
             expect(await api.json()).toMatchObject({
-              data: [{ type: "exam" }],
-              pagination: { total: 9, totalPages: 5 },
+              data: [{ type: "exam" }, { type: "exam" }],
+              pagination: { total: 30, totalPages: 15 },
             });
             expect(api.headers()["cache-control"]).toBe("private, no-store");
             const bootstrap = await page.request.get(
@@ -408,7 +462,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             );
             expect(await bootstrap.json()).toMatchObject({
               viewer: null,
-              navigation: { calendarItemsCount: 9 },
+              navigation: { calendarItemsCount: 30 },
             });
             const effectsResponse = await request.get(probe, {
               headers: secret,

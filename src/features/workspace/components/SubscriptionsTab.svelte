@@ -94,7 +94,7 @@ $: bulkImportSections = matchedSections.map<BulkImportSectionView>(
   }),
 );
 </script>
-<Button class="justify-self-start" href={readOnlyReason ? undefined : "/workspace/subscriptions/activities"} disabled={Boolean(readOnlyReason)} title={signedData.demo?.unavailableReason} variant="outline">{getWorkspacePageCopy(signedData.locale === "en-us" ? "en-us" : "zh-cn").youngEvents.workspace.manage}</Button>
+<Button class="justify-self-start" href="/workspace/subscriptions/activities" variant="outline">{getWorkspacePageCopy(signedData.locale === "en-us" ? "en-us" : "zh-cn").youngEvents.workspace.manage}</Button>
 
 <section class="grid gap-4">
     <SubscriptionsTabToolbar
