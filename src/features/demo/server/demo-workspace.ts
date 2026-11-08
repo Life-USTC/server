@@ -12,6 +12,7 @@ import { getDemoCalendar } from "./demo-calendar";
 import { readDemoCalendarEvents } from "./demo-calendar-events";
 import { getDemoExamsTabData, getDemoUpcomingExamsCount } from "./demo-exams";
 import { getDemoHomeworks, getDemoHomeworksTabData } from "./demo-homeworks";
+import { getDemoCatalogLinksData } from "./demo-links";
 import {
   getDemoSubscribedSections,
   getDemoSubscriptionsTabData,
@@ -94,7 +95,7 @@ export function getDemoWorkspacePage(
             dueToday: [],
             hasAnySelection: true,
             hasCurrentTermSelection: true,
-            overviewLinks: [],
+            overviewLinks: getDemoCatalogLinksData(locale).overviewLinks,
             pendingHomeworks: [],
             todaySessions: [],
           }

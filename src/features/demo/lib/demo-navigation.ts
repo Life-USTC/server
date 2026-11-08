@@ -35,6 +35,7 @@ export function isDemoNavigationDestination(href: string) {
     "/workspace/calendar",
     "/news",
     "/news/sources",
+    "/catalog/links",
     "/catalog/weather",
     "/catalog/bus",
     "/catalog/bus/map",

@@ -100,11 +100,11 @@ describe("sealed demo Home", () => {
       "/catalog/courses/920001",
       "/catalog/teachers/401",
       "/account/settings/profile",
+      "/catalog/links",
     ])
       expect(isDemoNavigationDestination(href)).toBe(true);
     for (const href of [
       "https://example.test",
-      "/catalog/links",
       "/catalog/sections/999",
       "/account/settings/security",
     ])
@@ -131,21 +131,18 @@ describe("sealed demo Home", () => {
       ],
     });
     expect(link.items[0]).not.toHaveProperty("disabledReason");
-    expect(
-      demoNavigationLink(
-        {
-          href: "/catalog/links",
-          label: "Websites",
-          items: [
-            { href: "/api/catalog/links/resolve?slug=sample", label: "Visit" },
-          ],
-        },
-        "Unavailable",
-      ),
-    ).toMatchObject({
-      disabledReason: "Unavailable",
-      items: [{ disabledReason: "Unavailable" }],
-    });
+    const websites = demoNavigationLink(
+      {
+        href: "/catalog/links",
+        label: "Websites",
+        items: [
+          { href: "/api/catalog/links/resolve?slug=sample", label: "Visit" },
+        ],
+      },
+      "Unavailable",
+    );
+    expect(websites).not.toHaveProperty("disabledReason");
+    expect(websites.items).toMatchObject([{ disabledReason: "Unavailable" }]);
   });
   it.each(["en-us", "zh-cn"] as const)(
     "derives full overview and editorial data without ordinary readers in %s",
@@ -169,7 +166,12 @@ describe("sealed demo Home", () => {
           hasCurrentTermSelection: true,
           currentTermName: "2026年秋季学期",
           dueToday: [],
-          overviewLinks: [],
+          overviewLinks: [
+            { slug: "jw", isPinned: true, clickCount: 12 },
+            { slug: "library", isPinned: true, clickCount: 7 },
+            { slug: "mail", isPinned: false, clickCount: 4 },
+            { slug: "icourse", isPinned: false, clickCount: 2 },
+          ],
         },
       });
       expect(

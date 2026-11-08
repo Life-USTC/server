@@ -1,4 +1,6 @@
 <script lang="ts">
+export let readOnlyReason: string | undefined = undefined;
+
 import { onDestroy } from "svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import { isHomeworkPendingForViewer } from "@/features/homeworks/lib/homework-completion-state";
@@ -337,6 +339,7 @@ function overviewStack(
 
       {#if overviewLinkItems.length > 0}
       <OverviewLinksGrid
+        {readOnlyReason}
         class={OVERVIEW_FULL_WIDTH_CLASS}
         workspaceCopy={workspaceCopy}
         workspaceTabHref={workspaceTabHref}

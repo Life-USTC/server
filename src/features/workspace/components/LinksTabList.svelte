@@ -1,4 +1,7 @@
 <script lang="ts">
+export let visitCountLabel: string | undefined = undefined;
+export let readOnlyReason: string | undefined = undefined;
+
 import type { Snippet } from "svelte";
 import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
@@ -54,7 +57,7 @@ export let actions: Snippet<[WorkspaceOverviewLinkItem]> | undefined =
       {#each entry.links as link}
         <Table.Row class="group">
           <Table.Cell class="p-0">
-            <CatalogLinkTableCell {link}>
+            <CatalogLinkTableCell {visitCountLabel} {readOnlyReason} {link}>
               <span class="flex min-w-0 items-center gap-2">
                 <span
                   aria-hidden="true"
@@ -67,7 +70,7 @@ export let actions: Snippet<[WorkspaceOverviewLinkItem]> | undefined =
             </CatalogLinkTableCell>
           </Table.Cell>
           <Table.Cell class="p-0">
-            <CatalogLinkTableCell {link}>
+            <CatalogLinkTableCell {readOnlyReason} {link}>
               <TruncatedText class="text-muted-foreground" text={link.description} />
             </CatalogLinkTableCell>
           </Table.Cell>
@@ -75,7 +78,7 @@ export let actions: Snippet<[WorkspaceOverviewLinkItem]> | undefined =
             <Table.Cell class="p-0">
               <div class={cn(
                 "flex h-full min-h-12 items-center justify-start px-3",
-                !link.isPinned && "md:opacity-0 md:transition-opacity md:group-focus-within:opacity-100 md:group-hover:opacity-100",
+                !link.isPinned && !readOnlyReason && "md:opacity-0 md:transition-opacity md:group-focus-within:opacity-100 md:group-hover:opacity-100",
               )}>{@render actions(link)}</div>
             </Table.Cell>
           {/if}

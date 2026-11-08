@@ -1,4 +1,7 @@
 <script lang="ts">
+export let visitCountLabel: string | undefined = undefined;
+export let readOnlyReason: string | undefined = undefined;
+
 import type {
   WorkspaceLinkPinAction,
   WorkspaceLinkPinSubmit,
@@ -21,9 +24,10 @@ export let updatingCatalogLinkSlug: string | null;
 <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
   {#each links as link}
     <div class="group relative min-w-0">
-      <CatalogLinkVisitAction {link} {linkIconLabel} reserveActionSpace />
-      <div class={`absolute top-2 right-2 opacity-100 transition-opacity ${link.isPinned ? "" : "md:pointer-events-none md:opacity-0 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100"}`}>
+      <CatalogLinkVisitAction {visitCountLabel} {readOnlyReason} {link} {linkIconLabel} reserveActionSpace />
+      <div class={`absolute top-2 right-2 opacity-100 transition-opacity ${link.isPinned || readOnlyReason ? "" : "md:pointer-events-none md:opacity-0 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100"}`}>
         <LinksTabPinButton
+        {readOnlyReason}
           {link}
           {linkReturnTo}
           {pinAction}
