@@ -2219,14 +2219,16 @@
     "enter": "Enter demo",
     "description": "Browse read-only sample todos and subscriptions without creating an account.",
     "displayName": "Demo account · Read only",
-    "readOnlyReason": "Browse sample Home, calendar, todos, homework, exams, subscriptions, catalog details, account profile, news, sources, weather, buses and route map. Changes and external actions are disabled.",
+    "readOnlyReason": "Browse sample Home, calendar, todos, homework, exams, subscriptions, catalog details, account profile, news, sources, activities, organizers, weather, buses and route map. Changes and external actions are disabled.",
     "exit": "Exit demo",
     "newsSamples": "All news, sources, images and attachments here are fixed fictional samples, not school publications.",
     "newsExternalUnavailable": "The fictional source page is unavailable in this read-only demo.",
     "campusSamples": "Fictional weather, timetable and schematic map at a fixed sample time. Not live weather, real departures or real campus locations.",
     "homeSamples": "Campus snapshot, notices and activities below are fictional demo samples, not school announcements, live weather or real departures.",
     "unavailableReason": "Other features are not available in this demo yet.",
-    "referenceTime": "Sample time (Shanghai)"
+    "referenceTime": "Sample time (Shanghai)",
+    "youngSamples": "All activities, organizers, posters and subscription facts here are fixed fictional samples, not school activities or live collection results.",
+    "youngSubscriptionFacts": "Fixed fictional subscription facts · Read only"
   },
   "signIn": {
     "title": "Sign In",

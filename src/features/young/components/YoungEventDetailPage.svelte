@@ -27,13 +27,31 @@ import YoungSourceNote from "./YoungSourceNote.svelte";
 import YoungSubscriptionControl from "./YoungSubscriptionControl.svelte";
 
 type Props = {
+  readOnly?: boolean;
+  readOnlyReason?: string;
+  readOnlyLabel?: string;
+  subscriptionState?: {
+    subscribed: boolean;
+    remindSignup?: boolean;
+    remindDeadline?: boolean;
+    remindStart?: boolean;
+  };
   commentsData?: CommentsInitialData | null;
   copy: AppPageCopy;
   event: YoungEventDetail;
   source: YoungSourceFreshness;
 };
 
-let { commentsData = null, copy, event, source }: Props = $props();
+let {
+  readOnly = false,
+  readOnlyReason = "",
+  readOnlyLabel = "",
+  subscriptionState,
+  commentsData = null,
+  copy,
+  event,
+  source,
+}: Props = $props();
 
 let CommentsPanel = $state<
   | typeof import("@/features/comments/components/CommentsPanel.svelte").default
@@ -169,20 +187,22 @@ const signupLabel = $derived(
       </div>
       <div class="flex flex-wrap items-center gap-3">
         <Button
-          href={signupHref}
+          href={readOnly ? undefined : signupHref}
+          disabled={readOnly}
+          aria-describedby={readOnly ? "demo-young-signup-unavailable" : undefined}
           rel="noreferrer noopener"
           target="_blank"
           data-testid="young-event-signup"
         >
           {signupLabel}
         </Button>
-        <YoungSubscriptionControl
+        <YoungSubscriptionControl {readOnly} {readOnlyReason} {readOnlyLabel} initialState={subscriptionState}
           compact
           id={event.youngId}
           copy={youngCopy.workspace}
         />
       </div>
-      <p class="text-sm text-muted-foreground">{youngCopy.signupHint}</p>
+      {#if readOnly}<p class="text-sm" id="demo-young-signup-unavailable">{readOnlyReason}</p>{:else}<p class="text-sm text-muted-foreground">{youngCopy.signupHint}</p>{/if}
     </div>
   </header>
 
@@ -226,6 +246,7 @@ const signupLabel = $derived(
       {#key `comments:young-event:${event.youngId}`}
         {#if CommentsPanel}
           <CommentsPanel
+            readOnlyReason={readOnly ? readOnlyReason : undefined}
             heading={copy.comments.title}
             initialData={commentsData}
             permalinkBaseHref={commentTargetPermalinkBaseHref({

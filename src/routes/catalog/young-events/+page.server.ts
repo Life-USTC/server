@@ -1,14 +1,21 @@
+import { getDemoYoungEventsPage } from "@/features/demo/server/demo-young-page";
 import { loadYoungEventsPage } from "@/features/young/server/young-page-load";
 import { updateSocialMetadata } from "@/lib/social-metadata";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
   const [data, layoutData] = await Promise.all([
-    loadYoungEventsPage({
-      locals: event.locals,
-      request: event.request,
-      url: event.url,
-    }),
+    event.locals.demo
+      ? getDemoYoungEventsPage(
+          event.locals.demo,
+          event.locals.locale,
+          event.url,
+        )
+      : loadYoungEventsPage({
+          locals: event.locals,
+          request: event.request,
+          url: event.url,
+        }),
     event.parent(),
   ]);
 

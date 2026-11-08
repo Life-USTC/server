@@ -32,6 +32,7 @@ import YoungEventFilters from "./YoungEventFilters.svelte";
 import YoungSourceNote from "./YoungSourceNote.svelte";
 
 type Props = {
+  readOnly?: boolean;
   categories: string[];
   copy: AppPageCopy;
   data: YoungEventSummary[];
@@ -42,6 +43,7 @@ type Props = {
 };
 
 let {
+  readOnly = false,
   categories,
   copy,
   data,
@@ -150,7 +152,7 @@ function listStatus(event: YoungEventSummary) {
 {#snippet description()}
   <p class="mt-1 max-w-2xl text-muted-foreground [overflow-wrap:anywhere]">
     {#each descriptionParts as part, index (index)}
-      {part}{#if index < descriptionParts.length - 1}<a class="underline underline-offset-4" href="https://young.ustc.edu.cn" rel="noreferrer noopener" target="_blank">{youngCopy.platformName}</a>{/if}
+      {part}{#if index < descriptionParts.length - 1}{#if readOnly}<span>{youngCopy.platformName}</span>{:else}<a class="underline underline-offset-4" href="https://young.ustc.edu.cn" rel="noreferrer noopener" target="_blank">{youngCopy.platformName}</a>{/if}{/if}
     {/each}
   </p>
 {/snippet}

@@ -1,7 +1,9 @@
+import { DEMO_YOUNG_IDS } from "@/features/demo/lib/demo-young-ids";
 import type { AppLocale } from "@/i18n/config";
 import { parseInteger } from "@/lib/integers";
 import { getDemoHomework } from "./demo-homeworks";
 import { getDemoSubscribedSections } from "./demo-subscriptions";
+import { getDemoYoungEvent } from "./demo-young";
 
 type TargetInput = {
   targetType: string;
@@ -25,6 +27,7 @@ export function resolveDemoCatalogTarget(
 ) {
   const allowedSelectors: Record<string, readonly string[]> = {
     homework: ["targetId", "homeworkId"],
+    "young-event": ["targetId", "youngId"],
     section: ["targetId", "sectionJwId"],
     course: ["targetId", "courseJwId"],
     teacher: ["targetId", "teacherId"],
@@ -44,6 +47,18 @@ export function resolveDemoCatalogTarget(
   ] as const) {
     if (input[key] !== undefined && !allowed.includes(key)) return null;
   }
+  const youngId = input.youngId ?? input.targetId;
+  const youngEvent =
+    input.targetType === "young-event" && youngId
+      ? getDemoYoungEvent(locale, youngId)
+      : null;
+  if (
+    input.targetType === "young-event" &&
+    (!youngEvent ||
+      (input.targetId !== undefined && input.targetId !== youngEvent.youngId) ||
+      (input.youngId !== undefined && input.youngId !== youngEvent.youngId))
+  )
+    return null;
   const homeworkId = input.homeworkId ?? input.targetId;
   const homework =
     input.targetType === "homework" && homeworkId
@@ -100,9 +115,14 @@ export function resolveDemoCatalogTarget(
     (type === "course" && !course) ||
     (type === "teacher" && !teacher) ||
     (type === "section-teacher" && (!section || !teacher)) ||
-    !["section", "course", "teacher", "section-teacher", "homework"].includes(
-      type,
-    )
+    ![
+      "section",
+      "course",
+      "teacher",
+      "section-teacher",
+      "homework",
+      "young-event",
+    ].includes(type)
   )
     return null;
   return {
@@ -120,8 +140,10 @@ export function resolveDemoCatalogTarget(
     teacherId: teacher?.id ?? null,
     sectionTeacherId: null,
     homeworkId: homework?.id ?? null,
-    youngEventId: null,
-    youngId: null,
+    youngEventId: youngEvent
+      ? 700001 + DEMO_YOUNG_IDS.indexOf(youngEvent.youngId)
+      : null,
+    youngId: youngEvent?.youngId ?? null,
     sectionTeacherSectionId:
       type === "section-teacher" ? (section?.id ?? null) : null,
     sectionTeacherTeacherId:
@@ -144,6 +166,6 @@ export function resolveDemoCatalogTarget(
     courseJwId: course?.jwId ?? null,
     courseName: course?.namePrimary ?? null,
     teacherName: teacher?.namePrimary ?? null,
-    youngEventName: null,
+    youngEventName: youngEvent?.name ?? null,
   };
 }

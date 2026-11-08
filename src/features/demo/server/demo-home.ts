@@ -20,40 +20,15 @@ import {
   getDemoView,
   getDemoWorkspacePage,
 } from "./demo-workspace";
+import { getDemoYoungHomeActivities } from "./demo-young";
 
 /** Sealed fictional editorial content: never a publication, provider or bus read. */
 export function getDemoHomeInformation(
   locale: AppLocale,
 ): AnonymousHomeInformation {
-  const english = locale === "en-us";
-  const reference = shanghaiDayjs(DEMO_REFERENCE_NOW);
-  const activities = english
-    ? [
-        "Fictional algebra discussion",
-        "Fictional physics reading",
-        "Fictional programming workshop",
-        "Fictional study exchange",
-        "Fictional science sketching",
-      ]
-    : [
-        "虚构代数讨论",
-        "虚构物理共读",
-        "虚构编程工作坊",
-        "虚构学习交流",
-        "虚构科学速写",
-      ];
   return {
     notices: getDemoNewsHomeNotices(locale),
-    activities: activities.map((title, index) => ({
-      key: `demo-home-activity-${index + 1}`,
-      href: "/catalog/young-events",
-      title,
-      meta: english
-        ? "Fictional demo sample · Not a public event"
-        : "虚构演示样例 · 非真实公开活动",
-      dateLabel: reference.add(index, "day").format("YYYY-MM-DD"),
-      crossDay: false,
-    })),
+    activities: getDemoYoungHomeActivities(locale),
   };
 }
 

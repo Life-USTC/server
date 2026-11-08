@@ -25,6 +25,7 @@ import type {
 export let anchorDate: string;
 export let events: YoungCalendarEvent[] = [];
 export let locale = "zh-cn";
+export let referenceNow: string | undefined = undefined;
 export let timeBasis: YoungEventTimeBasis = "activity";
 export let view: YoungCalendarView = "month";
 export let conflictIds = new Set<string>();
@@ -59,7 +60,7 @@ $: days = youngCalendarDays(
   view,
   range,
   events,
-  undefined,
+  referenceNow ? new Date(referenceNow) : undefined,
   timeBasis,
   anchorDate,
 );
@@ -178,7 +179,7 @@ function crossesDate(event: YoungCalendarEvent) {
   <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:flex sm:justify-between sm:gap-3">
     <div class="flex shrink-0 items-center gap-1 sm:gap-2">
       <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" aria-label={labels.previous} variant="outline" href={hrefFor(view, youngCalendarPreviousDate(view, anchorDate))}>‹</Button>
-      <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" variant="outline" href={hrefFor(view, normalizeYoungCalendarDate(null))}>{labels.today}</Button>
+      <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" variant="outline" href={hrefFor(view, normalizeYoungCalendarDate(referenceNow?.slice(0, 10) ?? null))}>{labels.today}</Button>
       <Button class="max-md:min-h-8 max-md:min-w-0 max-md:px-2" aria-label={labels.next} variant="outline" href={hrefFor(view, youngCalendarNextDate(view, anchorDate))}>›</Button>
     </div>
     <h2 class="col-span-2 row-start-2 min-w-0 break-words font-medium text-sm sm:flex-1 sm:text-center sm:text-base">{heading}</h2>

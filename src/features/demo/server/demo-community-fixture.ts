@@ -8,6 +8,7 @@ type Target = {
   sectionId?: string;
   teacherId?: string;
   homeworkId?: string;
+  youngId?: string;
 };
 export type DemoCommunityRecord = { target: Target; comment: RawComment };
 

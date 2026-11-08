@@ -620,13 +620,17 @@ for (const locale of ["en-us", "zh-cn"] as const)
                   );
                   if (module === "activities") {
                     await expect(
-                      page.getByTestId(`home-${module}`).locator("a[href]"),
-                    ).toHaveCount(0);
+                      page
+                        .getByTestId("home-activities")
+                        .locator(
+                          'a[data-slot="item"][href^="/catalog/young-events/demo-young-"]',
+                        ),
+                    ).toHaveCount(5);
                     await expect(
                       page
-                        .getByTestId(`home-${module}`)
-                        .locator('[data-slot="item"][aria-disabled="true"]'),
-                    ).toHaveCount(5);
+                        .getByTestId("home-activities")
+                        .locator('a[href="/catalog/young-events"]'),
+                    ).toHaveCount(1);
                   } else {
                     await expect(
                       page
@@ -664,10 +668,6 @@ for (const locale of ["en-us", "zh-cn"] as const)
                   "overview-focus-title",
                 ])
                   await expectReadable(page.getByTestId(id));
-                for (const id of ["home-activities"])
-                  await expect(
-                    page.getByTestId(id).locator("a[href]"),
-                  ).toHaveCount(0);
                 for (const family of ["weather", "bus"])
                   await expect(
                     page
@@ -691,13 +691,12 @@ for (const locale of ["en-us", "zh-cn"] as const)
                   directory.locator('[aria-disabled="true"]'),
                 ).not.toHaveCount(0);
                 await expect(
-                  directory.locator(
-                    'a[href="/catalog/links"], a[href="/catalog/young-events"]',
-                  ),
+                  directory.locator('a[href="/catalog/links"]'),
                 ).toHaveCount(0);
                 for (const href of [
                   "/catalog/weather",
                   "/catalog/bus",
+                  "/catalog/young-events",
                   "/news",
                 ])
                   await expect(

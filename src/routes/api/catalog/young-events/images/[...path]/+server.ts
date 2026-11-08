@@ -1,5 +1,6 @@
 import type { RequestHandler } from "@sveltejs/kit";
 import { getCloudflareTaskScheduler } from "@/lib/adapters/cloudflare-runtime";
+import { getDemoYoungPosterRoute } from "@/lib/api/routes/demo-young-route";
 import { getYoungEventImageByPathRoute } from "@/lib/api/routes/young-event-routes";
 import { observedApiRoute } from "@/lib/log/api-observability";
 
@@ -13,11 +14,13 @@ import { observedApiRoute } from "@/lib/log/api-observability";
  * @response 502:openApiErrorSchema
  * @response 503:openApiErrorSchema
  */
-export const GET: RequestHandler = ({ request, params, platform }) =>
-  observedApiRoute(() =>
-    getYoungEventImageByPathRoute(
-      request,
-      { path: params.path ?? "" },
-      { defer: getCloudflareTaskScheduler(platform) },
-    ),
-  )(request);
+export const GET: RequestHandler = ({ request, params, platform, locals }) =>
+  locals.demo
+    ? getDemoYoungPosterRoute(request, params.path ?? "")
+    : observedApiRoute(() =>
+        getYoungEventImageByPathRoute(
+          request,
+          { path: params.path ?? "" },
+          { defer: getCloudflareTaskScheduler(platform) },
+        ),
+      )(request);

@@ -1,11 +1,27 @@
 import type { ShellLink } from "@/lib/components/shell/types";
 import { isDemoNewsId } from "./demo-news-ids";
+import { isDemoYoungId, isDemoYoungOrganizerId } from "./demo-young-ids";
 
 /** Presentation capabilities only; the server request boundary remains authoritative. */
 export function isDemoNavigationDestination(href: string) {
   if (href.startsWith("/news/") && isDemoNewsId(href.slice("/news/".length)))
     return true;
+  if (
+    href.startsWith("/catalog/young-events/organizers/") &&
+    isDemoYoungOrganizerId(
+      href.slice("/catalog/young-events/organizers/".length),
+    )
+  )
+    return true;
+  if (
+    href.startsWith("/catalog/young-events/") &&
+    isDemoYoungId(href.slice("/catalog/young-events/".length))
+  )
+    return true;
   return [
+    "/catalog/young-events",
+    "/catalog/young-events/calendar",
+    "/catalog/young-events/organizers",
     "/",
     "/workspace/todos",
     "/workspace/subscriptions",

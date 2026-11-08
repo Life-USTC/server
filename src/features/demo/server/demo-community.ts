@@ -20,13 +20,20 @@ import {
   getDemoCommunityRecords,
 } from "./demo-community-fixture";
 
+import { getDemoYoungCommunityRecords } from "./demo-young-community";
+
+const recordsFor = (locale: AppLocale) => [
+  ...getDemoCommunityRecords(locale),
+  ...getDemoYoungCommunityRecords(locale),
+];
+
 type Target = NonNullable<ReturnType<typeof resolveDemoCatalogTarget>>;
 const order = (a: RawComment, b: RawComment) =>
   a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id);
 const targetKey = (target: Target) =>
   target.type === "section-teacher"
     ? `section-teacher:${target.sectionId}:${target.teacherId}`
-    : `${target.type}:${target.homeworkId ?? target.targetId}`;
+    : `${target.type}:${target.homeworkId ?? target.youngId ?? target.targetId}`;
 
 function targetFor(record: DemoCommunityRecord, locale: AppLocale): Target {
   const target = resolveDemoCatalogTarget(record.target, locale);
@@ -83,7 +90,7 @@ export function getDemoCommunityPage(
   page: number,
   pageSize: number,
 ) {
-  const records = getDemoCommunityRecords(locale);
+  const records = recordsFor(locale);
   const roots = records
     .filter(
       (record) =>
@@ -110,7 +117,7 @@ export function getDemoCommunityPage(
 }
 
 export function getDemoCommunityComment(id: string, locale: AppLocale) {
-  const records = getDemoCommunityRecords(locale);
+  const records = recordsFor(locale);
   const record = records.find(({ comment }) => comment.id === id);
   if (!record) return null;
   const root = records.find(
@@ -142,7 +149,7 @@ export function getDemoCommunityReplies(
   cursor: string | undefined,
   pageSize: number,
 ) {
-  const records = getDemoCommunityRecords(locale);
+  const records = recordsFor(locale);
   const anchor = records.find(({ comment }) => comment.id === id)?.comment;
   const root =
     anchor &&
@@ -185,9 +192,7 @@ export function getDemoCommunityReplies(
 }
 
 export function getDemoCommunityPermalink(id: string, locale: AppLocale) {
-  const record = getDemoCommunityRecords(locale).find(
-    ({ comment }) => comment.id === id,
-  );
+  const record = recordsFor(locale).find(({ comment }) => comment.id === id);
   if (!record) return null;
   const target = targetFor(record, locale);
   let base: string;
@@ -210,6 +215,11 @@ export function getDemoCommunityPermalink(id: string, locale: AppLocale) {
       type: "homework",
       homeworkId: target.homeworkId,
       sectionJwId: target.homeworkSectionJwId,
+    });
+  else if (target.type === "young-event" && target.youngId)
+    base = commentTargetPermalinkBaseHref({
+      type: "young-event",
+      youngId: target.youngId,
     });
   else if (target.sectionJwId)
     base = commentTargetPermalinkBaseHref({
