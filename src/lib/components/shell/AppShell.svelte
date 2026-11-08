@@ -141,19 +141,43 @@ let workspaceNavigation: WorkspaceNavigationSummary | null = $state.raw(
 );
 let shellBootstrapAbortController: AbortController | null = null;
 let shellBootstrapGeneration = 0;
+let shellMounted = false;
+let globalSearchGeneration = 0;
 let shellResolved = $state(false);
 
 let footerLinks = $derived(buildFooterLinks(data.copy.footer));
 
 async function ensureGlobalSearchDialog() {
-  GlobalSearchDialog ??= (
-    await import("@/features/search/components/GlobalSearchDialog.svelte")
-  ).default;
+  return (
+    GlobalSearchDialog ??
+    (await import("@/features/search/components/GlobalSearchDialog.svelte"))
+      .default
+  );
+}
+
+function globalSearchOwner() {
+  return JSON.stringify([
+    viewerUser?.id,
+    viewerDemo?.fixtureVersion,
+    viewerDemo?.expiresAt,
+    data.locale,
+    routePage.url.pathname,
+    shellBootstrapGeneration,
+  ]);
 }
 
 async function openGlobalSearch() {
-  if (viewerDemo) return;
-  await ensureGlobalSearchDialog();
+  const generation = ++globalSearchGeneration;
+  const owner = globalSearchOwner();
+  const component = await ensureGlobalSearchDialog();
+  if (
+    !shellMounted ||
+    generation !== globalSearchGeneration ||
+    owner !== globalSearchOwner() ||
+    (viewerDemo && viewerDemo.expiresAt <= Date.now())
+  )
+    return;
+  GlobalSearchDialog = component;
   globalSearchOpen = true;
 }
 
@@ -327,6 +351,7 @@ async function setLocale(locale: "en-us" | "zh-cn") {
 }
 
 onMount(() => {
+  shellMounted = true;
   sidebarOpen =
     loadSidebarPreferences().open ??
     !window.matchMedia("(max-width: 1023px)").matches;
@@ -354,6 +379,8 @@ onMount(() => {
   systemTheme.addEventListener("change", applySystemTheme);
 
   return () => {
+    shellMounted = false;
+    globalSearchGeneration += 1;
     cancelShellBootstrap();
     window.removeEventListener("keydown", handleGlobalSearchKeydown);
     window.removeEventListener(SHELL_THEME_CHANGE_EVENT, syncThemeMode);
@@ -364,6 +391,7 @@ onMount(() => {
 afterNavigate(({ from, to, type, shallow }) => {
   if (shallow && type === "goto") return;
   if (!from || !to) return;
+  globalSearchGeneration += 1;
   void resolveClientShell(type);
   if (
     from.url.pathname === to.url.pathname &&
@@ -384,6 +412,7 @@ $effect.pre(() => {
       shellResolved = false;
       workspaceNavigation = null;
       globalSearchOpen = false;
+      globalSearchGeneration += 1;
       closeMenus();
     }
     viewerUser = data.user;
@@ -532,7 +561,6 @@ let globalSearchShortcutLabel = $derived(
       copy={data.copy}
       focused
       globalSearchShortcutLabel={globalSearchShortcutLabel}
-      unavailableReason={viewerDemo?.unavailableReason}
       {homeHref}
         {homeLabel}
       hideSignIn={hideSignIn}
@@ -599,7 +627,6 @@ let globalSearchShortcutLabel = $derived(
           closeMenus={closeMenus}
           copy={data.copy}
           globalSearchShortcutLabel={globalSearchShortcutLabel}
-          unavailableReason={viewerDemo?.unavailableReason}
           {homeHref}
         {homeLabel}
           hideSignIn={hideSignIn}
@@ -661,12 +688,11 @@ let globalSearchShortcutLabel = $derived(
       />
     {/if}
 
-    {#if GlobalSearchDialog && !viewerDemo}
+    {#if GlobalSearchDialog}
       <GlobalSearchDialog
         copy={data.copy.globalSearch}
         locale={data.locale}
         bind:open={globalSearchOpen}
-        signedIn={Boolean(viewerUser)}
         on:openChange={(event) => {
           globalSearchOpen = event.detail;
         }}

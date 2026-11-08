@@ -158,7 +158,7 @@ describe("sealed demo Home", () => {
         navStats: {
           user: { id: "demo:workspace-v1", username: null },
           pendingHomeworksCount: 3,
-          calendarItemsCount: 9,
+          calendarItemsCount: 30,
           examsCount: 2,
           pendingTodosCount: 2,
         },

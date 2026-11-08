@@ -1,5 +1,6 @@
 <script lang="ts">
 export let readOnlyReason: string | undefined = undefined;
+export let revealRequest = 0;
 
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
@@ -32,6 +33,11 @@ export let updatingCatalogLinkSlug: string | null;
 export let signedLinkGroups: SignedLinkGroup[];
 let draft: Record<string, string> = { search: linkSearchQuery };
 let applied: Record<string, string> = {};
+$: if (revealRequest) {
+  draft = {};
+  applied = {};
+  linkSearchQuery = "";
+}
 $: common = getWorkspacePageCopy(
   page.data.locale === "en-us" ? "en-us" : "zh-cn",
 ).common;

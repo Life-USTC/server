@@ -1,4 +1,5 @@
 <script lang="ts">
+import { onDestroy } from "svelte";
 import { toast } from "svelte-sonner";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import EndlessScroll from "#lib/components/EndlessScroll.svelte";
@@ -22,6 +23,7 @@ import type { PageData } from "../../../routes/workspace/subscriptions/activitie
 let { data, endless }: { data: PageData; endless: EndlessScrollState } =
   $props();
 const copy = $derived(data.copy.youngEvents.workspace);
+const readOnly = $derived(Boolean(data.demo));
 const result = $derived(data.events ?? data.organizers ?? data.notifications);
 /**
  * All three `?view=` states share this route, so the heading has to name the
@@ -59,7 +61,26 @@ function filterNotifications(value: string) {
   void goto(`${page.url.pathname}?${query}`, { reset: false });
 }
 let reading = $state<string | null>(null);
+let destroyed = false;
+onDestroy(() => {
+  destroyed = true;
+});
+const readOwner = $derived(
+  JSON.stringify([
+    data.userId,
+    data.locale,
+    data.demo?.fixtureVersion,
+    data.demo?.expiresAt,
+  ]),
+);
+$effect(() => {
+  void readOwner;
+  reading = null;
+});
 async function markRead(id: string) {
+  if (readOnly) return;
+  const owner = readOwner;
+  const current = () => !destroyed && !readOnly && owner === readOwner;
   reading = id;
   try {
     const response = await fetch(
@@ -69,11 +90,11 @@ async function markRead(id: string) {
     if (!response.ok) throw new Error();
     const result = youngNotificationReadSchema.parse(await response.json());
     if (result.id !== id || result.success !== true) throw new Error();
-    await invalidateAll();
+    if (current()) await invalidateAll();
   } catch {
-    toast.error(copy.failed);
+    if (current()) toast.error(copy.failed);
   } finally {
-    reading = null;
+    if (current()) reading = null;
   }
 }
 </script>
@@ -120,19 +141,19 @@ async function markRead(id: string) {
     <Item.Group class="gap-3">
       {#if data.events}
         {#each data.events.data as row (row.youngId)}
-          <Item.Root variant="outline">
+          <Item.Root variant="outline" data-testid="young-workspace-event-row" data-record-id={row.youngId}>
             <Item.Content>
               <div class="grid gap-3">
             <a class="font-medium [overflow-wrap:anywhere]" href={`/catalog/young-events/${encodeURIComponent(row.youngId)}`}>{row.event.name}</a>
                 <p>{youngDateTime(row.event.startAt) ?? copy.unknown}{row.event.location ? ` · ${row.event.location}` : ""}</p>
-            <YoungSubscriptionControl id={row.youngId} copy={copy} initialState={{ ...row, subscribed: true }} />
+            <YoungSubscriptionControl id={row.youngId} copy={copy} initialState={{ ...row, subscribed: true }} {readOnly} readOnlyLabel={data.youngSubscriptionFactsLabel ?? ""} />
               </div>
             </Item.Content>
           </Item.Root>
         {/each}
       {:else if data.organizers}
         {#each data.organizers.data as row (row.organizerId)}
-          <Item.Root variant="outline">
+          <Item.Root variant="outline" data-testid="young-workspace-organizer-row" data-record-id={row.organizerId}>
             <Item.Content>
               <div class="grid gap-3">
                 <a
@@ -143,6 +164,8 @@ async function markRead(id: string) {
                 <YoungSubscriptionControl
                   id={row.organizerId}
                   kind="organizers"
+                  {readOnly}
+                  readOnlyLabel={data.youngSubscriptionFactsLabel ?? ""}
                   copy={copy}
                   initialState={{ subscribed: true }}
                 />
@@ -152,7 +175,7 @@ async function markRead(id: string) {
         {/each}
       {:else if data.notifications}
         {#each data.notifications.data as row (row.id)}
-          <Item.Root variant="outline">
+          <Item.Root variant="outline" data-testid="young-workspace-notification-row" data-record-id={row.id}>
             <Item.Content>
               <div class="grid gap-3">
                 <div class="flex flex-wrap items-center gap-3">
@@ -165,7 +188,7 @@ async function markRead(id: string) {
                 </div>
                 <p class="text-sm [overflow-wrap:anywhere]">{youngNotificationDescription(row, copy)}</p>
                 <div class="flex flex-wrap gap-2">
-              {#if !row.readAt}<Button variant="outline" size="sm" disabled={reading !== null} onclick={() => markRead(row.id)}>{copy.read}</Button>{/if}
+              {#if !row.readAt}<Button variant="outline" size="sm" disabled={readOnly || reading !== null} onclick={() => markRead(row.id)}>{copy.read}</Button>{/if}
                   {#if row.youngId}
                 <Button variant="ghost" size="sm" href={`/catalog/young-events/${encodeURIComponent(row.youngId)}`}>{copy.viewActivity}</Button>
                   {:else if row.organizerId}

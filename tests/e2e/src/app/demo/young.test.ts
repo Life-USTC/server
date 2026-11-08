@@ -144,13 +144,15 @@ for (const [family, path] of scenes)
                   await fixedSubscription(page, true, locale, "organizers");
                   const manage = page
                     .locator("#main-content aside")
-                    .getByRole("button", {
+                    .getByRole("link", {
                       name: c.youngEvents.workspace.manage,
                       exact: true,
                     });
                   await expect(manage).toHaveCount(1);
-                  await expect(manage).toBeDisabled();
-                  await expect(manage).not.toHaveAttribute("href");
+                  await expect(manage).toHaveAttribute(
+                    "href",
+                    "/workspace/subscriptions/activities?view=organizers",
+                  );
                 } else if (family === "detail") {
                   await expect(
                     page.getByRole("heading", { level: 1 }),

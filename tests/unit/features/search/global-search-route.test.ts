@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { searchGloballyMock } = vi.hoisted(() => ({
+const { searchGloballyMock, observedRouteMock } = vi.hoisted(() => ({
   searchGloballyMock: vi.fn(),
+  observedRouteMock: vi.fn(
+    (handler: (request: Request) => Response | Promise<Response>) => handler,
+  ),
+}));
+
+vi.mock("@/lib/log/api-observability", () => ({
+  observedApiRoute: observedRouteMock,
 }));
 
 vi.mock("@/features/search/server/global-search-service", () => ({
@@ -25,6 +32,92 @@ describe("global search route", () => {
     vi.clearAllMocks();
     clearPublicRuntimeCache();
     vi.resetModules();
+  });
+
+  it("serves trusted Demo before ordinary auth, queries and durable observations", async () => {
+    const { GET } = await import("@/routes/api/search/+server");
+    const { resolveSessionUserId } = await import("@/lib/auth/api-auth");
+    const request = new Request(
+      "https://life.example/api/search?q=algebra&scope=workspace&locale=en-us",
+    );
+    const response = await GET({
+      request,
+      locals: {
+        demo: { fixtureVersion: "workspace-v1", expiresAt: 1_800_000_000_000 },
+      },
+    } as unknown as Parameters<typeof GET>[0]);
+    expect(response.status).toBe(200);
+    expect(
+      (await response.json()).groups.map(
+        (group: { type: string }) => group.type,
+      ),
+    ).toEqual(["sections", "courses", "homeworks", "todos"]);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+      "no-store",
+    );
+    expect(response.headers.get("Vary")).toBe("Cookie");
+    expect(response.headers.get("X-Robots-Tag")).toBe(
+      "noindex, nofollow, noarchive",
+    );
+    expect(searchGloballyMock).not.toHaveBeenCalled();
+    expect(resolveSessionUserId).not.toHaveBeenCalled();
+    expect(observedRouteMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps Demo query aliases, locale, limits and validation identical and private", async () => {
+    const { getDemoGlobalSearchRoute } = await import(
+      "@/lib/api/routes/global-search"
+    );
+    const read = (params: URLSearchParams) =>
+      getDemoGlobalSearchRoute(
+        new Request(`https://life.example/api/search?${params}`),
+      );
+    const aliased = read(
+      new URLSearchParams({
+        query: "  algebra  ",
+        locale: "en-us",
+        scope: "workspace",
+        limit: "1",
+      }),
+    );
+    expect(
+      (await aliased.json()).groups.map(
+        (group: { items: unknown[] }) => group.items.length,
+      ),
+    ).toEqual([1, 1, 1, 1]);
+    expect(
+      await read(new URLSearchParams({ q: "", query: "algebra" })).json(),
+    ).toEqual({ query: "", groups: [] });
+    for (const query of ["?", "x".repeat(200), "  xx  "])
+      expect(read(new URLSearchParams({ q: query })).status).toBe(200);
+    const invalidParams: Record<string, string>[] = [
+      { q: "x".repeat(201) },
+      { limit: "0" },
+      { limit: "26" },
+      { limit: "1.5" },
+      { limit: "NaN" },
+      { scope: "private" },
+      { locale: "invalid" },
+    ];
+    for (const params of invalidParams) {
+      const response = read(new URLSearchParams(params));
+      expect(response.status).toBe(400);
+      expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(response.headers.get("Cloudflare-CDN-Cache-Control")).toBe(
+        "no-store",
+      );
+    }
+    expect(
+      read(
+        new URLSearchParams({
+          q: " x ",
+          limit: "25",
+          scope: "catalog",
+          locale: "zh-cn",
+        }),
+      ).status,
+    ).toBe(200);
   });
 
   it("returns public cache headers for anonymous search", async () => {

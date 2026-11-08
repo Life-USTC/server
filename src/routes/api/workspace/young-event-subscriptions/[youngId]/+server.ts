@@ -1,4 +1,5 @@
 import type { RequestHandler } from "@sveltejs/kit";
+import { getDemoYoungSubscriptionStateRoute } from "@/lib/api/routes/demo-young-workspace-route";
 import {
   getYoungSubscriptionStateRoute,
   putYoungSubscriptionRoute,
@@ -27,7 +28,9 @@ export const PUT: RequestHandler = ({ request, params }) =>
  * @response 401:openApiErrorSchema
  * @oauthScope workspace.young-subscription:read
  */
-export const GET: RequestHandler = ({ request, params }) =>
-  observedApiRoute(() =>
-    getYoungSubscriptionStateRoute(request, params.youngId ?? ""),
-  )(request);
+export const GET: RequestHandler = ({ request, params, locals }) =>
+  locals.demo
+    ? getDemoYoungSubscriptionStateRoute("events", params.youngId ?? "")
+    : observedApiRoute(() =>
+        getYoungSubscriptionStateRoute(request, params.youngId ?? ""),
+      )(request);

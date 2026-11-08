@@ -68,6 +68,10 @@ async function request(
 it.each([
   "/",
   "/__data.json",
+  "/search",
+  "/search?q=algebra",
+  "/search/__data.json?q=algebra",
+  "/api/search?q=algebra&scope=workspace&locale=en-us",
   "/_internal/home/viewer",
   "/_internal/home/campus-now?section=bus",
   "/_internal/home/notices",
@@ -81,6 +85,13 @@ it.each([
   "/api/account/profile?userId=victim",
   "/workspace/subscriptions",
   "/workspace/subscriptions/__data.json",
+  "/workspace/subscriptions/activities",
+  "/workspace/subscriptions/activities/__data.json",
+  "/api/workspace/young-event-subscriptions",
+  "/api/workspace/young-organizer-subscriptions",
+  "/api/workspace/young-notifications",
+  "/api/workspace/young-event-subscriptions/demo-young-1",
+  "/api/workspace/young-organizer-subscriptions/demo-young-organizer-1",
   "/api/workspace/subscriptions/current",
   "/_internal/shell-bootstrap",
   "/workspace/homeworks",
@@ -150,7 +161,15 @@ it.each([
   ["DELETE", "/api/workspace/subscriptions"],
   ["POST", "/api/workspace/subscriptions/query"],
   ["POST", "/api/workspace/subscriptions/batch"],
-  ["GET", "/workspace/subscriptions/activities"],
+  ["PUT", "/api/workspace/young-event-subscriptions/demo-young-1"],
+  [
+    "PUT",
+    "/api/workspace/young-organizer-subscriptions/demo-young-organizer-1",
+  ],
+  [
+    "POST",
+    "/api/workspace/young-notifications/demo-young-notification-change-01/read",
+  ],
   ["POST", "/catalog/sections/910001?/subscribe"],
   ["POST", "/api/community/comments"],
   ["POST", "/api/community/comments/demo-comment-course-01/replies"],
@@ -204,6 +223,11 @@ it.each([
   ["PATCH", "/api/account/profile"],
   ["GET", "/community/users/demo-student"],
   ["GET", "/api/community/users/demo-student"],
+  ["GET", "/search/__data.json/__data.json"],
+  ["GET", "/api/search/private"],
+  ...["/search", "/search/__data.json", "/api/search"].flatMap((path) =>
+    ["POST", "PUT", "PATCH", "DELETE"].map((method) => [method, path]),
+  ),
 ])(
   "rejects %s %s before session, resolver and persistent telemetry",
   async (method, path) => {
@@ -217,17 +241,20 @@ it.each([
   },
 );
 
-it.each(["/account/settings/profile", "/api/account/profile"])(
-  "allows HEAD without resolving a real session at %s",
-  async (path) => {
-    const result = await request(path, "HEAD");
-    expect(result.response.status).toBe(200);
-    expect(result.locals.authUser).toBeNull();
-    expect(result.resolve).toHaveBeenCalledOnce();
-    expect(session).not.toHaveBeenCalled();
-    expect(persist).not.toHaveBeenCalled();
-  },
-);
+it.each([
+  "/account/settings/profile",
+  "/api/account/profile",
+  "/search",
+  "/search/__data.json",
+  "/api/search?q=algebra&scope=workspace",
+])("allows HEAD without resolving a real session at %s", async (path) => {
+  const result = await request(path, "HEAD");
+  expect(result.response.status).toBe(200);
+  expect(result.locals.authUser).toBeNull();
+  expect(result.resolve).toHaveBeenCalledOnce();
+  expect(session).not.toHaveBeenCalled();
+  expect(persist).not.toHaveBeenCalled();
+});
 
 it("rejects invalid and mixed identities without resolving a real session", async () => {
   for (const [cookie, status] of [

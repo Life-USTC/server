@@ -255,11 +255,17 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           tableStatusLabels: statusLabels,
         }).pagination.total,
       ).toBe(11);
-      expect(
-        getDemoYoungEvents(locale, {
-          tableFilters: { startAt: "2026-09-24", startAtOp: "eq" },
-        }).pagination.total,
-      ).toBe(3);
+      const sameDay = getDemoYoungEvents(locale, {
+        tableFilters: { startAt: "2026-09-24", startAtOp: "eq" },
+      });
+      expect(sameDay.pagination.total).toBe(4);
+      expect(ids(sameDay.data).sort()).toEqual([
+        "demo-young-1",
+        "demo-young-15",
+        "demo-young-28",
+        "demo-young-29",
+      ]);
+
       expect(
         getDemoYoungEvents(locale, {
           search: "  no such fictional activity  ",

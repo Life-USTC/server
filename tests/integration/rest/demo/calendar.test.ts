@@ -42,8 +42,13 @@ test("demo calendar isolates real owners, paginates fixed facts and rejects writ
     const path =
       "/api/workspace/calendar/events?dateFrom=2026-09-01&dateTo=2027-01-24&pageSize=2";
     try {
-      const items: { id: string; title: string; type: string }[] = [];
-      for (let page = 1; page <= 5; page++) {
+      const items: {
+        id: string;
+        title: string;
+        type: string;
+        youngId: string | null;
+      }[] = [];
+      for (let page = 1; page <= 15; page++) {
         const response = await request.get(`${path}&page=${page}`, { headers });
         expect(response.status()).toBe(200);
         expect(response.headers()).toMatchObject({
@@ -56,18 +61,31 @@ test("demo calendar isolates real owners, paginates fixed facts and rejects writ
         expect(body.pagination).toEqual({
           page,
           pageSize: 2,
-          total: 9,
-          totalPages: 5,
+          total: 30,
+          totalPages: 15,
         });
         items.push(...body.data);
       }
-      expect(new Set(items.map(({ id }) => id)).size).toBe(9);
+      expect(new Set(items.map(({ id }) => id)).size).toBe(30);
       expect(
         items.some(
           ({ id, title }) => id.includes(victim.id) || title === victim.title,
         ),
       ).toBe(false);
       expect(items.filter(({ type }) => type === "exam")).toHaveLength(2);
+      expect(
+        items
+          .filter(({ type }) => type === "young_event")
+          .map(({ youngId }) => youngId)
+          .sort(),
+      ).toEqual(
+        [
+          1, 9, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+          40, 41, 42,
+        ]
+          .map((n) => `demo-young-${n}`)
+          .sort(),
+      );
       for (const [cookie, status] of [
         ["life-ustc.demo=invalid", 401],
         [`${expired.name}=${expired.value}`, 401],

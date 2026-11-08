@@ -14,6 +14,29 @@ access:
   admin: Admin capabilities are never simulated.
   agent: Demo identity supplies no OAuth, GraphQL or MCP authority.
 requirements:
+- id: demo.young-workspace-projection
+  category: privacy
+  rule: Existing personal activity subscriptions and notifications project fixed fictional facts from the
+    same 42-event and 22-organizer graph, without a real account, notification refresh or private reader.
+    Twenty-one event and organizer subscriptions and twenty-three notifications retain the ordinary
+    twenty-row continuation, All/Unread filtering, ordering, query limits and redirects. Twenty-one
+    notifications are unread at the fixed Shanghai reference clock. Public subscription facts, Home,
+    navigation counts and the combined personal calendar derive from this graph. Reminder and digest
+    samples agree with fixed source times and expiration rules, without claiming a collector or delivery.
+    Trusted page/data/API reads branch before authentication and refresh services. Subscription and
+    mark-read writes stay forbidden, with native disabled controls and handler guards. Internal Manage,
+    detail and calendar navigation remain readable; external registration stays disabled. Matching root
+    and page epochs retire private rows, counts and old locale responses on mode, owner, expiry and exit.
+  acceptance:
+    given: A trusted Demo and independently prepared ordinary subscriptions and notifications.
+    when: Read all three views, continue each page, filter unread, follow internal details and switch owners.
+    then:
+    - Exact list, detail, calendar and navigation facts agree across SSR and API without database changes.
+    - Reminder flags and all five notification kinds remain visibly fixed fictional read-only examples.
+    - Late ordinary reads and retired samples cannot restore previous rows or counts; writes never run.
+    test:
+      file: tests/e2e/src/app/demo/young-workspace.test.ts
+      name: demo young workspace reads fixed facts en-us 1280
 - id: demo.room-map-projection
   category: privacy
   rule: The existing classroom directory, lookup, preview and zoom controls project one closed
@@ -37,6 +60,27 @@ requirements:
     test:
       file: tests/e2e/src/app/demo/rooms.test.ts
       name: 'demo rooms: fixed directory, map statuses and zoom en-us 1280'
+- id: demo.search-projection
+  category: privacy
+  rule: The existing global search page, top-bar dialog and GET /api/search browse the same
+    fictional catalog and workspace graph. Catalog word and SQL-pattern semantics, query aliases,
+    validation, scopes, group order and per-group limits match ordinary search. Workspace scope
+    includes the six homework and three todo samples, including historical and completed facts;
+    it never grants a real principal. Website matches retain the public bilingual/pinyin search
+    and enter the existing directory at a known visible entry, without external visits. Trusted
+    Demo reads branch before ordinary authentication, database, caches or durable observations,
+    with private no-store responses. Invalid, expired or mixed identities and all writes remain
+    rejected; ordinary viewers keep their existing search and external-link behavior.
+  acceptance:
+    given: A trusted Demo and an ordinary owner with independently seeded searchable private records.
+    when: Search both scopes and languages, exercise aliases and validation, and follow known results.
+    then:
+    - Groups, identifiers, localized labels and destinations agree with the existing fictional graph.
+    - Ordinary positive controls return their own records; Demo never returns those private records.
+    - Complete persisted state remains unchanged and Demo performs no binding or external effects.
+    test:
+      file: tests/integration/rest/demo/search.test.ts
+      name: demo search seals shared catalog and workspace facts and effects en-us
 - id: demo.website-projection
   category: privacy
   rule: The existing website directory retains its static names, URLs, slugs, groups and bilingual
@@ -74,11 +118,10 @@ requirements:
     Known event discussion targets retain named fictional threads, twenty-root and ten-reply
     windows, reactions and permalinks. Poster reads serve only graph-associated local fixed raster
     bytes. Trusted Demo branches bypass database, R2, cache, provider and upstream reads. Subscription
-    facts are explicitly fixed read-only samples; subscription, follow, reminder, management and
-    external signup controls are disabled from SSR. Root/page epochs retire old rows and component
+    facts are explicitly fixed read-only samples; subscription, follow, reminder and
+    external signup controls are disabled from SSR; internal management remains readable. Root/page epochs retire old rows and component
     reads across mode, locale, exit and re-entry. Ordinary user delegates and behavior remain intact.
-    Personal activity subscription and notification workspaces remain future
-    parts of the parent full-site task; disabled controls do not complete those families.
+    Unsupported ordinary families remain under the parent full-site task; disabled controls do not complete them.
   acceptance:
     given: A trusted Demo in either locale and an independently readable ordinary Young event.
     when: Browse all five pages, continue their pages, filter, switch calendar axes and ranges,
@@ -106,8 +149,7 @@ requirements:
     visibly disabled; a fixed local asset download is read-only. Root/page epochs and the existing
     endless-list identity guards retire old responses across mode, locale and session changes.
     Writes, ingestion, management and unsupported families remain forbidden; ordinary readers delegate
-    to the existing services and retain their behavior. Personal activity workspaces remain under the
-    parent full-site task.
+    to the existing services and retain their behavior. Unsupported ordinary families remain under the parent full-site task.
   acceptance:
     given: A trusted demo in either locale and viewport and an independently readable ordinary publication.
     when: Browse news, continue pages, filter and fold the known corpus, follow Home and source links,
@@ -152,8 +194,9 @@ requirements:
     derives from the existing academic samples and fixed reference clock, without granting a real
     authenticated viewer. Session generations own client reads; exit, re-entry and late responses cannot
     restore an earlier identity. Public sample content is explicitly fictional, never an official notice,
-    current weather observation or actual departure. Unfinished personal activity workspace destinations remain visibly unavailable under the parent full-site task. Pinning, link
-    resolution, external navigation and writes stay forbidden. Ordinary Home behavior is unchanged.
+    current weather observation or actual departure. Unsupported destinations remain visibly unavailable
+    under the parent full-site task. Pinning, link resolution, external navigation and writes stay forbidden.
+    Ordinary Home behavior is unchanged.
   acceptance:
     given: A trusted demo in either locale and viewport, alongside an ordinary owner with private records.
     when: Browse Home and its supported academic links, read Home internal endpoints, switch identities
@@ -512,6 +555,23 @@ capabilities:
       - Preserve unknown room facts and retire old identity or locale reads
       requirement_refs:
       - demo.room-map-projection
+  demo-search:
+    title: Read-only Demo Search
+    description: Existing global discovery over the shared fictional catalog and workspace samples.
+    auth: anon
+    web:
+      pages:
+      - /search
+    rest: unavailable
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Search the existing page or lazy top-bar dialog and follow internal destinations
+      - Locate a known website inside the existing directory without an external visit
+      requirement_refs:
+      - demo.search-projection
   demo-websites:
     title: Read-only Demo Websites
     description: The existing static directory with fictional personal pins, visits and shared Home links.

@@ -64,7 +64,11 @@ function isDemoYoungRead(path: string) {
     /^\/api\/catalog\/young-(?:events|organizers)\/[^/]+$/.test(path) ||
     /^\/api\/catalog\/young-events\/[^/]+\/image$/.test(path) ||
     /^\/api\/catalog\/young-events\/by-id\/[^/]+\/image$/.test(path) ||
-    /^\/api\/catalog\/young-events\/images\/.+$/.test(path)
+    /^\/api\/catalog\/young-events\/images\/.+$/.test(path) ||
+    /^\/api\/workspace\/young-(?:event|organizer)-subscriptions(?:\/[^/]+)?$/.test(
+      path,
+    ) ||
+    path === "/api/workspace/young-notifications"
   );
 }
 
@@ -163,10 +167,12 @@ export async function resolveDemoBoundary(
         "/",
         "/workspace/todos",
         "/workspace/subscriptions",
+        "/workspace/subscriptions/activities",
         "/workspace/homeworks",
         "/workspace/exams",
         "/workspace/calendar",
         "/account/settings/profile",
+        "/search",
       ].includes(url.pathname) ||
         isDemoCatalogPage(url.pathname) ||
         isDemoNewsPage(url.pathname) ||
@@ -198,6 +204,9 @@ export async function resolveDemoBoundary(
     (![
       "/",
       "/__data.json",
+      "/search",
+      "/search/__data.json",
+      "/api/search",
       "/_internal/home/viewer",
       "/_internal/home/campus-now",
       "/_internal/home/notices",
@@ -207,6 +216,8 @@ export async function resolveDemoBoundary(
       "/api/workspace/todos",
       "/workspace/subscriptions",
       "/workspace/subscriptions/__data.json",
+      "/workspace/subscriptions/activities",
+      "/workspace/subscriptions/activities/__data.json",
       "/api/workspace/subscriptions/current",
       "/workspace/homeworks",
       "/workspace/homeworks/__data.json",

@@ -21,7 +21,7 @@ describe("fixed personal calendar", () => {
   for (const locale of ["zh-cn", "en-us"] as const) {
     it(`projects the existing catalog and pending task facts in ${locale}`, () => {
       const events = getDemoCalendarEvents(locale);
-      expect(events).toHaveLength(11);
+      expect(events).toHaveLength(32);
       expect(events.filter(({ type }) => type === "schedule")).toHaveLength(3);
       expect(events.filter(({ type }) => type === "exam")).toHaveLength(3);
       expect(
@@ -65,7 +65,7 @@ describe("fixed personal calendar", () => {
     vi.useFakeTimers();
     try {
       vi.setSystemTime(new Date("2040-01-01"));
-      expect(readDemoCalendarEvents("en-us").data).toHaveLength(5);
+      expect(readDemoCalendarEvents("en-us").data).toHaveLength(14);
       const query = {
         dateFrom: "2026-09-01",
         dateTo: "2027-01-24",
@@ -75,18 +75,18 @@ describe("fixed personal calendar", () => {
       expect(first.pagination).toEqual({
         page: 1,
         pageSize: 2,
-        total: 9,
-        totalPages: 5,
+        total: 30,
+        totalPages: 15,
       });
       const pages = Array.from(
-        { length: 5 },
+        { length: 15 },
         (_, i) =>
           readDemoCalendarEvents("en-us", { ...query, page: i + 1 }).data,
       ).flat();
-      expect(pages).toHaveLength(9);
-      expect(new Set(pages.map(({ id }) => id)).size).toBe(9);
+      expect(pages).toHaveLength(30);
+      expect(new Set(pages.map(({ id }) => id)).size).toBe(30);
       expect(
-        readDemoCalendarEvents("en-us", { ...query, page: 6 }).data,
+        readDemoCalendarEvents("en-us", { ...query, page: 16 }).data,
       ).toEqual([]);
       expect(pages.filter(({ type }) => type === "exam")).toHaveLength(2);
     } finally {
@@ -99,13 +99,13 @@ describe("fixed personal calendar", () => {
         dateFrom: "2026-09-24T09:00:00+08:00",
         dateTo: "2026-09-24T09:44:59+08:00",
       }).data,
-    ).toHaveLength(2);
+    ).toHaveLength(5);
     expect(
       readDemoCalendarEvents("en-us", {
         dateFrom: "2026-09-24T09:45:00+08:00",
         dateTo: "2026-09-24T10:00:00+08:00",
       }).data,
-    ).toHaveLength(0);
+    ).toHaveLength(1);
     expect(
       readDemoCalendarEvents("en-us", {
         dateFrom: "2027-01-08",
@@ -125,7 +125,7 @@ describe("fixed personal calendar", () => {
     expect(current.semesterTodos).toHaveLength(2);
     expect(current.semesterWeeks[0][0]).toBe("2026-08-30");
     expect(current.semesterWeeks.at(-1)?.at(-1)).toBe("2027-01-30");
-    expect(getDemoNavigation(identity).calendarItemsCount).toBe(9);
+    expect(getDemoNavigation(identity).calendarItemsCount).toBe(30);
     expect(
       getDemoWorkspacePage(identity, "en-us", "calendar").overview?.calendar,
     ).toEqual(current);
@@ -183,6 +183,6 @@ describe("fixed personal calendar", () => {
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("private, no-store");
-    expect((await response.json()).data).toHaveLength(5);
+    expect((await response.json()).data).toHaveLength(14);
   });
 });
