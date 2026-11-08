@@ -23,6 +23,64 @@ describe("young event display", () => {
     expect(youngCapacity(0, 0, "未提供")).toBe("0 / 0");
   });
 
+  for (const [locale, current, historical] of [
+    ["en-us", "Current signup list", "Historical activity list"],
+    ["zh-cn", "当前报名列表", "历史活动列表"],
+  ] as const) {
+    it(`keeps source membership independent of signup phase and activity time in ${locale}`, () => {
+      const labels = { statusActive: current, statusEnded: historical };
+      for (const [event, expected] of [
+        [
+          {
+            status: null,
+            isActive: true,
+            requiresSignup: false,
+            applyStartAt: null,
+            applyEndAt: null,
+          },
+          current,
+        ],
+        [
+          {
+            status: "",
+            isActive: true,
+            requiresSignup: true,
+            applyStartAt: "2090-01-01T09:00:00+08:00",
+            applyEndAt: "2090-02-01T09:00:00+08:00",
+          },
+          current,
+        ],
+        [
+          {
+            status: null,
+            isActive: true,
+            requiresSignup: true,
+            applyStartAt: "2000-01-01T09:00:00+08:00",
+            applyEndAt: "2000-02-01T09:00:00+08:00",
+          },
+          current,
+        ],
+        [
+          {
+            status: null,
+            isActive: false,
+            startAt: "2090-01-01T09:00:00+08:00",
+            sourceMissing: false,
+          },
+          historical,
+        ],
+        [{ status: "", isActive: false, sourceMissing: true }, historical],
+        [{ status: null, isActive: true, sourceMissing: true }, current],
+        [{ status: " 审核中 ", isActive: false }, "审核中"],
+        [{ status: "Open for signup", isActive: false }, "Open for signup"],
+        [{ status: "Ended", isActive: true }, "Ended"],
+      ] as const)
+        expect(youngEventStatusLabel(Object.freeze(event), labels)).toBe(
+          expected,
+        );
+    });
+  }
+
   it("renders UTC instants and upstream local venue times in Shanghai", () => {
     expect(youngDateTime("2026-09-24T00:30:00Z")).toBe("2026-09-24 08:30");
     expect(youngDateTime("2026-09-24 08:30:00")).toBe("2026-09-24 08:30");
@@ -68,13 +126,13 @@ describe("young event display", () => {
     expect(
       youngEventStatusLabel(
         { status: null, isActive: true },
-        { statusOpen: "报名中", statusClosed: "已结束" },
+        { statusActive: "当前报名列表", statusEnded: "历史活动列表" },
       ),
-    ).toBe("报名中");
+    ).toBe("当前报名列表");
     expect(
       youngEventStatusLabel(
         { status: " 进行中 ", isActive: false },
-        { statusOpen: "报名中", statusClosed: "已结束" },
+        { statusActive: "当前报名列表", statusEnded: "历史活动列表" },
       ),
     ).toBe("进行中");
     expect(

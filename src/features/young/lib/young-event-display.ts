@@ -82,14 +82,14 @@ export function youngCapacity(
   return applied == null ? unknown : String(applied);
 }
 
-/** Prefer upstream status text; otherwise use short open/closed badges. */
+/** Prefer upstream status text; otherwise describe source-list membership. */
 export function youngEventStatusLabel(
   event: { status: string | null; isActive: boolean },
-  copy: { statusOpen: string; statusClosed: string },
+  copy: { statusActive: string; statusEnded: string },
 ): string {
   const status = event.status?.trim();
   if (status) return status;
-  return event.isActive ? copy.statusOpen : copy.statusClosed;
+  return event.isActive ? copy.statusActive : copy.statusEnded;
 }
 
 /** Ended rows must not claim a time is “to be announced”. */
