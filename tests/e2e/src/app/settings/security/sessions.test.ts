@@ -126,7 +126,7 @@ test("revocation hides stale sessions when the refresh needs reauthentication", 
 
 test("session list failure retries without enabling mutations", {
   tag: "@Account/Web",
-}, async ({ page, sessions, sessionRun }) => {
+}, async ({ page, sessions, isolatedWorker, sessionRun }) => {
   await sessionRun(async () => {
     await page.route(
       "**/api/auth/list-sessions",
@@ -168,6 +168,26 @@ test("session list failure retries without enabling mutations", {
     const rendered = await panel.innerHTML();
     expect(rendered).not.toContain(sessions.other.sessionToken);
     expect(rendered).not.toContain("Chrome/130.0");
+    const fixtureSessions = Object.values(sessions);
+    const prepared = await isolatedWorker.database.owner.session.findMany({
+      where: { id: { in: fixtureSessions.map(({ id }) => id) } },
+      select: { id: true, sessionToken: true, userAgent: true },
+    });
+    expect(prepared.map(({ id }) => id).sort()).toEqual(
+      fixtureSessions.map(({ id }) => id).sort(),
+    );
+    // The fixture updates the current session's UA after reading its row.
+    // Read that prepared value independently, rather than using its stale copy.
+    expect(
+      prepared.find(({ id }) => id === sessions.current.id)?.userAgent,
+    ).toContain("Version/17.0 Safari/605.1.15");
+    const document = await page.content();
+    for (const session of prepared) {
+      expect(session.sessionToken.trim()).not.toBe("");
+      expect(document).not.toContain(session.sessionToken);
+      if (session.userAgent?.trim())
+        expect(document).not.toContain(session.userAgent);
+    }
   });
 });
 
