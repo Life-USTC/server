@@ -44,12 +44,18 @@ const SAFE_DATABASE_CODE_KEYS = [
 type SafeDatabaseErrorDetails = {
   code?: string;
   prismaCode?: string;
-  transaction?: {
-    reason: "execution_timeout";
-    operation: "query" | "commit" | "rollback";
-    timeoutMs: number;
-    elapsedMs: number;
-  };
+  transaction?:
+    | {
+        reason: "execution_timeout";
+        operation: "query" | "commit" | "rollback";
+        timeoutMs: number;
+        elapsedMs: number;
+      }
+    | { reason: "startup_timeout" | "not_found" }
+    | {
+        reason: "already_committed" | "already_rolled_back";
+        operation: "query" | "commit" | "rollback";
+      };
 };
 
 function readProperty(value: object, key: string): unknown {
@@ -64,6 +70,64 @@ function readSafeDatabaseCode(value: unknown) {
   if (typeof value !== "string") return undefined;
   if (SQLSTATE_CODE_PATTERN.test(value)) return value;
   if (PRISMA_ERROR_CODE_PATTERN.test(value)) return value;
+  return undefined;
+}
+
+/** New textual diagnostics must not evaluate getters, even on Error wrappers. */
+function readOwnDataProperty(value: object, key: string): unknown {
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    return descriptor && "value" in descriptor ? descriptor.value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function readTransactionReason(
+  error: object,
+): SafeDatabaseErrorDetails["transaction"] {
+  if (readOwnDataProperty(error, "code") !== "P2028") return undefined;
+  const meta = readOwnDataProperty(error, "meta");
+  const candidates = [
+    meta && typeof meta === "object"
+      ? readOwnDataProperty(meta, "error")
+      : undefined,
+    readOwnDataProperty(error, "message"),
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate !== "string" || candidate.length > 512) continue;
+    // Exact Prisma 7.10.1 TransactionManagerError templates only. A formatted
+    // invocation, changed template or arbitrary text stays unclassified.
+    const message = candidate.startsWith("Transaction API error: ")
+      ? candidate.slice("Transaction API error: ".length)
+      : candidate;
+    if (message === "Unable to start a transaction in the given time.")
+      return { reason: "startup_timeout" };
+    if (
+      message ===
+      "Transaction not found. Transaction ID is invalid, refers to an old closed transaction Prisma doesn't have information about anymore, or was obtained before disconnecting."
+    )
+      return { reason: "not_found" };
+    const closed =
+      /^Transaction already closed: A (query|commit|rollback) cannot be executed on a (committed transaction|transaction that was rolled back)\.$/.exec(
+        message,
+      );
+    if (closed && closed[0] === message) {
+      const operation = closed[1];
+      if (
+        operation === "query" ||
+        operation === "commit" ||
+        operation === "rollback"
+      )
+        return {
+          reason:
+            closed[2] === "committed transaction"
+              ? "already_committed"
+              : "already_rolled_back",
+          operation,
+        };
+    }
+  }
   return undefined;
 }
 
@@ -108,7 +172,13 @@ function collectSafeDatabaseErrorDetails(
 
   ancestors.add(error);
   try {
-    details.transaction ??= readTransactionTimeout(error);
+    // Structured execution metadata wins even when a wrapper had a textual
+    // reason. Keep the first valid structured timeout across nested causes.
+    if (details.transaction?.reason !== "execution_timeout") {
+      const timeout = readTransactionTimeout(error);
+      if (timeout) details.transaction = timeout;
+      else details.transaction ??= readTransactionReason(error);
+    }
     for (const key of SAFE_DATABASE_CODE_KEYS) {
       const code = readSafeDatabaseCode(readProperty(error, key));
       if (!code) continue;
