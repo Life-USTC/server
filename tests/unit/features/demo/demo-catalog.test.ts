@@ -190,7 +190,7 @@ describe("demo catalog read adapters", () => {
       expect(section.teachers).toHaveLength(2);
     },
   );
-  it("returns read-only descriptions and empty discussion pages for resolved samples", async () => {
+  it("returns read-only descriptions and exhausted discussion pages for resolved samples", async () => {
     const description = getDemoDescriptionRoute(
       request(
         "/api/community/descriptions?targetType=course&courseJwId=920001",
@@ -214,7 +214,7 @@ describe("demo catalog read adapters", () => {
       commentsListResponseSchema.parse(await comments.json()),
     ).toMatchObject({
       data: [],
-      pagination: { page: 2, pageSize: 5, total: 0 },
+      pagination: { page: 2, pageSize: 5, total: 1 },
       meta: {
         hiddenCount: 0,
         target: { sectionTeacherTeacherId: 401 },

@@ -41,6 +41,10 @@ function isDemoCatalogPage(path: string) {
   );
 }
 
+function isDemoCommentPage(path: string) {
+  return /^\/community\/comments\/demo-comment-[a-z0-9-]+$/.test(path);
+}
+
 function isDemoCatalogRead(path: string) {
   return (
     isDemoCatalogPage(path.replace(/\/__data\.json$/, "")) ||
@@ -50,7 +54,11 @@ function isDemoCatalogRead(path: string) {
     /^\/api\/catalog\/sections\/[1-9]\d*$/.test(path) ||
     /^\/_internal\/catalog\/sections\/[1-9]\d*\/viewer$/.test(path) ||
     path === "/api/community/descriptions" ||
-    path === "/api/community/comments"
+    path === "/api/community/comments" ||
+    /^\/api\/community\/comments\/demo-comment-[a-z0-9-]+(?:\/replies)?$/.test(
+      path,
+    ) ||
+    isDemoCommentPage(path.replace(/\/__data\.json$/, ""))
   );
 }
 
@@ -105,7 +113,8 @@ export async function resolveDemoBoundary(
         "/workspace/calendar",
         "/account/settings/profile",
       ].includes(url.pathname) ||
-        isDemoCatalogPage(url.pathname)) &&
+        isDemoCatalogPage(url.pathname) ||
+        isDemoCommentPage(url.pathname)) &&
       request.headers.get("accept")?.includes("text/html")
     ) {
       const response = new Response(null, {

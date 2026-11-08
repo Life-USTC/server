@@ -1,6 +1,7 @@
 import { deleteCommentRoute } from "@/lib/api/routes/comments-delete-route";
 import { getCommentRoute } from "@/lib/api/routes/comments-thread-route";
 import { patchCommentRoute } from "@/lib/api/routes/comments-update-route";
+import { getDemoCommentRoute } from "@/lib/api/routes/demo-catalog-read-routes";
 import { observedApiRoute } from "@/lib/log/api-observability";
 import type { RequestHandler } from "./$types";
 
@@ -14,8 +15,12 @@ import type { RequestHandler } from "./$types";
  * @anonymous
  * @oauthScope community.comment:read
  */
-export const GET: RequestHandler = ({ request, params }) =>
-  observedApiRoute(() => getCommentRoute(request, { id: params.id }))(request);
+export const GET: RequestHandler = ({ request, params, locals }) =>
+  locals.demo
+    ? getDemoCommentRoute(params.id, locals.locale)
+    : observedApiRoute(() => getCommentRoute(request, { id: params.id }))(
+        request,
+      );
 
 /**
  * Update one comment.

@@ -101,6 +101,10 @@ it.each([
   "/_internal/catalog/sections/910001/viewer",
   "/api/community/descriptions?targetType=course&targetId=201",
   "/api/community/comments?targetType=section&targetId=101",
+  "/api/community/comments/demo-comment-course-01",
+  "/api/community/comments/demo-comment-course-01/replies",
+  "/community/comments/demo-comment-course-01",
+  "/community/comments/demo-comment-course-01/__data.json",
 ])("serves only demo locals and overrides caches at %s", async (path) => {
   const result = await request(path);
   expect(result.response.status).toBe(200);
@@ -139,6 +143,12 @@ it.each([
   ["GET", "/workspace/subscriptions/activities"],
   ["POST", "/catalog/sections/910001?/subscribe"],
   ["POST", "/api/community/comments"],
+  ["POST", "/api/community/comments/demo-comment-course-01/replies"],
+  ["PATCH", "/api/community/comments/demo-comment-course-01"],
+  ["DELETE", "/api/community/comments/demo-comment-course-01"],
+  ["POST", "/api/community/comments/demo-comment-course-01/reactions"],
+  ["DELETE", "/api/community/comments/demo-comment-course-01/reactions"],
+  ["GET", "/community/users/demo-community-xia"],
   ["POST", "/workspace/homeworks?/createHomework"],
   ["POST", "/api/community/section-homeworks"],
   ["PATCH", "/api/community/section-homeworks/demo-homework-vectors"],

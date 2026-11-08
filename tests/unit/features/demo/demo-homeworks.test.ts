@@ -191,7 +191,22 @@ describe("demo homework projection", () => {
       ).json(),
     );
     expect(response).toMatchObject({
-      data: [],
+      data: [
+        {
+          id: "demo-comment-homework-vectors",
+          body: "For the vector-spaces exercises, include the closure argument rather than only the conclusion.",
+          author: {
+            id: "demo-community-qiu",
+            name: "Sample student Qiu",
+            isGuest: false,
+          },
+          canReply: false,
+          canReact: false,
+          canEdit: false,
+          canDelete: false,
+        },
+      ],
+      pagination: { total: 1 },
       meta: {
         viewer: { userId: null, isAuthenticated: false },
         target: {
