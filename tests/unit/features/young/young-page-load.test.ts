@@ -77,13 +77,28 @@ describe("public Young page loaders", () => {
         search: "run",
         category: "sport",
         tableStatusLabels: {
-          statusOpen: "Open for signup",
-          statusClosed: "Ended",
+          statusOpen: "Current signup list",
+          statusClosed: "Historical activity list",
         },
       }),
     );
     expect(result.organizers).toEqual([{ id: "club", name: "Club" }]);
     expect(service.listYoungOrganizers).not.toHaveBeenCalled();
+  });
+  it("passes Chinese membership fallback labels without changing upstream status filters", async () => {
+    await loadYoungEventsPage({
+      ...event("/catalog/young-events?status=审核中"),
+      locals: { locale: "zh-cn" },
+    });
+    expect(service.listYoungEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tableFilters: { status: "审核中" },
+        tableStatusLabels: {
+          statusOpen: "当前报名列表",
+          statusClosed: "历史活动列表",
+        },
+      }),
+    );
   });
   it("loads the complete calendar range and retains unknown-date counts separately", async () => {
     const events = Array.from({ length: 201 }, (_, index) => ({
