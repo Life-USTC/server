@@ -14,6 +14,7 @@ import { getShellViewer } from "#lib/shell/shell-viewer.js";
 import { cn } from "#lib/utils.js";
 import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
 import { homePublicReadEpoch } from "@/features/demo/lib/demo-home-owner";
+import { isDemoNavigationDestination } from "@/features/demo/lib/demo-navigation";
 import type { DemoView } from "@/features/demo/lib/demo-types";
 import HomeCampusNow from "@/features/workspace/components/HomeCampusNow.svelte";
 import { HOME_COMPACT_ITEM_COUNT } from "@/features/workspace/lib/anonymous-home-layout";
@@ -165,6 +166,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
   viewAllLabel: string,
 )}
   {@const Icon = icon}
+  {@const disabled = Boolean(demo && !isDemoNavigationDestination(viewAllHref))}
   <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
     <svelte:element
       this={level}
@@ -175,9 +177,9 @@ function overflowClass(index: number, shown: string, hidden: string): string {
     </svelte:element>
     <Button
       class="h-auto min-h-6 gap-0.5 px-0 text-muted-foreground md:min-h-6"
-      href={demo ? undefined : viewAllHref}
-      disabled={Boolean(demo)}
-      aria-describedby={demo ? "demo-unavailable" : undefined}
+      href={disabled ? undefined : viewAllHref}
+      disabled={disabled}
+      aria-describedby={disabled ? "demo-unavailable" : undefined}
       size="sm"
       variant="link"
     >
@@ -197,6 +199,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
   {:else}
     <Item.Group class="min-w-0 gap-0">
       {#each items as item, index (item.key)}
+        {@const disabled = Boolean(demo && !isDemoNavigationDestination(item.href))}
         <Item.Root
           class={overflowClass(
             index,
@@ -206,7 +209,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
           size="sm"
         >
           {#snippet child({ props })}
-            <svelte:element this={demo ? "div" : "a"} href={demo ? undefined : item.href} role={demo ? "link" : undefined} aria-disabled={demo ? true : undefined} aria-describedby={demo ? "demo-unavailable" : undefined} tabindex={demo ? -1 : undefined} {...props}>
+            <svelte:element this={disabled ? "div" : "a"} href={disabled ? undefined : item.href} role={disabled ? "link" : undefined} aria-disabled={disabled ? true : undefined} aria-describedby={disabled ? "demo-unavailable" : undefined} tabindex={disabled ? -1 : undefined} {...props}>
               <Item.Content class="min-w-0 gap-0.5">
                 <Item.Title class={activity ? "block w-full line-clamp-none [overflow-wrap:anywhere]" : "break-words"}>{item.title}</Item.Title>
                 {#if item.meta || item.dateLabel}

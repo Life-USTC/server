@@ -1,10 +1,13 @@
+import { getDemoNewsListPage } from "@/features/demo/server/demo-news-page";
 import { loadPublicationListPage } from "@/features/publications/server/publication-page-load";
 import { updateSocialMetadata } from "@/lib/social-metadata";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
   const layoutData = await event.parent();
-  const data = await loadPublicationListPage(event.url, event.locals.locale);
+  const data = event.locals.demo
+    ? getDemoNewsListPage(event.url, event.locals.demo, event.locals.locale)
+    : await loadPublicationListPage(event.url, event.locals.locale);
   return {
     ...data,
     socialMetadata: updateSocialMetadata(layoutData.socialMetadata, {

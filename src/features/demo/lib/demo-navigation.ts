@@ -1,7 +1,10 @@
 import type { ShellLink } from "@/lib/components/shell/types";
+import { isDemoNewsId } from "./demo-news-ids";
 
 /** Presentation capabilities only; the server request boundary remains authoritative. */
 export function isDemoNavigationDestination(href: string) {
+  if (href.startsWith("/news/") && isDemoNewsId(href.slice("/news/".length)))
+    return true;
   return [
     "/",
     "/workspace/todos",
@@ -9,6 +12,8 @@ export function isDemoNavigationDestination(href: string) {
     "/workspace/homeworks",
     "/workspace/exams",
     "/workspace/calendar",
+    "/news",
+    "/news/sources",
     "/catalog/weather",
     "/catalog/bus",
     "/catalog/bus/map",

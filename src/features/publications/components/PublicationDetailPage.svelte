@@ -22,7 +22,14 @@ import type {
 let {
   data,
   copy,
-}: { data: PublicationDetailPageData; copy: PublicationPageCopy } = $props();
+  readOnly = false,
+  readOnlyReason = "",
+}: {
+  data: PublicationDetailPageData;
+  copy: PublicationPageCopy;
+  readOnly?: boolean;
+  readOnlyReason?: string;
+} = $props();
 const publication = $derived(data.publication);
 const revision = $derived(publication.revision);
 const attachments = $derived(
@@ -105,9 +112,10 @@ const articleInformation = $derived(
       {/if}
     </div>
     {#if revision.sourcePageUrl}
-            <Button class="mt-3" href={revision.sourcePageUrl} variant="outline" size="sm" target="_blank" rel="noreferrer noopener">
+            <Button class="mt-3" href={readOnly ? undefined : revision.sourcePageUrl} disabled={readOnly} aria-describedby={readOnly ? "demo-news-external-unavailable" : undefined} variant="outline" size="sm" target={readOnly ? undefined : "_blank"} rel="noreferrer noopener">
               {copy.sourcePage}{@render externalLink("", "inline-end")}
             </Button>
+            {#if readOnly}<p class="mt-2 text-sm" id="demo-news-external-unavailable">{readOnlyReason}</p>{/if}
     {/if}
     {#if summary.length > 160}
       <Collapsible.Root class="mt-3 min-w-0">
