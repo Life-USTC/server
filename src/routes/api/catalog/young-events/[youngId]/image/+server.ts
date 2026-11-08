@@ -4,7 +4,9 @@ import { observedApiRoute } from "@/lib/log/api-observability";
 import type { RequestHandler } from "./$types";
 
 /**
- * Redirect to the current immutable poster representation.
+ * Legacy event-poster resolver; prefer /api/catalog/young-events/by-id/{youngId}/image.
+ * Event ID images requires the canonical resolver: /images/image retains its
+ * existing immutable inline-image meaning.
  * @pathParams youngEventYoungIdPathParamsSchema
  * @response 302
  * @response 400:openApiErrorSchema

@@ -939,6 +939,9 @@ capabilities:
         path: /api/catalog/young-organizers/{organizerId}
         reference_only: true
       - method: GET
+        path: /api/catalog/young-events/by-id/{youngId}/image
+        reference_only: true
+      - method: GET
         path: /api/catalog/young-events/{youngId}/image
         reference_only: true
       - method: GET
