@@ -95,8 +95,8 @@ describe("Young Web table filters", () => {
   });
 
   it.each([
-    ["SIGNUP", true],
-    ["Ended", false],
+    ["CURRENT", true],
+    ["Historical", false],
   ])(
     "matches displayed fallback status %s before pagination",
     (status, isActive) => {
@@ -104,8 +104,8 @@ describe("Young Web table filters", () => {
         buildYoungEventListQuery({
           tableFilters: { status, module: "智" },
           tableStatusLabels: {
-            statusOpen: "Open for signup",
-            statusClosed: "Ended",
+            statusOpen: "Current signup list",
+            statusClosed: "Historical activity list",
           },
         }).where,
       ).toEqual({
@@ -122,7 +122,10 @@ describe("Young Web table filters", () => {
     expect(
       buildYoungEventListQuery({
         tableFilters: { status: "审核中" },
-        tableStatusLabels: { statusOpen: "报名中", statusClosed: "已结束" },
+        tableStatusLabels: {
+          statusOpen: "当前报名列表",
+          statusClosed: "历史活动列表",
+        },
       }).where,
     ).toEqual({
       OR: [{ status: { contains: "审核中", mode: "insensitive" } }],

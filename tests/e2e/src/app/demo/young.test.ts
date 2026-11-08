@@ -1004,3 +1004,96 @@ test("demo Young: a retired ordinary detail cannot apply a late false subscripti
     ),
   );
 });
+
+for (const [locale, width, current, historical, noSignup] of [
+  [
+    "en-us",
+    1280,
+    "Current signup list",
+    "Historical activity list",
+    "No registration required",
+  ],
+  ["zh-cn", 390, "当前报名列表", "历史活动列表", "无需报名"],
+] as const) {
+  test(`young membership: no-signup sample and localized status filters ${locale} ${width}`, {
+    tag: "@Account/Web",
+  }, async ({ page, isolatedWorker, run }) => {
+    await withBrowserWorkflow(page, (workflow) =>
+      workflow.run(() =>
+        run(() =>
+          workflow.body(async () => {
+            await page.setViewportSize({ width, height: 844 });
+            await page.context().addCookies([
+              {
+                ...(await createSignedDemoCookie({
+                  issuedAt: Math.floor(Date.now() / 1000),
+                })),
+                url: isolatedWorker.origin,
+              },
+              {
+                name: "NEXT_LOCALE",
+                value: locale,
+                url: isolatedWorker.origin,
+              },
+            ]);
+            await gotoAndWaitForReady(page, `${base}/demo-young-13`);
+            await expect(
+              page.locator("#main-content [data-status-token]"),
+            ).toHaveText(current);
+            await expect(page.locator("#main-content")).toContainText(noSignup);
+            await fixedSubscription(page, false, locale);
+            await expect(page.getByTestId("young-event-signup")).toBeDisabled();
+            await atNaturalTop(page);
+            await page.screenshot({
+              path: `/tmp/life1538-after-detail-${locale}-${width}.png`,
+              fullPage: true,
+            });
+            await gotoAndWaitForReady(page, base);
+            const historicalField = await openYoungTableField(page, "status");
+            await historicalField.locator("input").fill(historical);
+            await applyYoungTableFilters(page);
+            await expect(page).toHaveURL(
+              (url) => url.searchParams.get("status") === historical,
+            );
+            await expect(events(page)).toHaveCount(11);
+            expect(
+              (
+                await events(page).evaluateAll((nodes) =>
+                  nodes.map((node) => (node as HTMLAnchorElement).pathname),
+                )
+              ).sort(),
+            ).toEqual(
+              [
+                `${base}/demo-young-10`,
+                ...Array.from(
+                  { length: 10 },
+                  (_, index) => `${base}/demo-young-${index + 33}`,
+                ),
+              ].sort(),
+            );
+            const currentField = await openYoungTableField(page, "status");
+            await currentField.locator("input").fill(current);
+            await applyYoungTableFilters(page);
+            await expect(page).toHaveURL(
+              (url) => url.searchParams.get("status") === current,
+            );
+            await expect(events(page)).toHaveCount(20);
+            await events(page).nth(19).scrollIntoViewIfNeeded();
+            await expect(events(page)).toHaveCount(31);
+            await expect(
+              page.locator(
+                `#main-content a[href="${base}/demo-young-13"]:visible`,
+              ),
+            ).toHaveCount(1);
+            await expect(
+              page.locator(
+                `#main-content a[href="${base}/demo-young-10"]:visible`,
+              ),
+            ).toHaveCount(0);
+            await expectNoPageHorizontalOverflow(page);
+          }),
+        ),
+      ),
+    );
+  });
+}

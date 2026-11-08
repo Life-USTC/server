@@ -76,8 +76,8 @@ export function getDemoYoungEventsPage(
     ...selected,
     tableFilters,
     tableStatusLabels: {
-      statusOpen: shared.copy.youngEvents.statusOpen,
-      statusClosed: shared.copy.youngEvents.statusClosed,
+      statusOpen: shared.copy.youngEvents.statusActive,
+      statusClosed: shared.copy.youngEvents.statusEnded,
     },
     page: parsePositivePage(url.searchParams.get("page")),
     pageSize: 20,
