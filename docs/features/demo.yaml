@@ -14,6 +14,28 @@ access:
   admin: Admin capabilities are never simulated.
   agent: Demo identity supplies no OAuth, GraphQL or MCP authority.
 requirements:
+- id: demo.website-projection
+  category: privacy
+  rule: The existing website directory retains its static names, URLs, slugs, groups and bilingual
+    text, pinyin and field filters. Demo personal facts are explicitly fictional and fixed. jw and
+    library are pinned; jw, library, mail and icourse have 12, 7, 4 and 2 visits, with zero elsewhere.
+    Website SSR, private read DTOs and the four-link Home and calendar overview share these facts
+    without a real viewer, database or external service. Public catalog JSON continues to omit all
+    personal fields. Native pin, unpin, visit and external credit actions are disabled from SSR;
+    direct mutations and the visit resolver remain refused without redirects or click writes.
+    Root/page session and locale ownership retire private preference responses across identity,
+    language, exit and re-entry. Ordinary viewers keep their existing catalog and preferences.
+  acceptance:
+    given: A trusted Demo and an ordinary owner with independently readable different pin and visit facts.
+    when: Browse and filter the directory, inspect Home, switch owners and locales, and attempt external actions or writes.
+    then:
+    - The full catalog and fixed personal facts agree across pages and their existing read contracts.
+    - Empty results, pinyin search and same-field and cross-field filters remain available.
+    - Disabled native controls and the authoritative request boundary prevent every durable or external effect.
+    - A late ordinary preference response cannot replace the current fictional pin or visit counts.
+    test:
+      file: tests/integration/rest/demo/links.test.ts
+      name: demo websites seal shared facts, private preferences and effects en-us
 - id: demo.young-projection
   category: privacy
   rule: The existing Young event list, detail, calendar, organizer directory and organizer detail
@@ -32,7 +54,7 @@ requirements:
     facts are explicitly fixed read-only samples; subscription, follow, reminder, management and
     external signup controls are disabled from SSR. Root/page epochs retire old rows and component
     reads across mode, locale, exit and re-entry. Ordinary user delegates and behavior remain intact.
-    Personal activity subscription and notification workspaces and website pages remain future
+    Personal activity subscription and notification workspaces remain future
     parts of the parent full-site task; disabled controls do not complete those families.
   acceptance:
     given: A trusted Demo in either locale and an independently readable ordinary Young event.
@@ -61,7 +83,7 @@ requirements:
     visibly disabled; a fixed local asset download is read-only. Root/page epochs and the existing
     endless-list identity guards retire old responses across mode, locale and session changes.
     Writes, ingestion, management and unsupported families remain forbidden; ordinary readers delegate
-    to the existing services and retain their behavior. Personal activity workspaces and websites remain under the
+    to the existing services and retain their behavior. Personal activity workspaces remain under the
     parent full-site task.
   acceptance:
     given: A trusted demo in either locale and viewport and an independently readable ordinary publication.
@@ -107,8 +129,7 @@ requirements:
     derives from the existing academic samples and fixed reference clock, without granting a real
     authenticated viewer. Session generations own client reads; exit, re-entry and late responses cannot
     restore an earlier identity. Public sample content is explicitly fictional, never an official notice,
-    current weather observation or actual departure. Unfinished personal activity workspace and
-    website destinations remain visibly unavailable under the parent full-site task. Pinning, link
+    current weather observation or actual departure. Unfinished personal activity workspace destinations remain visibly unavailable under the parent full-site task. Pinning, link
     resolution, external navigation and writes stay forbidden. Ordinary Home behavior is unchanged.
   acceptance:
     given: A trusted demo in either locale and viewport, alongside an ordinary owner with private records.
@@ -443,6 +464,24 @@ requirements:
       file: tests/e2e/src/app/demo/exams.test.ts
       name: 'demo.exams: read-only browsing zh-cn 1280'
 capabilities:
+  demo-websites:
+    title: Read-only Demo Websites
+    description: The existing static directory with fictional personal pins, visits and shared Home links.
+    auth: anon
+    web:
+      pages:
+      - /catalog/links
+    rest: unavailable
+    graphql: unavailable
+    mcp: unavailable
+    presentation:
+      kind: interaction
+      items:
+      - Browse, search and filter the unchanged catalog and fixed personal facts
+      - Read the same four fictional preferences on Home
+      - Inspect disabled pin and external visit controls without durable effects
+      requirement_refs:
+      - demo.website-projection
   demo-home:
     title: Read-only Demo Home
     description: The existing Home with fixed academic overview and explicitly fictional campus summaries.

@@ -1,4 +1,6 @@
 <script lang="ts">
+export let readOnlyReason: string | undefined = undefined;
+
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
@@ -67,6 +69,7 @@ function apply(event: SubmitEvent) {
   <div class={linkGroupColumnsClass}>
     {#each filteredGroups as entry}
       <LinksTabGroup
+        {readOnlyReason}
         {workspaceCopy}
         {entry}
         {linkIconLabel}
@@ -85,6 +88,8 @@ function apply(event: SubmitEvent) {
     {/snippet}
     {#snippet desktop()}
       <LinksTabList
+        visitCountLabel={readOnlyReason ? workspaceCopy.linkHub.filterVisits : undefined}
+        {readOnlyReason}
         colName={workspaceCopy.linkHub.colName}
         colDescription={workspaceCopy.linkHub.colDescription}
         colActions={workspaceCopy.linkHub.colActions}
@@ -101,6 +106,7 @@ function apply(event: SubmitEvent) {
         {/snippet}
         {#snippet actions(link: WorkspaceOverviewLinkItem)}
           <LinksTabPinButton
+        {readOnlyReason}
             {link}
             {linkReturnTo}
             pinAction={(item) => item.isPinned ? "unpin" : "pin"}
@@ -125,7 +131,9 @@ function apply(event: SubmitEvent) {
     {workspaceCopy.linkHub.credit}
     <Button
       class="h-auto p-0"
-      href="https://github.com/SmartHypercube/ustclife"
+      href={readOnlyReason ? undefined : "https://github.com/SmartHypercube/ustclife"}
+      disabled={Boolean(readOnlyReason)}
+      title={readOnlyReason}
       rel="noreferrer"
       target="_blank"
       variant="link"

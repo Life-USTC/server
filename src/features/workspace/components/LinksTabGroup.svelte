@@ -1,4 +1,6 @@
 <script lang="ts">
+export let readOnlyReason: string | undefined = undefined;
+
 import { linkGroupSectionClass } from "@/features/workspace/lib/link-table-layout";
 import type {
   SignedLinkGroup,
@@ -32,6 +34,8 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
     {entry.label}
   </h3>
       <LinksTabGrid
+        visitCountLabel={readOnlyReason ? workspaceCopy.linkHub.filterVisits : undefined}
+        {readOnlyReason}
         links={entry.links}
         {linkIconLabel}
         {linkReturnTo}

@@ -692,7 +692,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
                 ).not.toHaveCount(0);
                 await expect(
                   directory.locator('a[href="/catalog/links"]'),
-                ).toHaveCount(0);
+                ).toHaveCount(1);
                 for (const href of [
                   "/catalog/weather",
                   "/catalog/bus",
