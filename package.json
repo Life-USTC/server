@@ -70,7 +70,7 @@
     "ical-generator": "^11.1.2",
     "ip-address": "10.7.4",
     "jose": "^6.2.12",
-    "katex": "^0.19.0",
+    "katex": "^0.19.1",
     "pinyin-pro": "^3.29.5",
     "prisma": "7.10.1",
     "rehype-attr": "^4.1.3",
