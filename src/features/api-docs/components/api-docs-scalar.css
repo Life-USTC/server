@@ -129,6 +129,14 @@
   --scalar-border-color: var(--color-border);
 }
 
+/* Keep syntax and method colours readable on the app's light muted surface.
+   The app theme is authoritative; leave every dark-mode variable unchanged. */
+:root:not([data-theme="dark"]) .api-reference {
+  --scalar-color-blue: #005f9e;
+  --scalar-color-orange: #b43d00;
+  --scalar-color-green: #006e45;
+}
+
 .api-reference .dark-mode,
 .api-reference .light-mode {
   --scalar-font: inherit;
