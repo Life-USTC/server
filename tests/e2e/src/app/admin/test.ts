@@ -182,8 +182,22 @@ test("admin.primary-admin-navigation", { tag: "@Admin/Web" }, async ({
 
           const navigation = adminPrimaryNav(page);
           const adminLinks = navigation.locator('a[href^="/admin"]');
-          await expect(adminLinks).toHaveCount(
-            path === "/admin/moderation" ? 8 : 4,
+          await expect(adminLinks).toHaveCount(8);
+          expect(
+            await adminLinks.evaluateAll((nodes) =>
+              nodes.map((node) => node.getAttribute("href")).sort(),
+            ),
+          ).toEqual(
+            [
+              "/admin/users",
+              "/admin/moderation",
+              "/admin/oauth",
+              "/admin/bus",
+              "/admin/moderation?tab=comments",
+              "/admin/moderation?tab=descriptions",
+              "/admin/moderation?tab=homeworks",
+              "/admin/moderation?tab=suspensions",
+            ].sort(),
           );
           const currentName =
             path === "/admin/moderation" ? /^(评论|Comments)$/ : name;
