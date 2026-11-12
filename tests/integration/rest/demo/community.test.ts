@@ -5,6 +5,7 @@ import {
   commentsListResponseSchema,
   commentThreadResponseSchema,
 } from "../../../../src/lib/api/schemas/comments-response-schemas";
+import { publicUserProfileResponseSchema } from "../../../../src/lib/api/schemas/misc-response-schema-core";
 import type { IsolatedWorker } from "../../../e2e/utils/isolated-worker";
 import { test } from "../../../e2e/utils/owned-worker";
 import { createSignedDemoCookie } from "../../../shared/demo-token";
@@ -264,10 +265,30 @@ for (const locale of ["en-us", "zh-cn"] as const)
           ["/api/community/comments/demo-comment-unknown", 404],
           ["/api/community/comments/demo-comment-unknown/replies", 404],
           ["/community/comments/demo-comment-unknown", 404],
-          ["/community/users/demo-community-xia", 403],
-          ["/api/community/users/demo-community-xia", 403],
+          ["/community/users/demo-community-unknown", 404],
+          ["/api/community/users/demo-community-unknown", 404],
+          [`/community/users/${actor.id}`, 404],
+          [`/api/community/users/${actor.id}`, 404],
         ] as const)
           await (await read(path, status)).body();
+        const authorName =
+          locale === "en-us" ? "Sample student Xia" : "样例同学·小夏";
+        const authorPage = await read("/community/users/demo-community-xia");
+        const authorHtml = await authorPage.text();
+        expect(authorHtml).toMatch(new RegExp(`<h1[^>]*>${authorName}</h1>`));
+        expect(authorHtml).not.toContain(real.body);
+        const authorProfile = publicUserProfileResponseSchema.parse(
+          await (await read("/api/community/users/demo-community-xia")).json(),
+        );
+        expect(authorProfile.user).toEqual({
+          id: "demo-community-xia",
+          username: "sample-xia",
+          name: authorName,
+          image: "/images/icon.png",
+          createdAt: "2026-09-01T01:00:00.000Z",
+          _count: { comments: 35, homeworksCreated: 0, uploads: 0 },
+        });
+        expect(authorProfile.totalContributions).toBe(35);
         for (const claims of [
           {
             rootId: "demo-comment-section-101",

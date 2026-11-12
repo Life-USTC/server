@@ -43,7 +43,10 @@ import {
   type ShellViewerState,
 } from "#lib/shell/shell-viewer.js";
 import { cn } from "#lib/utils.js";
-import { demoNavigationLink } from "@/features/demo/lib/demo-navigation";
+import {
+  demoNavigationLink,
+  isDemoNavigationDestination,
+} from "@/features/demo/lib/demo-navigation";
 import type { DemoView } from "@/features/demo/lib/demo-types";
 import { afterNavigate, goto } from "$app/navigation";
 import { navigating, page as routePage } from "$app/state";
@@ -117,7 +120,7 @@ let localeMenuOpen = $state(false);
 let themeMenuOpen = $state(false);
 let contentScrollContainer: HTMLElement | undefined = $state();
 let viewerLoading = $state(
-  untrack(() => data.resolveViewerOnClient && !data.user),
+  untrack(() => data.resolveViewerOnClient && !data.user && !data.demo),
 );
 let viewerUser = $state.raw(untrack(() => data.user));
 let viewerDemo = $state.raw(untrack(() => data.demo ?? null));
@@ -145,7 +148,11 @@ let shellMounted = false;
 let globalSearchGeneration = 0;
 let shellResolved = $state(false);
 
-let footerLinks = $derived(buildFooterLinks(data.copy.footer));
+let footerLinks = $derived(
+  buildFooterLinks(data.copy.footer).filter(
+    (link) => !viewerDemo || isDemoNavigationDestination(link.href),
+  ),
+);
 
 async function ensureGlobalSearchDialog() {
   return (
@@ -527,7 +534,7 @@ let focusedShell = $derived(presentation.focused);
 let hideSignIn = $derived(
   Boolean(viewerDemo) || isSignInPath(routePage.url.pathname),
 );
-let showFooter = $derived(!viewerDemo && presentation.footer === "public");
+let showFooter = $derived(presentation.footer === "public");
 const homeHref = "/";
 const homeLabel = $derived(
   viewerDemo
@@ -602,7 +609,7 @@ let globalSearchShortcutLabel = $derived(
         copy={data.copy}
         currentPathname={routePage.url.pathname}
         dockAboveFooter={showFooter}
-        footerLinks={!viewerDemo && presentation.footer === "sidebar" ? footerLinks : []}
+        footerLinks={presentation.footer === "sidebar" ? footerLinks : []}
         sectionSidebar={sectionSidebar}
         isActiveLink={isActiveLink}
         isAncestorLink={isAncestorLink}

@@ -27,6 +27,7 @@ type PageData = {
 };
 
 export let data: PageData;
+export let readOnlyReason = "";
 
 const HERO_COUNT = 3;
 
@@ -213,9 +214,14 @@ let frontIndex = 0;
           </p>
         </div>
 
-        <a
+        <svelte:element
+          this={readOnlyReason ? "button" : "a"}
+          type={readOnlyReason ? "button" : undefined}
+          disabled={readOnlyReason ? true : undefined}
+          aria-describedby={readOnlyReason ? "demo-information-reason" : undefined}
+          title={readOnlyReason || undefined}
           class="inline-flex w-fit rounded-md no-underline transition hover:opacity-90"
-          href="https://apps.apple.com/us/app/life-ustc/id1660437438"
+          href={readOnlyReason ? undefined : "https://apps.apple.com/us/app/life-ustc/id1660437438"}
           rel="noreferrer"
           target="_blank"
         >
@@ -225,7 +231,7 @@ let frontIndex = 0;
             src="/images/appstore.svg"
             width="150"
           />
-        </a>
+        </svelte:element>
       </div>
 
       <div
