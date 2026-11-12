@@ -14,7 +14,7 @@
         "@graphql-tools/executor": "4.1.5",
         "@graphql-yoga/plugin-disable-introspection": "2.25.6",
         "@internationalized/date": "^3.12.4",
-        "@lucide/svelte": "^1.66.0",
+        "@lucide/svelte": "^1.70.0",
         "@modelcontextprotocol/server": "2.3.1",
         "@prisma/adapter-pg": "7.10.1",
         "@prisma/client": "7.10.1",
@@ -477,7 +477,7 @@
 
     "@lezer/yaml": ["@lezer/yaml@1.0.4", "", { "dependencies": { "@lezer/common": "^1.2.0", "@lezer/highlight": "^1.0.0", "@lezer/lr": "^1.4.0" } }, "sha512-2lrrHqxalACEbxIbsjhqGpSW8kWpUKuY6RHgnSAFZa6qK62wvnPxA8hGOwOoDbwHcOFs5M4o27mjGu+P7TvBmw=="],
 
-    "@lucide/svelte": ["@lucide/svelte@1.66.0", "", { "peerDependencies": { "svelte": "^5" } }, "sha512-G2qFyutQpgk9TY0QYgqXk9rQtUt8p509mFpQzmTpyc894hfRSFhGNcGAVAUgB8znAyVsp5WTF/2vmCwprnNQ/w=="],
+    "@lucide/svelte": ["@lucide/svelte@1.70.0", "", { "peerDependencies": { "svelte": "^5" } }, "sha512-zvx7K/WLxo82c4ZYqbsfcYUPDVFrq4561xH0NHfSHJJbajj0AONTQ14EO095/WnfI4XUEl1tyS/nbjQNNiNxdQ=="],
 
     "@marijn/find-cluster-break": ["@marijn/find-cluster-break@1.0.2", "", {}, "sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g=="],
 
