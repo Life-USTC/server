@@ -231,7 +231,7 @@ requirements:
 - id: ui.list-table-3
   category: presentation
   topic: list-table
-  rule: Except for the shared workspace upload/homework/todo toolbars specified by ui.other-collection-order and ui.embedded-collection-order, every data column has a labeled filter in its corresponding heading; extra properties without a displayed column are grouped at the top of the page. Filters and sorting share one page draft and one Apply filters action. Popovers contain no separate Apply action. Categorical fields support multiple selections; numeric fields support equality, inequality, ordered and inclusive-range comparisons. An unrestricted selection displays only the localized Any label. Empty results retain all controls.
+  rule: Except for the shared workspace upload/homework/todo toolbars specified by ui.other-collection-order and ui.embedded-collection-order, every data column has a labeled filter in its corresponding heading; extra properties without a displayed column are grouped at the top of the page. Filters and sorting share one page draft and one Apply filters action. Popovers contain no separate Apply action. Categorical fields support multiple selections; numeric fields support equality, inequality, ordered and inclusive-range comparisons. Categorical fields provide a localized Clear action beside their legend; clearing changes only that field in the shared draft. Desktop fine-pointer options use compact rows while narrow and coarse-pointer layouts retain touch space. Text and numeric unrestricted placeholders retain the localized Any label. Empty results retain all controls.
   acceptance:
     given: The seeded course, teacher, and section collections expose their declared advanced filters.
     when: An anonymous browser opens each column and extra-property filter at desktop and mobile widths and inspects accessible controls, the page Apply action, and dismissal behavior.
@@ -388,13 +388,14 @@ requirements:
   category: presentation
   topic: data-table-cells
   rule: Desktop table rows in the same list reserve the same secondary-line space when optional secondary text
-    is absent; longer content must remain accessible without clipping controls.
+    is absent, except that an unsuspended user shows a single-line status badge aligned with its role badge.
+    Active user suspensions keep their centered badge and expiry or permanent explanation; longer content must remain accessible without clipping controls.
   rationale: The current optional secondary text fields in desktop table rows are bus-version source messages, comment moderation notes, suspension usernames, and user suspension details; other table rows use single-line fields or required secondary facts.
   acceptance:
     given: Isolated administrative rows populate, omit and lengthen each optional secondary field across bus versions, comments, suspensions and users.
     when: A desktop browser measures the secondary line, exposes long content and scrolls each row action into view.
     then:
-    - Missing secondary text retains the populated line height, long text remains available through the shared truncation interaction, and row controls remain fully visible.
+    - Missing secondary text retains the populated line height except for the single-line clear user status; active user suspensions retain their expiry or permanent explanation. Long text remains available through the shared truncation interaction, and row controls remain fully visible.
     test:
       file: tests/e2e/src/app/shared-policy/admin-table-cell-policies.test.ts
       name: ui.data-table-cells-1

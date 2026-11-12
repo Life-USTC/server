@@ -83,17 +83,14 @@ $: fields = adminUserTableFields(copy);
               </Badge>
             </Table.Cell>
             <Table.Cell class="text-left">
-              <div class="grid min-w-0 justify-items-start gap-1">
-                {#if user.activeSuspension}
+              {#if user.activeSuspension}
+                <div class="grid min-w-0 justify-items-start gap-1">
                   <Badge class="w-fit" variant="destructive">{copy.suspendedStatus}</Badge>
-                {:else}
-                  <Badge class="w-fit" variant="ghost">{copy.clearStatus}</Badge>
-                {/if}
-                <TruncatedText
-                  class="text-muted-foreground text-xs"
-                  text={user.activeSuspension ? suspensionLabel(user) : null}
-                />
-              </div>
+                  <TruncatedText class="text-muted-foreground text-xs" text={suspensionLabel(user)} />
+                </div>
+              {:else}
+                <Badge class="w-fit" variant="ghost">{copy.clearStatus}</Badge>
+              {/if}
             </Table.Cell>
             <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
               {formatDate(user.createdAt)}

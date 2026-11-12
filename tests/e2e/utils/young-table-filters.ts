@@ -37,13 +37,18 @@ export async function setYoungTableChoices(
   values: string[],
 ) {
   const field = await openYoungTableField(page, name);
-  await field.getByRole("button").first().click();
-  for (const value of values)
-    await field
-      .locator(
-        `[role="checkbox"][id$=${JSON.stringify(`-${name === "category" ? encodeURIComponent(value) : value}`)}]`,
-      )
-      .check();
+  const clear = field.getByRole("button", { name: /^(Clear|清除)$/i });
+  await expect(clear).toBeVisible();
+  if (await clear.isEnabled()) await clear.click();
+  await expect(field.getByRole("checkbox", { checked: true })).toHaveCount(0);
+  await expect(clear).toBeDisabled();
+  for (const value of values) {
+    const option = field.locator(
+      `[role="checkbox"][id$=${JSON.stringify(`-${name === "category" ? encodeURIComponent(value) : value}`)}]`,
+    );
+    await option.check();
+    await expect(option).toBeChecked();
+  }
   await page.keyboard.press("Escape");
 }
 
