@@ -86,6 +86,9 @@ for (const [locale, width] of [
                 isolatedWorker.origin,
               );
             }
+            await expect(
+              page.locator("[data-overview-sections]"),
+            ).toHaveAttribute("aria-busy", "false");
             await page.locator("[data-shell-scroll-container]").focus();
             await page.keyboard.press("Control+End");
             await expect

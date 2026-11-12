@@ -1,4 +1,5 @@
 import { expect, type Request, type Route } from "@playwright/test";
+import { personalCalendarPageSchema } from "../../../../../../src/lib/api/schemas/young-workspace-schemas";
 import { createCalendarContractFixture } from "../../../../utils/calendar-contract";
 import { test } from "../../../../utils/calendar-presentation-fixture";
 
@@ -279,3 +280,156 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
     expect(await db.auditLog.findMany({ where: { userId } })).toEqual([]);
   });
 });
+
+for (const [locale, width] of [
+  ["en-us", 1280],
+  ["zh-cn", 390],
+] as const) {
+  test(`overview.activity-loading-retains-focus ${locale} ${width}`, {
+    tag: "@Overview/Web",
+  }, async ({ page, calendar, calendarDb, calendarRun }) => {
+    const snapshotAt = "2026-11-12T04:00:00.000Z";
+    const now = Date.parse(snapshotAt);
+    const focusTitle = "Overview loading homework";
+    const activityTitle = "Held overview activity";
+    await calendarDb(async (db) => {
+      await db.user.update({
+        where: { id: calendar.users[0].id },
+        data: { name: "Overview reader" },
+      });
+      await db.homework.update({
+        where: { id: calendar.homework.id },
+        data: { title: focusTitle, submissionDueAt: new Date(now + 3600000) },
+      });
+      await db.todo.update({
+        where: { id: calendar.todo.id },
+        data: { completed: true },
+      });
+      await db.youngEvent.update({
+        where: { youngId: calendar.young.youngId },
+        data: {
+          name: activityTitle,
+          startAt: new Date(now + 7200000),
+          endAt: new Date(now + 10800000),
+        },
+      });
+    });
+    await calendarRun(
+      async ({ readHeaders }) => {
+        let release = () => {};
+        const gate = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        let held = false;
+        let capturedRequest: Request | undefined;
+        let terminal: "finished" | "failed" | undefined;
+        const operations: Promise<void>[] = [];
+        const errors: unknown[] = [];
+        const pattern = "**/api/workspace/calendar/events?**";
+        const finished = (request: Request) => {
+          if (request === capturedRequest) terminal = "finished";
+        };
+        const failed = (request: Request) => {
+          if (request === capturedRequest) terminal = "failed";
+        };
+        const handler = (route: Route) => {
+          const operation = (async () => {
+            const response = await route.fetch({
+              headers: readHeaders(route.request()),
+              maxRedirects: 0,
+            });
+            expect(response.status()).toBe(200);
+            const body = personalCalendarPageSchema.parse(
+              await response.json(),
+            );
+            expect(body.data).toEqual(
+              expect.arrayContaining([
+                expect.objectContaining({
+                  youngId: calendar.young.youngId,
+                  title: activityTitle,
+                }),
+              ]),
+            );
+            if (!capturedRequest) {
+              capturedRequest = route.request();
+              held = true;
+              await gate;
+            }
+            await route.fulfill({ response });
+          })();
+          operations.push(operation);
+          void operation.catch(() => undefined);
+          return operation;
+        };
+        page.on("requestfinished", finished);
+        page.on("requestfailed", failed);
+        page.once("close", release);
+        try {
+          await page.route(pattern, handler);
+          await page.setViewportSize({ width, height: 844 });
+          await page.context().clearCookies();
+          await page
+            .context()
+            .addCookies([
+              await calendar.createSignedSessionCookie(calendar.users[0].id),
+              { name: "NEXT_LOCALE", value: locale, url: calendar.origin },
+            ]);
+          await page.goto(`/?snapshotAt=${encodeURIComponent(snapshotAt)}`);
+          await expect.poll(() => held).toBe(true);
+          const focus = page.getByTestId("workspace-overview-focus");
+          const title = focus.getByTestId("overview-focus-title");
+          await expect(title).toHaveText(focusTitle);
+          const sections = page.locator("[data-overview-sections]");
+          if (width >= 1000) {
+            const sidebar = page.getByTestId("app-sidebar");
+            const rail = sidebar.getByRole("button", {
+              name: locale === "en-us" ? "Toggle sidebar" : "切换侧边栏",
+              exact: true,
+            });
+            await expect(rail).toHaveCount(1);
+            await rail.click();
+            await expect(sidebar).toHaveCSS("width", "48px");
+          }
+          await expect(focus.getByRole("status")).toContainText(
+            locale === "en-us" ? "Loading" : "加载",
+          );
+          await expect(sections).toHaveAttribute("aria-busy", "true");
+          await expect(title).toHaveText(focusTitle);
+          await page.screenshot({
+            path: `/tmp/life1573-after-${locale}-${width}.png`,
+            fullPage: width < 1000,
+          });
+          release();
+          await Promise.all(operations);
+          await expect.poll(() => terminal).toBe("finished");
+          await expect(
+            page.getByTestId("workspace-overview-upcoming"),
+          ).toContainText(activityTitle);
+          await expect(title).toHaveText(focusTitle);
+          await expect(sections).toHaveAttribute("aria-busy", "false");
+          await expect(focus.getByRole("status")).toHaveCount(0);
+        } finally {
+          release();
+          await page
+            .unroute(pattern, handler)
+            .catch((error) => errors.push(error));
+          const results = await Promise.allSettled(operations);
+          errors.push(
+            ...results.flatMap((result) =>
+              result.status === "rejected" ? [result.reason] : [],
+            ),
+          );
+          page.off("requestfinished", finished);
+          page.off("requestfailed", failed);
+          page.off("close", release);
+        }
+        if (errors.length)
+          throw new AggregateError(
+            errors,
+            "Held overview activity read failed",
+          );
+      },
+      { accountIndex: 0, calendarTokenCreated: false },
+    );
+  });
+}
