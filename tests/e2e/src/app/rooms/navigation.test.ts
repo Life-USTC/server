@@ -200,15 +200,19 @@ test("room-map.optional-campus-failure", { tag: "@RoomMap/Web" }, async ({
 
 const normalizationTest = ownedTest.extend({
   workerOutboundJson: [
-    {
-      url: "https://static.life-ustc.tiankaima.dev/room_maps.json",
-      json: { rooms },
-    },
-    {
-      url: "https://static.life-ustc.tiankaima.dev/building_img_rules.json",
-      json: [],
-    },
+    [
+      {
+        url: "https://static.life-ustc.tiankaima.dev/room_maps.json",
+        json: { rooms },
+      },
+      {
+        url: "https://static.life-ustc.tiankaima.dev/building_img_rules.json",
+        json: [],
+      },
+    ],
+    { scope: "test" },
   ],
+  workerOutboundRejectOrigins: ["https://static.life-ustc.tiankaima.dev"],
 });
 normalizationTest(
   "room-map.raw-code-normalization",
@@ -285,6 +289,20 @@ normalizationTest(
               expect(response.status()).toBe(400);
               await response.body();
             }
+            await expect
+              .poll(() => ({
+                matched: [
+                  ...isolatedWorker.outboundJsonObservations.matched,
+                ].sort(),
+                rejected: isolatedWorker.outboundJsonObservations.rejected,
+              }))
+              .toEqual({
+                matched: [
+                  "https://static.life-ustc.tiankaima.dev/building_img_rules.json",
+                  "https://static.life-ustc.tiankaima.dev/room_maps.json",
+                ],
+                rejected: [],
+              });
           }),
         ),
       ),
