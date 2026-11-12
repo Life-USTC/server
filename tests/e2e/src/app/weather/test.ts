@@ -11,8 +11,14 @@ import {
   formatShanghaiDate,
   formatShanghaiTime,
 } from "@/lib/time/shanghai-format";
+import type { WeatherSnapshot } from "../../../../../src/features/weather/server/weather-types";
+import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../../../utils/personal-preferences-fixture";
-import { arrangeWeatherCache } from "../../../utils/weather-cache-fixture";
+import {
+  arrangeWeatherCache,
+  readWeatherCache,
+  weatherProviderFailureResponses,
+} from "../../../utils/weather-cache-fixture";
 import { showWeatherFixture } from "../../../utils/weather-fixture";
 import { assertPageContract } from "../_shared/page-contract";
 
@@ -178,4 +184,169 @@ test("weather.missing-current-display", { tag: "@Weather/Web" }, async ({
       page.locator('[data-testid="weather-temperature"]:visible').first(),
     ).toHaveText("—");
   });
+});
+
+test.describe("weather known missing states", () => {
+  test.use({
+    workerBindings: { AMAP_API_KEY: "" },
+    workerOutboundJson: [weatherProviderFailureResponses, { scope: "test" }],
+    workerOutboundRejectOrigins: ["https://api.open-meteo.com"],
+  });
+  for (const [locale, width] of [
+    ["en-us", 1280],
+    ["zh-cn", 390],
+  ] as const) {
+    test(`weather.known-state-display ${locale} ${width}`, {
+      tag: "@Weather/Web",
+    }, async ({ page, preferenceFlow, isolatedWorker }) => {
+      await preferenceFlow.run(async () => {
+        const origin = isolatedWorker.origin;
+        const main: WeatherSnapshot = {
+          location: { key: "ustc-main", name: "本部", adcode: "340100" },
+          fetchedAt: new Date().toISOString(),
+          providers: ["open-meteo"],
+          current: {
+            source: "open-meteo",
+            temperature: 21,
+            condition: { text: "晴", icon: "wmo-0" },
+          },
+          hourly: [],
+          daily: [],
+          alerts: [],
+          extensions: {},
+        };
+        const unknown: WeatherSnapshot = {
+          ...main,
+          providers: [],
+          current: {
+            temperature: null,
+            condition: { text: "未知", icon: "unknown" },
+          },
+        };
+        await page.setViewportSize({ width, height: 900 });
+        await page.context().clearCookies();
+        await page
+          .context()
+          .addCookies([{ name: "NEXT_LOCALE", value: locale, url: origin }]);
+        const historyBefore =
+          await isolatedWorker.database.owner.weatherObservation.findMany();
+        for (const [phase, input] of [main, unknown].entries()) {
+          await preferenceFlow.prepare(() =>
+            arrangeWeatherCache(origin, [input]),
+          );
+          await gotoAndWaitForReady(page, "/catalog/weather");
+          const mainRegion = page.locator("#main-content");
+          await expect(
+            mainRegion.getByRole("heading", { level: 1 }),
+          ).toHaveText(locale === "en-us" ? "Campus Weather" : "校园天气");
+          for (const key of ["ustc-main", "ustc-gaoxin"] as const) {
+            if (width < 768) {
+              await page
+                .getByTestId("weather-campus-tabs")
+                .getByRole("tab", {
+                  name:
+                    key === "ustc-main"
+                      ? locale === "en-us"
+                        ? "Main"
+                        : "本部"
+                      : locale === "en-us"
+                        ? "Gaoxin"
+                        : "高新",
+                  exact: true,
+                })
+                .click();
+            }
+            const heading = mainRegion
+              .locator(`h2[data-weather-location="${key}"]`)
+              .filter({ visible: true });
+            await expect(heading).toBeVisible();
+            const region = heading.locator(
+              'xpath=ancestor::*[@data-slot="page-section"][1]',
+            );
+            if (key === "ustc-gaoxin") {
+              await expect(
+                region.getByTestId("weather-unavailable"),
+              ).toHaveText(
+                locale === "en-us"
+                  ? "Weather data is temporarily unavailable. Please try again later."
+                  : "天气数据暂不可用，请稍后重试。",
+              );
+              await expect(
+                region.getByTestId("weather-temperature"),
+              ).toHaveCount(0);
+            } else {
+              await expect(
+                region.getByTestId("weather-unavailable"),
+              ).toHaveCount(0);
+              await expect(
+                region.getByTestId("weather-temperature"),
+              ).toHaveText(phase === 0 ? "21°" : "—");
+              await expect(region.getByTestId("weather-condition")).toHaveText(
+                phase === 0 ? "晴" : "未知",
+              );
+            }
+            for (const label of locale === "en-us"
+              ? ["Feels like", "Humidity", "Wind"]
+              : ["体感温度", "湿度", "风"]) {
+              await expect(
+                region.getByText(label, { exact: true }),
+              ).toHaveCount(0);
+            }
+            await expect(
+              region.getByTestId("weather-temperature-range"),
+            ).toHaveCount(0);
+            await expect(
+              region.getByTestId("weather-hourly-chart"),
+            ).toHaveCount(0);
+            await expect(
+              region.getByRole("heading", {
+                name: locale === "en-us" ? "Daily forecast" : "每日预报",
+                exact: true,
+              }),
+            ).toHaveCount(0);
+          }
+          const meta = page.getByTestId("weather-page-meta");
+          await expect(meta).toBeVisible();
+          const updatedTime = new Intl.DateTimeFormat("en-GB", {
+            timeZone: "Asia/Shanghai",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }).format(new Date(input.fetchedAt));
+          await expect(meta.locator("span").first()).toHaveText(
+            locale === "en-us"
+              ? `Updated ${updatedTime}`
+              : `更新于 ${updatedTime}`,
+          );
+          if (phase === 0)
+            await expect(meta).toContainText(
+              locale === "en-us"
+                ? "Data providers: open-meteo"
+                : "数据来源: open-meteo",
+            );
+          else {
+            await expect(meta).not.toContainText("open-meteo");
+            await expect(meta).not.toContainText(
+              locale === "en-us" ? "Data providers" : "数据来源",
+            );
+          }
+          expect(await readWeatherCache(origin, "ustc-main")).toEqual(input);
+          await expect
+            .poll(() => ({
+              matched: isolatedWorker.outboundJsonObservations.matched,
+              rejected: isolatedWorker.outboundJsonObservations.rejected,
+            }))
+            .toEqual({
+              matched: Array(phase + 1).fill(
+                weatherProviderFailureResponses[1].url,
+              ),
+              rejected: [],
+            });
+          expect(
+            await isolatedWorker.database.owner.weatherObservation.findMany(),
+          ).toEqual(historyBefore);
+        }
+      });
+    });
+  }
 });
