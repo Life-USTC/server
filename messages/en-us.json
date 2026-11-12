@@ -102,7 +102,7 @@
       "operator": "Comparison",
       "value": "Value",
       "maximum": "Upper bound",
-      "selected": "{count} selected",
+      "clear": "Clear",
       "operators": {
         "eq": "Equal to",
         "ne": "Not equal to",

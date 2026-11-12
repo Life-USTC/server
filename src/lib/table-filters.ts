@@ -22,7 +22,7 @@ export type TableFilterLabels = {
   operator: string;
   value: string;
   maximum: string;
-  selected: string;
+  clear: string;
   yes: string;
   no: string;
   operators: Record<NumericFilterOperator, string>;
