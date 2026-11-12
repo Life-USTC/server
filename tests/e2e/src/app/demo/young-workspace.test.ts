@@ -448,9 +448,7 @@ for (const mode of ["ordinary", "locale"] as const) {
                     if (
                       main.textContent?.includes(oldText) ||
                       (privateMode &&
-                        document.querySelector(
-                          'summary[data-shell-count-value="25"]',
-                        ))
+                        document.querySelector('[data-shell-count-value="25"]'))
                     )
                       state.leak = true;
                     for (const record of records) {

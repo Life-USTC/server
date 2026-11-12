@@ -134,7 +134,12 @@ export async function checkWorkspaceOverviewPriorityViews(
   const count = navigationCount(navigation, "/workspace/todos");
   await expect(count).toHaveCount(1);
   await expect(count).toHaveAttribute("data-shell-count-value", "1");
-  await expect(count).toHaveText(locale === "en-us" ? "1 pending" : "1 未完成");
+  await expect(count).toHaveText("1");
+  await expect(count).toHaveAccessibleName(
+    locale === "en-us"
+      ? /1 pending.*undated and overdue/
+      : /1 未完成.*未定日期和已逾期/,
+  );
   await assertPriorityView({
     scope: item,
     identity: title.locator("span").last(),
@@ -142,10 +147,7 @@ export async function checkWorkspaceOverviewPriorityViews(
       "navigation.title": field(title, locale === "en-us" ? "Todos" : "待办"),
     },
     secondary: {
-      "navigation.count": field(
-        count,
-        locale === "en-us" ? "1 pending" : "1 未完成",
-      ),
+      "navigation.count": field(count, "1"),
     },
     tertiary: {},
   });

@@ -89,8 +89,7 @@ for (const [domain, method, locales, widths] of [
             const groupToggle = todoGroup.locator(
               'button[data-slot="sidebar-group-label"]',
             );
-            if ((await groupToggle.getAttribute("aria-expanded")) === "false")
-              await groupToggle.click();
+            await expect(groupToggle).toHaveCount(0);
             await expect(todoLink).toBeVisible();
             await todoLink.click();
             await expect(page.locator("#main-content")).toContainText(marker);

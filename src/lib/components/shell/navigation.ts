@@ -423,19 +423,8 @@ function toSidebarLink(
   context: SidebarContext,
 ): ShellLink {
   const { description, ...link } = feature;
-  const explanation = copy.shell.discovery;
-  const label = explanation.explainDestination.replace(
-    "{destination}",
-    () => feature.label,
-  );
-  let discoveryHint: ShellLink["discoveryHint"];
-  if (feature.id === "mcp") {
-    discoveryHint = {
-      text: explanation.information,
-      label: `${explanation.information}: ${label}`,
-      description,
-    };
-  } else if (feature.badge != null && feature.badge > 0) {
+  let badgeLabel: string | undefined;
+  if (feature.badge != null && feature.badge > 0) {
     switch (feature.id) {
       case "activityNotifications":
       case "calendar":
@@ -443,19 +432,14 @@ function toSidebarLink(
       case "homeworks":
       case "subscriptions":
       case "todos": {
-        const hint = explanation.counts[feature.id];
-        const text = `${feature.badge} ${hint.unit}`;
-        discoveryHint = {
-          text,
-          label: `${text}: ${label}`,
-          description: `${text}. ${hint.description}`,
-        };
+        const hint = copy.shell.discovery.counts[feature.id];
+        badgeLabel = `${feature.label}: ${feature.badge} ${hint.unit}. ${hint.description}`;
       }
     }
   }
   return {
     ...link,
-    discoveryHint,
+    badgeLabel,
     items: sidebarItems(feature, copy, context),
   };
 }
@@ -468,8 +452,6 @@ export function buildShellNavGroups(
   return buildShellFeatureGroups(copy, viewer, context.navigation).map(
     (group) => ({
       id: group.id,
-      defaultOpen:
-        group.id === "apps" ? !viewer?.signedIn : group.id !== "admin",
       icon: GROUP_ICONS[group.id],
       label: group.label,
       links: group.features.map((feature) =>
@@ -491,7 +473,6 @@ export function buildAdminNavGroups(
   return [
     {
       id: "admin",
-      defaultOpen: true,
       icon: GROUP_ICONS.admin,
       label: admin.label,
       links: admin.features.map((feature) =>
@@ -546,7 +527,6 @@ export function buildYoungNavGroups(
   return [
     {
       id: "young",
-      defaultOpen: true,
       icon: PartyPopperIcon,
       label: copy.nav.youngEvents,
       links: [
@@ -579,7 +559,6 @@ export function buildSettingsNavGroups(copy: LayoutCopy): ShellNavGroup[] {
   return [
     {
       id: "settings",
-      defaultOpen: true,
       icon: SettingsIcon,
       label: copy.nav.settings,
       links: [

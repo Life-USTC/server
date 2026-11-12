@@ -975,22 +975,20 @@ requirements:
 - id: ui.shell-layout-2
   category: presentation
   topic: shell-layout
-  rule: Signed-in desktop navigation presents the shared destination model as intent groups a student can name
-    from their own week - My day, Courses, Campus, Activities, Account, Apps and Admin - and nothing else. There
-    is no Workspace or Explore container - a personal task destination belongs to My day, and a discovery
-    destination belongs to the subject it is about. Each group is a disclosure labelled by the group name, with
-    no separate toggle control beside it. Groups a student uses daily are expanded on arrival; Apps and Admin
-    start collapsed for a signed-in viewer when no local preference exists, and any group holding the open page is expanded. Device-local disclosure preferences use stable destination identities, survive reload and locale changes, and contain no viewer data. In the compact rail each intent group has one named icon, with the current ancestor highlighted; choosing a group expands its destinations without opening every group. Admin is present
-    only for an authorized administrator. The expanded rail marks exactly one destination as the current page.
-  rationale: Destinations are grouped by what a student is trying to do, not by which part of the product owns
-    the route. The ordered group set and its parity with the feature hub are owned by ui.shell-feature-hub.
+  rule: Signed-in desktop navigation retains the existing intent groups My day, Courses, Campus, Activities,
+    Account, Apps and Admin. Expanded group labels and existing destination subtrees have no local disclosure
+    controls; all destinations, including the four moderation queues, remain expanded regardless of historical
+    group or submenu preferences. Only authorized administrators see Admin. The device-local global sidebar
+    open preference remains effective. The compact rail retains one named icon per intent group; activating
+    an icon expands the whole sidebar and exposes its already-expanded tree. Current-page and ancestor
+    identification remain unique and role-correct. Cross-platform primary navigation changes belong to Task1575.
   acceptance:
     given: A signed-in user opens the workspace calendar at a 1440-by-900 viewport.
-    when: The browser inspects the visible primary navigation, its group disclosures, and its current-page link.
+    when: The browser inspects the visible primary navigation, its expanded hierarchy, and its current-page link.
     then:
     - My day exposes Overview, Calendar, Homework, Todos and Exams as direct destinations, and Courses exposes
       Section subscriptions beside public course discovery.
-    - No Workspace destination and no separate toggle control render; group disclosures carry the group name.
+    - No Workspace destination or local group/subtree toggle renders; group labels remain readable.
     - The Courses group is expanded on arrival, and Admin appears only for an authorized administrator.
     - Exactly one navigation link is marked as the current page, and it is the open destination.
     test:
@@ -999,15 +997,14 @@ requirements:
 - id: ui.shell-layout-3
   category: presentation
   topic: shell-layout
-  rule: A destination row is either a link or a disclosure, never both.
+  rule: Expanded sidebar destination rows are links and group headers are noninteractive labels; there are no local disclosure actions.
   acceptance:
-    given: The public desktop navigation and mobile drawer contain the expanded campus-services group.
-    when: The user toggles the group with the keyboard and then activates the Shuttle Bus destination.
+    given: The public desktop navigation and mobile drawer contain the campus and course groups.
+    when: The user inspects their static headings and activates the Shuttle Bus destination with the keyboard.
     then:
-    - The group is a disclosure button without a URL; toggling it changes expanded state and child visibility
-      without navigating.
-    - Destination controls are anchors with URLs and no disclosure state, with no nested button-and-link controls.
-    - Activating the destination reaches the canonical bus page rather than toggling a submenu.
+    - Local group and destination subtree disclosure buttons and aria-expanded states are absent.
+    - Destination controls remain anchors with URLs and no nested interactive controls.
+    - Activating the destination reaches its canonical page. The global Menu, Drawer Close and desktop Rail remain available.
     test:
       file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
       name: ui.shell-layout-3
@@ -1947,14 +1944,14 @@ requirements:
 - id: ui.navigation-discovery
   category: presentation
   topic: navigation-landmarks
-  rule: Existing shell destinations explain their purpose without changing URLs, role visibility, static preference keys, or count algorithms. The MCP destination names AI assistants and explains supported queries and personal authorization through a keyboard- and touch-readable disclosure. Positive navigation counts show a short unit and an equally reachable explanation of the actual summary field. Their information controls are siblings of navigation links, never nested interactive controls or substitutes for navigation. The root brand exposes its actual Home destination, or Demo todos when it points to the read-only demo. The Chinese Activities group is distinct from its Second Classroom destination.
+  rule: Existing shell destinations retain their URLs, role visibility and count algorithms. MCP keeps its AI assistants name and destination without an adjacent information control. The six positive personal summary counts display only numbers, with their original units and exact scope available accessibly and a data-shell-count-value marker. There are no adjacent information icons, details, summaries or explanation controls. Zero and unknown counts do not render indicators; anonymous navigation exposes no private counts. The root brand retains its actual Home or Demo destination and Chinese Activities remains distinct from Second Classroom. Feature-directory descriptions and page help are unchanged.
   acceptance:
-    given: A signed-in user with real subscribed-section, schedule, exam, homework, todo and notification records opens a teaching-section detail in English or Chinese on desktop or mobile.
-    when: The user opens count and MCP explanations by keyboard and touch, then follows the actual destination links.
+    given: A signed-in user has real subscribed-section, schedule, exam, homework, todo and notification records.
+    when: They inspect desktop and mobile navigation, including a late bootstrap and ordinary-to-Demo owner transition.
     then:
-    - Each count remains the service's real value; explanations distinguish incomplete, unread, future or summary scope and never invent zero while data is unavailable.
-    - Explanations are readable in the navigation context, do not change the current URL, and do not obstruct navigation or alter disclosure preferences.
-    - Home and demo root labels describe their real destinations, and the Chinese group label no longer duplicates its child label.
+    - Each numeric badge equals the real summary field and retains its accessible incomplete, unread, future or summary scope.
+    - No adjacent information disclosure renders, no zero is invented, and neither stable nor transient old-owner counts leak.
+    - Labels and badges remain readable without overlap, current links stay visible, and Home and MCP retain accurate destinations.
     test:
       file: tests/e2e/src/app/shared-policy/shell-discovery.test.ts
       name: shell.discovery scope and signed-in account en-us 390

@@ -379,22 +379,21 @@ test("ui.shell-layout-3", { tag: "@Site/Web" }, async ({ page }) => {
     const navigation = page.locator(
       `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
     );
-    const campusGroup = navigation.getByRole("button", {
-      name: /^(Courses|课程)$/i,
-    });
     const courses = navigation.getByRole("link", {
       name: /^(Browse courses|浏览课程)$/,
     });
-    await expect(campusGroup).toHaveAttribute("aria-expanded", "true");
-    expect(await campusGroup.getAttribute("href")).toBeNull();
-    await campusGroup.focus();
-    await page.keyboard.press("Enter");
-    await expect(campusGroup).toHaveAttribute("aria-expanded", "false");
-    await expect(courses).toBeHidden();
-    await expect(page).toHaveURL(/\/$/);
-    await page.keyboard.press("Enter");
-    await expect(campusGroup).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      navigation.locator(
+        'button[data-slot="sidebar-group-label"], [data-slot="sidebar-menu-action"]',
+      ),
+    ).toHaveCount(0);
+    await expect(
+      navigation
+        .locator('[data-slot="sidebar-group-label"]')
+        .filter({ hasText: /^\s*(Courses|课程)\s*$/ }),
+    ).toBeVisible();
     await expect(courses).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
     const rows = await navigation
       .locator('[data-sidebar="menu-button"]')
       .evaluateAll((elements) =>

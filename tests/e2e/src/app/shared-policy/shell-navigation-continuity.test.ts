@@ -136,24 +136,33 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             await page.keyboard.press("Escape");
             await expect(menu).toBeFocused();
           } else {
-            const apps = nav.getByRole("button", {
-              name: locale === "en-us" ? "Apps" : "应用",
-              exact: true,
+            await page.evaluate(() => {
+              const key = "life-ustc.sidebar.v1";
+              const old = JSON.parse(localStorage.getItem(key) ?? "{}");
+              localStorage.setItem(
+                key,
+                JSON.stringify({
+                  ...old,
+                  groups: { apps: false, activities: false },
+                  submenus: { youngEvents: false, youngOrganizers: false },
+                }),
+              );
             });
-            if ((await apps.getAttribute("aria-expanded")) === "true")
-              await apps.click();
-            await apps.click();
-            await expect(apps).toHaveAttribute("aria-expanded", "true");
-            await apps.click();
             await page.reload();
             await waitForUiSettled(page);
-            await expect(apps).toHaveAttribute("aria-expanded", "false");
+            await expect(nav.locator('a[href="/usage/mcp"]')).toBeVisible();
+            await expect(nav.locator("button[aria-expanded]")).toHaveCount(0);
             await expect(current).toHaveText(organizerName);
             await page.locator('[data-slot="sidebar-rail"]').click();
             const ancestor = nav.locator('button[aria-current="location"]');
             const name = locale === "en-us" ? "Activities" : "活动";
-            await expect(ancestor).toHaveAccessibleName(name);
-            await expect(ancestor).toHaveAttribute("title", name);
+            await expect(ancestor).toHaveAccessibleName(
+              `${locale === "en-us" ? "Expand sidebar" : "展开侧边栏"}: ${name}`,
+            );
+            await expect(ancestor).toHaveAttribute(
+              "title",
+              `${locale === "en-us" ? "Expand sidebar" : "展开侧边栏"}: ${name}`,
+            );
             await expect(ancestor).toHaveAttribute("data-active", "true");
             await ancestor.focus();
             await page.keyboard.press("Enter");
@@ -249,8 +258,13 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               'button[aria-current="location"]',
             );
             const name = locale === "en-us" ? "Courses" : "课程";
-            await expect(ancestor).toHaveAccessibleName(name);
-            await expect(ancestor).toHaveAttribute("title", name);
+            await expect(ancestor).toHaveAccessibleName(
+              `${locale === "en-us" ? "Expand sidebar" : "展开侧边栏"}: ${name}`,
+            );
+            await expect(ancestor).toHaveAttribute(
+              "title",
+              `${locale === "en-us" ? "Expand sidebar" : "展开侧边栏"}: ${name}`,
+            );
             await expect(ancestor).toHaveAttribute("data-active", "true");
             await ancestor.focus();
             await page.keyboard.press("Enter");

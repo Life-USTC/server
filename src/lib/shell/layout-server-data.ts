@@ -141,6 +141,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       skipToMainContent: messages.accessibility.skipToMainContent,
       theme: messages.shell.theme,
       toggleSidebar: messages.shell.toggleSidebar,
+      expandSidebar: messages.shell.expandSidebar,
     },
     errorPage: {
       backHome: messages.common.backToHome,
