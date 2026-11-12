@@ -11,6 +11,8 @@ const messages = {
 export const load: PageServerLoad = ({ locals }) => {
   const copy = messages[locals.locale];
   return {
+    pageDemo: locals.demo ?? null,
+    pageLocale: locals.locale,
     copy: copy.usagePages.bot,
     metadataTitle: copy.metadata.pages.prestoBot,
   };

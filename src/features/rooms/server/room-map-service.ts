@@ -50,7 +50,10 @@ export async function loadRoomMapAssets(): Promise<RoomMapAssets> {
 }
 
 export function lookupRoomMap(input: string, assets: RoomMapAssets): RoomMap {
-  const code = roomCodeSchema.parse(input);
+  return lookupCanonicalRoomMap(roomCodeSchema.parse(input), assets);
+}
+
+function lookupCanonicalRoomMap(code: string, assets: RoomMapAssets): RoomMap {
   const room = assets.manifest.rooms.find((entry) => entry.code === code);
   if (room)
     return {
@@ -111,6 +114,13 @@ export async function listRoomMapBuildings(): Promise<RoomMapBuilding[]> {
 }
 
 export async function getRoomMap(input: string): Promise<RoomMap> {
-  const code = roomCodeSchema.parse(input);
-  return lookupRoomMap(code, await loadRoomMapAssets());
+  return getRoomMapForValidatedCode(roomCodeSchema.parse(input));
+}
+
+/** Only for adapter output already validated by roomCodeSchema.
+ * Its normalized result may legitimately be longer than the raw-input limit. */
+export async function getRoomMapForValidatedCode(
+  code: string,
+): Promise<RoomMap> {
+  return lookupCanonicalRoomMap(code, await loadRoomMapAssets());
 }

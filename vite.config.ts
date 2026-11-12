@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
+import { scalarEmbeddedReferencePlugin } from "./src/features/api-docs/lib/scalar-embedded-reference";
 
 const PRISMA_WASM_VIRTUAL_ID = "\0life-ustc:prisma-wasm-module";
 
@@ -109,6 +110,12 @@ export default defineConfig(({ command }) => ({
             codeSplitting: {
               groups: [
                 {
+                  // Small shell/read helpers otherwise become separate requests.
+                  // Keep Svelte runtime and feature UI outside this plain utility group.
+                  name: "shell-primitives",
+                  test: /[\\/]src[\\/](?:lib[\\/](?:browser[\\/]local-storage|auth[\\/]demo-request-signal|navigation[\\/]internal-routes)|features[\\/]workspace[\\/]lib[\\/]workspace-calendar-owner)\.ts$/,
+                },
+                {
                   // Collection pages share these layout and filter wrappers;
                   // bundle them together to avoid a request per small component.
                   name: "collection-primitives",
@@ -124,6 +131,7 @@ export default defineConfig(({ command }) => ({
   plugins: [
     prismaWasmModulePlugin(command),
     katexModernFontsPlugin(),
+    scalarEmbeddedReferencePlugin(),
     tailwindcss(),
     sveltekit({
       preprocess: vitePreprocess(),

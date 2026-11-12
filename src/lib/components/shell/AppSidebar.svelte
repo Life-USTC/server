@@ -602,9 +602,9 @@ function closeMobileSidebar(): void {
     <Sidebar.Rail label={copy.shell.toggleSidebar} />
   {/if}
 
-  {#if showAccountFooter || sidebar.isMobile}
+  {#if showAccountFooter || sidebar.isMobile || footerLinks.length > 0}
     <Sidebar.Footer class="justify-center gap-2 border-t p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:pb-2">
-      {#if showAccountFooter && footerLinks.length > 0}
+      {#if footerLinks.length > 0}
         <nav
           aria-label={copy.shell.footerNavigation}
           class="flex min-w-0 flex-wrap gap-x-3 gap-y-1 px-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden"

@@ -24,6 +24,7 @@ globalThis.fetch = (input, init) => {
   return originalFetch(input, init);
 };
 const IO_METHODS: Record<string, readonly string[]> = {
+  ASSETS: ["fetch"],
   R2_UPLOADS: [
     "get",
     "head",

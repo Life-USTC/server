@@ -1,5 +1,6 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
+import DemoInformationPage from "@/features/demo/components/DemoInformationPage.svelte";
 import type { PageData } from "./$types";
 import MarkdownGuideSection from "./MarkdownGuideSection.svelte";
 import { buildMarkdownGuideSections } from "./markdown-guide-sections";
@@ -10,7 +11,7 @@ $: guide = data.copy.commentsGuide;
 $: sections = buildMarkdownGuideSections(guide);
 </script>
 
-<svelte:head><title>{guide.title} - Life@USTC</title></svelte:head>
+<DemoInformationPage pageDemo={data.pageDemo} pageLocale={data.pageLocale} locale={data.locale} demo={data.demo} title={`${guide.title} - Life@USTC`}>
 
 <CollectionPage class="pb-12" description={guide.subtitle} panel={false} title={guide.title}>
 
@@ -24,3 +25,5 @@ $: sections = buildMarkdownGuideSections(guide);
     {/each}
   </div>
 </CollectionPage>
+
+</DemoInformationPage>
