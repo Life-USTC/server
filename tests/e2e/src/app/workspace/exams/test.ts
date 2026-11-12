@@ -154,10 +154,16 @@ test.describe("仪表盘考试", () => {
 
         await openWorkspaceTaskFilter(page, "exams");
         const allTab = workspaceTaskFilterControl(page, "All");
-        if ((await allTab.getAttribute("aria-pressed")) !== "true") {
+        if (await allTab.isEnabled()) {
           await openWorkspaceTaskFilter(page, "exams");
           await applyWorkspaceTaskFilter(page, allTab);
         }
+        await expect(allTab).toBeDisabled();
+        await expect(
+          page
+            .locator('[data-filter-field="completion"]:visible')
+            .getByRole("checkbox", { checked: true }),
+        ).toHaveCount(0);
 
         const sectionLink = page
           .getByRole("table")

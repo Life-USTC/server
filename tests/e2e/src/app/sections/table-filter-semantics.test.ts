@@ -179,3 +179,184 @@ test("section filter drafts, multi-selection, comparisons and reactive paginatio
     expect(new URL(page.url()).searchParams.has("page")).toBe(false);
   });
 });
+
+for (const locale of ["en-us", "zh-cn"] as const) {
+  test(
+    `table.multiselect-compact-clear ${locale}`,
+    { tag: "@Section/Web" },
+    async ({ page, isolatedWorker, preferenceFlow }, testInfo) => {
+      await preferenceFlow.run(async () => {
+        const db = isolatedWorker.database.owner;
+        const campuses = await Promise.all(
+          ["East campus", "West campus"].map((name, index) =>
+            db.campus.create({ data: { jwId: index + 1, nameCn: name } }),
+          ),
+        );
+        const course = await db.course.create({
+          data: {
+            jwId: 1600090000,
+            code: "ALIGNMENT-FILTER",
+            nameCn: "Filter spacing course",
+            nameEn: "Filter spacing course",
+          },
+        });
+        await db.section.createMany({
+          data: [
+            {
+              jwId: 1600090001,
+              code: "ALIGNMENT-FILTER-EAST",
+              courseId: course.id,
+              campusId: campuses[0].id,
+              credits: 3,
+            },
+            {
+              jwId: 1600090002,
+              code: "ALIGNMENT-FILTER-WEST",
+              courseId: course.id,
+              campusId: campuses[1].id,
+              credits: 3,
+            },
+            {
+              jwId: 1600090003,
+              code: "ALIGNMENT-FILTER-FOUR",
+              courseId: course.id,
+              campusId: campuses[1].id,
+              credits: 4,
+            },
+          ],
+        });
+        const before = await db.section.findMany({ orderBy: { jwId: "asc" } });
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page
+          .context()
+          .addCookies([
+            { name: "NEXT_LOCALE", value: locale, url: isolatedWorker.origin },
+          ]);
+        const query = new URLSearchParams({
+          search: "ALIGNMENT-FILTER",
+          campusId: String(campuses[0].id),
+          credits: "3",
+          creditsOp: "eq",
+        });
+        await gotoAndWaitForReady(page, `/catalog/sections?${query}`);
+        const campus = await openCatalogColumnFilter(
+          page,
+          locale === "en-us" ? "Campus" : "校区",
+        );
+        const field = campus.locator('[data-filter-field="campusId"]');
+        const checkboxes = field.getByRole("checkbox");
+        await expect(checkboxes).toHaveCount(2);
+        await page.evaluate(() => document.fonts.ready);
+        const geometry = await field
+          .locator('[data-slot="field"]')
+          .evaluateAll((nodes) =>
+            nodes.map((node) => {
+              const r = node.getBoundingClientRect();
+              return { height: r.height, y: r.y };
+            }),
+          );
+        console.info(
+          `MULTISELECT_GEOMETRY ${locale} ${JSON.stringify(geometry)}`,
+        );
+        await page.screenshot({
+          path: testInfo.outputPath(`multiselect-${locale}.png`),
+          fullPage: true,
+        });
+        expect(geometry).toHaveLength(2);
+        for (const row of geometry) {
+          expect(row.height).toBeGreaterThan(0);
+          expect(row.height).toBeLessThanOrEqual(32);
+        }
+        expect(geometry[1].y - geometry[0].y).toBeLessThanOrEqual(36);
+        const clear = field.getByRole("button", {
+          name: locale === "en-us" ? "Clear" : "清除",
+          exact: true,
+        });
+        await expect(clear).toBeVisible();
+        expect(await clear.getAttribute("aria-pressed")).toBeNull();
+        const headerOffset = await field
+          .locator('[data-slot="field-legend"]')
+          .evaluate((legend) => {
+            const title = legend.querySelector("span")?.getBoundingClientRect();
+            const button = legend
+              .querySelector("button")
+              ?.getBoundingClientRect();
+            if (!title || !button || title.width <= 0 || button.width <= 0)
+              throw new Error("Expected visible legend and clear action");
+            return Math.abs(
+              title.y + title.height / 2 - button.y - button.height / 2,
+            );
+          });
+        expect(headerOffset).toBeLessThanOrEqual(1);
+        await page.keyboard.press("Escape");
+        const comparison = await openCatalogColumnFilter(
+          page,
+          locale === "en-us" ? "Credits" : "学分",
+        );
+        await comparison
+          .locator('[data-filter-field="credits"] select')
+          .selectOption("lte");
+        await page.keyboard.press("Escape");
+        await openCatalogColumnFilter(
+          page,
+          locale === "en-us" ? "Campus" : "校区",
+        );
+        await checkboxes.nth(1).focus();
+        await page.keyboard.press("Space");
+        await expect(checkboxes.nth(0)).toHaveAttribute("aria-checked", "true");
+        await expect(checkboxes.nth(1)).toHaveAttribute("aria-checked", "true");
+        await applyCatalogFilters(page);
+        await expect
+          .poll(() => new URL(page.url()).searchParams.get("campusId"))
+          .toBe(`${campuses[0].id},${campuses[1].id}`);
+        const links = page.locator(
+          '#main-content a[href^="/catalog/sections/"]:visible',
+        );
+        await expect(links).toHaveCount(2);
+        await expect(
+          page.locator(
+            '#main-content a[href="/catalog/sections/1600090003"]:visible',
+          ),
+        ).toHaveCount(0);
+        await openCatalogColumnFilter(
+          page,
+          locale === "en-us" ? "Campus" : "校区",
+        );
+        const appliedUrl = page.url();
+        await clear.focus();
+        await page.keyboard.press("Enter");
+        await expect(checkboxes.nth(0)).toHaveAttribute(
+          "aria-checked",
+          "false",
+        );
+        await expect(checkboxes.nth(1)).toHaveAttribute(
+          "aria-checked",
+          "false",
+        );
+        expect(page.url()).toBe(appliedUrl);
+        await expect(clear).toBeDisabled();
+        await page.keyboard.press("Escape");
+        const credits = await openCatalogColumnFilter(
+          page,
+          locale === "en-us" ? "Credits" : "学分",
+        );
+        await expect(
+          credits.locator('[data-filter-field="credits"] input').first(),
+        ).toHaveValue("3");
+        await expect(
+          credits.locator('[data-filter-field="credits"] select'),
+        ).toHaveValue("lte");
+        await applyCatalogFilters(page);
+        await expect
+          .poll(() => new URL(page.url()).searchParams.get("campusId"))
+          .toBeNull();
+        expect(new URL(page.url()).searchParams.get("credits")).toBe("3");
+        expect(new URL(page.url()).searchParams.get("creditsOp")).toBe("lte");
+        await expect(links).toHaveCount(2);
+        expect(await db.section.findMany({ orderBy: { jwId: "asc" } })).toEqual(
+          before,
+        );
+      });
+    },
+  );
+}
