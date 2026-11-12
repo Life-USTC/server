@@ -1,4 +1,4 @@
-import { getRoomMap } from "@/features/rooms/server/room-map-service";
+import { getRoomMapForValidatedCode } from "@/features/rooms/server/room-map-service";
 import {
   handleRouteError,
   parseRouteParams,
@@ -21,7 +21,7 @@ export async function getRoomMapRoute(
   try {
     return schemaJsonResponse(
       roomMapResponseSchema,
-      await getRoomMap(parsed.code),
+      await getRoomMapForValidatedCode(parsed.code),
       {
         headers: {
           "Cache-Control": "public, max-age=300",

@@ -17,7 +17,7 @@ import {
 } from "@/features/catalog-links/lib/catalog-link-search";
 import { getPublicCatalogLinksData } from "@/features/catalog-links/server/catalog-link-data";
 import { getPublicUserIdentityByIdentifier } from "@/features/profile/server/user-profile-page-data";
-import { getRoomMap } from "@/features/rooms/server/room-map-service";
+import { getRoomMapForValidatedCode } from "@/features/rooms/server/room-map-service";
 import { getWeatherSnapshot } from "@/features/weather/server/weather-service";
 import {
   getYoungEvent,
@@ -766,7 +766,7 @@ export const graphqlSchema = createSchema<
           return links.filter((link) => linkMatchesTokens(link, tokens));
         },
         roomMap(_parent, args: { code: string }) {
-          return getRoomMap(validateGraphqlRoomCode(args.code));
+          return getRoomMapForValidatedCode(validateGraphqlRoomCode(args.code));
         },
         weather(_parent, args: { locationKey: string }) {
           return getWeatherSnapshot(
