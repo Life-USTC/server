@@ -44,11 +44,19 @@ export function workspaceTaskFilterControl(page: Page, name: string | RegExp) {
       ? /^(All|全部)$/i.test(name)
       : name.test("All") || name.test("全部");
   return all
-    ? group.getByRole("button").first()
+    ? group.getByRole("button", { name: /^(Clear|清除)$/i })
     : group.getByRole("checkbox", { name, exact: typeof name === "string" });
 }
 
-/** Completion choices now edit the shared draft; applying is one page action. */
+/** Existing closed choices include advisory and overdue only for homework. */
+function completionOptionCount(page: Page) {
+  const tab = new URL(page.url()).pathname.split("/").at(-1);
+  if (tab === "homeworks") return 4;
+  if (tab === "todos" || tab === "exams") return 2;
+  throw new Error("Expected a workspace task completion field");
+}
+
+/** Completion choices edit the shared draft; applying is one page action. */
 export async function applyWorkspaceTaskFilter(
   page: Page,
   control: Locator,
@@ -56,7 +64,14 @@ export async function applyWorkspaceTaskFilter(
 ) {
   const group = page.locator('[data-filter-field="completion"]:visible');
   const checkbox = (await control.getAttribute("role")) === "checkbox";
-  await group.getByRole("button").first().click();
+  const clear = workspaceTaskFilterControl(page, "All");
+  await expect(clear).toBeVisible();
+  if (await clear.isEnabled()) await clear.click();
+  await expect(group.getByRole("checkbox")).toHaveCount(
+    completionOptionCount(page),
+  );
+  await expect(group.getByRole("checkbox", { checked: true })).toHaveCount(0);
+  await expect(clear).toBeDisabled();
   if (checkbox) {
     if (action === "space") await control.press("Space");
     else await control.check();
@@ -90,7 +105,17 @@ export function workspaceTaskFilterValue(page: Page, value: string) {
 export async function expectWorkspaceTaskFilterSelected(control: Locator) {
   if ((await control.getAttribute("role")) === "checkbox")
     await expect(control).toBeChecked();
-  else await expect(control).toHaveAttribute("aria-pressed", "true");
+  else {
+    const group = control.locator(
+      'xpath=ancestor::*[@data-filter-field="completion"][1]',
+    );
+    await expect(control).toHaveText(/^(Clear|清除)$/i);
+    await expect(control).toBeDisabled();
+    await expect(group.getByRole("checkbox")).toHaveCount(
+      completionOptionCount(control.page()),
+    );
+    await expect(group.getByRole("checkbox", { checked: true })).toHaveCount(0);
+  }
 }
 
 /** Arrange only domain rows in the calling test's private database. */
