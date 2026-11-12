@@ -11,22 +11,41 @@ const cancelled = new Promise((_, reject) => {
 });
 void cancelled.catch(() => undefined);
 
-async function start(options, outboundJson) {
-  if (outboundJson) {
+async function start(options, outboundJson, rejectOrigins = []) {
+  if (outboundJson || rejectOrigins.length) {
     const responses = new Map(
-      (Array.isArray(outboundJson) ? outboundJson : [outboundJson]).map(
-        ({ url, json }) => [url, json],
-      ),
+      (outboundJson
+        ? Array.isArray(outboundJson)
+          ? outboundJson
+          : [outboundJson]
+        : []
+      ).map(({ url, json, status = 200 }) => [url, { json, status }]),
     );
     // Functions stay in the owned child; IPC carries only the case's JSON input.
     options = {
       ...options,
       dev: {
         ...options.dev,
-        outboundService: (request) =>
-          request.method === "GET" && responses.has(request.url)
-            ? Response.json(responses.get(request.url))
-            : globalThis.fetch(request.url, request),
+        outboundService: (request) => {
+          const response = responses.get(request.url);
+          if (request.method === "GET" && response) {
+            process.send?.({
+              type: "outbound-json",
+              matched: true,
+              url: request.url,
+            });
+            return Response.json(response.json, { status: response.status });
+          }
+          if (rejectOrigins.includes(new URL(request.url).origin)) {
+            process.send?.({
+              type: "outbound-json",
+              matched: false,
+              url: request.url,
+            });
+            throw new Error("Unexpected request to an owned provider origin");
+          }
+          return globalThis.fetch(request.url, request);
+        },
       },
     };
   }
@@ -117,7 +136,11 @@ function stop() {
 }
 process.on("message", (message) => {
   if (message.type === "start" && !starting) {
-    starting = start(message.options, message.outboundJson);
+    starting = start(
+      message.options,
+      message.outboundJson,
+      message.rejectOrigins,
+    );
     void starting.then(
       (port) => {
         if (process.connected) process.send?.({ type: "ready", port });

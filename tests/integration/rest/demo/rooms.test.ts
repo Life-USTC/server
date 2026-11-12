@@ -10,23 +10,27 @@ import { createSignedDemoCookie } from "../../../shared/demo-token";
 test.use({
   workerBindings: { DEMO_ENABLED: "1", E2E_DEBUG_AUTH: "0" },
   workerOutboundJson: [
-    {
-      url: "https://static.life-ustc.tiankaima.dev/room_maps.json",
-      json: {
-        rooms: ["DEMO-101", "REAL-1544"].map((code) => ({
-          code,
-          building: "Owned ordinary building",
-          floor: "1",
-          imagePath: "imgs/ordinary-1544.png",
-          sourceImagePath: "imgs/ordinary-1544-floor.png",
-        })),
+    [
+      {
+        url: "https://static.life-ustc.tiankaima.dev/room_maps.json",
+        json: {
+          rooms: ["DEMO-101", "REAL-1544"].map((code) => ({
+            code,
+            building: "Owned ordinary building",
+            floor: "1",
+            imagePath: "imgs/ordinary-1544.png",
+            sourceImagePath: "imgs/ordinary-1544-floor.png",
+          })),
+        },
       },
-    },
-    {
-      url: "https://static.life-ustc.tiankaima.dev/building_img_rules.json",
-      json: [],
-    },
+      {
+        url: "https://static.life-ustc.tiankaima.dev/building_img_rules.json",
+        json: [],
+      },
+    ],
+    { scope: "test" },
   ],
+  workerOutboundRejectOrigins: ["https://static.life-ustc.tiankaima.dev"],
 });
 const pagePath = "/catalog/rooms";
 const mapPath = (code: string) =>
@@ -112,6 +116,18 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         await ordinaryAsset.body();
         expect(ordinaryAsset.status()).toBe(404);
       }
+      await expect
+        .poll(() => ({
+          matched: [...isolatedWorker.outboundJsonObservations.matched].sort(),
+          rejected: isolatedWorker.outboundJsonObservations.rejected,
+        }))
+        .toEqual({
+          matched: [
+            "https://static.life-ustc.tiankaima.dev/building_img_rules.json",
+            "https://static.life-ustc.tiankaima.dev/room_maps.json",
+          ],
+          rejected: [],
+        });
       const before = await snapshot(isolatedWorker);
       const now = Math.floor(Date.now() / 1000);
       const signed = await createSignedDemoCookie({ issuedAt: now });
@@ -315,6 +331,20 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         expect(
           effects.requests.every((entry) => entry.outcome === "fulfilled"),
         ).toBe(true);
+        await expect
+          .poll(() => ({
+            matched: [
+              ...isolatedWorker.outboundJsonObservations.matched,
+            ].sort(),
+            rejected: isolatedWorker.outboundJsonObservations.rejected,
+          }))
+          .toEqual({
+            matched: [
+              "https://static.life-ustc.tiankaima.dev/building_img_rules.json",
+              "https://static.life-ustc.tiankaima.dev/room_maps.json",
+            ],
+            rejected: [],
+          });
         expect(await snapshot(isolatedWorker)).toEqual(before);
       } finally {
         const removed = await request.delete(probe, { headers: secret });
