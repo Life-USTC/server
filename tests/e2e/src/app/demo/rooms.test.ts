@@ -294,7 +294,10 @@ for (const [locale, width] of [
               })
               .click();
             await waitForUiSettled(page);
-            await expect(input).toHaveValue("DEMO-1");
+            await expect(input).toHaveValue("ｄｅｍｏ－１");
+            expect(new URL(page.url()).searchParams.get("room")).toBe(
+              "ｄｅｍｏ－１",
+            );
             await expectTextFits(result.locator("p").first());
             await expectTextFits(result.locator('[data-slot="badge"]'));
             await expectNoPageHorizontalOverflow(page);

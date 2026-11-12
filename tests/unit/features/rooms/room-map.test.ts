@@ -49,6 +49,46 @@ describe("room map lookup", () => {
       imageUrl: expect.stringContaining("/imgs/rooms/3A204.png"),
     });
   });
+  it("keeps valid raw inputs whose normalized codes exceed 64 characters", async () => {
+    vi.resetModules();
+    const fetch = vi.fn(async (url: string) => {
+      if (url.endsWith("/room_maps.json"))
+        return Response.json(assets.manifest);
+      if (url.endsWith("/building_img_rules.json"))
+        return Response.json(assets.rules);
+      throw new Error("Unexpected static request");
+    });
+    vi.stubGlobal("fetch", fetch);
+    const { getRoomMap } = await import(
+      "@/features/rooms/server/room-map-service"
+    );
+    for (const [raw, code] of [
+      ["Ⅷ".repeat(17), "VIII".repeat(17)],
+      ["ﬄ".repeat(22), "FFL".repeat(22)],
+    ]) {
+      const expected = {
+        code,
+        building: null,
+        floor: null,
+        status: "unavailable",
+        imageUrl: null,
+        sourceImageUrl: null,
+      };
+      expect(roomCodeSchema.parse(raw)).toBe(code);
+      expect(lookupRoomMap(raw, assets)).toEqual(expected);
+      expect(await getRoomMap(raw)).toEqual(expected);
+    }
+    expect(await getRoomMap(" ３ａ２０４ ")).toMatchObject({
+      code: "3A204",
+      status: "highlighted",
+    });
+    const requests = fetch.mock.calls.length;
+    for (const raw of ["A".repeat(65), "../invalid"]) {
+      expect(() => lookupRoomMap(raw, assets)).toThrow();
+      await expect(getRoomMap(raw)).rejects.toThrow();
+    }
+    expect(fetch).toHaveBeenCalledTimes(requests);
+  });
   it("room-map.coverage", () => {
     expect(lookupRoomMap("3A204", assets)).toMatchObject({
       status: "highlighted",

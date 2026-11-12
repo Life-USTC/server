@@ -34,7 +34,8 @@ let {
   locale?: string;
 } = $props();
 let input = $state(untrack(() => initialRoom));
-let selectedRoom = $derived(initialRoom.trim().normalize("NFKC").toUpperCase());
+let rawRoom = $derived(initialRoom.trim());
+let selectedRoom = $derived(rawRoom.normalize("NFKC").toUpperCase());
 let searchRevision = $state(0);
 let openedCampus = $state<string[]>([]);
 let openedBuilding = $state<string[]>([]);
@@ -46,7 +47,7 @@ let campuses = $derived([
 ]);
 
 $effect(() => {
-  input = selectedRoom;
+  input = rawRoom;
 });
 $effect(() => {
   const matching = buildings.find((building) =>
@@ -65,12 +66,12 @@ $effect(() => {
   }
 });
 function roomHref(code: string) {
-  return `/catalog/rooms?${new URLSearchParams({ room: code.trim().normalize("NFKC").toUpperCase() })}`;
+  return `/catalog/rooms?${new URLSearchParams({ room: code.trim() })}`;
 }
 function submit(event: SubmitEvent) {
   event.preventDefault();
-  const room = input.trim().normalize("NFKC").toUpperCase();
-  if (room === selectedRoom) {
+  const room = input.trim();
+  if (room === rawRoom) {
     searchRevision += 1;
     return;
   }
@@ -128,11 +129,11 @@ function floorLabel(floor: string) {
   {#if pageDemo}<DemoNotice demo={pageDemo} locale={locale === "en-us" ? "en-us" : "zh-cn"} />{/if}
 
   {#if selectedRoom}
-    {#key `${selectedRoom}:${searchRevision}`}
+    {#key `${rawRoom}:${searchRevision}`}
       <RoomMapPreview
         {pageDemo}
         {locale}
-        code={selectedRoom}
+        code={rawRoom}
         {copy}
         className="w-full"
         loadOnMount={true}

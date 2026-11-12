@@ -109,6 +109,20 @@ describe("public room map entry contracts", () => {
       },
     },
     { code: " ３ａ２０４ ", expected: highlighted },
+    ...[
+      { raw: "Ⅷ".repeat(17), normalized: "VIII".repeat(17) },
+      { raw: "ﬄ".repeat(22), normalized: "FFL".repeat(22) },
+    ].map(({ raw, normalized }) => ({
+      code: raw,
+      expected: {
+        code: normalized,
+        building: null,
+        floor: null,
+        status: "unavailable",
+        imageUrl: null,
+        sourceImageUrl: null,
+      },
+    })),
   ];
   for (const method of ["REST", "GraphQL", "MCP"] as const) {
     contractTest(
@@ -162,26 +176,30 @@ describe("public room map entry contracts", () => {
       async ({ protocolRuntime, state, expect }) =>
         protocolRuntime.run(async () => {
           const { client, graphql, request } = state;
-          if (method === "REST") {
-            const response = await request(() =>
-              getRoomMapRoute(new Request("https://example.test/"), {
-                code: "../invalid",
-              }),
-            );
-            expect(response.status).toBe(400);
-          } else if (method === "GraphQL") {
-            const result = await graphql({
-              source: '{ catalog { roomMap(code: "../invalid") { code } } }',
-            });
-            expect(result.errors?.[0].extensions.code).toBe("BAD_USER_INPUT");
-          } else {
-            expect(
-              (
-                await client.callToolResult("catalog_rooms_map", {
-                  code: "../invalid",
-                })
-              ).isError,
-            ).toBe(true);
+          for (const code of ["../invalid", "A".repeat(65)]) {
+            if (method === "REST") {
+              const response = await request(() =>
+                getRoomMapRoute(new Request("https://example.test/"), {
+                  code,
+                }),
+              );
+              expect(response.status).toBe(400);
+            } else if (method === "GraphQL") {
+              const result = await graphql({
+                source:
+                  "query($code:String!){catalog{roomMap(code:$code){code}}}",
+                variableValues: { code },
+              });
+              expect(result.errors?.[0].extensions.code).toBe("BAD_USER_INPUT");
+            } else {
+              expect(
+                (
+                  await client.callToolResult("catalog_rooms_map", {
+                    code,
+                  })
+                ).isError,
+              ).toBe(true);
+            }
           }
         }),
     );
