@@ -24,6 +24,8 @@ requirements:
     when: The room input parser normalizes and validates them.
     then:
     - Valid inputs normalize to uppercase ASCII.
+    - Valid raw inputs whose NFKC-normalized codes exceed 64 characters still query normally; an unknown
+      normalized code returns unavailable rather than a validation or server error.
     - Invalid characters and more than 64 trimmed input characters are rejected.
     test:
       file: tests/unit/features/rooms/room-map.test.ts

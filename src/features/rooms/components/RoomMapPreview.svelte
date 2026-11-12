@@ -166,7 +166,7 @@ async function loadMap() {
 
   try {
     const response = await fetch(
-      `/api/catalog/rooms/${encodeURIComponent(requestedCode)}/map`,
+      `/api/catalog/rooms/${encodeURIComponent(code.trim())}/map`,
       {
         headers: { accept: "application/json" },
         cache: pageDemo ? "no-store" : "default",
