@@ -60,9 +60,10 @@ export async function readWeatherCache(
 /** Explicit consumer inputs; no provider response or production merge is used. */
 export async function arrangeWeatherCache(
   origin: string,
+  inputs?: WeatherSnapshot[],
 ): Promise<WeatherSnapshot[]> {
   const fetchedAt = new Date().toISOString();
-  const snapshots: WeatherSnapshot[] = [
+  const snapshots: WeatherSnapshot[] = inputs ?? [
     {
       location: { key: "ustc-main", name: "本部", adcode: "340100" },
       fetchedAt,
@@ -109,3 +110,17 @@ export async function arrangeWeatherCache(
   });
   return snapshots;
 }
+
+/** Exact owned upstream failures; unrelated origins keep the default transport. */
+export const weatherProviderFailureResponses = [
+  {
+    url: "https://api.open-meteo.com/v1/forecast?latitude=31.826&longitude=117.27&current=temperature_2m%2Crelative_humidity_2m%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Csurface_pressure&hourly=temperature_2m%2Cweather_code%2Cprecipitation_probability%2Cprecipitation&daily=temperature_2m_max%2Ctemperature_2m_min%2Cweather_code&timezone=Asia%2FShanghai&forecast_days=7",
+    status: 503,
+    json: { error: true, reason: "Owned provider unavailable" },
+  },
+  {
+    url: "https://api.open-meteo.com/v1/forecast?latitude=31.839&longitude=117.094&current=temperature_2m%2Crelative_humidity_2m%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Csurface_pressure&hourly=temperature_2m%2Cweather_code%2Cprecipitation_probability%2Cprecipitation&daily=temperature_2m_max%2Ctemperature_2m_min%2Cweather_code&timezone=Asia%2FShanghai&forecast_days=7",
+    status: 503,
+    json: { error: true, reason: "Owned provider unavailable" },
+  },
+];
