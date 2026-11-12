@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { roomCodeSchema } from "@/features/rooms/server/room-map-schema";
-import { getRoomMap } from "@/features/rooms/server/room-map-service";
+import { getRoomMapForValidatedCode } from "@/features/rooms/server/room-map-service";
 import {
   jsonToolResult,
   mcpModeInputSchema,
@@ -15,6 +15,8 @@ export function registerRoomMapTools(server: McpServer) {
       inputSchema: { code: roomCodeSchema, mode: mcpModeInputSchema },
     },
     async ({ code, mode }) =>
-      jsonToolResult(await getRoomMap(code), { mode: resolveMcpMode(mode) }),
+      jsonToolResult(await getRoomMapForValidatedCode(code), {
+        mode: resolveMcpMode(mode),
+      }),
   );
 }

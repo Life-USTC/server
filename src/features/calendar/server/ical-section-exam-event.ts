@@ -41,7 +41,7 @@ export function createExamEvent(
   const maps = exam.examRooms.flatMap(({ room }) => {
     const code = roomCodeSchema.safeParse(room);
     if (!code.success) return [];
-    const map = lookupRoomMap(code.data, roomMaps);
+    const map = lookupRoomMap(room, roomMaps);
     return map.imageUrl ? [map] : [];
   });
   const imageUrls = [

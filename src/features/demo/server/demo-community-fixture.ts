@@ -10,7 +10,10 @@ type Target = {
   homeworkId?: string;
   youngId?: string;
 };
-export type DemoCommunityRecord = { target: Target; comment: RawComment };
+export type DemoCommunityRecord = {
+  target: Target;
+  comment: RawComment & { deletedAt?: Date | null };
+};
 
 export const DEMO_COMMUNITY_ROOT = "demo-comment-course-01";
 const course: Target = { targetType: "course", targetId: "201" };
@@ -26,6 +29,31 @@ const authors = [
     name: ["样例同学·小秋", "Sample student Qiu"],
   },
 ] as const;
+
+function discussionAuthor(person: (typeof authors)[number], locale: AppLocale) {
+  return {
+    id: person.id,
+    username: person.username,
+    name: person.name[locale === "zh-cn" ? 0 : 1],
+    image: "/images/icon.png",
+    isAdmin: false,
+    accounts: [],
+  };
+}
+
+export function getDemoDiscussionAuthors(locale: AppLocale) {
+  return authors.map((person) => discussionAuthor(person, locale));
+}
+
+export function getDemoDiscussionAuthor(identifier: string, locale: AppLocale) {
+  const normalized = identifier.trim();
+  const people = getDemoDiscussionAuthors(locale);
+  return (
+    people.find((person) => person.username === normalized.toLowerCase()) ??
+    people.find((person) => person.id === normalized) ??
+    null
+  );
+}
 
 const topics: readonly Text[] = [
   [
@@ -180,14 +208,7 @@ export function getDemoCommunityRecords(
         visibility: "public",
         isAnonymous: false,
         userId: person.id,
-        user: {
-          id: person.id,
-          username: person.username,
-          name: text(person.name),
-          image: "/images/icon.png",
-          isAdmin: false,
-          accounts: [],
-        },
+        user: discussionAuthor(person, locale),
         createdAt: new Date(at),
         updatedAt: new Date(at),
         parentId,

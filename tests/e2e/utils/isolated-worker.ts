@@ -24,6 +24,7 @@ type Actor = { id: string; cookie: Cookie; request: APIRequestContext };
 export type IsolatedWorker = {
   origin: string;
   database: IsolatedDatabase;
+  outboundJsonObservations: { matched: string[]; rejected: string[] };
   createActor: (options?: { isAdmin?: boolean }) => Promise<Actor>;
   createSession: (userId: string) => Promise<Actor>;
 };
@@ -88,9 +89,10 @@ export const test = base.extend<
     isolatedWorker: IsolatedWorker;
     workerBindings: Record<string, string>;
     workerOutboundJson:
-      | { url: string; json: unknown }
-      | { url: string; json: unknown }[]
+      | { url: string; json: unknown; status?: number }
+      | { url: string; json: unknown; status?: number }[]
       | undefined;
+    workerOutboundRejectOrigins: string[];
     _workerResources: { start: () => Promise<IsolatedWorker> };
   },
   {
@@ -105,6 +107,7 @@ export const test = base.extend<
   },
   workerBindings: {},
   workerOutboundJson: [undefined, { option: true }],
+  workerOutboundRejectOrigins: [[], { option: true }],
   _templateResources: [
     // biome-ignore lint/correctness/noEmptyPattern: Playwright requires destructured fixture dependencies.
     async ({}, use, workerInfo) => {
@@ -148,7 +151,13 @@ export const test = base.extend<
   ],
   _workerResources: [
     async (
-      { databaseTemplate, playwright, workerBindings, workerOutboundJson },
+      {
+        databaseTemplate,
+        playwright,
+        workerBindings,
+        workerOutboundJson,
+        workerOutboundRejectOrigins,
+      },
       use,
       testInfo,
     ) => {
@@ -176,6 +185,10 @@ export const test = base.extend<
       }
       const log = createWriteStream(testInfo.outputPath("isolated-worker.log"));
       const failures: unknown[] = [];
+      const outboundJsonObservations = {
+        matched: [] as string[],
+        rejected: [] as string[],
+      };
       log.on("error", (error) => failures.push(error));
       const logClosed = new Promise<void>((resolve) =>
         log.once("close", resolve),
@@ -253,7 +266,22 @@ export const test = base.extend<
             );
             child?.on(
               "message",
-              (message: { type?: string; port?: number; message?: string }) => {
+              (message: {
+                type?: string;
+                port?: number;
+                message?: string;
+                matched?: boolean;
+                url?: string;
+              }) => {
+                if (
+                  message.type === "outbound-json" &&
+                  typeof message.url === "string" &&
+                  typeof message.matched === "boolean"
+                ) {
+                  outboundJsonObservations[
+                    message.matched ? "matched" : "rejected"
+                  ].push(message.url);
+                }
                 if (message.type === "error")
                   reject(new Error(message.message));
                 if (message.type === "ready") {
@@ -325,6 +353,7 @@ export const test = base.extend<
             type: "start",
             options,
             outboundJson: workerOutboundJson,
+            rejectOrigins: workerOutboundRejectOrigins,
           });
           await withTimeout(
             Promise.race([ready, cancelled]),
@@ -390,6 +419,7 @@ export const test = base.extend<
           return {
             origin,
             database,
+            outboundJsonObservations,
             createSession: (id) => acquire(() => createSession(id)),
             createActor: ({ isAdmin = false } = {}) =>
               acquire(async () => {
