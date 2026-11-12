@@ -264,26 +264,26 @@ for (const [locale, width] of [
             await expect
               .poll(() => page.evaluate(() => navigator.clipboard.readText()))
               .toBe("https://life-ustc.tiankaima.dev/api/mcp");
+            const chatgptUrl = new URL(page.url());
+            chatgptUrl.searchParams.set("client", "chatgpt");
             await page.getByRole("tab", { name: /ChatGPT/ }).click();
+            await expect(page).toHaveURL(chatgptUrl.href);
             await waitForUiSettled(page);
-            expect(new URL(page.url()).searchParams.get("client")).toBe(
-              "chatgpt",
-            );
             await noExternalActions(page, isolatedWorker.origin);
             await expect(
               page
                 .getByTestId("demo-information-document")
                 .locator('a[download="life-ustc-chatgpt-icon.png"]'),
             ).toHaveAttribute("href", "/images/usage/mcp-chatgpt-icon.png");
+            const otherUrl = new URL(page.url());
+            otherUrl.searchParams.set("client", "other");
             await page
               .getByRole("tab", {
                 name: english ? /Other agents/ : /其他客户端/,
               })
               .click();
+            await expect(page).toHaveURL(otherUrl.href);
             await waitForUiSettled(page);
-            expect(new URL(page.url()).searchParams.get("client")).toBe(
-              "other",
-            );
             await expect(
               page.getByRole("button", { name: /codex mcp add/ }),
             ).toBeEnabled();
