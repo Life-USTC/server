@@ -11,7 +11,7 @@
         "@better-auth/oauth-provider": "1.7.18",
         "@better-auth/passkey": "1.7.18",
         "@escape.tech/graphql-armor": "3.2.0",
-        "@graphql-tools/executor": "4.1.5",
+        "@graphql-tools/executor": "4.1.7",
         "@graphql-yoga/plugin-disable-introspection": "2.25.6",
         "@internationalized/date": "^3.12.4",
         "@lucide/svelte": "^1.66.0",
@@ -365,13 +365,13 @@
 
     "@floating-ui/vue": ["@floating-ui/vue@2.0.1", "", { "dependencies": { "@floating-ui/dom": "^1.8.0", "@floating-ui/utils": "^0.2.12" }, "peerDependencies": { "vue": ">=3.3.0" } }, "sha512-043dyEKD9TDSfz080YH2vobubgg+NIo/9Fw4RAl7sEMpD8Am1DNrrSTl/GpMBjyGHoD/FbJY2QLawY+HSQsEIA=="],
 
-    "@graphql-tools/executor": ["@graphql-tools/executor@4.1.5", "", { "dependencies": { "@graphql-tools/utils": "^13.1.3", "@graphql-typed-document-node/core": "^3.2.0", "@repeaterjs/repeater": "^3.1.0", "@whatwg-node/disposablestack": "^0.1.0", "@whatwg-node/promise-helpers": "^2.0.0", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^16.0.0 || ^17.0.0" } }, "sha512-7zBCScYXhyHNdwEQLrGP5Ci5sC1b873Fyao1FP5EgDnqw6jdc8jqHHZId6HC+xr1L/nC9OjLQ7HSn9h13aw7HA=="],
+    "@graphql-tools/executor": ["@graphql-tools/executor@4.1.7", "", { "dependencies": { "@graphql-tools/utils": "^13.2.1", "@graphql-typed-document-node/core": "^3.2.0", "@repeaterjs/repeater": "^3.1.0", "@whatwg-node/disposablestack": "^0.1.0", "@whatwg-node/promise-helpers": "^2.0.1", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^16.0.0 || ^17.0.0" } }, "sha512-OVJ+ECdN5obR4JQ99OcI4cDUZVj+YdJQsjtJXzpebIIFYUANUT/YdQbUr/c2hGyIdZQJiE4PaLHIkhKrPA9MTg=="],
 
     "@graphql-tools/merge": ["@graphql-tools/merge@9.2.8", "", { "dependencies": { "@graphql-tools/utils": "^12.1.0", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-OsCEmJ9RIMT4LB/1jBbyKHe7pMIlfGhLAQ0FVNaZqteydDUC+rTI9wZ+yaKqxQpPOFFycD+UtMhovg19lPq92Q=="],
 
     "@graphql-tools/schema": ["@graphql-tools/schema@10.1.5", "", { "dependencies": { "@graphql-tools/merge": "^9.2.8", "@graphql-tools/utils": "^12.1.0", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-F0Onw0ZBREakKGqcgsKhdSCjOXgmntzQWL0QA+/WrwKmnJ7nJRyGKUJavwuVZL2TrXblaIUvQxm4t1h3FuA3cA=="],
 
-    "@graphql-tools/utils": ["@graphql-tools/utils@13.2.0", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.2.0", "@whatwg-node/promise-helpers": "^2.0.0", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^16.0.0 || ^17.0.0" } }, "sha512-s3+6E/Zve4Okj7+60HpMBoVDmMBzuskX1u9C1/kNi86V3Aez1Eh1LP0crh929kzhb1YcyZYyVWGuKyfztuF5qA=="],
+    "@graphql-tools/utils": ["@graphql-tools/utils@13.2.2", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.2.0", "@whatwg-node/promise-helpers": "^2.0.1", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^16.0.0 || ^17.0.0" } }, "sha512-2KAzOQvG5bggH9A02xPGG9/40k+hpIfikR0TLa9r7okjUPqYv+B9FYpEXJBqxlRtrMStMbel0KczLPyNiu7vtg=="],
 
     "@graphql-typed-document-node/core": ["@graphql-typed-document-node/core@3.2.0", "", { "peerDependencies": { "graphql": "^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ=="],
 
@@ -899,7 +899,7 @@
 
     "@whatwg-node/node-fetch": ["@whatwg-node/node-fetch@0.8.6", "", { "dependencies": { "@fastify/busboy": "^3.1.1", "@whatwg-node/disposablestack": "^0.0.6", "@whatwg-node/promise-helpers": "^1.3.2", "tslib": "^2.6.3" } }, "sha512-BDMdYFcerLQkwA2RTldxOqRCs6ZQD1S7UgP3pUdGUkcbgTrP/V5ko77ZkCww9DHmC4lpoYuwigGfQYj285gMvA=="],
 
-    "@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@2.0.0", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-/i9CS0Z96o+cPwaYoAyVxAThDiUX1wV3tDmNWPJbn+vtdR+JftuCDg1NGCXBrzIYVDGkJ8uT6ctwmrBOUzOpKQ=="],
+    "@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@2.0.2", "", { "dependencies": { "tslib": "^2.9.1" } }, "sha512-RKVGTBAuYfObHxUFjlTFmlDndmuXBxkN56yj3z6EQpNpT55R/xaMhTi4+9yXZ5UoDXbKLAsZHCP8ycoWHM/Vdg=="],
 
     "@whatwg-node/server": ["@whatwg-node/server@0.11.0", "", { "dependencies": { "@envelop/instrumentation": "^1.0.0", "@whatwg-node/disposablestack": "^0.0.6", "@whatwg-node/fetch": "^0.10.13", "@whatwg-node/promise-helpers": "^1.3.2", "tslib": "^2.6.3" } }, "sha512-VSdkwnJRr8Yv9UgB2aXB3VUPWwd6Oqnn0hycFwhg9pZgWxJXb7JmhsiXe9tmpMwjHFxli12PGcz9aI63YYloGQ=="],
 
@@ -2133,6 +2133,8 @@
 
     "@graphql-tools/schema/@graphql-tools/utils": ["@graphql-tools/utils@12.1.0", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.1.1", "@whatwg-node/promise-helpers": "^2.0.0", "cross-inspect": "1.0.1", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-+mOuIX7u83/BHG0L9JviMzKid1j35cxOWhLoox47TXHAJ6Tnn30RgrmEQPmk1FhmaQbhJEcwYBDVyieUvZopJw=="],
 
+    "@graphql-tools/utils/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
+
     "@graphql-yoga/plugin-disable-introspection/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@1.3.2", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-Nst5JdK47VIl9UcGwtv2Rcgyn5lWtZ0/mhRQ4G8NN2isxpq2TO30iqHzmwoJycjWuyUfg3GFXqP/gFHXeV57IA=="],
 
     "@jridgewell/gen-mapping/@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
@@ -2227,9 +2229,13 @@
 
     "@vue/compiler-sfc/source-map-js": ["source-map-js@1.2.2", "", {}, "sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw=="],
 
+    "@whatwg-node/disposablestack/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@2.0.0", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-/i9CS0Z96o+cPwaYoAyVxAThDiUX1wV3tDmNWPJbn+vtdR+JftuCDg1NGCXBrzIYVDGkJ8uT6ctwmrBOUzOpKQ=="],
+
     "@whatwg-node/node-fetch/@whatwg-node/disposablestack": ["@whatwg-node/disposablestack@0.0.6", "", { "dependencies": { "@whatwg-node/promise-helpers": "^1.0.0", "tslib": "^2.6.3" } }, "sha512-LOtTn+JgJvX8WfBVJtF08TGrdjuFzGJc4mkP8EdDI8ADbvO7kiexYep1o8dwnt0okb0jYclCDXF13xU7Ge4zSw=="],
 
     "@whatwg-node/node-fetch/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@1.3.2", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-Nst5JdK47VIl9UcGwtv2Rcgyn5lWtZ0/mhRQ4G8NN2isxpq2TO30iqHzmwoJycjWuyUfg3GFXqP/gFHXeV57IA=="],
+
+    "@whatwg-node/promise-helpers/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
 
     "@whatwg-node/server/@envelop/instrumentation": ["@envelop/instrumentation@1.0.0", "", { "dependencies": { "@whatwg-node/promise-helpers": "^1.2.1", "tslib": "^2.5.0" } }, "sha512-cxgkB66RQB95H3X27jlnxCRNTmPuSTgmBAq6/4n2Dtv4hsk4yz8FadA1ggmd0uZzvKqWD6CR+WFgTjhDqg7eyw=="],
 
@@ -2664,6 +2670,10 @@
     "@cspotcode/source-map-support/@jridgewell/trace-mapping/@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
     "@floating-ui/vue/@floating-ui/dom/@floating-ui/core": ["@floating-ui/core@1.8.0", "", { "dependencies": { "@floating-ui/utils": "^0.2.12" } }, "sha512-0CIZ5itps/8x7BG8dEIhs53BvCUH2PCoogtakwRTut+Arm58sJooJ0AuZhLw2HJYIR5cMLNPBSS728sPho2khQ=="],
+
+    "@graphql-tools/merge/@graphql-tools/utils/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@2.0.0", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-/i9CS0Z96o+cPwaYoAyVxAThDiUX1wV3tDmNWPJbn+vtdR+JftuCDg1NGCXBrzIYVDGkJ8uT6ctwmrBOUzOpKQ=="],
+
+    "@graphql-tools/schema/@graphql-tools/utils/@whatwg-node/promise-helpers": ["@whatwg-node/promise-helpers@2.0.0", "", { "dependencies": { "tslib": "^2.6.3" } }, "sha512-/i9CS0Z96o+cPwaYoAyVxAThDiUX1wV3tDmNWPJbn+vtdR+JftuCDg1NGCXBrzIYVDGkJ8uT6ctwmrBOUzOpKQ=="],
 
     "@octokit/plugin-paginate-rest/@octokit/types/@octokit/openapi-types": ["@octokit/openapi-types@28.0.0", "", {}, "sha512-0rFyLuyHvIj6uuZWuDslxkowFYdPXoNIkeAv4b27dzm2Tf4vGWXnPsMcxs7d65kLdMERgP3wc1AEPlqMz8e1cQ=="],
 
