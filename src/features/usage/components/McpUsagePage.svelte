@@ -90,6 +90,7 @@ type PageData = {
 };
 
 export let data: PageData;
+export let readOnlyReason = "";
 
 const MCP_ENDPOINT = "https://life-ustc.tiankaima.dev/api/mcp";
 const CHATGPT_DOCS_URL =
@@ -336,15 +337,20 @@ function selectClient(value: string) {
             <div class="grid gap-3">
               <span class={usageMarketingStepIndexClass}>{usageMarketingStepIndex(0)}</span>
               <h4 class={usageMarketingStepTitleClass}>
-                <a
+                <svelte:element
+                  this={readOnlyReason ? "button" : "a"}
+                  type={readOnlyReason ? "button" : undefined}
+                  disabled={readOnlyReason ? true : undefined}
+                  aria-describedby={readOnlyReason ? "demo-information-reason" : undefined}
+                  title={readOnlyReason || undefined}
                   class="inline-flex items-center gap-2 text-foreground underline-offset-4 hover:underline"
-                  href={CHATGPT_DOCS_URL}
+                  href={readOnlyReason ? undefined : CHATGPT_DOCS_URL}
                   rel="noreferrer"
                   target="_blank"
                 >
                   {data.copy.chatgpt.steps[0]}
                   <ExternalLinkIcon class="size-4 shrink-0" />
-                </a>
+                </svelte:element>
               </h4>
             </div>
             <a class="flex w-full max-w-2xl items-start justify-start" href={data.copy.chatgpt.overviewSrc} rel="noreferrer" target="_blank">
@@ -414,7 +420,7 @@ function selectClient(value: string) {
               <h4 class={usageMarketingStepTitleClass}>{data.copy.claude.steps[2]}</h4>
             </div>
             <p class="text-sm leading-6">{data.copy.claudeCompletion}</p>
-            <Button href={CLAUDE_DOCS_URL} target="_blank" rel="noreferrer" variant="link" class="w-fit">{data.copy.claudeOfficial}<ExternalLinkIcon data-icon="inline-end" /></Button>
+            <Button disabled={Boolean(readOnlyReason)} aria-describedby={readOnlyReason ? "demo-information-reason" : undefined} title={readOnlyReason || undefined} href={readOnlyReason ? undefined : CLAUDE_DOCS_URL} target="_blank" rel="noreferrer" variant="link" class="w-fit">{data.copy.claudeOfficial}<ExternalLinkIcon data-icon="inline-end" /></Button>
           </section>
         </div>
         </article>
