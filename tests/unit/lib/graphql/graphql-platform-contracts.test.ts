@@ -17,7 +17,7 @@ vi.mock("@/features/subscriptions/server/subscription-read-model", () => ({
   listSubscribedHomeworkPage: services.homeworks,
 }));
 vi.mock("@/features/rooms/server/room-map-service", () => ({
-  getRoomMap: services.roomMap,
+  getRoomMapForValidatedCode: services.roomMap,
 }));
 
 import type { GraphqlContext } from "@/lib/graphql/context";
