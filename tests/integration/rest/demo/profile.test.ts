@@ -158,8 +158,6 @@ for (const locale of ["en-us", "zh-cn"] as const)
           "/account/settings/profile/unknown",
           "/account/settings/profile/__data.json/__data.json",
           "/api/account/profile/unknown",
-          "/community/users/demo-student",
-          "/community/users/demo:workspace-v1",
         ]) {
           const response = await request.get(path, {
             headers,
@@ -169,6 +167,29 @@ for (const locale of ["en-us", "zh-cn"] as const)
           expect(await response.json()).toEqual({ error: "DEMO_READ_ONLY" });
           privateHeaders(response);
         }
+        // The fixed account profile is not a public discussion author. Real IDs stay sealed too.
+        for (const identifier of [
+          "demo-student",
+          "demo:workspace-v1",
+          actor.id,
+        ])
+          for (const prefix of ["/community/users/", "/api/community/users/"]) {
+            const path = `${prefix}${encodeURIComponent(identifier)}`;
+            const response = await request.get(path, {
+              headers,
+              maxRedirects: 0,
+            });
+            expect(response.status(), path).toBe(404);
+            const body = await response.text();
+            for (const hidden of [
+              "Private ordinary profile",
+              "https://private.example.test/avatar.png",
+              "Sample student Xia",
+              "样例同学·小夏",
+            ])
+              expect(body).not.toContain(hidden);
+            privateHeaders(response);
+          }
         for (const [method, path] of [
           ["POST", "/account/settings/profile?/updateProfile"],
           ["POST", "/account/settings/profile?/linkAccount"],

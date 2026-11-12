@@ -1,5 +1,7 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
+import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
+import type { DemoView } from "@/features/demo/lib/demo-types";
 import type { ProfileCopy } from "@/features/profile/lib/profile-copy";
 import type { AppLocale } from "@/i18n/config";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
@@ -31,6 +33,7 @@ type Profile = {
 };
 
 export let profile: Profile;
+export let demo: DemoView | null | undefined = null;
 
 $: user = profile.user;
 $: copy = profile.copy.publicProfile;
@@ -49,6 +52,7 @@ $: stats = [
 </script>
 
 <CollectionPage panel={false}>
+{#if demo}<DemoNotice {demo} locale={profile.locale} />{/if}
 <section class="grid w-full gap-8 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
   <ProfileSummaryCard
     {copy}

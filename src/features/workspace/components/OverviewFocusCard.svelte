@@ -51,9 +51,10 @@ function statusLabel(status: WorkspaceFocusItem["status"]) {
         {/if}
       </div>
     </a>
-  {:else if loadingLabel}
-    <p role="status" class="text-muted-foreground text-sm">{loadingLabel}</p>
-  {:else}
+  {:else if !loadingLabel}
     <p class="text-muted-foreground text-sm">{copy.noUpcoming}</p>
+  {/if}
+  {#if loadingLabel}
+    <p role="status" class="text-muted-foreground text-sm">{loadingLabel}</p>
   {/if}
 </OverviewSection>

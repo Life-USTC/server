@@ -65,6 +65,7 @@ type PageData = {
 export let data: PageData;
 export let kind: GuideKind;
 export let primaryHref: string;
+export let readOnlyReason = "";
 export let primaryQrSrc: string | undefined = undefined;
 
 let installCopied = false;
@@ -197,7 +198,10 @@ async function copyInstallCommand() {
         <div class={usageMarketingCtaRowClass}>
           <Button
             class={usageMarketingPrimaryCtaClass}
-            href={primaryHref}
+            href={readOnlyReason ? undefined : primaryHref}
+            disabled={Boolean(readOnlyReason)}
+            aria-describedby={readOnlyReason ? "demo-information-reason" : undefined}
+            title={readOnlyReason || undefined}
             rel="noreferrer"
             target="_blank"
           >

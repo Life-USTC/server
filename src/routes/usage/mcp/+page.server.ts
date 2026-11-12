@@ -16,6 +16,8 @@ export const load: PageServerLoad = ({ locals, url }) => {
       ? requestedClient
       : "chatgpt";
   return {
+    pageDemo: locals.demo ?? null,
+    pageLocale: locals.locale,
     client,
     copy: copy.usagePages.mcp,
     metadataTitle: copy.metadata.pages.mcp,

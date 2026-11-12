@@ -9,7 +9,9 @@ vi.mock("@/features/weather/server/weather-service", () => ({
 
 import { getWeatherRoute } from "@/lib/api/routes/weather";
 
-beforeEach(() => getWeatherSnapshot.mockReset());
+beforeEach(() => {
+  getWeatherSnapshot.mockReset();
+});
 
 it("reports provider unavailability as a service failure for a valid location", async () => {
   getWeatherSnapshot.mockResolvedValue(null);
@@ -31,4 +33,17 @@ it("rejects invalid locations before attempting a provider lookup", async () => 
   );
   expect(response.status).toBe(400);
   expect(getWeatherSnapshot).not.toHaveBeenCalled();
+});
+
+it("keeps a reader rejection distinct from provider unavailability", async () => {
+  const failure = new Error("Owned WEATHER reader failure");
+  getWeatherSnapshot.mockRejectedValue(failure);
+  const response = await getWeatherRoute(
+    new Request(
+      "https://example.com/api/catalog/weather?locationKey=ustc-main",
+    ),
+  );
+  expect(response.status).toBe(500);
+  expect(await response.json()).toEqual({ error: "Failed to fetch weather" });
+  expect(getWeatherSnapshot).toHaveBeenCalledExactlyOnceWith("ustc-main");
 });

@@ -46,8 +46,11 @@ export function createScheduleEvent(
           .join(", ")
       : "";
 
-  const code = roomCodeSchema.safeParse(schedule.room?.code);
-  const roomMap = code.success ? lookupRoomMap(code.data, roomMaps) : null;
+  const rawCode = schedule.room?.code;
+  const roomMap =
+    typeof rawCode === "string" && roomCodeSchema.safeParse(rawCode).success
+      ? lookupRoomMap(rawCode, roomMaps)
+      : null;
   const imageUrl = roomMap?.imageUrl;
 
   const description = [

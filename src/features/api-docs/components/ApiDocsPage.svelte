@@ -3,7 +3,13 @@ import CloudAlertIcon from "@lucide/svelte/icons/cloud-alert";
 import MenuIcon from "@lucide/svelte/icons/menu";
 import type { ApiReferenceConfiguration } from "@scalar/api-reference";
 import { onMount, tick } from "svelte";
+import { get } from "svelte/store";
 import { OPENAPI_SPEC_API_PATH } from "#lib/openapi/spec.js";
+import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
+import { guardDemoDocumentLinks } from "@/features/demo/lib/demo-document-links";
+import { homePublicReadEpoch } from "@/features/demo/lib/demo-home-owner";
+import type { DemoView } from "@/features/demo/lib/demo-types";
+import { getShellViewer } from "@/lib/shell/shell-viewer";
 import { afterNavigate } from "$app/navigation";
 import "@scalar/api-reference/style.css";
 import "./api-docs-scalar.css";
@@ -18,6 +24,9 @@ import {
 } from "../lib/docs-navigation";
 
 type PageData = {
+  pageDemo: DemoView | null;
+  pageLocale: "en-us" | "zh-cn";
+  locale: "en-us" | "zh-cn";
   copy: {
     apiDocs: {
       browseNavigation: string;
@@ -43,6 +52,62 @@ type ReferenceConfig = Partial<ApiReferenceConfiguration> & {
 export let data: PageData;
 
 const specPath = OPENAPI_SPEC_API_PATH;
+const shellViewer = getShellViewer();
+let ownerEpoch = "";
+let generation = 0;
+let controller: AbortController | undefined;
+let expiryTimer: ReturnType<typeof setTimeout> | undefined;
+let stopLinks: (() => void) | undefined;
+const animationFrames = new Set<number>();
+function currentEpoch() {
+  if (
+    data.locale !== data.pageLocale ||
+    (data.pageDemo && data.pageDemo.expiresAt <= Date.now())
+  )
+    return "";
+  const epoch = homePublicReadEpoch(get(shellViewer), data.pageDemo);
+  return epoch ? `${epoch}:${data.pageLocale}` : "";
+}
+function owns(expected: number, epoch: string) {
+  return (
+    mounted &&
+    generation === expected &&
+    Boolean(epoch) &&
+    epoch === currentEpoch()
+  );
+}
+function retireReference() {
+  generation++;
+  controller?.abort();
+  controller = undefined;
+  if (expiryTimer) clearTimeout(expiryTimer);
+  expiryTimer = undefined;
+  for (const frame of animationFrames) cancelAnimationFrame(frame);
+  animationFrames.clear();
+  stopLinks?.();
+  stopLinks = undefined;
+  reference?.destroy();
+  reference = undefined;
+  document.getElementById("api-reference")?.replaceChildren();
+  apiDocument = undefined;
+  selectedDocs = undefined;
+  mobileNavigationOpen = false;
+}
+function syncReadOwner() {
+  const epoch = currentEpoch();
+  if (epoch === ownerEpoch) return;
+  retireReference();
+  ownerEpoch = epoch;
+  loading = true;
+  loadError = false;
+  if (!epoch) return;
+  if (data.pageDemo)
+    expiryTimer = setTimeout(
+      syncReadOwner,
+      Math.max(0, data.pageDemo.expiresAt - Date.now()),
+    );
+  void loadSpec();
+}
 
 let currentPath = "";
 let apiDocument: OpenApiDocument | undefined;
@@ -53,8 +118,17 @@ let sidebarScrollY: number | undefined;
 let mobileNavigationOpen = false;
 let loadError = false;
 let loading = true;
+$: if (mounted) {
+  $shellViewer;
+  data;
+  syncReadOwner();
+}
 
-const referenceConfig = (content: OpenApiDocument) =>
+const referenceConfig = (
+  content: OpenApiDocument,
+  expected: number,
+  epoch: string,
+) =>
   ({
     content,
     layout: "modern",
@@ -69,9 +143,18 @@ const referenceConfig = (content: OpenApiDocument) =>
     documentDownloadType: "none",
     withDefaultFonts: false,
     persistAuth: false,
-    onLoaded: () => scheduleReferenceRouteRestore(),
+    ...(data.pageDemo
+      ? {
+          hideTestRequestButton: true,
+          customFetch: async () => {
+            throw new Error("Demo API documentation cannot execute requests");
+          },
+        }
+      : {}),
+    onLoaded: () => scheduleReferenceRouteRestore(expected, epoch),
     setPageTitle: ({ title }) => {
-      scheduleReferenceRouteRestore();
+      if (!owns(expected, epoch)) return document.title;
+      scheduleReferenceRouteRestore(expected, epoch);
       return title;
     },
     agent: { disabled: true },
@@ -87,60 +170,89 @@ afterNavigate(({ to, shallow, type }) => {
 
 onMount(() => {
   mounted = true;
-  void loadSpec();
-
+  syncReadOwner();
   return () => {
     mounted = false;
-    reference?.destroy();
+    retireReference();
   };
 });
 
 async function loadSpec() {
+  const epoch = currentEpoch();
+  if (!epoch) return;
+  const expected = ++generation;
+  controller?.abort();
+  const request = new AbortController();
+  controller = request;
   loading = true;
   loadError = false;
   try {
-    const response = await fetch(specPath);
+    const response = await fetch(specPath, {
+      signal: request.signal,
+      ...(data.pageDemo ? { cache: "no-store" as const } : {}),
+    });
     if (!response.ok)
       throw new Error(`OpenAPI request failed: ${response.status}`);
-    apiDocument = await response.json();
-    await renderReference();
+    const content: OpenApiDocument = await response.json();
+    if (!owns(expected, epoch)) return;
+    apiDocument = content;
+    await renderReference(expected);
   } catch (error) {
+    if (request.signal.aborted || !owns(expected, epoch)) return;
     console.error("Failed to load API documentation", error);
     apiDocument = undefined;
     selectedDocs = undefined;
     loadError = true;
   } finally {
-    loading = false;
+    if (owns(expected, epoch)) loading = false;
   }
 }
 
-async function renderReference() {
-  if (!apiDocument) return;
+async function renderReference(expected = ++generation) {
+  const content = apiDocument;
+  const epoch = currentEpoch();
+  if (!content || !epoch) return;
   selectedDocs = getApiDocsSelection(
-    apiDocument,
+    content,
     currentPath || window.location.pathname,
   );
-
-  // The reference container only exists once the success branch is rendered;
-  // after a retry it is still queued when this runs.
   await tick();
+  if (!owns(expected, epoch)) return;
   const container = document.getElementById("api-reference");
   if (!container) return;
-  container.replaceChildren();
+  stopLinks?.();
+  stopLinks = undefined;
   reference?.destroy();
-
+  reference = undefined;
+  container.replaceChildren();
   const { createApiReference } = await import("@scalar/api-reference");
-  if (!mounted || !selectedDocs) return;
+  if (!owns(expected, epoch) || !selectedDocs) return;
   reference = createApiReference(
     container,
-    referenceConfig(selectedDocs.document),
+    referenceConfig(selectedDocs.document, expected, epoch),
   );
+  if (data.pageDemo)
+    stopLinks = guardDemoDocumentLinks(container, {
+      isCurrent: () => owns(expected, epoch),
+      isAllowed: (url) =>
+        url.origin === location.origin &&
+        ((url.pathname === location.pathname &&
+          url.search === location.search) ||
+          (url.pathname === specPath && !url.search)),
+      reason: data.pageDemo.readOnlyReason,
+    });
+  // The render generation supersedes the fetch generation after the real body is read.
+  if (owns(expected, epoch)) loading = false;
 }
 
 function handleNavigationClick(
   event: MouseEvent,
   closeMobileNavigation = false,
 ) {
+  if (!currentEpoch()) {
+    event.preventDefault();
+    return;
+  }
   if (
     event.button !== 0 ||
     event.metaKey ||
@@ -155,8 +267,11 @@ function handleNavigationClick(
   if (closeMobileNavigation) mobileNavigationOpen = false;
 }
 
-function scheduleReferenceRouteRestore() {
-  requestAnimationFrame(() => {
+function scheduleReferenceRouteRestore(expected: number, epoch: string) {
+  if (!owns(expected, epoch)) return;
+  const frame = requestAnimationFrame(() => {
+    animationFrames.delete(frame);
+    if (!owns(expected, epoch)) return;
     if (window.location.hash) {
       window.history.replaceState(
         window.history.state,
@@ -170,6 +285,7 @@ function scheduleReferenceRouteRestore() {
       sidebarScrollY = undefined;
     }
   });
+  animationFrames.add(frame);
 }
 </script>
 
@@ -225,6 +341,8 @@ function scheduleReferenceRouteRestore() {
   {#snippet actions()}
       <Button class="w-full sm:w-auto" href={specPath} variant="outline">{data.copy.apiDocs.rawSpecLink}</Button>
   {/snippet}
+
+  {#if data.pageDemo}<DemoNotice demo={data.pageDemo} locale={data.pageLocale} />{/if}
 
   {#if loadError}
     <Empty.Root class="border border-border border-solid bg-card" data-testid="api-docs-load-error">

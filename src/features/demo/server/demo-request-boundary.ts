@@ -1,3 +1,5 @@
+import { isDemoApiDocsReadPath } from "@/features/api-docs/lib/docs-navigation";
+import { isDemoInformationReadPathname } from "@/features/demo/lib/demo-information-paths";
 import type { DemoIdentity } from "@/features/demo/lib/demo-types";
 import {
   DEMO_ENTER_PATH,
@@ -8,6 +10,13 @@ import {
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import { PUBLIC_NAVIGATION_HEADER } from "@/lib/shell/public-navigation-contract";
 import { isDemoEnabled, readDemoSession } from "./demo-session";
+
+function isDemoPublicProfileRead(path: string) {
+  return (
+    /^\/community\/users\/[^/]+(?:\/__data\.json)?$/.test(path) ||
+    /^\/api\/community\/users\/[^/]+$/.test(path)
+  );
+}
 
 export function setDemoPrivateHeaders(headers: Headers) {
   headers.set("Cache-Control", "private, no-store");
@@ -177,7 +186,15 @@ export async function resolveDemoBoundary(
         isDemoCatalogPage(url.pathname) ||
         isDemoNewsPage(url.pathname) ||
         isDemoYoungPage(url.pathname) ||
-        isDemoCommentPage(url.pathname)) &&
+        isDemoCommentPage(url.pathname) ||
+        (url.pathname.startsWith("/community/users/") &&
+          isDemoPublicProfileRead(url.pathname) &&
+          !url.pathname.endsWith("/__data.json")) ||
+        (isDemoInformationReadPathname(url.pathname) &&
+          !url.pathname.endsWith("/__data.json")) ||
+        (isDemoApiDocsReadPath(url.pathname) &&
+          url.pathname !== "/api/openapi" &&
+          !url.pathname.endsWith("/__data.json"))) &&
       request.headers.get("accept")?.includes("text/html")
     ) {
       const response = new Response(null, {
@@ -235,6 +252,9 @@ export async function resolveDemoBoundary(
       "/_internal/shell-bootstrap",
     ].includes(url.pathname) &&
       !isDemoCatalogRead(url.pathname) &&
+      !isDemoPublicProfileRead(url.pathname) &&
+      !isDemoInformationReadPathname(url.pathname) &&
+      !isDemoApiDocsReadPath(url.pathname) &&
       !/^\/api\/community\/section-homeworks\/[^/]+$/.test(url.pathname))
   ) {
     return reject(403, "DEMO_READ_ONLY");

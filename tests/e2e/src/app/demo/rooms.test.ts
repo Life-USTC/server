@@ -19,26 +19,49 @@ import { expectRenderedUiQuality } from "../../../utils/ui-quality";
 test.use({
   workerBindings: { DEMO_ENABLED: "1", E2E_DEBUG_AUTH: "0" },
   workerOutboundJson: [
-    {
-      url: "https://static.life-ustc.tiankaima.dev/room_maps.json",
-      json: {
-        rooms: [
-          {
-            code: "DEMO-101",
-            building: "Owned ordinary building",
-            floor: "1",
-            imagePath: "imgs/ordinary-1544.png",
-            sourceImagePath: "imgs/ordinary-1544-floor.png",
-          },
-        ],
+    [
+      {
+        url: "https://static.life-ustc.tiankaima.dev/room_maps.json",
+        json: {
+          rooms: [
+            {
+              code: "DEMO-101",
+              building: "Owned ordinary building",
+              floor: "1",
+              imagePath: "imgs/ordinary-1544.png",
+              sourceImagePath: "imgs/ordinary-1544-floor.png",
+            },
+          ],
+        },
       },
-    },
-    {
-      url: "https://static.life-ustc.tiankaima.dev/building_img_rules.json",
-      json: [],
-    },
+      {
+        url: "https://static.life-ustc.tiankaima.dev/building_img_rules.json",
+        json: [],
+      },
+    ],
+    { scope: "test" },
   ],
+  workerOutboundRejectOrigins: ["https://static.life-ustc.tiankaima.dev"],
 });
+async function expectRoomUpstreamReads(
+  observations: { matched: string[]; rejected: string[] },
+  ordinary = false,
+) {
+  await expect
+    .poll(() => ({
+      matched: [...observations.matched].sort(),
+      rejected: observations.rejected,
+    }))
+    .toEqual({
+      matched: ordinary
+        ? [
+            "https://static.life-ustc.tiankaima.dev/building_img_rules.json",
+            "https://static.life-ustc.tiankaima.dev/room_maps.json",
+          ]
+        : [],
+      rejected: [],
+    });
+}
 const highlighted = "/api/catalog/rooms/images/demo-room-101.svg";
 const base = "/api/catalog/rooms/images/demo-floor.svg";
 const preview = (page: Page) =>
@@ -294,7 +317,10 @@ for (const [locale, width] of [
               })
               .click();
             await waitForUiSettled(page);
-            await expect(input).toHaveValue("DEMO-1");
+            await expect(input).toHaveValue("ｄｅｍｏ－１");
+            expect(new URL(page.url()).searchParams.get("room")).toBe(
+              "ｄｅｍｏ－１",
+            );
             await expectTextFits(result.locator("p").first());
             await expectTextFits(result.locator('[data-slot="badge"]'));
             await expectNoPageHorizontalOverflow(page);
@@ -336,6 +362,9 @@ for (const [locale, width] of [
               expect(await link.getAttribute("href")).toMatch(
                 /^\/api\/catalog\/rooms\/images\/demo-(?:floor|room-101)\.svg$/,
               );
+            await expectRoomUpstreamReads(
+              isolatedWorker.outboundJsonObservations,
+            );
           }),
         ),
       ),
@@ -587,6 +616,10 @@ for (const transition of ["ordinary mode", "same-page locale"] as const) {
                 errors,
                 "Held room map owner workflow failed",
               );
+            await expectRoomUpstreamReads(
+              isolatedWorker.outboundJsonObservations,
+              transition === "ordinary mode",
+            );
           }),
         ),
       ),
@@ -660,6 +693,9 @@ test("demo rooms: native locale and re-entry retain the sealed graph", {
             highlighted,
           );
           await imageReady(preview(page).getByRole("img"));
+          await expectRoomUpstreamReads(
+            isolatedWorker.outboundJsonObservations,
+          );
         }),
       ),
     ),
@@ -771,6 +807,10 @@ test("demo rooms: bypasses a proven warm ordinary HTTP cache", {
               outcome: "fulfilled",
               result: 200,
             });
+            await expectRoomUpstreamReads(
+              isolatedWorker.outboundJsonObservations,
+              true,
+            );
             await page.context().addCookies([
               {
                 ...(await createSignedDemoCookie({
@@ -820,6 +860,10 @@ test("demo rooms: bypasses a proven warm ordinary HTTP cache", {
                 ),
               )
               .toBeGreaterThan(0);
+            await expectRoomUpstreamReads(
+              isolatedWorker.outboundJsonObservations,
+              true,
+            );
           } catch (error) {
             errors.push(error);
           } finally {
