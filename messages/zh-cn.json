@@ -102,7 +102,7 @@
       "operator": "比较方式",
       "value": "数值",
       "maximum": "上限",
-      "selected": "已选 {count} 项",
+      "clear": "清除",
       "operators": {
         "eq": "等于",
         "ne": "不等于",

@@ -743,12 +743,27 @@ shellTest(
         name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
       });
       await expect(sidebar).toBeVisible();
-      await expect(
-        sidebar.getByRole("button", { name: /^(日程|My day)$/i }),
-      ).toBeVisible();
-      await expect(
-        sidebar.getByRole("button", { name: /^(管理|Admin)$/i }),
-      ).toBeVisible();
+      for (const name of [/^(日程|My day)$/i, /^(管理|Admin)$/i]) {
+        const group = sidebar.locator('[data-slot="sidebar-group"]').filter({
+          has: page
+            .locator('[data-slot="sidebar-group-label"] > span')
+            .filter({ hasText: name }),
+        });
+        await expect(group).toHaveCount(1);
+        await expect(
+          group.locator('[data-slot="sidebar-group-label"] > span'),
+        ).toHaveText(name);
+        await expect(
+          group.locator('[data-slot="sidebar-group-label"]'),
+        ).not.toHaveAttribute("aria-expanded");
+        await expect(
+          group.locator('[data-slot="sidebar-group-content"]'),
+        ).toBeVisible();
+        await expect(group.getByRole("button", { name })).toHaveCount(0);
+        await expect(
+          group.locator('[data-slot="sidebar-menu-action"]'),
+        ).toHaveCount(0);
+      }
       await expect(
         sidebar.getByRole("button", { name: /语言|Language/i }),
       ).toHaveCount(0);

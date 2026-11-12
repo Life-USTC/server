@@ -833,6 +833,27 @@ test("demo young workspace retires an admitted ordinary subscription write", {
                 },
               }),
             ).toBeNull();
+            const ordinaryDetailUrl = page.url();
+            const ordinaryYoungNavigation = page.getByTestId("young-sidebar");
+            await expect(ordinaryYoungNavigation).toHaveAttribute(
+              "data-shell-navigation-view",
+              "young",
+            );
+            const ordinaryViewMainNavigation = page.getByRole("button", {
+              name: "View main navigation",
+              exact: true,
+            });
+            await expect(ordinaryViewMainNavigation).toHaveCount(1);
+            await expect(ordinaryViewMainNavigation).toBeVisible();
+            await ordinaryViewMainNavigation.click();
+            await expect(ordinaryYoungNavigation).toHaveAttribute(
+              "data-shell-navigation-view",
+              "root",
+            );
+            expect(page.url()).toBe(ordinaryDetailUrl);
+            expect(
+              await originalDocument.evaluate((doc) => doc === document),
+            ).toBe(true);
             await demo(page, isolatedWorker.origin);
             const manage = page.getByRole("link", {
               name: "Activity subscriptions",
@@ -879,9 +900,85 @@ test("demo young workspace retires an admitted ordinary subscription write", {
             release.resolve();
             await Promise.all(operations);
             await expect.poll(() => terminal).toBe("finished");
-            await page
-              .getByRole("button", { name: "My day", exact: true })
-              .click();
+            const detailUrl = page.url();
+            const youngNavigation = page.getByTestId("young-sidebar");
+            await expect(youngNavigation).toHaveAttribute(
+              "data-shell-navigation-view",
+              "young",
+            );
+            const viewMainNavigation = page.getByRole("button", {
+              name: "View main navigation",
+              exact: true,
+            });
+            await expect(viewMainNavigation).toHaveCount(1);
+            await expect(viewMainNavigation).toBeVisible();
+            await viewMainNavigation.click();
+            await expect(youngNavigation).toHaveAttribute(
+              "data-shell-navigation-view",
+              "root",
+            );
+            expect(page.url()).toBe(detailUrl);
+            const sidebar = page.getByTestId("app-sidebar");
+            const sidebarState = page
+              .locator('[data-slot="sidebar"]')
+              .filter({ has: sidebar });
+            await expect(sidebarState).toHaveCount(1);
+            const dayGroup = sidebar
+              .locator('[data-slot="sidebar-group"]')
+              .filter({
+                has: page
+                  .locator('[data-slot="sidebar-group-label"] > span')
+                  .filter({ hasText: /^My day$/ }),
+              });
+            await expect(dayGroup).toHaveCount(1);
+            await expect(
+              dayGroup.getByRole("button", { name: "My day", exact: true }),
+            ).toHaveCount(0);
+            await expect(sidebarState).toHaveAttribute(
+              "data-state",
+              "expanded",
+            );
+            const rail = sidebar.getByRole("button", {
+              name: "Toggle sidebar",
+              exact: true,
+            });
+            await expect(rail).toHaveCount(1);
+            await expect(rail).toBeVisible();
+            const readGlobalOpen = () =>
+              page.evaluate(() => {
+                const value: unknown = JSON.parse(
+                  localStorage.getItem("life-ustc.sidebar.v1") ?? "null",
+                );
+                return typeof value === "object" &&
+                  value !== null &&
+                  "open" in value
+                  ? value.open
+                  : undefined;
+              });
+            // Exercise the retained global preference without navigating or reviving a local disclosure.
+            await rail.click();
+            await expect(sidebarState).toHaveAttribute(
+              "data-state",
+              "collapsed",
+            );
+            await expect.poll(readGlobalOpen).toBe(false);
+            await expect(rail).toBeVisible();
+            await rail.click();
+            await expect(sidebarState).toHaveAttribute(
+              "data-state",
+              "expanded",
+            );
+            await expect.poll(readGlobalOpen).toBe(true);
+            await expect(
+              dayGroup.locator('[data-slot="sidebar-group-content"]'),
+            ).toBeVisible();
+            await expect(
+              dayGroup.getByRole("button", { name: "My day", exact: true }),
+            ).toHaveCount(0);
+            expect(page.url()).toBe(detailUrl);
+            expect(
+              await originalDocument.evaluate((doc) => doc === document),
+            ).toBe(true);
             await waitForUiSettled(page);
             await expect(facts).toBeChecked();
             await expect(page.getByText("Saved", { exact: true })).toHaveCount(

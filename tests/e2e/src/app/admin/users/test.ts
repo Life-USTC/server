@@ -300,17 +300,7 @@ test("/admin/users 状态列对齐且平板使用可读列表", {
         const secondaryPlaceholder = suspensionCell.locator(
           '[data-slot="truncated-text-placeholder"]',
         );
-        await expect(secondaryPlaceholder).toHaveCount(1);
-        await expect(secondaryPlaceholder).toHaveAttribute(
-          "aria-hidden",
-          "true",
-        );
-        await expect(secondaryPlaceholder).toHaveText("");
-        expect(
-          await secondaryPlaceholder.evaluate(
-            (node) => node.getBoundingClientRect().height,
-          ),
-        ).toBeGreaterThan(0);
+        await expect(secondaryPlaceholder).toHaveCount(0);
         const verticalCenterOffset = await suspensionCell.evaluate((cell) => {
           const group = cell.firstElementChild;
           if (!group) return Number.POSITIVE_INFINITY;
@@ -722,3 +712,153 @@ test("页面契约", { tag: "@Admin/Web" }, async ({
     ),
   );
 });
+
+for (const locale of ["en-us", "zh-cn"] as const) {
+  test(
+    `admin.users-suspension-alignment ${locale}`,
+    { tag: "@Admin/Web" },
+    async ({ adminFlow, run, page, admin, isolatedWorker }, testInfo) => {
+      const users = ["clear", "timed", "permanent"].map((state, index) => ({
+        id: crypto.randomUUID(),
+        username: `alignment-case-${state}`,
+        name: `Alignment case ${state}`,
+        email: `alignment-case-${state}@example.test`,
+        emailVerified: true,
+        createdAt: new Date(`2026-01-0${index + 2}T00:00:00Z`),
+      }));
+      await run(async () => {
+        const db = isolatedWorker.database.owner;
+        await db.user.update({
+          where: { id: admin.id },
+          data: {
+            name: "Alignment administrator",
+            username: "alignment-admin",
+            email: "alignment-admin@example.test",
+            createdAt: new Date("2026-01-01T00:00:00Z"),
+          },
+        });
+        await db.user.createMany({ data: users });
+        await db.userSuspension.createMany({
+          data: [
+            {
+              userId: users[1].id,
+              createdById: admin.id,
+              reason: "Fixed timed suspension",
+              expiresAt: new Date("2099-01-01T00:00:00Z"),
+            },
+            {
+              userId: users[2].id,
+              createdById: admin.id,
+              reason: "Fixed permanent suspension",
+              expiresAt: null,
+            },
+          ],
+        });
+      });
+      await run(() =>
+        adminFlow.run(
+          async () => {
+            await page.setViewportSize({ width: 1440, height: 900 });
+            await page.context().addCookies([
+              {
+                name: "NEXT_LOCALE",
+                value: locale,
+                url: isolatedWorker.origin,
+              },
+            ]);
+            await gotoAndWaitForReady(
+              page,
+              "/admin/users?search=alignment-case",
+            );
+            await page.evaluate(() => document.fonts.ready);
+            const table = page.locator("table:visible");
+            await expect(table.locator("tbody tr")).toHaveCount(3);
+            const facts = [];
+            for (const [index, user] of users.entries()) {
+              const row = adminUserTableRow(page, user.username);
+              await expect(row).toBeVisible();
+              const role = row
+                .locator("td")
+                .nth(3)
+                .locator('[data-slot="badge"]');
+              const cell = row.locator("td").nth(4);
+              const badge = cell.locator('[data-slot="badge"]');
+              await expect(role).toHaveText(
+                locale === "en-us" ? "User" : "用户",
+              );
+              await expect(badge).toHaveText(
+                index === 0
+                  ? locale === "en-us"
+                    ? "Clear"
+                    : "正常"
+                  : locale === "en-us"
+                    ? "Suspended"
+                    : "已封禁",
+              );
+              if (index === 1) {
+                const date = new Intl.DateTimeFormat(locale, {
+                  timeZone: "Asia/Shanghai",
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                }).format(new Date("2099-01-01T00:00:00Z"));
+                await expect(cell).toContainText(
+                  locale === "en-us" ? `Until ${date}` : `至 ${date}`,
+                );
+              } else if (index === 2)
+                await expect(cell).toContainText(
+                  locale === "en-us" ? "Permanent" : "永久",
+                );
+              facts.push(
+                await row.evaluate((node) => {
+                  const cells = node.querySelectorAll("td");
+                  const role = cells[3]
+                    .querySelector('[data-slot="badge"]')
+                    ?.getBoundingClientRect();
+                  const cell = cells[4].getBoundingClientRect();
+                  const badge = cells[4]
+                    .querySelector('[data-slot="badge"]')
+                    ?.getBoundingClientRect();
+                  const group =
+                    cells[4].firstElementChild?.getBoundingClientRect();
+                  if (
+                    !role ||
+                    !badge ||
+                    !group ||
+                    role.width <= 0 ||
+                    badge.width <= 0 ||
+                    group.height <= 0
+                  )
+                    throw new Error("Expected visible nonzero status geometry");
+                  return {
+                    badgeRoleOffset: Math.abs(
+                      badge.y + badge.height / 2 - role.y - role.height / 2,
+                    ),
+                    groupCellOffset: Math.abs(
+                      group.y + group.height / 2 - cell.y - cell.height / 2,
+                    ),
+                    placeholders: cells[4].querySelectorAll(
+                      '[data-slot="truncated-text-placeholder"]',
+                    ).length,
+                  };
+                }),
+              );
+            }
+            console.info(
+              `ADMIN_SUSPENSION_GEOMETRY ${locale} ${JSON.stringify(facts)}`,
+            );
+            await page.screenshot({
+              path: testInfo.outputPath(`suspension-alignment-${locale}.png`),
+              fullPage: true,
+            });
+            expect(facts[0].badgeRoleOffset).toBeLessThanOrEqual(1);
+            expect(facts[0].placeholders).toBe(0);
+            for (const fact of facts.slice(1))
+              expect(fact.groupCellOffset).toBeLessThanOrEqual(1);
+          },
+          {},
+          adminWriteChecks([]),
+        ),
+      );
+    },
+  );
+}
