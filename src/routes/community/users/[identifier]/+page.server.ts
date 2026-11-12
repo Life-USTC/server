@@ -1,4 +1,5 @@
 import { error } from "@sveltejs/kit";
+import { getDemoPublicUserProfile } from "@/features/demo/server/demo-public-profile";
 import { getProfileCopy } from "@/features/profile/lib/profile-copy";
 import {
   getUserProfileById,
@@ -11,10 +12,12 @@ export const load: PageServerLoad = async ({ locals, params, parent }) => {
   const copy = getProfileCopy(locals.locale);
   const layoutDataPromise = parent();
   const identifier = params.identifier.trim();
-  const profile = identifier
-    ? ((await getUserProfileByUsername(identifier.toLowerCase())) ??
-      (await getUserProfileById(identifier)))
-    : null;
+  const profile = locals.demo
+    ? getDemoPublicUserProfile(identifier, locals.locale)
+    : identifier
+      ? ((await getUserProfileByUsername(identifier.toLowerCase())) ??
+        (await getUserProfileById(identifier)))
+      : null;
   if (!profile) error(404, copy.common.userNotFound);
   const layoutData = await layoutDataPromise;
   const displayName =
@@ -28,8 +31,9 @@ export const load: PageServerLoad = async ({ locals, params, parent }) => {
 
   return {
     ...profile,
+    pageDemo: locals.demo ?? null,
+    pageLocale: locals.locale,
     copy,
-    locale: locals.locale,
     socialMetadata: {
       ...updateSocialMetadata(layoutData.socialMetadata, {
         description,
