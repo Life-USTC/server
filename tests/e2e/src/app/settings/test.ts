@@ -8,7 +8,7 @@
  * - Layout requires authentication (`requireSignedInUserId`).
  *
  * ## UI/UX Elements
- * - Settings section links in the level-2 sidebar, with a control that returns home
+ * - Settings section links in the level-2 sidebar, with a local main-navigation preview control
  * - Page title and description
  * - Default tab is "profile" which shows the profile edit form
  *
@@ -58,12 +58,13 @@ test.describe("/account/settings 设置中心", () => {
       const back = page.getByTestId("settings-sidebar-back");
       await expect(
         sidebar.getByRole("link", { name: /浏览课程|Browse courses/i }),
-      ).toBeVisible();
+      ).toHaveCount(0);
       const activePanel = page.locator("[data-settings-active-panel]");
       await expect(
         sidebar.getByRole("link", { name: /个人资料|Profile/i }),
       ).toHaveAttribute("aria-current", "page");
-      await expect(back).toHaveAttribute("href", "/");
+      await expect(back).toHaveRole("button");
+      await expect(back).not.toHaveAttribute("href");
       await expect(
         sidebar.getByRole("link", { name: /^(总览|Overview)$/i }),
       ).toHaveCount(0);
@@ -71,7 +72,25 @@ test.describe("/account/settings 设置中心", () => {
       const sidebarBox = await sidebar.boundingBox();
       const panelBox = await activePanel.boundingBox();
       expect(sidebarBox?.x).toBeLessThan(panelBox?.x ?? 0);
+      const settingsUrl = page.url();
       await back.click();
+      await expect(sidebar).toHaveAttribute(
+        "data-shell-navigation-view",
+        "root",
+      );
+      await expect(
+        sidebar.getByRole("link", { name: /浏览课程|Browse courses/i }),
+      ).toBeVisible();
+      expect(page.url()).toBe(settingsUrl);
+      await expect(activePanel).toBeVisible();
+      await back.click();
+      await expect(sidebar).toHaveAttribute(
+        "data-shell-navigation-view",
+        "settings",
+      );
+      await sidebar
+        .getByRole("link", { name: /^Life@USTC: (Home|首页)$/ })
+        .click();
       await page.waitForURL(/\/(?:workspace\/overview)?(?:\?.*)?$/);
       await expect(page.getByTestId("settings-sidebar")).toHaveCount(0);
       await expect(page.getByTestId("settings-sidebar-back")).toHaveCount(0);

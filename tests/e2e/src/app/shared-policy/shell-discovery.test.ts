@@ -520,6 +520,10 @@ test(
           .locator('[data-shell-topbar] [data-slot="sidebar-trigger"]')
           .click();
         const nav = page.getByTestId("settings-sidebar");
+        const preview = page.getByTestId("settings-sidebar-back");
+        await preview.click();
+        await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
+        await expect(preview).toHaveAccessibleName("Return to Settings");
         const active = nav.locator('a[aria-current="page"]');
         const sheet = page.locator(
           '[data-slot="sidebar"][data-mobile="true"][role="dialog"]',
@@ -591,6 +595,8 @@ test(
         );
         release.resolve();
         await response;
+        await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
+        await expect(preview).toHaveAccessibleName("Return to Settings");
         await expect(sheet).toBeVisible();
         await expect(active).toBeVisible();
         const summary = row.locator("[data-shell-count-value]");
