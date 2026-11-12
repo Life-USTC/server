@@ -43,16 +43,18 @@ function toggle(name: string, value: string, checked: boolean) {
     {@const id = `${idPrefix}-${field.name}`}
     {#if field.options}
       {@const selected = tableFilterValues(values[field.name])}
-      <Field.Set class="gap-2" data-filter-field={field.name}>
-        <Field.Legend>{field.label}</Field.Legend>
-        <Button type="button" variant="outline" size="sm" class="justify-start" onclick={() => onchange({ [field.name]: "" })} aria-pressed={selected.length === 0}>
-          {selected.length === 0 ? labels.any : labels.selected.replace("{count}", String(selected.length))}
-        </Button>
-        <div class="grid max-h-56 gap-2 overflow-y-auto py-2">
+      <Field.Set class="gap-2" data-filter-field={field.name} aria-labelledby={`${id}-legend`}>
+        <Field.Legend class="flex w-full items-center justify-between gap-3">
+          <span id={`${id}-legend`}>{field.label}</span>
+          <Button type="button" variant="ghost" size="sm" class="min-h-11 md:min-h-11 md:pointer-fine:min-h-8" disabled={selected.length === 0} onclick={() => onchange({ [field.name]: "" })}>
+            {labels.clear}
+          </Button>
+        </Field.Legend>
+        <div class="grid max-h-56 gap-1 overflow-y-auto py-1">
           {#each [...field.options.filter((option) => option.value !== ""), ...selected.filter((value) => !field.options?.some((option) => option.value === value)).map((value) => ({ value, label: value }))] as option (option.value)}
-            <Field.Field orientation="horizontal" class="min-h-11">
+            <Field.Field orientation="horizontal" class="min-h-11 md:pointer-fine:min-h-8">
               <Checkbox id={`${id}-${option.value}`} checked={selected.includes(option.value)} onCheckedChange={(checked) => toggle(field.name, option.value, checked)} />
-              <Field.Label for={`${id}-${option.value}`} class="min-h-11 flex-1">{option.label}</Field.Label>
+              <Field.Label for={`${id}-${option.value}`} class="min-h-11 flex-1 md:pointer-fine:min-h-8">{option.label}</Field.Label>
             </Field.Field>
           {/each}
         </div>

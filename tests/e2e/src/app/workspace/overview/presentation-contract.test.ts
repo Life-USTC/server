@@ -252,26 +252,44 @@ test("overview.personal-next-action-page", { tag: "@Overview/Web" }, async ({
         const status = focus.getByTestId("overview-focus-status");
         await expect(status).toBeVisible();
         await expect(status).toHaveText("Happening now");
-        const focusBox = await focus.boundingBox();
-        for (const id of [
-          "workspace-overview-urgency",
-          "workspace-overview-upcoming",
-          "workspace-overview-links",
-        ]) {
-          const box = await page.getByTestId(id).boundingBox();
-          expect(box?.y).toBeGreaterThan(
-            (focusBox?.y ?? 0) + (focusBox?.height ?? 0),
-          );
-        }
-        const directory = await page
-          .getByTestId("home-directory")
-          .boundingBox();
-        const personal = await page
-          .getByTestId("home-personal-overview")
-          .boundingBox();
-        expect(directory?.y).toBeGreaterThan(
-          (personal?.y ?? 0) + (personal?.height ?? 0),
+        await expect(page.locator("[data-overview-sections]")).toHaveAttribute(
+          "aria-busy",
+          "false",
         );
+        // Compare one settled layout, not rectangles from either side of an
+        // activity response removing the focus card's pending-status line.
+        const geometry = await page.evaluate(() => {
+          const read = (id: string) => {
+            const nodes = document.querySelectorAll(`[data-testid="${id}"]`);
+            if (nodes.length !== 1 || !(nodes[0] instanceof HTMLElement))
+              throw new Error(`Expected one overview geometry target: ${id}`);
+            const node = nodes[0];
+            const { y, width, height, bottom } = node.getBoundingClientRect();
+            return { y, width, height, bottom };
+          };
+          return {
+            focus: read("workspace-overview-focus"),
+            modules: [
+              read("workspace-overview-urgency"),
+              read("workspace-overview-upcoming"),
+              read("workspace-overview-links"),
+            ],
+            directory: read("home-directory"),
+            personal: read("home-personal-overview"),
+          };
+        });
+        for (const box of [
+          geometry.focus,
+          ...geometry.modules,
+          geometry.directory,
+          geometry.personal,
+        ]) {
+          expect(box.width).toBeGreaterThan(0);
+          expect(box.height).toBeGreaterThan(0);
+        }
+        for (const box of geometry.modules)
+          expect(box.y).toBeGreaterThan(geometry.focus.bottom);
+        expect(geometry.directory.y).toBeGreaterThan(geometry.personal.bottom);
         await expect(page.getByTestId("home-section-search")).toHaveAttribute(
           "href",
           "/catalog/sections",

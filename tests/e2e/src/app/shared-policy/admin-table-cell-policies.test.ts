@@ -186,9 +186,9 @@ test("ui.data-table-cells-1", { tag: "@Admin/Web" }, async ({
           expect
             .soft(
               second,
-              `${matrix.name}: missing secondary line reserves space`,
+              `${matrix.name}: inactive user status has no secondary line; other optional fields reserve space`,
             )
-            .toBe(first);
+            .toBe(matrix.name === "users" ? 0 : first);
           const longRow = fixtureRow(page, matrix.labels[2]);
           if (matrix.name === "bus" || matrix.name === "comments") {
             const context = longRow.getByText(
@@ -239,10 +239,17 @@ for (const domain of ["Admin", "Teacher"] as const) {
               const blank = cell.locator(
                 '[data-slot="truncated-text-placeholder"]',
               );
-              await expect(blank).toHaveCount(1);
-              await expect(blank).toHaveAttribute("aria-hidden", "true");
-              expect(await blank.ariaSnapshot()).toBe("");
-              expect(await blank.innerText()).toBe("");
+              if (matrix.name === "users") {
+                await expect(blank).toHaveCount(0);
+                await expect(
+                  cell.getByText("Clear", { exact: true }),
+                ).toBeVisible();
+              } else {
+                await expect(blank).toHaveCount(1);
+                await expect(blank).toHaveAttribute("aria-hidden", "true");
+                expect(await blank.ariaSnapshot()).toBe("");
+                expect(await blank.innerText()).toBe("");
+              }
               if (matrix.name === "users") {
                 const unknown = fixtureRow(page, matrix.labels[1])
                   .locator("td")

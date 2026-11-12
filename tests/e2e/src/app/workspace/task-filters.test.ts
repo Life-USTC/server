@@ -80,10 +80,9 @@ async function expectSelection(group: Locator, selected: string) {
   const checked = group.getByRole("checkbox", { checked: true });
   await expect(checked).toHaveCount(selected === "all" ? 0 : 1);
   if (selected === "all") {
-    await expect(group.getByRole("button").first()).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(
+      group.getByRole("button", { name: /^(Clear|清除)$/i }),
+    ).toBeDisabled();
   } else {
     const name =
       selected === "completed"
