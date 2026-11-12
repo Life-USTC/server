@@ -18,6 +18,29 @@ vi.mock("@/lib/db/feature-event-store", () => ({
   writeObservabilityBatch: persist,
 }));
 let token: string;
+const publicReadingPaths = [
+  "/community/users/sample-xia",
+  "/community/users/demo-community-qiu",
+  "/community/users/sample-xia/__data.json",
+  "/api/community/users/sample-qiu",
+  // Membership and 404 belong to the sealed profile reader, not this structural gate.
+  "/community/users/ordinary-user",
+  "/api/community/users/ordinary-user",
+  "/terms",
+  "/privacy/__data.json",
+  "/guides/markdown-support",
+  "/community/comments/guide",
+  "/usage/mobile",
+  "/usage/bot/__data.json",
+  "/usage/cli",
+  "/usage/mcp?client=other",
+  "/api-docs",
+  "/api/docs",
+  "/api/docs/tag/catalog-section",
+  "/api/docs/tag/catalog-section/__data.json",
+  "/api/docs/tag/catalog-section/GET/api/catalog/sections",
+  "/api/openapi",
+];
 beforeEach(async () => {
   vi.stubEnv("NODE_ENV", "development");
   vi.stubEnv("DEMO_ENABLED", "1");
@@ -47,6 +70,9 @@ async function request(
     ),
   );
   const waitUntil = vi.fn();
+  const serialize = vi.fn<
+    Parameters<Handle>[0]["event"]["cookies"]["serialize"]
+  >(() => "life-ustc.demo=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax");
   const response = await handle({
     event: {
       url,
@@ -57,15 +83,16 @@ async function request(
       params: {},
       route: { id: path },
       locals,
-      cookies: { get: () => undefined },
+      cookies: { get: () => undefined, serialize },
       platform: { context: { waitUntil } },
     },
     resolve,
   } as unknown as Parameters<Handle>[0]);
-  return { response, resolve, locals, waitUntil };
+  return { response, resolve, locals, waitUntil, serialize };
 }
 
 it.each([
+  ...publicReadingPaths,
   "/",
   "/__data.json",
   "/search",
@@ -177,7 +204,6 @@ it.each([
   ["DELETE", "/api/community/comments/demo-comment-course-01"],
   ["POST", "/api/community/comments/demo-comment-course-01/reactions"],
   ["DELETE", "/api/community/comments/demo-comment-course-01/reactions"],
-  ["GET", "/community/users/demo-community-xia"],
   ["POST", "/workspace/homeworks?/createHomework"],
   ["POST", "/api/community/section-homeworks"],
   ["PATCH", "/api/community/section-homeworks/demo-homework-vectors"],
@@ -221,13 +247,26 @@ it.each([
   ["POST", "/account/settings/profile?/linkAccount"],
   ["POST", "/api/account/profile"],
   ["PATCH", "/api/account/profile"],
-  ["GET", "/community/users/demo-student"],
-  ["GET", "/api/community/users/demo-student"],
   ["GET", "/search/__data.json/__data.json"],
   ["GET", "/api/search/private"],
   ...["/search", "/search/__data.json", "/api/search"].flatMap((path) =>
     ["POST", "PUT", "PATCH", "DELETE"].map((method) => [method, path]),
   ),
+  ["GET", "/community/users/sample-xia/private"],
+  ["GET", "/community/users/sample-xia/__data.json/__data.json"],
+  ["GET", "/api/community/users/sample-xia/private"],
+  ["GET", "/terms/__data.json/__data.json"],
+  ["GET", "/privacy/private"],
+  ["GET", "/usage/mcp/private"],
+  ["GET", "/api/docs/tag/catalog-section/__data.json/__data.json"],
+  ["GET", "/api/docs/unknown"],
+  ["GET", "/api/openapi/__data.json"],
+  ["POST", "/community/users/sample-xia"],
+  ["PATCH", "/api/community/users/sample-qiu"],
+  ["POST", "/terms"],
+  ["POST", "/usage/mcp"],
+  ["POST", "/api/docs/tag/catalog-section"],
+  ["POST", "/api/openapi"],
 ])(
   "rejects %s %s before session, resolver and persistent telemetry",
   async (method, path) => {
@@ -247,6 +286,7 @@ it.each([
   "/search",
   "/search/__data.json",
   "/api/search?q=algebra&scope=workspace",
+  ...publicReadingPaths,
 ])("allows HEAD without resolving a real session at %s", async (path) => {
   const result = await request(path, "HEAD");
   expect(result.response.status).toBe(200);
@@ -254,6 +294,64 @@ it.each([
   expect(result.resolve).toHaveBeenCalledOnce();
   expect(session).not.toHaveBeenCalled();
   expect(persist).not.toHaveBeenCalled();
+});
+
+it.each([
+  "/community/users/sample-xia",
+  "/terms",
+  "/privacy",
+  "/guides/markdown-support",
+  "/usage/mcp?client=other",
+  "/api-docs",
+  "/api/docs/tag/catalog-section",
+])(
+  "retires expired public HTML without reading an ordinary session at %s",
+  async (path) => {
+    vi.advanceTimersByTime(900_001);
+    const result = await request(path, "GET", { accept: "text/html" });
+    expect(result.response.status).toBe(303);
+    expect(result.response.headers.get("location")).toBe("/account/sign-in");
+    expect(result.response.headers.get("cache-control")).toBe(
+      "private, no-store",
+    );
+    expect(result.serialize).toHaveBeenCalledExactlyOnceWith(
+      "life-ustc.demo",
+      "",
+      {
+        path: "/",
+        maxAge: 0,
+        httpOnly: true,
+        sameSite: "lax",
+        secure: true,
+      },
+    );
+    expect(result.response.headers.get("set-cookie")).toBe(
+      "life-ustc.demo=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax",
+    );
+    expect(result.resolve).not.toHaveBeenCalled();
+    expect(session).not.toHaveBeenCalled();
+    expect(persist).not.toHaveBeenCalled();
+    expect(result.waitUntil).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  "/community/users/sample-xia/__data.json",
+  "/api/community/users/sample-qiu",
+  "/terms/__data.json",
+  "/api/docs/tag/catalog-section/__data.json",
+  "/api/openapi",
+])("rejects expired public data instead of redirecting at %s", async (path) => {
+  vi.advanceTimersByTime(900_001);
+  const result = await request(path, "GET", { accept: "text/html" });
+  expect(result.response.status).toBe(401);
+  expect(await result.response.json()).toEqual({
+    error: "DEMO_SESSION_INVALID",
+  });
+  expect(result.resolve).not.toHaveBeenCalled();
+  expect(session).not.toHaveBeenCalled();
+  expect(persist).not.toHaveBeenCalled();
+  expect(result.waitUntil).not.toHaveBeenCalled();
 });
 
 it("rejects invalid and mixed identities without resolving a real session", async () => {

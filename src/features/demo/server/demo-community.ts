@@ -27,6 +27,8 @@ const recordsFor = (locale: AppLocale) => [
   ...getDemoYoungCommunityRecords(locale),
 ];
 
+export { recordsFor as getDemoDiscussionRecords };
+
 type Target = NonNullable<ReturnType<typeof resolveDemoCatalogTarget>>;
 const order = (a: RawComment, b: RawComment) =>
   a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id);

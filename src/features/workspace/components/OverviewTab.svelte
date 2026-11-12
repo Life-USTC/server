@@ -264,6 +264,7 @@ function overviewStack(
     <div
       class="grid min-w-0 gap-8 lg:grid-cols-2 lg:items-start lg:gap-x-10 lg:gap-y-10"
       data-overview-sections
+      aria-busy={youngLoading}
     >
       <OverviewFocusCard
         class={OVERVIEW_FULL_WIDTH_CLASS}

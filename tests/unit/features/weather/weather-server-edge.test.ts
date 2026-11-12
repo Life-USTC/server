@@ -168,4 +168,37 @@ describe("weather server edges", () => {
     expect(mocks.getWeatherSnapshot).toHaveBeenCalledWith("ustc-main");
     expect(mocks.getWeatherSnapshot).toHaveBeenCalledWith("ustc-gaoxin");
   });
+
+  it("preserves a WEATHER binding rejection instead of inventing an absent snapshot", async () => {
+    const failure = new Error("Owned WEATHER read failed");
+    mocks.getCloudflareWeatherNamespace.mockReturnValue({
+      get: vi.fn().mockRejectedValue(failure),
+    });
+    const { readWeatherCache } = await import(
+      "@/features/weather/server/weather-cache"
+    );
+    await expect(readWeatherCache("ustc-main")).rejects.toBe(failure);
+  });
+
+  it("preserves a campus reader rejection at the page loader boundary", async () => {
+    const failure = new Error("Owned campus reader failed");
+    mocks.getWeatherSnapshot.mockImplementation(async (key: string) => {
+      if (key === "ustc-gaoxin") throw failure;
+      return snapshot;
+    });
+    const { loadWeatherPage } = await import(
+      "@/features/weather/server/weather-page-load"
+    );
+    await expect(
+      loadWeatherPage({
+        locals: { locale: "en-us" },
+        request: new Request("https://life.example/catalog/weather"),
+        url: new URL("https://life.example/catalog/weather"),
+      }),
+    ).rejects.toBe(failure);
+    expect(mocks.getWeatherSnapshot.mock.calls.map(([key]) => key)).toEqual([
+      "ustc-main",
+      "ustc-gaoxin",
+    ]);
+  });
 });

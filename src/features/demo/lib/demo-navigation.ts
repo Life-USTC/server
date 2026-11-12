@@ -4,6 +4,7 @@ import { isDemoYoungId, isDemoYoungOrganizerId } from "./demo-young-ids";
 
 /** Presentation capabilities only; the server request boundary remains authoritative. */
 export function isDemoNavigationDestination(href: string) {
+  if (href.startsWith("/api/docs/tag/")) return true;
   if (href.startsWith("/news/") && isDemoNewsId(href.slice("/news/".length)))
     return true;
   if (
@@ -19,6 +20,18 @@ export function isDemoNavigationDestination(href: string) {
   )
     return true;
   return [
+    "/terms",
+    "/privacy",
+    "/guides/markdown-support",
+    "/community/comments/guide",
+    "/usage/mobile",
+    "/usage/bot",
+    "/usage/cli",
+    "/usage/mcp",
+    "/usage/mcp?client=claude",
+    "/usage/mcp?client=other",
+    "/api/docs",
+    "/api-docs",
     "/catalog/young-events",
     "/catalog/young-events/calendar",
     "/catalog/young-events/organizers",

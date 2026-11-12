@@ -14,6 +14,68 @@ access:
   admin: Admin capabilities are never simulated.
   agent: Demo identity supplies no OAuth, GraphQL or MCP authority.
 requirements:
+- id: demo.public-profile-projection
+  category: privacy
+  rule: Existing public author pages and their read API resolve only the two named fictional
+    discussion authors by username or ID, before ordinary profile services. Comment counts and
+    contributions derive from the same public, active, non-anonymous and non-deleted discussion
+    graph, including Young discussions. Homework counts require actual fixture authorship; uploads
+    remain zero because the closed graph has no authored uploads. A separately declared fictional
+    joined date is never inferred from the first comment. The inclusive contribution year ends at
+    the fixed Shanghai reference date and uses Sunday-first padded weeks. Unknown real identifiers
+    return 404 without a real profile lookup. Root/page identity, locale and expiry retire previous
+    author content and selected heatmap cells; no real viewer principal is created.
+  acceptance:
+    given: A trusted Demo in either locale and an independently readable real author with a colliding username.
+    when: Read author aliases, profile SSR, page data and API, inspect counts and navigate the contribution grid.
+    then:
+    - Both fictional authors agree with the shared discussion graph and the fixed contribution window.
+    - A colliding real username never supplies real profile data to Demo; foreign identifiers return 404.
+    - Native heatmap navigation remains readable while writes and expired reads remain refused.
+    test:
+      file: tests/unit/features/demo/demo-public-profile.test.ts
+      name: projects both established authors and their complete discussion graph in en-us
+- id: demo.information-reading
+  category: privacy
+  rule: Existing legal, Markdown, mobile, bot, CLI and MCP information pages retain their actual
+    localized reading content in Demo. The existing comment guide redirect remains available.
+    Legal external links are disabled before hydration; native controls and a local document link
+    guard prevent unavailable external navigation while retaining known same-origin reading links
+    and existing local images. Local examples, client tabs and clipboard copying remain usable
+    without invoking a provider. A real language preference change reloads the document. Root/page
+    identity, locale and expiry retire old documents and local feedback. Ordinary information
+    readers keep their behavior; Demo never grants OAuth, MCP or account authority.
+  acceptance:
+    given: A trusted Demo and the existing localized information documents.
+    when: Read all information pages, change MCP client tabs, copy an example and change language.
+    then:
+    - Actual text, Markdown and local illustrations remain readable without business writes or foreign requests.
+    - External actions are visibly unavailable, including before legal-page hydration.
+    - Language, mode and exit transitions cannot restore retired documents or clipboard feedback.
+    test:
+      file: tests/integration/rest/demo/information.test.ts
+      name: demo information retains real reading content and seals effects en-us
+- id: demo.api-reference-reading
+  category: privacy
+  rule: Existing API reference navigation and raw OpenAPI reads use the actual local specification
+    through the trusted local asset binding. Known tag and operation paths retain the ordinary
+    reference reader; unknown documentation paths return 404. Missing local specifications or
+    unsupported server definitions fail closed without an external fetch fallback. Demo hides
+    request execution, authentication, request-client, server-editing and external integration
+    actions, disables Scalar network execution and persistence, and guards document links.
+    Mode, locale and expiry generations destroy previous reference stores, credential fields and
+    client modals and retire late imports and callbacks. These controls do not grant API, OAuth,
+    GraphQL or MCP authority. Ordinary reference behavior remains available outside Demo.
+  acceptance:
+    given: A trusted Demo and an ordinary reference with real client and credential UI state.
+    when: Browse tags and operations, read the local specification and switch mode, locale or expiry.
+    then:
+    - Readable reference content matches the actual specification without executing requests or foreign navigation.
+    - Retired ordinary credentials, client modals and late imports cannot enter the Demo reference.
+    - Unknown paths and unavailable specifications fail closed; direct mutations remain forbidden.
+    test:
+      file: tests/integration/rest/demo/api-docs.test.ts
+      name: demo API docs read the real local specification and seal effects en-us
 - id: demo.young-workspace-projection
   category: privacy
   rule: Existing personal activity subscriptions and notifications project fixed fictional facts from the

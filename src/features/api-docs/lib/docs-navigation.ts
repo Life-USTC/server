@@ -107,6 +107,28 @@ export function getApiDocsSelection(
   };
 }
 
+/** Exact existing navigation targets; unlike the ordinary selector this never falls back. */
+export function isKnownApiDocsPath(
+  document: OpenApiDocument,
+  pathname: string,
+) {
+  const selection = getApiDocsSelection(document, pathname);
+  return selection.activeHref === pathname;
+}
+
+/** Structural admission only. The trusted loader verifies membership against the local spec. */
+export function isDemoApiDocsReadPath(path: string) {
+  const page = path.replace(/\/__data\.json$/, "");
+  return (
+    page === "/api-docs" ||
+    page === "/api/docs" ||
+    path === "/api/openapi" ||
+    /^\/api\/docs\/tag\/[^/]+(?:\/(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\/.+)?$/.test(
+      page,
+    )
+  );
+}
+
 export function slugifyDocsSegment(value: string) {
   return value
     .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
