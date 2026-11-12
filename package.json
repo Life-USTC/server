@@ -117,7 +117,7 @@
     "semantic-release": "25.0.9",
     "shadcn-svelte": "1.7.0",
     "socks": "2.8.10",
-    "svelte": "^5.57.2",
+    "svelte": "^5.57.3",
     "svelte-check": "^4.7.7",
     "svelte-sonner": "^1.2.3",
     "tailwindcss": "^4.3.5",
