@@ -13,8 +13,8 @@ export type ShellLink = {
   disabledReason?: string;
   ariaLabel?: string;
   badge?: number | null;
-  /** Readable, non-modal explanation of a destination or its existing count. */
-  discoveryHint?: { text: string; label: string; description: string };
+  /** Accessible unit and exact summary scope; only the number is displayed. */
+  badgeLabel?: string;
   glyph?: ShellGlyph;
   href: string;
   icon?: Component;
@@ -26,7 +26,6 @@ export type ShellLink = {
 
 export type ShellNavGroup = {
   id?: string;
-  defaultOpen?: boolean;
   icon?: Component;
   label: string;
   links: ShellLink[];

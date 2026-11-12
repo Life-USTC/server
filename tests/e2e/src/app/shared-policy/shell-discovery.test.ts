@@ -184,9 +184,9 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               const readFacts = async () =>
                 Promise.all(
                   hrefs.map(async (href) => {
-                    const link = nav
-                      .locator(`a[href="${href}"]:visible`)
-                      .first();
+                    const link = nav.locator(
+                      `a[data-slot="sidebar-menu-button"][href="${href}"]:visible`,
+                    );
                     const row = link.locator(
                       'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
                     );
@@ -207,8 +207,9 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                         const label = node.querySelector(
                           ":scope > span:last-child",
                         );
-                        const summary =
-                          node.parentElement?.querySelector("summary");
+                        const summary = node.parentElement?.querySelector(
+                          "[data-shell-count-value]",
+                        );
                         const measure = (
                           element: Element | null | undefined,
                         ) =>
@@ -354,17 +355,9 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             `/catalog/sections/${fixture.section.jwId}`,
           );
           const nav = await navigation();
-          const apps = nav.getByRole("button", {
-            name: locale === "en-us" ? "Apps" : "应用",
-            exact: true,
-          });
-          await expect(apps).toBeVisible();
-          if ((await apps.getAttribute("aria-expanded")) !== "true") {
-            await apps.focus();
-            await expect(apps).toBeFocused();
-            await page.keyboard.press("Enter");
-          }
-          await expect(apps).toHaveAttribute("aria-expanded", "true");
+          await expect(
+            nav.locator('button[data-slot="sidebar-group-label"]'),
+          ).toHaveCount(0);
           const mcp = nav.locator('a[href="/usage/mcp"]');
           const home = nav.locator('a[href="/"]').first();
           const state = {
@@ -381,100 +374,57 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             distinctChineseGroup:
               locale !== "zh-cn" ||
               (await nav
-                .getByRole("button", { name: "活动", exact: true })
+                .locator('[data-slot="sidebar-group-label"]')
+                .filter({ hasText: /^\s*活动\s*$/ })
                 .count()) === 1,
           };
           expect.soft(state).toEqual({
             mcpNamed: true,
             homeNamed: true,
-            hintCount: 7,
+            hintCount: 0,
             distinctChineseGroup: true,
           });
-          // On the unchanged baseline the assertion above fails after all captures
-          // and real account observations are retained. No missing control is accepted.
-          if (state.hintCount === 7) {
-            const summaries = nav.locator("[data-shell-nav-hint] > summary");
-            for (const summary of await summaries.all()) {
-              const prior = page.url();
-              await summary.focus();
-              await expect(summary).toBeFocused();
+          await expect(
+            nav.locator("details, summary, [data-shell-nav-hint]"),
+          ).toHaveCount(0);
+          // Audit the real loaded badges as well as the navigation-time shell.
+          await expectRenderedUiQuality(page);
+          await mcp.click();
+          await waitForUiSettled(page);
+          await expect(page).toHaveURL(
+            new URL("/usage/mcp", isolatedWorker.origin).toString(),
+          );
+          if (width === 390)
+            await expect(page.getByRole("dialog")).toHaveCount(0);
+          if (width === 390 && locale === "en-us") {
+            await gotoAndWaitForReady(page, "/catalog/young-events");
+            await navigation();
+            const mobileAccount = page
+              .locator("#app-user-menu:visible")
+              .getByRole("button");
+            await expect(mobileAccount).toHaveCount(1);
+            await mobileAccount.focus();
+            await page.keyboard.press("Enter");
+            await expect(page.getByRole("menu")).toHaveCount(1);
+            await page.setViewportSize({ width: 1280, height: 950 });
+            await expect(page.locator('[data-mobile="true"]')).toHaveCount(0);
+            const visibleAccount = page
+              .locator("#app-user-menu:visible")
+              .getByRole("button");
+            await expect(visibleAccount).toHaveCount(1);
+            expect(await page.getByRole("menu").count()).toBeLessThanOrEqual(1);
+            if (!(await page.getByRole("menu").count())) {
+              await visibleAccount.focus();
               await page.keyboard.press("Enter");
-              const details = summary.locator("..");
-              await expect(details).toHaveAttribute("open", "");
-              const explanation = details.locator("[data-shell-nav-hint-body]");
-              await expect(explanation).toBeVisible();
-              await explanation.scrollIntoViewIfNeeded();
-              await expect(explanation).toBeInViewport({ ratio: 1 });
-              expect(page.url()).toBe(prior);
-              await summary.click();
-              await expect(details).not.toHaveAttribute("open", "");
-              if (width === 390) {
-                const box = await summary.boundingBox();
-                expect(box?.height).toBeGreaterThanOrEqual(44);
-                expect(box?.width).toBeGreaterThanOrEqual(44);
-              }
             }
-            const mcpInfo = nav.locator("[data-shell-nav-hint]").filter({
-              has: page.locator("summary:not([data-shell-count-value])"),
-            });
-            await mcpInfo.locator("summary").click();
-            await expect(
-              mcpInfo.locator("[data-shell-nav-hint-body]"),
-            ).toContainText(
-              locale === "en-us" ? "Personal data requires" : "个人数据需",
-            );
-            await mcpInfo
-              .locator("[data-shell-nav-hint-body]")
-              .scrollIntoViewIfNeeded();
-            await expect(
-              mcpInfo.locator("[data-shell-nav-hint-body]"),
-            ).toBeInViewport({ ratio: 1 });
-            await info.attach(`discovery-hints-${locale}-${width}`, {
-              body: await page.screenshot(),
-              contentType: "image/png",
-            });
-            await mcpInfo.locator("summary").click();
-            // Audit the real loaded badges as well as the navigation-time shell.
-            await expectRenderedUiQuality(page);
-            await mcp.click();
+            await expect(page.getByRole("menu")).toHaveCount(1);
+            await page
+              .getByRole("menuitem", { name: "Settings", exact: true })
+              .focus();
+            await page.keyboard.press("Enter");
             await waitForUiSettled(page);
-            await expect(page).toHaveURL(
-              new URL("/usage/mcp", isolatedWorker.origin).toString(),
-            );
-            if (width === 390)
-              await expect(page.getByRole("dialog")).toHaveCount(0);
-            if (width === 390 && locale === "en-us") {
-              await gotoAndWaitForReady(page, "/catalog/young-events");
-              await navigation();
-              const mobileAccount = page
-                .locator("#app-user-menu:visible")
-                .getByRole("button");
-              await expect(mobileAccount).toHaveCount(1);
-              await mobileAccount.focus();
-              await page.keyboard.press("Enter");
-              await expect(page.getByRole("menu")).toHaveCount(1);
-              await page.setViewportSize({ width: 1280, height: 950 });
-              await expect(page.locator('[data-mobile="true"]')).toHaveCount(0);
-              const visibleAccount = page
-                .locator("#app-user-menu:visible")
-                .getByRole("button");
-              await expect(visibleAccount).toHaveCount(1);
-              expect(await page.getByRole("menu").count()).toBeLessThanOrEqual(
-                1,
-              );
-              if (!(await page.getByRole("menu").count())) {
-                await visibleAccount.focus();
-                await page.keyboard.press("Enter");
-              }
-              await expect(page.getByRole("menu")).toHaveCount(1);
-              await page
-                .getByRole("menuitem", { name: "Settings", exact: true })
-                .focus();
-              await page.keyboard.press("Enter");
-              await waitForUiSettled(page);
-              await expect(page).toHaveURL(/\/account\/settings\/preferences$/);
-              await expect(page.getByRole("menu")).toHaveCount(0);
-            }
+            await expect(page).toHaveURL(/\/account\/settings\/preferences$/);
+            await expect(page.getByRole("menu")).toHaveCount(0);
           }
         });
       },
@@ -635,9 +585,7 @@ test(
         const row = activity.locator(
           'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
         );
-        await expect(
-          row.locator("summary[data-shell-count-value]"),
-        ).toHaveCount(0);
+        await expect(row.locator("[data-shell-count-value]")).toHaveCount(0);
         const response = preferenceFlow.waitForResponse(page, (res) =>
           res.url().endsWith("/_internal/shell-bootstrap"),
         );
@@ -645,10 +593,11 @@ test(
         await response;
         await expect(sheet).toBeVisible();
         await expect(active).toBeVisible();
-        const summary = row.locator("summary[data-shell-count-value]");
+        const summary = row.locator("[data-shell-count-value]");
         await expect(summary).toBeVisible();
         await expect(summary).toHaveAttribute("data-shell-count-value", "1");
-        await expect(summary).toHaveText("1 unread");
+        await expect(summary).toHaveText("1");
+        await expect(summary).toHaveAccessibleName(/1 unread.*not expired/);
         await expect.poll(activeVisible).toBe(true);
         const label = activity.locator(":scope > span:last-child");
         await expect(label).toBeVisible();
@@ -656,7 +605,7 @@ test(
         const readable = await row.evaluate((element) => {
           const a = element.querySelector('a[data-slot="sidebar-menu-button"]');
           const label = a?.querySelector(":scope > span:last-child"),
-            summary = element.querySelector("summary[data-shell-count-value]");
+            summary = element.querySelector("[data-shell-count-value]");
           return (
             label instanceof HTMLElement &&
             summary instanceof HTMLElement &&

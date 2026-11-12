@@ -1,11 +1,11 @@
 import { expect, type Locator } from "@playwright/test";
 
-/** Count explanations are siblings of the destination, never part of its name. */
+/** Numeric indicators remain siblings of links, with the original scope accessible. */
 export function navigationCount(navigation: Locator, href: string): Locator {
   return navigation
     .locator(`a[data-slot="sidebar-menu-button"][href="${href}"]`)
     .locator("xpath=ancestor::*[@data-slot='sidebar-menu-item'][1]")
-    .locator("summary[data-shell-count-value]");
+    .locator("[data-shell-count-value]");
 }
 
 export async function expectNavigationCount(
@@ -20,7 +20,9 @@ export async function expectNavigationCount(
   const row = navigation
     .locator(`a[data-slot="sidebar-menu-button"][href="${href}"]`)
     .locator("xpath=ancestor::*[@data-slot='sidebar-menu-item'][1]");
-  await expect(row.locator('[data-slot="sidebar-menu-badge"]')).toHaveCount(0);
+  await expect(row.locator('[data-slot="sidebar-menu-badge"]')).toHaveCount(
+    count > 0 ? 1 : 0,
+  );
   const summary = navigationCount(navigation, href);
   if (count === 0) {
     await expect(summary).toHaveCount(0);
@@ -32,9 +34,13 @@ export async function expectNavigationCount(
     "data-shell-count-value",
     String(count),
   );
-  await expect(summary).toHaveText(
+  await expect(summary).toHaveText(String(count));
+  await expect(summary).toHaveRole("img");
+  const escaped =
     typeof unit === "string"
-      ? `${count} ${unit}`
-      : new RegExp(`^${count} (?:${unit.source})$`),
+      ? unit.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      : unit.source;
+  await expect(summary).toHaveAccessibleName(
+    new RegExp(`${count} (?:${escaped})`),
   );
 }
