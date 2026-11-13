@@ -7,9 +7,7 @@ import {
   isGlobalSearchShortcut,
 } from "#lib/browser/page-search-shortcut.js";
 import AppFooter from "#lib/components/shell/AppFooter.svelte";
-import AppSidebar, {
-  type SectionSidebar,
-} from "#lib/components/shell/AppSidebar.svelte";
+import AppSidebar from "#lib/components/shell/AppSidebar.svelte";
 import AppTopbar from "#lib/components/shell/AppTopbar.svelte";
 import {
   loadStoredThemeMode,
@@ -50,14 +48,13 @@ import {
 import type { DemoView } from "@/features/demo/lib/demo-types";
 import { afterNavigate, goto } from "$app/navigation";
 import { navigating, page as routePage } from "$app/state";
+import MobilePrimaryNavigation from "./MobilePrimaryNavigation.svelte";
 import {
-  buildAdminNavGroups,
-  buildSettingsNavGroups,
   buildShellNavGroups,
-  buildYoungNavGroups,
   isShellLinkActive,
   isShellLinkAncestor,
 } from "./navigation";
+import { buildNavigationScopes } from "./navigation-scopes";
 import ShellDetailNavigation from "./ShellDetailNavigation.svelte";
 import { shellPresentation } from "./shell-templates";
 import {
@@ -118,6 +115,7 @@ let GlobalSearchDialog:
   | typeof import("@/features/search/components/GlobalSearchDialog.svelte").default
   | null = $state(null);
 let userMenuOpen = $state(false);
+let completedNavigationGeneration = $state(0);
 let localeMenuOpen = $state(false);
 let themeMenuOpen = $state(false);
 let contentScrollContainer: HTMLElement | undefined = $state();
@@ -203,20 +201,6 @@ async function handleGlobalSearchKeydown(event: KeyboardEvent) {
 function resolveMainContentLabel(pageData: Record<string, unknown>) {
   const label = pageData.mainContentLabel;
   return typeof label === "string" && label.trim() ? label : undefined;
-}
-
-function isSettingsPath(pathname: string) {
-  return (
-    pathname === "/account/settings" ||
-    pathname.startsWith("/account/settings/")
-  );
-}
-
-function isYoungPath(pathname: string) {
-  return (
-    pathname === "/catalog/young-events" ||
-    pathname.startsWith("/catalog/young-events/")
-  );
 }
 
 function isActiveLink(link: ShellLink) {
@@ -400,6 +384,7 @@ onMount(() => {
 afterNavigate(({ from, to, type, shallow }) => {
   if (shallow && type === "goto") return;
   if (!from || !to) return;
+  if (!shallow) completedNavigationGeneration += 1;
   globalSearchGeneration += 1;
   void resolveClientShell(type);
   if (
@@ -465,18 +450,29 @@ $effect.pre(() => {
 });
 let profileHref = $derived(resolveProfileHref(viewerUser));
 let avatarFallback = $derived(resolveAvatarFallback(viewerUser));
-let settingsSidebar = $derived(isSettingsPath(routePage.url.pathname));
-let youngSidebar = $derived(isYoungPath(routePage.url.pathname));
-let adminRoute = $derived(
-  routePage.url.pathname === "/admin" ||
-    routePage.url.pathname.startsWith("/admin/"),
-);
+let demoNavigationExpired = $state(false);
+$effect(() => {
+  demoNavigationExpired = Boolean(
+    viewerDemo && viewerDemo.expiresAt <= Date.now(),
+  );
+  if (!viewerDemo) return;
+  const timer = setTimeout(
+    () => {
+      demoNavigationExpired = true;
+    },
+    Math.max(0, viewerDemo.expiresAt - Date.now()),
+  );
+  return () => clearTimeout(timer);
+});
+let navigationDemo = $derived(demoNavigationExpired ? null : viewerDemo);
 let navViewer = $derived(
-  viewerDemo
-    ? { signedIn: true, isAdmin: false }
-    : viewerUser
-      ? { signedIn: true, isAdmin: viewerUser.isAdmin }
-      : null,
+  viewerLoading || viewerFailed
+    ? null
+    : navigationDemo
+      ? { signedIn: true, isAdmin: false }
+      : viewerUser
+        ? { signedIn: true, isAdmin: viewerUser.isAdmin }
+        : null,
 );
 let navContext = $derived({
   pathname: routePage.url.pathname,
@@ -493,60 +489,39 @@ function projectNavigation(groups: ReturnType<typeof buildShellNavGroups>) {
       }))
     : groups;
 }
-let rootNavGroups = $derived(
-  projectNavigation(buildShellNavGroups(data.copy, navViewer, navContext)),
+let scopedNavigation = $derived(
+  buildNavigationScopes(data.copy, navViewer, navContext, viewerLoading),
 );
-let navGroups = $derived(
-  settingsSidebar
-    ? projectNavigation(buildSettingsNavGroups(data.copy))
-    : youngSidebar
-      ? projectNavigation(
-          buildYoungNavGroups(
-            data.copy,
-            routePage.url.pathname,
-            routePage.data,
-          ),
-        )
-      : adminRoute
-        ? projectNavigation(
-            buildAdminNavGroups(data.copy, navViewer, navContext),
-          )
-        : rootNavGroups,
+let navigationScopes = $derived(
+  Object.fromEntries(
+    Object.entries(scopedNavigation.scopes).map(([key, scope]) => [
+      key,
+      { ...scope, groups: projectNavigation(scope.groups) },
+    ]),
+  ),
+);
+let primaryLinks = $derived(
+  projectNavigation([
+    {
+      label: data.copy.shell.primaryNavigation,
+      links: scopedNavigation.primary,
+    },
+  ])[0].links,
 );
 let navigationOwnerKey = $derived(
   JSON.stringify([
+    completedNavigationGeneration,
     routePage.url.pathname,
     routePage.url.search,
     data.locale,
+    viewerLoading,
+    viewerFailed,
+    demoNavigationExpired,
     viewerUser?.id ?? null,
     viewerUser?.isAdmin ?? false,
     viewerDemo?.fixtureVersion ?? null,
     viewerDemo?.expiresAt ?? null,
   ]),
-);
-let sectionSidebar = $derived(
-  settingsSidebar
-    ? ({
-        backTestId: "settings-sidebar-back",
-        level: "settings",
-        navLabel: data.copy.nav.settings,
-        testId: "settings-sidebar",
-      } satisfies SectionSidebar)
-    : youngSidebar
-      ? ({
-          backTestId: "young-sidebar-back",
-          level: "young",
-          navLabel: data.copy.nav.youngEvents,
-          testId: "young-sidebar",
-        } satisfies SectionSidebar)
-      : adminRoute
-        ? ({
-            backTestId: "admin-sidebar-back",
-            level: "admin",
-            navLabel: data.copy.nav.admin.title,
-            testId: "admin-sidebar",
-          } satisfies SectionSidebar)
-        : null,
 );
 let presentation = $derived(
   shellPresentation(routePage.data.shellTemplate, Boolean(viewerUser)),
@@ -571,7 +546,6 @@ let globalSearchShortcutLabel = $derived(
 );
 </script>
 
-
 <a
   class="sr-only top-3 left-3 z-50 rounded-md bg-background font-medium text-foreground shadow-lg outline-none focus:fixed focus:not-sr-only focus:px-4 focus:py-2 focus-visible:ring-2 focus-visible:ring-ring"
   href="#main-content"
@@ -586,25 +560,31 @@ let globalSearchShortcutLabel = $derived(
 {#if focusedShell}
   <div class="flex min-h-screen flex-col" data-shell="focused">
     <AppTopbar
-      closeMenus={closeMenus}
+      {closeMenus}
       copy={data.copy}
       focused
-      globalSearchShortcutLabel={globalSearchShortcutLabel}
+      {globalSearchShortcutLabel}
       {homeHref}
-        {homeLabel}
-      hideSignIn={hideSignIn}
+      {homeLabel}
+      {hideSignIn}
       locale={data.locale}
-      localeMenuOpen={localeMenuOpen}
+      {localeMenuOpen}
       onOpenGlobalSearch={openGlobalSearch}
-      setLocale={setLocale}
-      setLocaleMenuOpen={setLocaleMenuOpen}
-      setThemeMenuOpen={setThemeMenuOpen}
-      setThemeMode={setThemeMode}
-      themeMenuOpen={themeMenuOpen}
-      themeMode={themeMode}
+      {setLocale}
+      {setLocaleMenuOpen}
+      {setThemeMenuOpen}
+      {setThemeMode}
+      {themeMenuOpen}
+      {themeMode}
       signedIn={Boolean(viewerUser)}
       user={viewerUser}
-      viewerLoading={viewerLoading}
+      {avatarFallback}
+      {profileHref}
+      {userMenuOpen}
+      {setUserMenuOpen}
+      currentPathname={routePage.url.pathname}
+      demo={navigationDemo}
+      {viewerLoading}
     />
 
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -- skip_link target -->
@@ -615,37 +595,30 @@ let globalSearchShortcutLabel = $derived(
       data-shell-scroll-container
       id="main-content"
       tabindex={-1}
-    >{@render children?.()}</main>
+    >
+      {@render children?.()}
+    </main>
   </div>
 {:else}
   <Sidebar.Provider
     bind:open={sidebarOpen}
     onOpenChange={(open) =>
       saveSidebarPreferences({ ...loadSidebarPreferences(), open })}
-    class="flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden"
+    class="flex min-h-screen flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] lg:h-screen lg:min-h-0 lg:overflow-hidden lg:pb-0"
   >
     <div class="flex min-h-0 w-full flex-1">
       <AppSidebar
-        avatarFallback={avatarFallback}
-        closeMenus={closeMenus}
+        dockAboveFooter={showFooter}
         copy={data.copy}
         currentPathname={routePage.url.pathname}
-        dockAboveFooter={showFooter}
         footerLinks={presentation.footer === "sidebar" ? footerLinks : []}
-        sectionSidebar={sectionSidebar}
-        isActiveLink={isActiveLink}
-        isAncestorLink={isAncestorLink}
-        navGroups={navGroups}
-        {rootNavGroups}
-        {navigationOwnerKey}
         {homeHref}
         {homeLabel}
-        profileHref={profileHref}
-        setUserMenuOpen={setUserMenuOpen}
-        showAccountFooter={!showFooter && !viewerDemo}
-        user={viewerUser}
-        userMenuOpen={userMenuOpen}
-        viewerLoading={viewerLoading}
+        {isActiveLink}
+        {isAncestorLink}
+        scopes={navigationScopes}
+        currentScope={scopedNavigation.current}
+        {navigationOwnerKey}
       />
 
       <Sidebar.Inset
@@ -655,24 +628,30 @@ let globalSearchShortcutLabel = $derived(
         class="relative flex w-full min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-hidden"
       >
         <AppTopbar
-          closeMenus={closeMenus}
+          {closeMenus}
           copy={data.copy}
-          globalSearchShortcutLabel={globalSearchShortcutLabel}
+          {globalSearchShortcutLabel}
           {homeHref}
-        {homeLabel}
-          hideSignIn={hideSignIn}
+          {homeLabel}
+          {hideSignIn}
           locale={data.locale}
-          localeMenuOpen={localeMenuOpen}
+          {localeMenuOpen}
           onOpenGlobalSearch={openGlobalSearch}
-          setLocale={setLocale}
-          setLocaleMenuOpen={setLocaleMenuOpen}
-          setThemeMenuOpen={setThemeMenuOpen}
-          setThemeMode={setThemeMode}
-          themeMenuOpen={themeMenuOpen}
-          themeMode={themeMode}
+          {setLocale}
+          {setLocaleMenuOpen}
+          {setThemeMenuOpen}
+          {setThemeMode}
+          {themeMenuOpen}
+          {themeMode}
           signedIn={Boolean(viewerUser)}
           user={viewerUser}
-          viewerLoading={viewerLoading}
+          {avatarFallback}
+          {profileHref}
+          {userMenuOpen}
+          {setUserMenuOpen}
+          currentPathname={routePage.url.pathname}
+          demo={navigationDemo}
+          {viewerLoading}
         />
 
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the desktop content region is the keyboard_scrollable viewport -->
@@ -690,34 +669,42 @@ let globalSearchShortcutLabel = $derived(
           )}
         >
           {#if detailWorkspace}
-            <ShellDetailNavigation pageData={routePage.data} pathname={routePage.url.pathname} hash={routePage.url.hash} viewerReady={!viewerLoading} copy={data.copy} />
+            <ShellDetailNavigation
+              pageData={routePage.data}
+              pathname={routePage.url.pathname}
+              hash={routePage.url.hash}
+              viewerReady={!viewerLoading}
+              copy={data.copy}
+            />
           {/if}
           <div
             class={cn(
               "w-full flex-1",
               detailWorkspace
                 ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
-                : presentation.edgeToEdge ? "p-0" : "px-4 py-4 sm:px-5 lg:px-6",
-              !showFooter && !detailWorkspace && "pb-[max(1rem,env(safe-area-inset-bottom))] lg:pb-4")}
-          >{@render children?.()}</div>
+                : presentation.edgeToEdge
+                  ? "p-0"
+                  : "px-4 py-4 sm:px-5 lg:px-6",
+              !showFooter &&
+                !detailWorkspace &&
+                "pb-[max(1rem,env(safe-area-inset-bottom))] lg:pb-4",
+            )}
+          >
+            {@render children?.()}
+          </div>
         </div>
       </Sidebar.Inset>
     </div>
 
     {#if showFooter}
-      <AppFooter
-        avatarFallback={avatarFallback}
-        closeMenus={closeMenus}
-        copy={data.copy}
-        currentPathname={routePage.url.pathname}
-        footerLinks={footerLinks}
-        profileHref={profileHref}
-        setUserMenuOpen={setUserMenuOpen}
-        user={viewerUser}
-        userMenuOpen={userMenuOpen}
-        viewerLoading={viewerLoading}
-      />
+      <AppFooter copy={data.copy} {footerLinks} />
     {/if}
+
+    <MobilePrimaryNavigation
+      links={primaryLinks}
+      pathname={routePage.url.pathname}
+      label={data.copy.shell.primaryNavigation}
+    />
 
     {#if GlobalSearchDialog}
       <GlobalSearchDialog

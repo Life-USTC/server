@@ -976,79 +976,70 @@ requirements:
 - id: ui.shell-layout-2
   category: presentation
   topic: shell-layout
-  rule: Signed-in desktop navigation retains the existing intent groups My day, Courses, Campus, Activities,
-    Account, Apps and Admin. Expanded group labels and existing destination subtrees have no local disclosure
-    controls; all destinations, including the four moderation queues, remain expanded regardless of historical
-    group or submenu preferences. Only authorized administrators see Admin. The device-local global sidebar
-    open preference remains effective. The compact rail retains one named icon per intent group; activating
-    an icon expands the whole sidebar and exposes its already-expanded tree. Current-page and ancestor
-    identification remain unique and role-correct. Cross-platform primary navigation changes belong to Task1575.
+  rule: "Desktop and mobile primary navigation use one ordered source: Workspace, Calendar, Campus and Activities. Only the current navigation level is rendered, as flat destination rows without embedded child trees. Public academic browsing belongs to Campus; course subscriptions and activity follows or notifications belong to Workspace. Settings, uploads and authorized administration are reached through the Topbar avatar, not these primary directories."
   acceptance:
     given: A signed-in user opens the workspace calendar at a 1440-by-900 viewport.
     when: The browser inspects the visible primary navigation, its expanded hierarchy, and its current-page link.
     then:
-    - My day exposes Overview, Calendar, Homework, Todos and Exams as direct destinations, and Courses exposes
-      Section subscriptions beside public course discovery.
-    - No Workspace destination or local group/subtree toggle renders; group labels remain readable.
-    - The Courses group is expanded on arrival, and Admin appears only for an authorized administrator.
-    - Exactly one navigation link is marked as the current page, and it is the open destination.
+    - The root preview contains exactly Workspace, Calendar, Campus and Activities for every viewer state; anonymous Calendar retains a real sign-in destination and loading does not expose private counts.
+    - Workspace contains personal tasks and subscriptions; Campus contains only public academic and campus-service links, including for signed-in administrators.
+    - Avatar-only routes are classified before generic workspace prefixes; Admin is visible only to the current authorized administrator.
+    - A directory that contains the actual destination identifies it once as current page; the root preview identifies its primary owner once as location, or none for Avatar-only routes. Historical group/submenu preferences cannot hide destinations.
     test:
       file: tests/e2e/src/app/test.ts
       name: ui.shell-layout-2
 - id: ui.shell-layout-3
   category: presentation
   topic: shell-layout
-  rule: Expanded sidebar destination rows are links and group headers are noninteractive labels; there are no local group or subtree disclosure actions. The section-header root preview is a separate local navigation-view button, not a destination or group collapse control.
+  rule: "Expanded sidebar destination rows are anchors and level headings are noninteractive labels. No group or subtree disclosure actions or nested destination trees render. Local Back moves one navigation level at a time; a root-preview return control restores the actual current page directory without route navigation."
   acceptance:
     given: The public desktop navigation and mobile drawer contain the campus and course groups.
     when: The user inspects their static headings and activates the Shuttle Bus destination with the keyboard.
     then:
-    - Local group and destination subtree disclosure buttons and aria-expanded states are absent.
-    - Destination controls remain anchors with URLs and no nested interactive controls.
-    - Activating the destination reaches its canonical page. The global Menu, Drawer Close and desktop Rail remain available.
+    - Bus Back reaches Campus and then the four roots locally; returning to the current page directory preserves URL, query, hash, history, document, main content and form values.
+    - Local navigation keeps an open mobile drawer open and moves focus to a visible local control or current destination; actual destination anchors navigate normally and close the drawer.
+    - Global Menu, Drawer Close and desktop Rail remain available. Owner changes retire local preview; same-owner count updates do not.
     test:
       file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
       name: ui.shell-layout-3
 - id: ui.shell-layout-4
   category: presentation
   topic: shell-layout
-  rule: Mobile and desktop use the same functional sidebar destinations. No student or admin bottom tab bar renders. Mobile drawers have localized names and an explicit close action, restore focus when dismissed, and close after navigation. Footer, content and section actions account for the device safe area once without reserving a tab-bar height.
+  rule: "Mobile bottom primary navigation and desktop root navigation render the same four destinations from the same source. The mobile drawer shows only the current flat directory. Its localized close action and Escape restore focus; actual destinations close it while local preview and Back keep it open. Content reserves the bottom primary bar and device safe area once, below modal overlays."
   acceptance:
     given: A signed-in browser opens the mobile shell.
     when: The user activates schedule and catalog links from the drawer and emulates bottom safe-area insets of zero and 34 pixels.
     then:
-    - The drawer reaches canonical routes, closes after activation, and identifies one current destination when reopened.
-    - No bottom navigation bar renders or reserves layout space; the footer respects the safe area and final content stays visible.
+    - Mobile primary labels and order match desktop Workspace, Calendar, Campus and Activities; the current primary destination is identified without treating avatar routes as Workspace.
+    - The drawer reaches canonical routes and retains existing query/hash meanings; content and footer final actions remain reachable above the bottom primary bar at zero and 34-pixel safe-area insets.
     test:
       file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
       name: ui.shell-layout-4
 - id: ui.shell-feature-hub
   category: presentation
   topic: shell-layout
-  rule: The sidebar, mobile drawer and the searchable product directory on the home page at / share one destination model, grouped by user intent as My day, Courses, Campus, Activities, Account, Apps and Admin. Courses combines private Section subscriptions with public Browse sections, Browse courses and Teachers. Activities combines public Young events, calendar and organizers with private Activity subscriptions. Rooms belongs to Campus. The directory is reachable from the home page, which the logo links to at every shell width; /catalog/features answers 301 to / so existing links keep working. Signed-in and admin destinations follow the viewer role; public SSR never includes a private viewer. Search matches localized names, descriptions, groups and destinations; clearing restores the list. Terms and Privacy live in the footer. Subscribed sections are not injected into the catalog Sections entry; catalog details show only the current record under its collection.
+  rule: "The searchable Home product directory retains the complete role-aware feature inventory and existing destinations. Shell primary navigation is a four-root projection of that model rather than the complete directory tree. The public Campus landing at /campus uses only public academic and campus-service groups even for authenticated administrators; it never contains private subscriptions, notifications, uploads or account/admin links. Existing Home, search, legacy URLs and utility/document links remain discoverable."
   acceptance:
     given: Anonymous, ordinary and administrator viewers use Chinese and English on desktop and mobile.
     when: They open the feature hub, search, clear and use its links and the sidebar.
     then:
-    - Ordered intent groups and their accessible destinations agree between the hub and sidebar for the same viewer; Courses and Activities retain public discovery for anonymous visitors while excluding private entries.
-    - Matching, empty and cleared searches render correctly; private and admin entries are visible only to their intended viewers.
-    - Mobile and desktop landmarks contain at most one current link and never expose a bottom tab bar.
+    - Campus public page and data contain the same public destination projection for guest, ordinary and administrator viewers; sealed Demo uses its existing supported links and disabled reasons without public API fallback.
+    - Home matching, empty and cleared searches still work; private and admin entries remain viewer-authorized and public utilities remain reachable.
+    - Sidebar directories are physically flat and the mobile bottom primary navigation has exactly the same four-root source.
     test:
       file: tests/e2e/src/app/shared-policy/feature-hub.test.ts
       name: feature hub en-us user
 - id: ui.shell-layout-5
   category: presentation
   topic: shell-layout
-  rule: The topbar exposes language and theme controls. Signed-in desktop profile actions use the sidebar footer;
-    mobile profile actions remain available from the mobile shell.
+  rule: "The Topbar exposes language and theme controls and one portable avatar menu at desktop and mobile widths. No duplicate sidebar or footer avatar is mounted. Current viewer loading or failure does not reveal old account identity or admin links; anonymous sign-in remains discoverable."
   acceptance:
     given: An isolated signed-in user opens a workspace page at desktop and mobile widths.
     when: The user opens language, theme, and profile menus with the keyboard and closes them with Escape.
     then:
-    - Language and theme controls are visible in the topbar and expose selectable menu items.
-    - Profile actions are available from the sidebar footer on desktop and the mobile drawer, including personal
-      page, settings, and sign out.
-    - Escape restores focus to each menu trigger.
+    - Language and theme controls expose their existing selectable items and Escape focus restoration.
+    - One visible Topbar profile trigger opens personal page, settings, uploads and sign out, with administration only for a current authorized admin; Demo retains only its sealed supported settings entry.
+    - Menu navigation preserves canonical destinations and original sign-out POST behavior; Escape restores focus to the trigger.
     test:
       file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
       name: ui.shell-layout-5
@@ -1246,12 +1237,12 @@ requirements:
 - id: ui.settings-navigation-1
   category: presentation
   topic: settings-navigation
-  rule: Settings and second-classroom routes show their existing section destinations. The context header retains the Life@USTC Home link and a local button to view main navigation or return to the current section. Local view changes preserve document, URL, history, main content and keyboard focus; they keep an open mobile drawer open. Route, search, locale, viewer identity or role and Demo owner changes retire the preview, while same-owner count refreshes preserve it. Desktop shows the tree beside the active panel; mobile retains its localized dialog name, Escape and explicit Close control.
+  rule: Settings and second-classroom routes show their existing section destinations. The context header retains the Life@USTC Home link and a local button to view main navigation or return to the current section. Local view changes preserve document, URL, history, main content and keyboard focus; they keep an open mobile drawer open. Route, search, locale, viewer identity or role and Demo owner changes retire the preview, while same-owner count refreshes preserve it. Desktop shows the flat current directory beside the active panel; mobile retains its localized dialog name, Escape and explicit Close control.
   acceptance:
     given: A signed-in user opens profile settings at desktop width, previews and restores main navigation, follows the Home link, then opens danger settings on a phone.
     when: The browser measures the sidebar against the panel, uses the local preview control, follows the Home link, and opens the mobile menu.
     then:
-    - The desktop section tree sits left of the panel and marks Profile current; its local preview exposes role-filtered root destinations without leaving the page, and can restore Settings.
+    - The desktop flat section directory sits left of the panel and marks Profile current; its local preview exposes the same fixed four root destinations without leaving the page, and can restore Settings.
     - The Home link navigates normally. The mobile section menu marks Danger current and can preview root destinations without closing the drawer.
     test:
       file: tests/e2e/src/app/settings/test.ts
@@ -1655,26 +1646,26 @@ requirements:
 - id: ui.navigation-landmarks-1
   category: presentation
   topic: navigation-landmarks
-  rule: The visible desktop primary-navigation landmark is named Primary navigation in English and 主导航 in Chinese.
+  rule: The desktop sidebar landmark is named for its current flat directory; its root preview is named Primary navigation in English and 主导航 in Chinese.
   acceptance:
     given: An anonymous browser uses a 1280-pixel viewport.
     when: The browser opens the public course list in Chinese and English and locates the primary navigation
       by its localized accessible name.
     then:
-    - The visible desktop primary-navigation landmark is named Primary navigation in English and 主导航 in Chinese.
+    - The desktop sidebar landmark is named for its current flat directory; its root preview is named Primary navigation in English and 主导航 in Chinese.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.navigation-landmarks-1
 - id: ui.navigation-landmarks-2
   category: presentation
   topic: navigation-landmarks
-  rule: 'The mobile drawer uses the same Primary navigation / 主导航 landmark as desktop; no secondary or bottom navigation landmark exists.'
+  rule: 'The mobile drawer is named for its current flat directory. The separate four-destination bottom primary landmark is named Primary navigation / 主导航 and is covered by modal overlays.'
   acceptance:
     given: A signed-in user opens the workspace overview at 390 pixels in Chinese and English.
     when: The browser opens the menu and reads the primary navigation’s
       accessible name.
     then:
-    - 'The mobile drawer uses the same Primary navigation / 主导航 landmark as desktop; no secondary or bottom navigation landmark exists.'
+    - 'The mobile drawer is named for its current flat directory. The separate four-destination bottom primary landmark is named Primary navigation / 主导航 and is covered by modal overlays.'
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.navigation-landmarks-2
@@ -1959,7 +1950,7 @@ requirements:
 - id: ui.account-menu-responsive-owner
   category: presentation
   topic: navigation-landmarks
-  rule: The shell mounts an account menu only at its visible responsive location. Desktop public footers and mobile sidebar drawers must not open duplicate portaled menus through shared state. Existing profile/settings destinations and menu state ownership remain unchanged.
+  rule: The shell mounts one portable account menu in Topbar at desktop and mobile widths, without sidebar or footer account-menu instances or duplicate shared-state portals. Existing profile/settings URLs and menu owner retirement remain unchanged; uploads and authorized administration are secondary avatar destinations.
   acceptance:
     given: A signed-in user visits academic detail, settings, Second Classroom and the workspace.
     when: The user opens the account menu with Enter, closes with Escape, selects Settings with the keyboard, and resizes an open mobile menu to desktop.
@@ -2103,7 +2094,7 @@ rationale:
   agendas and calendar.views for the declared desktop grids; those feature requirements own their acceptance.
 - The former ui.model-property-priority-primary-3 duplicates section.student-identity-teachers, which retains
   course name plus teachers as primary identity and section code as secondary across student-facing views.
-- The absence of a student or admin bottom tab bar is owned by ui.shell-layout-4 for every shell width;
+- The shared four-destination mobile primary bar and its safe-area behavior are owned by ui.shell-layout-4;
   ui.list-table-9 keeps only sidebar-versus-in-page navigation ownership.
 - Settings destination separation for linked sign-in identities versus delegated application grants is
   owned by user.sign-in-identities-separate; ui.settings-navigation-5 independently owns explicit

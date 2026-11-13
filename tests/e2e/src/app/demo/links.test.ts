@@ -503,7 +503,7 @@ test("demo links: same-document identity switch retires real private preferences
               },
             ]);
             const current = page.locator(
-              '[data-shell-navigation="desktop"] a[data-slot="sidebar-menu-button"][href="/catalog/links"]',
+              '[data-shell-navigation="desktop"] a[data-sidebar="menu-button"][href="/catalog/links"]',
             );
             await expect(current).toHaveCount(1);
             await current.click();
@@ -651,7 +651,7 @@ for (const transition of [
                 },
               ]);
               const current = page.locator(
-                '[data-shell-navigation="desktop"] a[data-slot="sidebar-menu-button"][href="/catalog/links"]',
+                '[data-shell-navigation="desktop"] a[data-sidebar="menu-button"][href="/catalog/links"]',
               );
               await expect(current).toHaveCount(1);
               await current.click();

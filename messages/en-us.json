@@ -3227,6 +3227,14 @@
     }
   },
   "shell": {
+    "primaryDestinations": {
+      "workspace": "Workspace",
+      "calendar": "Calendar",
+      "campus": "Campus",
+      "activities": "Activities",
+      "campusDescription": "Public courses and campus services",
+      "back": "Back to {section}"
+    },
     "currentLocation": "Current location",
     "detailNavigation": {
       "label": "On this page",
@@ -3251,7 +3259,7 @@
     "closeNavigation": "Close navigation",
     "backToApp": "Back to app",
     "groups": {
-      "day": "My day",
+      "day": "Workspace",
       "courses": "Courses",
       "campus": "Campus",
       "activities": "Activities",

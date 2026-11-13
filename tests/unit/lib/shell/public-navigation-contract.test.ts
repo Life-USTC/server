@@ -3,6 +3,7 @@ import { isPublicNavigationPath } from "@/lib/shell/public-navigation-contract";
 
 test("rendering-and-cache.cacheable-public-pages-15 allowlist", () => {
   for (const path of [
+    "/campus",
     "/catalog/courses",
     "/catalog/sections",
     "/catalog/teachers",

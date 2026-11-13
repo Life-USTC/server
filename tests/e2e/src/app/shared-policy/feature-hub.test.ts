@@ -9,7 +9,7 @@ const labels = {
     search: "Search features",
     clear: "Clear search",
     empty: "No features match your search.",
-    day: "My day",
+    day: "Workspace",
     courses: "Courses",
     activities: "Activities",
     apps: "Apps",
@@ -25,7 +25,7 @@ const labels = {
     search: "搜索功能",
     clear: "清除搜索",
     empty: "没有匹配的功能。",
-    day: "日程",
+    day: "工作台",
     courses: "课程",
     activities: "活动",
     apps: "应用",
@@ -138,11 +138,9 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         await expect(
           hub.getByRole("heading", { name: copy.admin, exact: true }),
         ).toHaveCount(role === "admin" ? 1 : 0);
-        await expect(
-          page.locator(
-            '[data-shell-navigation="mobile-primary"], [data-shell-navigation="admin-mobile"], [data-shell-navigation="secondary"]',
-          ),
-        ).toHaveCount(0);
+        const mobilePrimary = page.locator("[data-mobile-primary-navigation]");
+        if (width < 1024) await expect(mobilePrimary).toBeVisible();
+        else await expect(mobilePrimary).toBeHidden();
         await expect(
           page
             .locator("[data-shell-topbar]")
@@ -166,18 +164,8 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           courses.locator('[data-feature-entry] [data-slot="item-title"]'),
         ).toHaveText(
           locale === "zh-cn"
-            ? [
-                ...(role === "anonymous" ? [] : ["教学班订阅"]),
-                "浏览教学班",
-                "浏览课程",
-                "教师",
-              ]
-            : [
-                ...(role === "anonymous" ? [] : ["Section subscriptions"]),
-                "Browse sections",
-                "Browse courses",
-                "Teachers",
-              ],
+            ? ["浏览教学班", "浏览课程", "教师"]
+            : ["Browse sections", "Browse courses", "Teachers"],
         );
         const activities = hub.getByRole("region", {
           name: copy.activities,
@@ -193,8 +181,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           activities.locator(
             'a[href="/workspace/subscriptions/activities?view=notifications"]',
           ),
-        ).toHaveCount(role === "anonymous" ? 0 : 1);
-        const allHubLinks = await hrefs(page, "[data-feature-hub] a");
+        ).toHaveCount(0);
         if (width < 768)
           await page
             .locator('[data-shell-topbar] [data-sidebar="trigger"]')
@@ -202,73 +189,95 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         const navigation = page.locator(
           `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
         );
+        await expect(navigation).toBeVisible();
+        // The feature directory keeps all destinations; the sidebar renders only
+        // one selected level, never the old all-feature inline tree.
+        if (role !== "anonymous") {
+          await expect(navigation).toHaveAttribute(
+            "data-shell-navigation-view",
+            "workspace",
+          );
+          await navigation.locator("[data-local-navigation-back]").click();
+        }
         await expect(navigation).toHaveAttribute(
-          "aria-label",
+          "data-shell-navigation-view",
+          "root",
+        );
+        await expect(navigation).toHaveAccessibleName(
           locale === "zh-cn" ? "主导航" : "Primary navigation",
         );
-        await expect(
-          navigation.locator('[data-slot="sidebar-group-label"]'),
-        ).toHaveText(groupNames);
-        for (const [label, expectedPaths] of [
-          [
-            copy.courses,
-            [
-              ...(role === "anonymous" ? [] : ["/workspace/subscriptions"]),
-              "/catalog/sections",
-              "/catalog/courses",
-              "/catalog/teachers",
-            ],
-          ],
-          [
-            copy.activities,
-            [
-              "/catalog/young-events",
-              ...(role === "anonymous"
-                ? []
-                : ["/workspace/subscriptions/activities?view=notifications"]),
-            ],
-          ],
-        ] as const) {
-          const group = navigation
-            .locator('[data-slot="sidebar-group"]')
-            .filter({
-              has: page
-                .locator('[data-slot="sidebar-group-label"]')
-                .filter({ hasText: new RegExp(`^\\s*${label}\\s*$`) }),
-            });
-          expect(
-            await group
-              .locator('a[data-sidebar="menu-button"]')
-              .evaluateAll((nodes) =>
-                nodes.map((node) => node.getAttribute("href")),
-              ),
-          ).toEqual(expectedPaths);
-        }
-        await expect(
-          navigation.locator(
-            'button[data-slot="sidebar-group-label"], [data-slot="sidebar-menu-action"]',
-          ),
-        ).toHaveCount(0);
         const links = await navigation
           .locator(
             '[data-slot="sidebar-content"] a[data-sidebar="menu-button"]',
           )
           .evaluateAll((nodes) =>
-            nodes.map((node) => node.getAttribute("href")).sort(),
+            nodes.map((node) => node.getAttribute("href")),
           );
-        expect(links).toEqual(expected);
-        for (const href of links) expect(allHubLinks).toContain(href);
+        expect(links).toEqual([
+          "/",
+          role === "anonymous"
+            ? "/account/sign-in?callbackUrl=%2Fworkspace%2Fcalendar"
+            : "/workspace/calendar",
+          "/campus",
+          "/catalog/young-events",
+        ]);
+        await expect(
+          navigation.locator(
+            '[data-slot="sidebar-menu-sub"], button[data-slot="sidebar-group-label"], [data-slot="sidebar-menu-action"]',
+          ),
+        ).toHaveCount(0);
+        await expect(
+          navigation.locator(
+            '[data-slot="sidebar-content"] a[data-sidebar="menu-button"]',
+          ),
+        ).toHaveText(
+          locale === "zh-cn"
+            ? ["工作台", "日历", "校园", "活动"]
+            : ["Workspace", "Calendar", "Campus", "Activities"],
+        );
         if (width >= 768) desktopLinks = links;
         else expect(links).toEqual(desktopLinks);
-        await expect(
-          navigation.locator('[aria-current="page"]'),
-        ).toHaveAttribute("href", "/");
         await expect(
           navigation.locator('a[href="/terms"], a[href="/privacy"]'),
         ).toHaveCount(0);
         await expect(
           navigation.locator('a[href^="/catalog/sections/"]'),
         ).toHaveCount(0);
+        await expect(navigation.locator('a[aria-current="page"]')).toHaveCount(
+          1,
+        );
+        await expect(
+          navigation.locator('a[aria-current="page"]'),
+        ).toHaveAttribute("href", "/");
+        if (role !== "anonymous") {
+          if (width < 768) await page.keyboard.press("Escape");
+          const profile = page
+            .locator("[data-shell-topbar] #app-user-menu")
+            .getByRole("button", {
+              name: locale === "zh-cn" ? "个人菜单" : "Profile menu",
+              exact: true,
+            });
+          await expect(profile).toHaveCount(1);
+          await profile.click();
+          const menu = page.getByRole("menu");
+          await expect(
+            menu.getByRole("menuitem", {
+              name: locale === "zh-cn" ? "我的上传" : "My Uploads",
+              exact: true,
+            }),
+          ).toHaveAttribute("href", "/workspace/uploads");
+          await expect(
+            menu.locator('a[href="/account/settings/preferences"]'),
+          ).toHaveCount(1);
+          await expect(menu.locator('a[href="/admin/users"]')).toHaveCount(
+            role === "admin" ? 1 : 0,
+          );
+          await page.keyboard.press("Escape");
+          if (width < 768)
+            await page
+              .locator('[data-shell-topbar] [data-sidebar="trigger"]')
+              .click();
+        }
         if (width < 768) {
           await page.keyboard.press("Escape");
           await expect(navigation).toBeHidden();

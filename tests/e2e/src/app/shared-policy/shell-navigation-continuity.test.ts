@@ -83,7 +83,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           let nav = await navigation();
           if (width < 768) {
             await expect(nav).toHaveAccessibleName(
-              locale === "en-us" ? "Second Classroom" : "第二课堂",
+              locale === "en-us" ? "Activities" : "活动",
             );
             await expect(nav).toHaveAccessibleDescription(
               locale === "en-us" ? "Menu" : "菜单",
@@ -150,27 +150,43 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             });
             await page.reload();
             await waitForUiSettled(page);
-            await page.getByTestId("young-sidebar-back").click();
-            await expect(page.getByTestId("young-sidebar")).toHaveAttribute(
-              "data-shell-navigation-view",
-              "root",
-            );
-            await expect(nav.locator('a[href="/usage/mcp"]')).toBeVisible();
+            await page.getByTestId("activities-sidebar-back").click();
+            await expect(
+              page.getByTestId("activities-sidebar"),
+            ).toHaveAttribute("data-shell-navigation-view", "root");
+            await expect(nav.locator('a[href="/campus"]')).toBeVisible();
+            await expect(
+              nav.locator('[data-slot="sidebar-menu-sub"]'),
+            ).toHaveCount(0);
+            await page.getByTestId("activities-sidebar-back").click();
+            await expect(
+              page.getByTestId("activities-sidebar"),
+            ).toHaveAttribute("data-shell-navigation-view", "activities");
             await expect(nav.locator("button[aria-expanded]")).toHaveCount(0);
             await expect(current).toHaveText(organizerName);
+            await expect(
+              nav.locator('a[href="/catalog/young-events/organizers"]'),
+            ).toHaveAttribute("aria-current", "location");
             await page.locator('[data-slot="sidebar-rail"]').click();
-            const ancestor = nav.locator('button[aria-current="location"]');
-            const name = locale === "en-us" ? "Activities" : "活动";
+            const sidebarState = page
+              .locator('[data-slot="sidebar"]')
+              .filter({ has: page.getByTestId("app-sidebar") });
+            await expect(sidebarState).toHaveCount(1);
+            await expect(sidebarState).toHaveAttribute(
+              "data-state",
+              "collapsed",
+            );
+            const ancestor = page.locator('[data-slot="sidebar-rail"]');
+            await expect(ancestor).toHaveCount(1);
             await expect(ancestor).toHaveAccessibleName(
-              `${locale === "en-us" ? "Expand sidebar" : "展开侧边栏"}: ${name}`,
+              locale === "en-us" ? "Toggle sidebar" : "切换侧边栏",
             );
-            await expect(ancestor).toHaveAttribute(
-              "title",
-              `${locale === "en-us" ? "Expand sidebar" : "展开侧边栏"}: ${name}`,
-            );
-            await expect(ancestor).toHaveAttribute("data-active", "true");
             await ancestor.focus();
             await page.keyboard.press("Enter");
+            await expect(sidebarState).toHaveAttribute(
+              "data-state",
+              "expanded",
+            );
             await expect(current).toBeVisible();
           }
           const marker = crypto.randomUUID();
@@ -258,21 +274,29 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               "href",
               `/catalog/sections/${fixture.section.jwId}`,
             );
+            await expect(
+              academicNav.locator('a[href="/catalog/sections"]'),
+            ).toHaveAttribute("aria-current", "location");
             await page.locator('[data-slot="sidebar-rail"]').click();
-            const ancestor = academicNav.locator(
-              'button[aria-current="location"]',
+            const sidebarState = page
+              .locator('[data-slot="sidebar"]')
+              .filter({ has: page.getByTestId("app-sidebar") });
+            await expect(sidebarState).toHaveCount(1);
+            await expect(sidebarState).toHaveAttribute(
+              "data-state",
+              "collapsed",
             );
-            const name = locale === "en-us" ? "Courses" : "课程";
+            const ancestor = page.locator('[data-slot="sidebar-rail"]');
+            await expect(ancestor).toHaveCount(1);
             await expect(ancestor).toHaveAccessibleName(
-              `${locale === "en-us" ? "Expand sidebar" : "展开侧边栏"}: ${name}`,
+              locale === "en-us" ? "Toggle sidebar" : "切换侧边栏",
             );
-            await expect(ancestor).toHaveAttribute(
-              "title",
-              `${locale === "en-us" ? "Expand sidebar" : "展开侧边栏"}: ${name}`,
-            );
-            await expect(ancestor).toHaveAttribute("data-active", "true");
             await ancestor.focus();
             await page.keyboard.press("Enter");
+            await expect(sidebarState).toHaveAttribute(
+              "data-state",
+              "expanded",
+            );
           }
           await directory.locator('a[href="#comments"]').click();
           await expect(page).toHaveURL(/#comments$/);
@@ -322,9 +346,10 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             "root",
           );
           expect(page.url()).toBe(settingsLocation);
-          await expect(
-            nav.locator('a[href="/catalog/sections"]'),
-          ).toBeVisible();
+          await expect(nav.locator('a[href="/campus"]')).toBeVisible();
+          await expect(nav.locator('a[href="/catalog/sections"]')).toHaveCount(
+            0,
+          );
           await page.screenshot({
             path: testInfo.outputPath(`settings-${locale}-${width}.png`),
           });
@@ -346,6 +371,18 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           if (width < 768)
             await expect(page.getByRole("dialog")).toHaveCount(0);
           nav = await navigation();
+          await expect(nav).toHaveAttribute(
+            "data-shell-navigation-view",
+            "root",
+          );
+          await nav.locator('a[href="/campus"]').click();
+          await expect(page).toHaveURL(/\/campus$/);
+          await waitForUiSettled(page);
+          nav = await navigation();
+          await expect(nav).toHaveAttribute(
+            "data-shell-navigation-view",
+            "campus",
+          );
           await nav.locator('a[href="/catalog/sections"]').click();
           await expect(page).toHaveURL(/\/catalog\/sections$/);
           await waitForUiSettled(page);

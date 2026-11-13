@@ -228,7 +228,8 @@ requirements:
 - id: demo.campus-projection
   category: privacy
   rule: The existing weather, bus planner and SVG route map share sealed fictional data and the
-    fixed reference clock with Home. Weather preserves both campuses, hourly and daily forecasts
+    fixed reference clock with Home. The /campus directory is a sealed public-only shell that keeps
+    supported academic and campus destinations reachable without personal or administrative links. Weather preserves both campuses, hourly and daily forecasts
     without inventing a provider or observation. Timetable, route search, departures and the schematic
     map use one closed graph; valid date and day-type browsing is read-only. Trusted demo SSR,
     page-data and exact read APIs branch before real services, authentication and durable adapters.

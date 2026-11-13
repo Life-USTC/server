@@ -425,7 +425,7 @@ test("demo news: same-page mode change retires a real held next page", {
               },
             ]);
             const current = page.locator(
-              '[data-shell-navigation="desktop"] a[data-slot="sidebar-menu-button"][href="/news"]',
+              '[data-shell-navigation="desktop"] a[data-sidebar="menu-button"][href="/news"]',
             );
             await expect(current).toHaveCount(1);
             await current.click();
@@ -623,7 +623,7 @@ for (const transition of [
                 ]);
                 await page
                   .locator(
-                    '[data-shell-navigation="desktop"] a[data-slot="sidebar-menu-button"][href="/news"]',
+                    '[data-shell-navigation="desktop"] a[data-sidebar="menu-button"][href="/news"]',
                   )
                   .click();
               } else {

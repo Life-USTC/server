@@ -125,12 +125,6 @@ const GROUPS: ReadonlyArray<{
         id: "exams",
         label: (nav) => nav.exams,
       },
-    ],
-  },
-  {
-    audience: "public",
-    id: "courses",
-    features: [
       {
         audience: "user",
         href: "/workspace/subscriptions",
@@ -138,6 +132,19 @@ const GROUPS: ReadonlyArray<{
         id: "subscriptions",
         label: (nav) => nav.subscriptions,
       },
+      {
+        audience: "user",
+        href: `${ACTIVITY_ROOT}?view=notifications`,
+        icon: BellIcon,
+        id: "activityNotifications",
+        label: (nav) => nav.activityNotifications,
+      },
+    ],
+  },
+  {
+    audience: "public",
+    id: "courses",
+    features: [
       {
         href: "/catalog/sections",
         icon: RouteIcon,
@@ -203,13 +210,6 @@ const GROUPS: ReadonlyArray<{
         icon: SparklesIcon,
         id: "youngEvents",
         label: (nav) => nav.youngEvents,
-      },
-      {
-        audience: "user",
-        href: `${ACTIVITY_ROOT}?view=notifications`,
-        icon: BellIcon,
-        id: "activityNotifications",
-        label: (nav) => nav.activityNotifications,
       },
     ],
   },
@@ -303,8 +303,8 @@ function canSee(
 }
 
 /**
- * The one list of product destinations. The desktop sidebar, the mobile
- * drawer, the admin sidebar and the feature hub all render from it.
+ * Complete product inventory for the feature directory and search. The shell
+ * projects it into the four primary destinations and flat route-owned scopes.
  */
 export function buildShellFeatureGroups(
   copy: LayoutCopy,

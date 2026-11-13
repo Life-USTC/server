@@ -3,84 +3,101 @@ import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import { tick } from "svelte";
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import * as Sidebar from "#lib/components/ui/sidebar/index.js";
-import { Skeleton } from "#lib/components/ui/skeleton/index.js";
-import type {
-  LayoutCopy,
-  LayoutUserSummary,
-} from "#lib/shell/layout-server-data.js";
+import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
 import { cn } from "#lib/utils.js";
-import AppUserMenu from "./AppUserMenu.svelte";
+import {
+  isCurrentScopeLink,
+  type NavigationScope,
+  primaryDestination,
+} from "./navigation-scopes";
 import SettingsGlyph from "./SettingsGlyph.svelte";
-import type { ShellLink, ShellNavGroup } from "./types";
-
-export type SectionSidebar = {
-  backTestId: string;
-  level: "settings" | "young" | "admin";
-  navLabel: string;
-  testId: string;
-};
+import type { ShellLink } from "./types";
 
 let {
-  avatarFallback,
-  closeMenus,
   copy,
   currentPathname,
-  dockAboveFooter = false,
   footerLinks = [],
+  dockAboveFooter = false,
   homeHref = "/",
   homeLabel = copy.shell.discovery.home,
   isActiveLink,
   isAncestorLink,
-  navGroups,
-  rootNavGroups,
+  scopes,
+  currentScope,
   navigationOwnerKey,
-  profileHref,
-  sectionSidebar = null,
-  setUserMenuOpen,
-  showAccountFooter = true,
-  user,
-  userMenuOpen,
-  viewerLoading,
 }: {
-  avatarFallback: string;
-  closeMenus: () => void;
   copy: LayoutCopy;
   currentPathname: string;
-  dockAboveFooter?: boolean;
-  /** Legal/help links for catalog detail chrome (public footer omitted there). */
   footerLinks?: ShellLink[];
+  dockAboveFooter?: boolean;
   homeHref?: string;
   homeLabel?: string;
   isActiveLink: (link: ShellLink) => boolean;
   isAncestorLink: (link: ShellLink) => boolean;
-  navGroups: ShellNavGroup[];
-  rootNavGroups: ShellNavGroup[];
+  scopes: Record<string, NavigationScope>;
+  currentScope: string;
   navigationOwnerKey: string;
-  profileHref: string;
-  sectionSidebar?: SectionSidebar | null;
-  setUserMenuOpen: (open: boolean) => void;
-  showAccountFooter?: boolean;
-  user: LayoutUserSummary;
-  userMenuOpen: boolean;
-  viewerLoading: boolean;
 } = $props();
-
 const sidebar = Sidebar.useSidebar();
-let previewOwner = $state<string | null>(null);
-let showingRoot = $derived(
-  sectionSidebar !== null && previewOwner === navigationOwnerKey,
+const compactTooltips = $derived(
+  !sidebar.isMobile && sidebar.state === "collapsed",
 );
-let visibleGroups = $derived(showingRoot ? rootNavGroups : navGroups);
-// Equality gates rendering immediately; cleanup also prevents an old route's
-// preview from reviving when navigation returns to that owner later.
+let preview = $state<{ owner: string; level: string } | null>(null);
+const level = $derived(
+  preview?.owner === navigationOwnerKey ? preview.level : currentScope,
+);
+const scope = $derived(scopes[level] ?? scopes.root);
+const scopeLinks = $derived(scope.groups.flatMap((group) => group.links));
+let nav: HTMLElement;
 $effect(() => {
   const owner = navigationOwnerKey;
   return () => {
-    if (previewOwner === owner) previewOwner = null;
+    if (preview?.owner === owner) preview = null;
   };
 });
-function toggleNavigationView(): void {
-  previewOwner = showingRoot ? null : navigationOwnerKey;
+function changeLevel(next: string) {
+  const owner = navigationOwnerKey;
+  preview = { owner, level: next };
+  void tick().then(() => {
+    if (
+      owner !== navigationOwnerKey ||
+      !nav?.isConnected ||
+      (sidebar.isMobile && !sidebar.openMobile)
+    )
+      return;
+    const target =
+      nav.querySelector<HTMLButtonElement>("[data-local-navigation-back]") ??
+      nav.querySelector<HTMLAnchorElement>("[aria-current]") ??
+      nav.querySelector<HTMLAnchorElement>(
+        '[data-sidebar="menu-button"][href]',
+      );
+    target?.focus();
+  });
+}
+function restoresCurrent(link: ShellLink) {
+  return (
+    level === "root" &&
+    currentScope !== "root" &&
+    link.id === primaryDestination(currentPathname)
+  );
+}
+function selectDestination(event: MouseEvent, link: ShellLink) {
+  if (
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.altKey ||
+    event.shiftKey
+  )
+    return;
+  if (restoresCurrent(link)) {
+    event.preventDefault();
+    changeLevel(currentScope);
+    return;
+  }
+  // Keep the clicked anchor intact until the router consumes its real href.
+  // The completed navigation retires this preview through navigationOwnerKey.
+  sidebar.setOpenMobile(false);
 }
 function revealCurrent(node: HTMLElement, active: boolean) {
   let current = false;
@@ -168,389 +185,184 @@ function revealCurrent(node: HTMLElement, active: boolean) {
   reveal(active);
   return { update: reveal, destroy: () => cancel() };
 }
-function hasActiveChild(link: ShellLink): boolean {
-  return (
-    link.items?.some((child) => isActiveLink(child) || hasActiveChild(child)) ??
-    false
-  );
-}
-
-function showActiveState(active: boolean): boolean {
-  return (
-    active &&
-    (sidebar.isMobile ? sidebar.openMobile : sidebar.state === "expanded")
-  );
-}
-
-function closeMobileSidebar(): void {
-  sidebar.setOpenMobile(false);
-}
 </script>
 
-{#snippet badge(value: number | null | undefined)}
-  {#if value != null && value > 0}
-    <div
-      class="text-sidebar-foreground ms-auto flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums"
-    >
-      {value}
-    </div>
-  {/if}
-{/snippet}
-
-{#snippet navigationBadge(link: ShellLink)}
-  {#if link.badge != null && link.badge > 0}
-    <Sidebar.MenuBadge class="top-1/2! -translate-y-1/2" role="img" aria-label={link.badgeLabel} data-shell-count-value={link.badge}>{link.badge}</Sidebar.MenuBadge>
-  {/if}
-{/snippet}
-
-{#snippet navigation(groups: ShellNavGroup[], mobile: boolean)}
-  <nav
-    aria-label={showingRoot ? copy.shell.primaryNavigation : sectionSidebar?.navLabel ?? copy.shell.primaryNavigation}
-    data-shell-navigation={mobile ? "mobile" : "desktop"}
-    data-sidebar-level={showingRoot ? "root" : sectionSidebar?.level}
-    data-shell-navigation-view={showingRoot ? "root" : sectionSidebar?.level ?? "root"}
-    data-testid={sectionSidebar?.testId}
-    class="flex min-h-0 flex-1 flex-col"
-  >
-    <Sidebar.Header class={mobile ? "pr-12" : undefined}>
-      <Sidebar.Menu>
-        <Sidebar.MenuItem>
-          {#if sectionSidebar}
-            {@const section = sectionSidebar}
-            <Sidebar.MenuButton class="h-auto min-h-11 py-1.5" tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? `${homeLabel} · Life@USTC` : undefined}>
-              {#snippet child({ props })}
-                <a
-                  {...props}
-                  href={homeHref}
-                  aria-label={`Life@USTC: ${homeLabel}`}
-                  onclick={closeMobileSidebar}
-                >
-                  <img
-                    class="size-6 rounded-md"
-                    src={appIconUrl}
-                    alt=""
-                    aria-hidden="true"
-                  />
-                  <span class="grid min-w-0"><span>Life@USTC</span>{" "}<span class="text-xs font-normal">{homeLabel}</span></span>
-                </a>
-              {/snippet}
-            </Sidebar.MenuButton>
-            <Sidebar.MenuButton tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? (showingRoot ? copy.shell.returnToSection.replace("{section}", section.navLabel) : copy.shell.viewRootNavigation) : undefined}>
-              {#snippet child({ props })}
-                <button
-                  {...props}
-                  type="button"
-                  data-testid={section.backTestId}
-                  onclick={toggleNavigationView}
-                >
-                  <ArrowLeftIcon />
-                  <span>{showingRoot ? copy.shell.returnToSection.replace("{section}", section.navLabel) : copy.shell.viewRootNavigation}</span>
-                </button>
-              {/snippet}
-            </Sidebar.MenuButton>
-          {:else}
-            <Sidebar.MenuButton class="h-auto min-h-11 py-1.5" isActive={showActiveState(currentPathname === "/")} tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? `${homeLabel} · Life@USTC` : undefined}>
-              {#snippet child({ props })}
-                <a
-                  {...props}
-                  id="app-logo"
-                  href={homeHref}
-                  aria-label={`Life@USTC: ${homeLabel}`}
-                  aria-current={showActiveState(currentPathname === "/") ? "page" : undefined}
-                  onclick={closeMobileSidebar}
-                >
-                  <img
-                    class="size-6 rounded-md"
-                    src={appIconUrl}
-                    alt=""
-                    aria-hidden="true"
-                  />
-                  <span class="grid min-w-0"><span>Life@USTC</span>{" "}<span class="text-xs font-normal">{homeLabel}</span></span>
-                </a>
-              {/snippet}
-            </Sidebar.MenuButton>
-          {/if}
-        </Sidebar.MenuItem>
-      </Sidebar.Menu>
-    </Sidebar.Header>
-
-    <Sidebar.Content>
-      <div class="flex min-w-0 shrink-0 flex-col" data-slot="sidebar-flow">
-      {#each groups as group}
-        {@const isCollapsed = !mobile && sidebar.state === "collapsed"}
-        {@const groupActive = group.links.some(
-          (link) =>
-            isActiveLink(link) || hasActiveChild(link) || isAncestorLink(link),
-        )}
-          <Sidebar.Group>
-            <Sidebar.GroupLabel
-              class={cn(
-                "gap-2 overflow-hidden text-sm group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:opacity-100",
-                isCollapsed && "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                isCollapsed && groupActive && "bg-sidebar-accent text-sidebar-accent-foreground",
-              )}
-            >
-              {#snippet child({ props })}
-                {#if isCollapsed}
-                  <button {...props} type="button" aria-label={`${copy.shell.expandSidebar}: ${group.label}`} title={`${copy.shell.expandSidebar}: ${group.label}`} data-active={groupActive ? "true" : undefined} aria-current={groupActive ? "location" : undefined} data-shell-expand-sidebar onclick={() => sidebar.setOpen(true)}>
-                    {#if group.icon}{@const GroupIcon = group.icon}<GroupIcon />{/if}
-                    <span class="truncate">{group.label}</span>
-                  </button>
-                {:else}
-                  <div {...props}>
-                    {#if group.icon}{@const GroupIcon = group.icon}<GroupIcon />{/if}
-                    <span class="truncate">{group.label}</span>
-                  </div>
-                {/if}
-              {/snippet}
-            </Sidebar.GroupLabel>
-              <Sidebar.GroupContent class="group-data-[collapsible=icon]:hidden">
-                <Sidebar.Menu>
-                  {#each group.links as link}
-                    {#if link.disabledReason}
-                      <Sidebar.MenuItem>
-                        <Sidebar.MenuButton
-                          aria-describedby="demo-unavailable"
-                          title={link.disabledReason}
-                        >
-                          {#snippet child({ props })}
-                            <button {...props} disabled type="button">
-                              {#if link.glyph}
-                                <SettingsGlyph name={link.glyph} />
-                              {:else if link.icon}
-                                {@const Icon = link.icon}
-                                <Icon />
-                              {/if}
-                              <span>{link.label}</span>
-                            </button>
-                          {/snippet}
-                        </Sidebar.MenuButton>
-                      </Sidebar.MenuItem>
-                    {:else if link.items && link.items.length > 0}
-                      {@const childActive = hasActiveChild(link)}
-                      {@const ownActive = isActiveLink(link) && !childActive}
-                      {@const active = showActiveState(ownActive)}
-                      {@const onPath = showActiveState(
-                        isAncestorLink(link) || childActive,
-                      )}
-                      <Sidebar.MenuItem>
-                        <div class="relative">
-                        <Sidebar.MenuButton
-                          isActive={active}
-                          class={cn(onPath && "bg-sidebar-accent/50 font-medium", link.badge != null && link.badge > 0 && "h-auto min-h-11 py-1.5 md:min-h-8 [&>span:last-child]:whitespace-normal! [&>span:last-child]:[overflow-wrap:anywhere] transition-[width,height]", link.badge != null && link.badge > 0 && "pe-14!")}
-                          data-shell-ancestor={onPath ? "true" : undefined}
-                          tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? link.label : undefined}
-                        >
-                          {#snippet child({ props })}
-                            <a
-                              {...props}
-                              href={link.href}
-                              use:revealCurrent={active}
-                              aria-label={link.ariaLabel}
-                                  aria-current={active
-                                ? "page"
-                                : onPath
-                                  ? "location"
-                                  : undefined}
-                              onclick={closeMobileSidebar}
-                            >
-                              {#if link.glyph}
-                                <SettingsGlyph name={link.glyph} />
-                              {:else if link.icon}
-                                {@const Icon = link.icon}
-                                <Icon />
-                              {/if}
-                              <span class={cn("font-medium", link.badge != null && link.badge > 0 && "min-w-0 flex-1")}>{link.label}</span>
-                            </a>
-                          {/snippet}
-                        </Sidebar.MenuButton>
-                        {@render navigationBadge(link)}
-                        </div>
-                          <Sidebar.MenuSub>
-                            {#each link.items as subLink}
-                              {@const nestedActive = hasActiveChild(subLink)}
-                              {@const subOwnActive =
-                                isActiveLink(subLink) && !nestedActive}
-                              {@const subActive =
-                                showActiveState(subOwnActive)}
-                              <Sidebar.MenuSubItem>
-                                <Sidebar.MenuSubButton isActive={subActive} class={cn("h-auto min-h-7 py-1 [&>span:last-child]:whitespace-normal [&>span:last-child]:break-words", nestedActive && "bg-sidebar-accent/50 font-medium")} data-shell-ancestor={nestedActive ? "true" : undefined}>
-                                  {#snippet child({ props })}
-                                    {#if subLink.disabledReason}
-                                      <button
-                                        {...props}
-                                        aria-describedby="demo-unavailable"
-                                        title={subLink.disabledReason}
-                                        disabled
-                                        type="button"
-                                      >
-                                        <span>{subLink.label}</span>
-                                      </button>
-                                    {:else}
-                                    <a
-                                      {...props}
-                                      href={subLink.href}
-                                      use:revealCurrent={subActive}
-                                      aria-label={subLink.ariaLabel}
-                                      aria-current={subActive
-                                        ? "page"
-                                        : nestedActive
-                                          ? "location"
-                                          : undefined}
-                                      onclick={closeMobileSidebar}
-                                    >
-                                      <span>{subLink.label}</span>
-                                      {@render badge(subLink.badge)}
-                                    </a>
-                                    {/if}
-                                  {/snippet}
-                                </Sidebar.MenuSubButton>
-
-                                {#if subOwnActive || nestedActive}
-                                  {#if subLink.items && subLink.items.length > 0}
-                                    <Sidebar.MenuSub>
-                                      {#each subLink.items as nested}
-                                        {@const nestedItemActive =
-                                          showActiveState(isActiveLink(nested))}
-                                        <Sidebar.MenuSubItem>
-                                          <Sidebar.MenuSubButton
-                                            isActive={nestedItemActive}
-                                            class="h-auto min-h-7 py-1 [&>span:last-child]:whitespace-normal [&>span:last-child]:break-words"
-                                          >
-                                            {#snippet child({ props })}
-                                              <a
-                                                {...props}
-                                                href={nested.href}
-                                                use:revealCurrent={nestedItemActive}
-                                                aria-label={nested.ariaLabel}
-                                                aria-current={nestedItemActive
-                                                  ? "page"
-                                                  : undefined}
-                                                onclick={closeMobileSidebar}
-                                              >
-                                                <span>{nested.label}</span>
-                                              </a>
-                                            {/snippet}
-                                          </Sidebar.MenuSubButton>
-                                        </Sidebar.MenuSubItem>
-                                      {/each}
-                                    </Sidebar.MenuSub>
-                                  {/if}
-                                {/if}
-                              </Sidebar.MenuSubItem>
-                            {/each}
-                          </Sidebar.MenuSub>
-                      </Sidebar.MenuItem>
-                    {:else}
-                      {@const active = showActiveState(isActiveLink(link))}
-                      {@const onPath = showActiveState(isAncestorLink(link))}
-                      <Sidebar.MenuItem>
-                        <div class="relative">
-                        <Sidebar.MenuButton
-                          isActive={active}
-                          class={cn(onPath && "bg-sidebar-accent/50 font-medium", link.badge != null && link.badge > 0 && "h-auto min-h-11 py-1.5 md:min-h-8 [&>span:last-child]:whitespace-normal! [&>span:last-child]:[overflow-wrap:anywhere] transition-[width,height]", link.badge != null && link.badge > 0 && "pe-14!")}
-                          data-shell-ancestor={onPath ? "true" : undefined}
-                          tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? link.label : undefined}
-                        >
-                          {#snippet child({ props })}
-                            <a
-                              {...props}
-                              href={link.href}
-                              use:revealCurrent={active}
-                              aria-label={link.ariaLabel}
-                                  aria-current={active
-                                ? "page"
-                                : onPath
-                                  ? "location"
-                                  : undefined}
-                              onclick={closeMobileSidebar}
-                            >
-                              {#if link.glyph}
-                                <SettingsGlyph name={link.glyph} />
-                              {:else if link.icon}
-                                {@const Icon = link.icon}
-                                <Icon />
-                              {/if}
-                              <span class={cn("font-medium", link.badge != null && link.badge > 0 && "min-w-0 flex-1")}>{link.label}</span>
-                            </a>
-                          {/snippet}
-                        </Sidebar.MenuButton>
-                        {@render navigationBadge(link)}
-                        </div>
-                      </Sidebar.MenuItem>
-                    {/if}
-                  {/each}
-                </Sidebar.Menu>
-              </Sidebar.GroupContent>
-          </Sidebar.Group>
-      {/each}
-      </div>
-    </Sidebar.Content>
-  </nav>
-{/snippet}
-
 <Sidebar.Root
-  mobileTitle={showingRoot ? copy.shell.primaryNavigation : sectionSidebar?.navLabel ?? copy.shell.primaryNavigation}
-  mobileDescription={copy.shell.menu}
-  closeLabel={copy.shell.closeNavigation}
   class={dockAboveFooter && !sidebar.isMobile
     ? "top-0! bottom-16! h-auto! max-h-none!"
     : undefined}
+  mobileTitle={scope.label}
+  mobileDescription={copy.shell.menu}
+  closeLabel={copy.shell.closeNavigation}
   collapsible="icon"
   data-testid="app-sidebar"
 >
-  {#if sidebar.isMobile}
-    {@render navigation(visibleGroups, true)}
-  {:else}
-    {@render navigation(visibleGroups, false)}
-    <Sidebar.Rail label={copy.shell.toggleSidebar} />
-  {/if}
-
-  {#if showAccountFooter || sidebar.isMobile || footerLinks.length > 0}
-    <Sidebar.Footer class="justify-center gap-2 border-t p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:pb-2">
-      {#if footerLinks.length > 0}
-        <nav
-          aria-label={copy.shell.footerNavigation}
-          class="flex min-w-0 flex-wrap gap-x-3 gap-y-1 px-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden"
-          data-shell-legal-nav
-        >
-          {#each footerLinks as link}
-            <a
-              class="py-1.5 transition-colors hover:text-foreground"
-              href={link.href}
-              rel={link.rel}
-              target={link.target}
-              onclick={closeMobileSidebar}
+  <nav
+    bind:this={nav}
+    aria-label={scope.label}
+    data-shell-navigation={sidebar.isMobile ? "mobile" : "desktop"}
+    data-sidebar-level={level}
+    data-shell-navigation-view={level}
+    data-testid={`${currentScope}-sidebar`}
+    class="flex min-h-0 flex-1 flex-col"
+  >
+    <Sidebar.Header class={sidebar.isMobile ? "pr-12" : undefined}>
+      <Sidebar.Menu
+        ><Sidebar.MenuItem>
+          <Sidebar.MenuButton
+            class="h-auto min-h-11 py-1.5"
+            tooltipContent={compactTooltips ? homeLabel : undefined}
+          >
+            {#snippet child({ props })}<a
+                {...props}
+                href={homeHref}
+                id="app-logo"
+                aria-label={`Life@USTC: ${homeLabel}`}
+                onclick={() => sidebar.setOpenMobile(false)}
+                ><img
+                  class="size-6 rounded-md"
+                  src={appIconUrl}
+                  alt=""
+                  aria-hidden="true"
+                /><span class="grid min-w-0"
+                  ><span>Life@USTC</span>{" "}<span class="text-xs font-normal"
+                    >{homeLabel}</span
+                  ></span
+                ></a
+              >{/snippet}
+          </Sidebar.MenuButton>
+          {#if scope.parent || currentScope !== "root"}
+            <Sidebar.MenuButton
+              tooltipContent={compactTooltips ? (level === "root"
+                ? copy.shell.returnToSection.replace(
+                    "{section}",
+                    scopes[currentScope].label,
+                  )
+                : copy.shell.primaryDestinations.back.replace(
+                    "{section}",
+                    scopes[scope.parent ?? "root"].label,
+                  )) : undefined}
             >
-              {link.label}
-            </a>
-          {/each}
-        </nav>
-      {/if}
-      {#if viewerLoading}
-        <div
-          aria-hidden="true"
-          class="flex h-12 items-center gap-2 px-2"
-          data-testid="sidebar-viewer-loading"
-        >
-          <Skeleton class="size-8 rounded-lg bg-sidebar-accent" />
-          <div class="grid flex-1 gap-1 group-data-[collapsible=icon]:hidden">
-            <Skeleton class="h-3 w-24 rounded bg-sidebar-accent" />
-            <Skeleton class="h-2.5 w-16 rounded bg-sidebar-accent" />
-          </div>
-        </div>
-      {:else}
-        <AppUserMenu
-          {avatarFallback}
-          {closeMenus}
-          {copy}
-          {currentPathname}
-          {profileHref}
-          {setUserMenuOpen}
-          {user}
-          {userMenuOpen}
-        />
-      {/if}
-    </Sidebar.Footer>
-  {/if}
+              {#snippet child({ props })}<button
+                  {...props}
+                  type="button"
+                  data-local-navigation-back
+                  data-testid={`${currentScope}-sidebar-back`}
+                  onclick={() =>
+                    changeLevel(
+                      level === "root"
+                        ? currentScope
+                        : (scope.parent ?? "root"),
+                    )}
+                  ><ArrowLeftIcon /><span
+                    >{level === "root"
+                      ? copy.shell.returnToSection.replace(
+                          "{section}",
+                          scopes[currentScope].label,
+                        )
+                      : copy.shell.primaryDestinations.back.replace(
+                          "{section}",
+                          scopes[scope.parent ?? "root"].label,
+                        )}</span
+                  ></button
+                >{/snippet}
+            </Sidebar.MenuButton>
+          {/if}
+        </Sidebar.MenuItem></Sidebar.Menu
+      >
+    </Sidebar.Header>
+    <Sidebar.Content
+      ><div class="flex min-w-0 shrink-0 flex-col" data-slot="sidebar-flow">
+        {#each scope.groups as group}
+          <Sidebar.Group
+            ><Sidebar.GroupLabel class="group-data-[collapsible=icon]:hidden"
+              >{group.label}</Sidebar.GroupLabel
+            ><Sidebar.GroupContent
+              ><Sidebar.Menu>
+                {#each group.links as link}
+                  {@const active = isCurrentScopeLink(
+                    link,
+                    scopeLinks,
+                    isActiveLink,
+                  )}
+                  {@const ancestor =
+                    !active &&
+                    (level === "root"
+                      ? primaryDestination(currentPathname) === link.id
+                      : isActiveLink(link) || isAncestorLink(link))}
+                  <Sidebar.MenuItem
+                    ><Sidebar.MenuButton
+                      isActive={active}
+                      tooltipContent={compactTooltips ? link.label : undefined}
+                      class={cn(
+                        "h-auto min-h-11 py-2 [&>span:last-child]:whitespace-normal! [&>span:last-child]:[overflow-wrap:anywhere]",
+                        ancestor && "bg-sidebar-accent/50",
+                        link.badge != null && link.badge > 0 && "pe-14!",
+                      )}
+                      data-shell-ancestor={ancestor ? "true" : undefined}
+                    >
+                      {#snippet child({ props })}
+                        {#if link.disabledReason}<button
+                            {...props}
+                            type="button"
+                            disabled
+                            aria-label={link.label}
+                            title={link.disabledReason}
+                            >{#if link.icon}{@const Icon = link.icon}<Icon
+                              />{:else if link.glyph}<SettingsGlyph
+                                name={link.glyph}
+                              />{/if}<span>{link.label}</span></button
+                          >
+                        {:else}<a
+                            {...props}
+                            href={link.href}
+                            data-sveltekit-preload-data={restoresCurrent(link) ? "false" : undefined}
+                            data-sveltekit-preload-code={restoresCurrent(link) ? "false" : undefined}
+                            aria-label={link.ariaLabel ?? link.label}
+                            aria-current={active
+                              ? "page"
+                              : ancestor
+                                ? "location"
+                                : undefined}
+                            use:revealCurrent={active}
+                            onclick={(event) => selectDestination(event, link)}
+                            >{#if link.icon}{@const Icon = link.icon}<Icon
+                              />{:else if link.glyph}<SettingsGlyph
+                                name={link.glyph}
+                              />{/if}<span>{link.label}</span></a
+                          >{/if}
+                      {/snippet}
+                    </Sidebar.MenuButton>
+                    {#if link.badge != null && link.badge > 0}<Sidebar.MenuBadge
+                        class="top-1/2! -translate-y-1/2"
+                        role="img"
+                        aria-label={link.badgeLabel}
+                        data-shell-count-value={link.badge}
+                        >{link.badge}</Sidebar.MenuBadge
+                      >{/if}
+                  </Sidebar.MenuItem>
+                {/each}
+              </Sidebar.Menu></Sidebar.GroupContent
+            ></Sidebar.Group
+          >
+        {/each}
+      </div></Sidebar.Content
+    >
+  </nav>
+  {#if !sidebar.isMobile}<Sidebar.Rail label={copy.shell.toggleSidebar} />{/if}
+  {#if footerLinks.length}<Sidebar.Footer class="border-t p-2"
+      ><nav
+        aria-label={copy.shell.footerNavigation}
+        class="flex flex-wrap gap-x-3 gap-y-1 text-xs group-data-[collapsible=icon]:hidden"
+        data-shell-legal-nav
+      >
+        {#each footerLinks as link}<a
+            href={link.href}
+            rel={link.rel}
+            target={link.target}
+            onclick={() => sidebar.setOpenMobile(false)}
+            class="py-1.5">{link.label}</a
+          >{/each}
+      </nav></Sidebar.Footer
+    >{/if}
 </Sidebar.Root>

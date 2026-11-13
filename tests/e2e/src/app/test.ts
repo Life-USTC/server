@@ -126,7 +126,7 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
     await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
 
     const sidebar = page.getByRole("dialog", {
-      name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+      name: /^(Primary navigation|主导航|Workspace|工作台|Calendar|日历|Settings|设置|Activities|活动|Admin|管理后台)$/,
     });
     await expect(
       sidebar.getByRole("button", { name: /语言|Language/i }),
@@ -137,31 +137,53 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
     await expect(
       sidebar.getByRole("button", { name: /个人菜单|Profile menu/i }),
     ).toHaveCount(0);
-    for (const name of [
-      /^(校车|Shuttle Bus)$/i,
-      /^(网站|Websites)$/i,
-      /^(浏览课程|Browse courses)$/i,
-      /^(浏览教学班|Browse sections)$/i,
-      /^(教师|Teachers)$/i,
-      /^(移动应用|Mobile App)$/i,
-      /^(Presto 机器人|Presto Bot)$/i,
-      /^(?:AI assistants \(MCP\)|AI 助手（MCP）)$/,
-      /^(命令行|CLI)$/i,
-    ]) {
-      await expect(sidebar.getByRole("link", { name })).toBeVisible();
-    }
-    for (const name of [
-      /^(待办|Todos)$/i,
-      /^(考试|Exams)$/i,
-      /^(教学班订阅|Section subscriptions)$/i,
-    ]) {
-      await expect(sidebar.getByRole("link", { name })).toHaveCount(0);
-    }
+    const rootNav = sidebar.locator('[data-shell-navigation="mobile"]');
+    expect(
+      await rootNav
+        .locator('[data-slot="sidebar-content"] a')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("href"))),
+    ).toEqual([
+      "/",
+      "/account/sign-in?callbackUrl=%2Fworkspace%2Fcalendar",
+      "/campus",
+      "/catalog/young-events",
+    ]);
     await expect(
-      page.getByRole("navigation", {
-        name: /移动主导航|Mobile primary navigation/i,
-      }),
+      rootNav.locator(
+        '[data-shell-count-value],a[href^="/admin"],a[href="/workspace/todos"]',
+      ),
     ).toHaveCount(0);
+    await rootNav.locator('a[href="/campus"]').click();
+    await expect(page).toHaveURL(/\/campus$/);
+    await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
+    const campus = page.getByRole("dialog", { name: /^(Campus|校园)$/ });
+    for (const href of [
+      "/catalog/bus",
+      "/catalog/links",
+      "/catalog/courses",
+      "/catalog/sections",
+      "/catalog/teachers",
+    ])
+      await expect(campus.locator(`a[href="${href}"]`)).toBeVisible();
+    await expect(
+      campus.locator(
+        'a[href^="/workspace"],a[href^="/account"],a[href^="/admin"]',
+      ),
+    ).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(
+      topbar.getByRole("button", { name: /^菜单$|^Menu$/i }),
+    ).toBeFocused();
+    await gotoAndWaitForReady(page, "/");
+    for (const href of [
+      "/usage/mobile",
+      "/usage/bot",
+      "/usage/mcp",
+      "/usage/cli",
+    ])
+      await expect(
+        page.locator(`[data-feature-directory] a[href="${href}"]`),
+      ).toBeVisible();
     expect(browserIssues).toEqual([]);
   }, {});
 });
@@ -374,16 +396,20 @@ shellTest(
       await expect(sidebarTrigger).toHaveAttribute("aria-expanded", "true");
 
       const sidebar = page.getByRole("dialog", {
-        name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+        name: /^(Primary navigation|主导航|Workspace|工作台|Calendar|日历|Settings|设置|Activities|活动|Admin|管理后台)$/,
       });
       await expect(sidebar).toBeVisible();
       await expect(
-        sidebar.getByRole("link", { name: /^(浏览教学班|Browse sections)$/i }),
+        sidebar.getByRole("link", { name: /^(待办|Todos)$/i }),
       ).toBeVisible();
-
-      const accountMenuButton = sidebar.getByRole("button", {
-        name: /个人菜单|Profile menu/i,
-      });
+      await expect(
+        sidebar.locator('[data-slot="sidebar-menu-sub"],#app-user-menu'),
+      ).toHaveCount(0);
+      await page.keyboard.press("Escape");
+      await expect(sidebarTrigger).toBeFocused();
+      const accountMenuButton = page
+        .locator("[data-shell-topbar] #app-user-menu")
+        .getByRole("button");
       await accountMenuButton.click();
       await expect(
         page.getByRole("menuitem", { name: /设置|Settings/i }),
@@ -402,52 +428,72 @@ shellTest(
         await gotoAndWaitForReady(page, "/workspace/calendar");
 
         const sidebar = page.getByTestId("app-sidebar");
-        const navigation = sidebar.getByRole("navigation", {
-          name: /主导航|Primary navigation/i,
-        });
-
-        for (const name of [
-          /^(日历|Calendar)$/i,
-          /^(作业|Homework)$/i,
-          /^(待办|Todos)$/i,
-          /^(考试|Exams)$/i,
-          /^(教学班订阅|Section subscriptions)$/i,
-        ]) {
-          await expect(navigation.getByRole("link", { name })).toBeVisible();
-        }
-
+        const navigation = sidebar.locator('[data-shell-navigation="desktop"]');
+        await expect(navigation).toHaveAttribute(
+          "data-shell-navigation-view",
+          "calendar",
+        );
         await expect(
-          navigation.getByRole("link", { name: /^(总览|Overview)$/i }),
-        ).toHaveCount(0);
+          navigation.locator('[data-slot="sidebar-content"] a'),
+        ).toHaveCount(1);
         await expect(
-          sidebar.getByRole("link", {
-            name: /^Life@USTC: (Home|首页)$/,
-            exact: true,
-          }),
-        ).toHaveAttribute("href", "/");
-
-        await expect(
-          navigation.getByRole("link", { name: /^(工作区|Workspace)$/i }),
-        ).toHaveCount(0);
-        await expect(
-          navigation.getByRole("button", { name: /^Toggle /i }),
-        ).toHaveCount(0);
+          navigation.getByRole("link", { name: /^(日历|Calendar)$/i }),
+        ).toHaveAttribute("aria-current", "page");
         await expect(navigation.locator('[aria-current="page"]')).toHaveCount(
           1,
         );
         await expect(
-          navigation.getByRole("link", { name: /^(日历|Calendar)$/i }),
-        ).toHaveAttribute("aria-current", "page");
-
-        const catalog = navigation
-          .locator('[data-slot="sidebar-group-label"]')
-          .filter({ hasText: /^\s*(课程|Courses)\s*$/i });
-        await expect(catalog).not.toHaveAttribute("aria-expanded");
+          navigation.locator(
+            '[data-slot="sidebar-menu-sub"],button[aria-expanded]',
+          ),
+        ).toHaveCount(0);
+        await expect(
+          navigation.getByRole("link", {
+            name: /^Life@USTC: (Home|首页)$/,
+            exact: true,
+          }),
+        ).toHaveAttribute("href", "/");
+        await page.getByTestId("calendar-sidebar-back").click();
+        expect(
+          await navigation
+            .locator('[data-slot="sidebar-content"] a')
+            .evaluateAll((nodes) =>
+              nodes.map((node) => node.getAttribute("href")),
+            ),
+        ).toEqual([
+          "/",
+          "/workspace/calendar",
+          "/campus",
+          "/catalog/young-events",
+        ]);
+        await navigation
+          .locator('[data-slot="sidebar-content"] a[href="/"]')
+          .click();
+        await expect(page).toHaveURL(/\/$/);
+        for (const href of [
+          "/workspace/homeworks",
+          "/workspace/todos",
+          "/workspace/exams",
+          "/workspace/subscriptions",
+          "/workspace/subscriptions/activities?view=notifications",
+        ])
+          await expect(navigation.locator(`a[href="${href}"]`)).toBeVisible();
+        await expect(
+          navigation.locator(
+            'a[href="/workspace/uploads"],a[href^="/account"],a[href^="/admin"]',
+          ),
+        ).toHaveCount(0);
+        await page.getByTestId("workspace-sidebar-back").click();
+        await navigation.locator('a[href="/campus"]').click();
+        await expect(page).toHaveURL(/\/campus$/);
         await expect(
           navigation.getByRole("link", {
             name: /^(浏览课程|Browse courses)$/i,
           }),
         ).toBeVisible();
+        await expect(navigation.locator('a[href^="/workspace"]')).toHaveCount(
+          0,
+        );
       },
       { calendarTokenCreated: true },
     );
@@ -491,6 +537,9 @@ shellTest(
       const sidebar = page.getByTestId("app-sidebar");
       await expect(
         sidebar.getByRole("button", { name: /个人菜单|Profile menu/i }),
+      ).toHaveCount(0);
+      await expect(
+        topbar.getByRole("button", { name: /个人菜单|Profile menu/i }),
       ).toBeVisible();
       await expect(
         sidebar.getByRole("button", { name: /语言|Language/i }),
@@ -512,18 +561,16 @@ shellTest(
       await expect(sidebarRoot).toHaveAttribute("data-state", "collapsed");
       await expect(sidebarRoot).toHaveAttribute("data-collapsible", "icon");
 
-      const coursesLink = page
-        .getByTestId("app-sidebar")
-        .getByRole("link", { name: /^(浏览课程|Browse courses)$/i });
-      // Compact navigation exposes one named group action, then restores
-      // the whole sidebar and its expanded destination tree.
-      const coursesGroup = sidebar
-        .locator("button[data-shell-expand-sidebar]")
-        .filter({ hasText: /^\s*(课程|Courses)\s*$/i });
-      await expect(coursesGroup).toBeVisible();
-      await expect(coursesLink).toBeHidden();
+      const coursesLink = sidebar.locator('a[href="/workspace/todos"]');
+      await expect(coursesLink).toBeVisible();
+      await expect(coursesLink).toHaveAccessibleName(/^(待办|Todos)$/i);
+      await expect(
+        sidebar.locator(
+          'button[data-shell-expand-sidebar],[data-slot="sidebar-menu-sub"]',
+        ),
+      ).toHaveCount(0);
       await expect
-        .poll(async () => (await coursesGroup.boundingBox())?.width ?? 0)
+        .poll(async () => (await coursesLink.boundingBox())?.width ?? 0)
         .toBeLessThan(40);
 
       // Reach the trigger purely via the keyboard and activate it with Enter.
@@ -557,21 +604,17 @@ shellTest(
       await page.keyboard.press("Enter");
       await expect(sidebarRoot).toHaveAttribute("data-state", "expanded");
 
-      // A compact group icon remains a global sidebar expansion action: it stays
-      // visible, operable and large enough to hit, and activating it expands
-      // the whole sidebar without restoring a local disclosure.
+      // A flat icon retains its real destination; only the global controls expand the sidebar.
       await menuTrigger.focus();
       await page.keyboard.press("Enter");
       await expect(sidebarRoot).toHaveAttribute("data-state", "collapsed");
-      await expect(coursesGroup).toBeVisible();
-      await expect(coursesGroup).not.toBeDisabled();
-      const collapsedGroupBox = await coursesGroup.boundingBox();
-      expect(collapsedGroupBox?.width ?? 0).toBeGreaterThanOrEqual(24);
-      expect(collapsedGroupBox?.height ?? 0).toBeGreaterThanOrEqual(24);
-      await coursesGroup.focus();
+      const iconBox = await coursesLink.boundingBox();
+      expect(iconBox?.width ?? 0).toBeGreaterThanOrEqual(24);
+      expect(iconBox?.height ?? 0).toBeGreaterThanOrEqual(24);
+      await coursesLink.focus();
       await page.keyboard.press("Enter");
-      await expect(sidebarRoot).toHaveAttribute("data-state", "expanded");
-      await expect(coursesGroup).toHaveCount(0);
+      await expect(page).toHaveURL(/\/workspace\/todos$/);
+      await expect(coursesLink).toHaveAttribute("aria-current", "page");
     }, {});
   },
 );
@@ -590,9 +633,11 @@ shellTest(
 
         const navigation = page
           .getByTestId("app-sidebar")
-          .getByRole("navigation", { name: /主导航|Primary navigation/i });
-
-        // The URL child still owns the single current destination.
+          .locator('[data-shell-navigation="desktop"]');
+        await expect(navigation).toHaveAttribute(
+          "data-shell-navigation-view",
+          "activity-workspace",
+        );
         await expect(navigation.locator('[aria-current="page"]')).toHaveCount(
           1,
         );
@@ -601,19 +646,19 @@ shellTest(
             'a[href="/workspace/subscriptions/activities?view=events"]',
           ),
         ).toHaveAttribute("aria-current", "page");
-
-        // Its URL parent lives in another group, so without a trail position it
-        // reads as unrelated to the page the viewer is on.
-        const parent = navigation.locator('a[href="/workspace/subscriptions"]');
-        await expect(parent).toHaveAttribute("data-shell-ancestor", "true");
-        await expect(parent).toHaveAttribute("aria-current", "location");
         await expect(
-          navigation
-            .locator('[data-slot="sidebar-group-label"]')
-            .filter({ hasText: /^\s*(课程|Courses)\s*$/i }),
-        ).not.toHaveAttribute("aria-expanded");
-
-        // On the parent's own page the trail position gives way to the page.
+          navigation.locator('[data-slot="sidebar-content"] a'),
+        ).toHaveCount(3);
+        const originalUrl = page.url();
+        await page.getByTestId("activity-workspace-sidebar-back").click();
+        expect(page.url()).toBe(originalUrl);
+        await expect(navigation).toHaveAttribute(
+          "data-shell-navigation-view",
+          "workspace",
+        );
+        const parent = navigation.locator('a[href="/workspace/subscriptions"]');
+        await expect(parent).toBeVisible();
+        await expect(parent).not.toHaveAttribute("aria-current");
         await parent.click();
         await page.waitForURL("**/workspace/subscriptions");
         await waitForUiSettled(page);
@@ -639,19 +684,15 @@ shellTest(
 
         const navigation = page
           .getByTestId("app-sidebar")
-          .getByRole("navigation", {
-            name: /主导航|Primary navigation/i,
-          });
-        const catalog = navigation
-          .locator('[data-slot="sidebar-group-label"]')
-          .filter({ hasText: /^\s*(课程|Courses)\s*$/i });
-
-        await expect(catalog).not.toHaveAttribute("aria-expanded");
+          .locator('[data-shell-navigation="desktop"]');
         await expect(
-          navigation.getByRole("link", {
-            name: /^(浏览课程|Browse courses)$/i,
-          }),
+          navigation.getByRole("link", { name: /^(日历|Calendar)$/i }),
         ).toBeVisible();
+        await expect(
+          navigation.locator(
+            '[data-slot="sidebar-menu-sub"],button[aria-expanded]',
+          ),
+        ).toHaveCount(0);
         await page.evaluate(() => {
           const key = "life-ustc.sidebar.v1";
           const previous = JSON.parse(localStorage.getItem(key) ?? "{}");
@@ -669,7 +710,6 @@ shellTest(
         await navigation
           .getByRole("link", { name: /^Life@USTC: (Home|首页)$/, exact: true })
           .click();
-        await expect(catalog).not.toHaveAttribute("aria-expanded");
         await page
           .locator("[data-shell-scroll-container]")
           .getByRole("link", { name: /浏览课程|Browse Courses/i })
@@ -677,7 +717,11 @@ shellTest(
         await page.waitForURL("**/catalog/courses");
         await waitForUiSettled(page);
 
-        await expect(catalog).not.toHaveAttribute("aria-expanded");
+        await expect(
+          navigation.locator(
+            '[data-slot="sidebar-menu-sub"],button[aria-expanded]',
+          ),
+        ).toHaveCount(0);
         await expect(
           navigation.getByRole("link", {
             name: /^(浏览课程|Browse courses)$/i,
@@ -701,10 +745,8 @@ shellTest(
       await gotoAndWaitForReady(page, "/workspace/todos");
 
       await expect(
-        page.locator(
-          '[data-shell-navigation="mobile-primary"], [data-shell-navigation="admin-mobile"]',
-        ),
-      ).toHaveCount(0);
+        page.locator("[data-mobile-primary-navigation]"),
+      ).toHaveCount(1);
       const selector =
         "[data-shell-topbar] button:visible, [data-shell-topbar] a:visible";
       const controls = page.locator(selector);
@@ -735,35 +777,41 @@ shellTest(
       }
       await expect(
         topbar.getByRole("button", { name: /个人菜单|Profile menu/i }),
-      ).toHaveCount(0);
-
+      ).toHaveCount(1);
+      const primary = page.locator("[data-mobile-primary-navigation]");
+      expect(
+        await primary
+          .getByRole("link")
+          .evaluateAll((nodes) =>
+            nodes.map((node) => node.getAttribute("href")),
+          ),
+      ).toEqual([
+        "/",
+        "/workspace/calendar",
+        "/campus",
+        "/catalog/young-events",
+      ]);
       await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
-
       const sidebar = page.getByRole("dialog", {
-        name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+        name: /^(Workspace|工作台)$/,
       });
       await expect(sidebar).toBeVisible();
-      for (const name of [/^(日程|My day)$/i, /^(管理|Admin)$/i]) {
-        const group = sidebar.locator('[data-slot="sidebar-group"]').filter({
-          has: page
-            .locator('[data-slot="sidebar-group-label"] > span')
-            .filter({ hasText: name }),
-        });
-        await expect(group).toHaveCount(1);
-        await expect(
-          group.locator('[data-slot="sidebar-group-label"] > span'),
-        ).toHaveText(name);
-        await expect(
-          group.locator('[data-slot="sidebar-group-label"]'),
-        ).not.toHaveAttribute("aria-expanded");
-        await expect(
-          group.locator('[data-slot="sidebar-group-content"]'),
-        ).toBeVisible();
-        await expect(group.getByRole("button", { name })).toHaveCount(0);
-        await expect(
-          group.locator('[data-slot="sidebar-menu-action"]'),
-        ).toHaveCount(0);
-      }
+      const group = sidebar.locator('[data-slot="sidebar-group"]');
+      await expect(group).toHaveCount(1);
+      await expect(
+        group.locator('[data-slot="sidebar-group-label"]'),
+      ).toHaveText(/^(Workspace|工作台)$/);
+      await expect(
+        group.locator('[data-slot="sidebar-group-label"]'),
+      ).not.toHaveAttribute("aria-expanded");
+      await expect(
+        group.locator('[data-slot="sidebar-group-content"]'),
+      ).toBeVisible();
+      await expect(
+        group.locator(
+          '[data-slot="sidebar-menu-action"],[data-slot="sidebar-menu-sub"]',
+        ),
+      ).toHaveCount(0);
       await expect(
         sidebar.getByRole("button", { name: /语言|Language/i }),
       ).toHaveCount(0);
@@ -772,7 +820,7 @@ shellTest(
       ).toHaveCount(0);
       await expect(
         sidebar.getByRole("button", { name: /个人菜单|Profile menu/i }),
-      ).toBeVisible();
+      ).toHaveCount(0);
       await expect(sidebar.locator('[aria-current="page"]')).toHaveCount(1);
       await expect(
         sidebar.getByRole("link", { name: /^(待办|Todos)$/i }),
@@ -793,7 +841,7 @@ shellTest(
       await gotoAndWaitForReady(page, "/account/settings/preferences");
 
       const primaryNavigation = page.getByRole("navigation", {
-        name: /移动主导航|Mobile primary navigation/i,
+        name: /^(主导航|Primary navigation)$/i,
       });
       await expect(
         primaryNavigation.getByRole("link", { name: /^(我的|Me)$/i }),
@@ -805,7 +853,7 @@ shellTest(
         .click();
 
       const sidebar = page.getByRole("dialog", {
-        name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+        name: /^(Primary navigation|主导航|Workspace|工作台|Calendar|日历|Settings|设置|Activities|活动|Admin|管理后台)$/,
       });
       const settingsNav = sidebar.getByTestId("settings-sidebar");
       await expect(
@@ -813,8 +861,10 @@ shellTest(
       ).toHaveAttribute("aria-current", "page");
       await expect(settingsNav.locator('[aria-current="page"]')).toHaveCount(1);
       await expect(sidebar.getByTestId("settings-sidebar-back")).toBeVisible();
-      await sidebar
-        .getByRole("button", { name: /个人菜单|Profile menu/i })
+      await page.keyboard.press("Escape");
+      await page
+        .locator("[data-shell-topbar] #app-user-menu")
+        .getByRole("button")
         .click();
       await expect(
         page.getByRole("menuitem", { name: /^(设置|Settings)$/i }),
@@ -837,7 +887,7 @@ shellTest(
       await gotoAndWaitForReady(page, "/workspace/overview");
 
       const profileMenuButton = page
-        .getByTestId("app-sidebar")
+        .locator("[data-shell-topbar]")
         .getByRole("button", {
           name: /个人菜单|Profile menu/i,
         });
@@ -939,58 +989,46 @@ test("/ shell 折叠桌面侧边栏后分组入口展开并可跳转", {
     await gotoAndWaitForReady(page, "/");
 
     const sidebar = page.getByTestId("app-sidebar");
-    const coursesLink = sidebar.getByRole("link", {
-      name: /^(浏览课程|Browse courses)$/i,
-    });
-
-    const catalogGroup = sidebar
-      .locator("button[data-shell-expand-sidebar]")
-      .filter({ hasText: /^\s*(课程|Courses)\s*$/i });
-    await expect(coursesLink).toBeVisible();
-    await expect(catalogGroup).toHaveCount(0);
-
-    await page.locator('[data-sidebar="rail"]').click();
-
+    const campusLink = sidebar.locator(
+      '[data-slot="sidebar-content"] a[href="/campus"]',
+    );
+    await expect(campusLink).toBeVisible();
+    await expect(
+      sidebar.locator("button[data-shell-expand-sidebar]"),
+    ).toHaveCount(0);
+    const rail = page.locator('[data-sidebar="rail"]');
+    await rail.click();
     await expect(
       page.locator('[data-slot="sidebar"][data-state="collapsed"]'),
     ).toBeVisible();
-    await expect(catalogGroup).toBeEnabled();
-    await expect(catalogGroup).not.toHaveAttribute("aria-expanded");
-    await expect(coursesLink).toBeHidden();
+    await expect(campusLink).toBeVisible();
+    await expect(campusLink).toHaveAccessibleName(/^(Campus|校园)$/);
     await expect
-      .poll(async () => (await catalogGroup.boundingBox())?.width ?? 0)
+      .poll(async () => (await campusLink.boundingBox())?.width ?? 0)
       .toBeLessThanOrEqual(40);
-    await catalogGroup.focus();
+    await rail.focus();
     await page.keyboard.press("Enter");
     await expect(
       page.locator('[data-slot="sidebar"][data-state="expanded"]'),
     ).toBeVisible();
-    await expect(catalogGroup).toHaveCount(0);
-    await expect(coursesLink).toBeVisible();
-    await expect(coursesLink).toHaveAttribute("href", "/catalog/courses");
     await expect
-      .poll(async () =>
-        Math.round(
-          await coursesLink.evaluate(
-            (element) => element.getBoundingClientRect().width,
-          ),
-        ),
-      )
+      .poll(async () => (await campusLink.boundingBox())?.width ?? 0)
       .toBeGreaterThan(100);
-
-    await Promise.all([
-      page.waitForURL("**/catalog/courses"),
-      coursesLink.click(),
-    ]);
+    await campusLink.click();
+    await expect(page).toHaveURL(/\/campus$/);
+    const coursesLink = sidebar.locator('a[href="/catalog/courses"]');
+    await expect(coursesLink).toBeVisible();
+    await coursesLink.click();
+    await page.waitForURL("**/catalog/courses");
     await waitForUiSettled(page);
-    await expect(page).toHaveURL(/\/catalog\/courses(?:\?.*)?$/);
-
-    // Observe the destination's actual document and its PublicSsr work after
-    // the original client-navigation assertions have completed.
+    await expect(coursesLink).toHaveAttribute("aria-current", "page");
     const catalogResponse = await gotoAndWaitForReady(page, "/catalog/courses");
     expect(catalogResponse?.status()).toBe(200);
-    await page.locator('[data-sidebar="rail"]').click();
-    await expect(catalogGroup).toHaveAttribute("aria-current", "location");
+    await rail.click();
+    await expect(coursesLink).toHaveAttribute("aria-current", "page");
+    await expect(
+      sidebar.locator("button[data-shell-expand-sidebar]"),
+    ).toHaveCount(0);
   }, {});
 });
 
