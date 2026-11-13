@@ -2,6 +2,15 @@ name: DB Migrate Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      operation:
+        description: Fixed database operation
+        type: choice
+        required: true
+        default: deploy
+        options:
+          - deploy
+          - inspect-young-organizers
   push:
     branches:
       - main
@@ -13,12 +22,41 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate:
+    name: Validate fixed operation
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    if: >-
+      github.repository == 'Life-USTC/server' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    permissions: {}
+    outputs:
+      operation: ${{ steps.operation.outputs.operation }}
+    steps:
+      - name: Validate operation
+        id: operation
+        env:
+          OPERATION: ${{ github.event_name == 'push' && 'deploy' || inputs.operation }}
+        run: |
+          case "$OPERATION" in
+            deploy|inspect-young-organizers)
+              echo "operation=$OPERATION" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo '::error::Unsupported fixed database operation.'
+              exit 1
+              ;;
+          esac
+
   migrate:
+    needs: validate
     name: Deploy Prisma migrations
     runs-on: ubuntu-latest
     timeout-minutes: 30
     if: >-
       github.repository == 'Life-USTC/server' &&
+      needs.validate.outputs.operation == 'deploy' &&
       (github.event_name == 'push' ||
       (github.event_name == 'workflow_dispatch' &&
       github.ref == 'refs/heads/main'))
@@ -40,3 +78,37 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
         run: bun run db:migrate:deploy
+
+  inspect:
+    name: Inspect fixed Young organizer aggregates
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: >-
+      github.repository == 'Life-USTC/server' &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      needs.validate.outputs.operation == 'inspect-young-organizers'
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+
+      - name: Read fixed aggregate inventory
+        env:
+          MIGRATOR_DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
+        run: bun scripts/inspect-young-organizers.ts
+
+      - name: Upload aggregate inventory
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: young-organizer-inventory-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/life-young-organizer-inventory-report.json
+          if-no-files-found: error
+          retention-days: 7
