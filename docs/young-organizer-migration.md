@@ -2,9 +2,17 @@
 
 Part of [#1577](https://github.com/Life-USTC/server/issues/1577). This first stage preserves source evidence; it does not migrate production data or change follows, public membership, filters or notifications.
 
+## Upstream roles and evidence boundary
+
+The [official public Young SPA business bundle](https://young.ustc.edu.cn/login/sc-wisdom-group-learning/static/js/chunk-04730e1f.f833b409.js) (5,849,215 bytes; SHA256 `6f80fb8904e7e699e40b46ec2d7fc7e70ddf96f2ca4026017b35ad6c99922253`) labels `sponsor` as 主办单位 and `organizer` as 承办单位. Both are multiple-selection tree controls backed by the same `treeData`. Submission joins each selected ID array separately with commas; details render the two corresponding `*_dictText` fields separately.
+
+The component's `loadTree` calls API-module export `jb`. The [public app bundle](https://young.ustc.edu.cn/login/sc-wisdom-group-learning/static/js/app.6a3a219d.js) (173,674 bytes; SHA256 `0f435c3bf273efa95aa0bedcd4299887ef2ee3b7f3cd77313d26f17fd0ab5f69`) maps `jb` to `S` and `S` to GET `/sysdepart/sysDepart/queryTreeList`. The returned tree's `title` becomes `label`; the selectors emit node IDs. This identifies an existing source resolver to investigate, without joining display labels to deduplicated IDs by position. No request to that API or actual dictionary-node retrieval was performed for this source audit.
+
+This establishes distinct source roles and multi-ID submission, not a complete authoritative dictionary, tenant coverage or an ID/display-name positional pairing contract. In particular, joining selected IDs is not proof that comma-separated display text can be losslessly split into names. The current importer prefers `organizer_dictText` and falls back to `sponsor_dictText`; preserving that compatibility behavior in this evidence-only stage does not endorse its role labeling. A later semantic correction must keep sponsor and organizer provenance separate and review existing APIs, UI wording and follow intent before changing their meaning.
+
 ## Source evidence now preserved
 
-The source display label represents a list of names joined with commas. Its joined string cannot establish original list boundaries: a name can itself contain a comma. Neither an equal number of comma-separated names and IDs nor NFKC normalization establishes an ID/name pairing.
+An already joined display label cannot establish original list boundaries: a name can itself contain a comma. Neither an equal number of comma-separated names and IDs nor NFKC normalization establishes an ID/name pairing.
 
 `young-plan.ts` retains inline source values unchanged. The static JSON store writes list members into `<recordsTable>_<field>` with `parent_store_id`, `position` and scalar `value`; it omits that field from the parent row. Another record may introduce a parent SQL column, so missing input may appear as NULL. For organizer/sponsor IDs and their display labels, actual child string values are restored to the corresponding raw JSON field in source order, including repeated values, empty strings and embedded commas. No pairing or member identity is inferred.
 
