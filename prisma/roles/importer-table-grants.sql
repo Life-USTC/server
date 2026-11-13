@@ -28,6 +28,7 @@ GRANT SELECT, INSERT, UPDATE ON TABLE
   "ExamRoom",
   "SectionTeacher",
   "YoungEvent",
+  "YoungEventOrganizationSource",
   "YoungOrganizer",
   "StaticImportState",
   "_SectionTeachers",
@@ -37,6 +38,7 @@ TO life_ustc_importer;
 
 GRANT DELETE ON TABLE
   "ScheduleGroup", "Schedule", "Exam", "TeacherAssignment", "ExamRoom",
+  "YoungEventOrganizationSource",
   "_SectionTeachers", "_SectionAdminClasses", "_ScheduleTeachers"
 TO life_ustc_importer;
 

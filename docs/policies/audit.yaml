@@ -61,6 +61,20 @@ requirements:
     test:
       file: tests/integration/static-importer-rls.test.ts
       name: only appends lifecycle audit rows without private attribution
+- id: audit.importer-young-source-shadow
+  category: privacy
+  topic: writer
+  rule: Among restricted application identities, only the dedicated importer may read or write unresolved Young organization source observations; database administrators retain inherent management privileges, and expansion grants no private-data, DDL or role-escalation capability.
+  acceptance:
+    given: Production role bootstrap and the additive source-shadow migration are applied to an isolated database.
+    when: Independent importer, application, auth and maintenance identities exercise their actual database privileges.
+    then:
+    - The importer can create, read, update and delete only the new source observations in addition to its existing explicit grants.
+    - Application, auth, maintenance and function-owner identities have no access to the shadow table.
+    - Importer private reads, DDL and role escalation remain denied, and source-role and event foreign-key constraints remain enforced.
+    test:
+      file: tests/integration/young-organization-source.test.ts
+      name: young-event.organization-source-permissions
 - id: audit.writer-4
   category: privacy
   topic: writer

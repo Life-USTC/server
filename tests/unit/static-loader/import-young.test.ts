@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Prisma } from "@/generated/prisma-node/client";
 
 const write = vi.hoisted(() => vi.fn());
-vi.mock("@/static-loader/database-writes", () => ({ bulkUpsert: write }));
+vi.mock("@/static-loader/database-writes", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/static-loader/database-writes")>()),
+  bulkUpsert: write,
+}));
 
 import {
   syncYoungEvents,
