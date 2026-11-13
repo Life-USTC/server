@@ -150,6 +150,11 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             });
             await page.reload();
             await waitForUiSettled(page);
+            await page.getByTestId("young-sidebar-back").click();
+            await expect(page.getByTestId("young-sidebar")).toHaveAttribute(
+              "data-shell-navigation-view",
+              "root",
+            );
             await expect(nav.locator('a[href="/usage/mcp"]')).toBeVisible();
             await expect(nav.locator("button[aria-expanded]")).toHaveCount(0);
             await expect(current).toHaveText(organizerName);
@@ -310,6 +315,13 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           await expect(
             nav.locator('[data-shell-legal-nav] a[href="/terms"]'),
           ).toBeVisible();
+          const settingsLocation = page.url();
+          await page.getByTestId("settings-sidebar-back").click();
+          await expect(page.getByTestId("settings-sidebar")).toHaveAttribute(
+            "data-shell-navigation-view",
+            "root",
+          );
+          expect(page.url()).toBe(settingsLocation);
           await expect(
             nav.locator('a[href="/catalog/sections"]'),
           ).toBeVisible();

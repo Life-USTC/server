@@ -142,6 +142,8 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       theme: messages.shell.theme,
       toggleSidebar: messages.shell.toggleSidebar,
       expandSidebar: messages.shell.expandSidebar,
+      viewRootNavigation: messages.shell.viewRootNavigation,
+      returnToSection: messages.shell.returnToSection,
     },
     errorPage: {
       backHome: messages.common.backToHome,

@@ -14,8 +14,6 @@ import SettingsGlyph from "./SettingsGlyph.svelte";
 import type { ShellLink, ShellNavGroup } from "./types";
 
 export type SectionSidebar = {
-  backHref: string;
-  backLabel: string;
   backTestId: string;
   level: "settings" | "young" | "admin";
   navLabel: string;
@@ -34,6 +32,8 @@ let {
   isActiveLink,
   isAncestorLink,
   navGroups,
+  rootNavGroups,
+  navigationOwnerKey,
   profileHref,
   sectionSidebar = null,
   setUserMenuOpen,
@@ -54,6 +54,8 @@ let {
   isActiveLink: (link: ShellLink) => boolean;
   isAncestorLink: (link: ShellLink) => boolean;
   navGroups: ShellNavGroup[];
+  rootNavGroups: ShellNavGroup[];
+  navigationOwnerKey: string;
   profileHref: string;
   sectionSidebar?: SectionSidebar | null;
   setUserMenuOpen: (open: boolean) => void;
@@ -64,6 +66,22 @@ let {
 } = $props();
 
 const sidebar = Sidebar.useSidebar();
+let previewOwner = $state<string | null>(null);
+let showingRoot = $derived(
+  sectionSidebar !== null && previewOwner === navigationOwnerKey,
+);
+let visibleGroups = $derived(showingRoot ? rootNavGroups : navGroups);
+// Equality gates rendering immediately; cleanup also prevents an old route's
+// preview from reviving when navigation returns to that owner later.
+$effect(() => {
+  const owner = navigationOwnerKey;
+  return () => {
+    if (previewOwner === owner) previewOwner = null;
+  };
+});
+function toggleNavigationView(): void {
+  previewOwner = showingRoot ? null : navigationOwnerKey;
+}
 function revealCurrent(node: HTMLElement, active: boolean) {
   let current = false;
   let cancel = () => {};
@@ -187,9 +205,10 @@ function closeMobileSidebar(): void {
 
 {#snippet navigation(groups: ShellNavGroup[], mobile: boolean)}
   <nav
-    aria-label={sectionSidebar?.navLabel ?? copy.shell.primaryNavigation}
+    aria-label={showingRoot ? copy.shell.primaryNavigation : sectionSidebar?.navLabel ?? copy.shell.primaryNavigation}
     data-shell-navigation={mobile ? "mobile" : "desktop"}
-    data-sidebar-level={sectionSidebar?.level}
+    data-sidebar-level={showingRoot ? "root" : sectionSidebar?.level}
+    data-shell-navigation-view={showingRoot ? "root" : sectionSidebar?.level ?? "root"}
     data-testid={sectionSidebar?.testId}
     class="flex min-h-0 flex-1 flex-col"
   >
@@ -216,17 +235,17 @@ function closeMobileSidebar(): void {
                 </a>
               {/snippet}
             </Sidebar.MenuButton>
-            <Sidebar.MenuButton tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? section.backLabel : undefined}>
+            <Sidebar.MenuButton tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? (showingRoot ? copy.shell.returnToSection.replace("{section}", section.navLabel) : copy.shell.viewRootNavigation) : undefined}>
               {#snippet child({ props })}
-                <a
+                <button
                   {...props}
-                  href={section.backHref}
+                  type="button"
                   data-testid={section.backTestId}
-                  onclick={closeMobileSidebar}
+                  onclick={toggleNavigationView}
                 >
                   <ArrowLeftIcon />
-                  <span>{section.backLabel}</span>
-                </a>
+                  <span>{showingRoot ? copy.shell.returnToSection.replace("{section}", section.navLabel) : copy.shell.viewRootNavigation}</span>
+                </button>
               {/snippet}
             </Sidebar.MenuButton>
           {:else}
@@ -471,7 +490,7 @@ function closeMobileSidebar(): void {
 {/snippet}
 
 <Sidebar.Root
-  mobileTitle={sectionSidebar?.navLabel ?? copy.shell.primaryNavigation}
+  mobileTitle={showingRoot ? copy.shell.primaryNavigation : sectionSidebar?.navLabel ?? copy.shell.primaryNavigation}
   mobileDescription={copy.shell.menu}
   closeLabel={copy.shell.closeNavigation}
   class={dockAboveFooter && !sidebar.isMobile
@@ -481,9 +500,9 @@ function closeMobileSidebar(): void {
   data-testid="app-sidebar"
 >
   {#if sidebar.isMobile}
-    {@render navigation(navGroups, true)}
+    {@render navigation(visibleGroups, true)}
   {:else}
-    {@render navigation(navGroups, false)}
+    {@render navigation(visibleGroups, false)}
     <Sidebar.Rail label={copy.shell.toggleSidebar} />
   {/if}
 

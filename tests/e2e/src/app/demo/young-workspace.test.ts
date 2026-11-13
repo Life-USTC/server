@@ -659,6 +659,46 @@ test("demo young workspace calendar and public detail share membership", {
           await expect(facts).toHaveCount(1);
           await expect(facts.getByRole("checkbox")).toBeChecked();
           await expect(facts.getByRole("checkbox")).toBeDisabled();
+          await expect(page.locator("#main-content")).toHaveCount(1);
+          const mountedDetail = await page.evaluateHandle(() => ({
+            document,
+            main: document.getElementById("main-content"),
+            url: location.href,
+            historyLength: history.length,
+            historyState: JSON.stringify(history.state),
+          }));
+          try {
+            const navigation = page.getByTestId("young-sidebar");
+            await expect(navigation).toHaveAttribute(
+              "data-shell-navigation-view",
+              "young",
+            );
+            const viewMainNavigation = page.getByRole("button", {
+              name: "View main navigation",
+              exact: true,
+            });
+            await expect(viewMainNavigation).toHaveCount(1);
+            await expect(viewMainNavigation).toBeVisible();
+            await expect(viewMainNavigation).toHaveAttribute("type", "button");
+            await expect(viewMainNavigation).not.toHaveAttribute("href");
+            await viewMainNavigation.click();
+            await expect(navigation).toHaveAttribute(
+              "data-shell-navigation-view",
+              "root",
+            );
+            expect(
+              await mountedDetail.evaluate(
+                (owner) =>
+                  owner.document === document &&
+                  owner.main === document.getElementById("main-content") &&
+                  owner.url === location.href &&
+                  owner.historyLength === history.length &&
+                  owner.historyState === JSON.stringify(history.state),
+              ),
+            ).toBe(true);
+          } finally {
+            await mountedDetail.dispose();
+          }
           const manage = page.getByRole("link", {
             name: "Activity subscriptions",
             exact: true,
@@ -833,6 +873,27 @@ test("demo young workspace retires an admitted ordinary subscription write", {
                 },
               }),
             ).toBeNull();
+            const ordinaryDetailUrl = page.url();
+            const ordinaryYoungNavigation = page.getByTestId("young-sidebar");
+            await expect(ordinaryYoungNavigation).toHaveAttribute(
+              "data-shell-navigation-view",
+              "young",
+            );
+            const ordinaryViewMainNavigation = page.getByRole("button", {
+              name: "View main navigation",
+              exact: true,
+            });
+            await expect(ordinaryViewMainNavigation).toHaveCount(1);
+            await expect(ordinaryViewMainNavigation).toBeVisible();
+            await ordinaryViewMainNavigation.click();
+            await expect(ordinaryYoungNavigation).toHaveAttribute(
+              "data-shell-navigation-view",
+              "root",
+            );
+            expect(page.url()).toBe(ordinaryDetailUrl);
+            expect(
+              await originalDocument.evaluate((doc) => doc === document),
+            ).toBe(true);
             await demo(page, isolatedWorker.origin);
             const manage = page.getByRole("link", {
               name: "Activity subscriptions",
@@ -879,6 +940,24 @@ test("demo young workspace retires an admitted ordinary subscription write", {
             release.resolve();
             await Promise.all(operations);
             await expect.poll(() => terminal).toBe("finished");
+            const detailUrl = page.url();
+            const youngNavigation = page.getByTestId("young-sidebar");
+            await expect(youngNavigation).toHaveAttribute(
+              "data-shell-navigation-view",
+              "young",
+            );
+            const viewMainNavigation = page.getByRole("button", {
+              name: "View main navigation",
+              exact: true,
+            });
+            await expect(viewMainNavigation).toHaveCount(1);
+            await expect(viewMainNavigation).toBeVisible();
+            await viewMainNavigation.click();
+            await expect(youngNavigation).toHaveAttribute(
+              "data-shell-navigation-view",
+              "root",
+            );
+            expect(page.url()).toBe(detailUrl);
             const sidebar = page.getByTestId("app-sidebar");
             const sidebarState = page
               .locator('[data-slot="sidebar"]')
@@ -916,7 +995,6 @@ test("demo young workspace retires an admitted ordinary subscription write", {
                   ? value.open
                   : undefined;
               });
-            const detailUrl = page.url();
             // Exercise the retained global preference without navigating or reviving a local disclosure.
             await rail.click();
             await expect(sidebarState).toHaveAttribute(

@@ -373,7 +373,7 @@ requirements:
 - id: ui.list-table-9
   category: presentation
   topic: list-table
-  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as academic detail sections and publication source groups. Canonical detail breadcrumbs use the collection and current entity; a teaching section links its real associated course without replacing that collection parent. Settings and second-classroom routes retain the global tree and nest local sections below their owning destination; admin preserves its authorized context, Life@USTC root identity and explicit parent link. Those links use client-side route navigation; browser back restores the previous context without a document reload. An open event or organizer adds its name under its owning collection. The home page keeps the primary sidebar.
+  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as academic detail sections and publication source groups. Canonical detail breadcrumbs use the collection and current entity; a teaching section links its real associated course without replacing that collection parent. Settings, second-classroom and admin routes render their existing section destinations with the Life@USTC root identity. A stable native button locally previews the role-filtered root tree and restores the section without navigating, replacing main content, changing history or closing the mobile drawer. Real destination links use client-side route navigation; browser back restores the previous context without a document reload. An open event or organizer adds its name under its owning collection. The home page keeps the primary sidebar.
   rationale: Route navigation lives in the shell sidebar. In-page anchors stay on PageSectionNav. DetailSectionNav is not a settings control.
   acceptance:
     given: Second-classroom pages, moderation, settings, and the publication source directory.
@@ -998,7 +998,7 @@ requirements:
 - id: ui.shell-layout-3
   category: presentation
   topic: shell-layout
-  rule: Expanded sidebar destination rows are links and group headers are noninteractive labels; there are no local disclosure actions.
+  rule: Expanded sidebar destination rows are links and group headers are noninteractive labels; there are no local group or subtree disclosure actions. The section-header root preview is a separate local navigation-view button, not a destination or group collapse control.
   acceptance:
     given: The public desktop navigation and mobile drawer contain the campus and course groups.
     when: The user inspects their static headings and activates the Shuttle Bus destination with the keyboard.
@@ -1246,13 +1246,13 @@ requirements:
 - id: ui.settings-navigation-1
   category: presentation
   topic: settings-navigation
-  rule: Settings and second-classroom routes retain the primary sidebar groups and role-filtered sibling destinations. Their sections appear below the owning destination, while the context header keeps the Life@USTC root identity and a parent link home. Entering and leaving uses client-side navigation and restores local sidebar preferences. Desktop shows that tree beside the active panel. Mobile opens it from the shell menu, with a localized dialog name and an explicit reachable close action.
+  rule: Settings and second-classroom routes show their existing section destinations. The context header retains the Life@USTC Home link and a local button to view main navigation or return to the current section. Local view changes preserve document, URL, history, main content and keyboard focus; they keep an open mobile drawer open. Route, search, locale, viewer identity or role and Demo owner changes retire the preview, while same-owner count refreshes preserve it. Desktop shows the tree beside the active panel; mobile retains its localized dialog name, Escape and explicit Close control.
   acceptance:
-    given: A signed-in user opens profile settings at desktop width, returns home, then opens danger settings on a phone.
-    when: The browser measures the desktop sidebar against the panel, follows the home control, and opens the mobile menu.
+    given: A signed-in user opens profile settings at desktop width, previews and restores main navigation, follows the Home link, then opens danger settings on a phone.
+    when: The browser measures the sidebar against the panel, uses the local preview control, follows the Home link, and opens the mobile menu.
     then:
-    - The desktop tree sits to the left of the panel, marks the nested profile destination current, retains sibling course and campus destinations, and its top control returns home.
-    - Home keeps the same primary groups. The mobile menu retains those groups with the nested danger destination current.
+    - The desktop section tree sits left of the panel and marks Profile current; its local preview exposes role-filtered root destinations without leaving the page, and can restore Settings.
+    - The Home link navigates normally. The mobile section menu marks Danger current and can preview root destinations without closing the drawer.
     test:
       file: tests/e2e/src/app/settings/test.ts
       name: ui.settings-navigation-1

@@ -3243,6 +3243,8 @@
     "scrollRegion": "Main content scroll region",
     "toggleSidebar": "Toggle sidebar",
     "expandSidebar": "Expand sidebar",
+    "viewRootNavigation": "View main navigation",
+    "returnToSection": "Return to {section}",
     "theme": "Theme",
     "locale": "Locale",
     "personalPage": "Personal page",

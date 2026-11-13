@@ -52,7 +52,9 @@ import { afterNavigate, goto } from "$app/navigation";
 import { navigating, page as routePage } from "$app/state";
 import {
   buildAdminNavGroups,
+  buildSettingsNavGroups,
   buildShellNavGroups,
+  buildYoungNavGroups,
   isShellLinkActive,
   isShellLinkAncestor,
 } from "./navigation";
@@ -481,26 +483,50 @@ let navContext = $derived({
   pageData: routePage.data,
   navigation: workspaceNavigation,
 });
-let fullNavGroups = $derived(
-  adminRoute
-    ? buildAdminNavGroups(data.copy, navViewer, navContext)
-    : buildShellNavGroups(data.copy, navViewer, navContext),
-);
-let navGroups = $derived(
-  viewerDemo
-    ? fullNavGroups.map((group) => ({
+function projectNavigation(groups: ReturnType<typeof buildShellNavGroups>) {
+  return viewerDemo
+    ? groups.map((group) => ({
         ...group,
         links: group.links.map((link) =>
           demoNavigationLink(link, viewerDemo?.unavailableReason ?? ""),
         ),
       }))
-    : fullNavGroups,
+    : groups;
+}
+let rootNavGroups = $derived(
+  projectNavigation(buildShellNavGroups(data.copy, navViewer, navContext)),
+);
+let navGroups = $derived(
+  settingsSidebar
+    ? projectNavigation(buildSettingsNavGroups(data.copy))
+    : youngSidebar
+      ? projectNavigation(
+          buildYoungNavGroups(
+            data.copy,
+            routePage.url.pathname,
+            routePage.data,
+          ),
+        )
+      : adminRoute
+        ? projectNavigation(
+            buildAdminNavGroups(data.copy, navViewer, navContext),
+          )
+        : rootNavGroups,
+);
+let navigationOwnerKey = $derived(
+  JSON.stringify([
+    routePage.url.pathname,
+    routePage.url.search,
+    data.locale,
+    viewerUser?.id ?? null,
+    viewerUser?.isAdmin ?? false,
+    viewerDemo?.fixtureVersion ?? null,
+    viewerDemo?.expiresAt ?? null,
+  ]),
 );
 let sectionSidebar = $derived(
   settingsSidebar
     ? ({
-        backHref: "/",
-        backLabel: data.copy.shell.backToHome,
         backTestId: "settings-sidebar-back",
         level: "settings",
         navLabel: data.copy.nav.settings,
@@ -508,8 +534,6 @@ let sectionSidebar = $derived(
       } satisfies SectionSidebar)
     : youngSidebar
       ? ({
-          backHref: "/",
-          backLabel: data.copy.shell.backToHome,
           backTestId: "young-sidebar-back",
           level: "young",
           navLabel: data.copy.nav.youngEvents,
@@ -517,8 +541,6 @@ let sectionSidebar = $derived(
         } satisfies SectionSidebar)
       : adminRoute
         ? ({
-            backHref: "/",
-            backLabel: data.copy.shell.backToApp,
             backTestId: "admin-sidebar-back",
             level: "admin",
             navLabel: data.copy.nav.admin.title,
@@ -614,6 +636,8 @@ let globalSearchShortcutLabel = $derived(
         isActiveLink={isActiveLink}
         isAncestorLink={isAncestorLink}
         navGroups={navGroups}
+        {rootNavGroups}
+        {navigationOwnerKey}
         {homeHref}
         {homeLabel}
         profileHref={profileHref}

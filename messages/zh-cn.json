@@ -3243,6 +3243,8 @@
     "scrollRegion": "主要内容滚动区域",
     "toggleSidebar": "切换侧边栏",
     "expandSidebar": "展开侧边栏",
+    "viewRootNavigation": "查看主导航",
+    "returnToSection": "返回{section}",
     "theme": "主题",
     "locale": "语言",
     "personalPage": "个人主页",

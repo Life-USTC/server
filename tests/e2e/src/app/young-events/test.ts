@@ -325,9 +325,9 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
       await expect(page).toHaveURL(browseUrl);
       const youngNav = page.getByTestId("young-sidebar");
       await expect(youngNav).toBeVisible();
-      await expect(page.getByTestId("young-sidebar-back")).toHaveAttribute(
+      await expect(page.getByTestId("young-sidebar-back")).toHaveRole("button");
+      await expect(page.getByTestId("young-sidebar-back")).not.toHaveAttribute(
         "href",
-        "/",
       );
       await expect(
         youngNav.getByRole("link", { name: /^(?:活动列表|Activity list)$/ }),

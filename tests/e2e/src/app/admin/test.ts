@@ -333,10 +333,12 @@ test("/admin 移动端导航覆盖全部管理工具且显示当前位置", {
           const panel = page.getByTestId("admin-sidebar");
           await expect(panel).toBeVisible();
           await expect(panel.getByRole("link", { name })).toBeVisible();
-          await expect(page.getByTestId("admin-sidebar-back")).toHaveAttribute(
-            "href",
-            "/",
+          await expect(page.getByTestId("admin-sidebar-back")).toHaveRole(
+            "button",
           );
+          await expect(
+            page.getByTestId("admin-sidebar-back"),
+          ).not.toHaveAttribute("href");
           await panel.getByRole("link", { name }).click();
           await expect(page).toHaveURL(new RegExp(`${path}(?:\\?.*)?$`));
           await waitForUiSettled(page);
