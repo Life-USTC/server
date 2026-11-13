@@ -80,6 +80,23 @@ describe("Young static import identity and preservation", () => {
     expect(organizer.createMany).not.toHaveBeenCalled();
     expect(events.updateMany).not.toHaveBeenCalled();
   });
+  it("passes reconstructed raw organizer arrays to the existing JSON column without changing legacy identity", async () => {
+    const rawJson = JSON.stringify({
+      organizer: ["source-b", "source-a", "source-b"],
+      organizer_dictText: ["Club, with comma", "Ｃｌｕｂ Ｂ"],
+    });
+    await syncYoungEvents(tx, [
+      { youngId: "raw-arrays", name: "A", isActive: true, rawJson },
+    ]);
+    const columns = write.mock.calls[0][4] as string[];
+    const records = write.mock.calls[0][6] as Array<{
+      key: string;
+      values: unknown[];
+    }>;
+    expect(records[0]?.values[columns.indexOf("rawJson")]).toBe(rawJson);
+    expect(records[0]?.values[columns.indexOf("organizerId")]).toBeNull();
+    expect(organizer.createMany).not.toHaveBeenCalled();
+  });
   it("retains activity rows even when a complete snapshot is empty", async () => {
     await syncYoungEvents(tx, [], { complete: true });
     expect(events.updateMany).toHaveBeenCalledWith({

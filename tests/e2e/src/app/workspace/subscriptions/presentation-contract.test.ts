@@ -552,9 +552,55 @@ test("subscription.kind-web-editor-location", {
             }),
         );
       };
+      // Observe only the immediate native pointer gesture; never act on the UI.
+      let pointerWindow:
+        | {
+            until: number;
+            remaining: number;
+            trigger: Element;
+            x: number;
+            y: number;
+          }
+        | undefined;
+      const pointerGeometry = () => {
+        if (!pointerWindow) return {};
+        const rect = pointerWindow.trigger.getBoundingClientRect();
+        return {
+          scroll: [scrollX, scrollY],
+          trigger: describeNode(pointerWindow.trigger),
+          triggerRect: [rect.x, rect.y, rect.width, rect.height],
+          downPointHit: describeNode(
+            document.elementFromPoint(pointerWindow.x, pointerWindow.y),
+          ),
+        };
+      };
+      document.addEventListener(
+        "scroll",
+        (event) => {
+          if (
+            remaining <= 0 ||
+            !pointerWindow ||
+            performance.now() > pointerWindow.until ||
+            pointerWindow.remaining <= 0
+          )
+            return;
+          pointerWindow.remaining -= 1;
+          emit({
+            type: "pointer-window-scroll",
+            target: describeNode(event.target),
+            targetScroll:
+              event.target instanceof Element
+                ? [event.target.scrollLeft, event.target.scrollTop]
+                : null,
+            ...pointerGeometry(),
+          });
+        },
+        { capture: true, passive: true },
+      );
       for (const name of [
         "pointerdown",
         "pointerup",
+        "mouseup",
         "click",
         "keydown",
         "keyup",
@@ -570,14 +616,62 @@ test("subscription.kind-web-editor-location", {
                 .composedPath()
                 .filter((node): node is Element => node instanceof Element);
               if (
+                name === "pointerdown" &&
+                capture &&
+                event instanceof MouseEvent
+              ) {
+                const trigger = path.find(
+                  (node) =>
+                    node.tagName === "BUTTON" &&
+                    role.test(node.getAttribute("aria-label") ?? ""),
+                );
+                if (trigger)
+                  pointerWindow = {
+                    until: performance.now() + 250,
+                    remaining: 24,
+                    trigger,
+                    x: event.clientX,
+                    y: event.clientY,
+                  };
+              }
+              const inPointerWindow = Boolean(
+                pointerWindow &&
+                  performance.now() <= pointerWindow.until &&
+                  pointerWindow.remaining > 0,
+              );
+              const observePointerTerminal =
+                inPointerWindow &&
+                ["pointerup", "mouseup", "click"].includes(name);
+              if (name === "mouseup" && !observePointerTerminal) return;
+              if (
+                !observePointerTerminal &&
                 !(event instanceof KeyboardEvent && event.key === "Escape") &&
                 !path.some(
                   (node) => relevant(node) || node.closest('[role="dialog"]'),
                 )
               )
                 return;
+              if (inPointerWindow && pointerWindow)
+                pointerWindow.remaining -= 1;
               emit({
                 type: "event",
+                ...(inPointerWindow
+                  ? {
+                      pointerWindow: true,
+                      ...pointerGeometry(),
+                      ...(event instanceof MouseEvent
+                        ? {
+                            point: [event.clientX, event.clientY],
+                            pointHit: describeNode(
+                              document.elementFromPoint(
+                                event.clientX,
+                                event.clientY,
+                              ),
+                            ),
+                          }
+                        : {}),
+                    }
+                  : {}),
                 name,
                 phase: capture ? "capture" : "bubble",
                 trusted: event.isTrusted,

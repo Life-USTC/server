@@ -152,6 +152,111 @@ describe("static young event plan", () => {
     expect(raw).not.toHaveProperty("position");
   });
 
+  it("preserves inline organizer arrays and comma-containing names without inferring pairs", () => {
+    const row = {
+      id: "inline",
+      organizer: ["source-b", "source-a", "source-b"],
+      organizer_dictText: [
+        "Club, with comma",
+        "Ｃｌｕｂ Ｂ",
+        "Club, with comma",
+      ],
+      sponsor: ["sponsor-a"],
+      sponsor_dictText: ["Sponsor, with comma"],
+    };
+    const build = loadYoungEvents(
+      fakeSnapshot({ tables: { [ACTIVE_TABLE]: [row] } }),
+    )?.[0];
+    expect(JSON.parse(build?.rawJson ?? "{}")).toEqual(row);
+    // Compatibility projection is unchanged, not a new verified membership list.
+    expect(build?.organizer).toBe(
+      "Club, with comma,Ｃｌｕｂ Ｂ,Club, with comma",
+    );
+    expect(build?.upstreamOrganizerIds).toEqual(["source-b", "source-a"]);
+  });
+
+  it("retains an already joined label as one opaque source string", () => {
+    const build = loadYoungEvents(
+      fakeSnapshot({
+        tables: {
+          [ACTIVE_TABLE]: [
+            {
+              id: "joined",
+              organizer: "b,a,b",
+              organizer_dictText: "Club A,Club B,inc.",
+            },
+          ],
+        },
+      }),
+    )?.[0];
+    expect(JSON.parse(build?.rawJson ?? "{}")).toEqual({
+      id: "joined",
+      organizer: "b,a,b",
+      organizer_dictText: "Club A,Club B,inc.",
+    });
+    expect(build?.organizer).toBe("Club A,Club B,inc.");
+  });
+
+  it("rejects conflicting inline and child representations instead of discarding either", () => {
+    expect(() =>
+      loadYoungEvents(
+        fakeSnapshot({
+          tables: {
+            [ACTIVE_TABLE]: [
+              { store_id: 1, id: "conflict", organizer_dictText: "Inline" },
+            ],
+            [`${ACTIVE_TABLE}_organizer_dictText`]: [
+              { parent_store_id: 1, position: 0, value: "Child" },
+            ],
+          },
+        }),
+      ),
+    ).toThrow(
+      "Conflicting Young organizer snapshot representations: organizer_dictText",
+    );
+  });
+
+  it.each([
+    { rows: [{ parent_store_id: 1, position: 0, value: 7 }] },
+    { rows: [{ parent_store_id: 1, position: 0.5, value: "A" }] },
+    {
+      rows: [
+        { parent_store_id: 1, position: 0, value: "A" },
+        { parent_store_id: 1, position: 0, value: "B" },
+      ],
+    },
+  ])(
+    "rejects malformed string-array children before producing an import plan: %j",
+    ({ rows }) => {
+      expect(() =>
+        loadYoungEvents(
+          fakeSnapshot({
+            tables: {
+              [ACTIVE_TABLE]: [{ store_id: 1, id: "invalid" }],
+              [`${ACTIVE_TABLE}_organizer_dictText`]: rows,
+            },
+          }),
+        ),
+      ).toThrow("Invalid Young organizer string-array snapshot");
+    },
+  );
+
+  it("rejects a missing original array member instead of compacting positions", () => {
+    expect(() =>
+      loadYoungEvents(
+        fakeSnapshot({
+          tables: {
+            [ACTIVE_TABLE]: [{ store_id: 1, id: "gap" }],
+            [`${ACTIVE_TABLE}_organizer_dictText`]: [
+              { parent_store_id: 1, position: 2, value: "Third club" },
+              { parent_store_id: 1, position: 0, value: "First club" },
+            ],
+          },
+        }),
+      ),
+    ).toThrow("Incomplete Young organizer string-array snapshot");
+  });
+
   it("merges ended and active rows with active winning on youngId conflict", () => {
     const snapshot = fakeSnapshot({
       tables: {
