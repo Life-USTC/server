@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { Client } from "pg";
 import { describe } from "vitest";
 import { staticImporterTest as it } from "../shared/static-importer-fixture";
 
@@ -103,7 +105,29 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
     it(
       "restricts direct table and sequence privileges to import facts",
       permissions,
-      async ({ importer, expect }) => {
+      async ({ importer, isolatedDatabase, expect }) => {
+        // Local templates can predate the branch migration. Expand only this
+        // case's owned database; CI already migrated templates need no change.
+        const owner = new Client({
+          connectionString: isolatedDatabase.connections.owner,
+        });
+        await owner.connect();
+        try {
+          const {
+            rows: [row],
+          } = await owner.query<{ present: boolean }>(
+            `SELECT to_regclass('public."YoungEventOrganizationSource"') IS NOT NULL AS present`,
+          );
+          if (!row.present)
+            await owner.query(
+              readFileSync(
+                "prisma/migrations/20261113010000_young_organization_source_shadow/migration.sql",
+                "utf8",
+              ),
+            );
+        } finally {
+          await owner.end();
+        }
         const grants = await importer.$queryRaw<Array<{ name: string }>>`
       SELECT table_name || ':' || privilege_type AS name FROM information_schema.role_table_grants
       WHERE grantee = current_user AND table_schema = 'public'
@@ -139,6 +163,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           "TeacherLessonType",
           "TeacherTitle",
           "YoungEvent",
+          "YoungEventOrganizationSource",
           "YoungOrganizer",
           "_ScheduleTeachers",
           "_SectionAdminClasses",
@@ -150,6 +175,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           "Exam",
           "TeacherAssignment",
           "ExamRoom",
+          "YoungEventOrganizationSource",
           "_SectionTeachers",
           "_SectionAdminClasses",
           "_ScheduleTeachers",
