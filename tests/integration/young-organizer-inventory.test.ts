@@ -7,6 +7,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { rm } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,9 +39,12 @@ function record(value: unknown): Record<string, unknown> {
     throw new Error("Expected a record");
   return value as Record<string, unknown>;
 }
-async function run(connection: string, args: string[] = []) {
+async function run(connection: string, args: string[] = [], preload?: string) {
   try {
-    const result = await exec("bun", [script, ...args], {
+    const command = preload
+      ? ["--no-install", "--preload", preload, script, ...args]
+      : [script, ...args];
+    const result = await exec("bun", command, {
       env: { PATH: process.env.PATH, MIGRATOR_DATABASE_URL: connection },
     });
     return { exit: 0, stdout: result.stdout, stderr: result.stderr };
@@ -327,4 +331,48 @@ it("inventory accepts no SQL/path arguments and never prints malformed connectio
   });
   expect(controls.stderr.includes("owned-redaction-marker")).toBe(false);
   expect(existsSync(output)).toBe(false);
+});
+
+it("inventory awaits delayed connection rejection and asynchronous cleanup before CLI exit", {
+  tags: ["@Database/Permissions"],
+}, async ({ onTestFinished }) => {
+  ownOutput(onTestFinished);
+  const directory = mkdtempSync(join(tmpdir(), "life-young-cli-lifetime-"));
+  onTestFinished(() => rm(directory, { recursive: true, force: true }));
+  const marker = join(directory, "closed.json");
+  const preload = join(directory, "pg-preload.mjs");
+  const pg = createRequire(import.meta.url).resolve("pg");
+  // Override only child-local driver I/O; no socket or database is contacted.
+  writeFileSync(
+    preload,
+    `
+import { Client } from ${JSON.stringify(pg)};
+import { writeFileSync } from "node:fs";
+Client.prototype.connect = function () {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(Object.assign(new Error("owned-redaction-marker"), { code: "08006" })), 40).unref();
+  });
+};
+Client.prototype.end = function () {
+  return new Promise((resolve) => {
+    setTimeout(() => { writeFileSync(${JSON.stringify(marker)}, '{"closed":true}', { flag: "wx", mode: 0o600 }); resolve(); }, 40).unref();
+  });
+};
+Client.prototype.query = function () { throw new Error("offline-query-must-not-run"); };
+`,
+    { mode: 0o600, flag: "wx" },
+  );
+  const profile =
+    "postgresql://owned-user:owned-redaction-marker@non-network.invalid/owned";
+  const result = await run(profile, [], preload);
+  expect(result.exit).toBe(1);
+  expect(result.stdout).toBe("");
+  expect(JSON.parse(result.stderr)).toEqual({
+    stage: "connect",
+    code: "08006",
+  });
+  expect(JSON.parse(readFileSync(marker, "utf8"))).toEqual({ closed: true });
+  expect(result.stderr.includes("owned-redaction-marker")).toBe(false);
+  expect(existsSync(output)).toBe(false);
+  expect(existsSync(temporary)).toBe(false);
 });
