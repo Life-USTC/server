@@ -11,8 +11,8 @@
 	let { ...restProps }: SonnerProps = $props();
 	let theme = $state<NonNullable<SonnerProps["theme"]>>("light");
 
-	const mobileToastBottomSignedOut = resolveMobileToastBottomOffset(false);
-	const mobileToastBottomSignedIn = resolveMobileToastBottomOffset(true);
+	const mobileToastBottomWithoutPrimary = resolveMobileToastBottomOffset(false);
+	const mobileToastBottomWithPrimary = resolveMobileToastBottomOffset(true);
 
 	onMount(() => {
 		const syncTheme = () => {
@@ -28,7 +28,7 @@
 <Sonner
 	{theme}
 	class="toaster group"
-	style="--normal-bg: var(--color-popover); --normal-text: var(--color-popover-foreground); --normal-border: var(--color-border);"
+	style={`--normal-bg: var(--color-popover); --normal-text: var(--color-popover-foreground); --normal-border: var(--color-border); --shell-toast-without-primary: ${mobileToastBottomWithoutPrimary}; --shell-toast-with-primary: ${mobileToastBottomWithPrimary};`}
 	{...restProps}
 >
 	{#snippet loadingIcon()}
@@ -72,17 +72,17 @@
 		}
 
 		:global([data-sonner-toaster][data-y-position="bottom"]) {
-			bottom: v-bind(mobileToastBottomSignedOut) !important;
+			bottom: var(--shell-toast-without-primary) !important;
 		}
 
+	}
+
+	@media (max-width: 1023px) {
 		:global(
-				html:has(
-						[data-shell-navigation="mobile-primary"],
-						[data-shell-navigation="admin-mobile"]
-					)
-					[data-sonner-toaster][data-y-position="bottom"]
-			) {
-			bottom: v-bind(mobileToastBottomSignedIn) !important;
+			html:has([data-mobile-primary-navigation])
+				[data-sonner-toaster][data-y-position="bottom"]
+		) {
+			bottom: var(--shell-toast-with-primary) !important;
 		}
 	}
 </style>

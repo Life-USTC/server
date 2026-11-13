@@ -70,6 +70,7 @@ test(
               .getByRole("button", { name: "Enter demo", exact: true })
               .click();
             await expect(page).toHaveURL(/\/workspace\/todos$/);
+            await waitForUiSettled(page);
             await page
               .locator("#demo-navigation-menu")
               .getByRole("button")

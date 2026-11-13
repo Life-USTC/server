@@ -280,11 +280,10 @@ function revealCurrent(node: HTMLElement, active: boolean) {
             ><Sidebar.GroupContent
               ><Sidebar.Menu>
                 {#each group.links as link}
-                  {@const active = isCurrentScopeLink(
-                    link,
-                    scopeLinks,
-                    isActiveLink,
-                  )}
+                  {@const active = level === "root"
+                    ? primaryDestination(currentPathname) === link.id &&
+                      currentPathname === link.href
+                    : isCurrentScopeLink(link, scopeLinks, isActiveLink)}
                   {@const ancestor =
                     !active &&
                     (level === "root"
@@ -311,7 +310,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
                             >{#if link.icon}{@const Icon = link.icon}<Icon
                               />{:else if link.glyph}<SettingsGlyph
                                 name={link.glyph}
-                              />{/if}<span>{link.label}</span></button
+                              />{/if}<span class="font-medium">{link.label}</span></button
                           >
                         {:else}<a
                             {...props}
@@ -329,7 +328,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
                             >{#if link.icon}{@const Icon = link.icon}<Icon
                               />{:else if link.glyph}<SettingsGlyph
                                 name={link.glyph}
-                              />{/if}<span>{link.label}</span></a
+                              />{/if}<span class="font-medium">{link.label}</span></a
                           >{/if}
                       {/snippet}
                     </Sidebar.MenuButton>

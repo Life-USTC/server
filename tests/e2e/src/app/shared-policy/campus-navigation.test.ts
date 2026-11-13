@@ -1,6 +1,9 @@
 import { expect } from "@playwright/test";
 import { createSignedDemoCookie } from "../../../../shared/demo-token";
-import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../utils/page-ready";
 import { test } from "../../../utils/personal-preferences-fixture";
 
 test.use({ workerBindings: { DEMO_ENABLED: "1", E2E_DEBUG_AUTH: "0" } });
@@ -34,6 +37,13 @@ for (const [locale, width] of [
     });
     await preferenceFlow.run(async () => {
       await page.setViewportSize({ width, height: 844 });
+      // The edge must admit a cold anonymous document before any locale,
+      // session or Demo cookie can bypass its public-SSR route classifier.
+      await page.context().clearCookies();
+      expect(await page.context().cookies()).toEqual([]);
+      const anonymousDocument = await page.goto("/campus");
+      expect(anonymousDocument?.status()).toBe(200);
+      await waitForUiSettled(page);
       await page
         .context()
         .addCookies([

@@ -1,10 +1,6 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../../../utils/activity-fixture";
 import { openCommentComposer } from "../../../../../utils/comments";
-import {
-  expandDaySidebarGroup,
-  sidebarNavigationLink,
-} from "../../../../../utils/locators";
 import { expectNavigationCount } from "../../../../../utils/navigation-count";
 import { observeAction } from "../../../../../utils/observed-action";
 import {
@@ -30,9 +26,15 @@ test("活动、主办方订阅和提醒入口可用", { tag: "@Young/Web" }, asy
       },
     );
     expect(response?.ok()).toBe(true);
-    await expandDaySidebarGroup(page);
+    const activityNavigation = page.getByTestId("activity-workspace-sidebar");
+    await expect(activityNavigation).toHaveAttribute(
+      "data-shell-navigation-view",
+      "activity-workspace",
+    );
     await expect(
-      sidebarNavigationLink(page, /^Life@USTC: (?:Home|首页)$/),
+      activityNavigation.getByRole("link", {
+        name: /^Life@USTC: (?:Home|首页)$/,
+      }),
     ).toBeVisible();
     // This consumer starts from independently arranged state; it never relies on
     // one of the subscription mutation journeys having run first.
@@ -54,11 +56,11 @@ test("活动、主办方订阅和提醒入口可用", { tag: "@Young/Web" }, asy
       },
     ];
     for (const { view, title, href } of views) {
-      await page
-        .locator('[data-shell-navigation="desktop"]')
-        .locator(`a[href="/workspace/subscriptions/activities?view=${view}"]`)
-        .first()
-        .click();
+      const destination = activityNavigation.locator(
+        `a[href="/workspace/subscriptions/activities?view=${view}"]`,
+      );
+      await expect(destination).toHaveCount(1);
+      await destination.click();
       await expect(page).toHaveURL(new RegExp(`view=${view}`));
       await expect(page.locator("main")).toBeVisible();
       const link = page
@@ -583,17 +585,45 @@ test("reading the last unread reminder on page two returns to the remaining remi
     const remindersHref =
       "/workspace/subscriptions/activities?view=notifications";
     await expect(
-      navigation.locator(
-        `a[data-slot="sidebar-menu-button"][href="${remindersHref}"]`,
-      ),
-    ).toHaveAccessibleName(/^(活动订阅|Activity subscriptions)$/);
-    await expectNavigationCount(navigation, remindersHref, 21, /unread|未读/);
+      navigation.locator(`a[href="${remindersHref}"]`),
+    ).toHaveAccessibleName(/^(活动提醒|Activity reminders)$/);
+    const expectWorkspaceReminderCount = async (value: number) => {
+      const originalUrl = page.url();
+      const back = page.getByTestId("activity-workspace-sidebar-back");
+      await back.click();
+      await expect(navigation).toHaveAttribute(
+        "data-shell-navigation-view",
+        "workspace",
+      );
+      await expect(
+        navigation.locator(`a[href="${remindersHref}"]`),
+      ).toHaveAccessibleName(/^(活动订阅|Activity subscriptions)$/);
+      await expectNavigationCount(
+        navigation,
+        remindersHref,
+        value,
+        /unread|未读/,
+      );
+      await back.click();
+      await expect(navigation).toHaveAttribute(
+        "data-shell-navigation-view",
+        "root",
+      );
+      await back.click();
+      await expect(navigation).toHaveAttribute(
+        "data-shell-navigation-view",
+        "activity-workspace",
+      );
+      await expect(page).toHaveURL(originalUrl);
+      await expect(reminderNavigation).toHaveAttribute("aria-current", "page");
+    };
+    await expectWorkspaceReminderCount(21);
     await page
       .locator("main")
       .getByRole("button", { name: /^(标记已读|Mark read)$/ })
       .click();
     await expect(page).toHaveURL(/view=notifications&unread=true&page=1/);
-    await expectNavigationCount(navigation, remindersHref, 20, /unread|未读/);
+    await expectWorkspaceReminderCount(20);
     expect(await notifications()).toEqual(
       before.map((item, index) => ({
         ...item,

@@ -23,6 +23,7 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../../utils/academic-events";
 import { test as calendarTest } from "../../../../utils/calendar-presentation-fixture";
+import { DEV_SEED_ANCHOR } from "../../../../utils/dev-seed";
 import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 
@@ -104,9 +105,18 @@ test.describe("仪表盘日历", () => {
   }) => {
     await homeworkRun(
       async () => {
-        await gotoAndWaitForReady(page, calendarUrl);
+        const day = new URL(calendarUrl, "https://calendar.invalid");
+        day.searchParams.set("calendarView", "day");
+        day.searchParams.set("calendarDay", DEV_SEED_ANCHOR.date);
+        await gotoAndWaitForReady(page, `${day.pathname}${day.search}`);
 
-        const examLink = page.locator('a[href="/workspace/exams"]').first();
+        const examLink = page
+          .getByTestId("calendar-agenda")
+          .locator(`section[aria-labelledby="agenda-${DEV_SEED_ANCHOR.date}"]`)
+          .locator('a[href="/workspace/exams"]');
+        await expect(examLink).toHaveCount(1);
+        await expect(examLink).toContainText("13:00");
+        await expect(examLink).toContainText("14:00");
         await expect(examLink).toBeVisible();
         await examLink.click();
         await expect(page).toHaveURL(/\/workspace\/exams(?:\?.*)?$/);

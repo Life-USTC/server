@@ -28,8 +28,8 @@ export function isSignInPath(pathname: string) {
   );
 }
 
-/** Matches `min-h-14` on mobile primary / admin tab bars. */
-export const MOBILE_SHELL_TAB_BAR_HEIGHT = "3.5rem";
+/** Border-box height of the shared four-primary navigation, before safe area. */
+export const MOBILE_SHELL_TAB_BAR_HEIGHT = "4rem";
 
 const MOBILE_TOAST_EDGE_GAP = "1rem";
 

@@ -9,7 +9,7 @@ import { expectRenderedUiQuality } from "../../../utils/ui-quality";
 for (const theme of ["light", "dark"] as const) {
   for (const width of [1280, 390]) {
     test(
-      `active Home caption retains readable contrast ${theme} ${width}`,
+      `active Workspace caption retains readable contrast ${theme} ${width}`,
       { tag: "@Site/Web" },
       async ({ page, isolatedWorker, publicFlow }, info) => {
         await page.emulateMedia({ colorScheme: theme });
@@ -30,12 +30,18 @@ for (const theme of ["light", "dark"] as const) {
             `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
           );
           const home = navigation.getByRole("link", {
-            name: "Life@USTC: Home",
+            name: "Workspace",
             exact: true,
           });
+          await expect(home).toHaveCount(1);
+          await expect(
+            navigation.locator('a[aria-current="page"]'),
+          ).toHaveCount(1);
           await expect(home).toHaveAttribute("href", "/");
           await expect(home).toHaveAttribute("aria-current", "page");
-          await expect(home.getByText("Home", { exact: true })).toBeVisible();
+          await expect(
+            home.getByText("Workspace", { exact: true }),
+          ).toBeVisible();
           await waitForUiSettled(page);
           await page.screenshot({
             path: info.outputPath(`home-${theme}-${width}.png`),
@@ -44,7 +50,7 @@ for (const theme of ["light", "dark"] as const) {
           await info.attach("home-caption-style", {
             body: JSON.stringify(
               await home
-                .getByText("Home", { exact: true })
+                .getByText("Workspace", { exact: true })
                 .evaluate((caption) => {
                   const color = getComputedStyle(caption).color;
                   const ancestors = [];

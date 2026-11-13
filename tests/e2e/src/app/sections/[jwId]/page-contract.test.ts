@@ -334,12 +334,15 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
         ).toBeLessThanOrEqual(375);
 
         const actions = page.getByTestId("section-mobile-primary-actions");
-        const mobileNavigation = page.getByRole("navigation", {
-          name: /移动主导航|Mobile primary navigation/i,
-        });
+        const mobileNavigation = page.locator(
+          "[data-mobile-primary-navigation]",
+        );
         await expect(actions).toBeVisible();
         await expect(actions).toBeInViewport();
-        await expect(mobileNavigation).toHaveCount(0);
+        await expect(mobileNavigation).toBeVisible();
+        const navigationBox = await mobileNavigation.boundingBox();
+        if (!navigationBox)
+          throw new Error("Missing primary navigation geometry");
         const actionsBox = await actions.boundingBox();
         expect(actionsBox).not.toBeNull();
         expect(
@@ -348,6 +351,9 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
         expect(
           await actions.evaluate((element) => getComputedStyle(element).bottom),
         ).toBe("0px");
+        expect(
+          (actionsBox?.y ?? 0) + (actionsBox?.height ?? 0),
+        ).toBeLessThanOrEqual(navigationBox.y);
         await actions
           .getByRole("button", { name: /添加到日历|Add to calendar/i })
           .click();
@@ -357,6 +363,29 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
         await page.keyboard.press("Escape");
 
         await jumpToSection(page, SECTION_URL, /评论|Comments/i, "#comments");
+        expect(await page.evaluate(() => scrollY)).toBe(0);
+        await expect
+          .poll(() =>
+            page
+              .locator("[data-detail-scroll-container]")
+              .evaluate((node) => node.scrollTop),
+          )
+          .toBeGreaterThan(0);
+        expect(
+          await page
+            .locator("[data-detail-scroll-container]")
+            .evaluate((node) => {
+              // Overflow-hidden frame ancestors must not steal reading movement.
+              for (
+                let parent = node.parentElement;
+                parent;
+                parent = parent.parentElement
+              )
+                if (parent.scrollTop !== 0) return false;
+              return true;
+            }),
+        ).toBe(true);
+        await expect(page.locator("#comments")).toBeInViewport();
         await expect(actions).toBeInViewport();
         for (const width of [280, 320, 375]) {
           await page.setViewportSize({ width, height: 900 });

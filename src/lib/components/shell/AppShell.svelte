@@ -604,7 +604,11 @@ let globalSearchShortcutLabel = $derived(
     bind:open={sidebarOpen}
     onOpenChange={(open) =>
       saveSidebarPreferences({ ...loadSidebarPreferences(), open })}
-    class="flex min-h-screen flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] lg:h-screen lg:min-h-0 lg:overflow-hidden lg:pb-0"
+    data-shell-detail-workspace={detailWorkspace ? "true" : undefined}
+    class={cn(
+      "flex flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] lg:h-screen lg:min-h-0 lg:overflow-hidden lg:pb-0",
+      detailWorkspace ? "h-dvh min-h-0 overflow-hidden" : "min-h-screen",
+    )}
   >
     <div class="flex min-h-0 w-full flex-1">
       <AppSidebar
@@ -625,7 +629,12 @@ let globalSearchShortcutLabel = $derived(
         aria-label={mainContentLabel}
         id="main-content"
         tabindex={-1}
-        class="relative flex w-full min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-hidden"
+        class={cn(
+          "relative flex w-full min-w-0 flex-1 flex-col",
+          detailWorkspace
+            ? "min-h-0 overflow-hidden"
+            : "lg:min-h-0 lg:overflow-hidden",
+        )}
       >
         <AppTopbar
           {closeMenus}
@@ -664,7 +673,7 @@ let globalSearchShortcutLabel = $derived(
           class={cn(
             "flex min-w-0 flex-1 flex-col",
             detailWorkspace
-              ? "lg:min-h-0 lg:overflow-hidden"
+              ? "min-h-0 overflow-hidden"
               : "lg:min-h-0 lg:overflow-y-auto",
           )}
         >
@@ -681,13 +690,11 @@ let globalSearchShortcutLabel = $derived(
             class={cn(
               "w-full flex-1",
               detailWorkspace
-                ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
+                ? "bg-card p-0 min-h-0 overflow-hidden"
                 : presentation.edgeToEdge
                   ? "p-0"
                   : "px-4 py-4 sm:px-5 lg:px-6",
-              !showFooter &&
-                !detailWorkspace &&
-                "pb-[max(1rem,env(safe-area-inset-bottom))] lg:pb-4",
+              !showFooter && !detailWorkspace && "pb-4",
             )}
           >
             {@render children?.()}

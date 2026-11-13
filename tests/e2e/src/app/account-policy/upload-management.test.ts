@@ -342,8 +342,14 @@ test("upload.web-list", { tag: "@Upload/Web" }, async ({
       expect(new URL(page.url()).searchParams.get(key)).toBe(value);
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoAndWaitForReady(page, "/workspace/overview");
-    await page.getByRole("button", { name: "Menu", exact: true }).click();
-    await page.getByRole("link", { name: "My Uploads", exact: true }).click();
+    const avatar = page.locator("#app-user-menu").getByRole("button");
+    await expect(avatar).toHaveCount(1);
+    await expect(avatar).toBeVisible();
+    await avatar.click();
+    await page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "My Uploads", exact: true })
+      .click();
     await expect(page).toHaveURL(/\/workspace\/uploads$/);
     await assertPageContract(page, {
       routePath: "/workspace/uploads",

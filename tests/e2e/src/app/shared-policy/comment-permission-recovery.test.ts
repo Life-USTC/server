@@ -93,7 +93,15 @@ test("comment.public-permission-recovery", { tag: "@Comment/Web" }, async ({
             .locator("#app-user-menu")
             .filter({ visible: true });
           await expect(accountMenu).toHaveCount(1);
-          await expect(accountMenu).toContainText(`@${user.username}`);
+          const avatar = accountMenu.getByRole("button");
+          await expect(avatar).toHaveCount(1);
+          await expect(avatar).toHaveAttribute("title", user.name ?? "");
+          await avatar.click();
+          await expect(page.getByRole("menu")).toContainText(
+            `@${user.username}`,
+          );
+          await page.keyboard.press("Escape");
+          await expect(avatar).toBeFocused();
           release();
           const alert = page
             .getByRole("alert")

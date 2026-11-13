@@ -981,7 +981,7 @@ test("demo young workspace retires an admitted ordinary subscription write", {
               .locator('[data-slot="sidebar-group"]')
               .filter({
                 has: page
-                  .locator('[data-slot="sidebar-group-label"] > span')
+                  .locator('[data-slot="sidebar-group-label"]')
                   .filter({ hasText: /^Primary navigation$/ }),
               });
             await expect(rootGroup).toHaveCount(1);

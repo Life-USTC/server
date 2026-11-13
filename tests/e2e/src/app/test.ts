@@ -658,7 +658,8 @@ shellTest(
         );
         const parent = navigation.locator('a[href="/workspace/subscriptions"]');
         await expect(parent).toBeVisible();
-        await expect(parent).not.toHaveAttribute("aria-current");
+        await expect(parent).toHaveAttribute("data-shell-ancestor", "true");
+        await expect(parent).toHaveAttribute("aria-current", "location");
         await parent.click();
         await page.waitForURL("**/workspace/subscriptions");
         await waitForUiSettled(page);

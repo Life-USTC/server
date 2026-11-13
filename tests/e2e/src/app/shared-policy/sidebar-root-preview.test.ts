@@ -158,7 +158,18 @@ for (const [locale, width] of [
               createdAt: new Date("2026-01-02T00:00:00Z"),
             },
           });
-        return { actor, section };
+        const event =
+          context === "activities"
+            ? await db.youngEvent.create({
+                data: {
+                  youngId: "root-preview-activity",
+                  name: "Primary activity detail",
+                  isActive: true,
+                  rawJson: {},
+                },
+              })
+            : null;
+        return { actor, section, event };
       });
       await preferenceFlow.run(async () => {
         await page.setViewportSize({ width, height: 950 });
@@ -521,6 +532,127 @@ for (const [locale, width] of [
           await expect(
             page.getByTestId("activities-sidebar-back"),
           ).toHaveAccessibleName("返回主导航");
+        }
+        if (context === "activities") {
+          if (!fixture.event)
+            throw new Error("Missing activity detail fixture");
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/young-events/${fixture.event.youngId}`,
+          );
+          await expect(
+            page.getByRole("heading", {
+              name: "Primary activity detail",
+              exact: true,
+              level: 1,
+            }),
+          ).toBeVisible();
+          const openNavigation = async () => {
+            if (width === 390) {
+              const trigger = page.locator(
+                '[data-shell-topbar] [data-slot="sidebar-trigger"]',
+              );
+              await trigger.focus();
+              await page.keyboard.press("Enter");
+            }
+            const navigation = page.locator(
+              `[data-shell-navigation="${width === 390 ? "mobile" : "desktop"}"]`,
+            );
+            await expect(navigation).toBeVisible();
+            return navigation;
+          };
+          const detailNavigation = await openNavigation();
+          await detailNavigation
+            .locator("[data-local-navigation-back]")
+            .click();
+          await expect(detailNavigation).toHaveAttribute(
+            "data-shell-navigation-view",
+            "root",
+          );
+          await expect(
+            detailNavigation.locator('a[aria-current="page"]'),
+          ).toHaveCount(0);
+          await expect(
+            detailNavigation.locator('a[href="/catalog/young-events"]'),
+          ).toHaveAttribute("aria-current", "location");
+          if (width === 390) {
+            await expect(
+              page.locator(
+                '[data-mobile-primary-navigation] a[aria-current="page"]',
+              ),
+            ).toHaveCount(0);
+            await expect(
+              page.locator(
+                '[data-mobile-primary-navigation] a[href="/catalog/young-events"]',
+              ),
+            ).toHaveAttribute("aria-current", "location");
+          }
+          await page.context().clearCookies();
+          await page.context().addCookies([
+            {
+              name: "NEXT_LOCALE",
+              value: locale,
+              url: isolatedWorker.origin,
+            },
+          ]);
+          await gotoAndWaitForReady(page, "/campus");
+          const anonymousNavigation = await openNavigation();
+          await expect(anonymousNavigation).toHaveAttribute(
+            "data-shell-navigation-view",
+            "campus",
+          );
+          await expect(
+            page.getByRole("heading", {
+              name: locale === "en-us" ? "Campus" : "校园",
+              exact: true,
+              level: 1,
+            }),
+          ).toBeVisible();
+          await anonymousNavigation
+            .locator("[data-local-navigation-back]")
+            .click();
+          await expect(anonymousNavigation).toHaveAttribute(
+            "data-shell-navigation-view",
+            "root",
+          );
+          await expect(
+            anonymousNavigation.locator('a[aria-current="page"]'),
+          ).toHaveAttribute("href", "/campus");
+          const calendarSignIn = anonymousNavigation.locator(
+            'a[href="/account/sign-in?callbackUrl=%2Fworkspace%2Fcalendar"]',
+          );
+          await expect(calendarSignIn).toHaveCount(1);
+          await expect(calendarSignIn).toBeVisible();
+          await expect(calendarSignIn).not.toHaveAttribute("aria-current");
+          if (width === 390)
+            await expect(
+              page.locator(
+                '[data-mobile-primary-navigation] a[href="/account/sign-in?callbackUrl=%2Fworkspace%2Fcalendar"]',
+              ),
+            ).not.toHaveAttribute("aria-current");
+          await calendarSignIn.click();
+          await expect(page).toHaveURL(
+            `${isolatedWorker.origin}/account/sign-in?callbackUrl=%2Fworkspace%2Fcalendar`,
+          );
+          await expect(
+            page.getByRole("heading", {
+              name: locale === "en-us" ? "Sign In" : "登录",
+              exact: true,
+              level: 1,
+            }),
+          ).toBeVisible();
+          await expect(
+            page.locator('[data-slot="sidebar-trigger"]'),
+          ).toHaveCount(0);
+          await expect(page.locator("[data-shell-navigation]")).toHaveCount(0);
+          await expect(
+            page.locator("[data-mobile-primary-navigation]"),
+          ).toHaveCount(0);
+          await expect(
+            page.locator(
+              "[data-shell-navigation] a[aria-current], [data-mobile-primary-navigation] a[aria-current]",
+            ),
+          ).toHaveCount(0);
         }
       });
     });

@@ -72,7 +72,7 @@ test.describe("/catalog/young-events/[youngId] 第二课堂活动详情", () => 
         }),
       ).toBeVisible();
 
-      const youngNav = page.getByTestId("young-sidebar");
+      const youngNav = page.getByTestId("activities-sidebar");
       await expect(youngNav).toBeVisible();
       await expect(
         youngNav.getByRole("link", { name: /^(?:活动列表|Activity list)$/ }),

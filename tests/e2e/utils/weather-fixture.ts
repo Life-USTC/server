@@ -5,8 +5,7 @@ import { WEATHER_LOCATIONS } from "@/features/weather/server/weather-types";
 import { buildSocialMetadata } from "@/lib/social-metadata";
 import enUsMessages from "../../../messages/en-us.json" with { type: "json" };
 import zhCnMessages from "../../../messages/zh-cn.json" with { type: "json" };
-import { appSidebar } from "./locators";
-import { gotoAndWaitForReady } from "./page-ready";
+import { gotoAndWaitForReady, waitForUiSettled } from "./page-ready";
 
 export async function showWeatherFixture(
   page: Page,
@@ -106,22 +105,42 @@ export async function showWeatherFixture(
       },
     });
   });
-  // Scope the click to the shell navigation. The anonymous landing page links
-  // to /catalog/weather from its own campus-weather card too, and on mobile the
-  // open sidebar sheet covers that in-page link, so a document-wide `.first()`
-  // can match an element that never becomes clickable. On mobile the sidebar
-  // renders as a Sheet dialog; `app-sidebar` is a DOM node only on desktop.
-  const mobile = (page.viewportSize()?.width ?? 1280) < 768;
-  const navigation = mobile
-    ? page.getByRole("dialog", {
-        name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
-      })
-    : appSidebar(page);
-  if (mobile) {
-    await page.locator('[data-slot="sidebar-trigger"]').click();
+  // Use the public directory's real two-level navigation. The weather data
+  // route above remains mocked; the root and Campus documents stay real.
+  const mobileSidebar = (page.viewportSize()?.width ?? 1280) < 768;
+  const navigation = page.locator(
+    `[data-shell-navigation="${mobileSidebar ? "mobile" : "desktop"}"]`,
+  );
+  const openSidebar = async (label: string) => {
+    if (mobileSidebar) {
+      await page
+        .locator('[data-shell-topbar] [data-sidebar="trigger"]')
+        .click();
+      await expect(
+        page.getByRole("dialog", { name: label, exact: true }),
+      ).toBeVisible();
+    }
+    await expect(navigation).toHaveCount(1);
     await expect(navigation).toBeVisible();
-  }
-  await navigation.locator('a[href="/catalog/weather"]').first().click();
+  };
+  await openSidebar(messages.common.primaryNavigation);
+  await expect(navigation).toHaveAttribute(
+    "data-shell-navigation-view",
+    "root",
+  );
+  const campus = navigation.locator('a[href="/campus"]');
+  await expect(campus).toHaveCount(1);
+  await campus.click();
+  await expect(page).toHaveURL(/\/campus$/);
+  await waitForUiSettled(page);
+  await openSidebar(messages.shell.primaryDestinations.campus);
+  await expect(navigation).toHaveAttribute(
+    "data-shell-navigation-view",
+    "campus",
+  );
+  const weather = navigation.locator('a[href="/catalog/weather"]');
+  await expect(weather).toHaveCount(1);
+  await weather.click();
   await expect(
     page.locator('[data-testid="weather-hourly-chart"]:visible'),
   ).toHaveCount((page.viewportSize()?.width ?? 1280) < 768 ? 1 : 2);

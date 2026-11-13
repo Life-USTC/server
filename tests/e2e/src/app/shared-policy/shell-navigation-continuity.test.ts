@@ -301,13 +301,88 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           await directory.locator('a[href="#comments"]').click();
           await expect(page).toHaveURL(/#comments$/);
           await expect(page.locator("#comments h2")).toBeInViewport();
-          if (width === 1280) {
-            expect(await page.evaluate(() => scrollY)).toBe(0);
+          expect(await page.evaluate(() => scrollY)).toBe(0);
+          const reading = page.locator("[data-detail-scroll-container]");
+          const readingPosition = await reading.evaluate(
+            (node) => node.scrollTop,
+          );
+          expect(readingPosition).toBeGreaterThan(0);
+          const currentLocation = page.url();
+          const currentHistory = await page.evaluate(() => history.length);
+          const currentDocument = await page.evaluateHandle(() => document);
+          const currentMain = await page
+            .locator("#main-content")
+            .elementHandle();
+          if (!currentMain) throw new Error("Missing current detail main");
+          const navigationRequests: string[] = [];
+          const observeNavigation = (
+            request: import("@playwright/test").Request,
+          ) => navigationRequests.push(new URL(request.url()).pathname);
+          if (width < 768) await page.mouse.move(width - 1, 475);
+          page.on("request", observeNavigation);
+          try {
+            if (width < 768) {
+              await menu.focus();
+              await page.keyboard.press("Enter");
+              await expect(page.getByRole("dialog")).toBeVisible();
+            }
+            await navigation();
+            const currentLevel = page.locator(
+              `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
+            );
+            const originalScope = await currentLevel.getAttribute(
+              "data-shell-navigation-view",
+            );
+            if (!originalScope) throw new Error("Missing current detail scope");
+            await currentLevel.locator("[data-local-navigation-back]").click();
+            await expect(currentLevel).toHaveAttribute(
+              "data-shell-navigation-view",
+              "campus",
+            );
+            await currentLevel.locator("[data-local-navigation-back]").click();
+            await expect(currentLevel).toHaveAttribute(
+              "data-shell-navigation-view",
+              "root",
+            );
+            await currentLevel.locator('a[href="/campus"]').click();
+            await expect(currentLevel).toHaveAttribute(
+              "data-shell-navigation-view",
+              originalScope,
+            );
+            await expect(
+              currentLevel.locator('a[aria-current="page"]'),
+            ).toHaveCount(1);
+            const localBack = currentLevel.locator(
+              "[data-local-navigation-back]",
+            );
+            await expect(localBack).toBeVisible();
+            await expect(localBack).toBeFocused();
+            expect(page.url()).toBe(currentLocation);
+            expect(await page.evaluate(() => history.length)).toBe(
+              currentHistory,
+            );
             expect(
-              await page
-                .locator("[data-detail-scroll-container]")
-                .evaluate((node) => node.scrollTop),
-            ).toBeGreaterThan(0);
+              await currentDocument.evaluate((node) => node === document),
+            ).toBe(true);
+            expect(
+              await currentMain.evaluate(
+                (node) => node === document.getElementById("main-content"),
+              ),
+            ).toBe(true);
+            expect(await reading.evaluate((node) => node.scrollTop)).toBe(
+              readingPosition,
+            );
+            expect(navigationRequests).toEqual([]);
+          } finally {
+            page.off("request", observeNavigation);
+            await Promise.all([
+              currentDocument.dispose(),
+              currentMain.dispose(),
+            ]);
+          }
+          if (width < 768) {
+            await page.keyboard.press("Escape");
+            await expect(menu).toBeFocused();
           }
           await page.reload();
           await waitForUiSettled(page);
@@ -371,7 +446,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           if (width < 768)
             await expect(page.getByRole("dialog")).toHaveCount(0);
           nav = await navigation();
-          await expect(nav).toHaveAttribute(
+          await expect(nav.locator("[data-shell-navigation]")).toHaveAttribute(
             "data-shell-navigation-view",
             "root",
           );
@@ -379,7 +454,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           await expect(page).toHaveURL(/\/campus$/);
           await waitForUiSettled(page);
           nav = await navigation();
-          await expect(nav).toHaveAttribute(
+          await expect(nav.locator("[data-shell-navigation]")).toHaveAttribute(
             "data-shell-navigation-view",
             "campus",
           );

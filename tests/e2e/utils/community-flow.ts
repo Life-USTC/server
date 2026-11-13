@@ -19,6 +19,7 @@ import { withSettledPageWrites } from "./settled-page-writes";
 
 type Expected = {
   calendarTokenCreated?: boolean;
+  existingCalendarToken?: string | null;
   auditActions?: Record<string, number>;
   catalogPurges?: number;
   anonymousCourseCount?: number;
@@ -462,7 +463,9 @@ export async function withCommunityFlow(
                 where: { id: account.id },
               });
               expect(user.calendarFeedToken).toEqual(
-                expected.calendarTokenCreated ? expect.any(String) : null,
+                expected.calendarTokenCreated
+                  ? expect.any(String)
+                  : (expected.existingCalendarToken ?? null),
               );
             } else {
               // Anonymous checks own an empty graph except an explicitly

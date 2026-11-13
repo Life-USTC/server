@@ -41,9 +41,26 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                 ]);
                 await gotoAndWaitForReady(page, "/workspace/subscriptions");
                 if (width === 1280) {
-                  await page
-                    .locator('a[href="/catalog/sections"]:visible')
+                  const workspace = page.getByTestId("workspace-sidebar");
+                  await expect(workspace).toHaveAttribute(
+                    "data-shell-navigation-view",
+                    "workspace",
+                  );
+                  await page.getByTestId("workspace-sidebar-back").click();
+                  await expect(workspace).toHaveAttribute(
+                    "data-shell-navigation-view",
+                    "root",
+                  );
+                  await workspace
+                    .locator('[data-slot="sidebar-content"] a[href="/campus"]')
                     .click();
+                  await expect(page).toHaveURL(/\/campus$/);
+                  const campus = page.getByTestId("campus-sidebar");
+                  await expect(campus).toHaveAttribute(
+                    "data-shell-navigation-view",
+                    "campus",
+                  );
+                  await campus.locator('a[href="/catalog/sections"]').click();
                   await waitForUiSettled(page);
                 } else await gotoAndWaitForReady(page, "/catalog/sections");
                 await expect(

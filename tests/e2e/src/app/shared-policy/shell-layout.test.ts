@@ -358,14 +358,18 @@ test("ui.shell-layout-4", { tag: "@Site/Web" }, async ({
                 Number.parseFloat(getComputedStyle(element).paddingBottom),
               ),
             )
-            .toBe(inset);
+            .toBe(0);
           expect(
             await page
               .locator('[data-slot="sidebar-wrapper"]')
               .evaluate((element) =>
                 Number.parseFloat(getComputedStyle(element).paddingBottom),
               ),
-          ).toBe(0);
+          ).toBe(64 + inset);
+          const primaryBox = await primary.boundingBox();
+          if (!primaryBox) throw new Error("Missing mobile primary bounds");
+          expect(primaryBox.height).toBe(64 + inset);
+          expect(primaryBox.y + primaryBox.height).toBe(700);
           await page.evaluate(() =>
             window.scrollTo(0, document.documentElement.scrollHeight),
           );
@@ -375,9 +379,24 @@ test("ui.shell-layout-4", { tag: "@Site/Web" }, async ({
           if (!endBox || !footerBox)
             throw new Error("Missing mobile content or footer bounds");
           expect(endBox.y + endBox.height).toBeLessThanOrEqual(footerBox.y);
+          expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(
+            primaryBox.y,
+          );
           expect(
             await page.evaluate(() => document.documentElement.scrollWidth),
           ).toBeLessThanOrEqual(390);
+          await gotoAndWaitForReady(page, "/workspace/todos");
+          expect(
+            await page
+              .locator("[data-shell-scroll-container] > div")
+              .evaluate((element) =>
+                Number.parseFloat(getComputedStyle(element).paddingBottom),
+              ),
+          ).toBe(16);
+          expect(await primary.boundingBox()).toMatchObject({
+            height: 64 + inset,
+          });
+          await gotoAndWaitForReady(page, "/terms");
         }
       } finally {
         await cdp.send("Emulation.setSafeAreaInsetsOverride", { insets: {} });

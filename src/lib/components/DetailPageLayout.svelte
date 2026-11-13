@@ -45,3 +45,10 @@ let {
     </div>
   </div>
 </section>
+
+<style>
+  :global([data-shell-detail-workspace="true"]) [data-slot="detail-page-layout"] {
+    height: 100%;
+    min-height: 0;
+  }
+</style>

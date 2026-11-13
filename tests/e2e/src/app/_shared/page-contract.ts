@@ -162,7 +162,17 @@ export async function assertPageContract(
   ) {
     await gotoContractPage(page, routePath);
     await expectMainContent(page);
-    await expandDaySidebarGroup(page);
+    const expectedScope =
+      routePath === "/workspace/calendar"
+        ? "calendar"
+        : routePath === "/workspace/subscriptions/activities"
+          ? "activity-workspace"
+          : "workspace";
+    await expect(page.getByTestId(`${expectedScope}-sidebar`)).toHaveAttribute(
+      "data-shell-navigation-view",
+      expectedScope,
+    );
+    if (expectedScope === "workspace") await expandDaySidebarGroup(page);
     await expect(
       sidebarNavigationLink(page, /^Life@USTC: (?:Home|首页)$/),
     ).toBeVisible({

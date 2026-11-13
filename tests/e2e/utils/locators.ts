@@ -15,7 +15,7 @@ export async function expandSidebarGroup(
   const sidebar = appSidebar(page);
   const group = sidebar.locator('[data-slot="sidebar-group"]').filter({
     has: page
-      .locator('[data-slot="sidebar-group-label"] > span')
+      .locator('[data-slot="sidebar-group-label"]')
       .filter({ hasText: name }),
   });
   await expect(group).toHaveCount(1);
@@ -32,9 +32,13 @@ export async function expandSidebarGroup(
   );
 }
 
-/** Ensure My day is readable; only the whole compact sidebar may be expanded. */
+/** Verify the real current Workspace directory; never switch navigation levels implicitly. */
 export async function expandDaySidebarGroup(page: Page): Promise<void> {
-  await expandSidebarGroup(page, /^(日程|My day)$/i);
+  await expect(page.getByTestId("workspace-sidebar")).toHaveAttribute(
+    "data-shell-navigation-view",
+    "workspace",
+  );
+  await expandSidebarGroup(page, /^(工作台|Workspace)$/i);
 }
 
 export function sidebarNavigationLink(page: Page, name: RegExp): Locator {

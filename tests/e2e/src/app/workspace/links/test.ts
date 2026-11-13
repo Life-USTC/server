@@ -1,9 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { DEV_SEED } from "../../../../utils/dev-seed";
-import {
-  expandSidebarGroup,
-  sidebarNavigationLink,
-} from "../../../../utils/locators";
+import { sidebarNavigationLink } from "../../../../utils/locators";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -165,7 +162,26 @@ test.describe("仪表盘网站链接", () => {
   }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/workspace/overview");
-      await expandSidebarGroup(page, /^(校园|Campus)$/i);
+      const sidebar = page.getByTestId("workspace-sidebar");
+      await expect(sidebar).toHaveAttribute(
+        "data-shell-navigation-view",
+        "workspace",
+      );
+      await page.getByTestId("workspace-sidebar-back").click();
+      await expect(sidebar).toHaveAttribute(
+        "data-shell-navigation-view",
+        "root",
+      );
+      const campus = sidebar.locator(
+        '[data-slot="sidebar-content"] a[href="/campus"]',
+      );
+      await expect(campus).toHaveCount(1);
+      await campus.click();
+      await expect(page).toHaveURL(/\/campus$/);
+      await expect(page.getByTestId("campus-sidebar")).toHaveAttribute(
+        "data-shell-navigation-view",
+        "campus",
+      );
 
       const linksTab = sidebarNavigationLink(page, /^(网站|Websites)$/i);
       await expect(linksTab).toBeVisible();

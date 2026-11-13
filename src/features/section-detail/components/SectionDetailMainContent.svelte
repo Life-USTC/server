@@ -139,7 +139,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
 );
 </script>
 
-<div class="grid min-h-full grid-rows-[auto_minmax(0,1fr)_auto] bg-card lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
+<div class="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] bg-card lg:grid-rows-[auto_minmax(0,1fr)]">
   <div class="bg-card" data-testid="detail-pinned-summary">
     <div class="page-frame page-frame-content px-4 sm:px-5 lg:px-6">
       <SectionDetailHeader
@@ -364,7 +364,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
     data-testid="section-mobile-primary-actions"
   >
     <Separator />
-    <div class="px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <div class="px-3 pt-3 pb-3">
       <SectionDetailPrimaryActions
         {courseName}
         onOpenCalendar={openCalendarDialog}

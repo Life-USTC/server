@@ -225,12 +225,15 @@ test("section.mobile-detail-actions", { tag: "@Section/Web" }, async ({
 
 async function actionBarAtViewportBottom(page: Page) {
   const bar = page.getByTestId("section-mobile-primary-actions");
-  const navigation = page.locator('[data-shell-navigation="mobile-primary"]');
+  const navigation = page.locator("[data-mobile-primary-navigation]");
   await expect(bar).toBeInViewport();
-  await expect(navigation).toHaveCount(0);
+  await expect(navigation).toBeVisible();
   const barBox = await bar.boundingBox();
+  const navigationBox = await navigation.boundingBox();
 
-  if (!barBox) throw new Error("Missing mobile action geometry");
+  if (!barBox || !navigationBox)
+    throw new Error("Missing mobile action or primary navigation geometry");
+  expect(barBox.y + barBox.height).toBeLessThanOrEqual(navigationBox.y);
   expect(barBox.y).toBeGreaterThanOrEqual(0);
   expect(barBox.y + barBox.height).toBeLessThanOrEqual(
     (page.viewportSize()?.height ?? 0) + 1,
@@ -287,15 +290,28 @@ for (const domain of ["Calendar", "Subscription"] as const) {
             `/catalog/sections/${fixture.sections[0].jwId}`,
           );
           await actionBarAtViewportBottom(page);
-          await page.evaluate(() => {
-            document
-              .querySelectorAll("[data-detail-scroll-container]")
-              .forEach((element) => {
-                element.scrollTop = element.scrollHeight;
-              });
-            window.scrollTo(0, document.documentElement.scrollHeight);
+          const detailReading = page.locator("[data-detail-scroll-container]");
+          await expect(detailReading).toHaveCount(1);
+          await detailReading.evaluate((element) => {
+            element.scrollTop = element.scrollHeight;
           });
+          await expect
+            .poll(() =>
+              detailReading.evaluate(
+                (element) =>
+                  element.scrollHeight -
+                  element.clientHeight -
+                  element.scrollTop,
+              ),
+            )
+            .toBe(0);
           const bar = await actionBarAtViewportBottom(page);
+          expect(await page.evaluate(() => scrollY)).toBe(0);
+          expect(
+            await page
+              .locator("[data-detail-scroll-container]")
+              .evaluate((node) => node.scrollTop),
+          ).toBeGreaterThan(0);
 
           if (domain === "Calendar") {
             await bar

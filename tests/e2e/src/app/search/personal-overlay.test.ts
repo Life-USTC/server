@@ -173,9 +173,10 @@ test("an open search clears the previous viewer's results before receiving the n
     await page.getByRole("combobox").fill(`${query} note`);
     await Promise.all([nextBootstrap.promise, nextSearch.promise]);
     releaseBootstrap.resolve();
-    await expect(page.locator("#app-user-menu")).toContainText(
-      users[1].name ?? "",
-    );
+    const nextAvatar = page.locator("#app-user-menu").getByRole("button");
+    await expect(nextAvatar).toHaveCount(1);
+    await expect(nextAvatar).toHaveAttribute("title", users[1].name ?? "");
+    await expect(nextAvatar).toBeVisible();
     await expect(
       page.getByRole("option", { name: new RegExp(`${query} note A`) }),
     ).toHaveCount(0);

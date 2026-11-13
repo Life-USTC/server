@@ -16,6 +16,13 @@ import {
 } from "../../../utils/page-ready";
 import { type Shell, test } from "./shell-projection-fixture";
 
+async function expectAvatarViewer(page: Page, name: string) {
+  const avatar = page.locator("#app-user-menu").getByRole("button");
+  await expect(avatar).toHaveCount(1);
+  await expect(avatar).toBeVisible();
+  await expect(avatar).toHaveAttribute("title", name);
+}
+
 function expectPrivate(response: APIResponse) {
   expect(response.headers()["cache-control"]).toBe("private, no-store");
   expect(response.headers()["cloudflare-cdn-cache-control"]).toBe("no-store");
@@ -189,9 +196,7 @@ test("rendering-and-cache.personal-overlays-4", { tag: "@Site/Web" }, async ({
               "private, no-store",
             );
             expect(await hydrated.json()).toEqual(payload);
-            await expect(page.locator("#app-user-menu")).toContainText(
-              user.name,
-            );
+            await expectAvatarViewer(page, user.name);
           }
           expect(JSON.stringify(payload)).not.toContain(user.email);
           expect(JSON.stringify(payload)).not.toContain(users[1 - index].id);
@@ -240,7 +245,7 @@ test("rendering-and-cache.personal-overlays-5", { tag: "@Site/Web" }, async ({
   shell,
 }) => {
   await shell.run(
-    { sessions: [{ user: 0 }, { user: 1 }] },
+    { existingFeedTokens: true, sessions: [{ user: 0 }, { user: 1 }] },
     async ({ users, flow, origin, sessionCookie }) => {
       for (const user of users) {
         const cookie = await sessionCookie(user.id);
@@ -266,9 +271,7 @@ test("rendering-and-cache.personal-overlays-5", { tag: "@Site/Web" }, async ({
               ? await gotoAndWaitForReady(page, "/workspace/todos")
               : await page.goto("/workspace/todos");
             if (response) expect(response.status()).toBe(200);
-            await expect(page.locator("#app-user-menu")).toContainText(
-              user.name,
-            );
+            await expectAvatarViewer(page, user.name);
             const projection = await context.request.get(
               "/_internal/shell-bootstrap",
             );
@@ -279,7 +282,6 @@ test("rendering-and-cache.personal-overlays-5", { tag: "@Site/Web" }, async ({
               '[data-shell-navigation="desktop"]',
             );
             for (const [path, field, unit] of [
-              ["calendar", "calendarItemsCount", "items"],
               ["homeworks", "pendingHomeworksCount", "pending"],
               ["todos", "pendingTodosCount", "pending"],
               ["exams", "examsCount", "exams"],
@@ -292,6 +294,22 @@ test("rendering-and-cache.personal-overlays-5", { tag: "@Site/Web" }, async ({
                 unit,
               );
             }
+            expect(bootstrapRequests).toEqual([]);
+            const calendarResponse = javaScriptEnabled
+              ? await gotoAndWaitForReady(page, "/workspace/calendar")
+              : await page.goto("/workspace/calendar");
+            if (calendarResponse) expect(calendarResponse.status()).toBe(200);
+            await expectAvatarViewer(page, user.name);
+            await expect(page.getByTestId("calendar-sidebar")).toHaveAttribute(
+              "data-shell-navigation-view",
+              "calendar",
+            );
+            await expectNavigationCount(
+              navigation,
+              "/workspace/calendar",
+              payload.navigation.calendarItemsCount,
+              "items",
+            );
             expect(bootstrapRequests).toEqual([]);
           } finally {
             await flow.closeContext(context);
@@ -315,13 +333,13 @@ test("rendering-and-cache.personal-overlays-7", { tag: "@Site/Web" }, async ({
         { name: "NEXT_LOCALE", value: "en-us", url: origin },
       ]);
       await gotoAndWaitForReady(page, "/workspace/todos");
-      await expect(page.locator("#app-user-menu")).toContainText(users[0].name);
+      await expectAvatarViewer(page, users[0].name);
       const localStorageBefore = await page.evaluate(() =>
         JSON.stringify({ ...localStorage }),
       );
       expect(localStorageBefore).not.toContain(users[0].id);
       expect(localStorageBefore).not.toContain(users[0].name);
-      await page.locator("#app-user-menu").click();
+      await page.locator("#app-user-menu").getByRole("button").click();
       await page
         .getByRole("menuitem", { name: "Sign Out", exact: true })
         .click();
@@ -335,10 +353,10 @@ test("rendering-and-cache.personal-overlays-7", { tag: "@Site/Web" }, async ({
 
       await context.addCookies([await sessionCookie(users[1].id)]);
       await gotoAndWaitForReady(page, "/catalog/courses");
-      await expect(page.locator("#app-user-menu")).toContainText(users[1].name);
-      await expect(page.locator("#app-user-menu")).not.toContainText(
-        users[0].name,
-      );
+      await expectAvatarViewer(page, users[1].name);
+      await expect(
+        page.locator("#app-user-menu").getByRole("button"),
+      ).not.toHaveAttribute("title", users[0].name);
       const second = await page.request.get("/_internal/shell-bootstrap");
       expectPrivate(second);
       const secondPayload = await second.json();
@@ -356,10 +374,10 @@ test("rendering-and-cache.personal-overlays-7", { tag: "@Site/Web" }, async ({
       // A fresh authenticated navigation must also replace a previous signed-in projection.
       await context.addCookies([await sessionCookie(users[0].id)]);
       await page.reload();
-      await expect(page.locator("#app-user-menu")).toContainText(users[0].name);
-      await expect(page.locator("#app-user-menu")).not.toContainText(
-        users[1].name,
-      );
+      await expectAvatarViewer(page, users[0].name);
+      await expect(
+        page.locator("#app-user-menu").getByRole("button"),
+      ).not.toHaveAttribute("title", users[1].name);
       const first = await page.request.get("/_internal/shell-bootstrap");
       const firstPayload = await first.json();
       expect(firstPayload.navigation).toMatchObject({
@@ -463,8 +481,20 @@ test("rendering-and-cache.web-rendering-and-cache-1", {
           }
           const page = await signed.newPage();
           await gotoAndWaitForReady(page, "/workspace/todos");
-          await expect(page.locator("#app-user-menu")).toContainText(
-            users[0].name,
+          await expectAvatarViewer(page, users[0].name);
+          await page.getByTestId("workspace-sidebar-back").click();
+          await expect(page.getByTestId("workspace-sidebar")).toHaveAttribute(
+            "data-shell-navigation-view",
+            "root",
+          );
+          await page
+            .getByTestId("workspace-sidebar")
+            .locator('[data-slot="sidebar-content"] a[href="/campus"]')
+            .click();
+          await expect(page).toHaveURL(/\/campus$/);
+          await expect(page.getByTestId("campus-sidebar")).toHaveAttribute(
+            "data-shell-navigation-view",
+            "campus",
           );
           const catalogData = await observeAction(
             () =>
@@ -482,9 +512,7 @@ test("rendering-and-cache.web-rendering-and-cache-1", {
           );
           expect(catalogData.status()).toBe(200);
           await expect(page).toHaveURL(/\/catalog\/courses$/);
-          await expect(page.locator("#app-user-menu")).toContainText(
-            users[0].name,
-          );
+          await expectAvatarViewer(page, users[0].name);
           await page
             .locator(
               `#main-content a[href="/catalog/courses/${DEV_SEED.course.jwId}"]:visible`,
@@ -494,9 +522,7 @@ test("rendering-and-cache.web-rendering-and-cache-1", {
           await expect(page).toHaveURL(
             new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}$`),
           );
-          await expect(page.locator("#app-user-menu")).toContainText(
-            users[0].name,
-          );
+          await expectAvatarViewer(page, users[0].name);
         } finally {
           await flow.closeContext(anonymous);
           await flow.closeContext(signed);
@@ -779,9 +805,7 @@ for (const scenario of shellViewerPages) {
         );
         expect(personal.status(), item.path).toBe(200);
         expect((await shell.json()).viewer.id, item.path).toBe(users[0].id);
-        await expect(page.locator("#app-user-menu")).toContainText(
-          users[0].name ?? "",
-        );
+        await expectAvatarViewer(page, users[0].name ?? "");
         expect(identities, item.path).toEqual(["/_internal/shell-bootstrap"]);
       },
     );
@@ -837,9 +861,7 @@ test("user.shell-viewer: retry failed identity without public page invalidation"
         () => retry.click(),
       );
       expect(personal.status()).toBe(200);
-      await expect(page.locator("#app-user-menu")).toContainText(
-        users[0].name ?? "",
-      );
+      await expectAvatarViewer(page, users[0].name ?? "");
       await expect(retry).toHaveCount(0);
       expect(identities).toEqual(Array(3).fill("/_internal/shell-bootstrap"));
       expect(publicRequests).toEqual([]);
@@ -861,9 +883,7 @@ test("user.shell-viewer: private navigation retains the viewer on the public sec
       await context.addCookies([await sessionCookie(users[0].id)]);
       const identities = observeShellIdentities(page);
       await gotoAndWaitForReady(page, "/workspace/calendar");
-      await expect(page.locator("#app-user-menu")).toContainText(
-        users[0].name ?? "",
-      );
+      await expectAvatarViewer(page, users[0].name ?? "");
       expect(identities).toEqual([]);
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
       expect(identities).toEqual([]);
@@ -885,9 +905,7 @@ test("user.shell-viewer: private navigation retains the viewer on the public sec
       );
       expect(projected.status()).toBe(200);
       await expect(page).toHaveURL(new RegExp(`${destination}$`));
-      await expect(page.locator("#app-user-menu")).toContainText(
-        users[0].name ?? "",
-      );
+      await expectAvatarViewer(page, users[0].name ?? "");
       expect(identities).toEqual([]);
     },
   );
@@ -912,9 +930,7 @@ test("user.shell-viewer: real sign-in initializes the public section projections
         () => gotoAndWaitForReady(page, destination),
       );
       expect((await priorBootstrap.json()).viewer.id).toBe(users[0].id);
-      await expect(page.locator("#app-user-menu")).toContainText(
-        users[0].name ?? "",
-      );
+      await expectAvatarViewer(page, users[0].name ?? "");
       expect(identities).toEqual(["/_internal/shell-bootstrap"]);
       // Signing in directly to a public detail retains the focused root layout.
       // The completed login must initialize its private shell projection.
@@ -955,9 +971,7 @@ test("user.shell-viewer: real sign-in initializes the public section projections
       });
       expect(signedInViewer.homeworkData.viewer.userId).toBe(debugUser.id);
       await expect(page).toHaveURL(new RegExp(`${destination}$`));
-      await expect(page.locator("#app-user-menu")).toContainText(
-        DEV_SEED.debugName,
-      );
+      await expectAvatarViewer(page, DEV_SEED.debugName);
       expect(identities).toEqual(["/_internal/shell-bootstrap"]);
       await waitForUiSettled(page);
     },
@@ -1056,9 +1070,7 @@ roomTest(
         const signedIn = await context.newPage();
         await context.addCookies([await sessionCookie(users[0].id)]);
         await gotoAndWaitForReady(signedIn, "/news");
-        await expect(signedIn.locator("#app-user-menu")).toContainText(
-          users[0].name ?? "",
-        );
+        await expectAvatarViewer(signedIn, users[0].name ?? "");
         const paths = [
           "/news",
           "/search",

@@ -309,6 +309,7 @@ test("interface-hierarchy.transport-specific-exceptions-3", async () => {
   }
   const publicExceptions = [
     "/",
+    "/campus",
     "/account/sign-in",
     "/api/docs",
     "/api/docs/[...path]",

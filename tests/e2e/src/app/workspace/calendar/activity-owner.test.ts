@@ -182,7 +182,11 @@ test("calendar.activity-owner-transition", { tag: "@Calendar/Web" }, async ({
                     // SSR bootstrap scripts retain initial data but are never rendered.
                     const renderedText = document.body.innerText;
                     if (
-                      renderedText.includes(marker) &&
+                      Array.from(
+                        document.querySelectorAll("#app-user-menu button"),
+                      ).some(
+                        (button) => button.getAttribute("title") === marker,
+                      ) &&
                       (renderedText.includes(oldTitle) ||
                         renderedText.includes(oldCourse))
                     )
@@ -191,6 +195,8 @@ test("calendar.activity-owner-transition", { tag: "@Calendar/Web" }, async ({
                     childList: true,
                     subtree: true,
                     characterData: true,
+                    attributes: true,
+                    attributeFilter: ["title"],
                   });
                 },
                 {
@@ -216,7 +222,13 @@ test("calendar.activity-owner-transition", { tag: "@Calendar/Web" }, async ({
               await expect(page).toHaveURL(
                 `${calendar.origin}/workspace/calendar`,
               );
-              await expect(page.locator("body")).toContainText(
+              const currentAvatar = page
+                .locator("#app-user-menu")
+                .getByRole("button");
+              await expect(currentAvatar).toHaveCount(1);
+              await expect(currentAvatar).toBeVisible();
+              await expect(currentAvatar).toHaveAttribute(
+                "title",
                 fixtures[1].users[ownerIndex].name,
               );
               await expect(page.locator("body")).not.toContainText(
@@ -248,7 +260,8 @@ test("calendar.activity-owner-transition", { tag: "@Calendar/Web" }, async ({
                     );
                   }),
               );
-              await expect(page.locator("body")).toContainText(
+              await expect(currentAvatar).toHaveAttribute(
+                "title",
                 fixtures[1].users[ownerIndex].name,
               );
               await expect(page.locator("body")).toContainText(

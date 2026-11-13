@@ -60,7 +60,7 @@ function directoryLinks(root: HTMLElement) {
   {#key `${epoch}:${data.pageLocale}`}
     <div
       use:directoryLinks
-      class="mx-auto w-full max-w-7xl flex flex-col gap-6"
+      class="page-frame flex flex-col gap-6"
     >
       {#if data.campusDemo}<DemoNotice
           demo={data.campusDemo}

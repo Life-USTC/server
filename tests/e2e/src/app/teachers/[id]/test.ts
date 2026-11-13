@@ -411,6 +411,12 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         .filter({ visible: true })
         .first();
       await section.hover();
+      expect(await page.evaluate(() => scrollY)).toBe(0);
+      expect(
+        await page
+          .locator("[data-detail-scroll-container]")
+          .evaluate((element) => element.scrollTop),
+      ).toBeGreaterThan(0);
       await expect(
         section.locator('[data-slot="entity-secondary-name"]'),
       ).toBeVisible();
