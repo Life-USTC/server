@@ -1,5 +1,6 @@
 import { expect } from "@playwright/test";
 import {
+  detailScrollViewport,
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../utils/page-ready";
@@ -302,7 +303,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           await expect(page).toHaveURL(/#comments$/);
           await expect(page.locator("#comments h2")).toBeInViewport();
           expect(await page.evaluate(() => scrollY)).toBe(0);
-          const reading = page.locator("[data-detail-scroll-container]");
+          const reading = detailScrollViewport(page);
           const readingPosition = await reading.evaluate(
             (node) => node.scrollTop,
           );
@@ -525,7 +526,7 @@ for (const mode of [
         await page.waitForFunction(
           () => document.documentElement.dataset.lifeUstcHydrated === "true",
         );
-        const inner = page.locator("[data-detail-scroll-container]");
+        const inner = detailScrollViewport(page);
         // Public lazy modules settle independently of the held personal bootstrap.
         for (const [id, empty] of [
           ["introduction", "No description yet"],

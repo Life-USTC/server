@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import {
+  detailScrollViewport,
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
@@ -211,6 +212,50 @@ test("section.mobile-detail-actions", { tag: "@Section/Web" }, async ({
             .first();
           await reachable(teacher);
           await expect(teacher).toContainText(teacherNames[language]);
+          const readableTarget = await teacher.evaluate((link) => {
+            const owner = document.querySelector(
+              "[data-shell-scroll-container]",
+            );
+            const actions = document.querySelector(
+              '[data-testid="section-mobile-primary-actions"]',
+            );
+            if (!owner || !actions)
+              throw new Error("Missing mobile reading frame");
+            const target = link.getBoundingClientRect();
+            const viewport = owner.getBoundingClientRect();
+            const actionBox = actions.getBoundingClientRect();
+            // Inline links can span lines; their union center can be unpainted leading.
+            const fragment = Array.from(link.getClientRects()).find(
+              (rect) => rect.width > 0 && rect.height > 0,
+            );
+            if (!fragment)
+              throw new Error("Teacher link has no painted rectangle");
+            const hit = document.elementFromPoint(
+              fragment.x + fragment.width / 2,
+              fragment.y + fragment.height / 2,
+            );
+            const unownedScroll: string[] = [];
+            for (let node = link.parentElement; node; node = node.parentElement)
+              if (node !== owner && node.scrollTop !== 0)
+                unownedScroll.push(node.tagName);
+            return {
+              top: target.top,
+              bottom: target.bottom,
+              viewportTop: viewport.top,
+              viewportBottom: Math.min(viewport.bottom, actionBox.top),
+              centerHitsTeacher: !!hit && link.contains(hit),
+              unownedScroll,
+            };
+          });
+          expect(readableTarget.top).toBeGreaterThanOrEqual(
+            readableTarget.viewportTop,
+          );
+          expect(readableTarget.bottom).toBeLessThanOrEqual(
+            readableTarget.viewportBottom,
+          );
+          expect(readableTarget.centerHitsTeacher).toBe(true);
+          expect(readableTarget.unownedScroll).toEqual([]);
+          expect(await page.evaluate(() => scrollY)).toBe(0);
           await expectNoPageHorizontalOverflow(page);
 
           await teacher.click();
@@ -290,7 +335,7 @@ for (const domain of ["Calendar", "Subscription"] as const) {
             `/catalog/sections/${fixture.sections[0].jwId}`,
           );
           await actionBarAtViewportBottom(page);
-          const detailReading = page.locator("[data-detail-scroll-container]");
+          const detailReading = detailScrollViewport(page);
           await expect(detailReading).toHaveCount(1);
           await detailReading.evaluate((element) => {
             element.scrollTop = element.scrollHeight;
@@ -306,11 +351,16 @@ for (const domain of ["Calendar", "Subscription"] as const) {
             )
             .toBe(0);
           const bar = await actionBarAtViewportBottom(page);
+          const finalFacts = await page.locator("#overview").boundingBox();
+          const actionBounds = await bar.boundingBox();
+          if (!finalFacts || !actionBounds)
+            throw new Error("Missing final section facts or action geometry");
+          expect(finalFacts.y + finalFacts.height).toBeLessThanOrEqual(
+            actionBounds.y,
+          );
           expect(await page.evaluate(() => scrollY)).toBe(0);
           expect(
-            await page
-              .locator("[data-detail-scroll-container]")
-              .evaluate((node) => node.scrollTop),
+            await detailScrollViewport(page).evaluate((node) => node.scrollTop),
           ).toBeGreaterThan(0);
 
           if (domain === "Calendar") {

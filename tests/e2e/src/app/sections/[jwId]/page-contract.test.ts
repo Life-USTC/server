@@ -366,24 +366,20 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
         expect(await page.evaluate(() => scrollY)).toBe(0);
         await expect
           .poll(() =>
-            page
-              .locator("[data-detail-scroll-container]")
-              .evaluate((node) => node.scrollTop),
+            getDetailViewport(page).evaluate((node) => node.scrollTop),
           )
           .toBeGreaterThan(0);
         expect(
-          await page
-            .locator("[data-detail-scroll-container]")
-            .evaluate((node) => {
-              // Overflow-hidden frame ancestors must not steal reading movement.
-              for (
-                let parent = node.parentElement;
-                parent;
-                parent = parent.parentElement
-              )
-                if (parent.scrollTop !== 0) return false;
-              return true;
-            }),
+          await getDetailViewport(page).evaluate((node) => {
+            // Overflow-hidden frame ancestors must not steal reading movement.
+            for (
+              let parent = node.parentElement;
+              parent;
+              parent = parent.parentElement
+            )
+              if (parent.scrollTop !== 0) return false;
+            return true;
+          }),
         ).toBe(true);
         await expect(page.locator("#comments")).toBeInViewport();
         await expect(actions).toBeInViewport();

@@ -139,7 +139,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
 );
 </script>
 
-<div class="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] bg-card lg:grid-rows-[auto_minmax(0,1fr)]">
+<div class="grid min-h-full grid-rows-[auto_minmax(0,1fr)_auto] bg-card lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
   <div class="bg-card" data-testid="detail-pinned-summary">
     <div class="page-frame page-frame-content px-4 sm:px-5 lg:px-6">
       <SectionDetailHeader
@@ -159,7 +159,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
   </div>
 
   <div
-    class="@container/detail min-w-0 min-h-0 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
+    class="@container/detail min-w-0 min-h-0 overflow-x-clip px-4 py-4 sm:px-5 lg:overflow-x-hidden lg:overflow-y-auto lg:px-6"
     aria-busy={streamLoading}
     data-detail-scroll-container
   >

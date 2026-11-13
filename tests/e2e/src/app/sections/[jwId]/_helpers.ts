@@ -2,7 +2,10 @@
  * Shared helpers for /catalog/sections/[jwId] E2E shards.
  */
 import { expect, type Locator, type Page } from "@playwright/test";
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import {
+  detailScrollViewport,
+  gotoAndWaitForReady,
+} from "../../../../utils/page-ready";
 
 export function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -42,7 +45,7 @@ export async function jumpToSection(
 }
 
 export function getDetailViewport(page: Page) {
-  return page.locator("[data-detail-scroll-container]").first();
+  return detailScrollViewport(page);
 }
 
 export async function openCommentDeleteDialog(

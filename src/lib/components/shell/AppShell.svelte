@@ -673,7 +673,7 @@ let globalSearchShortcutLabel = $derived(
           class={cn(
             "flex min-w-0 flex-1 flex-col",
             detailWorkspace
-              ? "min-h-0 overflow-hidden"
+              ? "min-h-0 overflow-y-auto lg:overflow-hidden"
               : "lg:min-h-0 lg:overflow-y-auto",
           )}
         >
@@ -690,7 +690,7 @@ let globalSearchShortcutLabel = $derived(
             class={cn(
               "w-full flex-1",
               detailWorkspace
-                ? "bg-card p-0 min-h-0 overflow-hidden"
+                ? "bg-card p-0 lg:min-h-0 lg:overflow-hidden"
                 : presentation.edgeToEdge
                   ? "p-0"
                   : "px-4 py-4 sm:px-5 lg:px-6",

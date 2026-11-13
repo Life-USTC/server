@@ -957,8 +957,33 @@ test("/ shell 桌面导航后内容滚动回到顶部", { tag: "@Site/Web" }, as
       )
       .toBeGreaterThan(100);
 
-    await page
-      .getByTestId("app-sidebar")
+    const navigation = page.locator('[data-shell-navigation="desktop"]');
+    await expect(navigation).toHaveAttribute(
+      "data-shell-navigation-view",
+      "root",
+    );
+    await navigation
+      .locator('[data-slot="sidebar-content"] a[href="/campus"]')
+      .click();
+    await page.waitForURL("**/campus");
+    await waitForUiSettled(page);
+    await expect(navigation).toHaveAttribute(
+      "data-shell-navigation-view",
+      "campus",
+    );
+    // The first real hop must reset the genuinely scrolled Terms pane before
+    // the second scope's course link is exercised.
+    await expect
+      .poll(async () =>
+        page.evaluate(() => {
+          const contentPane = document.querySelector(
+            "[data-shell-scroll-container]",
+          );
+          return Math.max(window.scrollY, contentPane?.scrollTop ?? 0);
+        }),
+      )
+      .toBeLessThan(8);
+    await navigation
       .getByRole("link", { name: /^(浏览课程|Browse courses)$/i })
       .click();
     await page.waitForURL("**/catalog/courses");

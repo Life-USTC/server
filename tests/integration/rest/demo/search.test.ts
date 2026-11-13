@@ -150,51 +150,113 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         },
       });
       const ordinaryCookie = `${actor.cookie.name}=${actor.cookie.value}`;
-      const ordinary = await request.get(
-        "/api/search?" +
-          new URLSearchParams({
-            q: sentinel,
-            scope: "workspace",
-            locale,
-            limit: "25",
+      const secret = { "x-test-storage-secret": "local-test-storage-observer" };
+      const ordinaryProbeId = crypto.randomUUID();
+      const ordinaryProbe = `/__test/community-effects?id=${ordinaryProbeId}`;
+      let ordinaryRegistered = false;
+      try {
+        const registered = await request.post(ordinaryProbe, {
+          headers: secret,
+        });
+        ordinaryRegistered = registered.status() === 201;
+        await registered.body();
+        expect(registered.status()).toBe(201);
+        const ordinary = await request.get(
+          "/api/search?" +
+            new URLSearchParams({
+              q: sentinel,
+              scope: "workspace",
+              locale,
+              limit: "25",
+            }),
+          {
+            headers: {
+              ...secret,
+              "x-test-community-probe": ordinaryProbeId,
+              cookie: ordinaryCookie,
+            },
+          },
+        );
+        expect(ordinary.status()).toBe(200);
+        const ordinaryBody = result(await ordinary.json());
+        expect(ordinaryBody.query).toBe(sentinel);
+        expect(ordinaryBody.groups.map((group) => group.type)).toEqual([
+          "sections",
+          "teachers",
+          "courses",
+          "homeworks",
+          "todos",
+        ]);
+        expect(items(ordinaryBody, "sections").map((item) => item.id)).toEqual([
+          "section:812001",
+        ]);
+        expect(items(ordinaryBody, "teachers").map((item) => item.id)).toEqual([
+          `teacher:${teacher.id}`,
+        ]);
+        expect(items(ordinaryBody, "courses").map((item) => item.id)).toEqual([
+          "course:811001",
+        ]);
+        expect(items(ordinaryBody, "homeworks")).toEqual([
+          {
+            id: `homework:${homework.id}`,
+            title: homework.title,
+            description: sentinel,
+            href: `/catalog/sections/812001?homeworkId=${homework.id}#homework`,
+          },
+        ]);
+        expect(items(ordinaryBody, "todos")).toEqual([
+          {
+            id: `todo:${todo.id}`,
+            title: todo.title,
+            description: "2026-10-02",
+            href: "/workspace/todos",
+          },
+        ]);
+
+        // Joining the real response and its waitUntil work keeps the ordinary
+        // search's detached metrics outside the subsequent sealed Demo ledger.
+        const drained = await request.get(ordinaryProbe, { headers: secret });
+        expect(drained.status()).toBe(200);
+        expect(await drained.json()).toMatchObject({
+          backgroundErrors: [],
+          requests: [
+            {
+              outcome: "fulfilled",
+              value: { method: "GET", path: "/api/search" },
+              result: 200,
+            },
+          ],
+        });
+        const requestId = ordinary.headers()["x-request-id"];
+        expect(requestId).toMatch(/^[0-9a-f-]{36}$/);
+        expect(
+          await db.featureOperationEvent.findMany({
+            select: {
+              feature: true,
+              operation: true,
+              protocol: true,
+              requestId: true,
+              outcome: true,
+            },
           }),
-        { headers: { cookie: ordinaryCookie } },
-      );
-      expect(ordinary.status()).toBe(200);
-      const ordinaryBody = result(await ordinary.json());
-      expect(ordinaryBody.query).toBe(sentinel);
-      expect(ordinaryBody.groups.map((group) => group.type)).toEqual([
-        "sections",
-        "teachers",
-        "courses",
-        "homeworks",
-        "todos",
-      ]);
-      expect(items(ordinaryBody, "sections").map((item) => item.id)).toEqual([
-        "section:812001",
-      ]);
-      expect(items(ordinaryBody, "teachers").map((item) => item.id)).toEqual([
-        `teacher:${teacher.id}`,
-      ]);
-      expect(items(ordinaryBody, "courses").map((item) => item.id)).toEqual([
-        "course:811001",
-      ]);
-      expect(items(ordinaryBody, "homeworks")).toEqual([
-        {
-          id: `homework:${homework.id}`,
-          title: homework.title,
-          description: sentinel,
-          href: `/catalog/sections/812001?homeworkId=${homework.id}#homework`,
-        },
-      ]);
-      expect(items(ordinaryBody, "todos")).toEqual([
-        {
-          id: `todo:${todo.id}`,
-          title: todo.title,
-          description: "2026-10-02",
-          href: "/workspace/todos",
-        },
-      ]);
+        ).toEqual([
+          {
+            feature: "catalog.search",
+            operation: "search",
+            protocol: "rest",
+            requestId,
+            outcome: "success",
+          },
+        ]);
+      } finally {
+        // DELETE also drains if response consumption or the GET observation failed.
+        const removed = await request.delete(ordinaryProbe, {
+          headers: secret,
+        });
+        await removed.body();
+        if (ordinaryRegistered) expect(removed.status()).toBe(204);
+        else expect([204, 404]).toContain(removed.status());
+      }
 
       // The real session/cache work above finishes before the sealed Demo ledger begins.
       const before = await snapshot(isolatedWorker);
@@ -210,7 +272,6 @@ for (const locale of ["en-us", "zh-cn"] as const) {
       const signed = await createSignedDemoCookie({ issuedAt: now });
       const expired = await createSignedDemoCookie({ issuedAt: now - 901 });
       const cookie = `${signed.name}=${signed.value}; NEXT_LOCALE=${locale}`;
-      const secret = { "x-test-storage-secret": "local-test-storage-observer" };
       const probeId = crypto.randomUUID();
       const probe = `/__test/community-effects?id=${probeId}`;
       const registered = await request.post(`${probe}&io=1`, {
