@@ -27,6 +27,7 @@ type Plan = {
   debug?: boolean;
   bus?: boolean;
   feedToken?: boolean;
+  existingFeedTokens?: boolean;
   sessions: { user: number; deleted?: boolean }[];
 };
 type Database = IsolatedWorker["database"]["owner"];
@@ -82,6 +83,9 @@ async function arrange(
           data: {
             id: index === 0 ? actorId : crypto.randomUUID(),
             name: `Shell viewer ${suffix}`,
+            ...(plan.existingFeedTokens
+              ? { calendarFeedToken: crypto.randomUUID().replaceAll("-", "") }
+              : {}),
             username: `shell${suffix}`,
             email: `shell-${suffix}@example.test`,
             todos:
@@ -365,6 +369,11 @@ export const test = ownedTest.extend<{
                 },
                 {
                   calendarTokenCreated: plan.feedToken,
+                  get existingCalendarToken() {
+                    return plan.existingFeedTokens
+                      ? fixture.users[0].calendarFeedToken
+                      : null;
+                  },
                   auditActions: plan.sessions.some(({ deleted }) => deleted)
                     ? { account_sign_out: 1 }
                     : {},

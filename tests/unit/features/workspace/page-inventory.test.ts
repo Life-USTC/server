@@ -46,6 +46,16 @@ describe("browser route inventory", () => {
       (id, index) => inventoryIds.indexOf(id) !== index,
     );
     expect(duplicates).toEqual([]);
+    expect(PAGE_INVENTORY.find((entry) => entry.routeId === "/campus")).toEqual(
+      {
+        routeId: "/campus",
+        domain: "Site",
+        samplePath: "/campus",
+        kind: "page",
+        auth: "public",
+        mobileChecks: ["public"],
+      },
+    );
   });
 
   it("mobile route batches have unique paths and include current navigation tabs", () => {

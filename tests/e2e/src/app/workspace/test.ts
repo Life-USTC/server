@@ -57,12 +57,25 @@ test.describe("仪表盘", () => {
 
         // Task-oriented workspace destinations are directly reachable.
         await expandDaySidebarGroup(page);
-        for (const label of [/^(日历|Calendar)$/i, /^(作业|Homework)$/i]) {
-          await expect(sidebarNavigationLink(page, label)).toBeVisible();
-        }
+        await expect(
+          sidebarNavigationLink(page, /^(作业|Homework)$/i),
+        ).toBeVisible();
+        await page.getByTestId("workspace-sidebar-back").click();
+        await expect(page.getByTestId("workspace-sidebar")).toHaveAttribute(
+          "data-shell-navigation-view",
+          "root",
+        );
+        await expect(
+          sidebarNavigationLink(page, /^(日历|Calendar)$/i),
+        ).toBeVisible();
+        await page.getByTestId("workspace-sidebar-back").click();
+        await expect(page.getByTestId("workspace-sidebar")).toHaveAttribute(
+          "data-shell-navigation-view",
+          "workspace",
+        );
         await expect(
           sidebarNavigationLink(page, /^(总览|Overview)$/i),
-        ).toHaveCount(0);
+        ).toHaveAttribute("aria-current", "page");
         await expect(
           appSidebar(page).getByRole("link", {
             name: /^Life@USTC: (Home|首页)$/,
@@ -114,9 +127,18 @@ test.describe("仪表盘", () => {
     page,
     account,
     academic,
+    academicDb,
     homeworkStates: _homeworkStates,
     homeworkRun,
   }) => {
+    // Arrange an existing credential before the effect observer; require its exact preservation.
+    const presetCalendarToken = crypto.randomUUID().replaceAll("-", "");
+    await academicDb((db) =>
+      db.user.update({
+        where: { id: account.id },
+        data: { calendarFeedToken: presetCalendarToken },
+      }),
+    );
     await homeworkRun(
       async () => {
         await page.setViewportSize({ width: 1280, height: 720 });
@@ -170,15 +192,26 @@ test.describe("仪表盘", () => {
           pendingTodosCount: 0,
           subscribedSectionCount: 1,
         });
+        const catalogUrl = page.url();
+        await page
+          .locator(
+            `#main-content a[href="/catalog/courses/${academic.course.jwId}"]:visible`,
+          )
+          .first()
+          .click();
+        await expect(page).toHaveURL(
+          new RegExp(`/catalog/courses/${academic.course.jwId}$`),
+        );
+        await expect(
+          page.locator("#app-user-menu").getByRole("button"),
+        ).toHaveAttribute("title", account.name ?? "");
+        await page.goBack();
+        await expect(page).toHaveURL(catalogUrl);
+        await page.goBack();
+        await expect(page).toHaveURL(/\/workspace\/homeworks$/);
         await expandDaySidebarGroup(page);
 
         for (const [path, label, count, unit] of [
-          [
-            "calendar",
-            /^(日历|Calendar)$/i,
-            payload.navigation.calendarItemsCount,
-            /items|汇总项/,
-          ],
           [
             "homeworks",
             /^(作业|Homework)$/i,
@@ -218,21 +251,35 @@ test.describe("仪表盘", () => {
         expect(
           bootstrapResponse.headers()["cloudflare-cdn-cache-control"],
         ).toBe("no-store");
-        await page
-          .locator(
-            `#main-content a[href="/catalog/courses/${academic.course.jwId}"]:visible`,
-          )
-          .first()
-          .click();
-        await expect(page).toHaveURL(
-          new RegExp(`/catalog/courses/${academic.course.jwId}$`),
+        await page.getByTestId("workspace-sidebar-back").click();
+        await expect(page.getByTestId("workspace-sidebar")).toHaveAttribute(
+          "data-shell-navigation-view",
+          "root",
         );
-        await expect(page.locator("#app-user-menu")).toContainText(
-          account.name,
+        await page
+          .getByTestId("workspace-sidebar")
+          .locator(
+            '[data-slot="sidebar-content"] a[href="/workspace/calendar"]',
+          )
+          .click();
+        await expect(page).toHaveURL(/\/workspace\/calendar$/);
+        await expect(page.getByTestId("calendar-sidebar")).toHaveAttribute(
+          "data-shell-navigation-view",
+          "calendar",
+        );
+        await expectNavigationCount(
+          appSidebar(page),
+          "/workspace/calendar",
+          payload.navigation.calendarItemsCount,
+          /items|汇总项/,
         );
         expect(bootstrapRequestCount).toBe(1);
       },
-      { calendarMessages: [], calendarTokenCreated: false },
+      {
+        calendarMessages: [],
+        calendarTokenCreated: false,
+        presetCalendarToken,
+      },
     );
   });
 

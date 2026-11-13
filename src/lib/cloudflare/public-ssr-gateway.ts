@@ -57,6 +57,7 @@ export type PublicSsrRouteResolver = (
 
 const STATIC_PUBLIC_PATHS = new Set([
   "/",
+  "/campus",
   "/account/sign-in",
   "/guides/markdown-support",
   "/api-docs",

@@ -159,7 +159,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
   </div>
 
   <div
-    class="@container/detail min-w-0 min-h-0 overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-5 lg:px-6"
+    class="@container/detail min-w-0 min-h-0 overflow-x-clip px-4 py-4 sm:px-5 lg:overflow-x-hidden lg:overflow-y-auto lg:px-6"
     aria-busy={streamLoading}
     data-detail-scroll-container
   >
@@ -364,7 +364,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
     data-testid="section-mobile-primary-actions"
   >
     <Separator />
-    <div class="px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <div class="px-3 pt-3 pb-3">
       <SectionDetailPrimaryActions
         {courseName}
         onOpenCalendar={openCalendarDialog}

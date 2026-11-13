@@ -87,9 +87,9 @@ async function identify(page: Page, worker: IsolatedWorker, userId: string) {
 }
 async function sidebar(page: Page, width: number) {
   if (width < 768) {
-    const dialog = page.getByRole("dialog", {
-      name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
-    });
+    const dialog = page.locator(
+      '[data-slot="sidebar"][data-mobile="true"][role="dialog"]',
+    );
     if (!(await dialog.isVisible()))
       await page
         .locator("[data-shell-topbar]")
@@ -162,7 +162,7 @@ test("ui.context-tabs-3", { tag: "@Site/Web" }, async ({
       const nav = page.getByTestId("settings-sidebar");
       const viewport = nav.locator('[data-slot="sidebar-content"]');
       const links = nav.locator(
-        'a[data-slot="sidebar-menu-button"][href^="/account/settings/"]',
+        'a[data-sidebar="menu-button"][href^="/account/settings/"]',
       );
       await expect(links).toHaveCount(paths.length);
       await expect(nav.locator('[aria-current="page"]')).toHaveAttribute(
@@ -245,23 +245,46 @@ test("ui.navigation-landmarks-6", { tag: "@Site/Web" }, async ({
         await identify(page, isolatedWorker, data.users[owner].id);
         await page.goto("/terms");
         const shell = await sidebar(page, width);
-        const publicNotices = shell.locator('a[href="/news"]');
-        const reminders = shell.locator(
-          'a[data-slot="sidebar-menu-button"][href="/workspace/subscriptions/activities?view=notifications"]',
-        );
+        await expect(
+          page.locator(
+            `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
+          ),
+        ).toHaveAttribute("data-shell-navigation-view", "root");
+        await shell.locator('a[href="/campus"]').click();
+        await expect(page).toHaveURL(/\/campus$/);
+        await waitForUiSettled(page);
+        const campus = await sidebar(page, width);
+        const publicNotices = campus.locator('a[href="/news"]');
         await expect(publicNotices).toBeVisible();
-        await expect(reminders).toBeVisible();
         await expect(publicNotices).toHaveAccessibleName("News & Notices");
+        await expectNavigationCount(campus, "/news", 0, "unread");
+        const localNav = page.locator(
+          `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
+        );
+        await localNav.locator("[data-local-navigation-back]").click();
+        await expect(localNav).toHaveAttribute(
+          "data-shell-navigation-view",
+          "root",
+        );
+        await localNav
+          .locator('[data-slot="sidebar-content"] a[href="/"]')
+          .click();
+        await expect(page).toHaveURL(`${isolatedWorker.origin}/`);
+        await waitForUiSettled(page);
+        const workspace = await sidebar(page, width);
+        const reminders = workspace.locator(
+          'a[data-sidebar="menu-button"][href="/workspace/subscriptions/activities?view=notifications"]',
+        );
+        await expect(reminders).toBeVisible();
         await expect(reminders).toHaveAccessibleName("Activity subscriptions");
         const remindersHref =
           "/workspace/subscriptions/activities?view=notifications";
         await expectNavigationCount(
-          shell,
+          workspace,
           remindersHref,
           owner === 0 ? 2 : 1,
           "unread",
         );
-        await expectNavigationCount(shell, "/news", 0, "unread");
         await reminders.click();
         await expect(page).toHaveURL(
           /\/workspace\/subscriptions\/activities\?view=notifications$/,
@@ -322,6 +345,12 @@ test("ui.navigation-landmarks-6", { tag: "@Site/Web" }, async ({
           main.getByRole("button", { name: "Mark read", exact: true }),
         ).toHaveCount(owner === 0 ? 1 : 0);
         const updatedShell = await sidebar(page, width);
+        await updatedShell.locator("[data-local-navigation-back]").click();
+        await expect(
+          page.locator(
+            `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
+          ),
+        ).toHaveAttribute("data-shell-navigation-view", "workspace");
         await expectNavigationCount(
           updatedShell,
           remindersHref,

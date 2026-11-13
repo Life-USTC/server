@@ -44,6 +44,7 @@ type DemoBoundary = {
 function isDemoCatalogPage(path: string) {
   return (
     [
+      "/campus",
       "/catalog/rooms",
       "/catalog/links",
       "/catalog/weather",

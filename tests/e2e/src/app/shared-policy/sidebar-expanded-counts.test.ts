@@ -1,5 +1,8 @@
 import { expect } from "@playwright/test";
-import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../utils/page-ready";
 import { test } from "../../../utils/personal-preferences-fixture";
 
 for (const [locale, width] of [
@@ -210,7 +213,7 @@ for (const [locale, width] of [
           .poll(() => scroll.evaluate((node) => node.scrollTop))
           .toBe(0);
         await page.screenshot({
-          path: `/tmp/life-sidebar1584-after-${isAdmin ? "admin" : "normal"}-${locale}-${width}-legacy-top.png`,
+          path: `/tmp/life-four-primary-expanded-${isAdmin ? "admin" : "normal"}-${locale}-${width}-legacy-top.png`,
         });
         await expect(
           nav.locator(
@@ -218,6 +221,17 @@ for (const [locale, width] of [
           ),
         ).toHaveCount(0);
         if (isAdmin) {
+          await nav.locator('a[href="/admin/moderation"]').click();
+          await expect(page).toHaveURL(/\/admin\/moderation$/);
+          await waitForUiSettled(page);
+          if (width === 390)
+            await page
+              .getByRole("button", { name: menuName, exact: true })
+              .click();
+          await expect(nav).toHaveAttribute(
+            "data-shell-navigation-view",
+            "admin-queues",
+          );
           for (const queue of [
             "comments",
             "descriptions",
@@ -237,8 +251,22 @@ for (const [locale, width] of [
             "/workspace/subscriptions/activities?view=notifications",
           ];
           for (const [index, href] of hrefs.entries()) {
+            if (index === 0 || index === 1) {
+              await gotoAndWaitForReady(
+                page,
+                index === 0 ? "/workspace/calendar" : "/workspace/todos",
+              );
+              if (width === 390)
+                await page
+                  .getByRole("button", { name: menuName, exact: true })
+                  .click();
+              await expect(nav).toHaveAttribute(
+                "data-shell-navigation-view",
+                index === 0 ? "calendar" : "workspace",
+              );
+            }
             const link = nav.locator(
-              `a[data-slot="sidebar-menu-button"][href="${href}"]`,
+              `a[data-sidebar="menu-button"][href="${href}"]`,
             );
             const badge = link
               .locator('xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]')
@@ -275,7 +303,7 @@ for (const [locale, width] of [
               .locator('xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]')
               .evaluate((row) => {
                 const label = row.querySelector(
-                  'a[data-slot="sidebar-menu-button"] > span:last-child',
+                  'a[data-sidebar="menu-button"] > span:last-child',
                 );
                 const count = row.querySelector("[data-shell-count-value]");
                 if (
@@ -304,6 +332,15 @@ for (const [locale, width] of [
           }
         }
         if (!isAdmin) {
+          await gotoAndWaitForReady(page, "/usage/mcp");
+          if (width === 390)
+            await page
+              .getByRole("button", { name: menuName, exact: true })
+              .click();
+          await expect(nav).toHaveAttribute(
+            "data-shell-navigation-view",
+            "apps",
+          );
           const link = nav.locator('a[href="/usage/mcp"]');
           await expect(link).toBeVisible();
         }
@@ -311,13 +348,13 @@ for (const [locale, width] of [
           node.scrollTop = 0;
         });
         await page.screenshot({
-          path: `/tmp/life-sidebar1584-after-${isAdmin ? "admin" : "normal"}-${locale}-${width}-expanded-top.png`,
+          path: `/tmp/life-four-primary-expanded-${isAdmin ? "admin" : "normal"}-${locale}-${width}-expanded-top.png`,
         });
         await scroll.evaluate((node) => {
           node.scrollTop = node.scrollHeight;
         });
         await page.screenshot({
-          path: `/tmp/life-sidebar1584-after-${isAdmin ? "admin" : "normal"}-${locale}-${width}-expanded-bottom.png`,
+          path: `/tmp/life-four-primary-expanded-${isAdmin ? "admin" : "normal"}-${locale}-${width}-expanded-bottom.png`,
         });
         await page.reload();
         await gotoAndWaitForReady(
@@ -338,11 +375,25 @@ for (const [locale, width] of [
             'button[aria-expanded], [data-slot="sidebar-menu-action"]',
           ),
         ).toHaveCount(0);
-        if (isAdmin)
+        if (isAdmin) {
+          await nav.locator('a[href="/admin/moderation"]').click();
+          await expect(page).toHaveURL(/\/admin\/moderation$/);
+          await waitForUiSettled(page);
+          if (width === 390)
+            await page
+              .getByRole("button", { name: menuName, exact: true })
+              .click();
           await expect(
             nav.locator('a[href="/admin/moderation?tab=suspensions"]'),
           ).toBeVisible();
-        else await expect(nav.locator('a[href="/usage/mcp"]')).toBeVisible();
+        } else {
+          await gotoAndWaitForReady(page, "/usage/mcp");
+          if (width === 390)
+            await page
+              .getByRole("button", { name: menuName, exact: true })
+              .click();
+          await expect(nav.locator('a[href="/usage/mcp"]')).toBeVisible();
+        }
       });
     });
   }

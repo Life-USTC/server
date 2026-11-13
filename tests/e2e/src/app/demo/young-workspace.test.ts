@@ -668,13 +668,13 @@ test("demo young workspace calendar and public detail share membership", {
             historyState: JSON.stringify(history.state),
           }));
           try {
-            const navigation = page.getByTestId("young-sidebar");
+            const navigation = page.getByTestId("activities-sidebar");
             await expect(navigation).toHaveAttribute(
               "data-shell-navigation-view",
-              "young",
+              "activities",
             );
             const viewMainNavigation = page.getByRole("button", {
-              name: "View main navigation",
+              name: "Back to Primary navigation",
               exact: true,
             });
             await expect(viewMainNavigation).toHaveCount(1);
@@ -699,10 +699,17 @@ test("demo young workspace calendar and public detail share membership", {
           } finally {
             await mountedDetail.dispose();
           }
-          const manage = page.getByRole("link", {
-            name: "Activity subscriptions",
-            exact: true,
-          });
+          await page
+            .getByTestId("activities-sidebar")
+            .locator('[data-slot="sidebar-content"] a[href="/"]')
+            .click();
+          await expect(page).toHaveURL(`${isolatedWorker.origin}/`);
+          const manage = page
+            .getByTestId("workspace-sidebar")
+            .getByRole("link", {
+              name: "Activity subscriptions",
+              exact: true,
+            });
           await expect(manage).toHaveCount(1);
           await expect(manage).toHaveAttribute(
             "href",
@@ -874,13 +881,14 @@ test("demo young workspace retires an admitted ordinary subscription write", {
               }),
             ).toBeNull();
             const ordinaryDetailUrl = page.url();
-            const ordinaryYoungNavigation = page.getByTestId("young-sidebar");
+            const ordinaryYoungNavigation =
+              page.getByTestId("activities-sidebar");
             await expect(ordinaryYoungNavigation).toHaveAttribute(
               "data-shell-navigation-view",
-              "young",
+              "activities",
             );
             const ordinaryViewMainNavigation = page.getByRole("button", {
-              name: "View main navigation",
+              name: "Back to Primary navigation",
               exact: true,
             });
             await expect(ordinaryViewMainNavigation).toHaveCount(1);
@@ -895,10 +903,16 @@ test("demo young workspace retires an admitted ordinary subscription write", {
               await originalDocument.evaluate((doc) => doc === document),
             ).toBe(true);
             await demo(page, isolatedWorker.origin);
-            const manage = page.getByRole("link", {
-              name: "Activity subscriptions",
-              exact: true,
-            });
+            await ordinaryYoungNavigation
+              .locator('[data-slot="sidebar-content"] a[href="/"]')
+              .click();
+            await expect(page).toHaveURL(`${isolatedWorker.origin}/`);
+            const manage = page
+              .getByTestId("workspace-sidebar")
+              .getByRole("link", {
+                name: "Activity subscriptions",
+                exact: true,
+              });
             await expect(manage).toHaveCount(1);
             await expect(manage).toHaveAttribute(
               "href",
@@ -941,13 +955,13 @@ test("demo young workspace retires an admitted ordinary subscription write", {
             await Promise.all(operations);
             await expect.poll(() => terminal).toBe("finished");
             const detailUrl = page.url();
-            const youngNavigation = page.getByTestId("young-sidebar");
+            const youngNavigation = page.getByTestId("activities-sidebar");
             await expect(youngNavigation).toHaveAttribute(
               "data-shell-navigation-view",
-              "young",
+              "activities",
             );
             const viewMainNavigation = page.getByRole("button", {
-              name: "View main navigation",
+              name: "Back to Primary navigation",
               exact: true,
             });
             await expect(viewMainNavigation).toHaveCount(1);
@@ -963,16 +977,19 @@ test("demo young workspace retires an admitted ordinary subscription write", {
               .locator('[data-slot="sidebar"]')
               .filter({ has: sidebar });
             await expect(sidebarState).toHaveCount(1);
-            const dayGroup = sidebar
+            const rootGroup = sidebar
               .locator('[data-slot="sidebar-group"]')
               .filter({
                 has: page
-                  .locator('[data-slot="sidebar-group-label"] > span')
-                  .filter({ hasText: /^My day$/ }),
+                  .locator('[data-slot="sidebar-group-label"]')
+                  .filter({ hasText: /^Primary navigation$/ }),
               });
-            await expect(dayGroup).toHaveCount(1);
+            await expect(rootGroup).toHaveCount(1);
             await expect(
-              dayGroup.getByRole("button", { name: "My day", exact: true }),
+              rootGroup.getByRole("button", {
+                name: "Primary navigation",
+                exact: true,
+              }),
             ).toHaveCount(0);
             await expect(sidebarState).toHaveAttribute(
               "data-state",
@@ -1010,10 +1027,13 @@ test("demo young workspace retires an admitted ordinary subscription write", {
             );
             await expect.poll(readGlobalOpen).toBe(true);
             await expect(
-              dayGroup.locator('[data-slot="sidebar-group-content"]'),
+              rootGroup.locator('[data-slot="sidebar-group-content"]'),
             ).toBeVisible();
             await expect(
-              dayGroup.getByRole("button", { name: "My day", exact: true }),
+              rootGroup.getByRole("button", {
+                name: "Primary navigation",
+                exact: true,
+              }),
             ).toHaveCount(0);
             expect(page.url()).toBe(detailUrl);
             expect(

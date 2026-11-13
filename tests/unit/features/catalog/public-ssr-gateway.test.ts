@@ -199,6 +199,7 @@ describe("public SSR gateway", () => {
   });
 
   test.each([
+    "/campus",
     "/catalog/courses",
     "/catalog/courses?page=2&search=math",
     "/catalog/courses?page=100&categoryId=7",

@@ -3227,6 +3227,14 @@
     "noDataDescription": "请先导入或启用班车时刻表版本后再查看线路图。"
   },
   "shell": {
+    "primaryDestinations": {
+      "workspace": "工作台",
+      "calendar": "日历",
+      "campus": "校园",
+      "activities": "活动",
+      "campusDescription": "公开课程目录与校园服务",
+      "back": "返回{section}"
+    },
     "currentLocation": "当前位置",
     "detailNavigation": {
       "label": "本页目录",
@@ -3251,7 +3259,7 @@
     "closeNavigation": "关闭导航",
     "backToApp": "返回应用",
     "groups": {
-      "day": "日程",
+      "day": "工作台",
       "courses": "课程",
       "campus": "校园",
       "activities": "活动",

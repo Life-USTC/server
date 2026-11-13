@@ -449,7 +449,7 @@ test("demo campus: same-page mode change discards held ordinary bus preferences"
               },
             ]);
             const link = page.locator(
-              '[data-shell-navigation="desktop"] a[data-slot="sidebar-menu-button"][href="/catalog/bus"]',
+              '[data-shell-navigation="desktop"] a[data-sidebar="menu-button"][href="/catalog/bus"]',
             );
             await expect(link).toHaveCount(1);
             await link.click();

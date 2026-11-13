@@ -79,7 +79,7 @@ test.describe("/account/settings 设置中心", () => {
         "root",
       );
       await expect(
-        sidebar.getByRole("link", { name: /浏览课程|Browse courses/i }),
+        sidebar.getByRole("link", { name: /^(校园|Campus)$/i }),
       ).toBeVisible();
       expect(page.url()).toBe(settingsUrl);
       await expect(activePanel).toBeVisible();
@@ -101,7 +101,10 @@ test.describe("/account/settings 设置中心", () => {
       });
       await expect(home).toBeVisible();
       await expect(home).toHaveAttribute("href", "/");
-      await expect(home).toHaveAttribute("aria-current", "page");
+      await expect(home).not.toHaveAttribute("aria-current");
+      await expect(
+        appSidebar.locator('[data-slot="sidebar-content"] a[href="/"]'),
+      ).toHaveAttribute("aria-current", "page");
       await expect(
         appSidebar.locator(
           'a[href="/catalog/features"], a[href="/workspace/overview"]',

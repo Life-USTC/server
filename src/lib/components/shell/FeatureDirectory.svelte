@@ -2,7 +2,10 @@
 import FilterToolbar from "#lib/components/FilterToolbar.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
 import { filterShellFeatures } from "#lib/components/shell/feature-search.js";
-import { buildShellFeatureGroups } from "#lib/components/shell/navigation.js";
+import {
+  buildShellFeatureGroups,
+  type ShellNavGroupId,
+} from "#lib/components/shell/navigation.js";
 import SettingsGlyph from "#lib/components/shell/SettingsGlyph.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Empty from "#lib/components/ui/empty/index.js";
@@ -13,16 +16,21 @@ import { demoNavigationLink } from "@/features/demo/lib/demo-navigation";
 
 /**
  * The product directory: every destination the shell knows about, grouped by
- * intent and searchable. It renders on `/`, which is cached and
+ * intent and searchable. Home uses the complete inventory; Campus explicitly
+ * selects only public academic and campus groups. Home is cached and
  * viewer-independent, so the signed-in and admin groups are added here on the
  * client from the shell viewer store rather than from the page load.
  */
 let {
   copy,
+  publicOnly = false,
+  groupFilter,
   searchId = "feature-search",
   signInCallbackUrl = "/",
 }: {
   copy: LayoutCopy;
+  publicOnly?: boolean;
+  groupFilter?: readonly ShellNavGroupId[];
   /** Distinct per mount so the label/input association stays unique. */
   searchId?: string;
   signInCallbackUrl?: string;
@@ -38,17 +46,21 @@ const groups = $derived(
   filterShellFeatures(
     buildShellFeatureGroups(
       copy,
-      demo
-        ? { signedIn: true, isAdmin: false }
-        : viewer
-          ? { signedIn: true, isAdmin: viewer.isAdmin }
-          : null,
-    ).map((group) => ({
-      ...group,
-      features: group.features.map((feature) =>
-        demo ? demoNavigationLink(feature, demo.unavailableReason) : feature,
-      ),
-    })),
+      publicOnly
+        ? null
+        : demo
+          ? { signedIn: true, isAdmin: false }
+          : viewer
+            ? { signedIn: true, isAdmin: viewer.isAdmin }
+            : null,
+    )
+      .filter((group) => !groupFilter || groupFilter.includes(group.id))
+      .map((group) => ({
+        ...group,
+        features: group.features.map((feature) =>
+          demo ? demoNavigationLink(feature, demo.unavailableReason) : feature,
+        ),
+      })),
     query,
   ),
 );
@@ -56,7 +68,12 @@ const groups = $derived(
 
 <div class="grid min-w-0 gap-4" data-feature-directory>
   {#if demo}
-    <p id={`${searchId}-demo-unavailable`} class="text-muted-foreground text-sm">{demo.unavailableReason}</p>
+    <p
+      id={`${searchId}-demo-unavailable`}
+      class="text-muted-foreground text-sm"
+    >
+      {demo.unavailableReason}
+    </p>
   {/if}
   <FilterToolbar>
     {#snippet primary()}
@@ -67,7 +84,12 @@ const groups = $derived(
         bind:value={query}
       />
       {#if query}
-        <Button variant="outline" onclick={() => { query = ""; }}>{hub.clearSearch}</Button>
+        <Button
+          variant="outline"
+          onclick={() => {
+            query = "";
+          }}>{hub.clearSearch}</Button
+        >
       {/if}
     {/snippet}
   </FilterToolbar>
@@ -81,10 +103,15 @@ const groups = $derived(
     stretched every card beside them to match.
   -->
   <div class="grid gap-5" data-feature-hub>
-    {#if $shellViewer.status === "ready" && !viewer && !demo}
+    {#if !publicOnly && $shellViewer.status === "ready" && !viewer && !demo}
       <p class="text-muted-foreground text-sm">
         {hub.signInPrompt}
-        <Button href={`/account/sign-in?callbackUrl=${encodeURIComponent(signInCallbackUrl)}`} variant="link" class="h-auto min-h-6 p-0 align-baseline underline md:min-h-6">{copy.menu.signIn}</Button>
+        <Button
+          href={`/account/sign-in?callbackUrl=${encodeURIComponent(signInCallbackUrl)}`}
+          variant="link"
+          class="h-auto min-h-6 p-0 align-baseline underline md:min-h-6"
+          >{copy.menu.signIn}</Button
+        >
       </p>
     {/if}
     {#each groups as group (group.id)}
@@ -92,19 +119,40 @@ const groups = $derived(
         From md the group name moves into a left rail: it stops costing a line
         of its own and the directory reads as an index down the page.
       -->
-      <section aria-labelledby={`${searchId}-${group.id}`} class="grid gap-2 md:grid-cols-[7rem_minmax(0,1fr)] md:items-start md:gap-x-6">
-        <h3 id={`${searchId}-${group.id}`} class="font-medium text-muted-foreground text-sm md:pt-2.5">{group.label}</h3>
+      <section
+        aria-labelledby={`${searchId}-${group.id}`}
+        class="grid gap-2 md:grid-cols-[7rem_minmax(0,1fr)] md:items-start md:gap-x-6"
+      >
+        <h3
+          id={`${searchId}-${group.id}`}
+          class="font-medium text-muted-foreground text-sm md:pt-2.5"
+        >
+          {group.label}
+        </h3>
         <!--
           items-start, so a row with sub-destinations never stretches the rows
           beside it; nothing is framed, so the unused space is not a void.
         -->
-        <div class="grid items-start gap-x-4 gap-y-1 sm:grid-cols-2 xl:grid-cols-3">
+        <div
+          class="grid items-start gap-x-4 gap-y-1 sm:grid-cols-2 xl:grid-cols-3"
+        >
           {#each group.features as feature (feature.id)}
-            {@const extras = feature.items?.filter((item) => item.href !== feature.href) ?? []}
+            {@const extras =
+              feature.items?.filter((item) => item.href !== feature.href) ?? []}
             <div class="grid min-w-0 gap-0.5" data-feature-entry>
               <Item.Root size="sm" class="items-start py-2">
                 {#snippet child({ props })}
-                  <svelte:element this={feature.disabledReason ? "div" : "a"} href={feature.disabledReason ? undefined : feature.href} role={feature.disabledReason ? "link" : undefined} aria-disabled={feature.disabledReason ? true : undefined} aria-describedby={feature.disabledReason ? `${searchId}-demo-unavailable` : undefined} tabindex={feature.disabledReason ? -1 : undefined} {...props}>
+                  <svelte:element
+                    this={feature.disabledReason ? "div" : "a"}
+                    href={feature.disabledReason ? undefined : feature.href}
+                    role={feature.disabledReason ? "link" : undefined}
+                    aria-disabled={feature.disabledReason ? true : undefined}
+                    aria-describedby={feature.disabledReason
+                      ? `${searchId}-demo-unavailable`
+                      : undefined}
+                    tabindex={feature.disabledReason ? -1 : undefined}
+                    {...props}
+                  >
                     <Item.Media variant="icon" class="text-muted-foreground">
                       {#if feature.glyph}
                         <SettingsGlyph name={feature.glyph} />
@@ -114,9 +162,19 @@ const groups = $derived(
                       {/if}
                     </Item.Media>
                     <Item.Content class="gap-0.5">
-                      <Item.Title class={feature.disabledReason ? "" : "group-hover/item:underline"}>{feature.label}</Item.Title>
-                      <Item.Description class="text-xs">{feature.description}</Item.Description>
-                      {#if feature.disabledReason}<Item.Description class="text-xs">{feature.disabledReason}</Item.Description>{/if}
+                      <Item.Title
+                        class={feature.disabledReason
+                          ? ""
+                          : "group-hover/item:underline"}
+                        >{feature.label}</Item.Title
+                      >
+                      <Item.Description class="text-xs"
+                        >{feature.description}</Item.Description
+                      >
+                      {#if feature.disabledReason}<Item.Description
+                          class="text-xs"
+                          >{feature.disabledReason}</Item.Description
+                        >{/if}
                     </Item.Content>
                   </svelte:element>
                 {/snippet}
@@ -125,7 +183,17 @@ const groups = $derived(
                 <!-- Aligned under the row description: 0.75rem row padding + 1rem icon + 0.625rem gap. -->
                 <div class="flex flex-wrap gap-1 pl-[2.375rem]">
                   {#each extras as item (item.href)}
-                    <Button href={item.disabledReason ? undefined : item.href} disabled={Boolean(item.disabledReason)} aria-describedby={item.disabledReason ? `${searchId}-demo-unavailable` : undefined} variant="outline" size="xs" class="min-h-6 font-normal text-muted-foreground md:min-h-6">{item.label}</Button>
+                    <Button
+                      href={item.disabledReason ? undefined : item.href}
+                      disabled={Boolean(item.disabledReason)}
+                      aria-describedby={item.disabledReason
+                        ? `${searchId}-demo-unavailable`
+                        : undefined}
+                      variant="outline"
+                      size="xs"
+                      class="min-h-6 font-normal text-muted-foreground md:min-h-6"
+                      >{item.label}</Button
+                    >
                   {/each}
                 </div>
               {/if}
@@ -136,7 +204,14 @@ const groups = $derived(
     {:else}
       <Empty.Root role="status">
         <Empty.Header><Empty.Title>{hub.empty}</Empty.Title></Empty.Header>
-        <Empty.Content><Button variant="outline" onclick={() => { query = ""; }}>{hub.clearSearch}</Button></Empty.Content>
+        <Empty.Content
+          ><Button
+            variant="outline"
+            onclick={() => {
+              query = "";
+            }}>{hub.clearSearch}</Button
+          ></Empty.Content
+        >
       </Empty.Root>
     {/each}
   </div>

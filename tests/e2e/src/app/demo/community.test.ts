@@ -417,7 +417,11 @@ test("demo.community: late private-owner responses and history cannot restore an
               page.locator(`#comment-${privateComment.id}`),
             ).toHaveCount(0);
             const accountMenu = page.locator("#app-user-menu");
-            await expect(accountMenu).toContainText(privateName);
+            await expect(accountMenu.getByRole("button")).toHaveCount(1);
+            await expect(accountMenu.getByRole("button")).toHaveAttribute(
+              "title",
+              privateName,
+            );
             const ownerBootstrap = await (
               await page.request.get("/_internal/shell-bootstrap")
             ).json();

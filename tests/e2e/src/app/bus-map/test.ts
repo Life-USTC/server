@@ -227,49 +227,74 @@ test.describe("校车线路图", () => {
       const svg = page.locator('main svg[role="img"][aria-label]').first();
       await expect(svg).toBeVisible();
 
-      for (const height of [1000, 600]) {
-        await page.setViewportSize({ width: 1440, height });
-        await expect(async () => {
-          const geometry = await svg.evaluate((node) => {
-            const map = node as SVGSVGElement;
-            const canvas = map.parentElement;
-            const section = map.closest("section");
-            const topbar = document.querySelector("[data-shell-topbar]");
-            if (!canvas || !section || !topbar)
-              throw new Error("Missing map layout");
-            return {
-              map: map.getBoundingClientRect().toJSON(),
-              canvas: canvas.getBoundingClientRect().toJSON(),
-              section: section.getBoundingClientRect().toJSON(),
-              topbar: topbar.getBoundingClientRect().toJSON(),
-              ratio: map.viewBox.baseVal.width / map.viewBox.baseVal.height,
-              padding:
-                2 *
-                Number.parseFloat(
-                  getComputedStyle(document.documentElement).fontSize,
-                ),
-            };
-          });
-          expect(geometry.section.height).toBeCloseTo(
-            height - geometry.topbar.height - geometry.padding,
-            0,
-          );
-          expect(geometry.map.height).toBeCloseTo(
-            Math.min(
-              geometry.canvas.height,
-              geometry.canvas.width / geometry.ratio,
-            ),
-            0,
-          );
-          expect(geometry.map.bottom).toBeLessThanOrEqual(height);
-          expect(geometry.map.width / geometry.map.height).toBeCloseTo(
-            geometry.ratio,
-            2,
-          );
-          if (height === 1000)
-            expect(geometry.map.height).toBeGreaterThan(26 * 16);
-        }).toPass({ timeout: 5_000 });
-        await expectNoPageHorizontalOverflow(page);
+      for (const width of [1440, 900, 390]) {
+        for (const height of [1000, 600]) {
+          await page.setViewportSize({ width, height });
+          await expect(async () => {
+            const geometry = await svg.evaluate((node) => {
+              const map = node as SVGSVGElement;
+              const canvas = map.parentElement;
+              const section = map.closest("section");
+              const topbar = document.querySelector("[data-shell-topbar]");
+              if (!canvas || !section || !topbar)
+                throw new Error("Missing map layout");
+              const mapBox = map.getBoundingClientRect();
+              const hit = document.elementFromPoint(
+                mapBox.x + mapBox.width / 2,
+                mapBox.y + mapBox.height / 2,
+              );
+              return {
+                map: mapBox.toJSON(),
+                mapHit: hit !== null && map.contains(hit),
+                canvas: canvas.getBoundingClientRect().toJSON(),
+                section: section.getBoundingClientRect().toJSON(),
+                topbar: topbar.getBoundingClientRect().toJSON(),
+                primary: document
+                  .querySelector("[data-mobile-primary-navigation]")
+                  ?.getBoundingClientRect()
+                  .toJSON(),
+                ratio: map.viewBox.baseVal.width / map.viewBox.baseVal.height,
+                padding:
+                  2 *
+                  Number.parseFloat(
+                    getComputedStyle(document.documentElement).fontSize,
+                  ),
+              };
+            });
+            expect(geometry.section.height).toBeCloseTo(
+              height -
+                geometry.topbar.height -
+                geometry.padding -
+                (geometry.primary?.height ?? 0),
+              0,
+            );
+            expect(geometry.map.height).toBeCloseTo(
+              Math.min(
+                geometry.canvas.height,
+                geometry.canvas.width / geometry.ratio,
+              ),
+              0,
+            );
+            expect(geometry.map.bottom).toBeLessThanOrEqual(height);
+            expect(geometry.mapHit).toBe(true);
+            if (width < 1024) {
+              expect(geometry.primary?.height).toBe(64);
+              expect(geometry.section.bottom).toBeLessThanOrEqual(
+                geometry.primary?.top ?? 0,
+              );
+              expect(geometry.map.bottom).toBeLessThanOrEqual(
+                geometry.primary?.top ?? 0,
+              );
+            }
+            expect(geometry.map.width / geometry.map.height).toBeCloseTo(
+              geometry.ratio,
+              2,
+            );
+            if (width === 1440 && height === 1000)
+              expect(geometry.map.height).toBeGreaterThan(26 * 16);
+          }).toPass({ timeout: 5_000 });
+          await expectNoPageHorizontalOverflow(page);
+        }
       }
     });
   });

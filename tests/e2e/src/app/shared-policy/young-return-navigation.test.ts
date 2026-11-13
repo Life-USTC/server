@@ -56,15 +56,20 @@ test("ui.navigation-landmarks-7", { tag: "@Young/Web" }, async ({
         await expect(rows).toHaveCount(25);
       }
       const expected = destination(item.url.toString());
-      const nav = page.getByTestId("young-sidebar");
+      const nav = page.getByTestId("activities-sidebar");
       const routeBeforePreview = page.url();
-      await page.getByTestId("young-sidebar-back").click();
+      await page.getByTestId("activities-sidebar-back").click();
+      await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
       await expect(
-        nav.getByRole("link", { name: /浏览课程|Browse courses/i }),
-      ).toBeVisible();
+        nav.getByRole("link", { name: "Campus", exact: true }),
+      ).toHaveAttribute("href", "/campus");
+      await expect(nav.locator('a[href="/catalog/courses"]')).toHaveCount(0);
       expect(page.url()).toBe(routeBeforePreview);
-      await page.getByTestId("young-sidebar-back").click();
-      await expect(nav).toHaveAttribute("data-shell-navigation-view", "young");
+      await page.getByTestId("activities-sidebar-back").click();
+      await expect(nav).toHaveAttribute(
+        "data-shell-navigation-view",
+        "activities",
+      );
       const active = nav.locator('[aria-current="page"]');
       await expect(active).toHaveCount(1);
       expect(destination(await active.getAttribute("href")).path).toBe(

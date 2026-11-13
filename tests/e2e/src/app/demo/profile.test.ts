@@ -70,10 +70,14 @@ test(
               .getByRole("button", { name: "Enter demo", exact: true })
               .click();
             await expect(page).toHaveURL(/\/workspace\/todos$/);
+            await waitForUiSettled(page);
             await page
-              .locator(
-                'a[data-slot="sidebar-menu-button"][href="/account/settings/profile"]:visible',
-              )
+              .locator("#demo-navigation-menu")
+              .getByRole("button")
+              .click();
+            await page
+              .getByRole("menu")
+              .locator('a[href="/account/settings/profile"]')
               .click();
             await waitForUiSettled(page);
             await expect(page.locator("#name")).toHaveValue(
@@ -267,16 +271,13 @@ for (const locale of ["en-us", "zh-cn"] as const)
                   },
                 ]);
                 await gotoAndWaitForReady(page, "/workspace/todos");
-                if (width === 390)
-                  await page
-                    .getByRole("button", {
-                      name: locale === "en-us" ? "Menu" : "菜单",
-                      exact: true,
-                    })
-                    .click();
-                const destination = page.locator(
-                  'a[data-slot="sidebar-menu-button"][href="/account/settings/profile"]:visible',
-                );
+                await page
+                  .locator("#demo-navigation-menu")
+                  .getByRole("button")
+                  .click();
+                const destination = page
+                  .getByRole("menu")
+                  .locator('a[href="/account/settings/profile"]');
                 await expect(destination).toHaveCount(1);
                 await page.screenshot({
                   path: testInfo.outputPath(
@@ -418,7 +419,9 @@ for (const locale of ["en-us", "zh-cn"] as const)
                 await expect(toggle).toHaveAttribute("type", "button");
                 await expect(toggle).not.toHaveAttribute("href");
                 const rootLabel =
-                  locale === "en-us" ? "View main navigation" : "查看主导航";
+                  locale === "en-us"
+                    ? "Back to Primary navigation"
+                    : "返回主导航";
                 await expect(toggle).toHaveAccessibleName(rootLabel);
                 await expect(form).toHaveCount(1);
                 await expect(form).toBeVisible();
@@ -447,10 +450,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
                     [
                       "root",
                       locale === "en-us" ? "Return to Settings" : "返回设置",
-                      [
-                        "/account/settings/profile",
-                        "/account/settings/profile",
-                      ],
+                      [],
                     ],
                     ["settings", rootLabel, ["/account/settings/profile"]],
                   ] as const) {

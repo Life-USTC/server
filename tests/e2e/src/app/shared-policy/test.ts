@@ -349,7 +349,7 @@ test("ui.navigation-landmarks-1", { tag: "@Site/Web" }, async ({
       await setLocale(page, locale);
       await gotoAndWaitForReady(page, "/catalog/courses");
       const nav = page.getByRole("navigation", {
-        name: locale === "zh-cn" ? "主导航" : "Primary navigation",
+        name: locale === "zh-cn" ? "浏览课程" : "Browse courses",
         exact: true,
       });
       await expect(nav).toHaveCount(1);
@@ -369,15 +369,26 @@ taskFilterTest(
         for (const locale of locales) {
           await setLocale(page, locale, headers);
           await gotoAndWaitForReady(page, "/workspace/overview");
-          await expect(
-            page.locator(
-              '[data-shell-navigation="mobile-primary"], [data-shell-navigation="admin-mobile"]',
-            ),
-          ).toHaveCount(0);
+          const primary = page.locator("[data-mobile-primary-navigation]");
+          await expect(primary).toHaveAccessibleName(
+            locale === "zh-cn" ? "主导航" : "Primary navigation",
+          );
+          expect(
+            await primary
+              .getByRole("link")
+              .evaluateAll((nodes) =>
+                nodes.map((node) => node.getAttribute("href")),
+              ),
+          ).toEqual([
+            "/",
+            "/workspace/calendar",
+            "/campus",
+            "/catalog/young-events",
+          ]);
           await openMobileMenu(page);
           await expect(
             page.getByRole("navigation", {
-              name: locale === "zh-cn" ? "主导航" : "Primary navigation",
+              name: locale === "zh-cn" ? "工作台" : "Workspace",
               exact: true,
             }),
           ).toBeVisible();

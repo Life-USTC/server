@@ -72,9 +72,10 @@ test("signed-in catalog documents remain public while the private shell resolves
           expect(shell.status()).toBe(200);
           expect(shell.headers()["cache-control"]).toBe("private, no-store");
           expect((await shell.json()).viewer.id).toBe(actor.id);
-          await expect(page.locator("#app-user-menu")).toContainText(
-            viewerName,
-          );
+          const avatar = page.locator("#app-user-menu").getByRole("button");
+          await expect(avatar).toHaveCount(1);
+          await expect(avatar).toBeVisible();
+          await expect(avatar).toHaveAttribute("title", viewerName);
         });
       },
     );

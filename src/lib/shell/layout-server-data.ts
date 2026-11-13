@@ -126,6 +126,7 @@ export function buildLayoutCopy(locale: LayoutLocale) {
       mobileApp: messages.homepage.actions.mobileApp,
     },
     shell: {
+      primaryDestinations: messages.shell.primaryDestinations,
       discovery: messages.shell.discovery,
       currentLocation: messages.shell.currentLocation,
       detailNavigation: messages.shell.detailNavigation,

@@ -74,7 +74,7 @@ describe("shared functional shell navigation", () => {
   );
 
   test.each(["en-us", "zh-cn"] as const)(
-    "combines manage and discover destinations in %s",
+    "separates personal workspace from public discovery in %s",
     (locale) => {
       const localized = buildLayoutCopy(locale);
       for (const viewer of [null, user, admin]) {
@@ -84,18 +84,30 @@ describe("shared functional shell navigation", () => {
             .find((group) => group.id === "courses")
             ?.features.map((feature) => feature.href),
         ).toEqual([
-          ...(viewer ? ["/workspace/subscriptions"] : []),
           "/catalog/sections",
           "/catalog/courses",
           "/catalog/teachers",
         ]);
+        expect(
+          groups
+            .find((group) => group.id === "day")
+            ?.features.map((feature) => feature.href) ?? [],
+        ).toEqual(
+          viewer
+            ? [
+                "/workspace/calendar",
+                "/workspace/homeworks",
+                "/workspace/todos",
+                "/workspace/exams",
+                "/workspace/subscriptions",
+                "/workspace/subscriptions/activities?view=notifications",
+              ]
+            : [],
+        );
         const activities = groups.find((group) => group.id === "activities");
         expect(activities).toBeDefined();
         expect(activities?.features.map((feature) => feature.href)).toEqual([
           "/catalog/young-events",
-          ...(viewer
-            ? ["/workspace/subscriptions/activities?view=notifications"]
-            : []),
         ]);
         expect(activities?.features[0].items?.map((item) => item.href)).toEqual(
           [
@@ -127,13 +139,8 @@ describe("shared functional shell navigation", () => {
           ?.features.map((feature) => feature.label),
       ).toEqual(
         locale === "zh-cn"
-          ? ["教学班订阅", "浏览教学班", "浏览课程", "教师"]
-          : [
-              "Section subscriptions",
-              "Browse sections",
-              "Browse courses",
-              "Teachers",
-            ],
+          ? ["浏览教学班", "浏览课程", "教师"]
+          : ["Browse sections", "Browse courses", "Teachers"],
       );
     },
   );

@@ -126,6 +126,14 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
   },
   {
+    routeId: "/campus",
+    domain: "Site",
+    samplePath: "/campus",
+    kind: "page",
+    auth: "public",
+    mobileChecks: ["public"],
+  },
+  {
     routeId: "/catalog/bus",
     domain: "Bus",
     samplePath: "/catalog/bus",

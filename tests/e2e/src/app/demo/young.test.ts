@@ -605,7 +605,7 @@ for (const transition of [
                 ]);
                 await page
                   .locator(
-                    '[data-shell-navigation="desktop"] a[data-slot="sidebar-menu-button"][href="/catalog/young-events"]',
+                    '[data-shell-navigation="desktop"] a[data-sidebar="menu-button"][href="/catalog/young-events"]',
                   )
                   .click();
               } else if (transition === "same-page locale") {
@@ -618,7 +618,7 @@ for (const transition of [
                 ]);
                 await page
                   .locator(
-                    '[data-shell-navigation="desktop"] a[data-slot="sidebar-menu-button"][href="/catalog/young-events"]',
+                    '[data-shell-navigation="desktop"] a[data-sidebar="menu-button"][href="/catalog/young-events"]',
                   )
                   .click();
               } else {
@@ -865,7 +865,7 @@ test("demo Young: a retired ordinary detail cannot apply a late false subscripti
               }),
             );
             const collection = page.locator(
-              '[data-shell-navigation="desktop"] a[data-slot="sidebar-menu-button"][href="/catalog/young-events"]',
+              '[data-shell-navigation="desktop"] a[data-sidebar="menu-button"][href="/catalog/young-events"]',
             );
             await expect(collection).toHaveCount(1);
             await collection.click();

@@ -323,12 +323,14 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
       ).toHaveCount(0);
       await page.goBack();
       await expect(page).toHaveURL(browseUrl);
-      const youngNav = page.getByTestId("young-sidebar");
+      const youngNav = page.getByTestId("activities-sidebar");
       await expect(youngNav).toBeVisible();
-      await expect(page.getByTestId("young-sidebar-back")).toHaveRole("button");
-      await expect(page.getByTestId("young-sidebar-back")).not.toHaveAttribute(
-        "href",
+      await expect(page.getByTestId("activities-sidebar-back")).toHaveRole(
+        "button",
       );
+      await expect(
+        page.getByTestId("activities-sidebar-back"),
+      ).not.toHaveAttribute("href");
       await expect(
         youngNav.getByRole("link", { name: /^(?:活动列表|Activity list)$/ }),
       ).toHaveAttribute("aria-current", "page");

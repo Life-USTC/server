@@ -76,7 +76,8 @@ for (const [domain, method, locales, widths] of [
             const sidebar =
               width < 768
                 ? page.getByRole("dialog", {
-                    name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
+                    name: locale === "en-us" ? "Workspace" : "工作台",
+                    exact: true,
                   })
                 : page.getByTestId("app-sidebar");
             await expect(sidebar).toBeVisible();

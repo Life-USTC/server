@@ -299,16 +299,16 @@ for (const locale of ["zh-cn", "en-us"] as const) {
               const navigation = page.locator(
                 '[data-shell-navigation="desktop"]',
               );
+              await page.getByTestId("workspace-sidebar-back").click();
+              await expect(navigation).toHaveAttribute(
+                "data-shell-navigation-view",
+                "root",
+              );
               const link = navigation.locator(
-                'a[data-slot="sidebar-menu-button"][href="/workspace/calendar"]',
+                'a[data-sidebar="menu-button"][href="/workspace/calendar"]',
               );
               await expect(link).toBeVisible();
-              await expectNavigationCount(
-                navigation,
-                "/workspace/calendar",
-                30,
-                english ? "items" : "汇总项",
-              );
+
               await page.screenshot({
                 path: testInfo.outputPath(
                   `after-navigation-${locale}-${width}.png`,
@@ -317,6 +317,16 @@ for (const locale of ["zh-cn", "en-us"] as const) {
               });
               await link.click();
               await waitForUiSettled(page);
+              await expect(navigation).toHaveAttribute(
+                "data-shell-navigation-view",
+                "calendar",
+              );
+              await expectNavigationCount(
+                navigation,
+                "/workspace/calendar",
+                30,
+                english ? "items" : "汇总项",
+              );
             } else await gotoAndWaitForReady(page, "/workspace/calendar");
             await expect(page.getByTestId("demo-notice")).toContainText(
               english ? "Read only" : "只读",

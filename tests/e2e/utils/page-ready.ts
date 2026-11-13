@@ -22,6 +22,15 @@ type GotoOptions = {
 
 const GOTO_RETRY_ATTEMPTS = 3;
 
+/** Mobile details use the shell reader; desktop keeps the bounded inner reader. */
+export function detailScrollViewport(page: Page) {
+  return page.locator(
+    (page.viewportSize()?.width ?? 1024) < 1024
+      ? '[data-shell-detail-workspace="true"] [data-shell-scroll-container]'
+      : "[data-detail-scroll-container]",
+  );
+}
+
 export async function expectNoPageHorizontalOverflow(page: Page) {
   const geometry = await page.evaluate(() => {
     const root = document.documentElement;

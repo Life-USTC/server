@@ -162,7 +162,7 @@ test.describe("/catalog/courses 课程目录", () => {
       await gotoAndWaitForReady(page, "/catalog/courses");
       await expect(page.locator("html")).toHaveAttribute("lang", "en-us");
       await expect(
-        page.getByRole("navigation", { name: "Primary navigation" }),
+        page.getByRole("navigation", { name: "Browse courses", exact: true }),
       ).toHaveCount(1);
       await expect(
         page.getByRole("navigation", { name: "Footer navigation" }),
@@ -177,7 +177,7 @@ test.describe("/catalog/courses 课程目录", () => {
 
       await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
       await expect(
-        page.getByRole("navigation", { name: "主导航" }),
+        page.getByRole("navigation", { name: "浏览课程", exact: true }),
       ).toHaveCount(1);
       await expect(
         page.getByRole("navigation", { name: "页脚导航" }),

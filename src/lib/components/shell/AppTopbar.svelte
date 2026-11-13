@@ -8,10 +8,18 @@ import type {
   LayoutCopy,
   LayoutUserSummary,
 } from "#lib/shell/layout-server-data.js";
+import type { DemoView } from "@/features/demo/lib/demo-types";
 import AppPreferencesMenu from "./AppPreferencesMenu.svelte";
+import AppUserMenu from "./AppUserMenu.svelte";
 import GlobalSearchTrigger from "./GlobalSearchTrigger.svelte";
 
 interface Props {
+  avatarFallback?: string;
+  currentPathname?: string;
+  profileHref?: string;
+  setUserMenuOpen?: (open: boolean) => void;
+  userMenuOpen?: boolean;
+  demo?: DemoView | null;
   closeMenus: () => void;
   copy: LayoutCopy;
   focused?: boolean;
@@ -35,6 +43,12 @@ interface Props {
 }
 
 let {
+  avatarFallback = "",
+  currentPathname = "/",
+  profileHref = "/",
+  setUserMenuOpen = () => {},
+  userMenuOpen = false,
+  demo = null,
   closeMenus,
   copy,
   focused = false,
@@ -61,7 +75,9 @@ let {
   data-shell-topbar
   class="bg-card/95 sticky top-0 z-20 min-h-14 shrink-0 border-b backdrop-blur md:h-12 md:min-h-12"
 >
-  <div class="flex min-h-14 items-center gap-1 px-2 md:h-full md:min-h-0 sm:gap-2 sm:px-3 lg:px-6">
+  <div
+    class="flex min-h-14 items-center gap-1 px-2 md:h-full md:min-h-0 sm:gap-2 sm:px-3 lg:px-6"
+  >
     {#if !focused}
       <!-- #1077: stay visible/focusable through the tablet range (hidden only
            at >=1024px), while the focused onboarding shell has no sidebar to
@@ -135,7 +151,19 @@ let {
           class="h-8 w-20 rounded-md"
           data-testid="viewer-loading"
         />
-      {:else if !user && !hideSignIn}
+      {:else if user || demo}
+        <AppUserMenu
+          {avatarFallback}
+          {closeMenus}
+          {copy}
+          {currentPathname}
+          {profileHref}
+          {setUserMenuOpen}
+          {user}
+          {userMenuOpen}
+          {demo}
+        />
+      {:else if !hideSignIn}
         <Button href="/account/sign-in" data-shell-sign-in>
           {copy.menu.signIn}
         </Button>

@@ -4,7 +4,7 @@
  * ## Features
  * - Admin-only: unauthenticated → /account/sign-in, non-admin → 403
  * - /admin redirects to /admin/users
- * - Admin tools live in the primary sidebar (no secondary admin nav)
+ * - Admin tools and moderation queues occupy their own flat navigation levels
  */
 import { expect } from "@playwright/test";
 import {
@@ -82,8 +82,8 @@ const test = adminTest.extend<{
 });
 
 function adminPrimaryNav(page: import("@playwright/test").Page) {
-  return page.getByTestId("app-sidebar").getByRole("navigation", {
-    name: /管理后台|Admin/i,
+  return page.getByRole("navigation", {
+    name: /^(管理后台|Admin|内容审核|Moderation)$/i,
   });
 }
 
@@ -182,23 +182,26 @@ test("admin.primary-admin-navigation", { tag: "@Admin/Web" }, async ({
 
           const navigation = adminPrimaryNav(page);
           const adminLinks = navigation.locator('a[href^="/admin"]');
-          await expect(adminLinks).toHaveCount(8);
+          const expectedPaths =
+            path === "/admin/moderation"
+              ? ["comments", "descriptions", "homeworks", "suspensions"].map(
+                  (tab) => `/admin/moderation?tab=${tab}`,
+                )
+              : [
+                  "/admin/users",
+                  "/admin/moderation",
+                  "/admin/oauth",
+                  "/admin/bus",
+                ];
+          await expect(adminLinks).toHaveCount(4);
           expect(
             await adminLinks.evaluateAll((nodes) =>
               nodes.map((node) => node.getAttribute("href")).sort(),
             ),
-          ).toEqual(
-            [
-              "/admin/users",
-              "/admin/moderation",
-              "/admin/oauth",
-              "/admin/bus",
-              "/admin/moderation?tab=comments",
-              "/admin/moderation?tab=descriptions",
-              "/admin/moderation?tab=homeworks",
-              "/admin/moderation?tab=suspensions",
-            ].sort(),
-          );
+          ).toEqual(expectedPaths.sort());
+          await expect(
+            navigation.locator('[data-slot="sidebar-menu-sub"]'),
+          ).toHaveCount(0);
           const currentName =
             path === "/admin/moderation" ? /^(评论|Comments)$/ : name;
           await expect(
@@ -245,6 +248,17 @@ test("/admin 主导航支持键盘切换", { tag: "@Admin/Web" }, async ({
         await expect(
           navigation.locator('a[aria-current="page"]'),
         ).toHaveAttribute("href", "/admin/moderation?tab=comments");
+        const queues = navigation.locator('a[href^="/admin/moderation?tab="]');
+        expect(
+          await queues.evaluateAll((nodes) =>
+            nodes.map((node) => node.getAttribute("href")),
+          ),
+        ).toEqual([
+          "/admin/moderation?tab=comments",
+          "/admin/moderation?tab=descriptions",
+          "/admin/moderation?tab=homeworks",
+          "/admin/moderation?tab=suspensions",
+        ]);
       },
       {},
       adminWriteChecks([]),
@@ -283,10 +297,19 @@ test("/admin 主导航可跳转到各管理工具", { tag: "@Admin/Web" }, async
           },
         ] as const;
 
-        for (const { name, url } of hops) {
+        for (const [index, { name, url }] of hops.entries()) {
           const link = navigation.getByRole("link", { name });
           await expect(link).toBeVisible();
           await Promise.all([page.waitForURL(url), link.click()]);
+          if (index === 0) {
+            await expect(
+              navigation.locator('a[aria-current="page"]'),
+            ).toHaveAttribute("href", "/admin/moderation?tab=comments");
+            await page.getByTestId("admin-queues-sidebar-back").click();
+            await expect(
+              page.getByTestId("admin-queues-sidebar"),
+            ).toHaveAttribute("data-shell-navigation-view", "admin");
+          }
         }
       },
       {},
@@ -326,27 +349,51 @@ test("/admin 移动端导航覆盖全部管理工具且显示当前位置", {
             '[data-shell-navigation="mobile-primary"], [data-shell-navigation="admin-mobile"]',
           ),
         ).toHaveCount(0);
-        for (const { path, name } of paths) {
+        const primary = page.locator("[data-mobile-primary-navigation]");
+        await expect(primary).toBeVisible();
+        const language = await page.locator("html").getAttribute("lang");
+        expect(["en-us", "zh-cn"]).toContain(language);
+        await expect(primary.getByRole("link")).toHaveText(
+          language === "en-us"
+            ? ["Workspace", "Calendar", "Campus", "Activities"]
+            : ["工作台", "日历", "校园", "活动"],
+        );
+        await expect(primary.locator("[aria-current]")).toHaveCount(0);
+        for (const [index, { path, name }] of paths.entries()) {
           await page
             .locator('[data-shell-topbar] [data-sidebar="trigger"]')
             .click();
-          const panel = page.getByTestId("admin-sidebar");
+          const panel = adminPrimaryNav(page);
+          if (index === 1) {
+            await page.getByTestId("admin-queues-sidebar-back").click();
+            await expect(
+              page.getByTestId("admin-queues-sidebar"),
+            ).toHaveAttribute("data-shell-navigation-view", "admin");
+          }
           await expect(panel).toBeVisible();
           await expect(panel.getByRole("link", { name })).toBeVisible();
-          await expect(page.getByTestId("admin-sidebar-back")).toHaveRole(
-            "button",
-          );
           await expect(
-            page.getByTestId("admin-sidebar-back"),
+            panel.locator("[data-local-navigation-back]"),
+          ).toHaveRole("button");
+          await expect(
+            panel.locator("[data-local-navigation-back]"),
           ).not.toHaveAttribute("href");
           await panel.getByRole("link", { name }).click();
           await expect(page).toHaveURL(new RegExp(`${path}(?:\\?.*)?$`));
           await waitForUiSettled(page);
           await expect(panel).toBeHidden();
+          await expect(primary).toBeVisible();
+          await expect(primary.locator("[aria-current]")).toHaveCount(0);
           await page
             .locator('[data-shell-topbar] [data-sidebar="trigger"]')
             .click();
           await expect(panel.locator('[aria-current="page"]')).toHaveCount(1);
+          await expect(panel.locator('a[aria-current="page"]')).toHaveAttribute(
+            "href",
+            path === "/admin/moderation"
+              ? "/admin/moderation?tab=comments"
+              : path,
+          );
           await page.keyboard.press("Escape");
         }
       },

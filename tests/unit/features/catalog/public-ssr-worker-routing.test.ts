@@ -25,6 +25,7 @@ function request(path: string, headers: HeadersInit = {}) {
 describe("public SSR worker routing", () => {
   test.each([
     "/account/sign-in",
+    "/campus",
     "/catalog/courses",
     "/catalog/sections/159446",
     "/privacy",
@@ -33,6 +34,7 @@ describe("public SSR worker routing", () => {
   });
 
   test.each([
+    "/campus",
     "/catalog/courses",
     "/catalog/sections/159446",
     "/privacy",

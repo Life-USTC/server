@@ -88,7 +88,10 @@ describe("application shell focused chrome", () => {
       "utf8",
     );
     expect(topbar).toContain("hideSignIn");
-    expect(topbar).toContain("!user && !hideSignIn");
+    // Loading, ordinary and sealed Demo owners take precedence over guest sign-in.
+    expect(topbar).toMatch(
+      /\{#if viewerLoading\}[\s\S]*?\{:else if user \|\| demo\}[\s\S]*?<AppUserMenu\b[\s\S]*?\{:else if !hideSignIn\}[\s\S]*?<Button href="\/account\/sign-in"/,
+    );
   });
 });
 
@@ -141,7 +144,7 @@ describe("application shell theme", () => {
 describe("mobile toast placement", () => {
   it.each([
     [false, "calc(env(safe-area-inset-bottom) + 1rem)"],
-    [true, "calc(3.5rem + env(safe-area-inset-bottom) + 1rem)"],
+    [true, "calc(4rem + env(safe-area-inset-bottom) + 1rem)"],
   ])(
     "resolveMobileToastBottomOffset(showMobileTabBar=%s)",
     (showMobileTabBar, expected) => {
@@ -150,8 +153,8 @@ describe("mobile toast placement", () => {
   );
 
   it("defers mobile bottom offset to sonner; layout only sets horizontal inset", async () => {
-    // This PR retires fixed mobile tab bars; signed-in lift selectors remain in
-    // sonner for any future nav that remounts those data attributes.
+    // The four-primary bar appears below lg for every shell viewer; toast
+    // placement follows its real presence rather than an authentication state.
     const [layout, sonner] = await Promise.all([
       readFile(resolve(process.cwd(), "src/routes/+layout.svelte"), "utf8"),
       readFile(
@@ -162,10 +165,16 @@ describe("mobile toast placement", () => {
 
     expect(layout).toContain('mobileOffset={{ left: "1rem", right: "1rem" }}');
     expect(layout).not.toMatch(/mobileOffset=\{\{[^}]*bottom:/);
-    expect(sonner).toContain("mobileToastBottomSignedOut");
-    expect(sonner).toContain("mobileToastBottomSignedIn");
-    expect(sonner).toContain('[data-shell-navigation="mobile-primary"]');
-    expect(sonner).toContain('[data-shell-navigation="admin-mobile"]');
+    expect(sonner).toContain("mobileToastBottomWithoutPrimary");
+    expect(sonner).toContain("mobileToastBottomWithPrimary");
+    expect(sonner).toContain("[data-mobile-primary-navigation]");
+    expect(sonner).toContain("@media (max-width: 1023px)");
+    expect(sonner).toContain(
+      "bottom: var(--shell-toast-with-primary) !important",
+    );
+    expect(sonner).not.toContain("v-bind(");
+    expect(sonner).not.toContain('[data-shell-navigation="mobile-primary"]');
+    expect(sonner).not.toContain('[data-shell-navigation="admin-mobile"]');
     expect(sonner).toContain("max-width: calc(100vw");
     expect(sonner).toContain("pointer-events: none;");
     expect(sonner).toContain("pointer-events: auto;");

@@ -96,6 +96,7 @@ describe("sealed demo Home", () => {
   it("keeps delivered academic destinations and metadata while disabling unfinished directory children", () => {
     for (const href of [
       "/",
+      "/campus",
       "/catalog/sections/910001",
       "/catalog/courses/920001",
       "/catalog/teachers/401",

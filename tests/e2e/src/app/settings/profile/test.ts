@@ -126,6 +126,31 @@ test.describe("/account/settings/profile 个人资料设置", () => {
         );
         await saveResponse.body();
         await expect(successToast).toBeVisible();
+        // The real save feedback must stay above the shared bar throughout
+        // narrow and tablet shell layouts; desktop retains Sonner's offset.
+        for (const width of [390, 900, 1280]) {
+          await page.setViewportSize({ width, height: 844 });
+          const primary = page.locator("[data-mobile-primary-navigation]");
+          const toaster = page.locator(
+            '[data-sonner-toaster][data-y-position="bottom"]',
+          );
+          await expect(toaster).toHaveCSS(
+            "bottom",
+            width < 1024 ? "80px" : "24px",
+          );
+          if (width < 1024) {
+            await expect(primary).toBeVisible();
+            const primaryBox = await primary.boundingBox();
+            if (!primaryBox)
+              throw new Error("Missing primary navigation geometry");
+            await expect
+              .poll(async () => {
+                const toastBox = await successToast.boundingBox();
+                return toastBox ? toastBox.y + toastBox.height : Infinity;
+              })
+              .toBeLessThanOrEqual(primaryBox.y - 16);
+          }
+        }
         await expect(page).toHaveURL(/\/account\/settings\/profile$/);
         await page.reload({ waitUntil: "domcontentloaded" });
         await waitForUiSettled(page);

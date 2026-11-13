@@ -20,6 +20,7 @@ export function isDemoNavigationDestination(href: string) {
   )
     return true;
   return [
+    "/campus",
     "/terms",
     "/privacy",
     "/guides/markdown-support",
