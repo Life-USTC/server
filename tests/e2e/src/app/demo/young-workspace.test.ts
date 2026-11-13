@@ -659,6 +659,46 @@ test("demo young workspace calendar and public detail share membership", {
           await expect(facts).toHaveCount(1);
           await expect(facts.getByRole("checkbox")).toBeChecked();
           await expect(facts.getByRole("checkbox")).toBeDisabled();
+          await expect(page.locator("#main-content")).toHaveCount(1);
+          const mountedDetail = await page.evaluateHandle(() => ({
+            document,
+            main: document.getElementById("main-content"),
+            url: location.href,
+            historyLength: history.length,
+            historyState: JSON.stringify(history.state),
+          }));
+          try {
+            const navigation = page.getByTestId("young-sidebar");
+            await expect(navigation).toHaveAttribute(
+              "data-shell-navigation-view",
+              "young",
+            );
+            const viewMainNavigation = page.getByRole("button", {
+              name: "View main navigation",
+              exact: true,
+            });
+            await expect(viewMainNavigation).toHaveCount(1);
+            await expect(viewMainNavigation).toBeVisible();
+            await expect(viewMainNavigation).toHaveAttribute("type", "button");
+            await expect(viewMainNavigation).not.toHaveAttribute("href");
+            await viewMainNavigation.click();
+            await expect(navigation).toHaveAttribute(
+              "data-shell-navigation-view",
+              "root",
+            );
+            expect(
+              await mountedDetail.evaluate(
+                (owner) =>
+                  owner.document === document &&
+                  owner.main === document.getElementById("main-content") &&
+                  owner.url === location.href &&
+                  owner.historyLength === history.length &&
+                  owner.historyState === JSON.stringify(history.state),
+              ),
+            ).toBe(true);
+          } finally {
+            await mountedDetail.dispose();
+          }
           const manage = page.getByRole("link", {
             name: "Activity subscriptions",
             exact: true,
