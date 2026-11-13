@@ -7,6 +7,7 @@ import {
 import type { Prisma } from "../generated/prisma-node/client";
 import { bulkUpsert, type ColumnValue } from "./database-writes";
 import type { ImportRecordCounts } from "./import-types";
+import { syncYoungOrganizationSources } from "./young-organization-sources";
 import type { YoungEventBuild } from "./young-plan";
 
 /** Skip reused or older Young data even when another dataset advances the snapshot. */
@@ -23,6 +24,10 @@ export async function syncYoungSnapshot(
   if (current?.youngSyncedAt && syncedAt <= current.youngSyncedAt)
     return undefined;
   await syncYoungEvents(tx, builds, { observedAt: syncedAt, complete: true });
+  await syncYoungOrganizationSources(tx, builds, {
+    sourceObservedAt: syncedAt,
+    complete: true,
+  });
   return syncedAt;
 }
 

@@ -2056,6 +2056,8 @@ model YoungEvent {
 
   organizerEntity YoungOrganizer? @relation(fields: [organizerId], references: [id], onDelete: SetNull)
 
+  organizationSources YoungEventOrganizationSource[]
+
   comments Comment[]
 
   @@index([isActive, startAt])
@@ -2072,6 +2074,18 @@ model YoungOrganizer {
   events YoungEvent[]
   subscriptions UserYoungOrganizerSubscription[]
   createdAt DateTime @default(now())
+}
+
+// Unresolved, event-local source observations; never a canonical organization identity.
+model YoungEventOrganizationSource {
+  eventId          Int
+  role             String
+  sourceId         String
+  sourceObservedAt DateTime @db.Timestamp(3)
+  event            YoungEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, role, sourceId])
+  @@index([role, sourceId, eventId])
 }
 
 // Internal durable monitoring aggregates; never contain identity labels.

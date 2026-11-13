@@ -257,6 +257,46 @@ describe("static young event plan", () => {
     ).toThrow("Incomplete Young organizer string-array snapshot");
   });
 
+  it.each([
+    { value: "", expected: { ids: [], complete: true } },
+    { value: [], expected: { ids: [], complete: true } },
+    { value: " a, b,a ", expected: { ids: ["a", "b"], complete: true } },
+    {
+      value: ["a,b", "Ａ", "A", " a "],
+      expected: { ids: ["a,b", "Ａ", "A", " a "], complete: true },
+    },
+    { value: " ", expected: { ids: [], complete: false } },
+    { value: ",", expected: { ids: [], complete: false } },
+    { value: "a,,b", expected: { ids: ["a", "b"], complete: false } },
+    { value: ["a", "", 3, "  "], expected: { ids: ["a"], complete: false } },
+    { value: null, expected: undefined },
+  ])(
+    "records role ID evidence without mistaking malformed input for complete membership: %j",
+    ({ value, expected }) => {
+      const build = loadYoungEvents(
+        fakeSnapshot({
+          tables: {
+            [ACTIVE_TABLE]: [
+              {
+                id: "roles",
+                sponsor: value,
+                organizer: "other",
+                sponsor_dictText: "Host, text",
+                organizer_dictText: "Operator, text",
+              },
+            ],
+          },
+        }),
+      )?.[0];
+      expect(build?.organizationSources?.sponsor).toEqual(expected);
+      expect(build?.organizationSources?.organizer).toEqual({
+        ids: ["other"],
+        complete: true,
+      });
+      expect(JSON.parse(build?.rawJson ?? "{}").sponsor).toEqual(value);
+    },
+  );
+
   it("merges ended and active rows with active winning on youngId conflict", () => {
     const snapshot = fakeSnapshot({
       tables: {

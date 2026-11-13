@@ -104,6 +104,10 @@ function upstreamColumns(row: SnapshotRow): Record<string, unknown> {
 }
 
 export type YoungEventBuild = {
+  /** Role-local ID tokens only; missing roles have unknown source membership. */
+  organizationSources?: Partial<
+    Record<"sponsor" | "organizer", { ids: string[]; complete: boolean }>
+  >;
   categoryCode?: string;
   moduleCode?: string;
   formCode?: string;
@@ -214,6 +218,29 @@ function loadOrganizerSourceArrays(
   return result;
 }
 
+/** CSV alone uses the existing trim convention; array members retain opaque boundaries. */
+function organizationSourceIds(
+  value: unknown,
+): { ids: string[]; complete: boolean } | undefined {
+  if (typeof value === "string") {
+    if (value === "") return { ids: [], complete: true };
+    const parts = value.split(",").map((part) => part.trim());
+    return {
+      ids: [...new Set(parts.filter(Boolean))],
+      complete: parts.every(Boolean),
+    };
+  }
+  if (Array.isArray(value)) {
+    const valid = (part: unknown): part is string =>
+      typeof part === "string" && part.trim() !== "";
+    return {
+      ids: [...new Set(value.filter(valid))],
+      complete: value.every(valid),
+    };
+  }
+  return undefined;
+}
+
 function mapYoungEventRow(
   row: SnapshotRow,
   isActive: boolean,
@@ -240,6 +267,10 @@ function mapYoungEventRow(
 
   return {
     youngId,
+    organizationSources: {
+      sponsor: organizationSourceIds(raw.sponsor),
+      organizer: organizationSourceIds(raw.organizer),
+    },
     categoryCode: asString(row.itemCategory),
     moduleCode: asString(row.module),
     formCode: asString(row.form),

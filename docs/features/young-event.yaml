@@ -133,6 +133,57 @@ requirements:
     test:
       file: tests/integration/young-source-contract.test.ts
       name: young-event.organizer-identity
+- id: young-event.organization-source-shadow
+  category: consistency
+  rule: Accepted Young imports preserve unresolved sponsor and organizer source IDs separately per event without changing legacy identities or follows.
+  acceptance:
+    given: Two events share display names and source IDs, including opaque array members containing commas and full-width characters.
+    when: The restricted importer repeats the accepted source observation in a real database transaction.
+    then:
+    - Event integer keys and roles remain part of each unique source edge.
+    - Existing organizer IDs, follows, subscription revisions, delivered notifications and public DTO shapes remain unchanged.
+    - Source observation time is the accepted Young source timestamp, never a fabricated import timestamp.
+    test:
+      file: tests/integration/young-organization-source.test.ts
+      name: young-event.organization-source-shadow
+- id: young-event.organization-source-reconciliation
+  category: consistency
+  rule: Shadow membership is removed only for a complete snapshot and an explicitly complete role input; unknown or malformed inputs cannot clear prior observations.
+  acceptance:
+    given: Two events have overlapping but different role member sets, followed by partial, malformed, empty, unknown and missing-event inputs.
+    when: The actual role-source writer reconciles those inputs inside the importer transaction.
+    then:
+    - Positive partial observations can be added without deleting old edges.
+    - Complete reconciliation is paired to its own event and role without cross-product deletions.
+    - Explicit empty roles clear only that role; unknown roles and missing events retain their source history.
+    test:
+      file: tests/integration/young-organization-source.test.ts
+      name: young-event.organization-source-reconciliation
+- id: young-event.organization-source-atomicity
+  category: consistency
+  rule: Shadow writes obey the existing Young freshness gate and commit or roll back together with event writes.
+  acceptance:
+    given: A prior accepted import, unchanged follows and notifications, then stale inputs and an injected final transaction failure.
+    when: The actual snapshot gate and writer run through restricted importer transactions.
+    then:
+    - Missing, reused and older source timestamps do not mutate events or source edges.
+    - A later failure rolls back event changes, new identities and all shadow writes without emitting notifications.
+    test:
+      file: tests/integration/young-organization-source.test.ts
+      name: young-event.organization-source-freshness-and-atomicity
+- id: young-event.organization-source-expand-rollback
+  category: consistency
+  rule: The additive shadow relation can be introduced and removed without reinterpreting existing organizer IDs, follows or delivered notifications.
+  acceptance:
+    given: An isolated legacy database with stable event IDs, a followed organizer and a read notification, plus pre-existing restricted roles.
+    when: The actual expansion SQL is applied without rerunning role bootstrap and the shadow writer is subsequently stopped for rollback.
+    then:
+    - Restricted importer writes work after expansion while all legacy data and public scalar projection remain stable.
+    - A rolled-back DDL operation restores the source relation and its rows.
+    - Removing the source relation preserves legacy reads and the old scalar writer; accidentally running the new writer fails atomically.
+    test:
+      file: tests/integration/young-organization-source.test.ts
+      name: young-event.organization-source-expand-rollback
 - id: young-event.raw-payload-preserved
   category: consistency
   rule: Curated columns cover the high-value upstream fields, including the rich-text description and
