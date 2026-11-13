@@ -247,7 +247,7 @@ test("ui.navigation-landmarks-6", { tag: "@Site/Web" }, async ({
         const shell = await sidebar(page, width);
         const publicNotices = shell.locator('a[href="/news"]');
         const reminders = shell.locator(
-          'a[href="/workspace/subscriptions/activities?view=notifications"]',
+          'a[data-slot="sidebar-menu-button"][href="/workspace/subscriptions/activities?view=notifications"]',
         );
         await expect(publicNotices).toBeVisible();
         await expect(reminders).toBeVisible();

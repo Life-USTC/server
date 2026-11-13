@@ -439,10 +439,10 @@ shellTest(
           navigation.getByRole("link", { name: /^(日历|Calendar)$/i }),
         ).toHaveAttribute("aria-current", "page");
 
-        const catalog = navigation.getByRole("button", {
-          name: /^(课程|Courses)$/i,
-        });
-        await expect(catalog).toHaveAttribute("aria-expanded", "true");
+        const catalog = navigation
+          .locator('[data-slot="sidebar-group-label"]')
+          .filter({ hasText: /^\s*(课程|Courses)\s*$/i });
+        await expect(catalog).not.toHaveAttribute("aria-expanded");
         await expect(
           navigation.getByRole("link", {
             name: /^(浏览课程|Browse courses)$/i,
@@ -515,13 +515,13 @@ shellTest(
       const coursesLink = page
         .getByTestId("app-sidebar")
         .getByRole("link", { name: /^(浏览课程|Browse courses)$/i });
-      // Compact navigation exposes one named entry per group, then restores
-      // that group's destinations when expanded.
-      const coursesGroup = sidebar.getByRole("button", {
-        name: /^(课程|Courses)$/i,
-      });
+      // Compact navigation exposes one named group action, then restores
+      // the whole sidebar and its expanded destination tree.
+      const coursesGroup = sidebar
+        .locator("button[data-shell-expand-sidebar]")
+        .filter({ hasText: /^\s*(课程|Courses)\s*$/i });
       await expect(coursesGroup).toBeVisible();
-      await expect(coursesLink).toHaveCount(0);
+      await expect(coursesLink).toBeHidden();
       await expect
         .poll(async () => (await coursesGroup.boundingBox())?.width ?? 0)
         .toBeLessThan(40);
@@ -557,9 +557,9 @@ shellTest(
       await page.keyboard.press("Enter");
       await expect(sidebarRoot).toHaveAttribute("data-state", "expanded");
 
-      // An icon-collapsed group keeps its own disclosure: the row stays
+      // A compact group icon remains a global sidebar expansion action: it stays
       // visible, operable and large enough to hit, and activating it expands
-      // the sidebar onto that group instead of doing nothing.
+      // the whole sidebar without restoring a local disclosure.
       await menuTrigger.focus();
       await page.keyboard.press("Enter");
       await expect(sidebarRoot).toHaveAttribute("data-state", "collapsed");
@@ -571,7 +571,7 @@ shellTest(
       await coursesGroup.focus();
       await page.keyboard.press("Enter");
       await expect(sidebarRoot).toHaveAttribute("data-state", "expanded");
-      await expect(coursesGroup).toHaveAttribute("aria-expanded", "true");
+      await expect(coursesGroup).toHaveCount(0);
     }, {});
   },
 );
@@ -608,8 +608,10 @@ shellTest(
         await expect(parent).toHaveAttribute("data-shell-ancestor", "true");
         await expect(parent).toHaveAttribute("aria-current", "location");
         await expect(
-          navigation.getByRole("button", { name: /^(课程|Courses)$/i }),
-        ).toHaveAttribute("aria-expanded", "true");
+          navigation
+            .locator('[data-slot="sidebar-group-label"]')
+            .filter({ hasText: /^\s*(课程|Courses)\s*$/i }),
+        ).not.toHaveAttribute("aria-expanded");
 
         // On the parent's own page the trail position gives way to the page.
         await parent.click();
@@ -640,24 +642,34 @@ shellTest(
           .getByRole("navigation", {
             name: /主导航|Primary navigation/i,
           });
-        const catalog = navigation.getByRole("button", {
-          name: /^(课程|Courses)$/i,
-        });
+        const catalog = navigation
+          .locator('[data-slot="sidebar-group-label"]')
+          .filter({ hasText: /^\s*(课程|Courses)\s*$/i });
 
-        await expect(catalog).toHaveAttribute("aria-expanded", "true");
+        await expect(catalog).not.toHaveAttribute("aria-expanded");
         await expect(
           navigation.getByRole("link", {
             name: /^(浏览课程|Browse courses)$/i,
           }),
         ).toBeVisible();
-        await catalog.click();
-        await expect(catalog).toHaveAttribute("aria-expanded", "false");
+        await page.evaluate(() => {
+          const key = "life-ustc.sidebar.v1";
+          const previous = JSON.parse(localStorage.getItem(key) ?? "{}");
+          localStorage.setItem(
+            key,
+            JSON.stringify({
+              ...previous,
+              groups: { courses: false },
+              submenus: { sections: false },
+            }),
+          );
+        });
 
-        // The empty overview exposes a real course discovery link outside the collapsed group.
+        // The empty overview exposes the same real course discovery route in its content.
         await navigation
           .getByRole("link", { name: /^Life@USTC: (Home|首页)$/, exact: true })
           .click();
-        await expect(catalog).toHaveAttribute("aria-expanded", "false");
+        await expect(catalog).not.toHaveAttribute("aria-expanded");
         await page
           .locator("[data-shell-scroll-container]")
           .getByRole("link", { name: /浏览课程|Browse Courses/i })
@@ -665,7 +677,7 @@ shellTest(
         await page.waitForURL("**/catalog/courses");
         await waitForUiSettled(page);
 
-        await expect(catalog).toHaveAttribute("aria-expanded", "true");
+        await expect(catalog).not.toHaveAttribute("aria-expanded");
         await expect(
           navigation.getByRole("link", {
             name: /^(浏览课程|Browse courses)$/i,
@@ -731,12 +743,27 @@ shellTest(
         name: /^(Primary navigation|主导航|Settings|设置|Second Classroom|第二课堂|Admin|管理后台)$/,
       });
       await expect(sidebar).toBeVisible();
-      await expect(
-        sidebar.getByRole("button", { name: /^(日程|My day)$/i }),
-      ).toBeVisible();
-      await expect(
-        sidebar.getByRole("button", { name: /^(管理|Admin)$/i }),
-      ).toBeVisible();
+      for (const name of [/^(日程|My day)$/i, /^(管理|Admin)$/i]) {
+        const group = sidebar.locator('[data-slot="sidebar-group"]').filter({
+          has: page
+            .locator('[data-slot="sidebar-group-label"] > span')
+            .filter({ hasText: name }),
+        });
+        await expect(group).toHaveCount(1);
+        await expect(
+          group.locator('[data-slot="sidebar-group-label"] > span'),
+        ).toHaveText(name);
+        await expect(
+          group.locator('[data-slot="sidebar-group-label"]'),
+        ).not.toHaveAttribute("aria-expanded");
+        await expect(
+          group.locator('[data-slot="sidebar-group-content"]'),
+        ).toBeVisible();
+        await expect(group.getByRole("button", { name })).toHaveCount(0);
+        await expect(
+          group.locator('[data-slot="sidebar-menu-action"]'),
+        ).toHaveCount(0);
+      }
       await expect(
         sidebar.getByRole("button", { name: /语言|Language/i }),
       ).toHaveCount(0);
@@ -916,13 +943,11 @@ test("/ shell 折叠桌面侧边栏后分组入口展开并可跳转", {
       name: /^(浏览课程|Browse courses)$/i,
     });
 
-    const catalogGroup = sidebar.getByRole("button", {
-      name: /^(课程|Courses)$/i,
-    });
-    await expect(async () => {
-      await catalogGroup.click();
-      await expect(coursesLink).toHaveCount(0, { timeout: 1_000 });
-    }).toPass({ timeout: 10_000, intervals: [250, 500, 1_000] });
+    const catalogGroup = sidebar
+      .locator("button[data-shell-expand-sidebar]")
+      .filter({ hasText: /^\s*(课程|Courses)\s*$/i });
+    await expect(coursesLink).toBeVisible();
+    await expect(catalogGroup).toHaveCount(0);
 
     await page.locator('[data-sidebar="rail"]').click();
 
@@ -930,8 +955,8 @@ test("/ shell 折叠桌面侧边栏后分组入口展开并可跳转", {
       page.locator('[data-slot="sidebar"][data-state="collapsed"]'),
     ).toBeVisible();
     await expect(catalogGroup).toBeEnabled();
-    await expect(catalogGroup).toHaveAttribute("aria-expanded", "false");
-    await expect(coursesLink).toHaveCount(0);
+    await expect(catalogGroup).not.toHaveAttribute("aria-expanded");
+    await expect(coursesLink).toBeHidden();
     await expect
       .poll(async () => (await catalogGroup.boundingBox())?.width ?? 0)
       .toBeLessThanOrEqual(40);
@@ -940,7 +965,7 @@ test("/ shell 折叠桌面侧边栏后分组入口展开并可跳转", {
     await expect(
       page.locator('[data-slot="sidebar"][data-state="expanded"]'),
     ).toBeVisible();
-    await expect(catalogGroup).toHaveAttribute("aria-expanded", "true");
+    await expect(catalogGroup).toHaveCount(0);
     await expect(coursesLink).toBeVisible();
     await expect(coursesLink).toHaveAttribute("href", "/catalog/courses");
     await expect

@@ -410,7 +410,7 @@ const discoveryExpected = [
 ] as const;
 describe("shell discovery remains a presentation of existing destinations and counts", () => {
   test.each(["en-us", "zh-cn"] as const)(
-    "explains each real summary field without changing its value or destination in %s",
+    "keeps each real count and its accessible scope without adjacent disclosures in %s",
     (locale) => {
       const groups = buildShellNavGroups(
         buildLayoutCopy(locale),
@@ -423,9 +423,15 @@ describe("shell discovery remains a presentation of existing destinations and co
           .filter((link) => link.badge != null)
           .map((link) => [link.href, link.badge]),
       ).toEqual(discoveryExpected);
+      for (const positive of links.filter(
+        (link) => link.badge != null && link.badge > 0,
+      )) {
+        expect(typeof positive.badgeLabel).toBe("string");
+        expect(positive.badgeLabel?.trim().length).toBeGreaterThan(0);
+      }
       for (const [href, count] of discoveryExpected) {
         const link = links.find((item) => item.href === href);
-        expect(link?.discoveryHint?.text).toMatch(new RegExp(`^${count} `));
+        expect(link?.badgeLabel).toContain(`${count} `);
         const scope = {
           "/workspace/calendar":
             locale === "en-us" ? "not this view" : "非当前视图",
@@ -439,8 +445,8 @@ describe("shell discovery remains a presentation of existing destinations and co
           "/workspace/subscriptions/activities?view=notifications":
             locale === "en-us" ? "not expired" : "未过期",
         };
-        expect(link?.discoveryHint?.description).toContain(scope[href]);
-        expect(link?.discoveryHint?.label).toContain(link?.label);
+        expect(link?.badgeLabel).toContain(scope[href]);
+        expect(link?.badgeLabel).toContain(link?.label);
         expect(link?.ariaLabel).toBe(link?.label);
       }
       const mcp = links.find((link) => link.id === "mcp");
@@ -448,10 +454,8 @@ describe("shell discovery remains a presentation of existing destinations and co
         href: "/usage/mcp",
         label: locale === "en-us" ? "AI assistants (MCP)" : "AI 助手（MCP）",
       });
-      expect(mcp?.discoveryHint?.label).toContain(mcp?.discoveryHint?.text);
-      expect(mcp?.discoveryHint?.description).toContain(
-        locale === "en-us" ? "Personal data requires" : "个人数据需",
-      );
+      expect(mcp?.badgeLabel).toBeUndefined();
+      expect(mcp?.badge).toBeUndefined();
       expect(groups.find((group) => group.id === "activities")?.label).toBe(
         locale === "en-us" ? "Activities" : "活动",
       );
@@ -465,8 +469,8 @@ describe("shell discovery remains a presentation of existing destinations and co
     }).flatMap((group) => group.links);
     expect(unknown.filter((link) => link.badge != null)).toEqual([]);
     expect(
-      unknown.filter((link) => link.discoveryHint).map((link) => link.id),
-    ).toEqual(["mcp"]);
+      unknown.filter((link) => link.badgeLabel).map((link) => link.id),
+    ).toEqual([]);
     const anonymous = buildShellNavGroups(copy, null, discoveryContext).flatMap(
       (group) => group.links,
     );
@@ -481,6 +485,6 @@ describe("shell discovery remains a presentation of existing destinations and co
       .flatMap((group) => group.links)
       .find((link) => link.id === "todos");
     expect(zero?.badge).toBe(0);
-    expect(zero?.discoveryHint).toBeUndefined();
+    expect(zero?.badgeLabel).toBeUndefined();
   });
 });

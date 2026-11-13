@@ -162,15 +162,80 @@ export type YoungEventBuild = {
   places?: YoungEventPlace[];
 };
 
+const ORGANIZER_SOURCE_FIELDS = [
+  "organizer",
+  "organizer_dictText",
+  "sponsor",
+  "sponsor_dictText",
+] as const;
+
+type OrganizerSourceField = (typeof ORGANIZER_SOURCE_FIELDS)[number];
+type OrganizerSourceArrays = Partial<Record<OrganizerSourceField, string[]>>;
+
+/** Restore only real string-array children; joined labels cannot recover members. */
+function loadOrganizerSourceArrays(
+  snapshot: Snapshot,
+  recordsTable: string,
+): Map<number, OrganizerSourceArrays> {
+  const result = new Map<number, OrganizerSourceArrays>();
+  for (const field of ORGANIZER_SOURCE_FIELDS) {
+    const table = `${recordsTable}_${field}`;
+    if (!snapshot.hasTable(table)) continue;
+    for (const [parent, rows] of snapshot.queryGrouped(table)) {
+      const positions = new Set<number>();
+      const ordered = rows.map((row) => {
+        const position = row.position;
+        if (
+          typeof position !== "number" ||
+          !Number.isSafeInteger(position) ||
+          position < 0 ||
+          positions.has(position) ||
+          typeof row.value !== "string"
+        ) {
+          throw new Error(
+            `Invalid Young organizer string-array snapshot: ${table}`,
+          );
+        }
+        positions.add(position);
+        return { position, value: row.value };
+      });
+      if (ordered.length === 0) continue;
+      const arrays = result.get(parent) ?? {};
+      ordered.sort((a, b) => a.position - b.position);
+      if (ordered.some((row, index) => row.position !== index)) {
+        throw new Error(
+          `Incomplete Young organizer string-array snapshot: ${table}`,
+        );
+      }
+      arrays[field] = ordered.map((row) => row.value);
+      result.set(parent, arrays);
+    }
+  }
+  return result;
+}
+
 function mapYoungEventRow(
   row: SnapshotRow,
   isActive: boolean,
   placeSnapshot?: YoungPlaceSnapshot,
+  organizerSourceArrays?: OrganizerSourceArrays,
 ): YoungEventBuild | null {
   const youngId = asString(row.id);
   if (youngId == null) return null;
 
   const raw = upstreamColumns(row);
+  for (const field of ORGANIZER_SOURCE_FIELDS) {
+    const values = organizerSourceArrays?.[field];
+    if (values == null) continue;
+    // The store keeps a field either inline or in children, never both. A NULL
+    // parent column can exist because another record introduced that SQL column.
+    if (row[field] != null) {
+      throw new Error(
+        `Conflicting Young organizer snapshot representations: ${field}`,
+      );
+    }
+    raw[field] = values;
+  }
   if (placeSnapshot) raw.itemPlaceDTO = placeSnapshot.rawItemPlaceDTO;
 
   return {
@@ -301,12 +366,14 @@ export function loadYoungEvents(snapshot: Snapshot): YoungEventBuild[] | null {
   ] as const) {
     if (!snapshot.hasTable(table)) continue;
     const placesByRecord = loadPlacesByRecordStoreId(snapshot, table);
+    const organizerArraysByRecord = loadOrganizerSourceArrays(snapshot, table);
     for (const row of snapshot.queryAll(table)) {
       const storeId = asInt(row.store_id);
       const build = mapYoungEventRow(
         row,
         isActive,
         storeId == null ? undefined : placesByRecord.get(storeId),
+        storeId == null ? undefined : organizerArraysByRecord.get(storeId),
       );
       if (build != null) merged.set(build.youngId, build);
     }

@@ -207,9 +207,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           locale === "zh-cn" ? "主导航" : "Primary navigation",
         );
         await expect(
-          navigation.locator(
-            '[data-slot="sidebar-group-label"][aria-expanded]',
-          ),
+          navigation.locator('[data-slot="sidebar-group-label"]'),
         ).toHaveText(groupNames);
         for (const [label, expectedPaths] of [
           [
@@ -234,7 +232,9 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           const group = navigation
             .locator('[data-slot="sidebar-group"]')
             .filter({
-              has: page.getByRole("button", { name: label, exact: true }),
+              has: page
+                .locator('[data-slot="sidebar-group-label"]')
+                .filter({ hasText: new RegExp(`^\\s*${label}\\s*$`) }),
             });
           expect(
             await group
@@ -244,12 +244,11 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               ),
           ).toEqual(expectedPaths);
         }
-        const collapsedGroups = navigation.locator(
-          '[data-slot="sidebar-group-label"][aria-expanded="false"]',
-        );
-        const collapsedGroupCount = await collapsedGroups.count();
-        for (let index = 0; index < collapsedGroupCount; index++)
-          await collapsedGroups.first().click();
+        await expect(
+          navigation.locator(
+            'button[data-slot="sidebar-group-label"], [data-slot="sidebar-menu-action"]',
+          ),
+        ).toHaveCount(0);
         const links = await navigation
           .locator(
             '[data-slot="sidebar-content"] a[data-sidebar="menu-button"]',

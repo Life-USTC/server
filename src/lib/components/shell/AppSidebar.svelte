@@ -1,10 +1,7 @@
 <script lang="ts">
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
-import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
-import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
-import { onMount, tick } from "svelte";
+import { tick } from "svelte";
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
-import * as Collapsible from "#lib/components/ui/collapsible/index.js";
 import * as Sidebar from "#lib/components/ui/sidebar/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import type {
@@ -14,10 +11,6 @@ import type {
 import { cn } from "#lib/utils.js";
 import AppUserMenu from "./AppUserMenu.svelte";
 import SettingsGlyph from "./SettingsGlyph.svelte";
-import {
-  loadSidebarPreferences,
-  saveSidebarPreferences,
-} from "./sidebar-preferences";
 import type { ShellLink, ShellNavGroup } from "./types";
 
 export type SectionSidebar = {
@@ -71,10 +64,6 @@ let {
 } = $props();
 
 const sidebar = Sidebar.useSidebar();
-const discoveryId = $props.id();
-function hintId(link: ShellLink, mobile: boolean) {
-  return `${discoveryId}-${mobile ? "mobile" : "desktop"}-${link.id ?? encodeURIComponent(link.href)}`;
-}
 function revealCurrent(node: HTMLElement, active: boolean) {
   let current = false;
   let cancel = () => {};
@@ -161,46 +150,11 @@ function revealCurrent(node: HTMLElement, active: boolean) {
   reveal(active);
   return { update: reveal, destroy: () => cancel() };
 }
-const groupOpen = $state<Record<string, boolean>>({});
-let savedSubmenus = $state<Record<string, boolean>>({});
-let submenuOverride = $state<Record<string, { open: boolean; path: string }>>(
-  {},
-);
-
-onMount(() => {
-  const saved = loadSidebarPreferences();
-  Object.assign(groupOpen, saved.groups);
-  savedSubmenus = saved.submenus;
-});
-
-function submenuIsOpen(key: string, autoOpen: boolean, path: string) {
-  const saved = submenuOverride[key];
-  if (saved?.path === path) return saved.open;
-  return autoOpen || savedSubmenus[key] === true;
-}
-
-function setSubmenuOpen(key: string, path: string, open: boolean) {
-  submenuOverride = { ...submenuOverride, [key]: { open, path } };
-  savedSubmenus = { ...savedSubmenus, [key]: open };
-  saveSidebarPreferences({
-    ...loadSidebarPreferences(),
-    submenus: savedSubmenus,
-  });
-}
-
 function hasActiveChild(link: ShellLink): boolean {
   return (
     link.items?.some((child) => isActiveLink(child) || hasActiveChild(child)) ??
     false
   );
-}
-
-function setGroupOpen(key: string, isOpen: boolean): void {
-  groupOpen[key] = isOpen;
-  saveSidebarPreferences({
-    ...loadSidebarPreferences(),
-    groups: groupOpen,
-  });
 }
 
 function showActiveState(active: boolean): boolean {
@@ -225,18 +179,9 @@ function closeMobileSidebar(): void {
   {/if}
 {/snippet}
 
-{#snippet navigationHint(link: ShellLink, mobile: boolean, hasChildren = false)}
-  {#if link.discoveryHint}
-    <details class="group-data-[collapsible=icon]:hidden" data-shell-nav-hint>
-      <summary
-        aria-label={link.discoveryHint.label}
-        data-shell-count-value={link.badge ?? undefined}
-        class={cn("absolute top-0 flex min-h-11 min-w-11 max-w-24 cursor-pointer list-none items-center justify-center gap-1 rounded-md px-1 text-xs hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring md:min-h-8 md:min-w-8 [&::-webkit-details-marker]:hidden", hasChildren ? "right-8 max-w-19" : "right-1")}
-      >
-        <span class="min-w-0 [overflow-wrap:anywhere]">{link.discoveryHint.text}</span><svg class="size-3 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="6" /><path stroke-linecap="round" d="M8 7v4m0-7v.01" /></svg>
-      </summary>
-      <p id={hintId(link, mobile)} class="mx-1 mt-1 rounded-md border p-2 text-xs leading-relaxed [overflow-wrap:anywhere]" data-shell-nav-hint-body>{link.discoveryHint.description}</p>
-    </details>
+{#snippet navigationBadge(link: ShellLink)}
+  {#if link.badge != null && link.badge > 0}
+    <Sidebar.MenuBadge class="top-1/2! -translate-y-1/2" role="img" aria-label={link.badgeLabel} data-shell-count-value={link.badge}>{link.badge}</Sidebar.MenuBadge>
   {/if}
 {/snippet}
 
@@ -312,58 +257,35 @@ function closeMobileSidebar(): void {
 
     <Sidebar.Content>
       <div class="flex min-w-0 shrink-0 flex-col" data-slot="sidebar-flow">
-      {#each groups as group, index}
+      {#each groups as group}
         {@const isCollapsed = !mobile && sidebar.state === "collapsed"}
-        {@const groupKey = group.id ?? `group-${index}`}
         {@const groupActive = group.links.some(
           (link) =>
             isActiveLink(link) || hasActiveChild(link) || isAncestorLink(link),
         )}
-        {@const isOpen =
-          !isCollapsed &&
-          (groupActive || (groupOpen[groupKey] ?? Boolean(group.defaultOpen)))}
-        <Collapsible.Root
-          bind:open={() => isOpen,
-          (value) => {
-            // The compact rail shows one icon per intent group. Opening one
-            // restores its destinations without expanding every other group.
-            if (isCollapsed) {
-              setGroupOpen(groupKey, true);
-              sidebar.setOpen(true);
-              return;
-            }
-            setGroupOpen(groupKey, value);
-          }}
-          class="group/collapsible"
-        >
           <Sidebar.Group>
             <Sidebar.GroupLabel
               class={cn(
-                "gap-2 overflow-hidden text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:opacity-100",
+                "gap-2 overflow-hidden text-sm group-data-[collapsible=icon]:mt-0 group-data-[collapsible=icon]:opacity-100",
+                isCollapsed && "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 isCollapsed && groupActive && "bg-sidebar-accent text-sidebar-accent-foreground",
               )}
             >
               {#snippet child({ props })}
-                <Collapsible.Trigger
-                  {...props}
-                  aria-label={group.label}
-                  title={isCollapsed ? group.label : undefined}
-                  data-active={isCollapsed && groupActive ? "true" : undefined}
-                  aria-current={isCollapsed && groupActive ? "location" : undefined}
-                >
-                  {#if group.icon}
-                    {@const GroupIcon = group.icon}
-                    <GroupIcon />
-                  {/if}
-                  <span class="truncate">{group.label}</span>
-                  <ChevronDownIcon
-                    class="ms-auto transition-transform group-data-[state=open]/collapsible:rotate-180 group-data-[collapsible=icon]:hidden"
-                  />
-                </Collapsible.Trigger>
+                {#if isCollapsed}
+                  <button {...props} type="button" aria-label={`${copy.shell.expandSidebar}: ${group.label}`} title={`${copy.shell.expandSidebar}: ${group.label}`} data-active={groupActive ? "true" : undefined} aria-current={groupActive ? "location" : undefined} data-shell-expand-sidebar onclick={() => sidebar.setOpen(true)}>
+                    {#if group.icon}{@const GroupIcon = group.icon}<GroupIcon />{/if}
+                    <span class="truncate">{group.label}</span>
+                  </button>
+                {:else}
+                  <div {...props}>
+                    {#if group.icon}{@const GroupIcon = group.icon}<GroupIcon />{/if}
+                    <span class="truncate">{group.label}</span>
+                  </div>
+                {/if}
               {/snippet}
             </Sidebar.GroupLabel>
-            <Collapsible.Content>
-              <Sidebar.GroupContent>
+              <Sidebar.GroupContent class="group-data-[collapsible=icon]:hidden">
                 <Sidebar.Menu>
                   {#each group.links as link}
                     {#if link.disabledReason}
@@ -392,15 +314,11 @@ function closeMobileSidebar(): void {
                       {@const onPath = showActiveState(
                         isAncestorLink(link) || childActive,
                       )}
-                      {@const submenuOpen = submenuIsOpen(
-                        link.id ?? link.href,
-                        ownActive || childActive,
-                        currentPathname,
-                      )}
                       <Sidebar.MenuItem>
+                        <div class="relative">
                         <Sidebar.MenuButton
                           isActive={active}
-                          class={cn(onPath && "bg-sidebar-accent/50 font-medium", link.discoveryHint && "h-auto min-h-11 py-1.5 md:min-h-8 [&>span:last-child]:whitespace-normal! [&>span:last-child]:[overflow-wrap:anywhere] transition-[width,height]", link.discoveryHint && (link.badge != null ? "pe-28!" : "pe-16!"))}
+                          class={cn(onPath && "bg-sidebar-accent/50 font-medium", link.badge != null && link.badge > 0 && "h-auto min-h-11 py-1.5 md:min-h-8 [&>span:last-child]:whitespace-normal! [&>span:last-child]:[overflow-wrap:anywhere] transition-[width,height]", link.badge != null && link.badge > 0 && "pe-14!")}
                           data-shell-ancestor={onPath ? "true" : undefined}
                           tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? link.label : undefined}
                         >
@@ -410,8 +328,7 @@ function closeMobileSidebar(): void {
                               href={link.href}
                               use:revealCurrent={active}
                               aria-label={link.ariaLabel}
-                              aria-describedby={link.discoveryHint ? hintId(link, mobile) : undefined}
-                              aria-current={active
+                                  aria-current={active
                                 ? "page"
                                 : onPath
                                   ? "location"
@@ -424,38 +341,12 @@ function closeMobileSidebar(): void {
                                 {@const Icon = link.icon}
                                 <Icon />
                               {/if}
-                              <span class={cn("font-medium", link.discoveryHint && "min-w-0 flex-1")}>{link.label}</span>
+                              <span class={cn("font-medium", link.badge != null && link.badge > 0 && "min-w-0 flex-1")}>{link.label}</span>
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>
-                        <Sidebar.MenuAction
-                          aria-expanded={submenuOpen}
-                          aria-label={link.label}
-                          class={cn(
-                            // WCAG 2.2 SC 2.5.8 needs 24x24; the chevron stays 16px.
-                            "top-1 w-6 peer-data-[size=default]/menu-button:top-1",
-                            link.discoveryHint ? "right-1" : link.badge != null && link.badge > 0 && "right-8",
-                          )}
-                          onclick={(event) => {
-                            event.preventDefault();
-                            setSubmenuOpen(
-                              link.id ?? link.href,
-                              currentPathname,
-                              !submenuOpen,
-                            );
-                          }}
-                        >
-                          <ChevronRightIcon
-                            class={submenuOpen ? "rotate-90" : undefined}
-                          />
-                        </Sidebar.MenuAction>
-                        {#if link.discoveryHint}
-                          {@render navigationHint(link, mobile, Boolean(link.items?.length))}
-                        {:else if link.badge != null && link.badge > 0}
-                          <Sidebar.MenuBadge>{link.badge}</Sidebar.MenuBadge>
-                        {/if}
-
-                        {#if submenuOpen}
+                        {@render navigationBadge(link)}
+                        </div>
                           <Sidebar.MenuSub>
                             {#each link.items as subLink}
                               {@const nestedActive = hasActiveChild(subLink)}
@@ -530,15 +421,15 @@ function closeMobileSidebar(): void {
                               </Sidebar.MenuSubItem>
                             {/each}
                           </Sidebar.MenuSub>
-                        {/if}
                       </Sidebar.MenuItem>
                     {:else}
                       {@const active = showActiveState(isActiveLink(link))}
                       {@const onPath = showActiveState(isAncestorLink(link))}
                       <Sidebar.MenuItem>
+                        <div class="relative">
                         <Sidebar.MenuButton
                           isActive={active}
-                          class={cn(onPath && "bg-sidebar-accent/50 font-medium", link.discoveryHint && "h-auto min-h-11 py-1.5 md:min-h-8 [&>span:last-child]:whitespace-normal! [&>span:last-child]:[overflow-wrap:anywhere] transition-[width,height]", link.discoveryHint && (link.badge != null ? "pe-28!" : "pe-16!"))}
+                          class={cn(onPath && "bg-sidebar-accent/50 font-medium", link.badge != null && link.badge > 0 && "h-auto min-h-11 py-1.5 md:min-h-8 [&>span:last-child]:whitespace-normal! [&>span:last-child]:[overflow-wrap:anywhere] transition-[width,height]", link.badge != null && link.badge > 0 && "pe-14!")}
                           data-shell-ancestor={onPath ? "true" : undefined}
                           tooltipContent={!sidebar.isMobile && sidebar.state === "collapsed" ? link.label : undefined}
                         >
@@ -548,8 +439,7 @@ function closeMobileSidebar(): void {
                               href={link.href}
                               use:revealCurrent={active}
                               aria-label={link.ariaLabel}
-                              aria-describedby={link.discoveryHint ? hintId(link, mobile) : undefined}
-                              aria-current={active
+                                  aria-current={active
                                 ? "page"
                                 : onPath
                                   ? "location"
@@ -562,23 +452,18 @@ function closeMobileSidebar(): void {
                                 {@const Icon = link.icon}
                                 <Icon />
                               {/if}
-                              <span class={cn("font-medium", link.discoveryHint && "min-w-0 flex-1")}>{link.label}</span>
+                              <span class={cn("font-medium", link.badge != null && link.badge > 0 && "min-w-0 flex-1")}>{link.label}</span>
                             </a>
                           {/snippet}
                         </Sidebar.MenuButton>
-                        {#if link.discoveryHint}
-                          {@render navigationHint(link, mobile, Boolean(link.items?.length))}
-                        {:else if link.badge != null && link.badge > 0}
-                          <Sidebar.MenuBadge>{link.badge}</Sidebar.MenuBadge>
-                        {/if}
+                        {@render navigationBadge(link)}
+                        </div>
                       </Sidebar.MenuItem>
                     {/if}
                   {/each}
                 </Sidebar.Menu>
               </Sidebar.GroupContent>
-            </Collapsible.Content>
           </Sidebar.Group>
-        </Collapsible.Root>
       {/each}
       </div>
     </Sidebar.Content>
