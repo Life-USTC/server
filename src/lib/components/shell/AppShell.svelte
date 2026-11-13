@@ -673,7 +673,7 @@ let globalSearchShortcutLabel = $derived(
           class={cn(
             "flex min-w-0 flex-1 flex-col",
             detailWorkspace
-              ? "min-h-0 overflow-y-auto lg:overflow-hidden"
+              ? "min-h-0 overflow-x-hidden overflow-y-auto lg:overflow-hidden"
               : "lg:min-h-0 lg:overflow-y-auto",
           )}
         >

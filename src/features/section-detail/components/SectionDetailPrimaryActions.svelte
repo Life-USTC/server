@@ -36,8 +36,8 @@ export let viewer: {
 <div
   class={stretched
     ? retired && !viewer.isSubscribed
-      ? "grid w-full grid-cols-1 gap-2"
-      : "grid w-full grid-cols-1 gap-2 min-[360px]:grid-cols-2"
+      ? "grid w-full grid-cols-1 gap-2 [&_[data-slot=button]]:h-auto [&_[data-slot=button]]:whitespace-normal"
+      : "grid w-full grid-cols-1 gap-2 min-[360px]:grid-cols-2 [&_[data-slot=button]]:h-auto [&_[data-slot=button]]:whitespace-normal"
     : "flex flex-wrap gap-2"}
 >
   <Button
