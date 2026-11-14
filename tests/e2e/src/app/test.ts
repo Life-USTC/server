@@ -140,7 +140,7 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
     const rootNav = sidebar.locator('[data-shell-navigation="mobile"]');
     expect(
       await rootNav
-        .locator('[data-slot="sidebar-content"] a')
+        .locator('[data-navigation-depth="0"][href]')
         .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("href"))),
     ).toEqual([
       "/",

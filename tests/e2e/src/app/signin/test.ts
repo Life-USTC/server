@@ -127,6 +127,7 @@ test("/account/sign-in narrow mobile shell uses an accessible compact brand", {
     await gotoAndWaitForReady(page, "/account/sign-in");
 
     const brand = page.locator("[data-shell-topbar] [data-shell-brand]");
+    await expect(brand).toHaveCount(1);
     if (width < 320) {
       await expect(brand).toBeHidden();
       expect(
@@ -138,6 +139,9 @@ test("/account/sign-in narrow mobile shell uses an accessible compact brand", {
     }
 
     await expect(brand).toBeVisible();
+    await expect(brand).toHaveRole("link");
+    await expect(brand).toHaveAccessibleName("Life@USTC: Home");
+    await expect(brand).toHaveText("Life@USTC");
     await expect(brand).toHaveAttribute("aria-label", "Life@USTC: Home");
     await expect(brand).toHaveAttribute("href", "/");
     await expect(brand).toHaveAttribute("title", "Home");
@@ -145,11 +149,9 @@ test("/account/sign-in narrow mobile shell uses an accessible compact brand", {
     await expect(brandName).toHaveClass(/sr-only/);
     await expect(brandName).not.toHaveClass(/truncate/);
 
-    const caption = brand.getByText("Home", { exact: true });
-    await expect(caption).toBeVisible();
-    await expect(caption).not.toHaveClass(/sr-only|truncate/);
+    await expect(brand.getByText("Home", { exact: true })).toHaveCount(0);
     expect(
-      await caption.evaluate(
+      await brand.evaluate(
         (element) => element.scrollWidth <= element.clientWidth,
       ),
     ).toBe(true);

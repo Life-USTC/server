@@ -172,107 +172,6 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           for (const [index, path] of routes.entries()) {
             await gotoAndWaitForReady(page, path);
             await navigation();
-            if (index === 0) {
-              const hrefs = [
-                "/workspace/calendar",
-                "/workspace/homeworks",
-                "/workspace/todos",
-                "/workspace/exams",
-                "/workspace/subscriptions",
-                "/workspace/subscriptions/activities?view=notifications",
-              ];
-              const readFact = async (href: string) => {
-                const link = page.locator(
-                  `[data-shell-navigation="${width === 390 ? "mobile" : "desktop"}"] a[data-sidebar="menu-button"][href="${href}"]`,
-                );
-                await expect(link).toHaveCount(1);
-                const row = link.locator(
-                  'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
-                );
-                const explicit = row.locator("[data-shell-count-value]");
-                await expect(explicit).toHaveCount(1);
-                const text = await explicit.getAttribute(
-                  "data-shell-count-value",
-                );
-                return {
-                  href,
-                  count: Number.parseInt(text ?? "", 10),
-                  text: await row.textContent(),
-                  geometry: await link.evaluate((node) => {
-                    const label = node.querySelector(":scope > span");
-                    const summary = node.parentElement?.querySelector(
-                      "[data-shell-count-value]",
-                    );
-                    const measure = (element: Element | null | undefined) =>
-                      element instanceof HTMLElement
-                        ? {
-                            text: element.textContent,
-                            width: element.clientWidth,
-                            scrollWidth: element.scrollWidth,
-                            left: element.getBoundingClientRect().left,
-                            right: element.getBoundingClientRect().right,
-                          }
-                        : null;
-                    return { label: measure(label), summary: measure(summary) };
-                  }),
-                };
-              };
-              const facts = [];
-              for (const [factIndex, href] of hrefs.entries()) {
-                if (factIndex === 0 || factIndex === 1) {
-                  await gotoAndWaitForReady(
-                    page,
-                    factIndex === 0
-                      ? "/workspace/calendar"
-                      : "/workspace/todos",
-                  );
-                  await navigation();
-                }
-                await expect
-                  .poll(async () => (await readFact(href)).count)
-                  .toBe(fixture.expected[factIndex]);
-                facts.push(await readFact(href));
-              }
-              await page.evaluate(() => document.fonts.ready);
-              await gotoAndWaitForReady(page, "/usage/mcp");
-              const apps = await navigation();
-              const mcp = apps.locator('a[href="/usage/mcp"]');
-              const root = apps.locator("#app-logo");
-              await expect(mcp).toHaveCount(1);
-              await expect(root).toHaveCount(1);
-              discovery = {
-                day,
-                path,
-                locale,
-                width,
-                facts,
-                mcpText: await mcp.textContent(),
-                rootText: await root.textContent(),
-                hints: await apps.locator("[data-shell-nav-hint]").count(),
-                accountRoutes: routes,
-              };
-              await info.attach(`discovery-nav-${locale}-${width}`, {
-                body: await page.screenshot(),
-                contentType: "image/png",
-              });
-              for (const fact of facts) {
-                if (fact.geometry.label && fact.geometry.summary)
-                  expect(
-                    fact.geometry.label.right,
-                    `${fact.href} label/count overlap`,
-                  ).toBeLessThanOrEqual(fact.geometry.summary.left);
-                for (const [kind, box] of Object.entries(fact.geometry)) {
-                  // A visible container can still clip an unbroken destination word.
-                  // Check its own content width, rather than only document overflow.
-                  if (box)
-                    expect(
-                      box.scrollWidth,
-                      `${fact.href} ${kind}: ${box.text}`,
-                    ).toBeLessThanOrEqual(box.width + 1);
-                }
-              }
-            }
-            if (index === 0) await gotoAndWaitForReady(page, path);
             if (
               width === 390 &&
               (await page
@@ -319,10 +218,11 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               name: await button.textContent(),
               items: await menu.textContent(),
             });
-            await info.attach(`account-${index}-${locale}-${width}`, {
-              body: await page.screenshot(),
-              contentType: "image/png",
-            });
+            if (index === routes.length - 1)
+              await info.attach(`account-${index}-${locale}-${width}`, {
+                body: await page.screenshot(),
+                contentType: "image/png",
+              });
             await page.keyboard.press("Escape");
             await expect(button).toBeFocused();
             await page.keyboard.press("Enter");
@@ -356,6 +256,127 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                 Boolean(document.activeElement?.closest('[role="menu"]')),
               ),
             ).toBe(false);
+            if (index === 0) {
+              const hrefs = [
+                "/workspace/calendar",
+                "/workspace/homeworks",
+                "/workspace/todos",
+                "/workspace/exams",
+                "/workspace/subscriptions",
+                "/workspace/subscriptions/activities?view=notifications",
+              ];
+              const factLink = (href: string) =>
+                page.locator(
+                  `[data-shell-navigation="${width === 390 ? "mobile" : "desktop"}"] a[data-sidebar="menu-button"][href="${href}"]`,
+                );
+              const readCount = async (href: string) => {
+                const link = factLink(href);
+                await expect(link).toHaveCount(1);
+                const row = link.locator(
+                  'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
+                );
+                const explicit = row.locator("[data-shell-count-value]");
+                await expect(explicit).toHaveCount(1);
+                const text = await explicit.getAttribute(
+                  "data-shell-count-value",
+                );
+                return Number.parseInt(text ?? "", 10);
+              };
+              const readFact = async (href: string) => {
+                const link = factLink(href);
+                await expect(link).toHaveCount(1);
+                const row = link.locator(
+                  'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
+                );
+                await expect(
+                  row.locator("[data-shell-count-value]"),
+                ).toHaveCount(1);
+                return link.evaluate((node, href) => {
+                  const row = node.closest('[data-slot="sidebar-menu-item"]');
+                  const count = row?.querySelector("[data-shell-count-value]");
+                  const label = node.querySelector(":scope > span");
+                  const summary = node.parentElement?.querySelector(
+                    "[data-shell-count-value]",
+                  );
+                  const measure = (element: Element | null | undefined) =>
+                    element instanceof HTMLElement
+                      ? {
+                          text: element.textContent,
+                          width: element.clientWidth,
+                          scrollWidth: element.scrollWidth,
+                          left: element.getBoundingClientRect().left,
+                          right: element.getBoundingClientRect().right,
+                        }
+                      : null;
+                  return {
+                    href,
+                    count: Number.parseInt(
+                      count?.getAttribute("data-shell-count-value") ?? "",
+                      10,
+                    ),
+                    text: row?.textContent ?? null,
+                    geometry: {
+                      label: measure(label),
+                      summary: measure(summary),
+                    },
+                  };
+                }, href);
+              };
+              const facts = [];
+              for (const [factIndex, href] of hrefs.entries()) {
+                if (factIndex === 0 || factIndex === 1) {
+                  await gotoAndWaitForReady(
+                    page,
+                    factIndex === 0
+                      ? "/workspace/calendar"
+                      : "/workspace/todos",
+                  );
+                  await navigation();
+                }
+                await expect
+                  .poll(() => readCount(href))
+                  .toBe(fixture.expected[factIndex]);
+                facts.push(await readFact(href));
+              }
+              await page.evaluate(() => document.fonts.ready);
+              await gotoAndWaitForReady(page, "/usage/mcp");
+              const apps = await navigation();
+              const mcp = apps.locator('a[href="/usage/mcp"]');
+              const root = apps.locator("#app-logo");
+              await expect(mcp).toHaveCount(1);
+              await expect(root).toHaveCount(1);
+              discovery = {
+                day,
+                path,
+                locale,
+                width,
+                facts,
+                mcpText: await mcp.textContent(),
+                rootText: await root.textContent(),
+                hints: await apps.locator("[data-shell-nav-hint]").count(),
+                accountRoutes: routes,
+              };
+              await info.attach(`discovery-nav-${locale}-${width}`, {
+                body: await page.screenshot(),
+                contentType: "image/png",
+              });
+              for (const fact of facts) {
+                if (fact.geometry.label && fact.geometry.summary)
+                  expect(
+                    fact.geometry.label.right,
+                    `${fact.href} label/count overlap`,
+                  ).toBeLessThanOrEqual(fact.geometry.summary.left);
+                for (const [kind, box] of Object.entries(fact.geometry)) {
+                  // A visible container can still clip an unbroken destination word.
+                  // Check its own content width, rather than only document overflow.
+                  if (box)
+                    expect(
+                      box.scrollWidth,
+                      `${fact.href} ${kind}: ${box.text}`,
+                    ).toBeLessThanOrEqual(box.width + 1);
+                }
+              }
+            }
           }
           await info.attach(`discovery-observations-${locale}-${width}`, {
             body: JSON.stringify(

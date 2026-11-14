@@ -995,11 +995,10 @@ test("demo young workspace retires an admitted ordinary subscription write", {
               "data-state",
               "expanded",
             );
-            const rail = sidebar.getByRole("button", {
-              name: "Toggle sidebar",
-              exact: true,
-            });
+            const rail = sidebar.locator('[data-slot="sidebar-rail"]');
             await expect(rail).toHaveCount(1);
+            await expect(rail).toHaveRole("button");
+            await expect(rail).toHaveAccessibleName("Toggle sidebar");
             await expect(rail).toBeVisible();
             const readGlobalOpen = () =>
               page.evaluate(() => {

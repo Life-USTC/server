@@ -382,11 +382,12 @@ for (const [locale, width] of [
           const sections = page.locator("[data-overview-sections]");
           if (width >= 1000) {
             const sidebar = page.getByTestId("app-sidebar");
-            const rail = sidebar.getByRole("button", {
-              name: locale === "en-us" ? "Toggle sidebar" : "切换侧边栏",
-              exact: true,
-            });
+            const rail = sidebar.locator('[data-slot="sidebar-rail"]');
             await expect(rail).toHaveCount(1);
+            await expect(rail).toHaveRole("button");
+            await expect(rail).toHaveAccessibleName(
+              locale === "en-us" ? "Toggle sidebar" : "切换侧边栏",
+            );
             await rail.click();
             await expect(sidebar).toHaveCSS("width", "48px");
           }
