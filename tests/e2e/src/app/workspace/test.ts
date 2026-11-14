@@ -68,7 +68,10 @@ test.describe("仪表盘", () => {
         await expect(
           sidebarNavigationLink(page, /^(日历|Calendar)$/i),
         ).toBeVisible();
-        await page.getByTestId("workspace-sidebar-back").click();
+        await page
+          .getByTestId("workspace-sidebar")
+          .locator('[data-navigation-depth="0"][href="/"]')
+          .click();
         await expect(page.getByTestId("workspace-sidebar")).toHaveAttribute(
           "data-shell-navigation-view",
           "workspace",
@@ -78,7 +81,7 @@ test.describe("仪表盘", () => {
         ).toHaveAttribute("aria-current", "page");
         await expect(
           appSidebar(page).getByRole("link", {
-            name: /^Life@USTC: (Home|首页)$/,
+            name: "Life@USTC",
             exact: true,
           }),
         ).toHaveAttribute("href", "/");
@@ -265,7 +268,7 @@ test.describe("仪表盘", () => {
         await expect(page).toHaveURL(/\/workspace\/calendar$/);
         await expect(page.getByTestId("calendar-sidebar")).toHaveAttribute(
           "data-shell-navigation-view",
-          "calendar",
+          "root",
         );
         await expectNavigationCount(
           appSidebar(page),

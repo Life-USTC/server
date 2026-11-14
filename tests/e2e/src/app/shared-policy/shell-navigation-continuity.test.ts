@@ -157,13 +157,23 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             ).toHaveAttribute("data-shell-navigation-view", "root");
             await expect(nav.locator('a[href="/campus"]')).toBeVisible();
             await expect(
-              nav.locator('[data-slot="sidebar-menu-sub"]'),
-            ).toHaveCount(0);
-            await page.getByTestId("activities-sidebar-back").click();
+              nav.locator(
+                '[data-navigation-depth="1"][href="/catalog/courses"]',
+              ),
+            ).toBeVisible();
+            await nav
+              .locator(
+                '[data-navigation-depth="0"][href="/catalog/young-events"]',
+              )
+              .click();
             await expect(
               page.getByTestId("activities-sidebar"),
             ).toHaveAttribute("data-shell-navigation-view", "activities");
-            await expect(nav.locator("button[aria-expanded]")).toHaveCount(0);
+            await expect(
+              nav.locator(
+                'button[aria-expanded]:not([data-slot="sidebar-trigger"])',
+              ),
+            ).toHaveCount(0);
             await expect(current).toHaveText(organizerName);
             await expect(
               nav.locator('a[href="/catalog/young-events/organizers"]'),
@@ -423,9 +433,9 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           );
           expect(page.url()).toBe(settingsLocation);
           await expect(nav.locator('a[href="/campus"]')).toBeVisible();
-          await expect(nav.locator('a[href="/catalog/sections"]')).toHaveCount(
-            0,
-          );
+          await expect(
+            nav.locator('a[href="/catalog/sections"]'),
+          ).toBeVisible();
           await page.screenshot({
             path: testInfo.outputPath(`settings-${locale}-${width}.png`),
           });

@@ -83,20 +83,16 @@ test.describe("/account/settings 设置中心", () => {
       ).toBeVisible();
       expect(page.url()).toBe(settingsUrl);
       await expect(activePanel).toBeVisible();
-      await back.click();
-      await expect(sidebar).toHaveAttribute(
-        "data-shell-navigation-view",
-        "settings",
+      await expect(sidebar.locator("[data-local-navigation-back]")).toHaveCount(
+        0,
       );
-      await sidebar
-        .getByRole("link", { name: /^Life@USTC: (Home|首页)$/ })
-        .click();
+      await sidebar.locator("#app-logo").click();
       await page.waitForURL(/\/(?:workspace\/overview)?(?:\?.*)?$/);
       await expect(page.getByTestId("settings-sidebar")).toHaveCount(0);
       await expect(page.getByTestId("settings-sidebar-back")).toHaveCount(0);
       const appSidebar = page.getByTestId("app-sidebar");
       const home = appSidebar.getByRole("link", {
-        name: /^Life@USTC: (Home|首页)$/,
+        name: "Life@USTC",
         exact: true,
       });
       await expect(home).toBeVisible();

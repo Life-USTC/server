@@ -609,7 +609,7 @@ test("reading the last unread reminder on page two returns to the remaining remi
         "data-shell-navigation-view",
         "root",
       );
-      await back.click();
+      await navigation.locator('[data-navigation-depth="0"][href="/"]').click();
       await expect(navigation).toHaveAttribute(
         "data-shell-navigation-view",
         "activity-workspace",

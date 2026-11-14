@@ -252,10 +252,6 @@ for (const [locale, width] of [
                 : locale === "en-us"
                   ? "Admin"
                   : "管理后台";
-        const restoreLabel =
-          locale === "en-us"
-            ? `Return to ${sectionLabel}`
-            : `返回${sectionLabel}`;
         if (width === 390)
           await expect(page.getByRole("dialog")).toHaveAccessibleName(
             sectionLabel,
@@ -286,9 +282,9 @@ for (const [locale, width] of [
               "data-shell-navigation-view",
               "campus",
             );
-            await expect(nav.locator('a[href="/catalog/bus/map"]')).toHaveCount(
-              0,
-            );
+            await expect(
+              nav.locator('a[href="/catalog/bus/map"]'),
+            ).toBeVisible();
             await expect(toggle).toBeFocused();
             await page.keyboard.press("Enter");
           }
@@ -296,16 +292,16 @@ for (const [locale, width] of [
             "data-shell-navigation-view",
             "root",
           );
-          await expect(toggle).toHaveAccessibleName(restoreLabel);
+          await expect(nav.locator("[data-local-navigation-back]")).toHaveCount(
+            0,
+          );
           if (width === 390)
             await expect(page.getByRole("dialog")).toHaveAccessibleName(
               rootNavigationLabel,
             );
           expect(
             await nav
-              .locator(
-                '[data-slot="sidebar-content"] a[data-sidebar="menu-button"]',
-              )
+              .locator('[data-navigation-depth="0"][href]')
               .evaluateAll((nodes) =>
                 nodes.map((node) => node.getAttribute("href")),
               ),
@@ -316,10 +312,13 @@ for (const [locale, width] of [
             "/catalog/young-events",
           ]);
           await expect(
-            nav.locator('[data-slot="sidebar-menu-sub"]'),
-          ).toHaveCount(0);
+            nav.locator('[data-navigation-depth="1"][href="/catalog/bus"]'),
+          ).toBeVisible();
+          await expect(nav.locator('a[href="/catalog/bus/map"]')).toHaveCount(
+            0,
+          );
           await expect(nav.locator("a[aria-current]")).toHaveCount(
-            context === "activities" || context === "bus" ? 1 : 0,
+            context === "bus" ? 2 : context === "activities" ? 1 : 0,
           );
           if (context === "bus") {
             await expect(nav.locator('a[href="/campus"]')).toHaveAttribute(
@@ -330,7 +329,7 @@ for (const [locale, width] of [
               ratio: 1,
             });
           }
-          await expect(toggle).toBeFocused();
+          await expect(nav.locator("a:focus")).toHaveCount(1);
           await expect(nav.locator('a[href^="/admin"]')).toHaveCount(0);
           expect(
             await original.evaluate(
@@ -345,33 +344,25 @@ for (const [locale, width] of [
           await page.screenshot({
             path: `/tmp/life-four-primary-preview-after-root-${context}-${locale}-${width}.png`,
           });
-          if (context === "bus") {
-            await nav
-              .locator('[data-slot="sidebar-content"] a[href="/campus"]')
-              .click();
+          if (context === "bus" || context === "activities") {
+            // A matching real destination restores the local directory. The root
+            // deliberately has no dedicated “return to current page” control.
+            const restore = nav.locator(
+              `[data-slot="sidebar-content"] a[href="${context === "bus" ? "/catalog/bus" : "/catalog/young-events"}"]`,
+            );
+            await restore.focus();
+            await page.keyboard.press("Enter");
             await expect(nav).toHaveAttribute(
               "data-shell-navigation-view",
-              "bus",
+              context,
             );
+            await expect(toggle).toHaveAccessibleName(rootLabel);
+            if (width === 390)
+              await expect(page.getByRole("dialog")).toHaveAccessibleName(
+                sectionLabel,
+              );
             await expect(toggle).toBeFocused();
-            await toggle.click();
-            await toggle.click();
-            await expect(nav).toHaveAttribute(
-              "data-shell-navigation-view",
-              "root",
-            );
           }
-          await page.keyboard.press("Space");
-          await expect(nav).toHaveAttribute(
-            "data-shell-navigation-view",
-            context,
-          );
-          await expect(toggle).toHaveAccessibleName(rootLabel);
-          if (width === 390)
-            await expect(page.getByRole("dialog")).toHaveAccessibleName(
-              sectionLabel,
-            );
-          await expect(toggle).toBeFocused();
           expect(
             await original.evaluate(
               (owner) =>
@@ -400,10 +391,10 @@ for (const [locale, width] of [
             .click();
           await expect(nav).toHaveAttribute(
             "data-shell-navigation-view",
-            context,
+            context === "settings" || context === "admin" ? "root" : context,
           );
         }
-        await toggle.click();
+        if (context === "activities" || context === "bus") await toggle.click();
         if (context === "bus") await toggle.click();
         const destination =
           context === "bus" ? "/catalog/young-events" : "/campus";
@@ -990,7 +981,7 @@ test("sidebar.root-preview retires a held administrator bootstrap on Demo naviga
         "data-shell-navigation-view",
         "root",
       );
-      await page.getByTestId("workspace-sidebar-back").click();
+      await workspace.locator('[data-navigation-depth="0"][href="/"]').click();
       await expect(workspace).toHaveAttribute(
         "data-shell-navigation-view",
         "workspace",

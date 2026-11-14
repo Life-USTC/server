@@ -302,7 +302,7 @@ test("rendering-and-cache.personal-overlays-5", { tag: "@Site/Web" }, async ({
             await expectAvatarViewer(page, user.name);
             await expect(page.getByTestId("calendar-sidebar")).toHaveAttribute(
               "data-shell-navigation-view",
-              "calendar",
+              "root",
             );
             await expectNavigationCount(
               navigation,

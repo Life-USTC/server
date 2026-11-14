@@ -187,7 +187,7 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
           await page
             .getByTestId("app-sidebar")
             .getByRole("link", {
-              name: /^Life@USTC: (Home|首页)$/,
+              name: "Life@USTC",
               exact: true,
             })
             .filter({ visible: true })
@@ -259,7 +259,7 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
       }
       await page.context().clearCookies();
       await page
-        .getByRole("link", { name: /^Life@USTC: (Home|首页)$/, exact: true })
+        .locator("#app-logo, [data-shell-brand]")
         .filter({ visible: true })
         .first()
         .click();

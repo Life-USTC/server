@@ -1,13 +1,19 @@
 <script lang="ts">
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
+import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
+import PanelLeftCloseIcon from "@lucide/svelte/icons/panel-left-close";
+import PanelLeftOpenIcon from "@lucide/svelte/icons/panel-left-open";
 import { tick } from "svelte";
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import * as Sidebar from "#lib/components/ui/sidebar/index.js";
 import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
 import { cn } from "#lib/utils.js";
 import {
+  displayNavigationScope,
   isCurrentScopeLink,
   type NavigationScope,
+  navigationScopeChildren,
+  navigationScopeForLink,
   primaryDestination,
 } from "./navigation-scopes";
 import SettingsGlyph from "./SettingsGlyph.svelte";
@@ -19,7 +25,6 @@ let {
   footerLinks = [],
   dockAboveFooter = false,
   homeHref = "/",
-  homeLabel = copy.shell.discovery.home,
   isActiveLink,
   isAncestorLink,
   scopes,
@@ -43,11 +48,19 @@ const compactTooltips = $derived(
   !sidebar.isMobile && sidebar.state === "collapsed",
 );
 let preview = $state<{ owner: string; level: string } | null>(null);
+const currentLevel = $derived(displayNavigationScope(scopes, currentScope));
 const level = $derived(
-  preview?.owner === navigationOwnerKey ? preview.level : currentScope,
+  preview?.owner === navigationOwnerKey ? preview.level : currentLevel,
 );
 const scope = $derived(scopes[level] ?? scopes.root);
-const scopeLinks = $derived(scope.groups.flatMap((group) => group.links));
+const scopeLinks = $derived(
+  scope.groups.flatMap((group) =>
+    group.links.flatMap((link) => [
+      link,
+      ...navigationScopeChildren(scopes, level, link),
+    ]),
+  ),
+);
 let nav: HTMLElement;
 $effect(() => {
   const owner = navigationOwnerKey;
@@ -76,9 +89,14 @@ function changeLevel(next: string) {
 }
 function restoresCurrent(link: ShellLink) {
   return (
-    level === "root" &&
-    currentScope !== "root" &&
-    link.id === primaryDestination(currentPathname)
+    level !== currentLevel &&
+    currentLevel !== "root" &&
+    ((level === "root" && link.id === primaryDestination(currentPathname)) ||
+      navigationScopeForLink(
+        scopes,
+        scopes[currentLevel].parent ?? "root",
+        link,
+      )?.id === currentLevel)
   );
 }
 function selectDestination(event: MouseEvent, link: ShellLink) {
@@ -92,7 +110,7 @@ function selectDestination(event: MouseEvent, link: ShellLink) {
     return;
   if (restoresCurrent(link)) {
     event.preventDefault();
-    changeLevel(currentScope);
+    changeLevel(currentLevel);
     return;
   }
   // Keep the clicked anchor intact until the router consumes its real href.
@@ -187,6 +205,50 @@ function revealCurrent(node: HTMLElement, active: boolean) {
 }
 </script>
 
+{#snippet entry(link: ShellLink, depth: number, hasChildren: boolean)}
+  {@const active = isCurrentScopeLink(link, scopeLinks, isActiveLink)}
+  {@const ancestor = !active && (isActiveLink(link) || isAncestorLink(link) || (depth === 0 && level === "root" && primaryDestination(currentPathname) === link.id))}
+  <div class="relative">
+    <Sidebar.MenuButton
+      isActive={active}
+      tooltipContent={compactTooltips ? link.label : undefined}
+      class={cn(
+        "h-auto min-h-11 py-2 [&>span]:whitespace-normal! [&>span]:[overflow-wrap:anywhere]",
+        ancestor && "bg-sidebar-accent/50",
+        link.badge != null && link.badge > 0 && "pe-14!",
+      )}
+      data-shell-ancestor={ancestor ? "true" : undefined}
+    >
+      {#snippet child({ props })}
+        {#if link.disabledReason}
+          <button {...props} type="button" disabled aria-label={link.label} title={link.disabledReason} data-navigation-depth={depth}>
+            {@render linkLabel(link, depth, hasChildren)}
+          </button>
+        {:else}
+          <a {...props} href={link.href}
+            data-navigation-depth={depth}
+            data-sveltekit-preload-data={restoresCurrent(link) ? "false" : undefined}
+            data-sveltekit-preload-code={restoresCurrent(link) ? "false" : undefined}
+            aria-label={link.ariaLabel ?? link.label}
+            aria-current={active ? "page" : ancestor ? "location" : undefined}
+            use:revealCurrent={active}
+            onclick={(event) => selectDestination(event, link)}
+          >{@render linkLabel(link, depth, hasChildren)}</a>
+        {/if}
+      {/snippet}
+    </Sidebar.MenuButton>
+    {#if link.badge != null && link.badge > 0}
+      <Sidebar.MenuBadge class="top-1/2! -translate-y-1/2" role="img" aria-label={link.badgeLabel} data-shell-count-value={link.badge}>{link.badge}</Sidebar.MenuBadge>
+    {/if}
+  </div>
+{/snippet}
+
+{#snippet linkLabel(link: ShellLink, depth: number, hasChildren: boolean)}
+  {#if link.icon}{@const Icon = link.icon}<Icon />{:else if link.glyph}<SettingsGlyph name={link.glyph} />{/if}
+  <span class={cn("min-w-0 flex-1", depth === 0 && "font-medium")}>{link.label}</span>
+  {#if hasChildren}<ChevronRightIcon class="ml-auto opacity-50 group-data-[collapsible=icon]:hidden" />{/if}
+{/snippet}
+
 <Sidebar.Root
   class={dockAboveFooter && !sidebar.isMobile
     ? "top-0! bottom-16! h-auto! max-h-none!"
@@ -207,146 +269,70 @@ function revealCurrent(node: HTMLElement, active: boolean) {
     class="flex min-h-0 flex-1 flex-col"
   >
     <Sidebar.Header class={sidebar.isMobile ? "pr-12" : undefined}>
-      <Sidebar.Menu
-        ><Sidebar.MenuItem>
-          <Sidebar.MenuButton
-            class="h-auto min-h-11 py-1.5"
-            tooltipContent={compactTooltips ? homeLabel : undefined}
-          >
-            {#snippet child({ props })}<a
-                {...props}
-                href={homeHref}
-                id="app-logo"
-                aria-label={`Life@USTC: ${homeLabel}`}
-                onclick={() => sidebar.setOpenMobile(false)}
-                ><img
-                  class="size-6 rounded-md"
-                  src={appIconUrl}
-                  alt=""
-                  aria-hidden="true"
-                /><span class="grid min-w-0"
-                  ><span>Life@USTC</span>{" "}<span class="text-xs font-normal"
-                    >{homeLabel}</span
-                  ></span
-                ></a
-              >{/snippet}
-          </Sidebar.MenuButton>
-          {#if scope.parent || currentScope !== "root"}
-            <Sidebar.MenuButton
-              tooltipContent={compactTooltips ? (level === "root"
-                ? copy.shell.returnToSection.replace(
-                    "{section}",
-                    scopes[currentScope].label,
-                  )
-                : copy.shell.primaryDestinations.back.replace(
-                    "{section}",
-                    scopes[scope.parent ?? "root"].label,
-                  )) : undefined}
-            >
-              {#snippet child({ props })}<button
-                  {...props}
-                  type="button"
-                  data-local-navigation-back
-                  data-testid={`${currentScope}-sidebar-back`}
-                  onclick={() =>
-                    changeLevel(
-                      level === "root"
-                        ? currentScope
-                        : (scope.parent ?? "root"),
-                    )}
-                  ><ArrowLeftIcon /><span
-                    >{level === "root"
-                      ? copy.shell.returnToSection.replace(
-                          "{section}",
-                          scopes[currentScope].label,
-                        )
-                      : copy.shell.primaryDestinations.back.replace(
-                          "{section}",
-                          scopes[scope.parent ?? "root"].label,
-                        )}</span
-                  ></button
-                >{/snippet}
+      <div class="flex items-center gap-1 group-data-[collapsible=icon]:flex-col">
+        <Sidebar.Menu class="min-w-0 flex-1">
+          <Sidebar.MenuItem>
+            <Sidebar.MenuButton class="h-11 group-data-[collapsible=icon]:p-1!" tooltipContent={compactTooltips ? "Life@USTC" : undefined}>
+              {#snippet child({ props })}
+                <a {...props} href={homeHref} id="app-logo" aria-label="Life@USTC" onclick={() => sidebar.setOpenMobile(false)}>
+                  <img class="size-6 rounded-md" src={appIconUrl} alt="" aria-hidden="true" />
+                  <span>Life@USTC</span>
+                </a>
+              {/snippet}
             </Sidebar.MenuButton>
-          {/if}
-        </Sidebar.MenuItem></Sidebar.Menu
-      >
+          </Sidebar.MenuItem>
+        </Sidebar.Menu>
+        {#if !sidebar.isMobile}
+          <Sidebar.Trigger
+            aria-label={copy.shell.toggleSidebar}
+            title={copy.shell.toggleSidebar}
+            variant="outline"
+            class="size-9 shrink-0 shadow-sm group-data-[collapsible=icon]:size-8"
+          >
+            {#if sidebar.state === "expanded"}<PanelLeftCloseIcon />{:else}<PanelLeftOpenIcon />{/if}
+          </Sidebar.Trigger>
+        {/if}
+      </div>
+      {#if scope.parent}
+        <Sidebar.Menu><Sidebar.MenuItem>
+          <Sidebar.MenuButton tooltipContent={compactTooltips ? copy.shell.primaryDestinations.back.replace("{section}", scopes[scope.parent ?? "root"].label) : undefined}>
+            {#snippet child({ props })}
+              <button {...props} type="button" data-local-navigation-back data-testid={`${currentScope}-sidebar-back`} onclick={() => changeLevel(scope.parent ?? "root")}>
+                <ArrowLeftIcon /><span>{copy.shell.primaryDestinations.back.replace("{section}", scopes[scope.parent ?? "root"].label)}</span>
+              </button>
+            {/snippet}
+          </Sidebar.MenuButton>
+        </Sidebar.MenuItem></Sidebar.Menu>
+      {/if}
     </Sidebar.Header>
-    <Sidebar.Content
-      ><div class="flex min-w-0 shrink-0 flex-col" data-slot="sidebar-flow">
+    <Sidebar.Content>
+      {#key level}
+      <div class="flex min-w-0 shrink-0 flex-col" data-slot="sidebar-flow" class:sidebar-level-enter={true}>
         {#each scope.groups as group}
-          <Sidebar.Group
-            ><Sidebar.GroupLabel class="group-data-[collapsible=icon]:hidden"
-              >{group.label}</Sidebar.GroupLabel
-            ><Sidebar.GroupContent
-              ><Sidebar.Menu>
+          <Sidebar.Group>
+            <Sidebar.GroupLabel class="group-data-[collapsible=icon]:hidden">{group.label}</Sidebar.GroupLabel>
+            <Sidebar.GroupContent>
+              <Sidebar.Menu>
                 {#each group.links as link}
-                  {@const active = level === "root"
-                    ? primaryDestination(currentPathname) === link.id &&
-                      currentPathname === link.href
-                    : isCurrentScopeLink(link, scopeLinks, isActiveLink)}
-                  {@const ancestor =
-                    !active &&
-                    (level === "root"
-                      ? primaryDestination(currentPathname) === link.id
-                      : isActiveLink(link) || isAncestorLink(link))}
-                  <Sidebar.MenuItem
-                    ><Sidebar.MenuButton
-                      isActive={active}
-                      tooltipContent={compactTooltips ? link.label : undefined}
-                      class={cn(
-                        "h-auto min-h-11 py-2 [&>span:last-child]:whitespace-normal! [&>span:last-child]:[overflow-wrap:anywhere]",
-                        ancestor && "bg-sidebar-accent/50",
-                        link.badge != null && link.badge > 0 && "pe-14!",
-                      )}
-                      data-shell-ancestor={ancestor ? "true" : undefined}
-                    >
-                      {#snippet child({ props })}
-                        {#if link.disabledReason}<button
-                            {...props}
-                            type="button"
-                            disabled
-                            aria-label={link.label}
-                            title={link.disabledReason}
-                            >{#if link.icon}{@const Icon = link.icon}<Icon
-                              />{:else if link.glyph}<SettingsGlyph
-                                name={link.glyph}
-                              />{/if}<span class="font-medium">{link.label}</span></button
-                          >
-                        {:else}<a
-                            {...props}
-                            href={link.href}
-                            data-sveltekit-preload-data={restoresCurrent(link) ? "false" : undefined}
-                            data-sveltekit-preload-code={restoresCurrent(link) ? "false" : undefined}
-                            aria-label={link.ariaLabel ?? link.label}
-                            aria-current={active
-                              ? "page"
-                              : ancestor
-                                ? "location"
-                                : undefined}
-                            use:revealCurrent={active}
-                            onclick={(event) => selectDestination(event, link)}
-                            >{#if link.icon}{@const Icon = link.icon}<Icon
-                              />{:else if link.glyph}<SettingsGlyph
-                                name={link.glyph}
-                              />{/if}<span class="font-medium">{link.label}</span></a
-                          >{/if}
-                      {/snippet}
-                    </Sidebar.MenuButton>
-                    {#if link.badge != null && link.badge > 0}<Sidebar.MenuBadge
-                        class="top-1/2! -translate-y-1/2"
-                        role="img"
-                        aria-label={link.badgeLabel}
-                        data-shell-count-value={link.badge}
-                        >{link.badge}</Sidebar.MenuBadge
-                      >{/if}
+                  {@const children = navigationScopeChildren(scopes, level, link)}
+                  <Sidebar.MenuItem>
+                    {@render entry(link, 0, children.length > 0)}
+                    {#if children.length}
+                      <Sidebar.MenuSub>
+                        {#each children as child}
+                          <Sidebar.MenuSubItem>{@render entry(child, 1, false)}</Sidebar.MenuSubItem>
+                        {/each}
+                      </Sidebar.MenuSub>
+                    {/if}
                   </Sidebar.MenuItem>
                 {/each}
-              </Sidebar.Menu></Sidebar.GroupContent
-            ></Sidebar.Group
-          >
+              </Sidebar.Menu>
+            </Sidebar.GroupContent>
+          </Sidebar.Group>
         {/each}
-      </div></Sidebar.Content
-    >
+      </div>
+      {/key}
+    </Sidebar.Content>
   </nav>
   {#if !sidebar.isMobile}<Sidebar.Rail label={copy.shell.toggleSidebar} />{/if}
   {#if footerLinks.length}<Sidebar.Footer class="border-t p-2"
@@ -365,3 +351,17 @@ function revealCurrent(node: HTMLElement, active: boolean) {
       </nav></Sidebar.Footer
     >{/if}
 </Sidebar.Root>
+
+
+<style>
+  .sidebar-level-enter {
+    animation: sidebar-level-enter 180ms ease-out;
+  }
+  @keyframes sidebar-level-enter {
+    from { opacity: 0; transform: translateX(-0.35rem); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sidebar-level-enter { animation: none; }
+  }
+</style>

@@ -65,10 +65,24 @@ for (const [locale, width] of [
         await page.evaluate(() => document.fonts.ready);
         await waitForUiSettled(page);
       };
-      const capture = (state: string) =>
-        page.screenshot({
-          path: `/tmp/life-four-primary-final-after-${state}-${locale}-${width}.png`,
+      const capture = async (state: string) => {
+        await waitForUiSettled(page);
+        await page.evaluate(async () => {
+          await document.fonts.ready;
+          await Promise.all(
+            document
+              .getAnimations()
+              .filter(
+                (animation) =>
+                  animation.effect?.getTiming().iterations !== Infinity,
+              )
+              .map((animation) => animation.finished.catch(() => {})),
+          );
         });
+        return page.screenshot({
+          path: `/tmp/life-sidebar-adjacent-after-${state}-${locale}-${width}.png`,
+        });
+      };
       await gotoAndWaitForReady(
         page,
         "/?snapshotAt=2026-11-12T04%3A00%3A00.000Z",
@@ -82,7 +96,7 @@ for (const [locale, width] of [
       await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
       expect(
         await nav
-          .locator('[data-slot="sidebar-content"] a')
+          .locator('[data-navigation-depth="0"][href]')
           .evaluateAll((nodes) =>
             nodes.map((node) => node.getAttribute("href")),
           ),
@@ -92,11 +106,50 @@ for (const [locale, width] of [
         "/campus",
         "/catalog/young-events",
       ]);
-      await expect(nav.locator('[data-slot="sidebar-menu-sub"]')).toHaveCount(
-        0,
-      );
+      await expect(nav.locator("[data-local-navigation-back]")).toHaveCount(0);
+      await expect(nav.locator("#app-logo")).toHaveText("Life@USTC");
+      await expect(
+        nav.locator('[data-navigation-depth="1"][href="/catalog/bus"]'),
+      ).toBeVisible();
+      await expect(
+        nav.locator('[data-navigation-depth="1"][href="/workspace/homeworks"]'),
+      ).toBeVisible();
+      // The root shows only its direct children, not grandchildren such as the route map.
+      await expect(nav.locator('a[href="/catalog/bus/map"]')).toHaveCount(0);
+      await expect(
+        nav.locator('[data-slot="collapsible-trigger"]'),
+      ).toHaveCount(0);
       await expectRenderedUiQuality(page);
       await capture("root");
+      if (width === 1280) {
+        const collapse = nav.locator('[data-slot="sidebar-trigger"]');
+        await expect(collapse).toBeVisible();
+        await expect(collapse).toHaveAttribute("aria-expanded", "true");
+        await collapse.click();
+        await expect(collapse).toHaveAttribute("aria-expanded", "false");
+        await expect(
+          nav.locator('[data-navigation-depth="1"]').first(),
+        ).toBeHidden();
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        await expect(page.locator('[data-slot="sidebar-gap"]')).toHaveCSS(
+          "transition-property",
+          "none",
+        );
+        await expect(page.locator('[data-slot="sidebar-container"]')).toHaveCSS(
+          "transition-property",
+          "none",
+        );
+        await expect(nav.locator('[data-slot="sidebar-flow"]')).toHaveCSS(
+          "animation-name",
+          "none",
+        );
+        await collapse.click();
+        await expect(collapse).toHaveAttribute("aria-expanded", "true");
+        await expect(
+          nav.locator('[data-navigation-depth="1"][href="/catalog/bus"]'),
+        ).toBeVisible();
+        await page.emulateMedia({ reducedMotion: "no-preference" });
+      }
       await gotoAndWaitForReady(page, "/catalog/bus");
       await open();
       await expect(nav).toHaveAttribute("data-shell-navigation-view", "bus");
@@ -109,6 +162,26 @@ for (const [locale, width] of [
       ).toEqual(["/catalog/bus", "/catalog/bus/map"]);
       await expectRenderedUiQuality(page);
       await capture("bus");
+      await page.getByTestId("bus-sidebar-back").click();
+      await expect(nav).toHaveAttribute("data-shell-navigation-view", "campus");
+      await expect(
+        nav.locator('[data-navigation-depth="1"][href="/catalog/bus/map"]'),
+      ).toBeVisible();
+      await capture("campus");
+      await gotoAndWaitForReady(page, "/catalog/weather");
+      await open();
+      await expect(nav).toHaveAttribute("data-shell-navigation-view", "campus");
+      await expect(nav.locator('a[href="/catalog/weather"]')).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      await gotoAndWaitForReady(page, "/workspace/calendar");
+      await open();
+      await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
+      await expect(nav.locator("[data-local-navigation-back]")).toHaveCount(0);
+      await expect(
+        nav.locator('a[href="/workspace/calendar"]'),
+      ).toHaveAttribute("aria-current", "page");
       await gotoAndWaitForReady(page, "/workspace/homeworks");
       await open();
       await expect(nav).toHaveAttribute(

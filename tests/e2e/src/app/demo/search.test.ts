@@ -752,7 +752,7 @@ test("demo search: old lazy import cannot reopen after a same-document Demo entr
               );
               await cookies(page, isolatedWorker.origin);
               await page
-                .getByRole("link", { name: "Life@USTC: Home", exact: true })
+                .locator("#app-logo, [data-shell-brand]")
                 .filter({ visible: true })
                 .click();
               await expect(page.getByTestId("demo-notice")).toBeVisible();

@@ -426,90 +426,6 @@ for (const locale of ["en-us", "zh-cn"] as const)
                 await expect(form).toHaveCount(1);
                 await expect(form).toBeVisible();
                 await expect(page.locator("#main-content")).toHaveCount(1);
-                const mounted = await page.evaluateHandle(() => ({
-                  document,
-                  main: document.getElementById("main-content"),
-                  form: document.querySelector(
-                    'form[action="?/updateProfile"]',
-                  ),
-                  url: location.href,
-                  historyLength: history.length,
-                  historyState: JSON.stringify(history.state),
-                }));
-                const previewRequests: string[] = [];
-                const observePreview = (request: {
-                  method(): string;
-                  url(): string;
-                }) =>
-                  previewRequests.push(
-                    `${request.method()} ${new URL(request.url()).pathname}`,
-                  );
-                page.on("request", observePreview);
-                try {
-                  for (const [view, label, expectedProfileHrefs] of [
-                    [
-                      "root",
-                      locale === "en-us" ? "Return to Settings" : "返回设置",
-                      [],
-                    ],
-                    ["settings", rootLabel, ["/account/settings/profile"]],
-                  ] as const) {
-                    await toggle.click();
-                    await expect(navigation).toHaveAttribute(
-                      "data-shell-navigation-view",
-                      view,
-                    );
-                    await expect(toggle).toHaveAccessibleName(label);
-                    if (width === 390)
-                      await expect(
-                        page.getByRole("dialog"),
-                      ).toHaveAccessibleName(
-                        view === "root"
-                          ? locale === "en-us"
-                            ? "Primary navigation"
-                            : "主导航"
-                          : locale === "en-us"
-                            ? "Settings"
-                            : "设置",
-                      );
-                    expect(
-                      await mounted.evaluate(
-                        (owner) =>
-                          owner.document === document &&
-                          owner.main ===
-                            document.getElementById("main-content") &&
-                          owner.form ===
-                            document.querySelector(
-                              'form[action="?/updateProfile"]',
-                            ) &&
-                          owner.url === location.href &&
-                          owner.historyLength === history.length &&
-                          owner.historyState === JSON.stringify(history.state),
-                      ),
-                    ).toBe(true);
-                    expect(
-                      await settingsLinks.evaluateAll((links) =>
-                        links.map((link) => link.getAttribute("href")),
-                      ),
-                    ).toEqual(expectedProfileHrefs);
-                    await expect(
-                      navigation.locator(
-                        'a[href^="/admin"], a[href^="/community/users/"]',
-                      ),
-                    ).toHaveCount(0);
-                    await expect(page.locator("#app-user-menu")).toHaveCount(0);
-                    await expect(page.locator("#name")).toHaveValue(identity);
-                    await expect(page.locator("#username")).toHaveValue(
-                      "demo-student",
-                    );
-                    await expect(page.locator("#name")).toBeDisabled();
-                    await expect(page.locator("#username")).toBeDisabled();
-                  }
-                  expect(previewRequests).toEqual([]);
-                } finally {
-                  page.off("request", observePreview);
-                  await mounted.dispose();
-                }
                 for (const label of locale === "en-us"
                   ? [
                       "Preferences",
@@ -530,6 +446,75 @@ for (const locale of ["en-us", "zh-cn"] as const)
                       .getByRole("button", { name: label, exact: true })
                       .filter({ visible: true }),
                   ).toBeDisabled();
+                }
+                const mounted = await page.evaluateHandle(() => ({
+                  document,
+                  main: document.getElementById("main-content"),
+                  form: document.querySelector(
+                    'form[action="?/updateProfile"]',
+                  ),
+                  url: location.href,
+                  historyLength: history.length,
+                  historyState: JSON.stringify(history.state),
+                }));
+                const previewRequests: string[] = [];
+                const observePreview = (request: {
+                  method(): string;
+                  url(): string;
+                }) =>
+                  previewRequests.push(
+                    `${request.method()} ${new URL(request.url()).pathname}`,
+                  );
+                page.on("request", observePreview);
+                try {
+                  await toggle.click();
+                  await expect(navigation).toHaveAttribute(
+                    "data-shell-navigation-view",
+                    "root",
+                  );
+                  await expect(
+                    navigation.locator("[data-local-navigation-back]"),
+                  ).toHaveCount(0);
+                  if (width === 390)
+                    await expect(page.getByRole("dialog")).toHaveAccessibleName(
+                      locale === "en-us" ? "Primary navigation" : "主导航",
+                    );
+                  expect(
+                    await mounted.evaluate(
+                      (owner) =>
+                        owner.document === document &&
+                        owner.main ===
+                          document.getElementById("main-content") &&
+                        owner.form ===
+                          document.querySelector(
+                            'form[action="?/updateProfile"]',
+                          ) &&
+                        owner.url === location.href &&
+                        owner.historyLength === history.length &&
+                        owner.historyState === JSON.stringify(history.state),
+                    ),
+                  ).toBe(true);
+                  expect(
+                    await settingsLinks.evaluateAll((links) =>
+                      links.map((link) => link.getAttribute("href")),
+                    ),
+                  ).toEqual([]);
+                  await expect(
+                    navigation.locator(
+                      'a[href^="/admin"], a[href^="/community/users/"]',
+                    ),
+                  ).toHaveCount(0);
+                  await expect(page.locator("#app-user-menu")).toHaveCount(0);
+                  await expect(page.locator("#name")).toHaveValue(identity);
+                  await expect(page.locator("#username")).toHaveValue(
+                    "demo-student",
+                  );
+                  await expect(page.locator("#name")).toBeDisabled();
+                  await expect(page.locator("#username")).toBeDisabled();
+                  expect(previewRequests).toEqual([]);
+                } finally {
+                  page.off("request", observePreview);
+                  await mounted.dispose();
                 }
                 if (width === 390) await page.keyboard.press("Escape");
                 await page

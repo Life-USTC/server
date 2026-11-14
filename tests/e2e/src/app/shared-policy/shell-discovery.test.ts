@@ -595,7 +595,9 @@ test(
         await expect(row.locator("[data-shell-count-value]")).toHaveCount(0);
         await preview.click();
         await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
-        await expect(preview).toHaveAccessibleName("Return to Workspace");
+        await expect(nav.locator("[data-local-navigation-back]")).toHaveCount(
+          0,
+        );
         const active = nav.locator('a[aria-current="page"]');
         const sheet = page.locator(
           '[data-slot="sidebar"][data-mobile="true"][role="dialog"]',
@@ -660,10 +662,12 @@ test(
         expect(await received.finished()).toBeNull();
         await handlerCompleted.promise;
         await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
-        await expect(preview).toHaveAccessibleName("Return to Workspace");
+        await expect(nav.locator("[data-local-navigation-back]")).toHaveCount(
+          0,
+        );
         await expect(sheet).toBeVisible();
         await expect(active).toBeVisible();
-        await expect(preview).toBeFocused();
+        await expect(active).toBeFocused();
         expect(page.url()).toBe(routeBefore);
         expect(
           await originalDocument.evaluate((node) => node === document),
@@ -673,7 +677,7 @@ test(
             (node) => node === document.querySelector("#main-content"),
           ),
         ).toBe(true);
-        await preview.click();
+        await active.click();
         await expect(nav).toHaveAttribute(
           "data-shell-navigation-view",
           "workspace",

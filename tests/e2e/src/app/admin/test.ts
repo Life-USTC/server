@@ -181,7 +181,9 @@ test("admin.primary-admin-navigation", { tag: "@Admin/Web" }, async ({
           });
 
           const navigation = adminPrimaryNav(page);
-          const adminLinks = navigation.locator('a[href^="/admin"]');
+          const adminLinks = navigation.locator(
+            '[data-navigation-depth="0"][href^="/admin"]',
+          );
           const expectedPaths =
             path === "/admin/moderation"
               ? ["comments", "descriptions", "homeworks", "suspensions"].map(
@@ -200,7 +202,7 @@ test("admin.primary-admin-navigation", { tag: "@Admin/Web" }, async ({
             ),
           ).toEqual(expectedPaths.sort());
           await expect(
-            navigation.locator('[data-slot="sidebar-menu-sub"]'),
+            navigation.locator('[data-slot="collapsible-trigger"]'),
           ).toHaveCount(0);
           const currentName =
             path === "/admin/moderation" ? /^(评论|Comments)$/ : name;

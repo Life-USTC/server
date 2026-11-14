@@ -217,7 +217,7 @@ for (const [locale, width] of [
         });
         await expect(
           nav.locator(
-            'button[aria-expanded], [data-slot="sidebar-menu-action"], details, summary, [data-shell-nav-hint]',
+            'button[aria-expanded]:not([data-slot="sidebar-trigger"]), [data-slot="sidebar-menu-action"], details, summary, [data-shell-nav-hint]',
           ),
         ).toHaveCount(0);
         if (isAdmin) {
@@ -262,7 +262,7 @@ for (const [locale, width] of [
                   .click();
               await expect(nav).toHaveAttribute(
                 "data-shell-navigation-view",
-                index === 0 ? "calendar" : "workspace",
+                index === 0 ? "root" : "workspace",
               );
             }
             const link = nav.locator(
@@ -372,7 +372,7 @@ for (const [locale, width] of [
             .click();
         await expect(
           nav.locator(
-            'button[aria-expanded], [data-slot="sidebar-menu-action"]',
+            'button[aria-expanded]:not([data-slot="sidebar-trigger"]), [data-slot="sidebar-menu-action"]',
           ),
         ).toHaveCount(0);
         if (isAdmin) {
