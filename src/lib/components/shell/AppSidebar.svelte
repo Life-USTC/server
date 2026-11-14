@@ -206,7 +206,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
 </script>
 
 {#snippet entry(link: ShellLink, depth: number, hasChildren: boolean)}
-  {@const active = isCurrentScopeLink(link, scopeLinks, isActiveLink)}
+  {@const active = (level !== "root" || new URL(link.href, "https://navigation.invalid").pathname === currentPathname) && isCurrentScopeLink(link, scopeLinks, isActiveLink)}
   {@const ancestor = !active && (isActiveLink(link) || isAncestorLink(link) || (depth === 0 && level === "root" && primaryDestination(currentPathname) === link.id))}
   <div class="relative">
     <Sidebar.MenuButton
