@@ -373,7 +373,7 @@ requirements:
 - id: ui.list-table-9
   category: presentation
   topic: list-table
-  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as academic detail sections and publication source groups. Canonical detail breadcrumbs use the collection and current entity; a teaching section links its real associated course without replacing that collection parent. Settings, second-classroom and admin routes render their existing section destinations with the Life@USTC root identity. A stable native button locally previews the role-filtered root tree and restores the section without navigating, replacing main content, changing history or closing the mobile drawer. Real destination links use client-side route navigation; browser back restores the previous context without a document reload. An open event or organizer adds its name under its owning collection. The home page keeps the primary sidebar.
+  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as academic detail sections and publication source groups. Canonical detail breadcrumbs use the collection and current entity; a teaching section links its real associated course without replacing that collection parent. Settings, second-classroom and admin routes render their existing section destinations with the Life@USTC root identity. A stable native Back button below the root locally previews the role-filtered parent directory; selecting the current section restores its directory without navigating, replacing main content, changing history or closing the mobile drawer. The root has no Back or return-to-current-page button. Real destination links use client-side route navigation; browser back restores the previous context without a document reload. An open event or organizer adds its name under its owning collection. The home page keeps the primary sidebar.
   rationale: Route navigation lives in the shell sidebar. In-page anchors stay on PageSectionNav. DetailSectionNav is not a settings control.
   acceptance:
     given: Second-classroom pages, moderation, settings, and the publication source directory.
@@ -976,12 +976,12 @@ requirements:
 - id: ui.shell-layout-2
   category: presentation
   topic: shell-layout
-  rule: "Desktop and mobile primary navigation use one ordered source: Workspace, Calendar, Campus and Activities. Only the current navigation level is rendered, as flat destination rows without embedded child trees. Public academic browsing belongs to Campus; course subscriptions and activity follows or notifications belong to Workspace. Settings, uploads and authorized administration are reached through the Topbar avatar, not these primary directories."
+  rule: "Desktop and mobile primary navigation use one ordered source: Workspace, Calendar, Campus and Activities. Each sidebar view renders the current directory and its immediate child destinations together, always expanded. It never recursively includes deeper descendants, and a leaf page keeps its parent directory instead of opening an empty or duplicate-only level. Public academic browsing belongs to Campus; course subscriptions and activity follows or notifications belong to Workspace. Settings, uploads and authorized administration are reached through the Topbar avatar, not these primary directories."
   acceptance:
     given: A signed-in user opens the workspace calendar at a 1440-by-900 viewport.
     when: The browser inspects the visible primary navigation, its expanded hierarchy, and its current-page link.
     then:
-    - The root preview contains exactly Workspace, Calendar, Campus and Activities for every viewer state; anonymous Calendar retains a real sign-in destination and loading does not expose private counts.
+    - The root preview contains exactly four primary rows, Workspace, Calendar, Campus and Activities, plus their immediate child destinations for the current viewer; anonymous Calendar retains a real sign-in destination and loading does not expose private counts.
     - Workspace contains personal tasks and subscriptions; Campus contains only public academic and campus-service links, including for signed-in administrators.
     - Avatar-only routes are classified before generic workspace prefixes; Admin is visible only to the current authorized administrator.
     - A directory that contains the actual destination identifies it once as current page; the root preview identifies its primary owner once as location, or none for Avatar-only routes. Historical group/submenu preferences cannot hide destinations.
@@ -991,21 +991,22 @@ requirements:
 - id: ui.shell-layout-3
   category: presentation
   topic: shell-layout
-  rule: "Expanded sidebar destination rows are anchors and level headings are noninteractive labels. No group or subtree disclosure actions or nested destination trees render. Local Back moves one navigation level at a time; a root-preview return control restores the actual current page directory without route navigation."
+  rule: "Sidebar destination rows and their immediately following child rows are anchors; level headings are noninteractive labels and no directory disclosure controls render. Local Back is available only below the root level and moves one level at a time. The root level has no return-to-current-page control; selecting a destination belonging to the current page restores that directory locally. The Life@USTC brand has no Home subtitle. The global sidebar collapse control stays visible and keyboard accessible, indicates its state clearly, and animates with reduced-motion preferences respected."
   acceptance:
     given: The public desktop navigation and mobile drawer contain the campus and course groups.
     when: The user inspects their static headings and activates the Shuttle Bus destination with the keyboard.
     then:
     - Bus Back reaches Campus and then the four roots locally; returning to the current page directory preserves URL, query, hash, history, document, main content and form values.
     - Local navigation keeps an open mobile drawer open and moves focus to a visible local control or current destination; actual destination anchors navigate normally and close the drawer.
-    - Global Menu, Drawer Close and desktop Rail remain available. Owner changes retire local preview; same-owner count updates do not.
+    - Global Menu, Drawer Close and desktop Rail remain available; the desktop collapse control is also directly visible. Root Back and a Home brand subtitle are absent. Owner changes retire local preview; same-owner count updates do not.
+    - Each view renders only its current and immediate next directory levels; leaf destinations retain their parent directory. Sidebar collapse and expansion respect reduced-motion preferences.
     test:
       file: tests/e2e/src/app/shared-policy/shell-layout.test.ts
       name: ui.shell-layout-3
 - id: ui.shell-layout-4
   category: presentation
   topic: shell-layout
-  rule: "Mobile bottom primary navigation and desktop root navigation render the same four destinations from the same source. The mobile drawer shows only the current flat directory. Its localized close action and Escape restore focus; actual destinations close it while local preview and Back keep it open. Content reserves the bottom primary bar and device safe area once, below modal overlays."
+  rule: "Mobile bottom primary navigation and desktop root navigation render the same four destinations from the same source. The mobile drawer shows the current directory together with its immediate child destinations. Its localized close action and Escape restore focus; actual destinations close it while local preview and Back keep it open. Content reserves the bottom primary bar and device safe area once, below modal overlays."
   acceptance:
     given: A signed-in browser opens the mobile shell.
     when: The user activates schedule and catalog links from the drawer and emulates bottom safe-area insets of zero and 34 pixels.
@@ -1646,26 +1647,26 @@ requirements:
 - id: ui.navigation-landmarks-1
   category: presentation
   topic: navigation-landmarks
-  rule: The desktop sidebar landmark is named for its current flat directory; its root preview is named Primary navigation in English and 主导航 in Chinese.
+  rule: The desktop sidebar landmark is named for its current directory; its root preview is named Primary navigation in English and 主导航 in Chinese.
   acceptance:
     given: An anonymous browser uses a 1280-pixel viewport.
     when: The browser opens the public course list in Chinese and English and locates the primary navigation
       by its localized accessible name.
     then:
-    - The desktop sidebar landmark is named for its current flat directory; its root preview is named Primary navigation in English and 主导航 in Chinese.
+    - The desktop sidebar landmark is named for its current directory; its root preview is named Primary navigation in English and 主导航 in Chinese.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.navigation-landmarks-1
 - id: ui.navigation-landmarks-2
   category: presentation
   topic: navigation-landmarks
-  rule: 'The mobile drawer is named for its current flat directory. The separate four-destination bottom primary landmark is named Primary navigation / 主导航 and is covered by modal overlays.'
+  rule: 'The mobile drawer is named for its current directory. The separate four-destination bottom primary landmark is named Primary navigation / 主导航 and is covered by modal overlays.'
   acceptance:
     given: A signed-in user opens the workspace overview at 390 pixels in Chinese and English.
     when: The browser opens the menu and reads the primary navigation’s
       accessible name.
     then:
-    - 'The mobile drawer is named for its current flat directory. The separate four-destination bottom primary landmark is named Primary navigation / 主导航 and is covered by modal overlays.'
+    - 'The mobile drawer is named for its current directory. The separate four-destination bottom primary landmark is named Primary navigation / 主导航 and is covered by modal overlays.'
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.navigation-landmarks-2

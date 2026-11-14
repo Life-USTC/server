@@ -33,7 +33,7 @@ test("活动、主办方订阅和提醒入口可用", { tag: "@Young/Web" }, asy
     );
     await expect(
       activityNavigation.getByRole("link", {
-        name: /^Life@USTC: (?:Home|首页)$/,
+        name: /^Life@USTC$/,
       }),
     ).toBeVisible();
     // This consumer starts from independently arranged state; it never relies on
@@ -609,7 +609,7 @@ test("reading the last unread reminder on page two returns to the remaining remi
         "data-shell-navigation-view",
         "root",
       );
-      await back.click();
+      await navigation.locator('[data-navigation-depth="0"][href="/"]').click();
       await expect(navigation).toHaveAttribute(
         "data-shell-navigation-view",
         "activity-workspace",

@@ -63,9 +63,11 @@ test("ui.navigation-landmarks-7", { tag: "@Young/Web" }, async ({
       await expect(
         nav.getByRole("link", { name: "Campus", exact: true }),
       ).toHaveAttribute("href", "/campus");
-      await expect(nav.locator('a[href="/catalog/courses"]')).toHaveCount(0);
+      await expect(nav.locator('a[href="/catalog/courses"]')).toBeVisible();
       expect(page.url()).toBe(routeBeforePreview);
-      await page.getByTestId("activities-sidebar-back").click();
+      await nav
+        .locator('[data-navigation-depth="0"][href="/catalog/young-events"]')
+        .click();
       await expect(nav).toHaveAttribute(
         "data-shell-navigation-view",
         "activities",

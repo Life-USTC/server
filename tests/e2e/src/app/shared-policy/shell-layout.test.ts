@@ -41,17 +41,20 @@ async function signIn(page: Page, worker: IsolatedWorker, userId: string) {
 test("ui.shell-layout-1", { tag: "@Site/Web" }, async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 400 });
   await gotoAndWaitForReady(page, "/terms");
-  // Root4 is intentionally short. Keep the original desktop size as a
-  // no-overflow check, then exercise real Campus content in a short viewport.
+  // The root exposes two adjacent levels, so its navigation content scrolls
+  // within the sidebar independently of the document and reading pane.
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(1440);
   const rootSidebar = page
     .getByTestId("app-sidebar")
     .locator('[data-slot="sidebar-content"]');
+  await expect(
+    rootSidebar.locator('[data-navigation-depth="1"]').first(),
+  ).toBeVisible();
   expect(
     await rootSidebar.evaluate((node) => node.scrollHeight - node.clientHeight),
-  ).toBeLessThanOrEqual(1);
+  ).toBeGreaterThan(200);
   expect(await rootSidebar.evaluate((node) => node.scrollTop)).toBe(0);
   expect(
     await page
@@ -298,9 +301,11 @@ test("ui.shell-layout-4", { tag: "@Site/Web" }, async ({
           } else if (label === "Homework") {
             await expect(navigation).toHaveAttribute(
               "data-shell-navigation-view",
-              "calendar",
+              "root",
             );
-            await navigation.locator("[data-local-navigation-back]").click();
+            await expect(
+              navigation.locator("[data-local-navigation-back]"),
+            ).toHaveCount(0);
             await navigation
               .locator('[data-slot="sidebar-content"] a[href="/"]')
               .click();
@@ -492,7 +497,7 @@ test("ui.shell-layout-3", { tag: "@Site/Web" }, async ({ page }) => {
     await expect(campus).toBeVisible();
     await expect(page).toHaveURL(/\/$/);
     const rows = await navigation
-      .locator('[data-slot="sidebar-content"] [data-sidebar="menu-button"]')
+      .locator('[data-navigation-depth="0"]')
       .evaluateAll((elements) =>
         elements.map((element) => ({
           tag: element.tagName,
@@ -519,13 +524,13 @@ test("ui.shell-layout-3", { tag: "@Site/Web" }, async ({ page }) => {
       "campus",
     );
     await expect(
-      navigation.locator(
-        '[data-slot="sidebar-content"] a[data-sidebar="menu-button"]',
-      ),
+      navigation.locator('[data-navigation-depth="0"][href]'),
     ).toHaveCount(8);
     await expect(
-      navigation.locator('[data-slot="sidebar-menu-sub"]'),
-    ).toHaveCount(0);
+      navigation.locator(
+        '[data-navigation-depth="1"][href="/catalog/bus/map"]',
+      ),
+    ).toBeVisible();
     const bus = navigation.getByRole("link", { name: /^(Shuttle Bus|校车)$/ });
     await bus.focus();
     await page.keyboard.press("Enter");

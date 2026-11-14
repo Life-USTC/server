@@ -232,9 +232,19 @@ test("upload.web-list", { tag: "@Upload/Web" }, async ({
     await expect(
       page.getByRole("heading", { name: "My Uploads", exact: true }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "My Uploads", exact: true }),
-    ).toBeVisible();
+    const desktopAvatar = page.locator("#app-user-menu").getByRole("button");
+    await expect(desktopAvatar).toHaveCount(1);
+    await expect(desktopAvatar).toBeVisible();
+    await desktopAvatar.click();
+    const uploadEntry = page
+      .getByRole("menu")
+      .getByRole("menuitem", { name: "My Uploads", exact: true });
+    await expect(uploadEntry).toHaveCount(1);
+    await expect(uploadEntry).toBeVisible();
+    await expect(uploadEntry).toHaveAttribute("href", "/workspace/uploads");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("menu")).toHaveCount(0);
+    await expect(desktopAvatar).toBeFocused();
     await expect(visibleRows(page)).toHaveCount(20);
     await expect(visibleRows(page).first()).toContainText("material-20.txt");
     await expect(visibleRows(page).first()).toContainText("1.0 KB");

@@ -113,6 +113,32 @@ export async function assertPageContract(
     await expect(
       page.getByRole("heading", { name: /我的上传|My Uploads/i }),
     ).toBeVisible();
+    const mobile = (page.viewportSize()?.width ?? 1280) < 768;
+    if (mobile)
+      await page
+        .locator('[data-shell-topbar] [data-slot="sidebar-trigger"]')
+        .click();
+    const navigation = page.getByTestId("uploads-sidebar");
+    await expect(navigation).toHaveCount(1);
+    await expect(navigation).toBeVisible();
+    await expect(navigation).toHaveAttribute(
+      "data-shell-navigation-view",
+      "root",
+    );
+    await expect(
+      navigation.locator("[data-local-navigation-back]"),
+    ).toHaveCount(0);
+    const directory = navigation.locator('[data-slot="sidebar-content"]');
+    await expect(directory).toBeVisible();
+    await expect(
+      directory.locator(
+        'a[href^="/workspace/uploads"],a[href^="/account"],a[href^="/admin"],a[href^="/community/users/"],a[href^="/u/"]',
+      ),
+    ).toHaveCount(0);
+    if (mobile) {
+      await page.keyboard.press("Escape");
+      await expect(navigation).toBeHidden();
+    }
     return;
   }
   if (routePath.startsWith("/account/settings/")) {
@@ -170,12 +196,10 @@ export async function assertPageContract(
           : "workspace";
     await expect(page.getByTestId(`${expectedScope}-sidebar`)).toHaveAttribute(
       "data-shell-navigation-view",
-      expectedScope,
+      expectedScope === "calendar" ? "root" : expectedScope,
     );
     if (expectedScope === "workspace") await expandDaySidebarGroup(page);
-    await expect(
-      sidebarNavigationLink(page, /^Life@USTC: (?:Home|首页)$/),
-    ).toBeVisible({
+    await expect(sidebarNavigationLink(page, /^Life@USTC$/)).toBeVisible({
       timeout: 10_000,
     });
     return;

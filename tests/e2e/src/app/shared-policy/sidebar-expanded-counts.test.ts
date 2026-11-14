@@ -217,7 +217,7 @@ for (const [locale, width] of [
         });
         await expect(
           nav.locator(
-            'button[aria-expanded], [data-slot="sidebar-menu-action"], details, summary, [data-shell-nav-hint]',
+            'button[aria-expanded]:not([data-slot="sidebar-trigger"]), [data-slot="sidebar-menu-action"], details, summary, [data-shell-nav-hint]',
           ),
         ).toHaveCount(0);
         if (isAdmin) {
@@ -262,7 +262,7 @@ for (const [locale, width] of [
                   .click();
               await expect(nav).toHaveAttribute(
                 "data-shell-navigation-view",
-                index === 0 ? "calendar" : "workspace",
+                index === 0 ? "root" : "workspace",
               );
             }
             const link = nav.locator(
@@ -299,29 +299,27 @@ for (const [locale, width] of [
             await expect(badge).toHaveAccessibleName(
               new RegExp(`${value} .*${scopes[index]}`),
             );
-            const geometry = await link
-              .locator('xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]')
-              .evaluate((row) => {
-                const label = row.querySelector(
-                  'a[data-sidebar="menu-button"] > span:last-child',
-                );
-                const count = row.querySelector("[data-shell-count-value]");
-                if (
-                  !(label instanceof HTMLElement) ||
-                  !(count instanceof HTMLElement)
-                )
-                  throw new Error("Missing readable count/label");
-                const labelRect = label.getBoundingClientRect();
-                const countRect = count.getBoundingClientRect();
-                return {
-                  labelRight: labelRect.right,
-                  countLeft: countRect.left,
-                  labelCentreY: labelRect.top + labelRect.height / 2,
-                  countCentreY: countRect.top + countRect.height / 2,
-                  labelWidth: label.clientWidth,
-                  labelScrollWidth: label.scrollWidth,
-                };
-              });
+            const geometry = await link.evaluate((anchor) => {
+              const label = anchor.querySelector(":scope > span");
+              const count = anchor.parentElement?.querySelector(
+                "[data-shell-count-value]",
+              );
+              if (
+                !(label instanceof HTMLElement) ||
+                !(count instanceof HTMLElement)
+              )
+                throw new Error("Missing readable count/label");
+              const labelRect = label.getBoundingClientRect();
+              const countRect = count.getBoundingClientRect();
+              return {
+                labelRight: labelRect.right,
+                countLeft: countRect.left,
+                labelCentreY: labelRect.top + labelRect.height / 2,
+                countCentreY: countRect.top + countRect.height / 2,
+                labelWidth: label.clientWidth,
+                labelScrollWidth: label.scrollWidth,
+              };
+            });
             expect(geometry.labelRight).toBeLessThanOrEqual(geometry.countLeft);
             expect(
               Math.abs(geometry.labelCentreY - geometry.countCentreY),
@@ -372,7 +370,7 @@ for (const [locale, width] of [
             .click();
         await expect(
           nav.locator(
-            'button[aria-expanded], [data-slot="sidebar-menu-action"]',
+            'button[aria-expanded]:not([data-slot="sidebar-trigger"]), [data-slot="sidebar-menu-action"]',
           ),
         ).toHaveCount(0);
         if (isAdmin) {

@@ -612,10 +612,27 @@ for (const [locale, width] of [
                   '#main-content a[href*="/api/catalog/links/resolve"]',
                 ),
               ).toHaveCount(0);
-              await page
-                .getByRole("link", { name: /^Life@USTC:/ })
-                .filter({ visible: true })
-                .click();
+              const homeBrand = page
+                .getByRole("link", {
+                  name:
+                    width >= 1024
+                      ? "Life@USTC"
+                      : en
+                        ? "Life@USTC: Demo Home"
+                        : "Life@USTC: 演示首页",
+                  exact: true,
+                })
+                .filter({ visible: true });
+              await expect(homeBrand).toHaveCount(1);
+              await expect(homeBrand).toBeVisible();
+              await expect(homeBrand).toHaveAttribute("href", "/");
+              await expect(homeBrand).toHaveText("Life@USTC");
+              await expect(
+                homeBrand.getByText(en ? "Demo Home" : "演示首页", {
+                  exact: true,
+                }),
+              ).toHaveCount(0);
+              await homeBrand.click();
               await expect(page).toHaveURL(`${isolatedWorker.origin}/`);
               await waitForUiSettled(page);
               await page.keyboard.press("Control+k");
@@ -752,7 +769,7 @@ test("demo search: old lazy import cannot reopen after a same-document Demo entr
               );
               await cookies(page, isolatedWorker.origin);
               await page
-                .getByRole("link", { name: "Life@USTC: Home", exact: true })
+                .locator("#app-logo, [data-shell-brand]")
                 .filter({ visible: true })
                 .click();
               await expect(page.getByTestId("demo-notice")).toBeVisible();

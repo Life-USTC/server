@@ -157,17 +157,17 @@ async function enterDemo(page: Page, locale: Locale) {
   await expect(page.getByTestId("demo-notice")).toContainText(
     copy[locale].identity,
   );
-  const demoHome = page.getByRole("link", {
-    name: locale === "en-us" ? "Life@USTC: Demo Home" : "Life@USTC: 演示首页",
-    exact: true,
-  });
+  const demoHome = page
+    .locator("#app-logo, [data-shell-brand]")
+    .filter({ visible: true });
   await expect(demoHome).toHaveCount(1);
   await expect(demoHome).toHaveAttribute("href", "/");
+  await expect(demoHome.getByText("Life@USTC", { exact: true })).toBeVisible();
   await expect(
     demoHome.getByText(locale === "en-us" ? "Demo Home" : "演示首页", {
       exact: true,
     }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(page.locator('script[src*="googletagmanager.com"]')).toHaveCount(
     0,
   );

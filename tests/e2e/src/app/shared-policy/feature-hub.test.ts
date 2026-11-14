@@ -190,8 +190,8 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
         );
         await expect(navigation).toBeVisible();
-        // The feature directory keeps all destinations; the sidebar renders only
-        // one selected level, never the old all-feature inline tree.
+        // The feature directory keeps all destinations; the sidebar exposes only
+        // the selected directory and its direct children.
         if (role !== "anonymous") {
           await expect(navigation).toHaveAttribute(
             "data-shell-navigation-view",
@@ -207,9 +207,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           locale === "zh-cn" ? "主导航" : "Primary navigation",
         );
         const links = await navigation
-          .locator(
-            '[data-slot="sidebar-content"] a[data-sidebar="menu-button"]',
-          )
+          .locator('[data-navigation-depth="0"][href]')
           .evaluateAll((nodes) =>
             nodes.map((node) => node.getAttribute("href")),
           );
@@ -223,13 +221,11 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         ]);
         await expect(
           navigation.locator(
-            '[data-slot="sidebar-menu-sub"], button[data-slot="sidebar-group-label"], [data-slot="sidebar-menu-action"]',
+            '[data-slot="collapsible-trigger"], button[data-slot="sidebar-group-label"], [data-slot="sidebar-menu-action"]',
           ),
         ).toHaveCount(0);
         await expect(
-          navigation.locator(
-            '[data-slot="sidebar-content"] a[data-sidebar="menu-button"]',
-          ),
+          navigation.locator('[data-navigation-depth="0"][href]'),
         ).toHaveText(
           locale === "zh-cn"
             ? ["工作台", "日历", "校园", "活动"]
@@ -318,7 +314,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
         await hub.locator('a[href="/catalog/courses"]').click();
         await expect(page).toHaveURL(/\/catalog\/courses$/);
         await page
-          .getByRole("link", { name: /^Life@USTC: (Home|首页)$/, exact: true })
+          .locator("#app-logo, [data-shell-brand]")
           .filter({ visible: true })
           .first()
           .click();

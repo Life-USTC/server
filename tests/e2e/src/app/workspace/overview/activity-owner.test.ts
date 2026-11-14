@@ -187,7 +187,7 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
           await page
             .getByTestId("app-sidebar")
             .getByRole("link", {
-              name: /^Life@USTC: (Home|首页)$/,
+              name: "Life@USTC",
               exact: true,
             })
             .filter({ visible: true })
@@ -259,7 +259,7 @@ test("overview.activity-owner-transition", { tag: "@Overview/Web" }, async ({
       }
       await page.context().clearCookies();
       await page
-        .getByRole("link", { name: /^Life@USTC: (Home|首页)$/, exact: true })
+        .locator("#app-logo, [data-shell-brand]")
         .filter({ visible: true })
         .first()
         .click();
@@ -382,11 +382,12 @@ for (const [locale, width] of [
           const sections = page.locator("[data-overview-sections]");
           if (width >= 1000) {
             const sidebar = page.getByTestId("app-sidebar");
-            const rail = sidebar.getByRole("button", {
-              name: locale === "en-us" ? "Toggle sidebar" : "切换侧边栏",
-              exact: true,
-            });
+            const rail = sidebar.locator('[data-slot="sidebar-rail"]');
             await expect(rail).toHaveCount(1);
+            await expect(rail).toHaveRole("button");
+            await expect(rail).toHaveAccessibleName(
+              locale === "en-us" ? "Toggle sidebar" : "切换侧边栏",
+            );
             await rail.click();
             await expect(sidebar).toHaveCSS("width", "48px");
           }

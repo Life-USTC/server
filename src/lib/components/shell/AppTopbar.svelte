@@ -105,7 +105,6 @@ let {
         aria-hidden="true"
       />
       <span class="sr-only sm:not-sr-only">Life@USTC</span>
-      <span class="text-xs font-normal">{homeLabel}</span>
     </a>
 
     {#if !focused}

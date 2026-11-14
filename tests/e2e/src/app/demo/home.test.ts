@@ -197,7 +197,7 @@ test("demo.home: same-page mode change discards held ordinary Home responses", {
             ]);
             await page
               .getByTestId("app-sidebar")
-              .getByRole("link", { name: "Life@USTC: Home", exact: true })
+              .getByRole("link", { name: "Life@USTC", exact: true })
               .filter({ visible: true })
               .click();
             await expect(page).toHaveURL(`${isolatedWorker.origin}/`);

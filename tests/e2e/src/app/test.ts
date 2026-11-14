@@ -140,7 +140,7 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
     const rootNav = sidebar.locator('[data-shell-navigation="mobile"]');
     expect(
       await rootNav
-        .locator('[data-slot="sidebar-content"] a')
+        .locator('[data-navigation-depth="0"][href]')
         .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("href"))),
     ).toEqual([
       "/",
@@ -148,6 +148,31 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
       "/campus",
       "/catalog/young-events",
     ]);
+    // Anonymous navigation includes every public child and no other route.
+    expect(
+      await rootNav
+        .locator('[data-slot="sidebar-content"] a')
+        .evaluateAll((nodes) =>
+          nodes.map((node) => node.getAttribute("href")).sort(),
+        ),
+    ).toEqual(
+      [
+        "/",
+        "/account/sign-in?callbackUrl=%2Fworkspace%2Fcalendar",
+        "/campus",
+        "/catalog/sections",
+        "/catalog/courses",
+        "/catalog/teachers",
+        "/catalog/bus",
+        "/catalog/weather",
+        "/news",
+        "/catalog/links",
+        "/catalog/rooms",
+        "/catalog/young-events",
+        "/catalog/young-events/calendar",
+        "/catalog/young-events/organizers",
+      ].sort(),
+    );
     await expect(
       rootNav.locator(
         '[data-shell-count-value],a[href^="/admin"],a[href="/workspace/todos"]',
@@ -403,7 +428,7 @@ shellTest(
         sidebar.getByRole("link", { name: /^(待办|Todos)$/i }),
       ).toBeVisible();
       await expect(
-        sidebar.locator('[data-slot="sidebar-menu-sub"],#app-user-menu'),
+        sidebar.locator('[data-slot="collapsible-trigger"],#app-user-menu'),
       ).toHaveCount(0);
       await page.keyboard.press("Escape");
       await expect(sidebarTrigger).toBeFocused();
@@ -431,11 +456,8 @@ shellTest(
         const navigation = sidebar.locator('[data-shell-navigation="desktop"]');
         await expect(navigation).toHaveAttribute(
           "data-shell-navigation-view",
-          "calendar",
+          "root",
         );
-        await expect(
-          navigation.locator('[data-slot="sidebar-content"] a'),
-        ).toHaveCount(1);
         await expect(
           navigation.getByRole("link", { name: /^(日历|Calendar)$/i }),
         ).toHaveAttribute("aria-current", "page");
@@ -443,20 +465,15 @@ shellTest(
           1,
         );
         await expect(
-          navigation.locator(
-            '[data-slot="sidebar-menu-sub"],button[aria-expanded]',
-          ),
+          navigation.locator("[data-local-navigation-back]"),
         ).toHaveCount(0);
-        await expect(
-          navigation.getByRole("link", {
-            name: /^Life@USTC: (Home|首页)$/,
-            exact: true,
-          }),
-        ).toHaveAttribute("href", "/");
-        await page.getByTestId("calendar-sidebar-back").click();
+        await expect(navigation.locator("#app-logo")).toHaveAttribute(
+          "href",
+          "/",
+        );
         expect(
           await navigation
-            .locator('[data-slot="sidebar-content"] a')
+            .locator('[data-navigation-depth="0"][href]')
             .evaluateAll((nodes) =>
               nodes.map((node) => node.getAttribute("href")),
             ),
@@ -566,7 +583,7 @@ shellTest(
       await expect(coursesLink).toHaveAccessibleName(/^(待办|Todos)$/i);
       await expect(
         sidebar.locator(
-          'button[data-shell-expand-sidebar],[data-slot="sidebar-menu-sub"]',
+          'button[data-shell-expand-sidebar],[data-slot="collapsible-trigger"]',
         ),
       ).toHaveCount(0);
       await expect
@@ -691,7 +708,7 @@ shellTest(
         ).toBeVisible();
         await expect(
           navigation.locator(
-            '[data-slot="sidebar-menu-sub"],button[aria-expanded]',
+            '[data-slot="collapsible-trigger"],button[aria-expanded]:not([data-slot="sidebar-trigger"])',
           ),
         ).toHaveCount(0);
         await page.evaluate(() => {
@@ -709,7 +726,7 @@ shellTest(
 
         // The empty overview exposes the same real course discovery route in its content.
         await navigation
-          .getByRole("link", { name: /^Life@USTC: (Home|首页)$/, exact: true })
+          .getByRole("link", { name: "Life@USTC", exact: true })
           .click();
         await page
           .locator("[data-shell-scroll-container]")
@@ -720,7 +737,7 @@ shellTest(
 
         await expect(
           navigation.locator(
-            '[data-slot="sidebar-menu-sub"],button[aria-expanded]',
+            '[data-slot="collapsible-trigger"],button[aria-expanded]:not([data-slot="sidebar-trigger"])',
           ),
         ).toHaveCount(0);
         await expect(
@@ -810,7 +827,7 @@ shellTest(
       ).toBeVisible();
       await expect(
         group.locator(
-          '[data-slot="sidebar-menu-action"],[data-slot="sidebar-menu-sub"]',
+          '[data-slot="sidebar-menu-action"],[data-slot="collapsible-trigger"]',
         ),
       ).toHaveCount(0);
       await expect(

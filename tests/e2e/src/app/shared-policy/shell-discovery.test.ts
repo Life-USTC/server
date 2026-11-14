@@ -172,109 +172,6 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           for (const [index, path] of routes.entries()) {
             await gotoAndWaitForReady(page, path);
             await navigation();
-            if (index === 0) {
-              const hrefs = [
-                "/workspace/calendar",
-                "/workspace/homeworks",
-                "/workspace/todos",
-                "/workspace/exams",
-                "/workspace/subscriptions",
-                "/workspace/subscriptions/activities?view=notifications",
-              ];
-              const readFact = async (href: string) => {
-                const link = page.locator(
-                  `[data-shell-navigation="${width === 390 ? "mobile" : "desktop"}"] a[data-sidebar="menu-button"][href="${href}"]`,
-                );
-                await expect(link).toHaveCount(1);
-                const row = link.locator(
-                  'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
-                );
-                const explicit = row.locator("[data-shell-count-value]");
-                await expect(explicit).toHaveCount(1);
-                const text = await explicit.getAttribute(
-                  "data-shell-count-value",
-                );
-                return {
-                  href,
-                  count: Number.parseInt(text ?? "", 10),
-                  text: await row.textContent(),
-                  geometry: await link.evaluate((node) => {
-                    const label = node.querySelector(
-                      ":scope > span:last-child",
-                    );
-                    const summary = node.parentElement?.querySelector(
-                      "[data-shell-count-value]",
-                    );
-                    const measure = (element: Element | null | undefined) =>
-                      element instanceof HTMLElement
-                        ? {
-                            text: element.textContent,
-                            width: element.clientWidth,
-                            scrollWidth: element.scrollWidth,
-                            left: element.getBoundingClientRect().left,
-                            right: element.getBoundingClientRect().right,
-                          }
-                        : null;
-                    return { label: measure(label), summary: measure(summary) };
-                  }),
-                };
-              };
-              const facts = [];
-              for (const [factIndex, href] of hrefs.entries()) {
-                if (factIndex === 0 || factIndex === 1) {
-                  await gotoAndWaitForReady(
-                    page,
-                    factIndex === 0
-                      ? "/workspace/calendar"
-                      : "/workspace/todos",
-                  );
-                  await navigation();
-                }
-                await expect
-                  .poll(async () => (await readFact(href)).count)
-                  .toBe(fixture.expected[factIndex]);
-                facts.push(await readFact(href));
-              }
-              await page.evaluate(() => document.fonts.ready);
-              await gotoAndWaitForReady(page, "/usage/mcp");
-              const apps = await navigation();
-              const mcp = apps.locator('a[href="/usage/mcp"]');
-              const root = apps.locator("#app-logo");
-              await expect(mcp).toHaveCount(1);
-              await expect(root).toHaveCount(1);
-              discovery = {
-                day,
-                path,
-                locale,
-                width,
-                facts,
-                mcpText: await mcp.textContent(),
-                rootText: await root.textContent(),
-                hints: await apps.locator("[data-shell-nav-hint]").count(),
-                accountRoutes: routes,
-              };
-              await info.attach(`discovery-nav-${locale}-${width}`, {
-                body: await page.screenshot(),
-                contentType: "image/png",
-              });
-              for (const fact of facts) {
-                if (fact.geometry.label && fact.geometry.summary)
-                  expect(
-                    fact.geometry.label.right,
-                    `${fact.href} label/count overlap`,
-                  ).toBeLessThanOrEqual(fact.geometry.summary.left);
-                for (const [kind, box] of Object.entries(fact.geometry)) {
-                  // A visible container can still clip an unbroken destination word.
-                  // Check its own content width, rather than only document overflow.
-                  if (box)
-                    expect(
-                      box.scrollWidth,
-                      `${fact.href} ${kind}: ${box.text}`,
-                    ).toBeLessThanOrEqual(box.width + 1);
-                }
-              }
-            }
-            if (index === 0) await gotoAndWaitForReady(page, path);
             if (
               width === 390 &&
               (await page
@@ -321,20 +218,28 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               name: await button.textContent(),
               items: await menu.textContent(),
             });
-            await info.attach(`account-${index}-${locale}-${width}`, {
-              body: await page.screenshot(),
-              contentType: "image/png",
-            });
+            if (index === routes.length - 1)
+              await info.attach(`account-${index}-${locale}-${width}`, {
+                body: await page.screenshot(),
+                contentType: "image/png",
+              });
             await page.keyboard.press("Escape");
             await expect(button).toBeFocused();
             await page.keyboard.press("Enter");
             await expect(page.getByRole("menu")).toHaveCount(1);
-            await page
-              .getByRole("menuitem", {
+            await expect(
+              page.getByRole("menuitem", {
+                name: locale === "en-us" ? "Personal page" : "个人主页",
+                exact: true,
+              }),
+            ).toBeFocused();
+            await page.keyboard.press("ArrowDown");
+            await expect(
+              page.getByRole("menuitem", {
                 name: locale === "en-us" ? "Settings" : "设置",
                 exact: true,
-              })
-              .focus();
+              }),
+            ).toBeFocused();
             await page.keyboard.press("Enter");
             await waitForUiSettled(page);
             await expect(page).toHaveURL(
@@ -351,6 +256,127 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                 Boolean(document.activeElement?.closest('[role="menu"]')),
               ),
             ).toBe(false);
+            if (index === 0) {
+              const hrefs = [
+                "/workspace/calendar",
+                "/workspace/homeworks",
+                "/workspace/todos",
+                "/workspace/exams",
+                "/workspace/subscriptions",
+                "/workspace/subscriptions/activities?view=notifications",
+              ];
+              const factLink = (href: string) =>
+                page.locator(
+                  `[data-shell-navigation="${width === 390 ? "mobile" : "desktop"}"] a[data-sidebar="menu-button"][href="${href}"]`,
+                );
+              const readCount = async (href: string) => {
+                const link = factLink(href);
+                await expect(link).toHaveCount(1);
+                const row = link.locator(
+                  'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
+                );
+                const explicit = row.locator("[data-shell-count-value]");
+                await expect(explicit).toHaveCount(1);
+                const text = await explicit.getAttribute(
+                  "data-shell-count-value",
+                );
+                return Number.parseInt(text ?? "", 10);
+              };
+              const readFact = async (href: string) => {
+                const link = factLink(href);
+                await expect(link).toHaveCount(1);
+                const row = link.locator(
+                  'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
+                );
+                await expect(
+                  row.locator("[data-shell-count-value]"),
+                ).toHaveCount(1);
+                return link.evaluate((node, href) => {
+                  const row = node.closest('[data-slot="sidebar-menu-item"]');
+                  const count = row?.querySelector("[data-shell-count-value]");
+                  const label = node.querySelector(":scope > span");
+                  const summary = node.parentElement?.querySelector(
+                    "[data-shell-count-value]",
+                  );
+                  const measure = (element: Element | null | undefined) =>
+                    element instanceof HTMLElement
+                      ? {
+                          text: element.textContent,
+                          width: element.clientWidth,
+                          scrollWidth: element.scrollWidth,
+                          left: element.getBoundingClientRect().left,
+                          right: element.getBoundingClientRect().right,
+                        }
+                      : null;
+                  return {
+                    href,
+                    count: Number.parseInt(
+                      count?.getAttribute("data-shell-count-value") ?? "",
+                      10,
+                    ),
+                    text: row?.textContent ?? null,
+                    geometry: {
+                      label: measure(label),
+                      summary: measure(summary),
+                    },
+                  };
+                }, href);
+              };
+              const facts = [];
+              for (const [factIndex, href] of hrefs.entries()) {
+                if (factIndex === 0 || factIndex === 1) {
+                  await gotoAndWaitForReady(
+                    page,
+                    factIndex === 0
+                      ? "/workspace/calendar"
+                      : "/workspace/todos",
+                  );
+                  await navigation();
+                }
+                await expect
+                  .poll(() => readCount(href))
+                  .toBe(fixture.expected[factIndex]);
+                facts.push(await readFact(href));
+              }
+              await page.evaluate(() => document.fonts.ready);
+              await gotoAndWaitForReady(page, "/usage/mcp");
+              const apps = await navigation();
+              const mcp = apps.locator('a[href="/usage/mcp"]');
+              const root = apps.locator("#app-logo");
+              await expect(mcp).toHaveCount(1);
+              await expect(root).toHaveCount(1);
+              discovery = {
+                day,
+                path,
+                locale,
+                width,
+                facts,
+                mcpText: await mcp.textContent(),
+                rootText: await root.textContent(),
+                hints: await apps.locator("[data-shell-nav-hint]").count(),
+                accountRoutes: routes,
+              };
+              await info.attach(`discovery-nav-${locale}-${width}`, {
+                body: await page.screenshot(),
+                contentType: "image/png",
+              });
+              for (const fact of facts) {
+                if (fact.geometry.label && fact.geometry.summary)
+                  expect(
+                    fact.geometry.label.right,
+                    `${fact.href} label/count overlap`,
+                  ).toBeLessThanOrEqual(fact.geometry.summary.left);
+                for (const [kind, box] of Object.entries(fact.geometry)) {
+                  // A visible container can still clip an unbroken destination word.
+                  // Check its own content width, rather than only document overflow.
+                  if (box)
+                    expect(
+                      box.scrollWidth,
+                      `${fact.href} ${kind}: ${box.text}`,
+                    ).toBeLessThanOrEqual(box.width + 1);
+                }
+              }
+            }
           }
           await info.attach(`discovery-observations-${locale}-${width}`, {
             body: JSON.stringify(
@@ -386,9 +412,12 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           ).toHaveAttribute("data-shell-navigation-view", "root");
           const home = nav.locator("#app-logo");
           const state = {
-            homeNamed: await home
-              .getByText(locale === "en-us" ? "Home" : "首页", { exact: true })
+            brandNamed: await home
+              .getByText("Life@USTC", { exact: true })
               .isVisible(),
+            homeSubtitleCount: await home
+              .getByText(locale === "en-us" ? "Home" : "首页", { exact: true })
+              .count(),
             hintCount: await nav.locator("[data-shell-nav-hint]").count(),
             distinctChineseGroup:
               locale !== "zh-cn" ||
@@ -397,7 +426,8 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                 .count()) === 1,
           };
           expect.soft(state).toEqual({
-            homeNamed: true,
+            brandNamed: true,
+            homeSubtitleCount: 0,
             hintCount: 0,
             distinctChineseGroup: true,
           });
@@ -595,7 +625,9 @@ test(
         await expect(row.locator("[data-shell-count-value]")).toHaveCount(0);
         await preview.click();
         await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
-        await expect(preview).toHaveAccessibleName("Return to Workspace");
+        await expect(nav.locator("[data-local-navigation-back]")).toHaveCount(
+          0,
+        );
         const active = nav.locator('a[aria-current="page"]');
         const sheet = page.locator(
           '[data-slot="sidebar"][data-mobile="true"][role="dialog"]',
@@ -660,10 +692,12 @@ test(
         expect(await received.finished()).toBeNull();
         await handlerCompleted.promise;
         await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
-        await expect(preview).toHaveAccessibleName("Return to Workspace");
+        await expect(nav.locator("[data-local-navigation-back]")).toHaveCount(
+          0,
+        );
         await expect(sheet).toBeVisible();
         await expect(active).toBeVisible();
-        await expect(preview).toBeFocused();
+        await expect(active).toBeFocused();
         expect(page.url()).toBe(routeBefore);
         expect(
           await originalDocument.evaluate((node) => node === document),
@@ -673,7 +707,7 @@ test(
             (node) => node === document.querySelector("#main-content"),
           ),
         ).toBe(true);
-        await preview.click();
+        await active.click();
         await expect(nav).toHaveAttribute(
           "data-shell-navigation-view",
           "workspace",
@@ -695,12 +729,12 @@ test(
         await expect(summary).toHaveText("1");
         await expect(summary).toHaveAccessibleName(/1 unread.*not expired/);
         await expect.poll(activeVisible).toBe(true);
-        const label = activity.locator(":scope > span:last-child");
+        const label = activity.locator(":scope > span");
         await expect(label).toBeVisible();
         await expect(label).toHaveText("Activity subscriptions");
         const readable = await row.evaluate((element) => {
           const a = element.querySelector('a[data-sidebar="menu-button"]');
-          const label = a?.querySelector(":scope > span:last-child"),
+          const label = a?.querySelector(":scope > span"),
             summary = element.querySelector("[data-shell-count-value]");
           return (
             label instanceof HTMLElement &&

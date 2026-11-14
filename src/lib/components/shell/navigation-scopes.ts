@@ -23,6 +23,8 @@ export type NavigationScope = {
   label: string;
   parent: string | null;
   groups: ShellNavGroup[];
+  /** Immediate rows shown beneath this directory in its parent sidebar. */
+  previewLinks?: ShellLink[];
 };
 
 /** Exact exceptions precede the personal-workspace and public catalog prefixes. */
@@ -87,39 +89,113 @@ export function buildPrimaryDestinations(
   ];
 }
 
-/** A flat directory retains its collection link, but the real entity owns page current. */
+/** Match only an immediate owned directory; personal and admin aliases stay explicit. */
+export function navigationScopeForLink(
+  scopes: Record<string, NavigationScope>,
+  scopeId: string,
+  link: ShellLink,
+): NavigationScope | undefined {
+  const id =
+    link.id === "activityNotifications"
+      ? "activity-workspace"
+      : link.id === "adminModeration"
+        ? "admin-queues"
+        : link.id;
+  const child = id ? scopes[id] : undefined;
+  return child?.parent === scopeId ? child : undefined;
+}
+
+/** The next visible level omits the collection already represented by its parent row. */
+export function navigationScopeChildren(
+  scopes: Record<string, NavigationScope>,
+  scopeId: string,
+  link: ShellLink,
+): ShellLink[] {
+  const child = navigationScopeForLink(scopes, scopeId, link);
+  const links =
+    child?.previewLinks ??
+    child?.groups.flatMap((group) => group.links) ??
+    link.items ??
+    [];
+  return directoryRows(links).filter(
+    (candidate) => candidate.href !== link.href,
+  );
+}
+
+/** Leaf pages retain the nearest directory with actual choices, rather than a lone duplicate. */
+export function displayNavigationScope(
+  scopes: Record<string, NavigationScope>,
+  current: string,
+): string {
+  let scope = scopes[current] ?? scopes.root;
+  const visited = new Set<string>();
+  while (scope.parent && !visited.has(scope.id)) {
+    visited.add(scope.id);
+    const parent = scopes[scope.parent];
+    if (!parent) break;
+    const owner = parent.groups
+      .flatMap((group) => group.links)
+      .find(
+        (link) => navigationScopeForLink(scopes, parent.id, link) === scope,
+      );
+    if (owner) {
+      if (navigationScopeChildren(scopes, parent.id, owner).length) break;
+    } else {
+      const links = scope.groups.flatMap((group) => group.links);
+      if (
+        links.length > 1 ||
+        links.some(
+          (link) => navigationScopeChildren(scopes, scope.id, link).length,
+        )
+      )
+        break;
+    }
+    scope = parent;
+  }
+  return scope.id;
+}
+
+/** Collections remain available; a deeper entity or matching query row owns page current. */
 export function isCurrentScopeLink(
   link: ShellLink,
   links: readonly ShellLink[],
   isActive: (link: ShellLink) => boolean,
 ) {
   if (!isActive(link)) return false;
-  const path = new URL(link.href, "https://navigation.invalid").pathname;
+  const target = new URL(link.href, "https://navigation.invalid");
+  const path = target.pathname;
   return !links.some((candidate) => {
     if (candidate.href === link.href || !isActive(candidate)) return false;
-    const child = new URL(candidate.href, "https://navigation.invalid")
-      .pathname;
-    return child !== path && child.startsWith(`${path.replace(/\/$/, "")}/`);
+    const child = new URL(candidate.href, "https://navigation.invalid");
+    if (child.pathname === path)
+      return target.searchParams.size === 0 && child.searchParams.size > 0;
+    return child.pathname.startsWith(`${path.replace(/\/$/, "")}/`);
   });
 }
 
-function flat(links: ShellLink[]): ShellLink[] {
+/** Copy at most one child level, without carrying deeper subtrees into the preview. */
+function directoryRows(
+  links: ShellLink[],
+  includeChildren = false,
+): ShellLink[] {
   const seen = new Set<string>();
   const result: ShellLink[] = [];
   function add(link: ShellLink, inheritedIcon?: ShellLink["icon"]) {
-    if (!seen.has(link.href)) {
-      seen.add(link.href);
-      const { items, ...own } = link;
-      const icon = link.glyph ? undefined : (link.icon ?? inheritedIcon);
-      result.push({ ...own, icon });
-      for (const item of items ?? []) add(item, icon);
-    }
+    if (seen.has(link.href)) return;
+    seen.add(link.href);
+    const { items: _items, ...own } = link;
+    const icon = link.glyph ? undefined : (link.icon ?? inheritedIcon);
+    result.push({ ...own, icon });
   }
-  for (const link of links) add(link);
+  for (const link of links) {
+    add(link);
+    if (includeChildren)
+      for (const child of link.items ?? []) add(child, link.icon);
+  }
   return result;
 }
 
-/** Complete feature/search trees remain intact; only the selected sidebar level is flat. */
+/** Complete feature/search trees stay intact; the sidebar exposes adjacent levels only. */
 export function buildNavigationScopes(
   copy: LayoutCopy,
   viewer: ShellNavViewer,
@@ -136,15 +212,25 @@ export function buildNavigationScopes(
     label: string,
     parent: string | null,
     links: ShellLink[],
+    includeCollectionChildren = false,
   ) => {
     scopes[id] = {
       id,
       label,
       parent,
-      groups: [{ id, label, links: flat(links) }],
+      groups: [{ id, label, links }],
+      previewLinks: directoryRows(links, includeCollectionChildren),
     };
   };
   const primary = buildPrimaryDestinations(copy, viewer, loading);
+  const calendar = find("calendar");
+  if (calendar && !loading) {
+    primary[1] = {
+      ...primary[1],
+      badge: calendar.badge,
+      badgeLabel: calendar.badgeLabel,
+    };
+  }
   add("root", copy.shell.primaryNavigation, null, primary);
   add("workspace", copy.shell.primaryDestinations.workspace, "root", [
     { href: "/", label: copy.nav.overview, icon: SunriseIcon },
@@ -184,7 +270,7 @@ export function buildNavigationScopes(
         "news",
       ].includes(feature.id)
     )
-      add(feature.id, feature.label, "campus", [feature]);
+      add(feature.id, feature.label, "campus", [feature], true);
   }
   add(
     "activities",

@@ -319,7 +319,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
               await waitForUiSettled(page);
               await expect(navigation).toHaveAttribute(
                 "data-shell-navigation-view",
-                "calendar",
+                "root",
               );
               await expectNavigationCount(
                 navigation,
