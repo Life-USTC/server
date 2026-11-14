@@ -386,9 +386,12 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           ).toHaveAttribute("data-shell-navigation-view", "root");
           const home = nav.locator("#app-logo");
           const state = {
-            homeNamed: await home
-              .getByText(locale === "en-us" ? "Home" : "首页", { exact: true })
+            brandNamed: await home
+              .getByText("Life@USTC", { exact: true })
               .isVisible(),
+            homeSubtitleCount: await home
+              .getByText(locale === "en-us" ? "Home" : "首页", { exact: true })
+              .count(),
             hintCount: await nav.locator("[data-shell-nav-hint]").count(),
             distinctChineseGroup:
               locale !== "zh-cn" ||
@@ -397,7 +400,8 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                 .count()) === 1,
           };
           expect.soft(state).toEqual({
-            homeNamed: true,
+            brandNamed: true,
+            homeSubtitleCount: 0,
             hintCount: 0,
             distinctChineseGroup: true,
           });
