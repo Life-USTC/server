@@ -113,8 +113,13 @@ export function navigationScopeChildren(
 ): ShellLink[] {
   const child = navigationScopeForLink(scopes, scopeId, link);
   const links =
-    child?.previewLinks ?? child?.groups.flatMap((group) => group.links) ?? [];
-  return links.filter((candidate) => candidate.href !== link.href);
+    child?.previewLinks ??
+    child?.groups.flatMap((group) => group.links) ??
+    link.items ??
+    [];
+  return directoryRows(links).filter(
+    (candidate) => candidate.href !== link.href,
+  );
 }
 
 /** Leaf pages retain the nearest directory with actual choices, rather than a lone duplicate. */
@@ -158,23 +163,29 @@ export function isCurrentScopeLink(
   });
 }
 
-function flat(links: ShellLink[]): ShellLink[] {
+/** Copy at most one child level, without carrying deeper subtrees into the preview. */
+function directoryRows(
+  links: ShellLink[],
+  includeChildren = false,
+): ShellLink[] {
   const seen = new Set<string>();
   const result: ShellLink[] = [];
   function add(link: ShellLink, inheritedIcon?: ShellLink["icon"]) {
-    if (!seen.has(link.href)) {
-      seen.add(link.href);
-      const { items, ...own } = link;
-      const icon = link.glyph ? undefined : (link.icon ?? inheritedIcon);
-      result.push({ ...own, icon });
-      for (const item of items ?? []) add(item, icon);
-    }
+    if (seen.has(link.href)) return;
+    seen.add(link.href);
+    const { items: _items, ...own } = link;
+    const icon = link.glyph ? undefined : (link.icon ?? inheritedIcon);
+    result.push({ ...own, icon });
   }
-  for (const link of links) add(link);
+  for (const link of links) {
+    add(link);
+    if (includeChildren)
+      for (const child of link.items ?? []) add(child, link.icon);
+  }
   return result;
 }
 
-/** Complete feature/search trees remain intact; only the selected sidebar level is flat. */
+/** Complete feature/search trees stay intact; the sidebar exposes adjacent levels only. */
 export function buildNavigationScopes(
   copy: LayoutCopy,
   viewer: ShellNavViewer,
@@ -197,12 +208,8 @@ export function buildNavigationScopes(
       id,
       label,
       parent,
-      groups: [{ id, label, links: flat(links) }],
-      previewLinks: flat(
-        includeCollectionChildren
-          ? links
-          : links.map((link) => ({ ...link, items: undefined })),
-      ),
+      groups: [{ id, label, links }],
+      previewLinks: directoryRows(links, includeCollectionChildren),
     };
   };
   const primary = buildPrimaryDestinations(copy, viewer, loading);

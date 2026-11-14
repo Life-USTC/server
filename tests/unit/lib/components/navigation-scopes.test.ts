@@ -5,6 +5,7 @@ import {
   buildPrimaryDestinations,
   displayNavigationScope,
   isCurrentScopeLink,
+  type NavigationScope,
   navigationScopeChildren,
   navigationScopeForLink,
   primaryDestination,
@@ -69,7 +70,12 @@ describe("four primary navigation and adjacent owned directories", () => {
           "/catalog/rooms",
         ]);
         for (const scope of Object.values(model.scopes))
-          for (const link of scope.groups.flatMap((g) => g.links))
+          for (const link of scope.previewLinks ?? [])
+            expect(link.items).toBeUndefined();
+        for (const id of ["root", "workspace", "campus"])
+          for (const link of model.scopes[id].groups.flatMap(
+            (group) => group.links,
+          ))
             expect(link.items).toBeUndefined();
         expect(
           model.scopes.workspace.groups.flatMap((g) =>
@@ -184,9 +190,97 @@ describe("four primary navigation and adjacent owned directories", () => {
       "/catalog/young-events/organizers",
     ]);
     expect(
-      scopes.activities.groups[0].links.map((link) => link.href),
-    ).toContain("/catalog/young-events/123");
+      scopes.activities.groups[0].links[0].items?.map((link) => link.href),
+    ).toEqual(["/catalog/young-events/123"]);
     expect(displayNavigationScope(scopes, "activities")).toBe("activities");
+  });
+  test.each([
+    {
+      name: "activity",
+      pathname: "/catalog/young-events/123",
+      pageData: { event: { youngId: "123", name: "Current activity" } },
+      scopeId: "activities",
+      collection: "/catalog/young-events",
+    },
+    {
+      name: "organizer",
+      pathname: "/catalog/young-events/organizers/abc",
+      pageData: { organizer: { id: "abc", name: "Current organizer" } },
+      scopeId: "activities",
+      collection: "/catalog/young-events/organizers",
+    },
+    {
+      name: "course",
+      pathname: "/catalog/courses/12",
+      pageData: { course: { nameCn: "Current course" } },
+      scopeId: "courses",
+      collection: "/catalog/courses",
+    },
+  ])(
+    "keeps the actual $name record under its collection as the unique current child",
+    ({ pathname, pageData, scopeId, collection }) => {
+      const { scopes } = buildNavigationScopes(buildLayoutCopy("en-us"), user, {
+        ...context,
+        pathname,
+        pageData,
+      });
+      const rows = scopes[scopeId].groups.flatMap((group) => group.links);
+      expect(rows.map((link) => link.href)).not.toContain(pathname);
+      const parent = rows.find((link) => link.href === collection);
+      if (!parent) throw new Error("Missing record collection");
+      const children = navigationScopeChildren(scopes, scopeId, parent);
+      expect(children.map((link) => link.href)).toEqual([pathname]);
+      expect(children.every((link) => link.items === undefined)).toBe(true);
+      const visible = rows.flatMap((link) => [
+        link,
+        ...navigationScopeChildren(scopes, scopeId, link),
+      ]);
+      const url = new URL(
+        `${pathname}?filter=retained#details`,
+        "https://navigation.invalid",
+      );
+      expect(
+        visible
+          .filter((link) =>
+            isCurrentScopeLink(link, visible, (link) =>
+              isShellLinkActive(link, url),
+            ),
+          )
+          .map((link) => link.href),
+      ).toEqual([pathname]);
+      expect(displayNavigationScope(scopes, scopeId)).toBe(scopeId);
+    },
+  );
+  test("direct children are deduplicated and never retain a grandchild subtree", () => {
+    const parent = {
+      id: "directory",
+      href: "/directory",
+      label: "Directory",
+      items: [
+        {
+          href: "/directory/child",
+          label: "Child",
+          items: [{ href: "/directory/child/grandchild", label: "Grandchild" }],
+        },
+        { href: "/directory/child", label: "Duplicate child" },
+        { href: "/directory", label: "Duplicate parent" },
+      ],
+    };
+    const expected = [{ href: "/directory/child", label: "Child" }];
+    expect(navigationScopeChildren({}, "directory", parent)).toEqual(expected);
+    const scopes: Record<string, NavigationScope> = {
+      directory: {
+        id: "directory",
+        label: "Directory",
+        parent: "root",
+        groups: [],
+        previewLinks: parent.items,
+      },
+    };
+    expect(navigationScopeChildren(scopes, "root", parent)).toEqual(expected);
+    expect(parent.items[0].items).toEqual([
+      { href: "/directory/child/grandchild", label: "Grandchild" },
+    ]);
   });
   test("explicit personal and moderation directories never cross their parent boundary", () => {
     const { scopes } = buildNavigationScopes(

@@ -160,6 +160,15 @@ for (const [locale, width] of [
             nodes.map((node) => node.getAttribute("href")),
           ),
       ).toEqual(["/catalog/bus", "/catalog/bus/map"]);
+      await expect(nav.locator('a[href="/catalog/bus"]')).toHaveAttribute(
+        "data-navigation-depth",
+        "0",
+      );
+      await expect(nav.locator('a[href="/catalog/bus/map"]')).toHaveAttribute(
+        "data-navigation-depth",
+        "1",
+      );
+      await expect(nav.locator('[data-navigation-depth="2"]')).toHaveCount(0);
       await expectRenderedUiQuality(page);
       await capture("bus");
       await page.getByTestId("bus-sidebar-back").click();

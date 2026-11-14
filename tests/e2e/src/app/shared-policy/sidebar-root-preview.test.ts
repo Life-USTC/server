@@ -553,6 +553,24 @@ for (const [locale, width] of [
             return navigation;
           };
           const detailNavigation = await openNavigation();
+          await expect(
+            detailNavigation.locator('a[aria-current="page"]'),
+          ).toHaveAttribute("data-navigation-depth", "1");
+          await expect(
+            detailNavigation.locator('a[aria-current="page"]'),
+          ).toHaveAttribute(
+            "href",
+            `/catalog/young-events/${fixture.event.youngId}`,
+          );
+          await expect(
+            detailNavigation.locator('a[href="/catalog/young-events"]'),
+          ).toHaveAttribute("data-navigation-depth", "0");
+          await expect(
+            detailNavigation.locator('a[href="/catalog/young-events"]'),
+          ).toHaveAttribute("aria-current", "location");
+          await expect(
+            detailNavigation.locator('[data-navigation-depth="2"]'),
+          ).toHaveCount(0);
           await detailNavigation
             .locator("[data-local-navigation-back]")
             .click();

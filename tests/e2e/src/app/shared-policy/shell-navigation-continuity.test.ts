@@ -92,6 +92,13 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           }
           const current = nav.locator('a[aria-current="page"]');
           await expect(current).toHaveText(organizerName);
+          await expect(current).toHaveAttribute("data-navigation-depth", "1");
+          await expect(
+            nav.locator('a[href="/catalog/young-events/organizers"]'),
+          ).toHaveAttribute("data-navigation-depth", "0");
+          await expect(nav.locator('[data-navigation-depth="2"]')).toHaveCount(
+            0,
+          );
           await expect(current).toHaveAttribute(
             "href",
             `/catalog/young-events/organizers/${fixture.organizer.id}`,
