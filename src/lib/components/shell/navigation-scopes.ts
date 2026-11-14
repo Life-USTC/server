@@ -138,8 +138,18 @@ export function displayNavigationScope(
       .find(
         (link) => navigationScopeForLink(scopes, parent.id, link) === scope,
       );
-    if (!owner || navigationScopeChildren(scopes, parent.id, owner).length)
-      break;
+    if (owner) {
+      if (navigationScopeChildren(scopes, parent.id, owner).length) break;
+    } else {
+      const links = scope.groups.flatMap((group) => group.links);
+      if (
+        links.length > 1 ||
+        links.some(
+          (link) => navigationScopeChildren(scopes, scope.id, link).length,
+        )
+      )
+        break;
+    }
     scope = parent;
   }
   return scope.id;

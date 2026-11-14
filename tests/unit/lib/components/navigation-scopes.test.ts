@@ -169,6 +169,87 @@ describe("four primary navigation and adjacent owned directories", () => {
     expect(displayNavigationScope(scopes, "missing")).toBe("root");
     expect(displayNavigationScope(scopes, "settings")).toBe("settings");
   });
+  test("avatar-only upload pages retain root while multi-destination directories remain scoped", () => {
+    for (const viewer of [user, admin]) {
+      const { current, scopes } = buildNavigationScopes(
+        buildLayoutCopy("en-us"),
+        viewer,
+        {
+          ...context,
+          pathname: "/workspace/uploads",
+        },
+      );
+      expect(current).toBe("uploads");
+      expect(primaryDestination("/workspace/uploads")).toBeNull();
+      expect(displayNavigationScope(scopes, current)).toBe("root");
+      const rootLinks = scopes.root.groups
+        .flatMap((group) => group.links)
+        .flatMap((link) => [
+          link,
+          ...navigationScopeChildren(scopes, "root", link),
+        ]);
+      expect(
+        rootLinks.some((link) =>
+          /^\/(?:workspace\/uploads|account|admin)(?:\/|$)/.test(
+            new URL(link.href, "https://navigation.invalid").pathname,
+          ),
+        ),
+      ).toBe(false);
+      expect(displayNavigationScope(scopes, "settings")).toBe("settings");
+      expect(displayNavigationScope(scopes, "apps")).toBe("apps");
+      if (viewer.isAdmin)
+        expect(displayNavigationScope(scopes, "admin")).toBe("admin");
+    }
+  });
+  test.each([false, true])(
+    "anonymous leaf projection does not expose private destinations or stale counts with loading=%s",
+    (loading) => {
+      const { current, scopes } = buildNavigationScopes(
+        buildLayoutCopy("en-us"),
+        null,
+        {
+          ...context,
+          pathname: "/workspace/uploads",
+          navigation: {
+            userId: "retired-owner",
+            calendarItemsCount: 99,
+            pendingHomeworksCount: 99,
+            pendingTodosCount: 99,
+            examsCount: 99,
+            subscribedSectionCount: 99,
+            unreadActivityNotificationsCount: 99,
+          },
+        },
+        loading,
+      );
+      expect(current).toBe("root");
+      expect(displayNavigationScope(scopes, current)).toBe("root");
+      expect(scopes.admin).toBeUndefined();
+      const roots = scopes.root.groups[0].links;
+      expect(roots.map((link) => link.id)).toEqual([
+        "workspace",
+        "calendar",
+        "campus",
+        "activities",
+      ]);
+      const visible = roots.flatMap((link) => [
+        link,
+        ...navigationScopeChildren(scopes, "root", link),
+      ]);
+      expect(
+        visible.filter(
+          (link) =>
+            link.href.startsWith("/workspace/") ||
+            link.href.startsWith("/admin/") ||
+            link.href.startsWith("/account/settings"),
+        ),
+      ).toEqual([]);
+      expect(visible.every((link) => link.badge == null)).toBe(true);
+      expect(roots[1].href).toBe(
+        "/account/sign-in?callbackUrl=%2Fworkspace%2Fcalendar",
+      );
+    },
+  );
   test("root activities omit deeper record names while the actual directory retains them", () => {
     const copy = buildLayoutCopy("en-us");
     const { scopes } = buildNavigationScopes(copy, user, {
