@@ -170,12 +170,10 @@ export async function assertPageContract(
           : "workspace";
     await expect(page.getByTestId(`${expectedScope}-sidebar`)).toHaveAttribute(
       "data-shell-navigation-view",
-      expectedScope,
+      expectedScope === "calendar" ? "root" : expectedScope,
     );
     if (expectedScope === "workspace") await expandDaySidebarGroup(page);
-    await expect(
-      sidebarNavigationLink(page, /^Life@USTC: (?:Home|首页)$/),
-    ).toBeVisible({
+    await expect(sidebarNavigationLink(page, /^Life@USTC$/)).toBeVisible({
       timeout: 10_000,
     });
     return;

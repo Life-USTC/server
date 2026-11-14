@@ -33,7 +33,7 @@ test("活动、主办方订阅和提醒入口可用", { tag: "@Young/Web" }, asy
     );
     await expect(
       activityNavigation.getByRole("link", {
-        name: /^Life@USTC: (?:Home|首页)$/,
+        name: /^Life@USTC$/,
       }),
     ).toBeVisible();
     // This consumer starts from independently arranged state; it never relies on
