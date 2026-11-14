@@ -327,12 +327,19 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             await expect(button).toBeFocused();
             await page.keyboard.press("Enter");
             await expect(page.getByRole("menu")).toHaveCount(1);
-            await page
-              .getByRole("menuitem", {
+            await expect(
+              page.getByRole("menuitem", {
+                name: locale === "en-us" ? "Personal page" : "个人主页",
+                exact: true,
+              }),
+            ).toBeFocused();
+            await page.keyboard.press("ArrowDown");
+            await expect(
+              page.getByRole("menuitem", {
                 name: locale === "en-us" ? "Settings" : "设置",
                 exact: true,
-              })
-              .focus();
+              }),
+            ).toBeFocused();
             await page.keyboard.press("Enter");
             await waitForUiSettled(page);
             await expect(page).toHaveURL(
