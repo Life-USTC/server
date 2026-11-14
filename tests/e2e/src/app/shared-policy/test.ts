@@ -349,11 +349,14 @@ test("ui.navigation-landmarks-1", { tag: "@Site/Web" }, async ({
       await setLocale(page, locale);
       await gotoAndWaitForReady(page, "/catalog/courses");
       const nav = page.getByRole("navigation", {
-        name: locale === "zh-cn" ? "浏览课程" : "Browse courses",
+        name: locale === "zh-cn" ? "校园" : "Campus",
         exact: true,
       });
       await expect(nav).toHaveCount(1);
       await expect(nav).toBeVisible();
+      const collection = nav.locator('a[href="/catalog/courses"]');
+      await expect(collection).toHaveCount(1);
+      await expect(collection).toHaveAttribute("aria-current", "page");
     }
   });
 });

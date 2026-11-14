@@ -199,9 +199,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                   count: Number.parseInt(text ?? "", 10),
                   text: await row.textContent(),
                   geometry: await link.evaluate((node) => {
-                    const label = node.querySelector(
-                      ":scope > span:last-child",
-                    );
+                    const label = node.querySelector(":scope > span");
                     const summary = node.parentElement?.querySelector(
                       "[data-shell-count-value]",
                     );
@@ -703,12 +701,12 @@ test(
         await expect(summary).toHaveText("1");
         await expect(summary).toHaveAccessibleName(/1 unread.*not expired/);
         await expect.poll(activeVisible).toBe(true);
-        const label = activity.locator(":scope > span:last-child");
+        const label = activity.locator(":scope > span");
         await expect(label).toBeVisible();
         await expect(label).toHaveText("Activity subscriptions");
         const readable = await row.evaluate((element) => {
           const a = element.querySelector('a[data-sidebar="menu-button"]');
-          const label = a?.querySelector(":scope > span:last-child"),
+          const label = a?.querySelector(":scope > span"),
             summary = element.querySelector("[data-shell-count-value]");
           return (
             label instanceof HTMLElement &&

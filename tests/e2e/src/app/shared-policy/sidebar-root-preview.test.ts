@@ -453,6 +453,30 @@ for (const [locale, width] of [
               '[data-slot="sidebar-content"] a[href="/catalog/bus"]',
             );
             await expect(sameUrl).toHaveAttribute("href", "/catalog/bus");
+            const localRequests: string[] = [];
+            const observeRestore = (request: Request) => {
+              if (["document", "fetch", "xhr"].includes(request.resourceType()))
+                localRequests.push(request.url());
+            };
+            page.on("request", observeRestore);
+            try {
+              await sameUrl.click();
+              await expect(nav).toHaveAttribute(
+                "data-shell-navigation-view",
+                "bus",
+              );
+              await expect(page).toHaveURL(
+                `${isolatedWorker.origin}/catalog/bus`,
+              );
+              expect(localRequests).toEqual([]);
+            } finally {
+              page.off("request", observeRestore);
+            }
+            // Restoring the current directory is local; clicking its real link
+            // from the restored Bus scope must still perform same-URL navigation.
+            const actualSameUrl = nav.locator(
+              '[data-slot="sidebar-content"] a[href="/catalog/bus"]',
+            );
             const [response] = await Promise.all([
               page.waitForResponse(
                 (response) =>
@@ -460,7 +484,7 @@ for (const [locale, width] of [
                     "/catalog/bus/__data.json" &&
                   response.request().method() === "GET",
               ),
-              sameUrl.click(),
+              actualSameUrl.click(),
             ]);
             expect(response.status()).toBe(200);
             await expect(page).toHaveURL(

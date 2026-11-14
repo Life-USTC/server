@@ -162,8 +162,18 @@ test.describe("/catalog/courses 课程目录", () => {
       await gotoAndWaitForReady(page, "/catalog/courses");
       await expect(page.locator("html")).toHaveAttribute("lang", "en-us");
       await expect(
-        page.getByRole("navigation", { name: "Browse courses", exact: true }),
+        page.getByRole("navigation", { name: "Campus", exact: true }),
       ).toHaveCount(1);
+      await expect(
+        page
+          .getByRole("navigation", { name: "Campus", exact: true })
+          .locator('a[href="/catalog/courses"]'),
+      ).toHaveCount(1);
+      await expect(
+        page
+          .getByRole("navigation", { name: "Campus", exact: true })
+          .locator('a[href="/catalog/courses"]'),
+      ).toHaveAttribute("aria-current", "page");
       await expect(
         page.getByRole("navigation", { name: "Footer navigation" }),
       ).toHaveCount(1);
@@ -177,8 +187,18 @@ test.describe("/catalog/courses 课程目录", () => {
 
       await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
       await expect(
-        page.getByRole("navigation", { name: "浏览课程", exact: true }),
+        page.getByRole("navigation", { name: "校园", exact: true }),
       ).toHaveCount(1);
+      await expect(
+        page
+          .getByRole("navigation", { name: "校园", exact: true })
+          .locator('a[href="/catalog/courses"]'),
+      ).toHaveCount(1);
+      await expect(
+        page
+          .getByRole("navigation", { name: "校园", exact: true })
+          .locator('a[href="/catalog/courses"]'),
+      ).toHaveAttribute("aria-current", "page");
       await expect(
         page.getByRole("navigation", { name: "页脚导航" }),
       ).toHaveCount(1);

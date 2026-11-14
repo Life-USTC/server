@@ -41,17 +41,20 @@ async function signIn(page: Page, worker: IsolatedWorker, userId: string) {
 test("ui.shell-layout-1", { tag: "@Site/Web" }, async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 400 });
   await gotoAndWaitForReady(page, "/terms");
-  // Root4 is intentionally short. Keep the original desktop size as a
-  // no-overflow check, then exercise real Campus content in a short viewport.
+  // The root exposes two adjacent levels, so its navigation content scrolls
+  // within the sidebar independently of the document and reading pane.
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(1440);
   const rootSidebar = page
     .getByTestId("app-sidebar")
     .locator('[data-slot="sidebar-content"]');
+  await expect(
+    rootSidebar.locator('[data-navigation-depth="1"]').first(),
+  ).toBeVisible();
   expect(
     await rootSidebar.evaluate((node) => node.scrollHeight - node.clientHeight),
-  ).toBeLessThanOrEqual(1);
+  ).toBeGreaterThan(200);
   expect(await rootSidebar.evaluate((node) => node.scrollTop)).toBe(0);
   expect(
     await page
