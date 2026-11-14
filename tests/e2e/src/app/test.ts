@@ -148,6 +148,31 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
       "/campus",
       "/catalog/young-events",
     ]);
+    // Anonymous navigation includes every public child and no other route.
+    expect(
+      await rootNav
+        .locator('[data-slot="sidebar-content"] a')
+        .evaluateAll((nodes) =>
+          nodes.map((node) => node.getAttribute("href")).sort(),
+        ),
+    ).toEqual(
+      [
+        "/",
+        "/account/sign-in?callbackUrl=%2Fworkspace%2Fcalendar",
+        "/campus",
+        "/catalog/sections",
+        "/catalog/courses",
+        "/catalog/teachers",
+        "/catalog/bus",
+        "/catalog/weather",
+        "/news",
+        "/catalog/links",
+        "/catalog/rooms",
+        "/catalog/young-events",
+        "/catalog/young-events/calendar",
+        "/catalog/young-events/organizers",
+      ].sort(),
+    );
     await expect(
       rootNav.locator(
         '[data-shell-count-value],a[href^="/admin"],a[href="/workspace/todos"]',
