@@ -10,7 +10,7 @@ import {
 import {
   findOfficialCourseConflicts,
   loadCatalogProfiles,
-  mergeOfficialCourses,
+  officialCourseBuilds,
   officialCourseLookups,
   upsertOfficialProfiles,
 } from "./catalog-profiles";
@@ -171,16 +171,9 @@ async function importSnapshot(
     officialProfiles.sections.length +
     officialProfiles.courseIdentityConflicts +
     officialProfiles.sectionIdentityConflicts;
-  const archivedCourseIds = new Set(courses.map((course) => course.jwId));
-  const officialOnlyCourses = mergeOfficialCourses(
-    courses,
-    officialProfiles,
-  ).filter((course) => !archivedCourseIds.has(course.jwId));
+  const officialOnlyCourses = officialCourseBuilds(courses, officialProfiles);
   const catalogLookups = loadCatalogLookups(snapshot);
-  const courseProfileLookups = officialCourseLookups(
-    catalogLookups,
-    officialOnlyCourses,
-  );
+  const courseProfileLookups = officialCourseLookups(officialOnlyCourses);
 
   const { teacherTitles, teacherLessonTypes, examBatches } =
     loadScheduleLookups(snapshot);
@@ -312,30 +305,18 @@ async function importSnapshot(
     const courseMap = await logStep("upsertCourses", courses.length, () =>
       upsertCourses(tx, courses, lookupMaps),
     );
-    const blockedOfficialCourseIds =
-      officialProfiles.courses.length === 0
-        ? new Set<number>()
-        : await logStep(
-            "findOfficialCourseConflicts",
-            officialProfiles.courses.length,
-            () => findOfficialCourseConflicts(tx, officialProfiles),
-          );
-    const eligibleOfficialCourses = officialOnlyCourses.filter(
-      (course) => !blockedOfficialCourseIds.has(course.jwId),
+    const blockedOfficialCourseIds = await findOfficialCourseConflicts(
+      tx,
+      officialProfiles,
     );
-    if (eligibleOfficialCourses.length > 0) {
-      await logStep(
-        "upsertOfficialOnlyCourses",
-        eligibleOfficialCourses.length,
-        () =>
-          upsertCourses(
-            tx,
-            eligibleOfficialCourses,
-            lookupMaps,
-            "officialCatalog",
-          ),
-      );
-    }
+    await upsertCourses(
+      tx,
+      officialOnlyCourses.filter(
+        (course) => !blockedOfficialCourseIds.has(course.jwId),
+      ),
+      lookupMaps,
+      "officialCatalog",
+    );
     const teacherTitleMap = await logStep(
       "upsertTeacherTitles",
       teacherTitles.length,
@@ -473,9 +454,9 @@ async function importSnapshot(
       },
     );
     if (
-      relatedCatalog.substitutions ||
-      relatedCatalog.groups ||
-      relatedCatalog.studyPlans
+      relatedCatalog.rules ||
+      relatedCatalog.directory ||
+      relatedCatalog.programs
     ) {
       catalogStats.officialRelationships = await replaceRelatedCatalog(
         tx,

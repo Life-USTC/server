@@ -1,203 +1,264 @@
-import { createHash, type Hash } from "node:crypto";
+import { createHash } from "node:crypto";
 import type { Prisma } from "../generated/prisma-node/client";
-import { loadOfficialCourseGroups } from "./catalog-related-groups";
-import { loadOfficialStudyPlans } from "./catalog-related-programs";
-import {
-  array,
-  code,
-  countedTables,
-  integer,
-  json,
-  jsonDocument,
-  object,
-  type RelatedMetadata,
-  type RelatedSnapshot,
-  requireCatalogValue,
-  unique,
-} from "./catalog-related-values";
 import { chunks } from "./database-writes";
+import type { Snapshot } from "./snapshot";
+import type { SnapshotRow } from "./snapshot-values";
 
-const SUBSTITUTIONS = "catalog_teach_course_substitute_pool_list";
+const RULES = "catalog_teach_course_substitute_pool_list";
+const DIRECTORY = "catalog_teach_course_group_";
+const PATHS = "catalog_teach_course_groups";
+const TREE = "catalog_teach_program_tree";
+const PLANS = "catalog_teach_program_info";
+const MODULES = "catalog_teach_course_module_info";
+const MEMBERSHIPS = "catalog_teach_program_courses";
 
-function memberCodes(value: unknown, label: string) {
-  const codes = array(value, label).map((member) =>
-    code(object(member, label).code, `${label}.code`),
-  );
-  requireCatalogValue(codes.length > 0, `${label} must be nonempty`);
-  return codes;
+type RecordInput = Prisma.OfficialCatalogRecordCreateManyInput;
+type CatalogSnapshot = Pick<Snapshot, "hasTable" | "rowCount" | "iterateAll">;
+
+function requireValid(condition: unknown, detail: string): asserts condition {
+  if (!condition) throw new Error(`Invalid official catalog: ${detail}`);
 }
 
-function loadSubstitutions(
-  snapshot: RelatedSnapshot,
-  metadata: RelatedMetadata,
+function json(value: unknown): Prisma.InputJsonObject | Prisma.InputJsonArray {
+  requireValid(typeof value === "string", "missing source document");
+  const parsed = JSON.parse(value);
+  requireValid(parsed && typeof parsed === "object", "expected JSON document");
+  return parsed;
+}
+
+function officialId(value: unknown) {
+  requireValid(
+    typeof value === "number" && Number.isSafeInteger(value) && value > 0,
+    "invalid school ID",
+  );
+  return String(value);
+}
+
+function courseCode(value: unknown) {
+  requireValid(
+    typeof value === "string" && value.trim() === value && value.length > 0,
+    "invalid course code",
+  );
+  return value;
+}
+
+function indexedCodes(codes: string[]) {
+  return [...new Set(codes)].sort();
+}
+
+function available(
+  snapshot: CatalogSnapshot,
+  metadata: Readonly<Record<string, string>>,
+  tables: string[],
 ) {
-  if (!countedTables(snapshot, metadata, [SUBSTITUTIONS])) return;
-  const rules = unique(
-    snapshot.iterateAll(SUBSTITUTIONS),
+  if (
+    !tables.every(
+      (table) => snapshot.hasTable(table) && metadata[`${table}_count`] != null,
+    )
+  )
+    return false;
+  for (const table of tables) {
+    const count = metadata[`${table}_count`];
+    requireValid(
+      /^\d+$/.test(count) && Number(count) === snapshot.rowCount(table),
+      `${table} count differs from metadata`,
+    );
+  }
+  return true;
+}
+
+function ruleRecords(snapshot: CatalogSnapshot): RecordInput[] {
+  return Array.from(snapshot.iterateAll(RULES), (row) => {
+    const key = officialId(row.id);
+    const payload = json(row.payload_json) as Prisma.InputJsonObject;
+    const { originalCourses, substituteCourses } = payload;
+    requireValid(
+      String(payload.id) === key &&
+        Array.isArray(originalCourses) &&
+        originalCourses.length > 0 &&
+        Array.isArray(substituteCourses) &&
+        substituteCourses.length > 0,
+      `substitution ${key}`,
+    );
+    const codes = [...originalCourses, ...substituteCourses].map((course) =>
+      courseCode((course as Prisma.InputJsonObject)?.code),
+    );
+    return {
+      source: "substitution",
+      key,
+      courseCodes: indexedCodes(codes),
+      payload,
+    };
+  });
+}
+
+function directoryKey(row: SnapshotRow) {
+  return `${row.source_kind}/${row.source_id}`;
+}
+
+function directoryRows(snapshot: CatalogSnapshot, table: string) {
+  const bySource = new Map<string, SnapshotRow[]>();
+  for (const row of snapshot.iterateAll(table)) {
+    const key = directoryKey(row);
+    const rows = bySource.get(key) ?? [];
+    rows.push(row);
+    bySource.set(key, rows);
+  }
+  return bySource;
+}
+
+function directoryRecords(snapshot: CatalogSnapshot) {
+  const entries = directoryRows(snapshot, `${DIRECTORY}entries`);
+  const members = directoryRows(snapshot, `${DIRECTORY}members`);
+  const paths = directoryRows(snapshot, PATHS);
+  const records = Array.from(
+    snapshot.iterateAll(`${DIRECTORY}endpoints`),
     (row) => {
-      const jwId = integer(row.id, "substitution ID");
-      const payload = object(
-        json(row.payload_json, SUBSTITUTIONS),
-        "substitution payload",
-      );
-      requireCatalogValue(payload.id === jwId, `substitution ${jwId} identity`);
-      return {
-        jwId,
-        originalCodes: memberCodes(payload.originalCourses, "original courses"),
-        substituteCodes: memberCodes(
-          payload.substituteCourses,
-          "substitute courses",
+      const key = directoryKey(row);
+      const routes = entries.get(key);
+      requireValid(routes?.length, `directory source ${key} lacks routes`);
+      const courseCodes = indexedCodes(
+        (members.get(key) ?? []).map(({ course_code }) =>
+          courseCode(course_code),
         ),
-        payload: jsonDocument(payload),
+      );
+      const groups = (paths.get(key) ?? []).map((path) => ({
+        path: json(path.group_path_json),
+        position: Number(path.group_position),
+        displayLabelCn: String(path.display_label_cn),
+      }));
+      return {
+        source: "directory",
+        key,
+        courseCodes,
+        payload: {
+          groups: json(row.payload_json),
+          paths: groups,
+          routes: routes.map((route) => ({
+            key: String(route.route_key),
+            routePosition: Number(route.route_position),
+            sourcePosition: Number(route.source_position),
+            nameCn: String(route.name_cn),
+            nameEn: String(route.name_en),
+          })),
+        },
       };
     },
-    (rule) => rule.jwId,
   );
-  requireCatalogValue(
-    rules.size > 0,
-    "complete substitution pool must be nonempty",
+  const keys = new Set(records.map(({ key }) => key));
+  for (const key of [...entries.keys(), ...members.keys(), ...paths.keys()]) {
+    requireValid(keys.has(key), `directory rows lack endpoint ${key}`);
+  }
+  return {
+    records,
+    groupPaths: snapshot.rowCount(PATHS),
+    groupMembers: snapshot.rowCount(`${DIRECTORY}members`),
+  };
+}
+
+function programRecords(snapshot: CatalogSnapshot): RecordInput[] {
+  const tree = Array.from(snapshot.iterateAll(TREE));
+  requireValid(
+    tree.length === 1 && tree[0].id === 1,
+    "invalid study plan tree",
   );
-  return [...rules.values()];
+  requireValid(snapshot.rowCount(PLANS) > 0, "empty study plan index");
+  return [
+    {
+      source: "program",
+      key: "tree",
+      courseCodes: [],
+      payload: json(tree[0].payload_json),
+    },
+    ...Array.from(snapshot.iterateAll(PLANS), (row) => ({
+      source: "program",
+      key: `plan/${officialId(row.program_id)}`,
+      courseCodes: [],
+      payload: {
+        summary: json(row.summary_json),
+        detail: json(row.payload_json),
+      },
+    })),
+    ...Array.from(snapshot.iterateAll(MODULES), (row) => {
+      const id = officialId(row.module_id);
+      const payload = json(row.payload_json) as Prisma.InputJsonObject;
+      const identity = payload.self as Prisma.InputJsonObject | undefined;
+      requireValid(String(identity?.id) === id, `public module ${id} identity`);
+      return {
+        source: "program",
+        key: `module/${id}`,
+        courseCodes: [],
+        payload,
+      };
+    }),
+  ];
 }
 
 export function loadRelatedCatalog(
-  snapshot: RelatedSnapshot,
-  metadata: RelatedMetadata,
+  snapshot: CatalogSnapshot,
+  metadata: Readonly<Record<string, string>>,
 ) {
-  return {
-    substitutions: loadSubstitutions(snapshot, metadata),
-    groups: loadOfficialCourseGroups(snapshot, metadata),
-    studyPlans: loadOfficialStudyPlans(snapshot, metadata),
-  };
+  const sources = [
+    ...["entries", "endpoints", "members"].map((suffix) => DIRECTORY + suffix),
+    PATHS,
+  ];
+  const rules = available(snapshot, metadata, [RULES])
+    ? ruleRecords(snapshot)
+    : undefined;
+  const directory = available(snapshot, metadata, sources)
+    ? directoryRecords(snapshot)
+    : undefined;
+  const programs =
+    snapshot.hasTable(TREE) &&
+    available(snapshot, metadata, [PLANS, MODULES, MEMBERSHIPS])
+      ? programRecords(snapshot)
+      : undefined;
+  return { rules, directory, programs };
 }
 
-export type RelatedCatalog = ReturnType<typeof loadRelatedCatalog>;
-
-async function insertBatches<Row>(
-  rows: Row[],
-  size: number,
-  create: (batch: Row[]) => PromiseLike<unknown>,
-) {
-  for (const batch of chunks(rows, size)) await create(batch);
-}
-
-function digestTable<Row>(
-  rows: readonly Row[],
-  key: (row: Row) => string | number,
-): (hash: Hash) => void {
-  return (hash) => {
-    hash.update(`${rows.length}\n`);
-    const sorted = rows
-      .map((row) => ({ row, key: String(key(row)) }))
-      .sort((left, right) =>
-        left.key < right.key ? -1 : Number(left.key > right.key),
-      );
-    for (const { row } of sorted) hash.update(`${JSON.stringify(row)}\n`);
-  };
-}
-
-function sourceDigest(...tables: Array<(hash: Hash) => void>) {
-  const hash = createHash("sha256").update("official-related-catalog-v1\n");
-  for (const table of tables) table(hash);
-  return hash.digest("hex");
-}
-
-async function replaceIfChanged(
+async function replaceSource(
   tx: Prisma.TransactionClient,
   source: string,
-  digest: string,
-  replace: () => Promise<void>,
+  rows?: RecordInput[],
 ) {
-  const previous = await tx.officialRelatedCatalogState.findUnique({
-    where: { source },
-  });
-  if (previous?.digest === digest) return;
-  await replace();
-  await tx.officialRelatedCatalogState.upsert({
+  if (!rows) return;
+  requireValid(rows.length > 0, `empty source ${source}`);
+  const ordered = [...rows].sort((first, second) =>
+    first.key.localeCompare(second.key),
+  );
+  const hash = createHash("sha256");
+  for (const row of ordered) hash.update(JSON.stringify(row)).update("\n");
+  const digest = hash.digest("hex");
+  if (
+    (await tx.officialCatalogState.findUnique({ where: { source } }))
+      ?.digest === digest
+  )
+    return;
+
+  await tx.officialCatalogRecord.deleteMany({ where: { source } });
+  for (const data of chunks(ordered, 25))
+    await tx.officialCatalogRecord.createMany({ data });
+  await tx.officialCatalogState.upsert({
     where: { source },
     create: { source, digest },
     update: { digest },
   });
 }
 
-/** Use the existing importer transaction to replace each complete source atomically. */
 export async function replaceRelatedCatalog(
   tx: Prisma.TransactionClient,
-  { substitutions, groups, studyPlans }: RelatedCatalog,
+  { rules, directory, programs }: ReturnType<typeof loadRelatedCatalog>,
 ) {
-  if (substitutions) {
-    await replaceIfChanged(
-      tx,
-      "substitutions",
-      sourceDigest(digestTable(substitutions, (row) => row.jwId)),
-      async () => {
-        await tx.courseSubstitutionRule.deleteMany();
-        await insertBatches(substitutions, 250, (data) =>
-          tx.courseSubstitutionRule.createMany({ data }),
-        );
-      },
-    );
-  }
-  if (groups) {
-    const digest = sourceDigest(
-      digestTable(groups.sources, (row) =>
-        JSON.stringify([row.sourceKind, row.sourceId]),
-      ),
-      digestTable(groups.entries, (row) =>
-        JSON.stringify([row.routeKey, row.sourcePosition]),
-      ),
-      digestTable(groups.paths, (row) =>
-        JSON.stringify([row.sourceKind, row.sourceId, row.path]),
-      ),
-      digestTable(groups.members, (row) =>
-        JSON.stringify([row.sourceKind, row.sourceId, row.path, row.position]),
-      ),
-    );
-    await replaceIfChanged(tx, "course-groups", digest, async () => {
-      // Dependent route entries, group paths and memberships cascade from the source.
-      await tx.officialCourseGroupSource.deleteMany();
-      await insertBatches(groups.sources, 25, (data) =>
-        tx.officialCourseGroupSource.createMany({ data }),
-      );
-      await insertBatches(groups.entries, 500, (data) =>
-        tx.officialCourseGroupEntry.createMany({ data }),
-      );
-      await insertBatches(groups.paths, 500, (data) =>
-        tx.officialCourseGroupPath.createMany({ data }),
-      );
-      await insertBatches(groups.members, 500, (data) =>
-        tx.officialCourseGroupMember.createMany({ data }),
-      );
-    });
-  }
-  if (studyPlans) {
-    const digest = sourceDigest(
-      digestTable([studyPlans.tree], (row) => row.id),
-      digestTable(studyPlans.plans, (row) => row.jwId),
-      digestTable(studyPlans.modules, (row) => row.jwId),
-    );
-    await replaceIfChanged(tx, "study-plans", digest, async () => {
-      await tx.officialStudyPlanTree.upsert({
-        where: { id: studyPlans.tree.id },
-        create: studyPlans.tree,
-        update: { payload: studyPlans.tree.payload },
-      });
-      await tx.officialStudyPlan.deleteMany();
-      await tx.officialStudyPlanModule.deleteMany();
-      await insertBatches(studyPlans.plans, 25, (data) =>
-        tx.officialStudyPlan.createMany({ data }),
-      );
-      await insertBatches(studyPlans.modules, 25, (data) =>
-        tx.officialStudyPlanModule.createMany({ data }),
-      );
-    });
-  }
+  await replaceSource(tx, "substitution", rules);
+  await replaceSource(tx, "directory", directory?.records);
+  await replaceSource(tx, "program", programs);
   return {
-    substitutions: substitutions?.length,
-    groupSources: groups?.sources.length,
-    groupPaths: groups?.paths.length,
-    groupMembers: groups?.members.length,
-    studyPlans: studyPlans?.plans.length,
-    publicModules: studyPlans?.modules.length,
+    substitutions: rules?.length,
+    groupSources: directory?.records.length,
+    groupPaths: directory?.groupPaths,
+    groupMembers: directory?.groupMembers,
+    studyPlans: programs?.filter(({ key }) => key.startsWith("plan/")).length,
+    publicModules: programs?.filter(({ key }) => key.startsWith("module/"))
+      .length,
   };
 }

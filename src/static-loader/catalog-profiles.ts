@@ -1,7 +1,6 @@
-import type { loadCatalogLookups } from "./catalog-plan";
 import type { CourseBuild } from "./mappers";
 import type { Snapshot } from "./snapshot";
-import type { SnapshotRow } from "./snapshot-values";
+import { asString, type SnapshotRow } from "./snapshot-values";
 
 export {
   findOfficialCourseConflicts,
@@ -31,12 +30,6 @@ export type CatalogProfiles = {
   sectionIdentityConflicts: number;
 };
 
-function record(value: unknown): SnapshotRow | undefined {
-  return value != null && typeof value === "object" && !Array.isArray(value)
-    ? (value as SnapshotRow)
-    : undefined;
-}
-
 function jwId(value: unknown): number | undefined {
   return typeof value === "number" &&
     Number.isInteger(value) &&
@@ -46,45 +39,27 @@ function jwId(value: unknown): number | undefined {
     : undefined;
 }
 
-function semesterJwId(value: unknown): number | undefined {
-  return jwId(
-    typeof value === "string" && /^[0-9]+$/.test(value) ? Number(value) : value,
-  );
-}
-
-function code(value: unknown): string | undefined {
-  return typeof value === "string" && value !== "" && value === value.trim()
-    ? value
-    : undefined;
-}
-
-function name(value: unknown): string | undefined {
-  return typeof value === "string" ? value.trim() || undefined : undefined;
-}
-
 function parseProfile(row: SnapshotRow) {
   const id = jwId(row.id);
-  const publicCode = code(row.code);
+  const code = asString(row.code);
   const payloadJson = row.payload_json;
-  if (id == null || publicCode == null || typeof payloadJson !== "string")
+  if (!id || !code || code !== row.code || typeof payloadJson !== "string")
     return;
-  let payload: SnapshotRow | undefined;
   try {
-    payload = record(JSON.parse(payloadJson));
-  } catch (error) {
-    if (!(error instanceof SyntaxError)) throw error;
-    return;
+    const payload = JSON.parse(payloadJson) as SnapshotRow | null;
+    if (payload?.id === id && payload.code === code)
+      return { jwId: id, code, payloadJson, payload };
+  } catch {
+    // Malformed documents cannot establish identity.
   }
-  if (!payload || payload.id !== id || payload.code !== publicCode) return;
-  return { jwId: id, code: publicCode, payloadJson, payload };
 }
 
 function officialCourse(row: SnapshotRow): OfficialCourse | undefined {
   const source = parseProfile(row);
   if (!source) return;
   const { jwId: id, code: publicCode, payloadJson, payload } = source;
-  const localized = record(payload.name);
-  const nameEn = name(localized?.en);
+  const localized = payload.name as SnapshotRow | undefined;
+  const nameEn = asString(localized?.en);
   return {
     jwId: id,
     code: publicCode,
@@ -92,11 +67,11 @@ function officialCourse(row: SnapshotRow): OfficialCourse | undefined {
     course: {
       jwId: id,
       code: publicCode,
-      nameCn: name(localized?.cn) ?? nameEn ?? publicCode,
+      nameCn: asString(localized?.cn) ?? nameEn ?? publicCode,
       nameEn,
-      categoryName: name(payload.courseCategory),
-      classifyName: name(payload.courseClassify),
-      typeName: name(payload.courseType),
+      categoryName: asString(payload.courseCategory),
+      classifyName: asString(payload.courseClassify),
+      typeName: asString(payload.courseType),
     },
   };
 }
@@ -105,7 +80,12 @@ function officialSection(row: SnapshotRow): OfficialSection | undefined {
   const source = parseProfile(row);
   if (!source) return;
   const course = jwId(row.courseId);
-  const semester = semesterJwId(row.semester_id);
+  const context = row.semester_id;
+  const semester = jwId(
+    typeof context === "string" && /^\d+$/.test(context)
+      ? Number(context)
+      : context,
+  );
   if (course == null || semester == null || source.payload.courseId !== course)
     return;
   return {
@@ -138,14 +118,8 @@ function readProfiles<T extends Profile>(
       continue;
     }
     const key = codeKey(profile);
-    const idOwner = byId.get(profile.jwId);
+    if (byId.has(profile.jwId)) conflicted.add(profile.jwId);
     const codeOwner = byCode.get(key);
-    if (
-      idOwner &&
-      (codeKey(idOwner) !== key || idOwner.payloadJson !== profile.payloadJson)
-    ) {
-      conflicted.add(profile.jwId);
-    }
     if (codeOwner != null && codeOwner !== profile.jwId) {
       conflicted.add(codeOwner);
       conflicted.add(profile.jwId);
@@ -185,54 +159,25 @@ export function loadCatalogProfiles(
   };
 }
 
-/** Keep archive-backed identity and attributes. A profile can create a course
- * only when neither its durable ID nor its code is already represented. */
-export function mergeOfficialCourses(
+export function officialCourseBuilds(
   courses: CourseBuild[],
   profiles: CatalogProfiles,
-): CourseBuild[] {
-  const ids = new Set(courses.map((course) => course.jwId));
-  const codes = new Set(courses.map((course) => course.code));
-  return [
-    ...courses,
-    ...profiles.courses
-      .filter((profile) => !ids.has(profile.jwId) && !codes.has(profile.code))
-      .map((profile) => profile.course),
-  ];
-}
-
-type CatalogLookups = ReturnType<typeof loadCatalogLookups>;
-
-function mergeLookups(
-  items: CatalogLookups["courseCategories"],
-  names: Iterable<string | undefined>,
 ) {
-  const lookup = new Map(items.map((item) => [item.nameCn, item]));
-  for (const nameCn of names) {
-    if (nameCn != null && !lookup.has(nameCn)) {
-      lookup.set(nameCn, { nameCn, nameEn: undefined });
-    }
-  }
-  return [...lookup.values()];
+  const ids = new Set(courses.map(({ jwId }) => jwId));
+  const codes = new Set(courses.map(({ code }) => code));
+  return profiles.courses
+    .filter(({ jwId, code }) => !ids.has(jwId) && !codes.has(code))
+    .map(({ course }) => course);
 }
 
-export function officialCourseLookups(
-  lookups: CatalogLookups,
-  officialOnly: CourseBuild[],
-): CatalogLookups {
+export function officialCourseLookups(courses: CourseBuild[]) {
+  const names = (field: "categoryName" | "classifyName" | "typeName") =>
+    [...new Set(courses.flatMap((course) => course[field] ?? []))].map(
+      (nameCn) => ({ nameCn }),
+    );
   return {
-    ...lookups,
-    courseCategories: mergeLookups(
-      lookups.courseCategories,
-      officialOnly.map((course) => course.categoryName),
-    ),
-    courseClassifies: mergeLookups(
-      lookups.courseClassifies,
-      officialOnly.map((course) => course.classifyName),
-    ),
-    courseTypes: mergeLookups(
-      lookups.courseTypes,
-      officialOnly.map((course) => course.typeName),
-    ),
+    courseCategories: names("categoryName"),
+    courseClassifies: names("classifyName"),
+    courseTypes: names("typeName"),
   };
 }

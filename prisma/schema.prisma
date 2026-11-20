@@ -263,97 +263,17 @@ model CourseAlias {
   @@index([courseId])
 }
 
-model CourseSubstitutionRule {
-  jwId Int @id
-  originalCodes String[]
-  substituteCodes String[]
-  payload Json
+model OfficialCatalogRecord {
+  source      String
+  key         String
+  courseCodes String[]
+  payload     Json
 
-  @@index([originalCodes], type: Gin)
-  @@index([substituteCodes], type: Gin)
+  @@id([source, key])
+  @@index([courseCodes], type: Gin)
 }
 
-model OfficialCourseGroupSource {
-  sourceKind String
-  sourceId String
-  payload Json
-
-  entries OfficialCourseGroupEntry[]
-  paths OfficialCourseGroupPath[]
-
-  @@id([sourceKind, sourceId])
-}
-
-model OfficialCourseGroupEntry {
-  routeKey String
-  sourceKind String
-  sourceId String
-  routePosition Int
-  sourcePosition Int
-  nameCn String
-  nameEn String
-
-  source OfficialCourseGroupSource @relation(fields: [sourceKind, sourceId], references: [sourceKind, sourceId], onDelete: Cascade)
-
-  @@id([routeKey, sourcePosition])
-  @@index([sourceKind, sourceId])
-}
-
-model OfficialCourseGroupPath {
-  sourceKind String
-  sourceId String
-  path String
-  parentPath String
-  groupKey String
-  groupKind String
-  position Int
-  memberCount Int
-  displayLabelCn String
-
-  source OfficialCourseGroupSource @relation(fields: [sourceKind, sourceId], references: [sourceKind, sourceId], onDelete: Cascade)
-  members OfficialCourseGroupMember[]
-
-  @@id([sourceKind, sourceId, path])
-}
-
-model OfficialCourseGroupMember {
-  sourceKind String
-  sourceId String
-  path String
-  position Int
-  courseCode String
-
-  group OfficialCourseGroupPath @relation(fields: [sourceKind, sourceId, path], references: [sourceKind, sourceId, path], onDelete: Cascade)
-
-  @@id([sourceKind, sourceId, path, position])
-  @@index([courseCode])
-}
-
-model OfficialStudyPlanTree {
-  id Int @id
-  payload Json
-}
-
-model OfficialStudyPlan {
-  jwId Int @id
-  departmentJwId Int
-  majorJwId Int
-  grade String
-  trainType String?
-  publicModuleJwIds Int[]
-  summary Json
-  payload Json
-
-  @@index([departmentJwId, majorJwId, grade])
-}
-
-model OfficialStudyPlanModule {
-  jwId Int @id
-  publicModuleJwIds Int[]
-  payload Json
-}
-
-model OfficialRelatedCatalogState {
+model OfficialCatalogState {
   source String @id
   digest String
 }

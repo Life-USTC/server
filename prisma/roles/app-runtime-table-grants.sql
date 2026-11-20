@@ -192,7 +192,4 @@ TO life_ustc_runtime;
 GRANT UPDATE ("name", "username", "profilePictures", "isAdmin", "calendarFeedToken", "updatedAt") ON TABLE "User"
 TO life_ustc_runtime;
 
-GRANT SELECT ON TABLE
-  "CourseSubstitutionRule", "OfficialCourseGroupSource", "OfficialCourseGroupEntry", "OfficialCourseGroupPath",
-  "OfficialCourseGroupMember", "OfficialStudyPlanTree", "OfficialStudyPlan", "OfficialStudyPlanModule"
-TO life_ustc_runtime;
+GRANT SELECT ON TABLE "OfficialCatalogRecord" TO life_ustc_runtime;

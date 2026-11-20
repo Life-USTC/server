@@ -149,8 +149,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           "ExamBatch",
           "ExamMode",
           "ExamRoom",
-          "OfficialRelatedCatalogState",
-          "OfficialStudyPlanTree",
+          "OfficialCatalogState",
           "Room",
           "RoomType",
           "Schedule",
@@ -188,26 +187,10 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           ),
         );
         expectedGrants.push(...deleteTables.map((table) => `${table}:DELETE`));
-        const replaceableSources = [
-          "CourseSubstitutionRule",
-          "OfficialCourseGroupSource",
-          "OfficialStudyPlan",
-          "OfficialStudyPlanModule",
-        ];
-        const groupChildren = [
-          "OfficialCourseGroupEntry",
-          "OfficialCourseGroupPath",
-          "OfficialCourseGroupMember",
-        ];
         expectedGrants.push(
-          ...replaceableSources.flatMap((table) =>
-            ["SELECT", "INSERT", "DELETE"].map(
-              (privilege) => `${table}:${privilege}`,
-            ),
-          ),
-          ...groupChildren.flatMap((table) =>
-            ["SELECT", "INSERT"].map((privilege) => `${table}:${privilege}`),
-          ),
+          "OfficialCatalogRecord:SELECT",
+          "OfficialCatalogRecord:INSERT",
+          "OfficialCatalogRecord:DELETE",
         );
         expect(grants.map((row) => row.name)).toEqual(expectedGrants.sort());
         await importer.$queryRaw`SELECT "jwId" FROM "CourseAlias" LIMIT 1`;
@@ -258,7 +241,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           "YoungEvent",
           "YoungOrganizer",
           "StaticImportState",
-          "OfficialRelatedCatalogState",
+          "OfficialCatalogState",
         ])
           await expect(
             importer.$executeRawUnsafe(`DELETE FROM "${table}"`),

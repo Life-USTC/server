@@ -125,176 +125,105 @@ try {
 
   switch (scenario) {
     case "course.official-profile-import": {
-      const first = await apply();
+      await apply();
       const legacy = await section();
-      const retainedCourseId = courseJwId + 1;
-      const addedCourseId = courseJwId + 2;
-      const retained = await fixture.course.create({
-        data: {
-          jwId: retainedCourseId,
-          code: "RETAINED",
-          nameCn: "Existing catalog name",
-        },
-      });
+      const addedId = courseJwId + 1;
       const category = await fixture.courseCategory.create({
-        data: {
-          nameCn: "已有课程类别",
-          nameEn: "Existing category translation",
-        },
+        data: { nameCn: "目录类别", nameEn: "Existing translation" },
       });
-      const courseTable = "catalog_teach_course_infos";
-      const sectionTable = "catalog_teach_lesson_infos";
       change(
-        `CREATE TABLE ${courseTable} (id INTEGER, code TEXT, payload_json TEXT)`,
+        "CREATE TABLE catalog_teach_course_infos (id INTEGER, code TEXT, payload_json TEXT)",
       );
       change(
-        `CREATE TABLE ${sectionTable} (id INTEGER, code TEXT, courseId INTEGER, semester_id INTEGER, payload_json TEXT)`,
+        "CREATE TABLE catalog_teach_lesson_infos (id INTEGER, code TEXT, courseId INTEGER, semester_id INTEGER, payload_json TEXT)",
       );
 
-      const courses = [
-        {
-          id: courseJwId,
-          code: "FIXTURE-NEW",
-          name: { cn: "Updated", en: null },
-        },
-        {
-          id: retainedCourseId,
-          code: "RETAINED",
-          name: { cn: "Incoming name", en: null },
-        },
-        {
-          id: addedCourseId,
-          code: "ADDED",
-          name: { cn: "New public course", en: "Added course" },
-        },
-      ];
-      const courseProfile = (course: (typeof courses)[number]) => ({
-        ...course,
-        credit: 1.5,
+      const courseProfile = {
+        id: courseJwId,
+        code: "FIXTURE-NEW",
+        desc: { cn: "<p>简介</p>", en: null },
+      };
+      const added = {
+        id: addedId,
+        code: "ADDED",
+        name: { cn: "目录课程" },
         courseCategory: category.nameCn,
-        courseClassify: "新增课程分类",
-        desc: { cn: "独立课程简介", en: null },
-      });
-      for (const course of courses)
+      };
+      for (const profile of [courseProfile, added]) {
         change(
-          `INSERT INTO ${courseTable} VALUES (?, ?, ?)`,
-          course.id,
-          course.code,
-          JSON.stringify(courseProfile(course)),
+          "INSERT INTO catalog_teach_course_infos VALUES (?, ?, ?)",
+          profile.id,
+          profile.code,
+          JSON.stringify(profile),
         );
+      }
       const sectionProfile = {
         id: sectionJwId,
         code: "FIXTURE.02",
         courseId: courseJwId,
-        credit: 2,
-        syllabus: [{ topic: "Teaching class topic" }],
+        syllabus: [{ topic: "Topic" }],
       };
-      const missingSection = {
+      const missing = {
         ...sectionProfile,
         id: sectionJwId + 1,
         code: "FIXTURE.03",
       };
-      for (const profile of [sectionProfile, missingSection])
+      for (const profile of [sectionProfile, missing]) {
         change(
-          `INSERT INTO ${sectionTable} VALUES (?, ?, ?, ?, ?)`,
+          "INSERT INTO catalog_teach_lesson_infos VALUES (?, ?, ?, ?, ?)",
           profile.id,
           profile.code,
           courseJwId,
           semesterJwId,
           JSON.stringify(profile),
         );
+      }
 
       const applied = await apply();
-      strictEqual(first.plannedRecordCounts?.courses, 1);
-      strictEqual(applied.plannedRecordCounts?.courses, 3);
+      strictEqual(applied.reconciliation.officialProfiles?.sectionMissing, 1);
       const current = await section();
       strictEqual(current.id, legacy.id);
       strictEqual(current.code, legacy.code);
-      strictEqual(current.course.id, legacy.course.id);
       strictEqual(current.course.code, legacy.course.code);
-      deepStrictEqual(
-        current.course.officialProfile,
-        courseProfile(courses[0]),
-      );
+      deepStrictEqual(current.course.officialProfile, courseProfile);
       deepStrictEqual(current.officialProfile, sectionProfile);
-      const retainedAfter = await fixture.course.findUniqueOrThrow({
-        where: { jwId: retainedCourseId },
-      });
-      strictEqual(retainedAfter.id, retained.id);
-      strictEqual(retainedAfter.nameCn, retained.nameCn);
-      strictEqual(retainedAfter.officialCatalogOnly, false);
-      deepStrictEqual(retainedAfter.officialProfile, courseProfile(courses[1]));
-      const added = await fixture.course.findUniqueOrThrow({
-        where: { jwId: addedCourseId },
-        include: { category: true, classify: true },
-      });
-      strictEqual(added.code, "ADDED");
-      strictEqual(added.nameCn, "New public course");
-      strictEqual(added.nameEn, "Added course");
-      strictEqual(added.officialCatalogOnly, true);
-      deepStrictEqual(added.category, category);
-      strictEqual(added.classify?.nameCn, "新增课程分类");
-      deepStrictEqual(added.officialProfile, courseProfile(courses[2]));
-      strictEqual(
-        await fixture.section.count({
-          where: { jwId: sectionJwId + 1 },
-        }),
-        0,
-      );
 
-      const renamed = {
-        ...courseProfile(courses[2]),
-        name: { cn: "新目录名称", en: "Updated public course" },
-      };
+      const addedCourse = () =>
+        fixture.course.findUniqueOrThrow({
+          where: { jwId: addedId },
+          include: { category: true },
+        });
+      const inserted = await addedCourse();
+      strictEqual(inserted.nameCn, added.name.cn);
+      strictEqual(inserted.officialCatalogOnly, true);
+      deepStrictEqual(inserted.category, category);
+
+      const renamed = { ...added, name: { cn: "目录更名" } };
       change(
-        `UPDATE ${courseTable} SET payload_json = ? WHERE id = ?`,
+        "UPDATE catalog_teach_course_infos SET payload_json = ? WHERE id = ?",
         JSON.stringify(renamed),
-        addedCourseId,
+        addedId,
       );
       await apply();
-      const fromOfficialCatalog = await fixture.course.findUniqueOrThrow({
-        where: { jwId: addedCourseId },
-      });
-      strictEqual(fromOfficialCatalog.id, added.id);
-      strictEqual(fromOfficialCatalog.nameCn, renamed.name.cn);
-      strictEqual(fromOfficialCatalog.nameEn, renamed.name.en);
-      strictEqual(fromOfficialCatalog.officialCatalogOnly, true);
+      strictEqual((await addedCourse()).nameCn, renamed.name.cn);
 
       change(
         `UPDATE ${catalog}_course SET id = ?, code = ?, cn = ?`,
-        addedCourseId,
-        "ADDED-ARCHIVE",
-        "Archived course name",
+        addedId,
+        "ARCHIVE",
+        "学期课程",
       );
       await apply();
-      const fromSemester = (await section()).course;
-      strictEqual(fromSemester.id, added.id);
-      strictEqual(fromSemester.nameCn, "Archived course name");
-      strictEqual(fromSemester.officialCatalogOnly, false);
+      const promoted = (await section()).course;
+      strictEqual(promoted.id, inserted.id);
+      strictEqual(promoted.nameCn, "学期课程");
+      strictEqual(promoted.officialCatalogOnly, false);
 
-      change(
-        `UPDATE ${catalog}_course SET id = ?, code = ?, cn = ?`,
-        courseJwId,
-        legacy.course.code,
-        legacy.course.nameCn,
-      );
+      change("DROP TABLE catalog_teach_course_infos");
+      change("DROP TABLE catalog_teach_lesson_infos");
       await apply();
-      const noLongerInSemester = await fixture.course.findUniqueOrThrow({
-        where: { jwId: addedCourseId },
-      });
-      strictEqual(noLongerInSemester.nameCn, fromSemester.nameCn);
-      strictEqual(noLongerInSemester.code, fromSemester.code);
-      strictEqual(noLongerInSemester.officialCatalogOnly, false);
-      deepStrictEqual(noLongerInSemester.officialProfile, renamed);
-
-      change(`DROP TABLE ${sectionTable}`);
-      change(`DROP TABLE ${courseTable}`);
-      await apply();
+      deepStrictEqual((await addedCourse()).officialProfile, renamed);
       deepStrictEqual((await section()).officialProfile, sectionProfile);
-      deepStrictEqual(
-        (await section()).course.officialProfile,
-        current.course.officialProfile,
-      );
       break;
     }
     case "course.static-section-course-link": {

@@ -56,10 +56,8 @@ async function writeProfiles(
 export async function upsertOfficialProfiles(
   tx: Prisma.TransactionClient,
   profiles: CatalogProfiles,
-  blocked?: ReadonlySet<number>,
+  conflicts: ReadonlySet<number>,
 ) {
-  const conflicts =
-    blocked ?? (await findOfficialCourseConflicts(tx, profiles));
   const stats = {
     courses: 0,
     sections: 0,
@@ -110,22 +108,17 @@ export async function upsertOfficialProfiles(
       },
     });
     const byId = new Map(rows.map((row) => [row.jwId, row]));
-    const owners = new Map<string, Set<number>>();
-    for (const row of rows) {
-      if (!row.semester) continue;
-      const key = `${row.semester.jwId}:${row.code}`;
-      const ids = owners.get(key) ?? new Set<number>();
-      ids.add(row.jwId);
-      owners.set(key, ids);
+    const owners = new Map<string, number | null>();
+    for (const { semester, code, jwId } of rows) {
+      if (!semester) continue;
+      const key = `${semester.jwId}:${code}`;
+      owners.set(key, owners.has(key) ? null : jwId);
     }
     const updates: Update[] = [];
     for (const profile of batch) {
       const target = byId.get(profile.jwId);
-      const codeOwners = owners.get(`${profile.semesterJwId}:${profile.code}`);
-      if (
-        codeOwners != null &&
-        (codeOwners.size > 1 || !codeOwners.has(profile.jwId))
-      ) {
+      const owner = owners.get(`${profile.semesterJwId}:${profile.code}`);
+      if (owner !== undefined && owner !== profile.jwId) {
         stats.sectionIdentityConflicts++;
         continue;
       }
