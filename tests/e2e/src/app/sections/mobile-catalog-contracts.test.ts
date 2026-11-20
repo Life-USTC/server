@@ -197,13 +197,18 @@ test("section.mobile-detail-actions", { tag: "@Section/Web" }, async ({
           const code = overview.getByText(fixture.sections[0].code, {
             exact: true,
           });
+          await selectDetailTab(page, "calendar");
+          await reachable(
+            page.locator("#calendar").getByText("32 / 32", { exact: true }),
+          );
+          await selectDetailTab(page, "overview");
           await reachable(code);
           expect(
             await code.evaluate(
               (element) => getComputedStyle(element).fontFamily,
             ),
           ).toMatch(/mono/i);
-          for (const value of ["3.5", "12 / 40", "32 / 32"])
+          for (const value of ["3.5", "12 / 40"])
             await reachable(overview.getByText(value, { exact: true }));
           await reachable(
             page.getByRole("definition").filter({
