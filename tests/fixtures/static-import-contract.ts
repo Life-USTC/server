@@ -124,7 +124,7 @@ try {
   }
 
   switch (scenario) {
-    case "catalog.official-profile-import": {
+    case "course.official-profile-import": {
       const first = await apply();
       const legacy = await section();
       const retainedCourseId = courseJwId + 1;

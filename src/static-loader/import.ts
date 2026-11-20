@@ -92,29 +92,32 @@ export async function runImport(
   config: ImportConfig,
 ): Promise<ImportReport> {
   const snapshot = new Snapshot(config.snapshotPath);
+  try {
+    return await importSnapshot(prisma, config, snapshot);
+  } finally {
+    snapshot.close();
+  }
+}
+
+async function importSnapshot(
+  prisma: PrismaClient,
+  config: ImportConfig,
+  snapshot: Snapshot,
+): Promise<ImportReport> {
   const metadata = snapshot.metadata();
   const schemaVersion = metadata.schema_version;
-  let snapshotGeneratedAt: Date;
-  let completeness: ReturnType<typeof validateSnapshotCompleteness>;
-  try {
-    if (schemaVersion !== "6") {
-      throw new Error(
-        `Unsupported snapshot schema version: ${schemaVersion ?? "unknown"}`,
-      );
-    }
-    snapshotGeneratedAt = parseSnapshotGeneratedAt(metadata.generated_at);
-    completeness = validateSnapshotCompleteness({
-      metadata,
-      semesterRows: snapshot.queryAll("catalog_teach_semester_list"),
-      catalogLessonRows: snapshot.queryAll(
-        "catalog_teach_lesson_list_for_teach",
-      ),
-      fetchRows: snapshot.queryAll("upstream_fetches"),
-    });
-  } catch (error) {
-    snapshot.close();
-    throw error;
+  if (schemaVersion !== "6") {
+    throw new Error(
+      `Unsupported snapshot schema version: ${schemaVersion ?? "unknown"}`,
+    );
   }
+  const snapshotGeneratedAt = parseSnapshotGeneratedAt(metadata.generated_at);
+  const completeness = validateSnapshotCompleteness({
+    metadata,
+    semesterRows: snapshot.queryAll("catalog_teach_semester_list"),
+    catalogLessonRows: snapshot.queryAll("catalog_teach_lesson_list_for_teach"),
+    fetchRows: snapshot.queryAll("upstream_fetches"),
+  });
 
   if (!config.dryRun) {
     const alreadyImported = await prisma.$transaction(
@@ -129,7 +132,6 @@ export async function runImport(
       { maxWait: 60_000, timeout: 60_000 },
     );
     if (alreadyImported) {
-      snapshot.close();
       return {
         mode: "apply",
         outcome: "unchanged",
@@ -530,8 +532,6 @@ export async function runImport(
     } else {
       throw error;
     }
-  } finally {
-    snapshot.close();
   }
 
   return {

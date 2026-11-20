@@ -1,7 +1,7 @@
 import { staticImportProcessTest as it } from "../shared/static-import-process-fixture";
 
 for (const name of [
-  "catalog.official-profile-import",
+  "course.official-profile-import",
   "course.static-section-course-link",
   "course.static-classification-unsupported",
   "section.source-lifecycle",

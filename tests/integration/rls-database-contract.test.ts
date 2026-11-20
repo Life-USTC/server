@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect } from "vitest";
 import { Prisma } from "@/generated/prisma/client";
-import { withUserDbContext } from "@/lib/db/prisma";
+import { getPrisma, withUserDbContext } from "@/lib/db/prisma";
 import { isolatedNodeTest as it } from "../shared/isolated-node-fixture";
 import type { TestPrismaClient } from "../shared/prisma";
 
@@ -261,6 +261,53 @@ async function assertScopedReadContract(
 describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "PostgreSQL row security contract",
   () => {
+    it("requires explicit selection for official documents in the application", async ({
+      isolatedDatabase: { owner },
+      nodeRuntime,
+    }) => {
+      const courseProfile = { desc: { cn: "<p>课程简介</p>" } };
+      const sectionProfile = { grading: "平时成绩" };
+      await owner.course.create({
+        data: {
+          jwId: 10001,
+          code: "C10001",
+          nameCn: "目录问候",
+          officialCatalogOnly: true,
+          officialProfile: courseProfile,
+          sections: {
+            create: {
+              jwId: 20001,
+              code: "C10001.01",
+              officialProfile: sectionProfile,
+            },
+          },
+        },
+      });
+
+      await nodeRuntime.run(async () => {
+        const app = getPrisma("zh-cn");
+        const section = await app.section.findUniqueOrThrow({
+          where: { jwId: 20001 },
+          include: { course: true },
+        });
+        expect(section).not.toHaveProperty("officialProfile");
+        expect(section.course).not.toHaveProperty("officialProfile");
+        expect(section.course).not.toHaveProperty("officialCatalogOnly");
+        await expect(
+          app.section.findUniqueOrThrow({
+            where: { jwId: 20001 },
+            select: {
+              officialProfile: true,
+              course: { select: { officialProfile: true } },
+            },
+          }),
+        ).resolves.toEqual({
+          officialProfile: sectionProfile,
+          course: { officialProfile: courseProfile },
+        });
+      });
+    });
+
     it("uses an unprivileged runtime role that owns none of the protected tables", async ({
       isolatedDatabase: { app: prisma },
       nodeRuntime,

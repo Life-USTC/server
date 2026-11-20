@@ -50,17 +50,20 @@ describe("Prisma database boundaries", () => {
     vi.unstubAllEnvs();
   });
 
-  it("omits calendar feed tokens only from the auth client", async () => {
+  it("omits raw catalog profiles from app queries and calendar tokens from auth queries", async () => {
     const { createBasePrisma } = await import("@/lib/db/prisma-query-events");
 
     createBasePrisma("postgresql://app.example/database");
     createBasePrisma("postgresql://auth.example/database", "auth");
 
     expect(prismaClientOptions).toHaveLength(2);
-    expect(prismaClientOptions[0]).not.toHaveProperty("omit");
-    expect(prismaClientOptions[1]).toMatchObject({
-      omit: { user: { calendarFeedToken: true } },
-    });
+    expect(prismaClientOptions.map((options) => options.omit)).toEqual([
+      {
+        course: { officialProfile: true, officialCatalogOnly: true },
+        section: { officialProfile: true },
+      },
+      { user: { calendarFeedToken: true } },
+    ]);
   });
 
   it("uses independent app, auth, and maintenance Hyperdrive bindings", async () => {
