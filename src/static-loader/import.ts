@@ -7,6 +7,13 @@ import {
   loadScheduleLookups,
   loadSemesters,
 } from "./catalog-plan";
+import {
+  findOfficialCourseConflicts,
+  loadCatalogProfiles,
+  officialCourseBuilds,
+  upsertOfficialProfiles,
+} from "./catalog-profiles";
+import { loadRelatedCatalog, replaceRelatedCatalog } from "./catalog-related";
 import { deleteMissingSnapshotRows } from "./database-writes";
 import { collectCodeOnlyDepartmentPlaceholders } from "./department-placeholder";
 import {
@@ -84,29 +91,32 @@ export async function runImport(
   config: ImportConfig,
 ): Promise<ImportReport> {
   const snapshot = new Snapshot(config.snapshotPath);
+  try {
+    return await importSnapshot(prisma, config, snapshot);
+  } finally {
+    snapshot.close();
+  }
+}
+
+async function importSnapshot(
+  prisma: PrismaClient,
+  config: ImportConfig,
+  snapshot: Snapshot,
+): Promise<ImportReport> {
   const metadata = snapshot.metadata();
   const schemaVersion = metadata.schema_version;
-  let snapshotGeneratedAt: Date;
-  let completeness: ReturnType<typeof validateSnapshotCompleteness>;
-  try {
-    if (schemaVersion !== "6") {
-      throw new Error(
-        `Unsupported snapshot schema version: ${schemaVersion ?? "unknown"}`,
-      );
-    }
-    snapshotGeneratedAt = parseSnapshotGeneratedAt(metadata.generated_at);
-    completeness = validateSnapshotCompleteness({
-      metadata,
-      semesterRows: snapshot.queryAll("catalog_teach_semester_list"),
-      catalogLessonRows: snapshot.queryAll(
-        "catalog_teach_lesson_list_for_teach",
-      ),
-      fetchRows: snapshot.queryAll("upstream_fetches"),
-    });
-  } catch (error) {
-    snapshot.close();
-    throw error;
+  if (schemaVersion !== "6") {
+    throw new Error(
+      `Unsupported snapshot schema version: ${schemaVersion ?? "unknown"}`,
+    );
   }
+  const snapshotGeneratedAt = parseSnapshotGeneratedAt(metadata.generated_at);
+  const completeness = validateSnapshotCompleteness({
+    metadata,
+    semesterRows: snapshot.queryAll("catalog_teach_semester_list"),
+    catalogLessonRows: snapshot.queryAll("catalog_teach_lesson_list_for_teach"),
+    fetchRows: snapshot.queryAll("upstream_fetches"),
+  });
 
   if (!config.dryRun) {
     const alreadyImported = await prisma.$transaction(
@@ -121,7 +131,6 @@ export async function runImport(
       { maxWait: 60_000, timeout: 60_000 },
     );
     if (alreadyImported) {
-      snapshot.close();
       return {
         mode: "apply",
         outcome: "unchanged",
@@ -153,18 +162,16 @@ export async function runImport(
   const semesters = loadSemesters(snapshot);
   const departments = loadDepartments(snapshot);
 
-  const {
-    courseCategories,
-    courseClassifies,
-    courseGradations,
-    courseTypes,
-    educationLevels,
-    classTypes,
-    examModes,
-    teachLanguages,
-  } = loadCatalogLookups(snapshot);
-
   const { courses, courseJwIdByParentId } = loadCourses(snapshot);
+  const officialProfiles = loadCatalogProfiles(snapshot);
+  const relatedCatalog = loadRelatedCatalog(snapshot, metadata);
+  const officialProfileCount =
+    officialProfiles.courses.length +
+    officialProfiles.sections.length +
+    officialProfiles.courseIdentityConflicts +
+    officialProfiles.sectionIdentityConflicts;
+  const officialOnlyCourses = officialCourseBuilds(courses, officialProfiles);
+  const catalogLookups = loadCatalogLookups(snapshot);
 
   const { teacherTitles, teacherLessonTypes, examBatches } =
     loadScheduleLookups(snapshot);
@@ -220,7 +227,7 @@ export async function runImport(
   const plannedRecordCounts: ImportRecordCounts = {
     semesters: semesters.length,
     departments: departments.length + departmentPlaceholders.length,
-    courses: courses.length,
+    courses: courses.length + officialOnlyCourses.length,
     sections: sections.length,
     teachers: teachers.length,
     scheduleGroups: scheduleGroups.length,
@@ -232,6 +239,10 @@ export async function runImport(
     adminClasses: adminClasses.length,
     youngEvents: youngEvents?.length ?? 0,
   };
+  const catalogStats: Pick<
+    ImportReport["reconciliation"],
+    "officialProfiles" | "officialRelationships"
+  > = {};
   let sectionPresenceStats:
     | SectionPresenceStats
     | { status: "already-applied" } = { status: "already-applied" };
@@ -287,19 +298,22 @@ export async function runImport(
       () => upsertDepartments(tx, departments, departmentPlaceholders),
     );
     const lookupMaps = await logStep("loadLookupTables", 8, () =>
-      loadLookupTables(tx, {
-        courseCategories,
-        courseClassifies,
-        courseGradations,
-        courseTypes,
-        educationLevels,
-        classTypes,
-        examModes,
-        teachLanguages,
-      }),
+      loadLookupTables(tx, catalogLookups, officialOnlyCourses),
     );
     const courseMap = await logStep("upsertCourses", courses.length, () =>
       upsertCourses(tx, courses, lookupMaps),
+    );
+    const blockedOfficialCourseIds = await findOfficialCourseConflicts(
+      tx,
+      officialProfiles,
+    );
+    await upsertCourses(
+      tx,
+      officialOnlyCourses.filter(
+        (course) => !blockedOfficialCourseIds.has(course.jwId),
+      ),
+      lookupMaps,
+      "officialCatalog",
     );
     const teacherTitleMap = await logStep(
       "upsertTeacherTitles",
@@ -348,6 +362,19 @@ export async function runImport(
         roomTypeMap,
       ),
     );
+    if (officialProfileCount > 0) {
+      const profileStats = await logStep(
+        "upsertOfficialProfiles",
+        officialProfileCount,
+        () =>
+          upsertOfficialProfiles(
+            tx,
+            officialProfiles,
+            blockedOfficialCourseIds,
+          ),
+      );
+      catalogStats.officialProfiles = profileStats;
+    }
     const scheduleGroupMap = await logStep(
       "upsertScheduleGroups",
       scheduleGroups.length,
@@ -424,6 +451,16 @@ export async function runImport(
         );
       },
     );
+    if (
+      relatedCatalog.rules ||
+      relatedCatalog.directory ||
+      relatedCatalog.programs
+    ) {
+      catalogStats.officialRelationships = await replaceRelatedCatalog(
+        tx,
+        relatedCatalog,
+      );
+    }
     const importedYoungSyncedAt =
       youngEvents == null
         ? undefined
@@ -474,8 +511,6 @@ export async function runImport(
     } else {
       throw error;
     }
-  } finally {
-    snapshot.close();
   }
 
   return {
@@ -499,6 +534,7 @@ export async function runImport(
     databaseRecordCounts,
     reconciliation: {
       sectionPresence: sectionPresenceStats,
+      ...catalogStats,
     },
   };
 }

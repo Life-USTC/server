@@ -124,6 +124,114 @@ try {
   }
 
   switch (scenario) {
+    case "course.official-profile-import": {
+      await apply();
+      const legacy = await section();
+      const addedId = courseJwId + 1;
+      const category = await fixture.courseCategory.create({
+        data: { nameCn: "目录类别", nameEn: "Existing translation" },
+      });
+      change(
+        "CREATE TABLE catalog_teach_course_infos (id INTEGER, code TEXT, payload_json TEXT)",
+      );
+      change(
+        "CREATE TABLE catalog_teach_lesson_infos (id INTEGER, code TEXT, courseId INTEGER, semester_id INTEGER, payload_json TEXT)",
+      );
+
+      const courseProfile = {
+        id: courseJwId,
+        code: "FIXTURE-NEW",
+        desc: { cn: "<p>简介</p>", en: null },
+      };
+      const added = {
+        id: addedId,
+        code: "ADDED",
+        name: { cn: "目录课程" },
+        courseCategory: category.nameCn,
+      };
+      for (const profile of [courseProfile, added]) {
+        change(
+          "INSERT INTO catalog_teach_course_infos VALUES (?, ?, ?)",
+          profile.id,
+          profile.code,
+          JSON.stringify(profile),
+        );
+      }
+      const sectionProfile = {
+        id: sectionJwId,
+        code: "FIXTURE.02",
+        courseId: courseJwId,
+        syllabus: [{ topic: "Topic" }],
+      };
+      const missing = {
+        ...sectionProfile,
+        id: sectionJwId + 1,
+        code: "FIXTURE.03",
+      };
+      // A different school ID cannot claim the existing semester and class code.
+      const competing = { ...missing, id: missing.id + 1, code: legacy.code };
+      for (const profile of [sectionProfile, missing, competing]) {
+        change(
+          "INSERT INTO catalog_teach_lesson_infos VALUES (?, ?, ?, ?, ?)",
+          profile.id,
+          profile.code,
+          courseJwId,
+          semesterJwId,
+          JSON.stringify(profile),
+        );
+      }
+
+      const applied = await apply();
+      strictEqual(applied.reconciliation.officialProfiles?.sectionMissing, 1);
+      strictEqual(
+        applied.reconciliation.officialProfiles?.sectionIdentityConflicts,
+        1,
+      );
+      const current = await section();
+      strictEqual(current.id, legacy.id);
+      strictEqual(current.code, legacy.code);
+      strictEqual(current.course.code, legacy.course.code);
+      deepStrictEqual(current.course.officialProfile, courseProfile);
+      deepStrictEqual(current.officialProfile, sectionProfile);
+
+      const addedCourse = () =>
+        fixture.course.findUniqueOrThrow({
+          where: { jwId: addedId },
+          include: { category: true },
+        });
+      const inserted = await addedCourse();
+      strictEqual(inserted.nameCn, added.name.cn);
+      strictEqual(inserted.officialCatalogOnly, true);
+      deepStrictEqual(inserted.category, category);
+
+      const renamed = { ...added, name: { cn: "目录更名" } };
+      change(
+        "UPDATE catalog_teach_course_infos SET payload_json = ? WHERE id = ?",
+        JSON.stringify(renamed),
+        addedId,
+      );
+      await apply();
+      strictEqual((await addedCourse()).nameCn, renamed.name.cn);
+
+      change(
+        `UPDATE ${catalog}_course SET id = ?, code = ?, cn = ?`,
+        addedId,
+        "ARCHIVE",
+        "学期课程",
+      );
+      await apply();
+      const promoted = (await section()).course;
+      strictEqual(promoted.id, inserted.id);
+      strictEqual(promoted.nameCn, "学期课程");
+      strictEqual(promoted.officialCatalogOnly, false);
+
+      change("DROP TABLE catalog_teach_course_infos");
+      change("DROP TABLE catalog_teach_lesson_infos");
+      await apply();
+      deepStrictEqual((await addedCourse()).officialProfile, renamed);
+      deepStrictEqual((await section()).officialProfile, sectionProfile);
+      break;
+    }
     case "course.static-section-course-link": {
       await apply();
       strictEqual((await section()).course.jwId, courseJwId);

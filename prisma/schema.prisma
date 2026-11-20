@@ -217,12 +217,14 @@ model Course {
   nameCn String
   nameEn String?
 
-  categoryId       Int?
-  classTypeId      Int?
-  classifyId       Int?
-  educationLevelId Int?
-  gradationId      Int?
-  typeId           Int?
+  categoryId          Int?
+  classTypeId         Int?
+  classifyId          Int?
+  educationLevelId    Int?
+  gradationId         Int?
+  typeId              Int?
+  officialProfile     Json?
+  officialCatalogOnly Boolean @default(false)
 
   category       CourseCategory?  @relation(fields: [categoryId], references: [id])
   classType      ClassType?       @relation(fields: [classTypeId], references: [id])
@@ -259,6 +261,21 @@ model CourseAlias {
   createdAt DateTime @default(now())
 
   @@index([courseId])
+}
+
+model OfficialCatalogRecord {
+  source      String
+  key         String
+  courseCodes String[]
+  payload     Json
+
+  @@id([source, key])
+  @@index([courseCodes], type: Gin)
+}
+
+model OfficialCatalogState {
+  source String @id
+  digest String
 }
 
 model CourseCategory {
@@ -469,6 +486,7 @@ model Section {
   graduateAndPostgraduate Boolean?
   dateTimePlaceText       String?
   dateTimePlacePersonText Json?
+  officialProfile         Json?
 
   actualPeriods     Float?
   theoryPeriods     Float?

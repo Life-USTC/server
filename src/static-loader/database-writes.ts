@@ -11,6 +11,8 @@ export type ColumnValue =
 
 type BulkUpsertOptions = {
   updateColumns?: string[];
+  ignoreConflicts?: boolean;
+  updateWhenTrue?: string;
 };
 
 export function chunks<T>(array: T[], size: number): T[][] {
@@ -143,6 +145,21 @@ export async function bulkUpsert<K extends string | number>(
     throw new Error(`Invalid bulk upsert update columns for ${table}`);
   }
 
+  const updateCondition = options.updateWhenTrue;
+  if (updateCondition != null) {
+    assertSqlIdentifier(updateCondition, "bulk upsert condition column");
+  }
+  const updateGuard =
+    updateCondition == null
+      ? ""
+      : ` AND "${table}"."${updateCondition}" IS TRUE`;
+  const onConflict = options.ignoreConflicts
+    ? "DO NOTHING"
+    : `DO UPDATE SET
+        ${updateColumns.map((column) => `"${column}" = EXCLUDED."${column}"`).join(",\n        ")}
+      WHERE ROW(${updateColumns.map((column) => `"${table}"."${column}"`).join(",")})
+        IS DISTINCT FROM ROW(${updateColumns.map((column) => `EXCLUDED."${column}"`).join(",")})${updateGuard}`;
+
   for (const batch of chunks(records, 500)) {
     const params: ColumnValue[] = [];
     const valuePlaceholders: string[] = [];
@@ -160,10 +177,7 @@ export async function bulkUpsert<K extends string | number>(
     const sql = `
       INSERT INTO "${table}" (${allColumns.map((column) => `"${column}"`).join(",")})
       VALUES ${valuePlaceholders.join(",")}
-      ON CONFLICT ("${uniqueColumn}") DO UPDATE SET
-        ${updateColumns.map((column) => `"${column}" = EXCLUDED."${column}"`).join(",\n        ")}
-      WHERE ROW(${updateColumns.map((column) => `"${table}"."${column}"`).join(",")})
-        IS DISTINCT FROM ROW(${updateColumns.map((column) => `EXCLUDED."${column}"`).join(",")})
+      ON CONFLICT ("${uniqueColumn}") ${onConflict}
       RETURNING "id", "${uniqueColumn}"
     `;
 

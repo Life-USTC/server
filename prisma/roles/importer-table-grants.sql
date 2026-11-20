@@ -36,6 +36,8 @@ GRANT SELECT, INSERT, UPDATE ON TABLE
   "_ScheduleTeachers"
 TO life_ustc_importer;
 
+GRANT SELECT ("jwId") ON TABLE "CourseAlias" TO life_ustc_importer;
+
 GRANT DELETE ON TABLE
   "ScheduleGroup", "Schedule", "Exam", "TeacherAssignment", "ExamRoom",
   "YoungEventOrganizationSource",
@@ -75,3 +77,6 @@ TO life_ustc_importer;
 
 GRANT INSERT ("id", "action", "outcome", "channel", "targetId", "targetType", "metadata", "createdAt")
 ON TABLE "AuditLog" TO life_ustc_importer;
+
+GRANT SELECT, INSERT, DELETE ON TABLE "OfficialCatalogRecord" TO life_ustc_importer;
+GRANT SELECT, INSERT, UPDATE ON TABLE "OfficialCatalogState" TO life_ustc_importer;
