@@ -49,11 +49,16 @@ $: rows = sectionLessonRows(sectionCalendarEvents, sectionCopy.week);
             <Table.Cell rowspan={row.weekSpan} class="tabular-nums">{row.week || "—"}</Table.Cell>
           {/if}
           <Table.Cell>
-            <div class="flex flex-wrap items-center gap-x-2">
-              <span class="whitespace-nowrap">{formatMessage(sectionCopy.lectureNumber, { num: String(index + 1) })}</span>
-              {#each row.event.teachers ?? [] as teacher (teacher.id)}
-                <a class="inline-flex min-h-6 min-w-6 items-center text-xs text-muted-foreground hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
-              {/each}
+            <div class="flex flex-col items-start sm:flex-row sm:items-baseline sm:gap-x-2">
+              <span class="grid shrink-0 whitespace-nowrap tabular-nums">
+                <span class="invisible col-start-1 row-start-1 hidden sm:block" aria-hidden="true">{formatMessage(sectionCopy.lectureNumber, { num: String(rows.length) })}</span>
+                <span class="col-start-1 row-start-1">{formatMessage(sectionCopy.lectureNumber, { num: String(index + 1) })}</span>
+              </span>
+              <div class="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                {#each row.event.teachers ?? [] as teacher (teacher.id)}
+                  <a class="min-h-6 min-w-6 leading-6 text-muted-foreground hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
+                {/each}
+              </div>
             </div>
           </Table.Cell>
           {#if row.timeSpan}
