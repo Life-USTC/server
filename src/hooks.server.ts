@@ -252,11 +252,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
   });
   const pageAttribution = () => ({
     authSignalPresence: classifyPageAuthSignalPresence(hasAuthSignal),
-    catalogDetailTab: resolvePageCatalogDetailTab(
-      event.route.id,
-      event.url,
-      event.params,
-    ),
+    catalogDetailTab: resolvePageCatalogDetailTab(event.route.id),
     ssrClass: classifyPageSsrClass(event.locals.publicSsr),
   });
   const recordPageFinish = (status: number, responseBytes?: number) => {

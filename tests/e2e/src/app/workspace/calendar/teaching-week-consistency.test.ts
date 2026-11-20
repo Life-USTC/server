@@ -469,7 +469,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                   has: page.getByText(meeting.date.slice(5), { exact: true }),
                 });
                 const course = cell.locator(
-                  `a[href="/catalog/sections/${fixture.section.jwId}#calendar"]`,
+                  `a[href="/catalog/sections/${fixture.section.jwId}/calendar"]`,
                 );
                 await expect(course).toHaveCount(1);
                 await expect(course).toContainText(title);
@@ -534,7 +534,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                   day.locator(`#agenda-${meeting.date}`),
                 ).toBeVisible();
                 const course = day.locator(
-                  `a[href="/catalog/sections/${fixture.section.jwId}#calendar"]`,
+                  `a[href="/catalog/sections/${fixture.section.jwId}/calendar"]`,
                 );
                 await expect(course).toHaveCount(1);
                 await expect(
@@ -640,7 +640,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                   has: page.getByText(meeting.date.slice(5), { exact: true }),
                 })
                 .locator(
-                  `a[href="/catalog/sections/${fixture.section.jwId}#calendar"]`,
+                  `a[href="/catalog/sections/${fixture.section.jwId}/calendar"]`,
                 );
               await expect(course).toHaveCount(1);
               await expect(course).toContainText("11:00");

@@ -35,7 +35,7 @@ export async function checkWorkspaceCalendarPriorityViews(
   if (domain === "Schedule") {
     await gotoAndWaitForReady(
       page,
-      `/catalog/sections/${section.jwId}#calendar`,
+      `/catalog/sections/${section.jwId}/calendar`,
     );
     const table = main.getByTestId("section-calendar-table");
     const row = table.getByRole("row").filter({ hasText: "08:00" });
@@ -91,7 +91,7 @@ export async function checkWorkspaceCalendarPriorityViews(
   if (domain === "Calendar") {
     await gotoAndWaitForReady(
       page,
-      `/catalog/sections/${section.jwId}#calendar`,
+      `/catalog/sections/${section.jwId}/calendar`,
     );
     await page
       .getByRole("button", { name: /^(添加到日历|Add to calendar)$/i })

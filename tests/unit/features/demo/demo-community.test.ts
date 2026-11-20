@@ -169,7 +169,7 @@ describe("fixed demo community", () => {
       expect(focused.focusId).toBe(id);
       expect(flatten(focused.thread).map(({ id }) => id)).toContain(id);
       expect(getDemoCommunityPermalink(id, "en-us")).toBe(
-        `/catalog/courses/920001#comment-${id}`,
+        `/catalog/courses/920001/comments#comment-${id}`,
       );
     }
     const nested = getDemoCommunityComment(
@@ -184,7 +184,7 @@ describe("fixed demo community", () => {
     expect(
       getDemoCommunityPermalink("demo-comment-homework-vectors", "zh-cn"),
     ).toBe(
-      "/catalog/sections/910001?homeworkId=demo-homework-vectors#comment-demo-comment-homework-vectors",
+      "/catalog/sections/910001/homework?homeworkId=demo-homework-vectors#comment-demo-comment-homework-vectors",
     );
   });
 

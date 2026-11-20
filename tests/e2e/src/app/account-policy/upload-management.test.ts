@@ -712,7 +712,7 @@ test("upload.comment-attachments-only", { tag: "@Upload/Web" }, async ({
     expect(await ownerDownload.text()).toBe("Learning material");
     await gotoAndWaitForReady(
       page,
-      `/catalog/sections/${owned.sectionJwId}#comments`,
+      `/catalog/sections/${owned.sectionJwId}/comments`,
     );
     const comments = page.locator("#comments");
     await comments

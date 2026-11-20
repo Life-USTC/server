@@ -148,7 +148,7 @@ for (const { domain, route, select } of [
         await expect(historyLink).toHaveCount(1);
         await expect(historyLink).toHaveAttribute(
           "href",
-          `/catalog/teachers/${destination}#sections`,
+          `/catalog/teachers/${destination}/sections`,
         );
         await expect(item.locator("a a")).toHaveCount(0);
         await link.focus();
@@ -156,7 +156,7 @@ for (const { domain, route, select } of [
         await expect(historyLink).toBeFocused();
         await page.keyboard.press("Enter");
         await expect(page).toHaveURL(
-          new RegExp(`/catalog/teachers/${destination}#sections$`),
+          new RegExp(`/catalog/teachers/${destination}/sections$`),
         );
         await expect(page.locator("#sections")).toBeInViewport();
         await page.goBack();
@@ -665,7 +665,7 @@ for (const { domain, select } of [
       [`/catalog/courses?search=${fixture.course.code}`, fixture.course.code],
       [`/catalog/courses/${fixture.course.jwId}`, fixture.course.code],
       [
-        `/catalog/courses/${fixture.course.jwId}#sections`,
+        `/catalog/courses/${fixture.course.jwId}/sections`,
         fixture.section.code,
       ],
     ],
@@ -684,7 +684,7 @@ for (const { domain, select } of [
     domain: "Teacher",
     select: (fixture: IdentityFixture) => [
       [
-        `/catalog/teachers/${fixture.teacher.id}#sections`,
+        `/catalog/teachers/${fixture.teacher.id}/sections`,
         fixture.section.code,
       ],
     ],

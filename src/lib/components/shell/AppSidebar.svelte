@@ -225,7 +225,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
             {@render linkLabel(link, depth, hasChildren)}
           </button>
         {:else}
-          <a {...props} href={link.href}
+          <a {...props} href={link.href} data-detail-page={link.detail?.tab}
             data-navigation-depth={depth}
             data-sveltekit-preload-data={restoresCurrent(link) ? "false" : undefined}
             data-sveltekit-preload-code={restoresCurrent(link) ? "false" : undefined}

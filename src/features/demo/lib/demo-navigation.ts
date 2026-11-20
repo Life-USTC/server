@@ -1,3 +1,4 @@
+import { academicEntityPath } from "@/features/catalog/lib/academic-detail-path";
 import type { ShellLink } from "@/lib/components/shell/types";
 import { isDemoNewsId } from "./demo-news-ids";
 import { isDemoYoungId, isDemoYoungOrganizerId } from "./demo-young-ids";
@@ -80,9 +81,11 @@ export function demoNavigationLink<Link extends ShellLink>(
   );
   const destination = link.detail ? link.href.split(/[?#]/, 1)[0] : link.href;
   // A rendered catalog record can come from the public demo snapshot as well.
+  const recordPath = academicEntityPath(destination);
   const currentRecord =
-    destination === currentPathname &&
-    /^\/catalog\/(?:sections|courses|teachers)\/[1-9]\d*$/.test(destination);
+    recordPath !== null &&
+    currentPathname !== undefined &&
+    recordPath === academicEntityPath(currentPathname);
   if (!currentRecord && !isDemoNavigationDestination(destination))
     return { ...link, items, disabledReason: reason };
   return {

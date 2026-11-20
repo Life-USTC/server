@@ -25,13 +25,13 @@ async function canonical(
   await chinese(page, flow);
   await gotoAndWaitForReady(page, `${path}?source=contract#overview`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
-  const root = new URL(path, page.url()).href;
+  const overview = new URL(`${path}/overview`, page.url()).href;
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
-    root,
+    overview,
   );
   await expect(page).toHaveURL(
-    new RegExp(`${path}\\?source=contract#overview$`),
+    new RegExp(`${path}/overview\\?source=contract$`),
   );
 }
 test("course.detail-canonical-url", { tag: "@Course/Web" }, async ({

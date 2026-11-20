@@ -112,7 +112,7 @@ for (const [locale, width] of [
         await response.body();
         await gotoAndWaitForReady(
           page,
-          `/catalog/sections/${fixture.section.jwId}#homework`,
+          `/catalog/sections/${fixture.section.jwId}/homework`,
         );
         await page
           .getByTestId("section-homeworks-list")
@@ -254,7 +254,7 @@ for (const [locale, width] of [
         await page.keyboard.press("Escape");
         await gotoAndWaitForReady(
           page,
-          `/catalog/sections/${fixture.section.jwId}#homework`,
+          `/catalog/sections/${fixture.section.jwId}/homework`,
         );
         await page
           .locator("#homework")
@@ -431,7 +431,7 @@ test("homework class shortcuts refresh after a long-lived workspace", {
     await page.keyboard.press("Escape");
     await gotoAndWaitForReady(
       page,
-      `/catalog/sections/${fixture.section.jwId}#homework`,
+      `/catalog/sections/${fixture.section.jwId}/homework`,
     );
     await page
       .locator("#homework")
@@ -698,7 +698,7 @@ test("class deadline reads continue past full pages of elapsed and duplicate sch
       else {
         await gotoAndWaitForReady(
           page,
-          `/catalog/sections/${fixture.section.jwId}#homework`,
+          `/catalog/sections/${fixture.section.jwId}/homework`,
         );
         await page
           .locator("#homework")

@@ -375,7 +375,7 @@ requirements:
     given: Second-classroom pages, moderation, settings, and the publication source directory.
     when: The Svelte compiler resolves the actually rendered imported component graph for each owner.
     then:
-    - Sidebar-owned route destinations are not repeated as page tabs; academic details may expose only same-page anchor links in their content directory.
+    - Sidebar-owned route destinations are not repeated as page tabs; each academic detail destination has its own page in the sidebar.
     - The publication source directory renders PageSectionNav for its in-page groups.
     test:
       file: tests/unit/lib/components/navigation-ownership.test.ts
@@ -582,14 +582,13 @@ requirements:
 - id: ui.detail-two-column-stream-1
   category: presentation
   topic: detail-two-column-stream
-  rule: Course, section and teacher details show one reading panel at a time. The sidebar uses fragments on the
-    canonical entity route to select panels, and Description is the default.
-  rationale: Fragments preserve shareable links and browser history while keeping the entity canonical address.
+  rule: Each academic detail tab has its own server-rendered page under the entity URL. The entity root opens Description.
+  rationale: Each page can be opened directly, bookmarked and revisited through browser history.
   acceptance:
     given: Isolated course, teacher and section details have descriptions and their applicable reading sections.
     when: Mobile and desktop browsers select each detail tab in the sidebar.
     then:
-    - Only the selected panel is visible. The fragment and sidebar current link identify that panel while the entity path stays the same.
+    - Only the selected page content is mounted. The URL path and current sidebar link identify it.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
       name: ui.detail-two-column-stream-1 Course
@@ -682,14 +681,14 @@ requirements:
 - id: ui.detail-two-column-stream-7
   category: presentation
   topic: detail-two-column-stream
-  rule: A link to an academic detail tab fragment opens the corresponding panel in place.
+  rule: Legacy academic detail fragments open the corresponding detail page.
   acceptance:
     given: Isolated course, teacher and section descriptions contain a rendered Markdown fragment link
       to their discussion panel.
     when: Mobile and desktop browsers click the actual rendered link.
     then:
-    - The URL retains its route and gains the discussion fragment without a document or page-data navigation.
-    - The discussion panel becomes visible and the description panel is hidden.
+    - The URL resolves to the discussion page of the same entity.
+    - Only the discussion page is mounted.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
       name: ui.detail-two-column-stream-7 Course
@@ -860,7 +859,7 @@ requirements:
     navigation viewport; keyboard Tab and Enter reach every settings section.
     Initial sidebar layout changes keep the current destination visible until user scroll, pointer/touch/keyboard
     input or focus on another navigation item takes control for that opening.
-  rationale: Public catalog details use fragment-backed sidebar tabs. Young catalog view switches use a
+  rationale: Public catalog details use separate sidebar pages. Young catalog view switches use a
     separate browse-navigation component; they are not contextual section rails.
   acceptance:
     given: An isolated signed-in user opens the last account-settings destination at 1280, 390 and 280 CSS pixels.

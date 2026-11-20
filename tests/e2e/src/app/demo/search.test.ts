@@ -562,7 +562,7 @@ for (const [locale, width] of [
               await expect(homework).toBeVisible();
               await homework.click();
               await expect(page).toHaveURL(
-                /\/catalog\/sections\/910001\?homeworkId=demo-homework-project#homework$/,
+                /\/catalog\/sections\/910001\/homework\?homeworkId=demo-homework-project$/,
               );
               await expect(
                 page.getByRole("dialog", {

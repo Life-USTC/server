@@ -70,7 +70,7 @@ export async function openShellNavigation(page: Page): Promise<Locator> {
 
 export async function selectDetailTab(page: Page, tab: string): Promise<void> {
   const navigation = await openShellNavigation(page);
-  await navigation.locator(`a[href$="#${tab}"]`).click();
+  await navigation.locator(`a[data-detail-page="${tab}"]`).click();
   await expect(page.locator("[data-detail-tab]:visible")).toHaveAttribute(
     "data-detail-tab",
     tab,

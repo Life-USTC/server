@@ -118,9 +118,9 @@ it("ui.layout-principles-4", async () => {
   }
   for (const route of [
     "catalog/courses/[jwId]",
-    "catalog/courses/[jwId]/[section]",
+    "catalog/courses/[jwId]/comments",
     "catalog/teachers/[id]",
-    "catalog/teachers/[id]/[section]",
+    "catalog/teachers/[id]/comments",
   ]) {
     const graph = await renderedPrimitives(`src/routes/${route}/+page.svelte`);
     for (const name of ["DetailPageLayout", "PageHeader"])
@@ -130,7 +130,7 @@ it("ui.layout-principles-4", async () => {
   // composition; each reuses the primitives appropriate to those structures.
   for (const route of [
     "catalog/sections/[jwId]",
-    "catalog/sections/[jwId]/[section]",
+    "catalog/sections/[jwId]/comments",
   ])
     expect(
       await renderedPrimitives(`src/routes/${route}/+page.svelte`),

@@ -5,6 +5,7 @@ import { parseSectionJwId } from "./section-detail-params";
 
 async function updateSectionSubscription({
   action,
+  request,
   locals,
   params,
 }: {
@@ -26,7 +27,7 @@ async function updateSectionSubscription({
       ? await subscriptions.subscribeUserToSectionByJwId(userId, jwId)
       : await subscriptions.unsubscribeUserFromSectionByJwId(userId, jwId);
   if (!result) return fail(404, { error: copy.operationFailed });
-  throw redirect(303, `/catalog/sections/${jwId}`);
+  throw redirect(303, new URL(request.url).pathname);
 }
 
 export function subscribeSectionAction(input: {

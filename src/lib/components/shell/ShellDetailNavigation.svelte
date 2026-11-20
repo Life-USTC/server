@@ -1,8 +1,13 @@
 <script lang="ts">
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
+import { goto } from "$app/navigation";
 import { page } from "$app/state";
-import { activeDetailTab, detailNavigation } from "./detail-navigation";
+import {
+  activeDetailTab,
+  detailNavigation,
+  legacyDetailDestination,
+} from "./detail-navigation";
 
 let {
   pageData,
@@ -16,6 +21,11 @@ let {
 
 const detail = $derived(detailNavigation(pageData, pathname, copy));
 const tab = $derived(activeDetailTab(pageData.shellDetail, page.url));
+$effect(() => {
+  if (!detail) return;
+  const destination = legacyDetailDestination(pageData.shellDetail, page.url);
+  if (destination) void goto(destination, { replaceState: true });
+});
 </script>
 
 {#if detail}

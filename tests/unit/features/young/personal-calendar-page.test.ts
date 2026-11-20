@@ -98,7 +98,7 @@ describe("complete personal calendar page contract", () => {
       ["young_event", "/catalog/young-events/42"],
       ["todo_due", "/workspace/todos"],
       ["homework_due", "/workspace/homeworks"],
-      ["schedule", "/catalog/sections/2#calendar"],
+      ["schedule", "/catalog/sections/2/calendar"],
       ["exam", "/workspace/exams"],
     ]);
     expect(result.data[0]).toMatchObject({
@@ -171,7 +171,7 @@ describe("complete personal calendar page contract", () => {
     expect(result.data[0]).toMatchObject({
       location: null,
       youngId: null,
-      url: "/catalog/sections/100#calendar",
+      url: "/catalog/sections/100/calendar",
     });
   });
   it("rejects invalid date ranges before querying owner state", async () => {

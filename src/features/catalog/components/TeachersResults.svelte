@@ -46,7 +46,7 @@ let showEmailColumn = $derived(
 );
 
 function teacherSectionsHref(teacher: TeacherListRow) {
-  return `/catalog/teachers/${teacher.id}#sections`;
+  return `/catalog/teachers/${teacher.id}/sections`;
 }
 </script>
 

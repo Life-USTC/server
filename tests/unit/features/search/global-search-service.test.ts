@@ -173,7 +173,7 @@ describe("global search service", () => {
       "todos",
     ]);
     expect(result.groups[0]?.items[0]?.href).toContain("homeworkId=hw-1");
-    expect(result.groups[0]?.items[0]?.href).toContain("#homework");
+    expect(result.groups[0]?.items[0]?.href).toContain("/homework?");
     expect(result.groups[0]?.items[0]?.href).not.toContain("tab=homework");
     expect(
       runCloudflareTraceSpanMock.mock.calls.map(([name, attributes]) => [

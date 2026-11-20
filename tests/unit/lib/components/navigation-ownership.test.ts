@@ -75,16 +75,16 @@ it("ui.list-table-9", async () => {
     buildLayoutCopy("en-us"),
   );
   expect(
-    directory?.current.items.map(
-      (item) => new URL(item.href, "https://life.example").hash,
+    directory?.current.items.map((item) =>
+      new URL(item.href, "https://life.example").pathname.split("/").at(-1),
     ),
   ).toEqual([
-    "#introduction",
-    "#calendar",
-    "#exams",
-    "#homework",
-    "#comments",
-    "#overview",
+    "introduction",
+    "calendar",
+    "exams",
+    "homework",
+    "comments",
+    "overview",
   ]);
   const sidebarRouteOwners = [
     "src/features/young/components/YoungEventsPage.svelte",

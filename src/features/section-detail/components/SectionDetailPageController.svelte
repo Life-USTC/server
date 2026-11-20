@@ -1,20 +1,30 @@
 <script lang="ts">
+import type { ComponentProps } from "svelte";
+export let content: ComponentProps<typeof SectionDetailMainContent>["content"];
+
+import { onMount } from "svelte";
+import { toast } from "svelte-sonner";
 // biome-ignore assist/source/organizeImports: keep Svelte template/action imports grouped with local suppressions.
 import { homeworkSemesterShortcutCapabilities } from "@/features/homeworks/lib/homework-timestamp-defaults";
-import { onMount } from "svelte";
-import { getShellViewer } from "@/lib/shell/shell-viewer";
-import { fetchSectionPersonalData } from "@/features/section-detail/lib/section-personal-client";
-import { createSectionDetailDisplayActions } from "@/features/section-detail/lib/section-detail-display-actions";
-import { buildSectionDetailCalendarEvents } from "@/features/section-detail/lib/section-detail-calendar-events";
-import { createSectionDetailCalendarDisplayActions } from "@/features/section-detail/lib/section-detail-calendar-display-actions";
-import { createSectionCalendarClipboardActions } from "@/features/section-detail/lib/section-detail-calendar-clipboard-actions";
-import { sectionDetailCalendarUrls } from "@/features/section-detail/lib/section-detail-calendar-urls";
-import { mountSectionDetailController } from "@/features/section-detail/lib/section-detail-controller-mount";
+import SectionDetailDialogs from "@/features/section-detail/components/SectionDetailDialogs.svelte";
+import SectionDetailMainContent from "@/features/section-detail/components/SectionDetailMainContent.svelte";
+import SectionDetailPageHead from "@/features/section-detail/components/SectionDetailPageHead.svelte";
 import {
-  createSectionDetailTabPanelStore,
-  createSectionDetailTabPanelSsrSeedFromPageData,
-} from "@/features/section-detail/lib/section-detail-tab-client";
-import type { SectionDetailTab } from "@/features/section-detail/lib/section-detail-tab";
+  loadSectionHomeworkAuditLogs,
+  loadSectionHomeworkDetail,
+} from "@/features/section-detail/lib/homeworks";
+import { createSectionCalendarClipboardActions } from "@/features/section-detail/lib/section-detail-calendar-clipboard-actions";
+import { createSectionDetailCalendarDisplayActions } from "@/features/section-detail/lib/section-detail-calendar-display-actions";
+import { buildSectionDetailCalendarEvents } from "@/features/section-detail/lib/section-detail-calendar-events";
+import { sectionDetailCalendarUrls } from "@/features/section-detail/lib/section-detail-calendar-urls";
+import { createSectionDetailControllerDefaultState } from "@/features/section-detail/lib/section-detail-controller-default-state";
+import {
+  type HomeworkAuditLog,
+  type SectionDetailActionData,
+  type SectionDetailPageData,
+  type SectionHomework,
+} from "@/features/section-detail/lib/section-detail-controller-helpers";
+import { mountSectionDetailController } from "@/features/section-detail/lib/section-detail-controller-mount";
 import {
   buildSectionDetailCommentTargets,
   buildSectionPeriodDetailRows,
@@ -22,33 +32,19 @@ import {
   canWriteSectionHomework,
   sectionHomeworkAuditLogs,
 } from "@/features/section-detail/lib/section-detail-derived-state";
+import { createSectionDetailDisplayActions } from "@/features/section-detail/lib/section-detail-display-actions";
 import { createSectionDetailHomeworkActions } from "@/features/section-detail/lib/section-detail-homework-actions";
 import { createSectionHomeworkTimestampActions } from "@/features/section-detail/lib/section-detail-homework-timestamp-actions";
+import {
+  createSectionDetailTabPanelSsrSeedFromPageData,
+  createSectionDetailTabPanelStore,
+} from "@/features/section-detail/lib/section-detail-tab-client";
 import { createSectionDetailUiActions } from "@/features/section-detail/lib/section-detail-ui-actions";
-import { createSectionDetailControllerDefaultState } from "@/features/section-detail/lib/section-detail-controller-default-state";
-import {
-  loadSectionHomeworkAuditLogs,
-  loadSectionHomeworkDetail,
-} from "@/features/section-detail/lib/homeworks";
-import {
-  type SectionDetailActionData,
-  type SectionDetailPageData,
-  type HomeworkAuditLog,
-  type SectionHomework,
-} from "@/features/section-detail/lib/section-detail-controller-helpers";
-import SectionDetailDialogs from "@/features/section-detail/components/SectionDetailDialogs.svelte";
-import SectionDetailMainContent from "@/features/section-detail/components/SectionDetailMainContent.svelte";
-import SectionDetailPageHead from "@/features/section-detail/components/SectionDetailPageHead.svelte";
-import { toast } from "svelte-sonner";
+import { fetchSectionPersonalData } from "@/features/section-detail/lib/section-personal-client";
+import { getShellViewer } from "@/lib/shell/shell-viewer";
+
 type PageData = SectionDetailPageData;
 type ActionData = SectionDetailActionData;
-
-const STREAM_PANEL_TABS = [
-  "introduction",
-  "calendar",
-  "exams",
-  "teachers",
-] as const satisfies readonly SectionDetailTab[];
 
 export let data: PageData;
 export let form: ActionData;
@@ -222,8 +218,9 @@ async function ensureStreamPanelsLoaded() {
   streamLoading = true;
   streamError = null;
   try {
-    for (const tab of STREAM_PANEL_TABS) {
-      if (tabPanelStore.isLoaded(tab)) continue;
+    const tab =
+      data.detailSection === "overview" ? "teachers" : data.detailSection;
+    if (tab !== "homework" && !tabPanelStore.isLoaded(tab)) {
       tabPanelState = await tabPanelStore.ensureLoaded(tab, panelInput);
     }
     syncFocusedHomework(_homeworks);
@@ -533,7 +530,7 @@ onMount(() => {
 />
 
 <section class="min-h-full lg:h-full lg:min-h-0">
-  <SectionDetailMainContent
+  <SectionDetailMainContent {content}
     canWriteHomework={!personalLoading && !personalFailed && _canWriteHomework}
     commentTargets={_commentTargets}
     commonCopy={_commonCopy}

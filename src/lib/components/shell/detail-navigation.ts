@@ -24,18 +24,38 @@ export type DetailTab =
 
 export function activeDetailTab(
   kind: unknown,
-  url: { hash: string; searchParams: Pick<URLSearchParams, "get"> },
+  url: { pathname: string },
 ): DetailTab {
-  if (url.hash.startsWith("#comment-"))
-    return kind === "section" && url.searchParams.get("homeworkId")
+  const segment = url.pathname.split("/")[4];
+  return detailTabIds(kind).find((tab) => tab === segment) ?? "introduction";
+}
+
+export function legacyDetailDestination(
+  kind: unknown,
+  url:
+    | URL
+    | {
+        pathname: string;
+        hash: string;
+        search: string;
+        searchParams: Pick<URLSearchParams, "get">;
+      },
+) {
+  const root = url.pathname.split("/").slice(0, 4).join("/");
+  const fragment = url.hash.slice(1);
+  const homework = kind === "section" && url.searchParams.get("homeworkId");
+  const tab = fragment.startsWith("comment-")
+    ? homework
       ? "homework"
-      : "comments";
-  if (kind === "section" && url.hash === "#teachers") return "overview";
-  const tab = detailTabIds(kind).find((id) => url.hash === `#${id}`);
-  if (tab) return tab;
-  if (kind === "section" && url.searchParams.get("homeworkId"))
-    return "homework";
-  return "introduction";
+      : "comments"
+    : fragment === "teachers" && kind === "section"
+      ? "overview"
+      : (detailTabIds(kind).find((id) => id === fragment) ??
+        (!fragment && homework && url.pathname === root
+          ? "homework"
+          : undefined));
+  if (!tab || url.pathname === `${root}/${tab}`) return null;
+  return `${root}/${tab}${url.search}${fragment.startsWith("comment-") || fragment === "teachers" ? url.hash : ""}`;
 }
 
 /** Public entity facts and route-declared content capabilities only. */
@@ -88,7 +108,7 @@ export function detailNavigation(
       ...current,
       items: tabs.map(
         (tab): ShellLink => ({
-          href: `${current.href}${tab === "homework" ? search : sharedSearch}#${tab}`,
+          href: `${current.href}/${tab}${tab === "homework" ? search : sharedSearch}`,
           label: labels[tab],
           detail: { tab, kind },
         }),

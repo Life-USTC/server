@@ -37,7 +37,7 @@ export function observeSectionDetailNavigation(
         page.locator("[data-detail-scroll-container]"),
       ).toHaveAttribute("aria-busy", "false");
       await expect(
-        page.locator('#comments [data-slot="empty-description"]'),
+        page.locator('[data-detail-tab="introduction"]'),
       ).toHaveCount(1);
       await waitForUiSettled(page);
     } finally {

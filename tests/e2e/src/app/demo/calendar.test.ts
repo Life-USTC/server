@@ -104,7 +104,7 @@ async function expectDemoCalendarRange(
     [910002, english ? "College Physics" : "大学物理"],
   ] as const) {
     const course = day("2026-09-24").locator(
-      `a[href="/catalog/sections/${id}#calendar"]`,
+      `a[href="/catalog/sections/${id}/calendar"]`,
     );
     await expect(course).toContainText(title);
     await expect(course).toContainText("08:00");
@@ -132,7 +132,7 @@ async function expectDemoCalendarRange(
       await expect(crossDay).toContainText("10:30");
     }
     const homework = day("2026-09-27").locator(
-      'a[href="/catalog/sections/910002?homeworkId=demo-homework-physics#homework"]',
+      'a[href="/catalog/sections/910002/homework?homeworkId=demo-homework-physics"]',
     );
     await expect(homework).toContainText(
       english ? "Mechanics further reading" : "力学拓展阅读",
@@ -245,7 +245,7 @@ test("demo.calendar: exit and history cannot restore a held previous demo calend
       await expect(page.getByTestId("demo-notice")).toBeVisible();
       await expect(
         page
-          .locator('a[href="/catalog/sections/910001#calendar"]:visible')
+          .locator('a[href="/catalog/sections/910001/calendar"]:visible')
           .first(),
       ).toBeVisible();
       await expect(page.locator("#app-user-menu")).toHaveCount(0);
@@ -364,7 +364,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                 ).toHaveValue("2026-09-24");
                 const course = page
                   .getByTestId("calendar-agenda")
-                  .locator('a[href="/catalog/sections/910001#calendar"]')
+                  .locator('a[href="/catalog/sections/910001/calendar"]')
                   .filter({ visible: true })
                   .first();
                 await expect(course).toContainText(
@@ -384,17 +384,17 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             }
             await expect(
               page
-                .locator('a[href="/catalog/sections/910001#calendar"]:visible')
+                .locator('a[href="/catalog/sections/910001/calendar"]:visible')
                 .first(),
             ).toBeVisible();
             await expect(
               page
-                .locator('a[href="/catalog/sections/910002#calendar"]:visible')
+                .locator('a[href="/catalog/sections/910002/calendar"]:visible')
                 .first(),
             ).toBeVisible();
             await expect(
               page.locator(
-                'a[href="/catalog/sections/910003#calendar"]:visible',
+                'a[href="/catalog/sections/910003/calendar"]:visible',
               ),
             ).toHaveCount(0);
             await expectRenderedUiQuality(page);
@@ -421,12 +421,12 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             await expect(page).toHaveURL(/calendarSemester=2602/);
             await expect(
               page
-                .locator('a[href="/catalog/sections/910003#calendar"]:visible')
+                .locator('a[href="/catalog/sections/910003/calendar"]:visible')
                 .first(),
             ).toBeVisible();
             await expect(
               page.locator(
-                'a[href="/catalog/sections/910001#calendar"]:visible',
+                'a[href="/catalog/sections/910001/calendar"]:visible',
               ),
             ).toHaveCount(0);
             await page
@@ -438,7 +438,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             await waitForUiSettled(page);
             await expect(
               page
-                .locator('a[href="/catalog/sections/910001#calendar"]:visible')
+                .locator('a[href="/catalog/sections/910001/calendar"]:visible')
                 .first(),
             ).toBeVisible();
             await expect(page.locator('a[href$=".ics"]:visible')).toHaveCount(

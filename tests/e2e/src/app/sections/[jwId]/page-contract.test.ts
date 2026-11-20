@@ -309,7 +309,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
       ).toBeVisible();
 
       await gotoAndWaitForReady(page, `${SECTION_URL}#homework`);
-      await expect(page).toHaveURL(/\/catalog\/sections\/\d+#homework$/);
+      await expect(page).toHaveURL(/\/catalog\/sections\/\d+\/homework$/);
       await expect(page.locator("#homework")).toBeVisible();
     });
   });
@@ -555,7 +555,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
       await expect(detailViewport).toBeVisible();
 
       await gotoAndWaitForReady(page, `${SECTION_URL}#calendar`);
-      await page.waitForURL(/\/catalog\/sections\/\d+#calendar$/);
+      await page.waitForURL(/\/catalog\/sections\/\d+\/calendar$/);
       await waitForUiSettled(page);
 
       await expect(page.locator("#calendar")).toBeInViewport();
@@ -581,7 +581,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
           );
           await gotoAndWaitForReady(
             page,
-            `/catalog/sections/${community.section.jwId}#introduction`,
+            `/catalog/sections/${community.section.jwId}/introduction`,
           );
           const introduction = page.locator("#introduction");
           await expect(introduction).toBeVisible();
@@ -676,7 +676,7 @@ test("页面契约", { tag: "@Section/Web" }, async ({
   );
   await preferenceFlow.run(async () => {
     await assertPageContract(page, {
-      routePath: "/catalog/sections/[jwId]/[section]",
+      routePath: "/catalog/sections/[jwId]/introduction",
     });
   });
 });

@@ -1,26 +1,18 @@
+import { academicEntityPath } from "@/features/catalog/lib/academic-detail-path";
 /**
  * Decides which paths may use anonymous HTML SSR caching and which must stay
  * dynamic (account, admin, OAuth, or request-time bus data). Public content
  * uses the same anonymous representation for signed-in visitors.
  * See docs/policies/rendering-and-cache.yaml for the product rules.
  */
-import {
-  resolveCatalogDetailTabQueryRedirect,
-  resolveCatalogDetailTabRedirect,
-} from "@/features/catalog/lib/catalog-detail-tab";
-import {
-  resolveSectionDetailTabQueryRedirect,
-  resolveSectionDetailTabRedirect,
-} from "@/features/section-detail/lib/section-detail-tab";
+import { resolveCatalogDetailTabQueryRedirect } from "@/features/catalog/lib/catalog-detail-tab";
+import { resolveSectionDetailTabQueryRedirect } from "@/features/section-detail/lib/section-detail-tab";
 import { hasDemoCookie } from "@/lib/auth/demo-request-signal";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import { INTERNAL_ROUTE_PREFIX } from "@/lib/navigation/internal-routes";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
-export {
-  resolveSectionDetailTabQueryRedirect,
-  resolveSectionDetailTabRedirect,
-};
+export { resolveSectionDetailTabQueryRedirect };
 
 export const PUBLIC_SSR_DEGRADED_HEADER = "x-life-public-ssr-degraded";
 export const PUBLIC_SSR_HEADER = "x-life-public-ssr";
@@ -78,9 +70,6 @@ const DIRECT_REQUEST_PATHS = new Set([
   "/sitemap.xml",
 ]);
 
-const CATALOG_DETAIL_PATH =
-  /^\/catalog\/(courses|sections|teachers)\/([1-9]\d*)(?:\/([^/]+))?$/;
-
 const PUBLIC_CATALOG_PATHS = new Set([
   "/catalog/courses",
   "/catalog/sections",
@@ -105,7 +94,7 @@ const VIEWER_DEPENDENT_STATIC_PATHS = new Set(["/", "/account/sign-in"]);
 export function isViewerIndependentPublicPath(pathname: string) {
   return (
     PUBLIC_CATALOG_PATHS.has(pathname) ||
-    isCanonicalCatalogDetailPath(pathname) ||
+    Boolean(academicEntityPath(pathname)) ||
     YOUNG_PUBLIC_PATH.test(pathname) ||
     (!VIEWER_DEPENDENT_STATIC_PATHS.has(pathname) &&
       STATIC_PUBLIC_PATHS.has(pathname)) ||
@@ -209,14 +198,6 @@ export function isLegacyCalendarSubscriptionFeedRequest(request: Request) {
   );
 }
 
-export function resolveCourseDetailTabRedirect(request: Request) {
-  return resolveCatalogDetailTabRedirect(request, "courses");
-}
-
-export function resolveTeacherDetailTabRedirect(request: Request) {
-  return resolveCatalogDetailTabRedirect(request, "teachers");
-}
-
 export function resolveCourseDetailTabQueryRedirect(request: Request) {
   return resolveCatalogDetailTabQueryRedirect(request, "courses");
 }
@@ -237,15 +218,6 @@ function acceptsHtml(request: Request) {
     accept.includes("text/html") ||
     request.headers.get("sec-fetch-dest") === "document"
   );
-}
-
-function isCanonicalCatalogDetailPath(pathname: string) {
-  const match = CATALOG_DETAIL_PATH.exec(pathname);
-  if (!match) return false;
-  const [, , identifier, section] = match;
-  const id = Number(identifier);
-  if (!Number.isSafeInteger(id)) return false;
-  return !section;
 }
 
 export function shouldRoutePublicSsrCache(
@@ -285,7 +257,7 @@ export function resolvePublicSsrMode(
   const featureMode = resolveFeatureRoute?.(url);
   if (featureMode !== undefined) return featureMode;
 
-  if (isCanonicalCatalogDetailPath(url.pathname)) {
+  if (academicEntityPath(url.pathname)) {
     return !url.search ? "page" : null;
   }
 

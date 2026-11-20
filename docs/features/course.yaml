@@ -114,13 +114,13 @@ requirements:
       name: course.mobile-detail-hierarchy
 - id: course.detail-canonical-url
   category: behavior
-  rule: The canonical course detail URL is /catalog/courses/[jwId]. Optional fragments select a sidebar tab on that page.
+  rule: The course detail entry point is /catalog/courses/[jwId]. Each sidebar tab has its own child page. Legacy fragments resolve to the matching page.
   acceptance:
     given: An isolated course has a persisted upstream jwId.
     when: A browser opens its entity URL with an extra query and hash.
     then:
     - The detail renders the course name.
-    - The canonical URL is the course entity root while the optional page hash remains usable.
+    - The canonical URL identifies the overview page and omits the query and legacy fragment.
     test:
       file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
       name: course.detail-canonical-url
@@ -141,7 +141,7 @@ requirements:
 - id: course.bounded-detail-history
   category: consistency
   rule: Web course history exposes all Section offerings, including retired offerings, through stable
-    20-row batches and an entity-root canonical URL. Web appends batches on scroll without page controls or shown-of-total summaries; direct sectionsPage URLs and reloads remain supported.
+    20-row batches and a canonical URL for the sections page. Web appends batches on scroll without page controls or shown-of-total summaries; direct sectionsPage URLs and reloads remain supported.
   surfaces:
   - web
   acceptance:
@@ -149,7 +149,7 @@ requirements:
     when: A visitor scrolls from 20 to 23 offerings, then opens and reloads page 2 on desktop and mobile.
     then:
     - All 23 offerings are reachable without duplicates.
-    - All 23 offerings remain visible after loading, no range summary is rendered, and the entity-root canonical URL is preserved.
+    - All 23 offerings remain visible after loading, no range summary is rendered, and the sections page canonical URL is preserved.
     - The page-2 reload is no-store and retains the retired offerings.
     test:
       file: tests/e2e/src/app/courses/history-pagination.test.ts

@@ -271,17 +271,17 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           const sectionNavigation = await navigation();
           expect(
             await sectionNavigation
-              .locator('a[href*="#"]')
+              .locator("a[data-detail-page]")
               .evaluateAll((nodes) =>
-                nodes.map((node) => (node as HTMLAnchorElement).hash),
+                nodes.map((node) => node.getAttribute("data-detail-page")),
               ),
           ).toEqual([
-            "#introduction",
-            "#calendar",
-            "#exams",
-            "#homework",
-            "#comments",
-            "#overview",
+            "introduction",
+            "calendar",
+            "exams",
+            "homework",
+            "comments",
+            "overview",
           ]);
           if (width < 768) await page.keyboard.press("Escape");
           await page.screenshot({
@@ -293,7 +293,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               academicNav.locator('a[aria-current="page"]'),
             ).toHaveAttribute(
               "href",
-              `/catalog/sections/${fixture.section.jwId}#introduction`,
+              `/catalog/sections/${fixture.section.jwId}/introduction`,
             );
             await expect(
               academicNav.locator('a[href="/catalog/sections"]'),
@@ -319,18 +319,20 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               "expanded",
             );
           }
-          await (await navigation()).locator('a[href$="#comments"]').click();
+          await (await navigation())
+            .locator('a[data-detail-page="comments"]')
+            .click();
           await expect(directory.locator('[aria-current="page"]')).toHaveText(
             locale === "en-us" ? "Comments" : "评论",
           );
-          await expect(page).toHaveURL(/#comments$/);
+          await expect(page).toHaveURL(/\/comments$/);
           await expect(page.locator("#comments h2")).toBeInViewport();
           expect(await page.evaluate(() => scrollY)).toBe(0);
           const reading = detailScrollViewport(page);
           const readingPosition = await reading.evaluate(
             (node) => node.scrollTop,
           );
-          await expect(page.locator("#introduction")).toBeHidden();
+          await expect(page.locator("introduction")).toBeHidden();
           const currentLocation = page.url();
           const currentHistory = await page.evaluate(() => history.length);
           const currentDocument = await page.evaluateHandle(() => document);
@@ -418,12 +420,14 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           await waitForUiSettled(page);
           expect(
             await (await navigation())
-              .locator('a[href*="#"]')
+              .locator("a[data-detail-page]")
               .evaluateAll((nodes) =>
-                nodes.map((node) => (node as HTMLAnchorElement).hash),
+                nodes.map((node) => node.getAttribute("data-detail-page")),
               ),
-          ).toEqual(["#introduction", "#sections", "#comments", "#overview"]);
-          await (await navigation()).locator('a[href$="#sections"]').click();
+          ).toEqual(["introduction", "sections", "comments", "overview"]);
+          await (await navigation())
+            .locator('a[data-detail-page="sections"]')
+            .click();
           await expect(page.locator("#sections h2")).toBeInViewport();
 
           await gotoAndWaitForReady(page, "/account/settings/profile");
@@ -538,7 +542,7 @@ for (const mode of [
         },
       );
       try {
-        await page.goto(`/catalog/sections/${section.jwId}#comments`, {
+        await page.goto(`/catalog/sections/${section.jwId}/comments`, {
           waitUntil: "domcontentloaded",
         });
         await requested;
@@ -546,17 +550,8 @@ for (const mode of [
           () => document.documentElement.dataset.lifeUstcHydrated === "true",
         );
         const inner = detailScrollViewport(page);
-        // Public lazy modules settle independently of the held personal bootstrap.
-        for (const [id, empty] of [
-          ["introduction", "No description yet"],
-          ["calendar", "No schedule or exam events available for this section"],
-          ["exams", "No exam arrangements available yet"],
-          ["homework", "No homework listed."],
-          ["comments", "No comments yet"],
-        ] as const)
-          await expect(
-            page.locator(`#${id}`).getByTestId("compact-empty"),
-          ).toContainText(empty);
+        await expect(page.locator("[data-detail-tab]")).toHaveCount(1);
+        await expect(page.locator("#comments")).toBeVisible();
         await expect(
           page.locator('#comments [data-slot="skeleton"]'),
         ).toHaveCount(0);
@@ -568,9 +563,9 @@ for (const mode of [
             .toBe(0);
         } else if (mode === "new-anchor") {
           await (await openShellNavigation(page))
-            .locator('a[href$="#introduction"]')
+            .locator('a[data-detail-page="introduction"]')
             .click();
-          await expect(page).toHaveURL(/#introduction$/);
+          await expect(page).toHaveURL(/\/introduction$/);
         } else if (mode === "keyboard-input") {
           // Arrange the read position without dispatching an already-covered
           // wheel/Home cancellation; the new intent comes only from keyboard.
@@ -584,7 +579,7 @@ for (const mode of [
           await page.keyboard.type("Anchor");
         } else {
           const anchor = (await openShellNavigation(page)).locator(
-            'a[href$="#comments"]',
+            'a[data-detail-page="comments"]',
           );
           if (mode === "same-anchor-keyboard") {
             await inner.hover();
@@ -595,7 +590,7 @@ for (const mode of [
             await anchor.focus();
             await page.keyboard.press("Enter");
           } else await anchor.click();
-          await expect(page).toHaveURL(/#comments$/);
+          await expect(page).toHaveURL(/\/comments$/);
         }
         const response = preferenceFlow.waitForResponse(page, (res) =>
           res.url().endsWith("/_internal/shell-bootstrap"),
@@ -607,9 +602,9 @@ for (const mode of [
           await expect
             .poll(() => inner.evaluate((node) => node.scrollTop))
             .toBe(0);
-          await expect(page.locator("#comments")).toBeVisible();
+          await expect(page.locator("comments")).toBeVisible();
         } else if (mode === "new-anchor") {
-          await expect(page).toHaveURL(/#introduction$/);
+          await expect(page).toHaveURL(/\/introduction$/);
           await expect(page.locator("#introduction h2")).toBeInViewport();
         } else if (mode === "keyboard-input") {
           await expect(page.locator("#global-search-dialog-input")).toHaveValue(
@@ -622,7 +617,7 @@ for (const mode of [
             .poll(() => inner.evaluate((node) => node.scrollTop))
             .toBe(0);
         } else {
-          await expect(page).toHaveURL(/#comments$/);
+          await expect(page).toHaveURL(/\/comments$/);
           await expect(page.locator("#comments h2")).toBeInViewport();
         }
       } finally {
@@ -692,13 +687,13 @@ for (const [locale, width] of [
       );
       expect(
         await (await openShellNavigation(page))
-          .locator('a[href*="#"]')
+          .locator("a[data-detail-page]")
           .evaluateAll((nodes) =>
-            nodes.map((node) => (node as HTMLAnchorElement).hash),
+            nodes.map((node) => node.getAttribute("data-detail-page")),
           ),
-      ).toEqual(["#introduction", "#sections", "#comments", "#overview"]);
+      ).toEqual(["introduction", "sections", "comments", "overview"]);
       await (await openShellNavigation(page))
-        .locator('a[href$="#sections"]')
+        .locator('a[data-detail-page="sections"]')
         .click();
       await expect(page.locator("#sections h2")).toBeInViewport();
       await expect(

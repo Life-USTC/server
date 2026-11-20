@@ -189,12 +189,12 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
         },
         {
           name: "course-history",
-          path: `/catalog/courses/${fixture.course.jwId}#sections`,
+          path: `/catalog/courses/${fixture.course.jwId}/sections`,
           selector: "#sections table",
         },
         {
           name: "teacher-history",
-          path: `/catalog/teachers/${fixture.teacher.id}#sections`,
+          path: `/catalog/teachers/${fixture.teacher.id}/sections`,
           selector: "#sections table",
         },
       ]) {
@@ -306,12 +306,13 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           await expect(stream).toHaveCount(1);
           for (const id of item.sections) {
             await selectDetailTab(page, id);
-            await expect(page).toHaveURL(new RegExp(`${item.path}#${id}$`));
+            await expect(page).toHaveURL(new RegExp(`${item.path}/${id}$`));
+            await expect(stream.locator("[data-detail-tab]")).toHaveCount(1);
+            await expect(stream.locator("[data-detail-tab]")).toHaveAttribute(
+              "id",
+              id,
+            );
           }
-          const sections = await stream
-            .locator(":scope > section")
-            .evaluateAll((elements) => elements.map((element) => element.id));
-          expect(sections).toEqual(item.sections);
           const links = await page
             .getByRole("main")
             .locator("a[href]")
@@ -360,20 +361,10 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
             .getByRole("link", { name: "Jump to discussion", exact: true });
           await expect(link).toHaveAttribute("href", "#comments");
           const target = page.locator("#comments");
-          await expect(target).toHaveCount(1);
-          await expect(target).toBeHidden();
-          const navigation: string[] = [];
-          const observe = (request: import("@playwright/test").Request) => {
-            if (
-              request.isNavigationRequest() ||
-              new URL(request.url()).pathname.endsWith("/__data.json")
-            )
-              navigation.push(request.url());
-          };
-          page.on("request", observe);
+          await expect(target).toHaveCount(0);
           await link.click();
           await expect(page).toHaveURL(
-            `${new URL(path, page.url()).href}#comments`,
+            `${new URL(path, page.url()).href}/comments`,
           );
           await expect
             .poll(async () => {
@@ -382,8 +373,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
             })
             .toBe(true);
           await expect(page.locator("#introduction")).toBeHidden();
-          expect(navigation).toEqual([]);
-          page.off("request", observe);
+          await expect(page.locator("#introduction")).toHaveCount(0);
         }
       }
     });

@@ -47,8 +47,8 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
       name: `${name}-history`,
       path:
         name === "course"
-          ? `/catalog/courses/${c.courses[0].jwId}#sections`
-          : `/catalog/teachers/${c.teachers[0].id}#sections`,
+          ? `/catalog/courses/${c.courses[0].jwId}/sections`
+          : `/catalog/teachers/${c.teachers[0].id}/sections`,
       heading: "#sections h2",
       filter: "",
       summary: "",
@@ -69,7 +69,7 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
     },
     {
       name: "section-homework",
-      path: `/catalog/sections/${c.sections[0].jwId}#homework`,
+      path: `/catalog/sections/${c.sections[0].jwId}/homework`,
       heading: "#homework h2",
       filter: "",
       summary: "",

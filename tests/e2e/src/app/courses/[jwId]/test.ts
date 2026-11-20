@@ -48,7 +48,7 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const COURSE_URL = `/catalog/courses/${DEV_SEED.course.jwId}`;
-const COURSE_WITH_DESCRIPTION_URL = `/catalog/courses/${scenarioData.courses[2].jwId}#introduction`;
+const COURSE_WITH_DESCRIPTION_URL = `/catalog/courses/${scenarioData.courses[2].jwId}/introduction`;
 const COURSE_WITH_DESCRIPTION_TEXT = "实验课建议准备护目镜并提前完成预习问答。";
 
 test.describe("/catalog/courses/[jwId] 课程详情", () => {
@@ -155,7 +155,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       ).toBeVisible();
 
       await gotoAndWaitForReady(page, `${COURSE_URL}#comments`);
-      await expect(page).toHaveURL(/\/catalog\/courses\/\d+#comments$/);
+      await expect(page).toHaveURL(/\/catalog\/courses\/\d+\/comments$/);
       await expect(page.locator("#comments")).toBeVisible();
     });
   });
@@ -235,7 +235,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           );
           await gotoAndWaitForReady(
             page,
-            `/catalog/courses/${community.course.jwId}#introduction`,
+            `/catalog/courses/${community.course.jwId}/introduction`,
           );
           const introduction = page.locator("#introduction");
           await expect(introduction).toBeVisible();
@@ -341,9 +341,9 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
         async () => {
           await gotoAndWaitForReady(
             page,
-            `/catalog/courses/${community.course.jwId}#comments`,
+            `/catalog/courses/${community.course.jwId}/comments`,
           );
-          await expect(page).toHaveURL(/\/catalog\/courses\/\d+#comments$/);
+          await expect(page).toHaveURL(/\/catalog\/courses\/\d+\/comments$/);
           const body = `e2e-course-comment-${Date.now()}`;
           const composer = await openCommentComposer(page);
           await composer.fill(body);
@@ -428,7 +428,7 @@ test("页面契约", { tag: "@Course/Web" }, async ({
 }) => {
   await preferenceFlow.run(async () => {
     await assertPageContract(page, {
-      routePath: "/catalog/courses/[jwId]/[section]",
+      routePath: "/catalog/courses/[jwId]/introduction",
     });
   });
 });

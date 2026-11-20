@@ -179,13 +179,13 @@ requirements:
       name: section.mobile-detail-actions
 - id: section.detail-canonical-url
   category: behavior
-  rule: The canonical section detail URL is /catalog/sections/[jwId]. Optional fragments select a sidebar tab on that page.
+  rule: The section detail entry point is /catalog/sections/[jwId]. Each sidebar tab has its own child page. Legacy fragments resolve to the matching page.
   acceptance:
     given: An isolated Section has a persisted upstream jwId.
     when: A browser opens its entity URL with an extra query and hash.
     then:
     - The detail renders the course name.
-    - The canonical URL is the Section entity root while the optional page hash remains usable.
+    - The canonical URL identifies the overview page and omits the query and legacy fragment.
     test:
       file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
       name: section.detail-canonical-url

@@ -161,7 +161,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
           ]);
         await gotoAndWaitForReady(
           page,
-          `/catalog/courses/${community.course.jwId}#comments`,
+          `/catalog/courses/${community.course.jwId}/comments`,
         );
         const comments = page.locator("#comments");
         await comments.scrollIntoViewIfNeeded();
@@ -194,7 +194,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         ]);
       await gotoAndWaitForReady(
         page,
-        `/catalog/courses/${community.course.jwId}#comments`,
+        `/catalog/courses/${community.course.jwId}/comments`,
       );
       const comments = page.locator("#comments");
       await comments.scrollIntoViewIfNeeded();

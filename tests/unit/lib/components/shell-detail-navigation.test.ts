@@ -3,6 +3,7 @@ import {
   activeDetailTab,
   detailNavigation,
   detailTabIds,
+  legacyDetailDestination,
 } from "@/lib/components/shell/detail-navigation";
 import { shellPresentation } from "@/lib/components/shell/shell-templates";
 import { buildLayoutCopy } from "@/lib/shell/layout-server-data";
@@ -52,16 +53,16 @@ describe("route-owned shell capabilities", () => {
       courseHref: "/catalog/courses/400",
     });
     expect(
-      model?.current.items.map(
-        (item) => new URL(item.href, "https://life.example").hash,
+      model?.current.items.map((item) =>
+        new URL(item.href, "https://life.example").pathname.split("/").at(-1),
       ),
     ).toEqual([
-      "#introduction",
-      "#calendar",
-      "#exams",
-      "#homework",
-      "#comments",
-      "#overview",
+      "introduction",
+      "calendar",
+      "exams",
+      "homework",
+      "comments",
+      "overview",
     ]);
   });
   it.each(["400/another", null, 0, -1, {}])(
@@ -114,10 +115,10 @@ describe("route-owned shell capabilities", () => {
         copy,
       );
       expect(
-        model?.current.items.map(
-          (item) => new URL(item.href, "https://life.example").hash,
+        model?.current.items.map((item) =>
+          new URL(item.href, "https://life.example").pathname.split("/").at(-1),
         ),
-      ).toEqual(["#introduction", "#sections", "#comments", "#overview"]);
+      ).toEqual(["introduction", "sections", "comments", "overview"]);
       expect(model?.courseHref).toBeNull();
     }
   });
@@ -131,11 +132,11 @@ describe("route-owned shell capabilities", () => {
     expect(
       section?.current.items.find((link) => link.detail?.tab === "homework")
         ?.href,
-    ).toBe("/catalog/sections/1800?homeworkId=42&source=calendar#homework");
+    ).toBe("/catalog/sections/1800/homework?homeworkId=42&source=calendar");
     expect(
       section?.current.items.find((link) => link.detail?.tab === "comments")
         ?.href,
-    ).toBe("/catalog/sections/1800?source=calendar#comments");
+    ).toBe("/catalog/sections/1800/comments?source=calendar");
   });
 
   it.each([
@@ -150,7 +151,16 @@ describe("route-owned shell capabilities", () => {
     ["teacher", "?sectionsPage=2#sections", "sections"],
   ] as const)("selects the %s panel from %s", (kind, suffix, tab) => {
     expect(
-      activeDetailTab(kind, new URL(`https://life.example/detail${suffix}`)),
+      activeDetailTab(
+        kind,
+        new URL(
+          legacyDetailDestination(
+            kind,
+            new URL(`https://life.example/catalog/sections/42${suffix}`),
+          ) ?? "/catalog/sections/42",
+          "https://life.example",
+        ),
+      ),
     ).toBe(tab);
   });
 });
