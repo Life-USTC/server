@@ -42,8 +42,13 @@ function courseCode(value: unknown) {
   return value;
 }
 
-function indexedCodes(codes: string[]) {
-  return [...new Set(codes)].sort();
+function record(
+  source: string,
+  key: string,
+  payload: RecordInput["payload"],
+  codes: string[] = [],
+): RecordInput {
+  return { source, key, payload, courseCodes: [...new Set(codes)].sort() };
 }
 
 function available(
@@ -83,12 +88,7 @@ function ruleRecords(snapshot: CatalogSnapshot): RecordInput[] {
     const codes = [...originalCourses, ...substituteCourses].map((course) =>
       courseCode((course as Prisma.InputJsonObject)?.code),
     );
-    return {
-      source: "substitution",
-      key,
-      courseCodes: indexedCodes(codes),
-      payload,
-    };
+    return record("substitution", key, payload, codes);
   });
 }
 
@@ -96,42 +96,30 @@ function directoryKey(row: SnapshotRow) {
   return `${row.source_kind}/${row.source_id}`;
 }
 
-function directoryRows(snapshot: CatalogSnapshot, table: string) {
-  const bySource = new Map<string, SnapshotRow[]>();
-  for (const row of snapshot.iterateAll(table)) {
-    const key = directoryKey(row);
-    const rows = bySource.get(key) ?? [];
-    rows.push(row);
-    bySource.set(key, rows);
-  }
-  return bySource;
-}
-
 function directoryRecords(snapshot: CatalogSnapshot) {
-  const entries = directoryRows(snapshot, `${DIRECTORY}entries`);
-  const members = directoryRows(snapshot, `${DIRECTORY}members`);
-  const paths = directoryRows(snapshot, PATHS);
+  const bySource = (table: string) =>
+    Map.groupBy(snapshot.iterateAll(table), directoryKey);
+  const entries = bySource(`${DIRECTORY}entries`);
+  const members = bySource(`${DIRECTORY}members`);
+  const paths = bySource(PATHS);
   const records = Array.from(
     snapshot.iterateAll(`${DIRECTORY}endpoints`),
     (row) => {
       const key = directoryKey(row);
       const routes = entries.get(key);
       requireValid(routes?.length, `directory source ${key} lacks routes`);
-      const courseCodes = indexedCodes(
-        (members.get(key) ?? []).map(({ course_code }) =>
-          courseCode(course_code),
-        ),
+      const courseCodes = (members.get(key) ?? []).map(({ course_code }) =>
+        courseCode(course_code),
       );
       const groups = (paths.get(key) ?? []).map((path) => ({
         path: json(path.group_path_json),
         position: Number(path.group_position),
         displayLabelCn: String(path.display_label_cn),
       }));
-      return {
-        source: "directory",
+      return record(
+        "directory",
         key,
-        courseCodes,
-        payload: {
+        {
           groups: json(row.payload_json),
           paths: groups,
           routes: routes.map((route) => ({
@@ -142,7 +130,8 @@ function directoryRecords(snapshot: CatalogSnapshot) {
             nameEn: String(route.name_en),
           })),
         },
-      };
+        courseCodes,
+      );
     },
   );
   const keys = new Set(records.map(({ key }) => key));
@@ -164,32 +153,19 @@ function programRecords(snapshot: CatalogSnapshot): RecordInput[] {
   );
   requireValid(snapshot.rowCount(PLANS) > 0, "empty study plan index");
   return [
-    {
-      source: "program",
-      key: "tree",
-      courseCodes: [],
-      payload: json(tree[0].payload_json),
-    },
-    ...Array.from(snapshot.iterateAll(PLANS), (row) => ({
-      source: "program",
-      key: `plan/${officialId(row.program_id)}`,
-      courseCodes: [],
-      payload: {
+    record("program", "tree", json(tree[0].payload_json)),
+    ...Array.from(snapshot.iterateAll(PLANS), (row) =>
+      record("program", `plan/${officialId(row.program_id)}`, {
         summary: json(row.summary_json),
         detail: json(row.payload_json),
-      },
-    })),
+      }),
+    ),
     ...Array.from(snapshot.iterateAll(MODULES), (row) => {
       const id = officialId(row.module_id);
       const payload = json(row.payload_json) as Prisma.InputJsonObject;
       const identity = payload.self as Prisma.InputJsonObject | undefined;
       requireValid(String(identity?.id) === id, `public module ${id} identity`);
-      return {
-        source: "program",
-        key: `module/${id}`,
-        courseCodes: [],
-        payload,
-      };
+      return record("program", `module/${id}`, payload);
     }),
   ];
 }

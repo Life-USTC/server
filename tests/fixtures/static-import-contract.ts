@@ -168,7 +168,9 @@ try {
         id: sectionJwId + 1,
         code: "FIXTURE.03",
       };
-      for (const profile of [sectionProfile, missing]) {
+      // A different school ID cannot claim the existing semester and class code.
+      const competing = { ...missing, id: missing.id + 1, code: legacy.code };
+      for (const profile of [sectionProfile, missing, competing]) {
         change(
           "INSERT INTO catalog_teach_lesson_infos VALUES (?, ?, ?, ?, ?)",
           profile.id,
@@ -181,6 +183,10 @@ try {
 
       const applied = await apply();
       strictEqual(applied.reconciliation.officialProfiles?.sectionMissing, 1);
+      strictEqual(
+        applied.reconciliation.officialProfiles?.sectionIdentityConflicts,
+        1,
+      );
       const current = await section();
       strictEqual(current.id, legacy.id);
       strictEqual(current.code, legacy.code);

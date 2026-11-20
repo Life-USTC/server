@@ -11,7 +11,6 @@ import {
   findOfficialCourseConflicts,
   loadCatalogProfiles,
   officialCourseBuilds,
-  officialCourseLookups,
   upsertOfficialProfiles,
 } from "./catalog-profiles";
 import { loadRelatedCatalog, replaceRelatedCatalog } from "./catalog-related";
@@ -173,7 +172,6 @@ async function importSnapshot(
     officialProfiles.sectionIdentityConflicts;
   const officialOnlyCourses = officialCourseBuilds(courses, officialProfiles);
   const catalogLookups = loadCatalogLookups(snapshot);
-  const courseProfileLookups = officialCourseLookups(officialOnlyCourses);
 
   const { teacherTitles, teacherLessonTypes, examBatches } =
     loadScheduleLookups(snapshot);
@@ -300,7 +298,7 @@ async function importSnapshot(
       () => upsertDepartments(tx, departments, departmentPlaceholders),
     );
     const lookupMaps = await logStep("loadLookupTables", 8, () =>
-      loadLookupTables(tx, catalogLookups, courseProfileLookups),
+      loadLookupTables(tx, catalogLookups, officialOnlyCourses),
     );
     const courseMap = await logStep("upsertCourses", courses.length, () =>
       upsertCourses(tx, courses, lookupMaps),

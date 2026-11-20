@@ -50,7 +50,7 @@ it("quarantines competing identities while preserving nullable source fields and
     expect.objectContaining({
       jwId: 13,
       payloadJson: partial.payload_json,
-      course: expect.objectContaining({ nameCn: "00013" }),
+      nameCn: "00013",
     }),
   ]);
   expect(profiles.sectionIdentityConflicts).toBe(1);

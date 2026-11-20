@@ -21,15 +21,12 @@ if [ "${STATIC_SNAPSHOT_PATH+x}" = x ]; then
 else
   url=${STATIC_SNAPSHOT_URL:-"$default_url.gz"}
   echo "Downloading snapshot from $url"
-  if status=$(download "$url"); then
-    :
-  elif [ -z "${STATIC_SNAPSHOT_URL:-}" ] && { [ "$status" = 404 ] || [ "$status" = 410 ]; }; then
-    # Before the first enriched publication, Pages only has the raw snapshot.
-    echo "Compressed snapshot unavailable; downloading $default_url"
+  if ! status=$(download "$url"); then
+    if [ -n "${STATIC_SNAPSHOT_URL:-}" ] || { [ "$status" != 404 ] && [ "$status" != 410 ]; }; then
+      echo "Snapshot download failed (HTTP $status)" >&2
+      exit 1
+    fi
     download "$default_url" >/dev/null
-  else
-    echo "Snapshot download failed (HTTP $status)" >&2
-    exit 1
   fi
   input=$work_dir/download
 fi

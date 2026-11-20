@@ -17,7 +17,7 @@ type Profile = {
   payloadJson: string;
 };
 
-export type OfficialCourse = Profile & { course: CourseBuild };
+export type OfficialCourse = Profile & CourseBuild;
 export type OfficialSection = Profile & {
   semesterJwId: number;
   courseJwId: number;
@@ -57,22 +57,18 @@ function parseProfile(row: SnapshotRow) {
 function officialCourse(row: SnapshotRow): OfficialCourse | undefined {
   const source = parseProfile(row);
   if (!source) return;
-  const { jwId: id, code: publicCode, payloadJson, payload } = source;
+  const { jwId, code, payloadJson, payload } = source;
   const localized = payload.name as SnapshotRow | undefined;
   const nameEn = asString(localized?.en);
   return {
-    jwId: id,
-    code: publicCode,
+    jwId,
+    code,
     payloadJson,
-    course: {
-      jwId: id,
-      code: publicCode,
-      nameCn: asString(localized?.cn) ?? nameEn ?? publicCode,
-      nameEn,
-      categoryName: asString(payload.courseCategory),
-      classifyName: asString(payload.courseClassify),
-      typeName: asString(payload.courseType),
-    },
+    nameCn: asString(localized?.cn) ?? nameEn ?? code,
+    nameEn,
+    categoryName: asString(payload.courseCategory),
+    classifyName: asString(payload.courseClassify),
+    typeName: asString(payload.courseType),
   };
 }
 
@@ -165,19 +161,7 @@ export function officialCourseBuilds(
 ) {
   const ids = new Set(courses.map(({ jwId }) => jwId));
   const codes = new Set(courses.map(({ code }) => code));
-  return profiles.courses
-    .filter(({ jwId, code }) => !ids.has(jwId) && !codes.has(code))
-    .map(({ course }) => course);
-}
-
-export function officialCourseLookups(courses: CourseBuild[]) {
-  const names = (field: "categoryName" | "classifyName" | "typeName") =>
-    [...new Set(courses.flatMap((course) => course[field] ?? []))].map(
-      (nameCn) => ({ nameCn }),
-    );
-  return {
-    courseCategories: names("categoryName"),
-    courseClassifies: names("classifyName"),
-    courseTypes: names("typeName"),
-  };
+  return profiles.courses.filter(
+    ({ jwId, code }) => !ids.has(jwId) && !codes.has(code),
+  );
 }

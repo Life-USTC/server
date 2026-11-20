@@ -18,75 +18,43 @@ export async function upsertCourses(
   source: "semester" | "officialCatalog" = "semester",
 ): Promise<Map<number, number>> {
   const officialCatalogOnly = source === "officialCatalog";
-  const columns = [
-    "code",
-    "nameCn",
-    "nameEn",
-    "categoryId",
-    "classTypeId",
-    "classifyId",
-    "educationLevelId",
-    "gradationId",
-    "typeId",
-    "officialCatalogOnly",
-  ];
+  const references = [
+    ["categoryId", "courseCategory", "categoryName"],
+    ["classTypeId", "classType", "classTypeName"],
+    ["classifyId", "courseClassify", "classifyName"],
+    ["educationLevelId", "educationLevel", "educationLevelName"],
+    ["gradationId", "courseGradation", "gradationName"],
+    ["typeId", "courseType", "typeName"],
+  ] as const;
   const records = builds.map((build) => ({
     key: build.jwId,
     values: [
       build.code,
       build.nameCn,
       build.nameEn,
-      optionalId(
-        lookupMaps.courseCategory,
-        build.categoryName,
-        `CourseCategory ${build.categoryName} for Course jwId ${build.jwId}`,
-      ),
-      optionalId(
-        lookupMaps.classType,
-        build.classTypeName,
-        `ClassType ${build.classTypeName} for Course jwId ${build.jwId}`,
-      ),
-      optionalId(
-        lookupMaps.courseClassify,
-        build.classifyName,
-        `CourseClassify ${build.classifyName} for Course jwId ${build.jwId}`,
-      ),
-      optionalId(
-        lookupMaps.educationLevel,
-        build.educationLevelName,
-        `EducationLevel ${build.educationLevelName} for Course jwId ${build.jwId}`,
-      ),
-      optionalId(
-        lookupMaps.courseGradation,
-        build.gradationName,
-        `CourseGradation ${build.gradationName} for Course jwId ${build.jwId}`,
-      ),
-      optionalId(
-        lookupMaps.courseType,
-        build.typeName,
-        `CourseType ${build.typeName} for Course jwId ${build.jwId}`,
+      ...references.map(([, lookup, field]) =>
+        optionalId(
+          lookupMaps[lookup],
+          build[field],
+          `${lookup} ${build[field]} for Course jwId ${build.jwId}`,
+        ),
       ),
       officialCatalogOnly,
-    ] satisfies ColumnValue[],
+    ],
   }));
   return bulkUpsert(
     tx,
     "Course",
     "jwId",
     "int",
-    columns,
     [
-      "text",
-      "text",
-      "text",
-      "int",
-      "int",
-      "int",
-      "int",
-      "int",
-      "int",
-      "boolean",
+      "code",
+      "nameCn",
+      "nameEn",
+      ...references.map(([column]) => column),
+      "officialCatalogOnly",
     ],
+    ["text", "text", "text", ...references.map(() => "int"), "boolean"],
     records,
     { updateWhenTrue: officialCatalogOnly ? "officialCatalogOnly" : undefined },
   );

@@ -1,7 +1,9 @@
 /** Static-import upserts for semesters, departments, and catalog lookup tables. */
 import type { Prisma } from "../generated/prisma-node/client";
+import type { loadCatalogLookups } from "./catalog-plan";
 import { bulkUpsert } from "./database-writes";
 import type {
+  CourseBuild,
   DepartmentBuild,
   DepartmentPlaceholderRequest,
   SemesterBuild,
@@ -93,34 +95,13 @@ type LookupName = { nameCn: string; nameEn?: string };
 
 export async function loadLookupTables(
   tx: Prisma.TransactionClient,
-  lookups: {
-    courseCategories: LookupName[];
-    courseClassifies: LookupName[];
-    courseGradations: LookupName[];
-    courseTypes: LookupName[];
-    educationLevels: LookupName[];
-    classTypes: LookupName[];
-    examModes: LookupName[];
-    teachLanguages: LookupName[];
-  },
-  officialLookups?: {
-    courseCategories: LookupName[];
-    courseClassifies: LookupName[];
-    courseTypes: LookupName[];
-  },
+  lookups: ReturnType<typeof loadCatalogLookups>,
+  officialCourses: CourseBuild[],
 ): Promise<LookupMaps> {
   async function loadModel(
-    table:
-      | "CourseCategory"
-      | "CourseClassify"
-      | "CourseGradation"
-      | "CourseType"
-      | "EducationLevel"
-      | "ClassType"
-      | "ExamMode"
-      | "TeachLanguage",
+    table: Capitalize<keyof LookupMaps>,
     items: LookupName[],
-    officialItems: LookupName[] = [],
+    field?: "categoryName" | "classifyName" | "typeName",
   ) {
     const upsert = (names: LookupName[], ignoreConflicts = false) =>
       bulkUpsert(
@@ -134,34 +115,34 @@ export async function loadLookupTables(
         { ignoreConflicts },
       );
     const ids = await upsert(items);
-    const officialIds = await upsert(
-      officialItems.filter((item) => !ids.has(item.nameCn)),
+    if (!field) return ids;
+    const names = new Set(
+      officialCourses.flatMap((course) => course[field] ?? []),
+    );
+    const missing = [...names].filter((name) => !ids.has(name));
+    const added = await upsert(
+      missing.map((nameCn) => ({ nameCn })),
       true,
     );
-    for (const [name, id] of officialIds) ids.set(name, id);
-    return ids;
+    return new Map([...ids, ...added]);
   }
 
   return {
     courseCategory: await loadModel(
       "CourseCategory",
       lookups.courseCategories,
-      officialLookups?.courseCategories,
+      "categoryName",
     ),
     courseClassify: await loadModel(
       "CourseClassify",
       lookups.courseClassifies,
-      officialLookups?.courseClassifies,
+      "classifyName",
     ),
     courseGradation: await loadModel(
       "CourseGradation",
       lookups.courseGradations,
     ),
-    courseType: await loadModel(
-      "CourseType",
-      lookups.courseTypes,
-      officialLookups?.courseTypes,
-    ),
+    courseType: await loadModel("CourseType", lookups.courseTypes, "typeName"),
     educationLevel: await loadModel("EducationLevel", lookups.educationLevels),
     classType: await loadModel("ClassType", lookups.classTypes),
     examMode: await loadModel("ExamMode", lookups.examModes),

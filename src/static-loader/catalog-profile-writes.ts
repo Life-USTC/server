@@ -2,55 +2,45 @@ import { Prisma } from "../generated/prisma-node/client";
 import type { CatalogProfiles } from "./catalog-profiles";
 import { chunks } from "./database-writes";
 
-/** A code owned by a different record or an explicit alias is not a fresh
- * identity. A rename for the same ID is safe when no other row claims it. */
+/** Aliases and codes owned by a different course cannot claim a new identity. */
 export async function findOfficialCourseConflicts(
   tx: Prisma.TransactionClient,
   profiles: CatalogProfiles,
-): Promise<Set<number>> {
+) {
   const conflicts = new Set<number>();
   for (const batch of chunks(profiles.courses, 500)) {
-    const profilesByCode = new Map(
-      batch.map((profile) => [profile.code, profile.jwId]),
+    const keys = batch.map(
+      ({ jwId, code }) => Prisma.sql`(${jwId}::int, ${code}::text)`,
     );
-    const codeOwners = await tx.course.findMany({
-      where: { code: { in: batch.map((profile) => profile.code) } },
-      select: { jwId: true, code: true },
-    });
-    for (const owner of codeOwners) {
-      const id = profilesByCode.get(owner.code);
-      if (id != null && owner.jwId !== id) conflicts.add(id);
-    }
-    const aliases = await tx.courseAlias.findMany({
-      where: { jwId: { in: batch.map((profile) => profile.jwId) } },
-      select: { jwId: true },
-    });
-    for (const alias of aliases) conflicts.add(alias.jwId);
+    const rows = await tx.$queryRaw<{ jwId: number }[]>`
+      SELECT p.id AS "jwId" FROM (VALUES ${Prisma.join(keys)}) AS p(id, code)
+      WHERE EXISTS (SELECT FROM "CourseAlias" WHERE "jwId" = p.id)
+         OR EXISTS (SELECT FROM "Course" WHERE code = p.code AND "jwId" <> p.id)
+    `;
+    for (const { jwId } of rows) conflicts.add(jwId);
   }
   return conflicts;
 }
 
-type Update = { id: number; payloadJson: string };
-
-async function writeProfiles(
+async function writeMatchedProfiles(
   tx: Prisma.TransactionClient,
-  target: "Course" | "Section",
-  updates: Update[],
-): Promise<void> {
-  const table =
-    target === "Course" ? Prisma.sql`"Course"` : Prisma.sql`"Section"`;
-  for (const batch of chunks(updates, 250)) {
-    const values = batch.map(
-      ({ id, payloadJson }) =>
-        Prisma.sql`(${id}::integer, ${payloadJson}::jsonb)`,
-    );
-    await tx.$executeRaw`
-      UPDATE ${table} AS t
-      SET "officialProfile" = incoming.payload
-      FROM (VALUES ${Prisma.join(values)}) AS incoming(id, payload)
-      WHERE t.id = incoming.id AND t."officialProfile" IS DISTINCT FROM incoming.payload
-    `;
-  }
+  table: "Course" | "Section",
+  candidates: Prisma.Sql,
+) {
+  const [counts] = await tx.$queryRaw<
+    { matched: number; missing: number; conflicts: number }[]
+  >`
+    WITH candidates AS (${candidates}), updated AS (
+      UPDATE ${Prisma.raw(`"${table}"`)} AS target SET "officialProfile" = c.payload
+      FROM candidates c WHERE target.id = c.id AND NOT c.conflict
+        AND target."officialProfile" IS DISTINCT FROM c.payload
+    )
+    SELECT count(id) FILTER (WHERE NOT conflict)::int AS matched,
+           count(*) FILTER (WHERE id IS NULL AND NOT conflict)::int AS missing,
+           count(*) FILTER (WHERE conflict)::int AS conflicts
+    FROM candidates
+  `;
+  return counts;
 }
 
 export async function upsertOfficialProfiles(
@@ -61,82 +51,54 @@ export async function upsertOfficialProfiles(
   const stats = {
     courses: 0,
     sections: 0,
-    courseIdentityConflicts: profiles.courseIdentityConflicts,
+    courseIdentityConflicts: profiles.courseIdentityConflicts + conflicts.size,
     courseMissing: 0,
     sectionIdentityConflicts: profiles.sectionIdentityConflicts,
     sectionMissing: 0,
   };
-  for (const batch of chunks(profiles.courses, 500)) {
-    const candidates = batch.filter((profile) => !conflicts.has(profile.jwId));
-    stats.courseIdentityConflicts += batch.length - candidates.length;
-    if (candidates.length === 0) continue;
-    const rows = await tx.course.findMany({
-      where: { jwId: { in: candidates.map((profile) => profile.jwId) } },
-      select: { id: true, jwId: true },
-    });
-    const ids = new Map(rows.map((row) => [row.jwId, row.id]));
-    const updates = candidates.flatMap((profile) => {
-      const id = ids.get(profile.jwId);
-      return id == null ? [] : [{ id, payloadJson: profile.payloadJson }];
-    });
-    stats.courses += updates.length;
-    stats.courseMissing += candidates.length - updates.length;
-    await writeProfiles(tx, "Course", updates);
+  const courses = profiles.courses.filter(({ jwId }) => !conflicts.has(jwId));
+  for (const batch of chunks(courses, 250)) {
+    const values = batch.map(
+      ({ jwId, payloadJson }) =>
+        Prisma.sql`(${jwId}::int, ${payloadJson}::jsonb)`,
+    );
+    const counts = await writeMatchedProfiles(
+      tx,
+      "Course",
+      Prisma.sql`
+      SELECT c.id, p.payload, false AS conflict
+      FROM (VALUES ${Prisma.join(values)}) AS p(jw_id, payload)
+      LEFT JOIN "Course" c ON c."jwId" = p.jw_id
+    `,
+    );
+    stats.courses += counts.matched;
+    stats.courseMissing += counts.missing;
   }
-
-  for (const batch of chunks(profiles.sections, 500)) {
-    const rows = await tx.section.findMany({
-      where: {
-        OR: [
-          { jwId: { in: batch.map((profile) => profile.jwId) } },
-          {
-            code: { in: batch.map((profile) => profile.code) },
-            semester: {
-              jwId: {
-                in: [...new Set(batch.map((profile) => profile.semesterJwId))],
-              },
-            },
-          },
-        ],
-      },
-      select: {
-        id: true,
-        jwId: true,
-        code: true,
-        course: { select: { jwId: true } },
-        semester: { select: { jwId: true } },
-      },
-    });
-    const byId = new Map(rows.map((row) => [row.jwId, row]));
-    const owners = new Map<string, number | null>();
-    for (const { semester, code, jwId } of rows) {
-      if (!semester) continue;
-      const key = `${semester.jwId}:${code}`;
-      owners.set(key, owners.has(key) ? null : jwId);
-    }
-    const updates: Update[] = [];
-    for (const profile of batch) {
-      const target = byId.get(profile.jwId);
-      const owner = owners.get(`${profile.semesterJwId}:${profile.code}`);
-      if (owner !== undefined && owner !== profile.jwId) {
-        stats.sectionIdentityConflicts++;
-        continue;
-      }
-      if (!target) {
-        stats.sectionMissing++;
-        continue;
-      }
-      if (
-        target.course.jwId !== profile.courseJwId ||
-        target.semester?.jwId !== profile.semesterJwId
-      ) {
-        stats.sectionIdentityConflicts++;
-        continue;
-      }
-      updates.push({ id: target.id, payloadJson: profile.payloadJson });
-    }
-    stats.sections += updates.length;
-    await writeProfiles(tx, "Section", updates);
+  for (const batch of chunks(profiles.sections, 250)) {
+    const values = batch.map(
+      ({ jwId, code, courseJwId, semesterJwId, payloadJson }) =>
+        Prisma.sql`(${jwId}::int, ${code}::text, ${courseJwId}::int, ${semesterJwId}::int, ${payloadJson}::jsonb)`,
+    );
+    const counts = await writeMatchedProfiles(
+      tx,
+      "Section",
+      Prisma.sql`
+      SELECT s.id, p.payload,
+        (s.id IS NOT NULL AND (
+          s."courseId" IS DISTINCT FROM c.id OR term.id IS NULL OR s."semesterId" IS DISTINCT FROM term.id
+        )) OR EXISTS (
+          SELECT FROM "Section" owner
+          WHERE owner."semesterId" = term.id AND owner.code = p.code AND owner."jwId" <> p.jw_id
+        ) AS conflict
+      FROM (VALUES ${Prisma.join(values)}) AS p(jw_id, code, course_id, semester_id, payload)
+      LEFT JOIN "Section" s ON s."jwId" = p.jw_id
+      LEFT JOIN "Semester" term ON term."jwId" = p.semester_id
+      LEFT JOIN "Course" c ON c."jwId" = p.course_id
+    `,
+    );
+    stats.sections += counts.matched;
+    stats.sectionMissing += counts.missing;
+    stats.sectionIdentityConflicts += counts.conflicts;
   }
   return stats;
 }
