@@ -55,7 +55,7 @@
     "@graphql-yoga/plugin-disable-introspection": "2.25.6",
     "@internationalized/date": "^3.12.4",
     "@lucide/svelte": "^1.70.0",
-    "@modelcontextprotocol/server": "2.3.1",
+    "@modelcontextprotocol/server": "2.4.0",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "@scalar/api-reference": "^1.76.4",
