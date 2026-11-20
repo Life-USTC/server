@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect } from "@playwright/test";
+import { selectDetailTab } from "../../../utils/locators";
 import { test } from "../../../utils/owned-worker";
 
 for (const locale of ["en-us", "zh-cn"] as const) {
@@ -70,15 +71,19 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             await expect(page.locator("#introduction h2")).toHaveText(
               locale === "en-us" ? "Description" : "简介",
             );
+            await selectDetailTab(page, "calendar");
             await expect(
               page.locator("#calendar [data-slot=empty]"),
             ).toBeVisible();
+            await selectDetailTab(page, "exams");
             await expect(
               page.locator("#exams [data-slot=empty]"),
             ).toBeVisible();
+            await selectDetailTab(page, "homework");
             await expect(
               page.locator("#homework [data-slot=empty]"),
             ).toBeVisible();
+            await selectDetailTab(page, "comments");
             await expect(page.locator("#comments h2")).toBeVisible();
             await expect(
               page.locator("#comments [aria-busy=true]"),
@@ -91,6 +96,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           } finally {
             release();
           }
+          await selectDetailTab(page, "introduction");
           await expect(
             page.locator("#introduction [aria-busy=true]"),
           ).toHaveCount(0);
@@ -255,11 +261,16 @@ for (const [locale, width] of [
         await page.goto(`/catalog/sections/${section.jwId}`, {
           waitUntil: "domcontentloaded",
         });
+        await selectDetailTab(page, "calendar");
         const calendar = page.locator("#calendar");
         await expect(calendar.getByRole("alert")).toBeVisible();
+        await selectDetailTab(page, "exams");
         await expect(page.locator("#exams [data-slot=empty]")).toBeVisible();
+        await selectDetailTab(page, "homework");
         await expect(page.locator("#homework [data-slot=empty]")).toBeVisible();
+        await selectDetailTab(page, "comments");
         await expect(page.locator("#comments h2")).toBeVisible();
+        await selectDetailTab(page, "calendar");
         await page.screenshot({
           path: testInfo.outputPath(`module-error-${locale}-${width}.png`),
           fullPage: true,

@@ -1,5 +1,6 @@
 <script lang="ts">
 import LinkIcon from "@lucide/svelte/icons/link-2";
+import SignInButton from "#lib/components/SignInButton.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import { enhance, type SubmitFunction } from "$app/forms";
@@ -17,7 +18,6 @@ export let sectionCopy: {
   subscribing: string;
   subscriptionDisclaimer: string;
 };
-export let sectionJwId: number | string;
 export let signedIn: boolean;
 export let subscriptionAction: (action: "subscribe") => SubmitFunction;
 export let subscriptionPendingAction: "subscribe" | "unsubscribe" | null;
@@ -59,9 +59,9 @@ export let subscriptionPendingAction: "subscribe" | "unsubscribe" | null;
           </Button>
         </form>
       {:else}
-        <Button href={`/account/sign-in?callbackUrl=${encodeURIComponent(`/catalog/sections/${sectionJwId}`)}`}>
+        <SignInButton>
           {commonCopy.signIn ?? ""}
-        </Button>
+        </SignInButton>
       {/if}
     </Dialog.Footer>
   </Dialog.Content>

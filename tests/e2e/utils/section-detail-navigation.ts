@@ -32,13 +32,13 @@ export function observeSectionDetailNavigation(
       expect(response?.status()).toBe(200);
       await response?.body();
       // URL and SSR shell precede lazy detail panels. Keep admission open until
-      // the final panel and its independently arranged empty state are visible.
+      // the comments panel has rendered its independently arranged empty state.
       await expect(
         page.locator("[data-detail-scroll-container]"),
       ).toHaveAttribute("aria-busy", "false");
       await expect(
         page.locator('#comments [data-slot="empty-description"]'),
-      ).toBeVisible();
+      ).toHaveCount(1);
       await waitForUiSettled(page);
     } finally {
       page.off("request", observeViewer);

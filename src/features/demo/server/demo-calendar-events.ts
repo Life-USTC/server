@@ -15,6 +15,7 @@ import {
 import { parsePersonalCalendarRange } from "@/features/calendar/server/personal-calendar-range";
 import { DEMO_REFERENCE_NOW } from "@/features/demo/lib/demo-types";
 import { isHomeworkPendingForViewer } from "@/features/homeworks/lib/homework-completion-state";
+import { sectionDetailPagePath } from "@/features/section-detail/lib/section-detail-tab";
 import type { AppLocale } from "@/i18n/config";
 import {
   buildPaginatedResponse,
@@ -71,7 +72,7 @@ export function getDemoCalendarEvents(
           endsAt,
           title: section.course.namePrimary,
           location: schedule.customPlace,
-          url: `/catalog/sections/${section.jwId}`,
+          url: sectionDetailPagePath(section.jwId, "calendar"),
           target: { kind: "section", id: String(section.jwId) },
           examMode: null,
           hasTime: schedule.startTime !== null,

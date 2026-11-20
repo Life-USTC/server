@@ -287,7 +287,9 @@ test.describe("仪表盘日历", () => {
           await expect(agenda.locator("section")).toHaveCount(7);
           await expect(agenda.locator("a").first()).toBeVisible();
           const courseEvent = agenda
-            .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
+            .locator(
+              `a[href="/catalog/sections/${fixture.section.jwId}#calendar"]`,
+            )
             .first();
           await expect(
             courseEvent.locator('[data-slot="item-title"]'),

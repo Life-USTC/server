@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
+import { selectDetailTab } from "../../../utils/locators";
 import {
   detailScrollViewport,
   expectNoPageHorizontalOverflow,
@@ -83,6 +84,7 @@ test("course.mobile-detail-hierarchy", { tag: "@Course/Web" }, async ({
               (element) => getComputedStyle(element).fontFamily,
             ),
           ).toMatch(/mono/i);
+          await selectDetailTab(page, "sections");
           const offering = page.locator(
             `#sections a[href="/catalog/sections/${fixture.sections[0].jwId}"]:visible`,
           );
@@ -149,6 +151,7 @@ test("teacher.mobile-detail-hierarchy", { tag: "@Teacher/Web" }, async ({
               { exact: true },
             );
           await reachable(title);
+          await selectDetailTab(page, "sections");
           const offering = page.locator(
             `#sections a[href="/catalog/sections/${fixture.sections[0].jwId}"]:visible`,
           );
@@ -189,6 +192,7 @@ test("section.mobile-detail-actions", { tag: "@Section/Web" }, async ({
             `/catalog/sections/${fixture.sections[0].jwId}`,
           );
           await readableHeading(page, courseNames[language]);
+          await selectDetailTab(page, "overview");
           const overview = page.locator("#overview");
           const code = overview.getByText(fixture.sections[0].code, {
             exact: true,

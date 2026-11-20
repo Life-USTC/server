@@ -1,5 +1,6 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
+import DetailTabPanel from "#lib/components/shell/DetailTabPanel.svelte";
 import {
   catalogPrimaryName,
   catalogSecondaryName,
@@ -117,7 +118,7 @@ $: displayName =
     <CourseDetailIdentity copy={detailCopy} course={data.course} {primaryName} />
   {/snippet}
 
-        <section id="introduction" class="scroll-mt-4">
+        <DetailTabPanel tab="introduction" class="scroll-mt-4">
           {#key `description:course:${data.course.id}`}
             <LazyDescriptionCard
               resolveViewer
@@ -130,9 +131,9 @@ $: displayName =
               readOnlyReason={data.demo?.readOnlyReason}
             />
           {/key}
-        </section>
+        </DetailTabPanel>
 
-        <section id="sections" class="scroll-mt-4">
+        <DetailTabPanel tab="sections" class="scroll-mt-4">
           <h2 class="mb-3 text-lg font-semibold tracking-tight">
             {copy.courseDetail.teachingSections}
           </h2>
@@ -148,9 +149,9 @@ $: displayName =
               {primaryName}
             />
           </CatalogSectionHistory>
-        </section>
+        </DetailTabPanel>
 
-        <section id="comments" class="scroll-mt-4">
+        <DetailTabPanel tab="comments" class="scroll-mt-4">
           {#key `comments:course:${data.course.id}`}
             <LazyCommentsPanel
               initialData={data.commentsData}
@@ -165,14 +166,12 @@ $: displayName =
               readOnlyReason={data.demo?.readOnlyReason}
             />
           {/key}
-        </section>
-  {#snippet aside()}
-        <section id="overview">
+        </DetailTabPanel>
+        <DetailTabPanel tab="overview">
           <CourseDetailBasicInfo
             copy={detailCopy}
             course={data.course}
             {primaryName}
           />
-        </section>
-  {/snippet}
+        </DetailTabPanel>
 </CollectionPage>

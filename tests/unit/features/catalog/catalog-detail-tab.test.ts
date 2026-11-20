@@ -27,7 +27,8 @@ describe("catalog detail tab helpers", () => {
   });
 
   test.each([
-    [123, "overview", "/catalog/courses/123"],
+    [123, undefined, "/catalog/courses/123"],
+    [123, "overview", "/catalog/courses/123#overview"],
     [123, "introduction", "/catalog/courses/123#introduction"],
     [456, "comments", "/catalog/courses/456#comments"],
   ] as const)("courseDetailPagePath(%s, %s) -> %s", (jwId, tab, expected) => {
@@ -35,7 +36,8 @@ describe("catalog detail tab helpers", () => {
   });
 
   test.each([
-    [42, "overview", "/catalog/teachers/42"],
+    [42, undefined, "/catalog/teachers/42"],
+    [42, "overview", "/catalog/teachers/42#overview"],
     [42, "sections", "/catalog/teachers/42#sections"],
   ] as const)("teacherDetailPagePath(%s, %s) -> %s", (id, tab, expected) => {
     expect(teacherDetailPagePath(id, tab)).toBe(expected);
@@ -66,6 +68,15 @@ describe("catalog detail tab helpers", () => {
         "courses",
       ),
     ).toBe("/catalog/courses/123?foo=1#introduction");
+  });
+
+  test("retains the explicitly selected overview tab", () => {
+    expect(
+      resolveCatalogDetailTabQueryRedirect(
+        request("/catalog/courses/123?tab=overview"),
+        "courses",
+      ),
+    ).toBe("/catalog/courses/123#overview");
   });
 
   test("ignores unknown legacy segments", () => {

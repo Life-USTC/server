@@ -1,5 +1,6 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
+import DetailTabPanel from "#lib/components/shell/DetailTabPanel.svelte";
 import {
   catalogPrimaryName,
   catalogSecondaryName,
@@ -101,7 +102,7 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
     <TeacherDetailIdentity copy={detailCopy} teacher={data.teacher} {primaryName} {notAvailable} />
   {/snippet}
 
-        <section id="introduction" class="scroll-mt-4">
+        <DetailTabPanel tab="introduction" class="scroll-mt-4">
           {#key `description:teacher:${data.teacher.id}`}
             <LazyDescriptionCard
               resolveViewer
@@ -114,9 +115,9 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
               readOnlyReason={data.demo?.readOnlyReason}
             />
           {/key}
-        </section>
+        </DetailTabPanel>
 
-        <section id="sections" class="scroll-mt-4">
+        <DetailTabPanel tab="sections" class="scroll-mt-4">
           <h2 class="mb-3 text-lg font-semibold tracking-tight">
             {copy.teacherDetail.teachingSectionsTitle}
           </h2>
@@ -131,9 +132,9 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
               teacher={data.teacher}
             />
           </CatalogSectionHistory>
-        </section>
+        </DetailTabPanel>
 
-        <section id="comments" class="scroll-mt-4">
+        <DetailTabPanel tab="comments" class="scroll-mt-4">
           {#key `comments:teacher:${data.teacher.id}`}
             <LazyCommentsPanel
               initialData={data.commentsData}
@@ -148,14 +149,12 @@ $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
               readOnlyReason={data.demo?.readOnlyReason}
             />
           {/key}
-        </section>
-  {#snippet aside()}
+        </DetailTabPanel>
 
-        <section id="overview">
+        <DetailTabPanel tab="overview">
           <TeacherDetailBasicInfo
             copy={detailCopy}
             teacher={data.teacher}
           />
-        </section>
-  {/snippet}
+        </DetailTabPanel>
 </CollectionPage>

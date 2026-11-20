@@ -1,10 +1,10 @@
 export const CATALOG_DETAIL_TAB_QUERY = "tab";
 
 export const catalogDetailTabs = [
-  "overview",
   "introduction",
   "sections",
   "comments",
+  "overview",
 ] as const;
 
 export type CatalogDetailTab = (typeof catalogDetailTabs)[number];
@@ -12,13 +12,6 @@ export type CatalogDetailTab = (typeof catalogDetailTabs)[number];
 const catalogDetailTabSet = new Set<string>(catalogDetailTabs);
 
 const catalogDetailLegacyPathTab = /^(introduction|sections|comments)$/;
-
-const catalogDetailHashByTab: Record<CatalogDetailTab, string> = {
-  overview: "",
-  introduction: "introduction",
-  sections: "sections",
-  comments: "comments",
-};
 
 export function isCatalogDetailLegacyPathTab(segment: string): boolean {
   return catalogDetailLegacyPathTab.test(segment);
@@ -37,22 +30,21 @@ export function parseCatalogDetailTab(
 }
 
 export function catalogDetailHashForTab(tab: CatalogDetailTab) {
-  const hash = catalogDetailHashByTab[tab];
-  return hash ? `#${hash}` : "";
+  return `#${tab}`;
 }
 
 export function courseDetailPagePath(
   jwId: number | string,
-  tab: CatalogDetailTab = "overview",
+  tab?: CatalogDetailTab,
 ) {
-  return `/catalog/courses/${jwId}${catalogDetailHashForTab(tab)}`;
+  return `/catalog/courses/${jwId}${tab ? catalogDetailHashForTab(tab) : ""}`;
 }
 
 export function teacherDetailPagePath(
   id: number | string,
-  tab: CatalogDetailTab = "overview",
+  tab?: CatalogDetailTab,
 ) {
-  return `/catalog/teachers/${id}${catalogDetailHashForTab(tab)}`;
+  return `/catalog/teachers/${id}${tab ? catalogDetailHashForTab(tab) : ""}`;
 }
 
 function appendSearchParamsPreserving(from: URL, to: URL) {
@@ -97,8 +89,10 @@ export function resolveCatalogDetailTabQueryRedirect(
   const tabParam = url.searchParams.get(CATALOG_DETAIL_TAB_QUERY);
   if (!tabParam) return null;
 
-  const tab = parseCatalogDetailTab(tabParam);
+  const hash = isCatalogDetailTab(tabParam)
+    ? catalogDetailHashForTab(tabParam)
+    : "";
   const redirectUrl = new URL(url.pathname, url.origin);
   appendSearchParamsPreserving(url, redirectUrl);
-  return `${redirectUrl.pathname}${redirectUrl.search}${catalogDetailHashForTab(tab)}`;
+  return `${redirectUrl.pathname}${redirectUrl.search}${hash}`;
 }

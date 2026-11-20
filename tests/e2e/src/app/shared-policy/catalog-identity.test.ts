@@ -664,7 +664,10 @@ for (const { domain, select } of [
     select: (fixture: IdentityFixture) => [
       [`/catalog/courses?search=${fixture.course.code}`, fixture.course.code],
       [`/catalog/courses/${fixture.course.jwId}`, fixture.course.code],
-      [`/catalog/courses/${fixture.course.jwId}`, fixture.section.code],
+      [
+        `/catalog/courses/${fixture.course.jwId}#sections`,
+        fixture.section.code,
+      ],
     ],
   },
   {
@@ -680,7 +683,10 @@ for (const { domain, select } of [
   {
     domain: "Teacher",
     select: (fixture: IdentityFixture) => [
-      [`/catalog/teachers/${fixture.teacher.id}`, fixture.section.code],
+      [
+        `/catalog/teachers/${fixture.teacher.id}#sections`,
+        fixture.section.code,
+      ],
     ],
   },
 ] as const) {

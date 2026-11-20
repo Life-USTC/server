@@ -1,7 +1,7 @@
 <script lang="ts">
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
+import SignInButton from "#lib/components/SignInButton.svelte";
 import type { ThemeMode } from "#lib/components/shell/layout-shell.js";
-import { Button } from "#lib/components/ui/button/index.js";
 import * as Sidebar from "#lib/components/ui/sidebar/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import type {
@@ -163,9 +163,9 @@ let {
           {demo}
         />
       {:else if !hideSignIn}
-        <Button href="/account/sign-in" data-shell-sign-in>
+        <SignInButton data-shell-sign-in>
           {copy.menu.signIn}
-        </Button>
+        </SignInButton>
       {/if}
     </div>
   </div>

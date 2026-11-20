@@ -209,7 +209,6 @@ $: if (isCalendarDialogOpen) {
     {commonCopy}
     {homeworkCopy}
     {sectionCopy}
-    sectionJwId={data.section.jwId}
     signedIn={data.viewer.signedIn === true}
     {subscriptionAction}
     {subscriptionPendingAction}

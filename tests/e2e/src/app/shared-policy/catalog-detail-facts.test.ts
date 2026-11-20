@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import { createCatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
 import { test } from "../../../utils/catalog-subscription-fixture";
+import { selectDetailTab } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 function requiredText(value: string | null) {
@@ -73,14 +74,15 @@ async function createFactsFixture(
 async function detailColumns(page: Page, width: number) {
   const main = page.locator("#main-content");
   const identity = main.locator("[data-detail-identity]");
-  const aside = main.locator("aside");
+  await selectDetailTab(page, "overview");
+  const aside = main.locator("#overview");
   const reading = main.locator("[data-detail-reading-stream]");
   await expect(identity).toHaveCount(1);
   await expect(aside).toHaveCount(1);
   if (width === 1280) {
     const boxes = await Promise.all([identity, aside, reading].map(bounds));
     expect(boxes[0].x).toBeGreaterThan(boxes[2].x + boxes[2].width);
-    expect(boxes[1].x).toBe(boxes[0].x);
+    expect(boxes[1].x).toBe(boxes[2].x);
   }
   return { main, identity, aside };
 }
@@ -188,6 +190,7 @@ test("ui.detail-two-column-stream-4 Course", { tag: "@Course/Web" }, async ({
             name: /^(Subscribe to section|Unsubscribe from section|Add to Calendar)$/,
           }),
         ).toHaveCount(0);
+        await selectDetailTab(page, "sections");
         const offering = main
           .locator(
             `#sections a[href="/catalog/sections/${section.jwId}"]:visible`,
@@ -263,6 +266,7 @@ test("ui.detail-two-column-stream-4 Teacher", { tag: "@Teacher/Web" }, async ({
             name: /^(Subscribe to section|Unsubscribe from section|Add to Calendar)$/,
           }),
         ).toHaveCount(0);
+        await selectDetailTab(page, "sections");
         const offering = main
           .locator(
             `#sections a[href="/catalog/sections/${section.jwId}"]:visible`,

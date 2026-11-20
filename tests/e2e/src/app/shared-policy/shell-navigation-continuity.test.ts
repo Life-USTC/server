@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { openShellNavigation } from "../../../utils/locators";
 import {
   detailScrollViewport,
   gotoAndWaitForReady,
@@ -262,16 +263,17 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           await expect(
             directory.getByTestId("section-course-link"),
           ).toHaveAttribute("href", `/catalog/courses/${fixture.course.jwId}`);
-          await expect(directory.locator('[aria-current="page"]')).toHaveText(
+          await expect(directory).toContainText(
             locale === "en-us"
               ? "Navigation continuity course"
               : "导航连续性课程",
           );
+          const sectionNavigation = await navigation();
           expect(
-            await directory
-              .locator('[data-slot="page-section-nav"] a')
+            await sectionNavigation
+              .locator('a[href*="#"]')
               .evaluateAll((nodes) =>
-                nodes.map((node) => node.getAttribute("href")),
+                nodes.map((node) => (node as HTMLAnchorElement).hash),
               ),
           ).toEqual([
             "#introduction",
@@ -281,6 +283,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             "#comments",
             "#overview",
           ]);
+          if (width < 768) await page.keyboard.press("Escape");
           await page.screenshot({
             path: testInfo.outputPath(`section-${locale}-${width}.png`),
           });
@@ -290,7 +293,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               academicNav.locator('a[aria-current="page"]'),
             ).toHaveAttribute(
               "href",
-              `/catalog/sections/${fixture.section.jwId}`,
+              `/catalog/sections/${fixture.section.jwId}#introduction`,
             );
             await expect(
               academicNav.locator('a[href="/catalog/sections"]'),
@@ -316,7 +319,10 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               "expanded",
             );
           }
-          await directory.locator('a[href="#comments"]').click();
+          await (await navigation()).locator('a[href$="#comments"]').click();
+          await expect(directory.locator('[aria-current="page"]')).toHaveText(
+            locale === "en-us" ? "Comments" : "评论",
+          );
           await expect(page).toHaveURL(/#comments$/);
           await expect(page.locator("#comments h2")).toBeInViewport();
           expect(await page.evaluate(() => scrollY)).toBe(0);
@@ -324,7 +330,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           const readingPosition = await reading.evaluate(
             (node) => node.scrollTop,
           );
-          expect(readingPosition).toBeGreaterThan(0);
+          await expect(page.locator("#introduction")).toBeHidden();
           const currentLocation = page.url();
           const currentHistory = await page.evaluate(() => history.length);
           const currentDocument = await page.evaluateHandle(() => document);
@@ -411,17 +417,13 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           );
           await waitForUiSettled(page);
           expect(
-            await page
-              .getByTestId("shell-detail-navigation")
-              .locator('[data-slot="page-section-nav"] a')
+            await (await navigation())
+              .locator('a[href*="#"]')
               .evaluateAll((nodes) =>
-                nodes.map((node) => node.getAttribute("href")),
+                nodes.map((node) => (node as HTMLAnchorElement).hash),
               ),
           ).toEqual(["#introduction", "#sections", "#comments", "#overview"]);
-          await page
-            .getByTestId("shell-detail-navigation")
-            .locator('a[href="#sections"]')
-            .click();
+          await (await navigation()).locator('a[href$="#sections"]').click();
           await expect(page.locator("#sections h2")).toBeInViewport();
 
           await gotoAndWaitForReady(page, "/account/settings/profile");
@@ -565,9 +567,8 @@ for (const mode of [
             .poll(() => inner.evaluate((node) => node.scrollTop))
             .toBe(0);
         } else if (mode === "new-anchor") {
-          await page
-            .getByTestId("shell-detail-navigation")
-            .locator('a[href="#introduction"]')
+          await (await openShellNavigation(page))
+            .locator('a[href$="#introduction"]')
             .click();
           await expect(page).toHaveURL(/#introduction$/);
         } else if (mode === "keyboard-input") {
@@ -582,9 +583,9 @@ for (const mode of [
           ).toBeFocused();
           await page.keyboard.type("Anchor");
         } else {
-          const anchor = page
-            .getByTestId("shell-detail-navigation")
-            .locator('a[href="#comments"]');
+          const anchor = (await openShellNavigation(page)).locator(
+            'a[href$="#comments"]',
+          );
           if (mode === "same-anchor-keyboard") {
             await inner.hover();
             await page.mouse.wheel(0, -10000);
@@ -606,7 +607,7 @@ for (const mode of [
           await expect
             .poll(() => inner.evaluate((node) => node.scrollTop))
             .toBe(0);
-          await expect(page.locator("#comments h2")).not.toBeInViewport();
+          await expect(page.locator("#comments")).toBeVisible();
         } else if (mode === "new-anchor") {
           await expect(page).toHaveURL(/#introduction$/);
           await expect(page.locator("#introduction h2")).toBeInViewport();
@@ -686,17 +687,19 @@ for (const [locale, width] of [
       await expect(
         directory.locator("nav").first().locator("a"),
       ).toHaveAttribute("href", "/catalog/teachers");
-      await expect(directory.locator('[aria-current="page"]')).toHaveText(
+      await expect(directory).toContainText(
         locale === "en-us" ? "Navigation teacher" : "导航教师",
       );
       expect(
-        await directory
-          .locator('[data-slot="page-section-nav"] a')
+        await (await openShellNavigation(page))
+          .locator('a[href*="#"]')
           .evaluateAll((nodes) =>
-            nodes.map((node) => node.getAttribute("href")),
+            nodes.map((node) => (node as HTMLAnchorElement).hash),
           ),
       ).toEqual(["#introduction", "#sections", "#comments", "#overview"]);
-      await directory.locator('a[href="#sections"]').click();
+      await (await openShellNavigation(page))
+        .locator('a[href$="#sections"]')
+        .click();
       await expect(page.locator("#sections h2")).toBeInViewport();
       await expect(
         page

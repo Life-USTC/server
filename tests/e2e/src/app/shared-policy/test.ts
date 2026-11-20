@@ -1,6 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { test } from "../../../utils/catalog-search-fixture";
 import { DEV_SEED } from "../../../utils/dev-seed";
+import { selectDetailTab } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
   applyWorkspaceTaskFilter,
@@ -88,19 +89,12 @@ async function openMobileMenu(page: Page) {
   await expect(page.locator('[data-shell-navigation="mobile"]')).toBeVisible();
 }
 
-async function assertReadingOrder(page: Page, items: readonly string[]) {
+async function assertDetailTabs(page: Page, items: readonly string[]) {
   const actual = await page
     .locator("[data-detail-reading-stream] > section[id]")
     .evaluateAll((nodes) => nodes.map((node) => node.id));
   expect(actual).toEqual(items);
-  let previousBottom = -Infinity;
-  for (const id of items) {
-    const box = await page.locator(`#${id}`).boundingBox();
-    expect(box).not.toBeNull();
-    if (!box) throw new Error(`Missing section ${id}`);
-    expect(box.y).toBeGreaterThanOrEqual(previousBottom);
-    previousBottom = box.y + box.height;
-  }
+  for (const id of items) await selectDetailTab(page, id);
 }
 
 test("ui.detail-two-column-stream-2", { tag: "@Section/Web" }, async ({
@@ -115,12 +109,13 @@ test("ui.detail-two-column-stream-2", { tag: "@Section/Web" }, async ({
         page,
         `/catalog/sections/${DEV_SEED.section.jwId}`,
       );
-      await assertReadingOrder(page, [
+      await assertDetailTabs(page, [
         "introduction",
         "calendar",
         "exams",
         "homework",
         "comments",
+        "overview",
       ]);
     }
   });
@@ -136,10 +131,11 @@ for (const domain of ["Course", "Teacher"] as const) {
         await page.setViewportSize(viewport);
         for (const { href } of pages) {
           await gotoAndWaitForReady(page, href);
-          await assertReadingOrder(page, [
+          await assertDetailTabs(page, [
             "introduction",
             "sections",
             "comments",
+            "overview",
           ]);
         }
       }
@@ -213,10 +209,10 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           "comments",
           ...(collection === "/catalog/sections" ? ["homework"] : []),
         ]) {
-          await expect(column.locator(`#${id}`)).toHaveCount(1);
+          await selectDetailTab(page, id);
           const reading = await column.locator(`#${id}`).boundingBox();
           const aside = await page
-            .locator("[data-detail-scroll-container] aside")
+            .locator("[data-detail-identity]")
             .boundingBox();
           expect(reading).not.toBeNull();
           expect(aside).not.toBeNull();
@@ -239,15 +235,11 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
       await page.setViewportSize(viewports[0]);
       for (const { href } of await catalogPages(page, [domain])) {
         await gotoAndWaitForReady(page, href);
-        const aside = page.locator("[data-detail-scroll-container] aside");
-        await expect(page.locator("#overview")).toBeVisible();
-        await expect(aside.locator("dl, table").first()).toBeVisible();
-        const main = await page.locator("#introduction").boundingBox();
-        const facts = await aside.boundingBox();
-        expect(main).not.toBeNull();
-        expect(facts).not.toBeNull();
-        if (!main || !facts) throw new Error("Missing detail columns");
-        expect(facts.x).toBeGreaterThan(main.x + main.width);
+        await selectDetailTab(page, "overview");
+        await expect(
+          page.locator("#overview").locator("dl, table").first(),
+        ).toBeVisible();
+        await expect(page.locator("[data-detail-identity]")).toBeVisible();
       }
     });
   });

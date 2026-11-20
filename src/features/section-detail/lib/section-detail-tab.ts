@@ -1,31 +1,20 @@
 export const SECTION_DETAIL_TAB_QUERY = "tab";
 
 export const sectionDetailTabs = [
-  "overview",
   "introduction",
   "calendar",
   "exams",
   "homework",
-  "teachers",
   "comments",
+  "overview",
 ] as const;
 
-export type SectionDetailTab = (typeof sectionDetailTabs)[number];
+export type SectionDetailTab = (typeof sectionDetailTabs)[number] | "teachers";
 
-const sectionDetailTabSet = new Set<string>(sectionDetailTabs);
+const sectionDetailTabSet = new Set<string>([...sectionDetailTabs, "teachers"]);
 
 const sectionDetailLegacyPathTab =
   /^(introduction|calendar|exams|homework|teachers|comments)$/;
-
-const sectionDetailHashByTab: Record<SectionDetailTab, string> = {
-  overview: "",
-  introduction: "introduction",
-  calendar: "calendar",
-  exams: "exams",
-  homework: "homework",
-  teachers: "teachers",
-  comments: "comments",
-};
 
 export function isSectionDetailTab(
   value: string | null | undefined,
@@ -40,16 +29,15 @@ export function parseSectionDetailTab(
 }
 
 export function sectionDetailHashForTab(tab: SectionDetailTab) {
-  const hash = sectionDetailHashByTab[tab];
-  return hash ? `#${hash}` : "";
+  return `#${tab}`;
 }
 
-/** Canonical section detail URL (no tab query). Optional hash for in-page anchors. */
+/** Canonical section detail URL (no tab query). An optional hash selects a detail tab. */
 export function sectionDetailPagePath(
   jwId: number | string,
-  tab: SectionDetailTab = "overview",
+  tab?: SectionDetailTab,
 ) {
-  return `/catalog/sections/${jwId}${sectionDetailHashForTab(tab)}`;
+  return `/catalog/sections/${jwId}${tab ? sectionDetailHashForTab(tab) : ""}`;
 }
 
 export function sectionDetailHomeworkPath(
@@ -100,8 +88,10 @@ export function resolveSectionDetailTabQueryRedirect(request: Request) {
   const tabParam = url.searchParams.get(SECTION_DETAIL_TAB_QUERY);
   if (!tabParam) return null;
 
-  const tab = parseSectionDetailTab(tabParam);
+  const hash = isSectionDetailTab(tabParam)
+    ? sectionDetailHashForTab(tabParam)
+    : "";
   const redirectUrl = new URL(url.pathname, url.origin);
   appendSearchParamsPreserving(url, redirectUrl);
-  return `${redirectUrl.pathname}${redirectUrl.search}${sectionDetailHashForTab(tab)}`;
+  return `${redirectUrl.pathname}${redirectUrl.search}${hash}`;
 }

@@ -2,6 +2,8 @@
 import CalendarIcon from "@lucide/svelte/icons/calendar";
 import { onMount } from "svelte";
 import LazyModuleStatus from "#lib/components/LazyModuleStatus.svelte";
+import SignInButton from "#lib/components/SignInButton.svelte";
+import DetailTabPanel from "#lib/components/shell/DetailTabPanel.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
@@ -193,7 +195,7 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
       </Alert.Root>
     {/if}
 
-    <div class="page-frame page-frame-content grid gap-8 @[60rem]/detail:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] @[60rem]/detail:grid-rows-[auto_1fr] @[60rem]/detail:items-start @[60rem]/detail:gap-10">
+    <div class="page-frame page-frame-content grid gap-8 @[60rem]/detail:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] @[60rem]/detail:items-start @[60rem]/detail:gap-10">
       <div class="min-w-0 @[60rem]/detail:col-start-2 @[60rem]/detail:row-start-1" data-detail-identity>
         <SectionDetailIdentity
           notAvailable={notAvailable}
@@ -204,8 +206,8 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
           teachers={displaySection.teachers}
         />
       </div>
-      <div class="grid min-w-0 grid-cols-1 gap-10 @[60rem]/detail:col-start-1 @[60rem]/detail:row-start-1 @[60rem]/detail:row-span-2" data-detail-reading-stream>
-        <section id="introduction" class="scroll-mt-4">
+      <div class="grid min-w-0 grid-cols-1 gap-10 @[60rem]/detail:col-start-1 @[60rem]/detail:row-start-1" data-detail-reading-stream>
+        <DetailTabPanel tab="introduction" class="scroll-mt-4">
           {#key `description:section:${data.section.id}`}
             {#if DescriptionCard}
               <svelte:component
@@ -234,12 +236,9 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
               {/if}
             {/if}
           {/key}
-          {#if data.demo}
-            <a class="mt-3 inline-flex text-sm underline underline-offset-4" href={`/catalog/courses/${data.section.course.jwId}`}>{data.copy.comments.viewCourse}</a>
-          {/if}
-        </section>
+        </DetailTabPanel>
 
-        <section id="calendar" class="min-w-0 scroll-mt-4">
+        <DetailTabPanel tab="calendar" class="min-w-0 scroll-mt-4">
           <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-lg font-semibold tracking-tight">
               {sectionCopy.tabs.calendar}
@@ -261,9 +260,9 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
           {:else}
             <LazyModuleStatus failed={Boolean(moduleErrors.calendar)} heading={sectionCopy.tabs.calendar} loadFailed={data.copy.common.error} retry={sectionCopy.pleaseRetry} onRetry={() => void moduleLoaders.calendar()} />
           {/if}
-        </section>
+        </DetailTabPanel>
 
-        <section id="exams" class="min-w-0 scroll-mt-4">
+        <DetailTabPanel tab="exams" class="min-w-0 scroll-mt-4">
           <h2 class="mb-3 text-lg font-semibold tracking-tight">
             {sectionCopy.tabs.exams}
           </h2>
@@ -281,9 +280,9 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
           {:else}
             <LazyModuleStatus failed={Boolean(moduleErrors.exams)} heading={sectionCopy.tabs.exams} loadFailed={data.copy.common.error} retry={sectionCopy.pleaseRetry} onRetry={() => void moduleLoaders.exams()} />
           {/if}
-        </section>
+        </DetailTabPanel>
 
-        <section id="homework" class="scroll-mt-4">
+        <DetailTabPanel tab="homework" class="scroll-mt-4">
           <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-lg font-semibold tracking-tight">
               {sectionCopy.tabs.homeworks}
@@ -299,12 +298,11 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
                 {homeworkCopy.showCreate}
               </Button>
             {:else if !viewer.loading && !viewer.failed && !(viewer.isAuthenticated ?? viewer.signedIn === true)}
-              <Button
-                href={`/account/sign-in?callbackUrl=${encodeURIComponent(`/catalog/sections/${data.section.jwId}`)}`}
+              <SignInButton
                 variant="outline"
               >
                 {homeworkCopy.loginToCreate}
-              </Button>
+              </SignInButton>
             {/if}
             </div>
           </div>
@@ -321,9 +319,9 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
           {:else}
             <LazyModuleStatus failed={Boolean(moduleErrors.homework)} heading={sectionCopy.tabs.homeworks} loadFailed={data.copy.common.error} retry={sectionCopy.pleaseRetry} onRetry={() => void moduleLoaders.homework()} />
           {/if}
-        </section>
+        </DetailTabPanel>
 
-        <section id="comments" class="scroll-mt-4 min-w-0">
+        <DetailTabPanel tab="comments" class="scroll-mt-4 min-w-0">
           {#key `comments:section:${data.section.id}`}
             {#if CommentsPanel}
               <svelte:component
@@ -341,21 +339,21 @@ $: sectionExamEvents = sectionCalendarEvents.filter(
               <LazyModuleStatus failed={Boolean(moduleErrors.comments)} heading={sectionCopy.tabs.comments} loadFailed={data.copy.comments.loadFailed} retry={data.copy.comments.retry} onRetry={() => void moduleLoaders.comments()} />
             {/if}
           {/key}
-        </section>
-      </div>
+        </DetailTabPanel>
 
-      <aside class="min-w-0 @[60rem]/detail:col-start-2 @[60rem]/detail:row-start-2" id="overview">
-        <SectionBasicInfoCard
-          commonCopy={commonCopy}
-          notAvailable={notAvailable}
-          periodDetailRows={periodDetailRows}
-          primaryName={primaryName}
-          section={displaySection}
-          sectionCopy={sectionCopy}
-          sectionTeachersLabel={sectionTeachersLabel}
-          yesNo={yesNo}
-        />
-      </aside>
+        <DetailTabPanel tab="overview">
+          <SectionBasicInfoCard
+            commonCopy={commonCopy}
+            notAvailable={notAvailable}
+            periodDetailRows={periodDetailRows}
+            primaryName={primaryName}
+            section={displaySection}
+            sectionCopy={sectionCopy}
+            sectionTeachersLabel={sectionTeachersLabel}
+            yesNo={yesNo}
+          />
+        </DetailTabPanel>
+      </div>
     </div>
   </div>
 

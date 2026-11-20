@@ -10,8 +10,8 @@ requirements:
   acceptance:
     given: Public course, section, and teacher details have introductions and comments; the section also has
       homework.
-    when: An anonymous browser opens each detail at 1280 pixels and measures the reading sections relative to
-      the facts sidebar.
+    when: An anonymous browser opens each detail at 1280 pixels and switches reading panels and measures each relative to
+      the compact identity.
     then:
     - Desktop course, section, and teacher detail pages place introductions, descriptions, homework content,
       and comments in the main reading column.
@@ -21,48 +21,44 @@ requirements:
 - id: ui.layout-principles-2
   category: presentation
   topic: layout-principles
-  rule: Desktop course, section, and teacher detail pages place structured secondary facts in a separate facts
-    sidebar.
+  rule: Course, section, and teacher detail pages place structured secondary facts in the More details tab.
   acceptance:
     given: Public course, section, and teacher details have structured overview facts.
-    when: An anonymous browser opens each detail at 1280 pixels and measures the visible facts sidebar relative
-      to the introduction.
+    when: An anonymous browser selects More details in the sidebar at 1280 pixels.
     then:
-    - Desktop course, section, and teacher detail pages place structured secondary facts in a separate facts
-      sidebar.
+    - The More details panel displays structured secondary facts, and the entity identity remains visible.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.layout-principles-2 Course
 - id: ui.layout-principles-3
   category: presentation
   topic: layout-principles
-  rule: At mobile widths, catalog detail pages render the hero, compact identity facts, the main reading stream,
-    and remaining secondary facts in that order. Workspace views and overlays follow their own declared content
-    order.
+  rule: At mobile widths, catalog detail pages render the hero, compact identity facts and selected panel
+    in that order. Workspace views and overlays follow their own declared content order.
   acceptance:
     given: Isolated course, teacher, and section details include compact identity facts, a description,
       and remaining secondary facts in Chinese and English.
     when: A browser renders each detail at 390 pixels, then resizes the same page to 1280 pixels.
     then:
-    - Mobile DOM and visible geometry order the hero, compact identity facts, reading stream, and remaining
-      facts without horizontal document overflow.
+    - Mobile DOM and visible geometry order the hero, compact identity facts and selected panel without
+      horizontal document overflow.
     - Course level/category, teacher department/title, and section teachers/campus appear before reading;
       the section retains one linked teachers anchor.
-    - Desktop places identity and remaining facts to the right of the reading stream.
+    - Desktop places the compact identity to the right of the selected panel.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
       name: ui.layout-principles-3 Course
 - id: ui.detail-content-width
   category: presentation
   topic: layout-principles
-  rule: Course, teacher and teaching-section details switch to a facts sidebar only when the actual content container has at least 60rem available. Narrower content preserves the identity-before-reading order. A viewport crossing 1024px must not collapse the reading column; toggling the shell sidebar can change the detail layout according to available content width.
+  rule: Course, teacher and teaching-section details move compact identity to the right only when the actual content container has at least 60rem available. Narrower content preserves the identity-before-reading order. A viewport crossing 1024px must not collapse the reading column; toggling the shell sidebar can change the detail layout according to available content width.
   acceptance:
     given: Public course, teacher and section details render with the shell sidebar expanded.
     when: The viewport crosses 1023/1024,1144,1280 and1440 pixels and the sidebar collapses at1144.
     then:
     - Increasing1023 to1024 preserves the reading width apart from normal page padding changes.
     - Reading columns remain at least540px in these desktop samples.
-    - Wide content retains right-side identity/facts; collapsed sidebar space can enable this layout without changing viewport width.
+    - Wide content retains right-side identity; collapsed sidebar space can enable this layout without changing viewport width.
     test:
       file: tests/e2e/src/app/shared-policy/detail-content-width.test.ts
       name: ui.detail-content-width course
@@ -373,7 +369,7 @@ requirements:
 - id: ui.list-table-9
   category: presentation
   topic: list-table
-  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. PageSectionNav is only for in-page anchors, such as academic detail sections and publication source groups. Canonical detail breadcrumbs use the collection and current entity; a teaching section links its real associated course without replacing that collection parent. Settings, second-classroom and admin routes render their existing section destinations with the Life@USTC root identity. A stable native Back button below the root locally previews the role-filtered parent directory; selecting the current section restores its directory without navigating, replacing main content, changing history or closing the mobile drawer. The root has no Back or return-to-current-page button. Real destination links use client-side route navigation; browser back restores the previous context without a document reload. An open event or organizer adds its name under its owning collection. The home page keeps the primary sidebar.
+  rule: The sidebar owns navigation between routes. Do not repeat those destinations as page tabs. Academic detail tabs are nested under their entity in the sidebar. PageSectionNav indexes in-page anchors such as publication source groups. Canonical detail breadcrumbs show the collection, entity and selected tab; a teaching section links its real associated course without replacing that collection parent. Settings, second-classroom and admin routes render their existing section destinations with the Life@USTC root identity. A stable native Back button below the root locally previews the role-filtered parent directory; selecting the current section restores its directory without navigating, replacing main content, changing history or closing the mobile drawer. The root has no Back or return-to-current-page button. Real destination links use client-side route navigation; browser back restores the previous context without a document reload. An open event or organizer adds its name under its owning collection. The home page keeps the primary sidebar.
   rationale: Route navigation lives in the shell sidebar. In-page anchors stay on PageSectionNav. DetailSectionNav is not a settings control.
   acceptance:
     given: Second-classroom pages, moderation, settings, and the publication source directory.
@@ -586,13 +582,14 @@ requirements:
 - id: ui.detail-two-column-stream-1
   category: presentation
   topic: detail-two-column-stream
-  rule: Course, section and teacher detail pages keep all applicable reading sections rendered in one continuous stream. Moving through that stream does not select a detail tab or navigate to a detail subroute.
-  rationale: Desktop facts-sidebar placement is owned by ui.layout-principles-3. Fragment-anchor scrolling is owned by ui.detail-two-column-stream-7, and entity-root canonical addresses by course.detail-canonical-url, teacher.detail-canonical-url and section.detail-canonical-url.
+  rule: Course, section and teacher details show one reading panel at a time. The sidebar uses fragments on the
+    canonical entity route to select panels, and Description is the default.
+  rationale: Fragments preserve shareable links and browser history while keeping the entity canonical address.
   acceptance:
     given: Isolated course, teacher and section details have descriptions and their applicable reading sections.
-    when: Mobile and desktop browsers scroll through every section and inspect the detail links.
+    when: Mobile and desktop browsers select each detail tab in the sidebar.
     then:
-    - Every applicable section remains visible in the same ordered stream without changing the entity URL; in-page links do not use detail-tab queries or detail subroutes.
+    - Only the selected panel is visible. The fragment and sidebar current link identify that panel while the entity path stays the same.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
       name: ui.detail-two-column-stream-1 Course
@@ -611,11 +608,12 @@ requirements:
     - exams
     - homework
     - comments
+    - overview
   acceptance:
     given: A public section detail contains introduction, calendar, exams, homework, and comments sections.
-    when: The browser loads the detail at 1280 and 390 pixels and reads the section DOM order and vertical geometry.
+    when: The browser loads the detail at 1280 and 390 pixels and reads the tab order and the selected panel.
     then:
-    - Rendered reading sections follow the declared ordered_items expectation at desktop and mobile widths.
+    - Detail tabs follow the declared ordered_items expectation at desktop and mobile widths.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.detail-two-column-stream-2
@@ -634,12 +632,12 @@ requirements:
     - introduction
     - sections
     - comments
+    - overview
   acceptance:
     given: Public course and teacher details contain introduction, teaching-section, and comments sections.
-    when: The browser loads both details at 1280 and 390 pixels and reads the section DOM order and vertical
-      geometry.
+    when: The browser loads both details at 1280 and 390 pixels and reads the tab order and the selected panel.
     then:
-    - Rendered reading sections follow the declared ordered_items expectation at desktop and mobile widths.
+    - Detail tabs follow the declared ordered_items expectation at desktop and mobile widths.
     test:
       file: tests/e2e/src/app/shared-policy/test.ts
       name: ui.detail-two-column-stream-3 Course
@@ -651,13 +649,13 @@ requirements:
   rule: Catalog detail information regions contain feature-specific structured facts. Section detail includes
     teacher links, with subscription and calendar actions reachable in the desktop header and mobile fixed action bar.
     Course and teacher pages do not offer section-specific actions before a section is selected.
-  rationale: Identity and remaining facts share the desktop information column and follow the mobile detail hierarchy.
-    Section primary actions stay in the header or fixed mobile bar so they remain reachable without duplication in the facts region.
+  rationale: The compact identity is shared by all panels. Secondary facts have a dedicated More details panel.
+    Section primary actions stay in the header or fixed mobile bar so they remain reachable across tabs.
   acceptance:
     given: Isolated catalog fixtures contain course classifications, teacher contact and affiliation facts, section counts and an authenticated viewer.
     when: Section, course and teacher detail pages are opened at 1280, 390 and 320 pixels.
     then:
-    - Structured facts render in the information regions, sharing the right column on desktop and remaining reachable on mobile.
+    - Structured facts render in More details, and the compact identity remains visible on desktop and mobile.
     - Section teacher links navigate to the matching teacher; header or mobile actions open the matching calendar URL and persist subscribe/unsubscribe changes.
     - Course and teacher pages expose applicable facts and section links without presenting section subscription or calendar actions before selection.
     test:
@@ -684,14 +682,14 @@ requirements:
 - id: ui.detail-two-column-stream-7
   category: presentation
   topic: detail-two-column-stream
-  rule: Hash anchors scroll in-page.
+  rule: A link to an academic detail tab fragment opens the corresponding panel in place.
   acceptance:
     given: Isolated course, teacher and section descriptions contain a rendered Markdown fragment link
-      to their discussion section below a long reading stream.
+      to their discussion panel.
     when: Mobile and desktop browsers click the actual rendered link.
     then:
     - The URL retains its route and gains the discussion fragment without a document or page-data navigation.
-    - The existing page or detail scroll container moves to the discussion target and brings it into the viewport.
+    - The discussion panel becomes visible and the description panel is hidden.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
       name: ui.detail-two-column-stream-7 Course
@@ -862,7 +860,7 @@ requirements:
     navigation viewport; keyboard Tab and Enter reach every settings section.
     Initial sidebar layout changes keep the current destination visible until user scroll, pointer/touch/keyboard
     input or focus on another navigation item takes control for that opening.
-  rationale: Public catalog details use continuous reading streams. Young catalog view switches use a
+  rationale: Public catalog details use fragment-backed sidebar tabs. Young catalog view switches use a
     separate browse-navigation component; they are not contextual section rails.
   acceptance:
     given: An isolated signed-in user opens the last account-settings destination at 1280, 390 and 280 CSS pixels.

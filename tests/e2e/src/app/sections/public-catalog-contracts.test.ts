@@ -1,6 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { unflatten } from "devalue";
 import type { CatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
+import { selectDetailTab } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import type { PreferenceFlow } from "../../../utils/preference-flow";
 import { observeSectionDetailNavigation } from "../../../utils/section-detail-navigation";
@@ -180,6 +181,7 @@ test("teacher.section-code-auxiliary", { tag: "@Teacher/Web" }, async ({
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(
         fixture.teachers[0].nameCn,
       );
+      await selectDetailTab(page, "sections");
       const history = page.locator("#sections");
       await expect(history).toContainText(fixture.courses[0].nameCn);
       const code = history

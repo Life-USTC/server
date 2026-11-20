@@ -7,10 +7,6 @@ import {
   sectionDetailPagePath,
 } from "@/features/section-detail/lib/section-detail-tab";
 
-export function commentPanelSignInHref(pathname: string, search: string) {
-  return `/account/sign-in?callbackUrl=${encodeURIComponent(`${pathname}${search}`)}`;
-}
-
 export function commentPanelStatusLabel(
   status: string,
   copy: {

@@ -6,6 +6,7 @@ import {
   type GlobalSearchResultGroupType,
   type GlobalSearchResultItem,
 } from "@/features/search/server/global-search-types";
+import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
 import type { AppLocale } from "@/i18n/config";
 import { searchTerms } from "@/lib/query-filter-helpers";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
@@ -125,7 +126,9 @@ export function searchDemoGlobally(input: {
         id: `homework:${homework.id}`,
         title: homework.title,
         description: homework.section.course.namePrimary,
-        href: `/catalog/sections/${homework.section.jwId}?homeworkId=${encodeURIComponent(homework.id)}#homework`,
+        href: sectionDetailHomeworkPath(homework.section.jwId, {
+          homeworkId: homework.id,
+        }),
       }));
     groups.todos = getDemoTodos(input.locale)
       .filter(

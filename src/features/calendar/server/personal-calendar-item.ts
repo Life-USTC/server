@@ -1,3 +1,4 @@
+import { sectionDetailPagePath } from "@/features/section-detail/lib/section-detail-tab";
 import type { SubscriptionKind } from "@/features/subscriptions/lib/subscription-kind";
 import type { TodoPriority } from "@/generated/prisma/client";
 import { DEFAULT_LOCALE } from "@/i18n/config";
@@ -155,7 +156,7 @@ export function personalCalendarItem(
                 event.payload.room.nameEn,
               ) || null
             : null),
-        url: `/catalog/sections/${event.payload.section.jwId}`,
+        url: sectionDetailPagePath(event.payload.section.jwId, "calendar"),
         target: { kind: "section", id: String(event.payload.section.jwId) },
         sectionJwId: event.payload.section.jwId,
         sectionCode: event.payload.section.code,

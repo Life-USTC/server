@@ -61,8 +61,7 @@ async function renderedComponents(root: string) {
 }
 
 it("ui.list-table-9", async () => {
-  // The shell directory is allowed only as same-page anchors. Sidebar destinations
-  // remain route-owned rather than being copied into per-page tab bars.
+  // Detail tabs and route destinations both belong to the shell sidebar.
   const { detailNavigation } = await import(
     "@/lib/components/shell/detail-navigation"
   );
@@ -75,7 +74,11 @@ it("ui.list-table-9", async () => {
     "/catalog/sections/1800",
     buildLayoutCopy("en-us"),
   );
-  expect(directory?.anchors.map((item) => item.href)).toEqual([
+  expect(
+    directory?.current.items.map(
+      (item) => new URL(item.href, "https://life.example").hash,
+    ),
+  ).toEqual([
     "#introduction",
     "#calendar",
     "#exams",

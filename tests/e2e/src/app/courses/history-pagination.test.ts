@@ -80,7 +80,7 @@ async function verifyHistory(
         { width: 390, height: 844 },
       ]) {
         await page.setViewportSize(viewport);
-        const response = await gotoAndWaitForReady(page, route);
+        const response = await gotoAndWaitForReady(page, `${route}#sections`);
         const history = page.getByTestId("section-history");
         await expect(
           history.locator('[data-slot="results-summary"]'),
@@ -102,7 +102,7 @@ async function verifyHistory(
         );
         await loading.scrollIntoViewIfNeeded();
         await expect(rows).toHaveCount(23);
-        await expect(page).toHaveURL(new RegExp(`${route}$`));
+        await expect(page).toHaveURL(new RegExp(`${route}#sections$`));
         const allIds = await rows.evaluateAll((links) =>
           links.map((link) => link.getAttribute("href")),
         );

@@ -13,6 +13,7 @@ import type {
   GlobalSearchResultItem,
 } from "@/features/search/server/global-search-types";
 import { GLOBAL_SEARCH_GROUP_ORDER } from "@/features/search/server/global-search-types";
+import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
 import type { AppLocale } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages.server";
 import { withUserDbContext } from "@/lib/db/prisma";
@@ -262,7 +263,9 @@ async function searchWorkspaceGroups(
             ? workspaceCourseName(homework.section.course, locale)
             : null,
           href: homework.section?.jwId
-            ? `/catalog/sections/${homework.section.jwId}?homeworkId=${encodeURIComponent(homework.id)}#homework`
+            ? sectionDetailHomeworkPath(homework.section.jwId, {
+                homeworkId: homework.id,
+              })
             : "/workspace/homeworks",
         })),
       });

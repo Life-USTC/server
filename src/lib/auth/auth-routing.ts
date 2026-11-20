@@ -62,6 +62,13 @@ export function buildSignInPageUrl(callbackUrl: string) {
   return `/account/sign-in?callbackUrl=${encodeURIComponent(sanitizeAuthCallbackUrl(callbackUrl))}`;
 }
 
+export function signInHrefForPage(
+  url: Pick<URL, "pathname" | "search" | "hash">,
+) {
+  const returnTo = url.pathname + url.search + url.hash;
+  return returnTo === "/" ? "/account/sign-in" : buildSignInPageUrl(returnTo);
+}
+
 export function buildReauthenticationPageUrl(callbackUrl: string) {
   return `/account/sign-in?reauth=1&callbackUrl=${encodeURIComponent(sanitizeAuthCallbackUrl(callbackUrl))}`;
 }

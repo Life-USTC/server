@@ -73,9 +73,17 @@ export function isDemoNavigationDestination(href: string) {
 export function demoNavigationLink<Link extends ShellLink>(
   link: Link,
   reason: string,
+  currentPathname?: string,
 ): Link {
-  const items = link.items?.map((item) => demoNavigationLink(item, reason));
-  if (!isDemoNavigationDestination(link.href))
+  const items = link.items?.map((item) =>
+    demoNavigationLink(item, reason, currentPathname),
+  );
+  const destination = link.detail ? link.href.split(/[?#]/, 1)[0] : link.href;
+  // A rendered catalog record can come from the public demo snapshot as well.
+  const currentRecord =
+    destination === currentPathname &&
+    /^\/catalog\/(?:sections|courses|teachers)\/[1-9]\d*$/.test(destination);
+  if (!currentRecord && !isDemoNavigationDestination(destination))
     return { ...link, items, disabledReason: reason };
   return {
     ...link,

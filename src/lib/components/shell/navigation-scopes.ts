@@ -3,6 +3,7 @@ import LandmarkIcon from "@lucide/svelte/icons/landmark";
 import PartyPopperIcon from "@lucide/svelte/icons/party-popper";
 import SunriseIcon from "@lucide/svelte/icons/sunrise";
 import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
+import { detailNavigation } from "./detail-navigation";
 import {
   buildAdminNavGroups,
   buildSettingsNavGroups,
@@ -168,7 +169,10 @@ export function isCurrentScopeLink(
     if (candidate.href === link.href || !isActive(candidate)) return false;
     const child = new URL(candidate.href, "https://navigation.invalid");
     if (child.pathname === path)
-      return target.searchParams.size === 0 && child.searchParams.size > 0;
+      return (
+        (!target.hash && Boolean(candidate.detail)) ||
+        (target.searchParams.size === 0 && child.searchParams.size > 0)
+      );
     return child.pathname.startsWith(`${path.replace(/\/$/, "")}/`);
   });
 }
@@ -256,6 +260,12 @@ export function buildNavigationScopes(
       .filter((g) => g.id === "courses" || g.id === "campus")
       .flatMap((g) => g.links.map((link) => ({ ...link, items: undefined }))),
   );
+  const detail = detailNavigation(
+    context.pageData,
+    context.pathname,
+    copy,
+    context.search,
+  );
   for (const feature of publicGroups.flatMap((g) => g.links)) {
     if (
       feature.id &&
@@ -270,7 +280,14 @@ export function buildNavigationScopes(
         "news",
       ].includes(feature.id)
     )
-      add(feature.id, feature.label, "campus", [feature], true);
+      if (detail && detail.collection.href === feature.href) {
+        add(feature.id, feature.label, "campus", [
+          { ...feature, items: undefined },
+          detail.current,
+        ]);
+      } else {
+        add(feature.id, feature.label, "campus", [feature], true);
+      }
   }
   add(
     "activities",

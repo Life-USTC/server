@@ -13,7 +13,8 @@ function request(path: string, method = "GET") {
 
 describe("section detail paths", () => {
   it.each([
-    [301, "overview", "/catalog/sections/301"],
+    [301, undefined, "/catalog/sections/301"],
+    [301, "overview", "/catalog/sections/301#overview"],
     [301, "introduction", "/catalog/sections/301#introduction"],
     [301, "calendar", "/catalog/sections/301#calendar"],
     [301, "homework", "/catalog/sections/301#homework"],
@@ -32,7 +33,7 @@ describe("section detail paths", () => {
   });
 
   it.each([
-    ["overview", ""],
+    ["overview", "#overview"],
     ["introduction", "#introduction"],
     ["teachers", "#teachers"],
   ] as const)("maps tab %s to hash %s", (tab, hash) => {
@@ -56,7 +57,10 @@ describe("section detail redirects", () => {
   });
 
   it.each([
-    ["/catalog/sections/159446?tab=overview", "/catalog/sections/159446"],
+    [
+      "/catalog/sections/159446?tab=overview",
+      "/catalog/sections/159446#overview",
+    ],
     [
       "/catalog/sections/159446?tab=calendar",
       "/catalog/sections/159446#calendar",

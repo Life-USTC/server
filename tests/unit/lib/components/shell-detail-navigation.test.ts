@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  detailAnchorIds,
+  activeDetailTab,
   detailNavigation,
+  detailTabIds,
 } from "@/lib/components/shell/detail-navigation";
 import { shellPresentation } from "@/lib/components/shell/shell-templates";
 import { buildLayoutCopy } from "@/lib/shell/layout-server-data";
@@ -50,7 +51,11 @@ describe("route-owned shell capabilities", () => {
       current: { href: "/catalog/sections/1800", label: "Course name" },
       courseHref: "/catalog/courses/400",
     });
-    expect(model?.anchors.map((item) => item.href)).toEqual([
+    expect(
+      model?.current.items.map(
+        (item) => new URL(item.href, "https://life.example").hash,
+      ),
+    ).toEqual([
       "#introduction",
       "#calendar",
       "#exams",
@@ -73,7 +78,7 @@ describe("route-owned shell capabilities", () => {
       expect(model?.courseHref).toBeNull();
     },
   );
-  it("does not duplicate the demo description's existing course relation", () => {
+  it("keeps the demo course relation available across detail tabs", () => {
     expect(
       detailNavigation(
         {
@@ -84,14 +89,14 @@ describe("route-owned shell capabilities", () => {
         "/catalog/sections/1800",
         copy,
       )?.courseHref,
-    ).toBeNull();
+    ).toBe("/catalog/courses/400");
   });
-  it("restores only an anchor owned by the declared detail kind", () => {
-    expect(detailAnchorIds("course")).not.toContain("calendar");
-    expect(detailAnchorIds("section")).toContain("calendar");
-    expect(detailAnchorIds(undefined)).toEqual([]);
+  it("lists only tabs owned by the declared detail kind", () => {
+    expect(detailTabIds("course")).not.toContain("calendar");
+    expect(detailTabIds("section")).toContain("calendar");
+    expect(detailTabIds(undefined)).toEqual([]);
   });
-  it("requires explicit detail metadata and creates only same-page content anchors", () => {
+  it("requires explicit detail metadata and creates only same-entity tab links", () => {
     expect(
       detailNavigation(
         { course: { nameCn: "Course" } },
@@ -108,13 +113,44 @@ describe("route-owned shell capabilities", () => {
         path,
         copy,
       );
-      expect(model?.anchors.map((item) => item.href)).toEqual([
-        "#introduction",
-        "#sections",
-        "#comments",
-        "#overview",
-      ]);
+      expect(
+        model?.current.items.map(
+          (item) => new URL(item.href, "https://life.example").hash,
+        ),
+      ).toEqual(["#introduction", "#sections", "#comments", "#overview"]);
       expect(model?.courseHref).toBeNull();
     }
+  });
+  it("limits the focused homework parameter to its own tab", () => {
+    const section = detailNavigation(
+      { shellDetail: "section", section: { course: { nameCn: "Course" } } },
+      "/catalog/sections/1800",
+      copy,
+      "?homeworkId=42&source=calendar",
+    );
+    expect(
+      section?.current.items.find((link) => link.detail?.tab === "homework")
+        ?.href,
+    ).toBe("/catalog/sections/1800?homeworkId=42&source=calendar#homework");
+    expect(
+      section?.current.items.find((link) => link.detail?.tab === "comments")
+        ?.href,
+    ).toBe("/catalog/sections/1800?source=calendar#comments");
+  });
+
+  it.each([
+    ["section", "", "introduction"],
+    ["section", "?homeworkId=42", "homework"],
+    ["section", "?homeworkId=42#introduction", "introduction"],
+    ["section", "?homeworkId=42#comment-reply", "homework"],
+    ["section", "#comment-reply", "comments"],
+    ["section", "#teachers", "overview"],
+    ["course", "#calendar", "introduction"],
+    ["course", "#comment-abc", "comments"],
+    ["teacher", "?sectionsPage=2#sections", "sections"],
+  ] as const)("selects the %s panel from %s", (kind, suffix, tab) => {
+    expect(
+      activeDetailTab(kind, new URL(`https://life.example/detail${suffix}`)),
+    ).toBe(tab);
   });
 });

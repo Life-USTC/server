@@ -79,7 +79,10 @@ for (const kind of ["course", "teacher", "section"] as const) {
           }[] = [];
           for (const width of [1023, 1024, 1144, 1280, 1440]) {
             await page.setViewportSize({ width, height: 900 });
-            await gotoAndWaitForReady(page, route);
+            await gotoAndWaitForReady(
+              page,
+              kind === "section" ? `${route}#calendar` : route,
+            );
             const sidebar = page.locator('[data-slot="sidebar"][data-state]');
             if ((await sidebar.getAttribute("data-state")) === "collapsed") {
               await page.locator('[data-slot="sidebar-rail"]').click();
@@ -190,7 +193,10 @@ for (const kind of ["course", "teacher", "section"] as const) {
             await expect(identity).toBeVisible();
           }
           await page.setViewportSize({ width: 1144, height: 900 });
-          await gotoAndWaitForReady(page, route);
+          await gotoAndWaitForReady(
+            page,
+            kind === "section" ? `${route}#calendar` : route,
+          );
           await page.locator('[data-slot="sidebar-rail"]').click();
           await expect
             .poll(async () => {

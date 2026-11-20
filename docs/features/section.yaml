@@ -179,8 +179,7 @@ requirements:
       name: section.mobile-detail-actions
 - id: section.detail-canonical-url
   category: behavior
-  rule: The canonical section detail URL is /catalog/sections/[jwId]. Optional hash anchors identify content
-    within that page.
+  rule: The canonical section detail URL is /catalog/sections/[jwId]. Optional fragments select a sidebar tab on that page.
   acceptance:
     given: An isolated Section has a persisted upstream jwId.
     when: A browser opens its entity URL with an extra query and hash.
@@ -705,7 +704,7 @@ capabilities:
           - section.jwId
           tertiary: []
       items:
-      - Continuous description, schedule, exam, homework and comment reading stream.
+      - Sidebar tabs for description, schedule, exams, homework, comments and details.
     requirement_refs:
     - subscription.subscription-language
   section-ical:

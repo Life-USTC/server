@@ -2,6 +2,7 @@ import { expect, type Locator } from "@playwright/test";
 import { createCatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
 import type { TestPrismaClient } from "../../../../shared/prisma";
 import { test } from "../../../utils/catalog-browser-fixture";
+import { selectDetailTab } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
   assertPriorityView,
@@ -317,7 +318,8 @@ for (const locale of ["zh-cn", "en-us"] as const)
               });
               await gotoAndWaitForReady(page, href);
               const heading = page.getByRole("heading", { level: 1 });
-              const aside = main.locator("aside");
+              await selectDetailTab(page, "overview");
+              const overview = main.locator("#overview");
               const detailPrimary: Record<string, PriorityField> =
                 kind === "teacher"
                   ? {
@@ -366,11 +368,11 @@ for (const locale of ["zh-cn", "en-us"] as const)
                         name(category, locale),
                       ),
                       "course.classType.namePrimary": text(
-                        aside,
+                        overview,
                         name(classType, locale),
                       ),
                       "course.type.namePrimary": text(
-                        aside,
+                        overview,
                         name(courseType, locale),
                       ),
                     }
@@ -389,13 +391,16 @@ for (const locale of ["zh-cn", "en-us"] as const)
                           main.locator("[data-detail-identity]"),
                           name(catalog.titles[0], locale),
                         ),
-                        "teacher.email": text(aside, teacher.email ?? ""),
+                        "teacher.email": text(overview, teacher.email ?? ""),
                         "teacher.telephone": text(
-                          aside,
+                          overview,
                           teacher.telephone ?? "",
                         ),
-                        "teacher.mobile": text(aside, teacher.mobile ?? ""),
-                        "teacher.address": text(aside, teacher.address ?? ""),
+                        "teacher.mobile": text(overview, teacher.mobile ?? ""),
+                        "teacher.address": text(
+                          overview,
+                          teacher.address ?? "",
+                        ),
                       }
                     : {
                         "section.course.nameSecondary": text(
@@ -412,42 +417,42 @@ for (const locale of ["zh-cn", "en-us"] as const)
                           main.locator("[data-detail-identity]"),
                           name(campus, locale),
                         ),
-                        "section.code": text(aside, section.code),
-                        "section.credits": text(aside, "3.5"),
+                        "section.code": text(overview, section.code),
+                        "section.credits": text(overview, "3.5"),
                         "section.stdCount": field(
-                          aside.getByText("17 / 27", { exact: true }),
+                          overview.getByText("17 / 27", { exact: true }),
                           "17",
                         ),
                         "section.limitCount": field(
-                          aside.getByText("17 / 27", { exact: true }),
+                          overview.getByText("17 / 27", { exact: true }),
                           "27",
                         ),
                         "section.period": field(
-                          aside.getByText("31 / 29", { exact: true }),
+                          overview.getByText("31 / 29", { exact: true }),
                           "31",
                         ),
                         "section.actualPeriods": field(
-                          aside.getByText("31 / 29", { exact: true }),
+                          overview.getByText("31 / 29", { exact: true }),
                           "29",
                         ),
                         "section.examMode.namePrimary": text(
-                          aside,
+                          overview,
                           name(examMode, locale),
                         ),
                         "section.remark": text(
-                          aside,
+                          overview,
                           `Remark ${catalog.marker}`,
                         ),
                         "section.adminClasses.namePrimary": text(
-                          aside,
+                          overview,
                           name(adminClass, locale),
                         ),
                         "section.timesPerWeek": field(
-                          aside.getByText("5 x 4", { exact: true }),
+                          overview.getByText("5 x 4", { exact: true }),
                           "5",
                         ),
                         "section.periodsPerWeek": field(
-                          aside.getByText("5 x 4", { exact: true }),
+                          overview.getByText("5 x 4", { exact: true }),
                           "4",
                         ),
                         ...Object.fromEntries(
@@ -460,19 +465,19 @@ for (const locale of ["zh-cn", "en-us"] as const)
                             "testPeriods",
                           ].map((key, index) => [
                             `section.${key}`,
-                            text(aside, String(11 + index)),
+                            text(overview, String(11 + index)),
                           ]),
                         ),
                         "section.teachLanguage.namePrimary": text(
-                          aside,
+                          overview,
                           name(language, locale),
                         ),
                         "section.roomType.namePrimary": text(
-                          aside,
+                          overview,
                           name(roomType, locale),
                         ),
                         "section.graduateAndPostgraduate": text(
-                          aside,
+                          overview,
                           locale === "en-us" ? "Yes" : "是",
                         ),
                       };
@@ -490,6 +495,7 @@ for (const locale of ["zh-cn", "en-us"] as const)
                 },
               });
               if (kind !== "section") {
+                await selectDetailTab(page, "sections");
                 const history = main.locator("#sections");
                 const offering =
                   width === 1280

@@ -94,15 +94,14 @@ requirements:
     when: A browser opens Chinese and English detail at 320 and 390 pixel widths.
     then:
     - The localized name is a readable wrapping heading without horizontal overflow.
-    - Public department and title details are directly reachable by scrolling.
+    - Public department and title details are reachable from More details.
     - The offering displays its course name and links to the exact Section.
     test:
       file: tests/e2e/src/app/sections/mobile-catalog-contracts.test.ts
       name: teacher.mobile-detail-hierarchy
 - id: teacher.detail-canonical-url
   category: behavior
-  rule: The canonical teacher detail URL is /catalog/teachers/[id]. Optional hash anchors identify content
-    within that page.
+  rule: The canonical teacher detail URL is /catalog/teachers/[id]. Optional fragments select a sidebar tab on that page.
   acceptance:
     given: An isolated Teacher has a persisted database id.
     when: A browser opens its entity URL with an extra query and hash.
