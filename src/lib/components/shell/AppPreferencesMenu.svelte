@@ -25,14 +25,14 @@ function setThemeValue(value: string) {
 }
 </script>
 
-<div data-shell-preferences class="flex items-center gap-1">
+<div data-shell-preferences class="flex items-center gap-0.5 min-[360px]:gap-2">
   <DropdownMenu.Root open={localeMenuOpen} onOpenChange={setLocaleMenuOpen}>
     <DropdownMenu.Trigger>
       {#snippet child({ props })}
         <Button
           {...props}
           aria-label={copy.language.selector}
-          class="size-11 md:size-8"
+          class="size-11"
           size="icon-sm"
           variant="outline"
         >
@@ -70,7 +70,7 @@ function setThemeValue(value: string) {
         <Button
           {...props}
           aria-label={copy.theme.selector}
-          class="size-11 md:size-8"
+          class="size-11"
           size="icon-sm"
           variant="outline"
         >

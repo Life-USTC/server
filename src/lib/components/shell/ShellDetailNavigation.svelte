@@ -29,17 +29,17 @@ $effect(() => {
 </script>
 
 {#if detail}
-  <div class="detail-frame-gutter shrink-0 border-b bg-card py-2" data-testid="shell-detail-navigation">
+  <div class="detail-frame-gutter shrink-0 border-b bg-card" data-testid="shell-detail-navigation">
     <div class="page-frame page-frame-content">
       <div class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-        <nav aria-label={copy.shell.currentLocation}>
-          <ol class="flex min-w-0 flex-wrap items-center gap-1.5">
-            <li><a class="underline-offset-4 hover:underline" href={detail.collection.href}>{detail.collection.label}</a></li>
-            <li aria-hidden="true"><ChevronRightIcon class="size-3 text-muted-foreground" /></li>
+        <nav class="min-w-0 max-w-full" aria-label={copy.shell.currentLocation}>
+          <ol class="flex min-h-11 min-w-0 items-center gap-2 py-1">
+            <li class="shrink-0"><a class="inline-flex min-h-11 items-center underline-offset-4 hover:underline" href={detail.collection.href}>{detail.collection.label}</a></li>
+            <li class="shrink-0" aria-hidden="true"><ChevronRightIcon class="size-3 text-muted-foreground" /></li>
             <li aria-current={pageData.shellDetail === "section" && tab === "introduction" ? "page" : undefined} class="min-w-0 [overflow-wrap:anywhere]">{detail.current.label}</li>
             {#if pageData.shellDetail !== "section" || tab !== "introduction"}
-            <li aria-hidden="true"><ChevronRightIcon class="size-3 text-muted-foreground" /></li>
-            <li aria-current="page">{copy.shell.detailNavigation[tab]}</li>
+            <li class="shrink-0" aria-hidden="true"><ChevronRightIcon class="size-3 text-muted-foreground" /></li>
+            <li class="shrink-0" aria-current="page">{copy.shell.detailNavigation[tab]}</li>
             {/if}
           </ol>
         </nav>

@@ -73,10 +73,10 @@ let {
 
 <header
   data-shell-topbar
-  class="bg-card/95 sticky top-0 z-20 min-h-14 shrink-0 border-b backdrop-blur md:h-12 md:min-h-12"
+  class="bg-card/95 sticky top-0 z-20 shrink-0 border-b backdrop-blur"
 >
   <div
-    class="flex min-h-14 items-center gap-1 px-2 md:h-full md:min-h-0 sm:gap-2 sm:px-3 lg:px-6"
+    class="flex min-h-[3.75rem] items-center gap-0.5 px-2 py-2 min-[360px]:gap-2 sm:px-4"
   >
     {#if !focused}
       <!-- #1077: stay visible/focusable through the tablet range (hidden only
@@ -108,7 +108,7 @@ let {
     </a>
 
     {#if !focused}
-      <div class="hidden min-w-0 flex-1 justify-center px-4 md:flex">
+      <div class="hidden min-w-0 flex-1 justify-center md:flex">
         <GlobalSearchTrigger
           copy={copy.globalSearch}
           onOpen={onOpenGlobalSearch}
@@ -119,7 +119,7 @@ let {
       </div>
     {/if}
 
-    <div class="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1">
+    <div class="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5 min-[360px]:gap-2">
       {#if !focused}
         <div class="md:hidden">
           <GlobalSearchTrigger
@@ -163,7 +163,7 @@ let {
           {demo}
         />
       {:else if !hideSignIn}
-        <SignInButton data-shell-sign-in>
+        <SignInButton class="h-11" data-shell-sign-in>
           {copy.menu.signIn}
         </SignInButton>
       {/if}

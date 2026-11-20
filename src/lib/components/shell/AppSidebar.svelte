@@ -236,7 +236,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
     class="flex min-h-0 flex-1 flex-col"
   >
     <Sidebar.Header class={sidebar.isMobile ? "pr-12" : undefined}>
-      <div class="flex items-center gap-1 group-data-[collapsible=icon]:flex-col">
+      <div class="flex items-center gap-2 group-data-[collapsible=icon]:flex-col">
         <Sidebar.Menu class="min-w-0 flex-1">
           <Sidebar.MenuItem>
             <Sidebar.MenuButton class="h-11 group-data-[collapsible=icon]:p-1!" tooltipContent={compactTooltips ? "Life@USTC" : undefined}>
@@ -253,8 +253,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
           <Sidebar.Trigger
             aria-label={copy.shell.toggleSidebar}
             title={copy.shell.toggleSidebar}
-            variant="ghost"
-            class="size-9 shrink-0 bg-transparent shadow-none hover:bg-transparent dark:hover:bg-transparent group-data-[collapsible=icon]:size-8"
+            class="group-data-[collapsible=icon]:size-8"
           >
             {#if sidebar.state === "expanded"}<PanelLeftCloseIcon />{:else}<PanelLeftOpenIcon />{/if}
           </Sidebar.Trigger>
