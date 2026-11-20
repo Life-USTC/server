@@ -44,10 +44,8 @@ jobs:
         run: bash tests/ci/seed-guard.test.sh
       - name: Verify RLS metadata collector safety
         run: python3 scripts/operations/test_rls_metadata_audit.py
-      - name: Generate application and database clients
+      - name: Generate application, database, and Worker types
         run: bun run app:prepare
-      - name: Check Cloudflare bindings
-        run: bunx wrangler types --include-runtime=false --env-file .env.example --check
       - name: Check formatting and lint
         run: bunx biome check
       - name: Validate feature specifications
@@ -70,7 +68,7 @@ jobs:
     steps:
       - *checkout
       - uses: ./.github/actions/setup-bun-env
-      - name: Generate application and database clients
+      - name: Generate application, database, and Worker types
         run: bun run app:prepare
       - name: Run unit tests and check coverage
         run: bunx vitest run --coverage
