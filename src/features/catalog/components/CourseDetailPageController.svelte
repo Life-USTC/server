@@ -103,7 +103,7 @@ $: pageContent = { data, copy, detailCopy, notAvailable, primaryName };
   {#snippet titleExtra()}
     {#if data.locale === "en-us" && catalogSecondaryName(data.course) && catalogSecondaryName(data.course) !== catalogPrimaryName(data.course)}{" "}<span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({catalogSecondaryName(data.course)})</span>{/if}
   {/snippet}
-  {#snippet eyebrowContent()}
+  {#snippet belowTitle()}
     <p class="font-mono text-sm text-muted-foreground" data-testid="course-public-code">{data.course.code}</p>
   {/snippet}
 

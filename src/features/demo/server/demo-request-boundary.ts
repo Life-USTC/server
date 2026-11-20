@@ -53,6 +53,7 @@ function isDemoCatalogPage(path: string) {
       "/catalog/bus/map",
     ].includes(path) ||
     path === "/catalog/courses" ||
+    /^\/catalog\/rooms\/[^/]+$/.test(path) ||
     path === "/catalog/sections" ||
     path === "/catalog/teachers" ||
     Boolean(academicEntityPath(path)) ||

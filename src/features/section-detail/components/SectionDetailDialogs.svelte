@@ -183,6 +183,8 @@ $: if (isCalendarDialogOpen) {
   copy={sectionCopy}
   isOpen={isCalendarDialogOpen}
   onOpenChange={setCalendarDialogOpen}
+  personalScope={{ label: sectionCopy.subscriptionUrlLabel, description: sectionCopy.subscriptionUrlDescription, linkLabel: sectionCopy.subscriptionMissing }}
+  showSubscriptionsLink={false}
   urls={[{
     copied: copiedCalendarTarget === "single",
     description: sectionCopy.calendarUrlDescription,
@@ -199,10 +201,7 @@ $: if (isCalendarDialogOpen) {
     close={closeSubscribeDialog}
     {courseName}
     isSubscribed={Boolean(data.viewer.isSubscribed)}
-    {singleCalendarUrl}
-    copied={copiedCalendarTarget === "single"}
-    {clipboardError}
-    onCopy={() => copyText(singleCalendarUrl, "single")}
+    openCalendar={() => { closeSubscribeDialog(); setCalendarDialogOpen(true); }}
     {commonCopy}
     {homeworkCopy}
     {sectionCopy}

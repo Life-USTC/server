@@ -47,28 +47,12 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
                 {sectionSummary({ ...section, course }, locale)}
               </CatalogTableLink>
             </Table.Cell>
-            <Table.Cell class="p-0">
-              <CatalogTableLink href={sectionHref}>
-                <TruncatedCode text={section.code} />
-              </CatalogTableLink>
-            </Table.Cell>
-            <Table.Cell class="p-0">
-              <CatalogTableLink href={sectionHref} nowrap>
-                {primaryName(section.campus) || notAvailable}
-              </CatalogTableLink>
-            </Table.Cell>
-            <Table.Cell class="p-0">
-              <CatalogTableLink href={sectionHref} nowrap numeric>
-                {section.stdCount ?? 0} / {section.limitCount ?? notAvailable}
-              </CatalogTableLink>
-            </Table.Cell>
-            <Table.Cell class="p-0">
-              <CatalogTableLink href={sectionHref}>
-                <TruncatedText
+            <Table.Cell><TruncatedCode text={section.code} /></Table.Cell>
+            <Table.Cell>{primaryName(section.campus) || notAvailable}</Table.Cell>
+            <Table.Cell>{section.stdCount ?? 0} / {section.limitCount ?? notAvailable}</Table.Cell>
+            <Table.Cell><TruncatedText
                   text={catalogLocalizedNames(section.teachers, locale) || notAvailable}
-                />
-              </CatalogTableLink>
-            </Table.Cell>
+                /></Table.Cell>
           </Table.Row>
         {/each}
       </Table.Body>

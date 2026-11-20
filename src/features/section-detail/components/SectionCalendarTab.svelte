@@ -1,4 +1,5 @@
 <script lang="ts">
+import TeacherIcon from "@lucide/svelte/icons/user-round";
 import type { DemoIdentity } from "@/features/demo/lib/demo-types";
 export let pageDemo: DemoIdentity | null | undefined = null;
 export let locale = "";
@@ -56,7 +57,7 @@ $: rows = sectionLessonRows(sectionCalendarEvents, sectionCopy.week);
               </span>
               <div class="flex min-w-0 flex-wrap items-baseline gap-x-2">
                 {#each row.event.teachers ?? [] as teacher (teacher.id)}
-                  <a class="min-h-6 min-w-6 leading-6 text-muted-foreground hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
+                  <a class="min-h-6 min-w-6 leading-6 text-muted-foreground" href={`/catalog/teachers/${teacher.id}`}><TeacherIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" />{teacher.name}</a>
                 {/each}
               </div>
             </div>

@@ -1,8 +1,9 @@
 <script lang="ts">
 import LazyModuleStatus from "#lib/components/LazyModuleStatus.svelte";
-import SectionBasicInfoCard from "@/features/section-detail/components/SectionBasicInfoCard.svelte";
+import SectionBasicInfoAdminClasses from "@/features/section-detail/components/SectionBasicInfoAdminClasses.svelte";
 import SectionBasicInfoDetails from "@/features/section-detail/components/SectionBasicInfoDetails.svelte";
-import SectionDetailIdentity from "@/features/section-detail/components/SectionDetailIdentity.svelte";
+import SectionBasicInfoRelatedSections from "@/features/section-detail/components/SectionBasicInfoRelatedSections.svelte";
+import SectionTeachersCard from "@/features/section-detail/components/SectionTeachersCard.svelte";
 import { detailPageModule } from "@/features/section-detail/lib/detail-page-module.svelte";
 import SectionDetailRoute from "../SectionDetailRoute.svelte";
 import type { ActionData, PageData } from "./$types";
@@ -48,9 +49,10 @@ const CommentsPanel = $derived(commentsModule.component);
       <div id="overview" class="grid gap-4">
         <SectionBasicInfoDetails {commonCopy} {notAvailable} {primaryName} section={displaySection} {sectionCopy} {periodDetailRows} {yesNo} />
         <div data-detail-identity>
-          <SectionDetailIdentity {notAvailable} {primaryName} section={displaySection} {sectionCopy} {teacherName} teachers={displaySection.teachers} />
+          <SectionTeachersCard {primaryName} {sectionCopy} {teacherName} teachers={displaySection.teachers} />
         </div>
-        <SectionBasicInfoCard {notAvailable} {primaryName} section={displaySection} {sectionCopy} />
+        <SectionBasicInfoAdminClasses {primaryName} section={displaySection} {sectionCopy} />
+        <SectionBasicInfoRelatedSections section={displaySection} {sectionCopy} />
       </div>
     <section id="comments" class="scroll-mt-4 min-w-0">
       {#key `comments:section:${data.section.id}`}

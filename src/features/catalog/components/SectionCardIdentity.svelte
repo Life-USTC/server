@@ -1,7 +1,11 @@
 <script lang="ts">
+import ClassIcon from "@lucide/svelte/icons/graduation-cap";
 import type { Snippet } from "svelte";
 import * as Item from "#lib/components/ui/item/index.js";
-import { sectionSummary, type CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
+import {
+  type CatalogNamed,
+  sectionSummary,
+} from "@/features/catalog/lib/catalog-list-display";
 
 export let title: Snippet<[string]> | undefined = undefined;
 export let course: CatalogNamed | null | undefined;
@@ -15,7 +19,7 @@ $: summary = sectionSummary({ course, semester, teachers, code }, locale);
 
 <Item.Content class="min-w-0 basis-full gap-1">
   <Item.Title class="block w-full line-clamp-none break-words [overflow-wrap:anywhere]">
-    {#if title}{@render title(summary)}{:else}{summary}{/if}
+    {#if title}{@render title(summary)}{:else}<ClassIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" />{summary}{/if}
   </Item.Title>
   {#if code && summary !== code}
     <span class="font-mono text-xs text-muted-foreground" data-slot="catalog-code">{code}</span>

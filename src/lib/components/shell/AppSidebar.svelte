@@ -3,7 +3,7 @@ import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import PanelLeftCloseIcon from "@lucide/svelte/icons/panel-left-close";
 import PanelLeftOpenIcon from "@lucide/svelte/icons/panel-left-open";
-import { tick } from "svelte";
+import { type Snippet, tick } from "svelte";
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import * as Sidebar from "#lib/components/ui/sidebar/index.js";
 import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
@@ -29,6 +29,7 @@ let {
   scopes,
   currentScope,
   navigationOwnerKey,
+  mobilePreferences,
 }: {
   copy: LayoutCopy;
   currentPathname: string;
@@ -41,6 +42,7 @@ let {
   scopes: Record<string, NavigationScope>;
   currentScope: string;
   navigationOwnerKey: string;
+  mobilePreferences?: Snippet;
 } = $props();
 const sidebar = Sidebar.useSidebar();
 const compactTooltips = $derived(
@@ -182,7 +184,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
       isActive={active}
       tooltipContent={compactTooltips ? link.label : undefined}
       class={cn(
-        "h-auto min-h-11 py-2 [&>span]:whitespace-normal! [&>span]:[overflow-wrap:anywhere]",
+        "h-auto min-h-11 py-1 [&>span]:whitespace-normal! [&>span]:[overflow-wrap:anywhere]",
         ancestor && "bg-sidebar-accent/50",
         link.badge != null && link.badge > 0 && "pe-14!",
       )}
@@ -212,7 +214,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
 
 {#snippet linkLabel(link: ShellLink, depth: number, hasChildren: boolean)}
   {#if link.icon}{@const Icon = link.icon}<Icon />{:else if link.glyph}<SettingsGlyph name={link.glyph} />{/if}
-  <span class={cn("min-w-0 flex-1", depth === 0 && "font-medium", level === "sections" && depth === 0 && "text-balance text-xs leading-5")}>{#if link.labelLines}{#each link.labelLines as line}<span class="block">{line}</span>{/each}{:else}{link.label}{/if}</span>
+  <span class={cn("min-w-0 flex-1", depth === 0 && "font-medium", level === "sections" && depth === 0 && "text-balance text-xs leading-[1.125rem]")}>{#if link.labelLines}{#each link.labelLines as line}<span class="block">{line}</span>{/each}{:else}{link.label}{/if}</span>
   {#if hasChildren}<ChevronRightIcon class="ml-auto opacity-50 group-data-[collapsible=icon]:hidden" />{/if}
 {/snippet}
 
@@ -235,7 +237,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
     data-testid={`${currentScope}-sidebar`}
     class="flex min-h-0 flex-1 flex-col"
   >
-    <Sidebar.Header class={sidebar.isMobile ? "pr-12" : undefined}>
+    <Sidebar.Header class={cn("gap-0 pb-0", sidebar.isMobile && "pr-12")}>
       <div class="flex items-center gap-2 group-data-[collapsible=icon]:flex-col">
         <Sidebar.Menu class="min-w-0 flex-1">
           <Sidebar.MenuItem>
@@ -253,7 +255,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
           <Sidebar.Trigger
             aria-label={copy.shell.toggleSidebar}
             title={copy.shell.toggleSidebar}
-            class="group-data-[collapsible=icon]:size-8"
+            class="size-11 group-data-[collapsible=icon]:w-8"
           >
             {#if sidebar.state === "expanded"}<PanelLeftCloseIcon />{:else}<PanelLeftOpenIcon />{/if}
           </Sidebar.Trigger>
@@ -261,7 +263,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
       </div>
       {#if scope.parent}
         <Sidebar.Menu><Sidebar.MenuItem>
-          <Sidebar.MenuButton class="h-auto min-h-11 py-2" tooltipContent={compactTooltips ? copy.shell.primaryDestinations.back : undefined}>
+          <Sidebar.MenuButton class="h-11 py-1" tooltipContent={compactTooltips ? copy.shell.primaryDestinations.back : undefined}>
             {#snippet child({ props })}
               <button {...props} type="button" data-local-navigation-back data-testid={`${currentScope}-sidebar-back`} onclick={() => changeLevel(scope.parent === "admin" ? "admin" : "root")}>
                 <ArrowLeftIcon /><span>{copy.shell.primaryDestinations.back}</span>
@@ -303,6 +305,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
     </Sidebar.Content>
   </nav>
   {#if !sidebar.isMobile}<Sidebar.Rail label={copy.shell.toggleSidebar} />{/if}
+  {#if sidebar.isMobile && mobilePreferences}<Sidebar.Footer class="border-t">{@render mobilePreferences()}</Sidebar.Footer>{/if}
   {#if footerLinks.length}<Sidebar.Footer class="border-t p-2"
       ><nav
         aria-label={copy.shell.footerNavigation}

@@ -1,4 +1,5 @@
 <script lang="ts">
+import CalendarPlusIcon from "@lucide/svelte/icons/calendar-plus";
 import { Button } from "#lib/components/ui/button/index.js";
 import SectionCalendarTab from "@/features/section-detail/components/SectionCalendarTab.svelte";
 import SectionExamSection from "@/features/section-detail/components/SectionExamSection.svelte";
@@ -12,12 +13,7 @@ let { data, form }: { data: PageData; form: ActionData } = $props();
   {#snippet content({ data, sectionCopy, fmtDate, sectionExamEvents, openCalendarDialog, roomMapCopy, sectionCalendarEvents })}
     <section id="schedule" data-detail-tab="schedule" class="min-w-0 scroll-mt-4">
       <section id="exams">
-        <div class="mb-3 flex items-center justify-between gap-2">
-          <h2 class="font-semibold">{sectionCopy.tabs.exams}</h2>
-          {#if sectionExamEvents.length}
-            <Button variant="ghost" size="sm" disabled={Boolean(data.demo)} onclick={openCalendarDialog}>{sectionCopy.addToCalendar}</Button>
-          {/if}
-        </div>
+        <h2 class="mb-3 font-semibold">{sectionCopy.tabs.exams}</h2>
         <SectionExamSection
           events={sectionExamEvents}
           fmtDate={fmtDate}
@@ -29,7 +25,14 @@ let { data, form }: { data: PageData; form: ActionData } = $props();
         />
       </section>
       <section id="calendar">
-        <h2 class="mt-5 mb-2 font-semibold">{data.copy.sectionDetail.classSchedule}</h2>
+        <div class="mt-5 mb-2 flex items-center justify-between gap-2">
+          <h2 class="font-semibold">{data.copy.sectionDetail.classSchedule}</h2>
+          {#if sectionCalendarEvents.length}
+            <Button variant="outline" size="sm" disabled={Boolean(data.demo)} onclick={openCalendarDialog}>
+              <CalendarPlusIcon data-icon="inline-start" />{sectionCopy.addToCalendar}
+            </Button>
+          {/if}
+        </div>
         <SectionCalendarTab
           roomMapCopy={roomMapCopy}
           pageDemo={data.demo}

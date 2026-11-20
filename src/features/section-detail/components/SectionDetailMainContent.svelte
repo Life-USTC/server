@@ -76,7 +76,7 @@ $: pageContent = {
 </script>
 
 <div class="grid flex-1 grid-rows-[auto_minmax(0,1fr)_auto] bg-card lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
-  <div class="detail-frame-gutter bg-card" data-testid="detail-pinned-summary">
+  <div class="detail-frame-gutter border-b bg-card" data-testid="detail-pinned-summary">
     <div class="page-frame page-frame-content">
       <SectionDetailHeader
         courseName={courseName}

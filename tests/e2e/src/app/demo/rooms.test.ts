@@ -192,7 +192,10 @@ for (const [locale, width] of [
             ).toBeVisible();
             await chips.filter({ hasText: /^DEMO-101$/ }).click();
             await waitForUiSettled(page);
-            await expect(page).toHaveURL(/room=DEMO-101$/);
+            await expect(page).toHaveURL(/\/rooms\/DEMO-101$/);
+            await page
+              .locator('main a[href="/catalog/rooms?room=DEMO-101"]')
+              .click();
             const result = preview(page);
             await expect(result).toHaveCount(1);
             await expect(result).toContainText(
@@ -509,11 +512,9 @@ for (const transition of ["ordinary mode", "same-page locale"] as const) {
                     url: isolatedWorker.origin,
                   },
                 ]);
-              const current = page
-                .getByTestId("room-map-building-room")
-                .filter({ hasText: /^DEMO-101$/ });
-              await expect(current).toHaveCount(1);
-              await current.click();
+              await page
+                .locator('form[action="/catalog/rooms"] button[type="submit"]')
+                .click();
               await expect(page.getByTestId("demo-notice")).toBeVisible();
               await imageReady(preview(page).getByRole("img"));
               await expect(preview(page)).toContainText(

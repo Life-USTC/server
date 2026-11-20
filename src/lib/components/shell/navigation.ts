@@ -367,6 +367,18 @@ function sidebarItems(
         ),
       );
       break;
+    case "rooms": {
+      const room = pageData.map;
+      if (
+        pathname.startsWith("/catalog/rooms/") &&
+        room &&
+        typeof room === "object" &&
+        "code" in room &&
+        typeof room.code === "string"
+      )
+        items.push({ href: pathname, label: room.code, icon: MapPinnedIcon });
+      break;
+    }
     case "bus":
       items.push({
         href: "/catalog/bus/map",

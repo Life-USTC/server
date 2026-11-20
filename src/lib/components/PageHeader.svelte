@@ -44,7 +44,7 @@ const titleScaleClasses = {
 const titleScaleClass = $derived(titleScaleClasses[density]);
 </script>
 
-<header class={cn("grid min-w-0 gap-4", density === "compact" ? "py-0 md:py-1" : "py-2 md:py-3", className)}>
+<header class={cn("grid min-w-0 gap-4", density === "detail" ? "pt-6 pb-4 sm:py-5" : density === "compact" ? "py-0 md:py-1" : "py-2 md:py-3", className)}>
   <div class="flex min-w-0 flex-wrap items-start justify-between gap-4">
     <div class="min-w-0 flex-1">
       {#if eyebrowContent}

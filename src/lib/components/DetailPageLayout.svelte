@@ -14,7 +14,7 @@ let {
 } = $props();
 </script>
 <section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0" data-slot="detail-page-layout">
-  <div class="detail-frame-gutter bg-card"><div class="page-frame page-frame-content">{@render header()}</div></div>
+  <div class="detail-frame-gutter border-b bg-card"><div class="page-frame page-frame-content">{@render header()}</div></div>
   <div class="detail-frame-gutter @container/detail min-h-0 min-w-0 lg:overflow-y-auto" data-detail-scroll-container>
     <div
       class={cn(

@@ -1,4 +1,5 @@
 <script lang="ts">
+import ClassIcon from "@lucide/svelte/icons/graduation-cap";
 import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
 
 import type { DemoIdentity } from "@/features/demo/lib/demo-types";
@@ -61,10 +62,10 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
         <Table.Row class="group">
           <Table.Cell>
             <a
-              class="block min-w-0 max-w-full overflow-hidden py-0.5 font-medium underline-offset-4 hover:underline"
+              class="block min-w-0 max-w-full overflow-hidden py-0.5 font-medium text-foreground"
               href={detailHref}
             >
-              <TruncatedText text={sectionSummary(exam.section, locale)} />
+              <ClassIcon class="me-1 inline size-4" aria-hidden="true" /><TruncatedText text={sectionSummary(exam.section, locale)} />
             </a>
             <details class="mt-1 text-xs text-muted-foreground">
               <summary class="cursor-pointer py-1">{sectionCopy.moreDetails}</summary>

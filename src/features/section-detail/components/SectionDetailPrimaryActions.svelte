@@ -1,6 +1,6 @@
 <script lang="ts">
+import BookmarkPlusIcon from "@lucide/svelte/icons/bookmark-plus";
 import CalendarIcon from "@lucide/svelte/icons/calendar";
-import LinkIcon from "@lucide/svelte/icons/link-2";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 
@@ -46,7 +46,7 @@ export let viewer: {
           onOpenSubscribe();
         }}
       >
-        <LinkIcon data-icon="inline-start" />
+        <BookmarkPlusIcon data-icon="inline-start" />
         {viewer.isSubscribed ? sectionCopy.subscribeSuccess : sectionCopy.subscribeLabel}
       </Button>
     </form>

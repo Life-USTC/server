@@ -33,21 +33,9 @@ export let teacher: TeacherDetailTeacher;
         {#each teacher.sections as section}
           {@const sectionHref = `/catalog/sections/${section.jwId}`}
           <Table.Row>
-            <Table.Cell class="p-0">
-              <CatalogTableLink href={sectionHref} nowrap>
-                {section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : notAvailable}
-              </CatalogTableLink>
-            </Table.Cell>
-            <Table.Cell class="p-0">
-              <CatalogTableLink href={sectionHref}>
-                <TruncatedCode text={section.code} />
-              </CatalogTableLink>
-            </Table.Cell>
-            <Table.Cell class="p-0">
-              <CatalogTableLink href={sectionHref} numeric>
-                {section.credits ?? notAvailable}
-              </CatalogTableLink>
-            </Table.Cell>
+            <Table.Cell>{section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : notAvailable}</Table.Cell>
+            <Table.Cell><TruncatedCode text={section.code} /></Table.Cell>
+            <Table.Cell>{section.credits ?? notAvailable}</Table.Cell>
             <Table.Cell class="p-0">
               <CatalogTableLink class="font-medium" href={sectionHref}>
                 <span class="break-words">{sectionSummary({ ...section, teachers: section.teachers ?? [teacher] }, locale)}</span>

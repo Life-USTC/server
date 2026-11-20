@@ -48,6 +48,7 @@ export function isPublicNavigationPath(pathname: string) {
   if (pathname.endsWith("/")) pathname = pathname.slice(0, -1);
   return (
     PUBLIC_PATHS.has(pathname) ||
+    /^\/catalog\/rooms\/[^/]+$/.test(pathname) ||
     Boolean(academicEntityPath(pathname)) ||
     /^\/catalog\/young-events(?:\/(?:organizers(?:\/[^/]+)?|[^/]+))?$/.test(
       pathname,

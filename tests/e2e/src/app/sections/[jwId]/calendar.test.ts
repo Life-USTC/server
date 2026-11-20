@@ -251,7 +251,11 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
         await expect(calDialog).toBeVisible();
 
         // iCalendar URL (ical.yml → section-calendar-dialog.display.fields)
-        const singleUrl = calDialog.locator("#section-subscription-feed");
+        await expect(calDialog.getByRole("radio")).toHaveCount(0);
+        await calDialog
+          .getByRole("button", { name: /添加到日历|Add to calendar/i })
+          .click();
+        const singleUrl = calDialog.locator("#calendar-url");
         await expect(singleUrl).toBeVisible();
 
         // Single section URL

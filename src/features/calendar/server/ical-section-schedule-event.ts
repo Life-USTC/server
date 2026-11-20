@@ -33,9 +33,11 @@ export function createScheduleEvent(
   const start = parseTimeHHMM(schedule.date, schedule.startTime);
   const end = parseTimeHHMM(schedule.date, schedule.endTime);
 
-  const location = schedule.room?.building?.campus
-    ? `${schedule.room.nameCn} (${schedule.room.building.campus.nameCn}-${schedule.room.building.nameCn})`
-    : schedule.customPlace || L.locationTbd;
+  const location =
+    schedule.customPlace ||
+    schedule.room?.nameCn ||
+    schedule.room?.code ||
+    L.locationTbd;
 
   const teacherNames =
     schedule.teacherParticipations?.length > 0

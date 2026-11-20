@@ -168,6 +168,14 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     mobileChecks: ["public"],
   },
   {
+    routeId: "/catalog/rooms/[code]",
+    domain: "RoomMap",
+    samplePath: "/catalog/rooms/2304",
+    kind: "page",
+    auth: "public",
+    mobileChecks: ["public"],
+  },
+  {
     routeId: "/catalog/weather",
     domain: "Weather",
     samplePath: "/catalog/weather",

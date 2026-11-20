@@ -70,7 +70,7 @@ describe("demo catalog projections", () => {
       ).toBe(
         locale === "en-us"
           ? "Explore the sample teaching sections below."
-          : "你可以在下方浏览这位老师的演示教学班。",
+          : "你可以在下方浏览这位老师的演示班级。",
       );
     },
   );

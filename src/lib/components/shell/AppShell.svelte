@@ -48,6 +48,7 @@ import {
 import type { DemoView } from "@/features/demo/lib/demo-types";
 import { afterNavigate, goto } from "$app/navigation";
 import { navigating, page as routePage } from "$app/state";
+import AppPreferencesMenu from "./AppPreferencesMenu.svelte";
 import MobilePrimaryNavigation from "./MobilePrimaryNavigation.svelte";
 import {
   buildShellNavGroups,
@@ -628,7 +629,11 @@ let globalSearchShortcutLabel = $derived(
         scopes={navigationScopes}
         currentScope={scopedNavigation.current}
         {navigationOwnerKey}
-      />
+      >
+        {#snippet mobilePreferences()}
+          <AppPreferencesMenu copy={data.copy} locale={data.locale} {localeMenuOpen} {setLocale} {setLocaleMenuOpen} {setThemeMenuOpen} {setThemeMode} {themeMenuOpen} {themeMode} />
+        {/snippet}
+      </AppSidebar>
 
       <Sidebar.Inset
         aria-label={mainContentLabel}

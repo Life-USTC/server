@@ -285,7 +285,7 @@ export function buildNavigationScopes(
           ...(feature.id === "sections"
             ? []
             : [{ ...feature, items: undefined }]),
-          detail.current,
+          { ...detail.current, icon: feature.icon },
         ]);
       } else {
         add(feature.id, feature.label, "campus", [feature], true);

@@ -1,4 +1,5 @@
 <script lang="ts">
+import TeacherIcon from "@lucide/svelte/icons/user-round";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
@@ -79,7 +80,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
               <MobileListCard size="sm">
                 {#snippet child({ props })}
                   <a href={teacherHref} {...props}>
-                    <Item.Content><Item.Title><CatalogEntityName item={teacher} locale={locale} /></Item.Title></Item.Content>
+                    <Item.Content><Item.Title><TeacherIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" /><CatalogEntityName item={teacher} locale={locale} /></Item.Title></Item.Content>
                     <Item.Actions>
                       {#if sectionCount > 0}
                         <span
@@ -111,7 +112,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
               {#if sectionCount > 0}
                 <a
                   href={teacherSectionsHref(teacher)}
-                  class="absolute right-3 top-0 flex min-h-11 min-w-11 items-center justify-end text-sm tabular-nums text-muted-foreground underline-offset-2 hover:underline"
+                  class="absolute right-3 top-0 flex min-h-11 min-w-11 items-center justify-end text-sm tabular-nums text-muted-foreground underline-offset-2"
                   data-testid="teacher-section-count"
                 >{sectionCount}</a>
               {/if}

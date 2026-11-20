@@ -66,16 +66,20 @@ $effect(() => {
   }
 });
 function roomHref(code: string) {
-  return `/catalog/rooms?${new URLSearchParams({ room: code.trim() })}`;
+  return `/catalog/rooms/${encodeURIComponent(code.trim())}`;
 }
 function submit(event: SubmitEvent) {
   event.preventDefault();
   const room = input.trim();
   if (room === rawRoom) {
     searchRevision += 1;
+    void goto(window.location.href, { invalidateAll: true, reset: false });
     return;
   }
-  void goto(room ? roomHref(room) : "/catalog/rooms", { reset: false });
+  void goto(
+    room ? `/catalog/rooms?${new URLSearchParams({ room })}` : "/catalog/rooms",
+    { reset: false },
+  );
 }
 
 function roomCountLabel(roomCount: number) {
@@ -158,7 +162,7 @@ function floorLabel(floor: string) {
                 class="font-mono"
                 data-testid="room-map-sample-chip"
               >
-                {code}
+                <MapPinnedIcon aria-hidden="true" />{code}
               </Button>
             {/each}
           </div>
@@ -190,7 +194,7 @@ function floorLabel(floor: string) {
                             <Accordion.Content>
                               <div class="flex flex-wrap gap-2">
                                 {#each floor.codes as code (code)}
-                                  <Button href={roomHref(code)} variant={code === selectedRoom ? "secondary" : "outline"} size="sm" aria-current={code === selectedRoom ? "location" : undefined} data-testid="room-map-building-room">{code}</Button>
+                                  <Button href={roomHref(code)} variant={code === selectedRoom ? "secondary" : "outline"} size="sm" aria-current={code === selectedRoom ? "location" : undefined} data-testid="room-map-building-room"><MapPinnedIcon aria-hidden="true" />{code}</Button>
                                 {/each}
                               </div>
                             </Accordion.Content>

@@ -1,5 +1,6 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import ClassIcon from "@lucide/svelte/icons/graduation-cap";
 import Pencil from "@lucide/svelte/icons/pencil";
 import UserMinus from "@lucide/svelte/icons/user-minus";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
@@ -27,7 +28,6 @@ export let removingSectionId: SubscriptionSection["id"] | null;
 export let sectionCopy: WorkspaceSectionCopy;
 export let sections: SubscriptionSection[];
 export let subscriptionsCopy: WorkspaceSubscriptionsCopy;
-
 </script>
 
 <div class="min-w-0" data-testid="subscription-semester-cards">
@@ -36,7 +36,7 @@ export let subscriptionsCopy: WorkspaceSubscriptionsCopy;
       <MobileListCard>
         <SectionCardIdentity course={section.course} teachers={section.teachers} code={section.code} semester={section.semester} {locale}>
           {#snippet title(summary)}
-            <a class="flex min-h-11 min-w-0 max-w-full items-center break-words font-medium hover:underline [overflow-wrap:anywhere]" href={`/catalog/sections/${section.jwId}`} data-testid="subscription-course-link">{summary}</a>
+            <a class="flex min-h-11 min-w-0 max-w-full items-center break-words font-medium [overflow-wrap:anywhere]" href={`/catalog/sections/${section.jwId}`} data-testid="subscription-course-link"><ClassIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" />{summary}</a>
           {/snippet}
         </SectionCardIdentity>
         <Item.Footer class="flex-wrap justify-start gap-2">

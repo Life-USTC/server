@@ -2,11 +2,11 @@
 import BookOpenIcon from "@lucide/svelte/icons/book-open";
 import ClipboardCheckIcon from "@lucide/svelte/icons/clipboard-check";
 import ExternalLinkIcon from "@lucide/svelte/icons/external-link";
+import ClassIcon from "@lucide/svelte/icons/graduation-cap";
 import LinkIcon from "@lucide/svelte/icons/link";
 import ListTodoIcon from "@lucide/svelte/icons/list-todo";
-import RouteIcon from "@lucide/svelte/icons/route";
 import SearchXIcon from "@lucide/svelte/icons/search-x";
-import UsersIcon from "@lucide/svelte/icons/users";
+import TeacherIcon from "@lucide/svelte/icons/user-round";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import * as Empty from "#lib/components/ui/empty/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
@@ -43,8 +43,8 @@ const groupIcons: Record<GlobalSearchResultGroupType, typeof BookOpenIcon> = {
   courses: BookOpenIcon,
   homeworks: ClipboardCheckIcon,
   links: LinkIcon,
-  sections: RouteIcon,
-  teachers: UsersIcon,
+  sections: ClassIcon,
+  teachers: TeacherIcon,
   todos: ListTodoIcon,
 };
 

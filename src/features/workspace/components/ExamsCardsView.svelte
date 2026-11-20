@@ -1,4 +1,5 @@
 <script lang="ts">
+import ClassIcon from "@lucide/svelte/icons/graduation-cap";
 import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
 
 import type { DemoIdentity } from "@/features/demo/lib/demo-types";
@@ -48,11 +49,11 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
       <Item.Content class="min-w-0 gap-1">
         <Item.Title class="line-clamp-none block w-full min-w-0">
           <a
-            class="flex min-h-11 w-full min-w-0 max-w-full items-center underline-offset-4 hover:underline"
+            class="flex min-h-11 w-full min-w-0 max-w-full items-center text-foreground"
             href={detailHref}
           >
             <span class="min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
-            {sectionSummary(exam.section, locale)}
+            <ClassIcon class="me-1 inline size-4" aria-hidden="true" />{sectionSummary(exam.section, locale)}
             </span>
           </a>
         </Item.Title>

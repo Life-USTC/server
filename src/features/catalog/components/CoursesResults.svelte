@@ -1,4 +1,5 @@
 <script lang="ts">
+import CourseIcon from "@lucide/svelte/icons/book-open";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
@@ -67,7 +68,7 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
               <MobileListCard size="sm">
                 {#snippet child({ props })}
                   <a href={courseHref} {...props}>
-                    <Item.Content><Item.Title><CatalogEntityName item={course} locale={locale} /></Item.Title></Item.Content>
+                    <Item.Content><Item.Title><CourseIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" /><CatalogEntityName item={course} locale={locale} /></Item.Title></Item.Content>
                     <Item.Actions><TruncatedCode text={course.code} /></Item.Actions>
 
                     <Item.Footer class="flex-wrap justify-start">

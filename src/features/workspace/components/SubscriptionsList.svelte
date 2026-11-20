@@ -1,7 +1,6 @@
 <script lang="ts">
-import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
-
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import ClassIcon from "@lucide/svelte/icons/graduation-cap";
 import Pencil from "@lucide/svelte/icons/pencil";
 import UserMinus from "@lucide/svelte/icons/user-minus";
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
@@ -14,6 +13,7 @@ import { Button } from "#lib/components/ui/button/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
+import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
 import SubscriptionCancelDialog from "@/features/subscriptions/components/SubscriptionCancelDialog.svelte";
 import { groupSubscribedSectionsBySemester } from "@/features/workspace/lib/subscriptions";
 import type {
@@ -259,11 +259,11 @@ function handleRemoveDialogOpenChange(open: boolean) {
                   <Table.Cell>
                     <div class="flex min-w-0 flex-wrap items-center gap-1.5">
                         <a
-                          class="block min-w-0 max-w-full overflow-hidden py-0.5 font-medium hover:underline"
+                          class="block min-w-0 max-w-full overflow-hidden py-0.5 font-medium"
                           href={`/catalog/sections/${section.jwId}`}
                           data-testid="subscription-course-link"
                         >
-                          <TruncatedText text={sectionSummary(section, locale)} />
+                          <ClassIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" /><TruncatedText text={sectionSummary(section, locale)} />
                         </a>
                       {#if section.kind !== "regular"}
                         <Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>

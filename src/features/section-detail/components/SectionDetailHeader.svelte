@@ -1,4 +1,5 @@
 <script lang="ts">
+import TeacherIcon from "@lucide/svelte/icons/user-round";
 import PageHeader from "#lib/components/PageHeader.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import {
@@ -56,17 +57,13 @@ $: subscriptionsCopy = getWorkspacePageCopy(locale).subscriptions;
   class="gap-1 [&>div:empty]:hidden [&_h1+p]:text-sm"
   density="detail"
 >
-  {#snippet titleExtra()}
-    {#if hasCourseName}
-      <span class="ms-2 inline-block align-baseline font-mono text-sm font-normal text-muted-foreground" data-slot="catalog-code">{section.code}</span>
-    {/if}
-  {/snippet}
   {#snippet belowTitle()}
     <div class="mt-1 flex flex-wrap items-baseline gap-x-3 text-sm text-muted-foreground">
       {#if section.semester?.nameCn}<span>{formatSemesterName(locale, section.semester.nameCn)}</span>{/if}
       {#each section.teachers ?? [] as teacher (teacher.id)}
-        <a class="underline-offset-4 hover:underline" href={`/catalog/teachers/${teacher.id}`}>{catalogLocalizedDisplayName(teacher, locale)}</a>
+        <a href={`/catalog/teachers/${teacher.id}`}><TeacherIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" />{catalogLocalizedDisplayName(teacher, locale)}</a>
       {/each}
+      {#if hasCourseName}<span class="font-mono" data-slot="catalog-code">{section.code}</span>{/if}
     </div>
   {/snippet}
   {#snippet actions()}
