@@ -61,11 +61,12 @@ $: subscriptionsCopy = getWorkspacePageCopy(locale).subscriptions;
   eyebrow={sectionCopy.teachingSection}
   description={courseSecondaryName}
   actionsClass="hidden md:flex"
+  class="gap-1 [&>div:empty]:hidden"
   density="detail"
 >
   {#snippet belowTitle()}
     {#if teacherNames || hasCourseName || section.semester?.nameCn}
-    <div class="mt-2 grid min-w-0 gap-1">
+    <div class="mt-1 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
       {#if teacherNames}<p class="break-words text-sm">{teacherNames}</p>{/if}
       {#if hasCourseName || section.semester?.nameCn}
       <p class="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">

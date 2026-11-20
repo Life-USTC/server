@@ -87,14 +87,16 @@ $: classLectureNumberById = new Map(
       {#each datedEvents as event (event.id)}
         <Table.Row>
           <Table.Cell>
-            <div class="whitespace-nowrap">{lectureLabel(event)}</div>
+            <div class="flex flex-wrap items-baseline gap-x-2">
+              <span class="whitespace-nowrap">{lectureLabel(event)}</span>
             {#if event.teachers?.length}
-              <div class="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground" aria-label={sectionCopy.teacher}>
+              <div class="flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground" aria-label={sectionCopy.teacher}>
                 {#each event.teachers as teacher (teacher.id)}
                   <a class="inline-flex min-h-6 min-w-6 items-center whitespace-nowrap underline-offset-4 hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
                 {/each}
               </div>
             {/if}
+            </div>
           </Table.Cell>
           <Table.Cell class="whitespace-nowrap font-semibold">
             {formatYyyyMmDd(event.dateKey ?? event.date) || sectionCopy.dateTBD}
@@ -121,14 +123,16 @@ $: classLectureNumberById = new Map(
       {#each unscheduledCalendarEvents as event (event.id)}
         <Table.Row>
           <Table.Cell>
-            <div class="whitespace-nowrap">{lectureLabel(event)}</div>
+            <div class="flex flex-wrap items-baseline gap-x-2">
+              <span class="whitespace-nowrap">{lectureLabel(event)}</span>
             {#if event.teachers?.length}
-              <div class="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground" aria-label={sectionCopy.teacher}>
+              <div class="flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground" aria-label={sectionCopy.teacher}>
                 {#each event.teachers as teacher (teacher.id)}
                   <a class="inline-flex min-h-6 min-w-6 items-center whitespace-nowrap underline-offset-4 hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
                 {/each}
               </div>
             {/if}
+            </div>
           </Table.Cell>
           <Table.Cell class="whitespace-nowrap">{sectionCopy.dateTBD}</Table.Cell>
           <Table.Cell class="whitespace-nowrap">

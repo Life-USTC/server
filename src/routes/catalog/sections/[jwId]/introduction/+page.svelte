@@ -1,5 +1,6 @@
 <script lang="ts">
 import LazyModuleStatus from "#lib/components/LazyModuleStatus.svelte";
+import SectionBasicInfoDetails from "@/features/section-detail/components/SectionBasicInfoDetails.svelte";
 import { detailPageModule } from "@/features/section-detail/lib/detail-page-module.svelte";
 import SectionDetailRoute from "../SectionDetailRoute.svelte";
 import type { ActionData, PageData } from "./$types";
@@ -12,8 +13,9 @@ const DescriptionCard = $derived(module.component);
 </script>
 
 <SectionDetailRoute {data} {form}>
-  {#snippet content({ data, descriptionData })}
-    <section id="introduction" data-detail-tab="introduction" class="scroll-mt-4">
+  {#snippet content({ data, descriptionData, commonCopy, notAvailable, primaryName, displaySection, sectionCopy, yesNo })}
+    <section id="introduction" data-detail-tab="introduction" class="grid gap-4 scroll-mt-4">
+      <SectionBasicInfoDetails {commonCopy} {notAvailable} {primaryName} section={displaySection} {sectionCopy} {yesNo} />
       {#key `description:section:${data.section.id}`}
         {#if DescriptionCard}
           <DescriptionCard

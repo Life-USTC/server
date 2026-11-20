@@ -6,11 +6,9 @@ import {
 import type {
   SectionBasicInfo,
   SectionBasicInfoCopy,
-  SectionPrimaryName,
 } from "./section-basic-info-types";
 
 export let notAvailable: string;
-export let primaryName: SectionPrimaryName;
 export let section: SectionBasicInfo;
 export let sectionCopy: SectionBasicInfoCopy;
 
@@ -19,7 +17,6 @@ $: capacityValue =
     ? `${section.stdCount ?? 0} / ${section.limitCount ?? notAvailable}`
     : notAvailable;
 $: remarkValue = section.remark?.trim() || notAvailable;
-$: scheduleRemarkValue = section.scheduleRemark?.trim() || null;
 </script>
 
 <dl class={detailDefinitionListClass}>
@@ -32,19 +29,6 @@ $: scheduleRemarkValue = section.scheduleRemark?.trim() || null;
   <dt class={detailDefinitionTermClass}>{sectionCopy.summaryCapacityMeta}</dt>
   <dd class="m-0 min-w-0 font-medium">{capacityValue}</dd>
 
-  <dt class={detailDefinitionTermClass}>{sectionCopy.period}</dt>
-  <dd class="m-0 min-w-0 font-medium">
-    {section.period ?? notAvailable} / {section.actualPeriods ?? notAvailable}
-  </dd>
-
-  <dt class={detailDefinitionTermClass}>{sectionCopy.examMode}</dt>
-  <dd class="m-0 min-w-0 font-medium">{primaryName(section.examMode) || notAvailable}</dd>
-
   <dt class={detailDefinitionTermClass}>{sectionCopy.remark}</dt>
   <dd class="m-0 min-w-0 whitespace-pre-wrap font-medium">{remarkValue}</dd>
-
-  {#if scheduleRemarkValue}
-    <dt class={detailDefinitionTermClass}>{sectionCopy.scheduleRemark}</dt>
-    <dd class="m-0 min-w-0 whitespace-pre-wrap font-medium">{scheduleRemarkValue}</dd>
-  {/if}
 </dl>

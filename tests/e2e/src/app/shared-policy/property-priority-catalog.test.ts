@@ -427,18 +427,6 @@ for (const locale of ["zh-cn", "en-us"] as const)
                           overview.getByText("17 / 27", { exact: true }),
                           "27",
                         ),
-                        "section.period": field(
-                          overview.getByText("31 / 29", { exact: true }),
-                          "31",
-                        ),
-                        "section.actualPeriods": field(
-                          overview.getByText("31 / 29", { exact: true }),
-                          "29",
-                        ),
-                        "section.examMode.namePrimary": text(
-                          overview,
-                          name(examMode, locale),
-                        ),
                         "section.remark": text(
                           overview,
                           `Remark ${catalog.marker}`,
@@ -446,39 +434,6 @@ for (const locale of ["zh-cn", "en-us"] as const)
                         "section.adminClasses.namePrimary": text(
                           overview,
                           name(adminClass, locale),
-                        ),
-                        "section.timesPerWeek": field(
-                          overview.getByText("5 x 4", { exact: true }),
-                          "5",
-                        ),
-                        "section.periodsPerWeek": field(
-                          overview.getByText("5 x 4", { exact: true }),
-                          "4",
-                        ),
-                        ...Object.fromEntries(
-                          [
-                            "theoryPeriods",
-                            "practicePeriods",
-                            "experimentPeriods",
-                            "machinePeriods",
-                            "designPeriods",
-                            "testPeriods",
-                          ].map((key, index) => [
-                            `section.${key}`,
-                            text(overview, String(11 + index)),
-                          ]),
-                        ),
-                        "section.teachLanguage.namePrimary": text(
-                          overview,
-                          name(language, locale),
-                        ),
-                        "section.roomType.namePrimary": text(
-                          overview,
-                          name(roomType, locale),
-                        ),
-                        "section.graduateAndPostgraduate": text(
-                          overview,
-                          locale === "en-us" ? "Yes" : "是",
                         ),
                       };
               await assertPriorityView({
@@ -494,6 +449,36 @@ for (const locale of ["zh-cn", "en-us"] as const)
                     : {}),
                 },
               });
+              if (kind === "section") {
+                for (const [tab, values] of [
+                  [
+                    "calendar",
+                    [
+                      "31 / 29",
+                      "5 x 4",
+                      name(roomType, locale),
+                      ...Array.from({ length: 6 }, (_, index) =>
+                        String(11 + index),
+                      ),
+                    ],
+                  ],
+                  ["exams", [name(examMode, locale)]],
+                  [
+                    "introduction",
+                    [name(language, locale), locale === "en-us" ? "Yes" : "是"],
+                  ],
+                ] as const) {
+                  await selectDetailTab(page, tab);
+                  for (const value of values) {
+                    await expect(
+                      main
+                        .locator(`#${tab}`)
+                        .getByText(value, { exact: true })
+                        .first(),
+                    ).toBeVisible();
+                  }
+                }
+              }
               if (kind !== "section") {
                 await selectDetailTab(page, "sections");
                 const history = main.locator("#sections");

@@ -117,7 +117,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
       ),
     );
     await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, SECTION_URL);
+      await gotoAndWaitForReady(page, `${SECTION_URL}/overview`);
 
       const overview = page.locator("[data-detail-identity]");
 
@@ -162,7 +162,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
       ),
     );
     await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, SECTION_URL);
+      await gotoAndWaitForReady(page, `${SECTION_URL}/overview`);
 
       const facts = page
         .locator("dl")
@@ -172,7 +172,8 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
         .locator("dt")
         .filter({ hasText: /学分|Credits/i })
         .locator("xpath=following-sibling::dd[1]");
-      const examModeValue = facts
+      const examModeValue = page
+        .locator("#exams")
         .locator("dt")
         .filter({ hasText: /^(方式|Mode)$/i })
         .locator("xpath=following-sibling::dd[1]");
@@ -183,6 +184,8 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
 
       // section.credits
       await expect(creditsValue).toHaveText(String(DEV_SEED.section.credits));
+      await expect(remarkValue).toContainText(DEV_SEED.section.remark);
+      await gotoAndWaitForReady(page, `${SECTION_URL}/exams`);
       // section.examMode.namePrimary (locale-dependent)
       await expect(examModeValue).toContainText(
         new RegExp(
@@ -190,8 +193,6 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
           "i",
         ),
       );
-      // section.remark (whitespace-preserved, language-neutral text)
-      await expect(remarkValue).toContainText(DEV_SEED.section.remark);
     });
   });
 
@@ -209,9 +210,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, SECTION_URL);
 
-      await expect(
-        page.getByRole("heading", { name: /^(更多信息|More Details)$/i }),
-      ).toBeVisible();
+      await expect(page.locator("#introduction")).toBeVisible();
 
       // section.teachLanguage.namePrimary (locale-dependent)
       await expect(
@@ -220,6 +219,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
           .or(page.getByText(DEV_SEED.section.teachLanguageNameEn))
           .first(),
       ).toBeVisible();
+      await gotoAndWaitForReady(page, `${SECTION_URL}/calendar`);
       // section.roomType.namePrimary (locale-dependent)
       await expect(
         page
@@ -242,7 +242,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
       ),
     );
     await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, SECTION_URL);
+      await gotoAndWaitForReady(page, `${SECTION_URL}/overview`);
 
       const classes = page
         .getByRole("heading", {
@@ -295,18 +295,17 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
       await gotoAndWaitForReady(page, SECTION_URL);
 
       await expect(page.locator("#introduction")).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: /日历|Calendar/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: /作业|Homework/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: /考试|Exams/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: /评论|Comments/i }),
-      ).toBeVisible();
+      for (const tab of [
+        "calendar",
+        "exams",
+        "homework",
+        "comments",
+        "overview",
+      ]) {
+        await gotoAndWaitForReady(page, `${SECTION_URL}/${tab}`);
+        await expect(page.locator("[data-detail-tab]")).toHaveCount(1);
+        await expect(page.locator(`#${tab}`)).toBeVisible();
+      }
 
       await gotoAndWaitForReady(page, `${SECTION_URL}#homework`);
       await expect(page).toHaveURL(/\/catalog\/sections\/\d+\/homework$/);
@@ -368,7 +367,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
           .poll(() =>
             getDetailViewport(page).evaluate((node) => node.scrollTop),
           )
-          .toBeGreaterThan(0);
+          .toBe(0);
         expect(
           await getDetailViewport(page).evaluate((node) => {
             // Overflow-hidden frame ancestors must not steal reading movement.

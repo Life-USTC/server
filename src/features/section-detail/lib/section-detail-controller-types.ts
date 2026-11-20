@@ -86,6 +86,7 @@ export type SectionDetailSection = {
   periodsPerWeek?: number | null;
   practicePeriods?: number | null;
   remark?: string | null;
+  scheduleRemark?: string | null;
   retiredAt?: string | Date | null;
   roomType?: SectionDetailNamed | null;
   schedules: SectionDetailSchedule[];

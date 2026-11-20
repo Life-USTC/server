@@ -13,11 +13,14 @@ const SectionExamSection = $derived(module.component);
 </script>
 
 <SectionDetailRoute {data} {form}>
-  {#snippet content({ data, sectionCopy, roomMapCopy, sectionExamEvents, fmtDate })}
+  {#snippet content({ data, sectionCopy, displaySection, primaryName, roomMapCopy, sectionExamEvents, fmtDate })}
     <section id="exams" data-detail-tab="exams" class="min-w-0 scroll-mt-4">
       <h2 class="mb-3 text-lg font-semibold tracking-tight">
         {sectionCopy.tabs.exams}
       </h2>
+      {#if displaySection.examMode}
+        <dl class="mb-3 flex gap-2 text-sm"><dt class="text-muted-foreground">{sectionCopy.examMode}</dt><dd>{primaryName(displaySection.examMode)}</dd></dl>
+      {/if}
       {#if SectionExamSection}
         <SectionExamSection
           events={sectionExamEvents}

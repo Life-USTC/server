@@ -17,7 +17,6 @@ import {
   catalogPrimaryName as primaryName,
 } from "../lib/catalog-list-display";
 import { formatCatalogDetailMessage as formatMessage } from "../lib/course-detail-display";
-import CourseDetailIdentity from "./CourseDetailIdentity.svelte";
 import type {
   CourseDetailCopy,
   CourseDetailSection,
@@ -106,9 +105,6 @@ $: pageContent = { data, copy, detailCopy, notAvailable, primaryName };
   {/snippet}
   {#snippet eyebrowContent()}
     <p class="font-mono text-sm text-muted-foreground" data-testid="course-public-code">{data.course.code}</p>
-  {/snippet}
-  {#snippet identity()}
-    <CourseDetailIdentity copy={detailCopy} course={data.course} {primaryName} />
   {/snippet}
 
   {@render content(pageContent)}

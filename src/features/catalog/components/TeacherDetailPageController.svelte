@@ -26,7 +26,6 @@ import type {
   CatalogDetailDescriptionCopy,
   CatalogDetailDescriptionData,
 } from "./catalog-detail-page-types";
-import TeacherDetailIdentity from "./TeacherDetailIdentity.svelte";
 
 type TeacherDetailData = CatalogNamed & {
   address?: string | null;
@@ -72,7 +71,7 @@ $: copy = data.copy;
 $: detailCopy = copy satisfies TeacherDetailCopy;
 $: notAvailable = copy.teacherDetail.notAvailable;
 $: displayName = catalogLocalizedDisplayName(data.teacher, data.locale);
-$: pageContent = { data, copy, detailCopy, notAvailable };
+$: pageContent = { data, copy, detailCopy, notAvailable, primaryName };
 </script>
 
 <svelte:head>
@@ -90,9 +89,6 @@ $: pageContent = { data, copy, detailCopy, notAvailable };
   {/snippet}
   {#snippet titleExtra()}
     {#if data.locale === "en-us" && catalogSecondaryName(data.teacher) && catalogSecondaryName(data.teacher) !== catalogPrimaryName(data.teacher)}{" "}<span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({catalogSecondaryName(data.teacher)})</span>{/if}
-  {/snippet}
-  {#snippet identity()}
-    <TeacherDetailIdentity copy={detailCopy} teacher={data.teacher} {primaryName} {notAvailable} />
   {/snippet}
 
   {@render content(pageContent)}

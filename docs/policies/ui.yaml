@@ -10,8 +10,7 @@ requirements:
   acceptance:
     given: Public course, section, and teacher details have introductions and comments; the section also has
       homework.
-    when: An anonymous browser opens each detail at 1280 pixels and switches reading panels and measures each relative to
-      the compact identity.
+    when: An anonymous browser opens each detail at 1280 pixels and measures each selected page within the content frame.
     then:
     - Desktop course, section, and teacher detail pages place introductions, descriptions, homework content,
       and comments in the main reading column.
@@ -33,32 +32,28 @@ requirements:
 - id: ui.layout-principles-3
   category: presentation
   topic: layout-principles
-  rule: At mobile widths, catalog detail pages render the hero, compact identity facts and selected panel
-    in that order. Workspace views and overlays follow their own declared content order.
+  rule: Catalog detail pages render the entity header followed by one full-width page. Workspace views and overlays follow their own declared content order.
   acceptance:
     given: Isolated course, teacher, and section details include compact identity facts, a description,
       and remaining secondary facts in Chinese and English.
     when: A browser renders each detail at 390 pixels, then resizes the same page to 1280 pixels.
     then:
-    - Mobile DOM and visible geometry order the hero, compact identity facts and selected panel without
-      horizontal document overflow.
-    - Course level/category, teacher department/title, and section teachers/campus appear before reading;
+    - Mobile visitors see the selected page immediately below the header without horizontal document overflow.
+    - Course level/category, teacher department/title, and section teachers/campus appear within More details;
       the section retains one linked teachers anchor.
-    - Desktop places the compact identity to the right of the selected panel.
+    - Desktop uses the same single content column.
     test:
       file: tests/e2e/src/app/shared-policy/catalog-mobile-hierarchy.test.ts
       name: ui.layout-principles-3 Course
 - id: ui.detail-content-width
   category: presentation
   topic: layout-principles
-  rule: Course, teacher and teaching-section details move compact identity to the right only when the actual content container has at least 60rem available. Narrower content preserves the identity-before-reading order. A viewport crossing 1024px must not collapse the reading column; toggling the shell sidebar can change the detail layout according to available content width.
+  rule: Course, teacher and teaching-section pages use the available content width up to the page frame maximum. Identity facts occupy normal flow within More details.
   acceptance:
     given: Public course, teacher and section details render with the shell sidebar expanded.
-    when: The viewport crosses 1023/1024,1144,1280 and1440 pixels and the sidebar collapses at1144.
+    when: Visitors open a detail page at mobile and desktop widths.
     then:
-    - Increasing1023 to1024 preserves the reading width apart from normal page padding changes.
-    - Reading columns remain at least540px in these desktop samples.
-    - Wide content retains right-side identity; collapsed sidebar space can enable this layout without changing viewport width.
+    - The selected page fills the content frame. The schedule table can scroll within its container on narrow screens.
     test:
       file: tests/e2e/src/app/shared-policy/detail-content-width.test.ts
       name: ui.detail-content-width course
@@ -648,13 +643,13 @@ requirements:
   rule: Catalog detail information regions contain feature-specific structured facts. Section detail includes
     teacher links, with subscription and calendar actions reachable in the desktop header and mobile fixed action bar.
     Course and teacher pages do not offer section-specific actions before a section is selected.
-  rationale: The compact identity is shared by all panels. Secondary facts have a dedicated More details panel.
+  rationale: The introduction contains teaching language, department and student level. Calendar presents workload and scheduling facts. Exams presents the assessment mode. More details contains teachers, enrollment and related sections.
     Section primary actions stay in the header or fixed mobile bar so they remain reachable across tabs.
   acceptance:
     given: Isolated catalog fixtures contain course classifications, teacher contact and affiliation facts, section counts and an authenticated viewer.
     when: Section, course and teacher detail pages are opened at 1280, 390 and 320 pixels.
     then:
-    - Structured facts render in More details, and the compact identity remains visible on desktop and mobile.
+    - Entity facts render within the selected page at every viewport size.
     - Section teacher links navigate to the matching teacher; header or mobile actions open the matching calendar URL and persist subscribe/unsubscribe changes.
     - Course and teacher pages expose applicable facts and section links without presenting section subscription or calendar actions before selection.
     test:

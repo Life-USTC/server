@@ -81,7 +81,7 @@ async function detailColumns(page: Page, width: number) {
   await expect(aside).toHaveCount(1);
   if (width === 1280) {
     const boxes = await Promise.all([identity, aside, reading].map(bounds));
-    expect(boxes[0].x).toBeGreaterThan(boxes[2].x + boxes[2].width);
+    expect(boxes[0].x).toBe(boxes[2].x);
     expect(boxes[1].x).toBe(boxes[2].x);
   }
   return { main, identity, aside };
@@ -127,10 +127,15 @@ test("ui.detail-two-column-stream-4 Section", { tag: "@Section/Web" }, async ({
           "href",
           `/catalog/teachers/${teacher.id}`,
         );
-        for (const text of [section.code, "3.5", "12 / 40", "32 / 30"])
+        for (const text of [section.code, "3.5", "12 / 40"])
           await reachable(
             aside.getByRole("definition").filter({ hasText: text }),
           );
+        await selectDetailTab(page, "calendar");
+        await reachable(
+          page.locator("#calendar").getByText("32 / 30", { exact: true }),
+        );
+        await selectDetailTab(page, "overview");
         await teacherLink.click();
         await expect(page).toHaveURL(
           new RegExp(`/catalog/teachers/${teacher.id}$`),

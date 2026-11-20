@@ -597,21 +597,19 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
 
           const identity = page.locator("[data-detail-identity]");
           const reading = page.locator("[data-detail-reading-stream]");
-          await expect(identity).toBeVisible();
+          await expect(identity).toHaveCount(0);
           await expect(reading.locator("#introduction")).toContainText(
             "Readable introduction",
           );
+          await selectDetailTab(page, "overview");
           for (const value of item.identity)
             await expect(identity).toContainText(value);
           const [hero, identityBounds, readingBounds] = await regionBounds(
             page,
-            ["h1", "[data-detail-identity]", "#introduction"],
+            ["h1", "[data-detail-identity]", "#overview"],
           );
           expect(hero.y + hero.height).toBeLessThanOrEqual(identityBounds.y);
-          expect(identityBounds.y + identityBounds.height).toBeLessThanOrEqual(
-            readingBounds.y,
-          );
-          await selectDetailTab(page, "overview");
+          expect(identityBounds.x).toBe(readingBounds.x);
           await expect(reading.locator("#overview")).toContainText(
             item.secondary,
           );
@@ -642,9 +640,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
             "#overview",
             "[data-detail-identity]",
           ]);
-          expect(desktopIdentity.x).toBeGreaterThan(
-            desktopReading.x + desktopReading.width,
-          );
+          expect(desktopIdentity.x).toBe(desktopReading.x);
         }
       }
     });

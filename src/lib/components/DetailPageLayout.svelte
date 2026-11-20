@@ -5,12 +5,10 @@ import { detailColumnsClass } from "./detail-layout";
 
 let {
   header,
-  identity,
   children,
   aside,
 }: {
   header: Snippet;
-  identity?: Snippet;
   children: Snippet;
   aside?: Snippet;
 } = $props();
@@ -21,30 +19,12 @@ let {
     <div
       class={cn(
         "page-frame page-frame-content min-h-full px-4 py-4 sm:px-5 lg:px-6",
-        identity
-          ? "grid gap-8 @[60rem]/detail:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] @[60rem]/detail:items-start @[60rem]/detail:gap-10"
-          : detailColumnsClass,
-        identity && aside && "@[60rem]/detail:grid-rows-[auto_1fr]",
+        aside && detailColumnsClass,
       )}
     >
-      {#if identity}
-        <div class="min-w-0 @[60rem]/detail:col-start-2 @[60rem]/detail:row-start-1" data-detail-identity>{@render identity()}</div>
-      {/if}
-      <div
-        class={cn(
-          "grid min-w-0 grid-cols-1 gap-10",
-          identity && "@[60rem]/detail:col-start-1 @[60rem]/detail:row-start-1",
-          identity && aside && "@[60rem]/detail:row-span-2",
-        )}
-        data-detail-reading-stream
-      >{@render children()}</div>
+      <div class="min-w-0" data-detail-reading-stream>{@render children()}</div>
       {#if aside}
-        <aside
-          class={cn(
-            "grid min-w-0 gap-6",
-            identity ? "@[60rem]/detail:col-start-2 @[60rem]/detail:row-start-2" : "@[60rem]/detail:sticky @[60rem]/detail:top-4",
-          )}
-        >{@render aside()}</aside>
+        <aside class="grid min-w-0 gap-6 @[60rem]/detail:sticky @[60rem]/detail:top-4">{@render aside()}</aside>
       {/if}
     </div>
   </div>

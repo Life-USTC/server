@@ -211,14 +211,9 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
         ]) {
           await selectDetailTab(page, id);
           const reading = await column.locator(`#${id}`).boundingBox();
-          const aside = await page
-            .locator("[data-detail-identity]")
-            .boundingBox();
-          expect(reading).not.toBeNull();
-          expect(aside).not.toBeNull();
-          if (!reading || !aside)
-            throw new Error("Missing reading/sidebar geometry");
-          expect(reading.x + reading.width).toBeLessThan(aside.x);
+          const stream = await column.boundingBox();
+          expect(reading?.width).toBe(stream?.width);
+          await expect(page.locator("[data-detail-identity]")).toHaveCount(0);
         }
       }
     });

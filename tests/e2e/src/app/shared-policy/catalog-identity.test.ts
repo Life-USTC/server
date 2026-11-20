@@ -907,7 +907,7 @@ test("cases.missing-data.section-missing-teacher-location-or-exam-1", {
       ).toBe(200);
       await gotoAndWaitForReady(
         page,
-        `/catalog/sections/${fixture.section.jwId}`,
+        `/catalog/sections/${fixture.section.jwId}/overview`,
       );
       const name =
         locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
@@ -922,10 +922,18 @@ test("cases.missing-data.section-missing-teacher-location-or-exam-1", {
       await expect(campus.locator("+ dd")).toHaveText(
         locale === "zh-cn" ? "暂无" : "N/A",
       );
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/sections/${fixture.section.jwId}/calendar`,
+      );
       await expect(page.locator("#calendar")).toContainText(
         locale === "zh-cn"
           ? "此教学班暂无课程或考试安排"
           : "No schedule or exam events available for this section",
+      );
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/sections/${fixture.section.jwId}/exams`,
       );
       await expect(page.locator("#exams")).toContainText(
         locale === "zh-cn"

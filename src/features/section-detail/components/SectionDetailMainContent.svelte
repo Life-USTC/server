@@ -6,13 +6,11 @@ import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
-import { cn } from "#lib/utils.js";
 import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import type { SectionDetailSection } from "@/features/section-detail/lib/section-detail-controller-types";
 import type { SubmitFunction } from "$app/forms";
 import SectionDetailHeader from "./SectionDetailHeader.svelte";
-import SectionDetailIdentity from "./SectionDetailIdentity.svelte";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
 import type { SectionDetailMainContentProps } from "./section-detail-dialog-types";
 
@@ -83,6 +81,7 @@ $: pageContent = {
   primaryName,
   displaySection,
   sectionTeachersLabel,
+  teacherName,
   yesNo,
 };
 </script>
@@ -141,20 +140,8 @@ $: pageContent = {
       </Alert.Root>
     {/if}
 
-    <div class="page-frame page-frame-content grid gap-8 @[60rem]/detail:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] @[60rem]/detail:items-start @[60rem]/detail:gap-10">
-      <div class="min-w-0 @[60rem]/detail:col-start-2 @[60rem]/detail:row-start-1" data-detail-identity>
-        <SectionDetailIdentity
-          notAvailable={notAvailable}
-          primaryName={primaryName}
-          section={displaySection}
-          sectionCopy={sectionCopy}
-          teacherName={teacherName}
-          teachers={displaySection.teachers}
-        />
-      </div>
-      <div class="grid min-w-0 grid-cols-1 gap-10 @[60rem]/detail:col-start-1 @[60rem]/detail:row-start-1" data-detail-reading-stream>
-        {@render content(pageContent)}
-      </div>
+    <div class="page-frame page-frame-content min-w-0" data-detail-reading-stream>
+      {@render content(pageContent)}
     </div>
   </div>
 
