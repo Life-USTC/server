@@ -196,7 +196,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
         {:else}
           <a {...props} href={link.href} data-detail-page={link.detail?.tab}
             data-navigation-depth={depth}
-            aria-label={link.ariaLabel ?? link.label}
+            aria-label={link.ariaLabel ?? link.labelLines?.join("") ?? link.label}
             aria-current={active ? "page" : ancestor ? "location" : undefined}
             use:revealCurrent={active}
             onclick={() => sidebar.setOpenMobile(false)}
@@ -212,7 +212,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
 
 {#snippet linkLabel(link: ShellLink, depth: number, hasChildren: boolean)}
   {#if link.icon}{@const Icon = link.icon}<Icon />{:else if link.glyph}<SettingsGlyph name={link.glyph} />{/if}
-  <span class={cn("min-w-0 flex-1", depth === 0 && "font-medium")}>{link.label}</span>
+  <span class={cn("min-w-0 flex-1", depth === 0 && "font-medium", level === "sections" && depth === 0 && "text-balance text-xs leading-5")}>{#if link.labelLines}{#each link.labelLines as line}<span class="block">{line}</span>{/each}{:else}{link.label}{/if}</span>
   {#if hasChildren}<ChevronRightIcon class="ml-auto opacity-50 group-data-[collapsible=icon]:hidden" />{/if}
 {/snippet}
 
@@ -277,9 +277,9 @@ function revealCurrent(node: HTMLElement, active: boolean) {
       <div class="flex min-w-0 shrink-0 flex-col" data-slot="sidebar-flow" class:sidebar-level-enter={true}>
         {#each scope.groups as group}
           <Sidebar.Group>
-            {#if ["sections", "courses", "teachers"].includes(level)}
-            <Sidebar.GroupLabel class="group-data-[collapsible=icon]:hidden">{group.label}</Sidebar.GroupLabel>
-          {/if}
+            {#if level === "courses" || level === "teachers"}
+              <Sidebar.GroupLabel class="group-data-[collapsible=icon]:hidden">{group.label}</Sidebar.GroupLabel>
+            {/if}
             <Sidebar.GroupContent>
               <Sidebar.Menu>
                 {#each group.links as link}

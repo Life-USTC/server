@@ -19,7 +19,7 @@ const CommentsPanel = $derived(commentsModule.component);
 </script>
 
 <SectionDetailRoute {data} {form}>
-  {#snippet content({ data, descriptionData, commonCopy, notAvailable, primaryName, displaySection, sectionCopy, yesNo, sectionTeachersLabel, teacherName, periodDetailRows, commentTargets })}
+  {#snippet content({ data, descriptionData, commonCopy, notAvailable, primaryName, displaySection, sectionCopy, yesNo, teacherName, periodDetailRows, commentTargets })}
     <section id="introduction" data-detail-tab="introduction" class="grid gap-4 scroll-mt-4">
       {#key `description:section:${data.section.id}`}
         {#if DescriptionCard}
@@ -50,7 +50,7 @@ const CommentsPanel = $derived(commentsModule.component);
         <div data-detail-identity>
           <SectionDetailIdentity {notAvailable} {primaryName} section={displaySection} {sectionCopy} {teacherName} teachers={displaySection.teachers} />
         </div>
-        <SectionBasicInfoCard {notAvailable} {primaryName} section={displaySection} {sectionCopy} {sectionTeachersLabel} />
+        <SectionBasicInfoCard {notAvailable} {primaryName} section={displaySection} {sectionCopy} />
       </div>
     <section id="comments" class="scroll-mt-4 min-w-0">
       {#key `comments:section:${data.section.id}`}

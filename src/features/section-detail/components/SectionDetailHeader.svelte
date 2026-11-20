@@ -52,7 +52,7 @@ $: subscriptionsCopy = getWorkspacePageCopy(locale).subscriptions;
   title={courseName}
   titleClass={hasCourseName ? "" : "font-mono [overflow-wrap:anywhere]"}
   description={courseSecondaryName}
-  actionsClass="hidden md:flex"
+  actionsClass="hidden self-center md:flex"
   class="gap-1 [&>div:empty]:hidden [&_h1+p]:text-sm"
   density="detail"
 >

@@ -65,6 +65,7 @@ function teacherPageSection(overrides: object = {}) {
     jwId: 302,
     code: "002",
     credits: null,
+    teachers: [],
     course: localizedName("Course"),
     semester: null,
     ...overrides,

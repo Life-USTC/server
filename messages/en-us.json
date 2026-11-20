@@ -211,7 +211,7 @@
     "subscribedSections": "Subscribed sections",
     "semesterGroup": "Semester: {name}",
     "removing": "Removing...",
-    "browseSections": "Browse Sections",
+    "browseSections": "Classes",
     "browseCourses": "Browse Courses",
     "subscriptionTitle": "Section Subscription #{id}",
     "sectionIncluded": "{count} section included",
@@ -1020,7 +1020,7 @@
       "viewPastHomeworks": "View Past Homework",
       "viewPastSchedule": "View Past Schedule",
       "viewPastSections": "View Past Sections",
-      "browseSections": "Browse Sections",
+      "browseSections": "Classes",
       "browseCourses": "Browse Courses",
       "matchByCode": "Match by Code"
     },
@@ -3313,7 +3313,7 @@
     "destinations": {
       "subscriptions": "Section subscriptions",
       "courses": "Browse courses",
-      "sections": "Browse sections"
+      "sections": "Classes"
     },
     "discovery": {
       "mcpLabel": "AI assistants (MCP)",

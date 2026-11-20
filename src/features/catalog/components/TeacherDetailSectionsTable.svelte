@@ -1,11 +1,9 @@
 <script lang="ts">
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
-import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Table from "#lib/components/ui/table/index.js";
-import { catalogLocalizedDisplayName } from "@/features/catalog/lib/catalog-list-display";
+import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
-import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   TeacherDetailCopy,
@@ -52,11 +50,7 @@ export let teacher: TeacherDetailTeacher;
             </Table.Cell>
             <Table.Cell class="p-0">
               <CatalogTableLink class="font-medium" href={sectionHref}>
-                <TruncatedText
-                  text={catalogLocalizedDisplayName(section.course, locale)}
-                >
-                  {#snippet children()}<CatalogEntityName item={section.course} {locale} />{/snippet}
-                </TruncatedText>
+                <span class="break-words">{sectionSummary({ ...section, teachers: section.teachers ?? [teacher] }, locale)}</span>
               </CatalogTableLink>
             </Table.Cell>
           </Table.Row>

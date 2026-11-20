@@ -50,7 +50,7 @@ export type SectionBasicInfo = {
   adminClasses: SectionLocalizedName[];
   campus?: SectionLocalizedName | null;
   code: string;
-  course: {
+  course: SectionLocalizedName & {
     jwId: number | string;
   };
   credits?: number | null;
@@ -72,8 +72,6 @@ export type SectionBasicInfo = {
   teachLanguage?: SectionLocalizedName | null;
   timesPerWeek?: number | null;
 };
-
-export type SectionTeachersLabel = (section: SectionRelatedSummary) => string;
 
 export type SectionTeacherSummary = SectionLocalizedName & {
   teacherTitle?: SectionLocalizedName | null;

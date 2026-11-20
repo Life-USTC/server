@@ -211,7 +211,7 @@
     "subscribedSections": "已订阅教学班",
     "semesterGroup": "学期：{name}",
     "removing": "移除中...",
-    "browseSections": "浏览教学班",
+    "browseSections": "班级",
     "browseCourses": "浏览课程",
     "subscriptionTitle": "教学班订阅 #{id}",
     "sectionIncluded": "包含 {count} 个教学班",
@@ -1020,7 +1020,7 @@
       "viewPastHomeworks": "查看往期作业",
       "viewPastSchedule": "查看往期课表",
       "viewPastSections": "查看往期教学班",
-      "browseSections": "浏览教学班",
+      "browseSections": "班级",
       "browseCourses": "浏览课程",
       "matchByCode": "按代码匹配"
     },
@@ -3313,7 +3313,7 @@
     "destinations": {
       "subscriptions": "教学班订阅",
       "courses": "浏览课程",
-      "sections": "浏览教学班"
+      "sections": "班级"
     },
     "discovery": {
       "mcpLabel": "AI 助手（MCP）",

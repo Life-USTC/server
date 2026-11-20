@@ -24,7 +24,7 @@ export let teacher: TeacherDetailTeacher;
       <MobileListCard variant="outline" size="sm">
         {#snippet child({ props })}
           <a href={`/catalog/sections/${section.jwId}`} {...props}>
-            <SectionCardIdentity course={section.course} teachers={[teacher]} code={section.code} semester={section.semester} {locale} />
+            <SectionCardIdentity course={section.course} teachers={section.teachers ?? [teacher]} code={section.code} semester={section.semester} {locale} />
             <Item.Footer class="flex-wrap justify-start">
               <span>{section.credits ?? notAvailable} {copy.teacherDetail.credits}</span>
             </Item.Footer>

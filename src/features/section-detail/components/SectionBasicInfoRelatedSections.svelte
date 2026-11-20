@@ -1,30 +1,20 @@
 <script lang="ts">
-import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
 import { page as routePage } from "$app/state";
 import type {
   SectionBasicInfo,
   SectionBasicInfoCopy,
-  SectionRelatedSummary,
-  SectionTeachersLabel,
 } from "./section-basic-info-types";
 
 interface Props {
-  notAvailable: string;
   section: SectionBasicInfo;
   sectionCopy: SectionBasicInfoCopy;
-  sectionTeachersLabel: SectionTeachersLabel;
 }
 
-let { notAvailable, section, sectionCopy, sectionTeachersLabel }: Props =
-  $props();
+let { section, sectionCopy }: Props = $props();
 
 let locale = $derived(routePage.data.locale ?? "zh-cn");
 
-function semesterLabel(related: SectionRelatedSummary) {
-  return related.semester?.nameCn
-    ? formatSemesterName(locale, related.semester.nameCn)
-    : notAvailable;
-}
 </script>
 
 
@@ -45,10 +35,7 @@ function semesterLabel(related: SectionRelatedSummary) {
             class="text-foreground hover:underline"
             href={`/catalog/sections/${related.jwId}`}
           >
-            {semesterLabel(related)}
-            <span class="text-muted-foreground">
-              · {sectionTeachersLabel(related)}
-            </span>
+            {sectionSummary({ ...related, course: section.course }, locale)}
           </a>
         </li>
       {/each}

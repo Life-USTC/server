@@ -18,10 +18,11 @@ const teacherPageSectionsSelect = {
       ...localizedNameSelect,
     },
   },
+  teachers: { select: localizedNameSelect },
   semester: { select: { nameCn: true } },
 } as const;
 
-const TEACHER_PAGE_CORE_CACHE_SHAPE = "page-core-v3";
+const TEACHER_PAGE_CORE_CACHE_SHAPE = "page-core-v4";
 
 /**
  * Loads the immutable public teacher core. Viewer, description, and comments

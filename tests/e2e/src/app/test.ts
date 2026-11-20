@@ -1092,13 +1092,13 @@ shellTest(
       await expect(content).toBeVisible();
 
       await expect(
-        content.getByRole("link", { name: /浏览教学班|Browse Sections/i }),
+        content.getByRole("link", { name: /班级|Classes/i }),
       ).toBeVisible();
       await expect(
         content.getByRole("link", { name: /浏览课程|Browse Courses/i }),
       ).toBeVisible();
       await expect(
-        content.getByRole("link", { name: /浏览教学班|Browse Sections/i }),
+        content.getByRole("link", { name: /班级|Classes/i }),
       ).toHaveAttribute("href", "/catalog/sections");
       await expect(
         content.getByRole("link", { name: /浏览课程|Browse Courses/i }),

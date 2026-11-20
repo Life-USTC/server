@@ -36,7 +36,6 @@ export let primaryName: SectionDetailMainContentProps["primaryName"];
 export let roomMapCopy: SectionDetailMainContentProps["roomMapCopy"];
 export let sectionCalendarEvents: SectionDetailMainContentProps["sectionCalendarEvents"];
 export let sectionCopy: SectionDetailMainContentProps["sectionCopy"];
-export let sectionTeachersLabel: SectionDetailMainContentProps["sectionTeachersLabel"];
 export let setSelectedHomework: SectionDetailMainContentProps["setSelectedHomework"];
 export let retryStreamPanels: () => void;
 export let streamError: string | null;
@@ -71,7 +70,6 @@ $: pageContent = {
   periodDetailRows,
   primaryName,
   displaySection,
-  sectionTeachersLabel,
   teacherName,
   yesNo,
 };

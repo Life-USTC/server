@@ -35,18 +35,24 @@ describe("route-owned shell capabilities", () => {
       shellPresentation("standard", false),
     );
   });
-  it("links the current section code to its introduction and lists its two child pages", () => {
+  it("links the current section summary to its introduction and lists its two child pages", () => {
     const model = detailNavigation(
       {
         shellDetail: "section",
-        section: { code: "022063.01", course: { jwId: 400, nameCn: "Course" } },
+        section: {
+          code: "022063.01",
+          course: { jwId: 400, nameCn: "Course" },
+          semester: { nameCn: "2026年秋季学期" },
+          teachers: [{ nameCn: "何志成" }],
+        },
       },
       "/catalog/sections/1800",
       copy,
     );
     expect(model?.current).toMatchObject({
       href: "/catalog/sections/1800/introduction",
-      label: "022063.01",
+      label: "Course（2026年秋季学期，何志成）",
+      labelLines: ["Course", "（2026秋季学期，何志成）"],
     });
     expect(model?.current.items.map((item) => item.detail?.tab)).toEqual([
       "schedule",

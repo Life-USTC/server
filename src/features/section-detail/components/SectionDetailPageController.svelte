@@ -248,7 +248,6 @@ const {
   formatMessage: _formatMessage,
   primaryName: _primaryName,
   secondaryName: _secondaryName,
-  sectionTeachersLabel: _sectionTeachersLabel,
   teacherName: _teacherName,
   yesNo: _yesNo,
 } = createSectionDetailDisplayActions({
@@ -550,7 +549,6 @@ onMount(() => {
     roomMapCopy={data.copy.roomMap}
     {sectionCalendarEvents}
     sectionCopy={_sectionCopy}
-    sectionTeachersLabel={_sectionTeachersLabel}
     setSelectedHomework={selectHomework}
     {retryStreamPanels}
     streamError={personalFailed ? _sectionCopy.operationFailed : streamError}

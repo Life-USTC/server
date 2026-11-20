@@ -1,4 +1,6 @@
 <script lang="ts">
+import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
+
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import Pencil from "@lucide/svelte/icons/pencil";
 import UserMinus from "@lucide/svelte/icons/user-minus";
@@ -261,7 +263,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
                           href={`/catalog/sections/${section.jwId}`}
                           data-testid="subscription-course-link"
                         >
-                          <TruncatedText text={courseName(section)} />
+                          <TruncatedText text={sectionSummary(section, locale)} />
                         </a>
                       {#if section.kind !== "regular"}
                         <Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>

@@ -107,9 +107,6 @@ export function detailNavigation(
       ...current,
       ...(kind === "section"
         ? {
-            label: String(
-              (pageData.section as { code?: string })?.code || current.label,
-            ),
             href: `${current.href}/introduction${sharedSearch}`,
             detail: { kind: "section" as const, tab: "introduction" as const },
           }

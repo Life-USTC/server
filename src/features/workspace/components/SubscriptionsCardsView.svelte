@@ -28,9 +28,6 @@ export let sectionCopy: WorkspaceSectionCopy;
 export let sections: SubscriptionSection[];
 export let subscriptionsCopy: WorkspaceSubscriptionsCopy;
 
-function courseName(section: SubscriptionSection) {
-  return section.course.namePrimary ?? workspaceCopy.notAvailable;
-}
 </script>
 
 <div class="min-w-0" data-testid="subscription-semester-cards">
@@ -38,8 +35,8 @@ function courseName(section: SubscriptionSection) {
     {#each sections as section, index}
       <MobileListCard>
         <SectionCardIdentity course={section.course} teachers={section.teachers} code={section.code} semester={section.semester} {locale}>
-          {#snippet title()}
-            <a class="flex min-h-11 min-w-0 max-w-full items-center break-words font-medium hover:underline [overflow-wrap:anywhere]" href={`/catalog/sections/${section.jwId}`} data-testid="subscription-course-link">{courseName(section)}</a>
+          {#snippet title(summary)}
+            <a class="flex min-h-11 min-w-0 max-w-full items-center break-words font-medium hover:underline [overflow-wrap:anywhere]" href={`/catalog/sections/${section.jwId}`} data-testid="subscription-course-link">{summary}</a>
           {/snippet}
         </SectionCardIdentity>
         <Item.Footer class="flex-wrap justify-start gap-2">

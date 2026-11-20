@@ -8,13 +8,12 @@ import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import {
   type CatalogNamed,
-  catalogLocalizedDisplayName,
+  sectionSummary,
   catalogLocalizedNames,
 } from "@/features/catalog/lib/catalog-list-display";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page as routePage } from "$app/state";
 import CatalogColumnFilter from "./CatalogColumnFilter.svelte";
-import CatalogEntityName from "./CatalogEntityName.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
 import type {
@@ -127,13 +126,7 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
                   </Table.Cell>
                   <Table.Cell class="p-0 whitespace-normal">
                     <CatalogTableLink class="font-medium" href={sectionHref}>
-                  <TruncatedText class="font-medium"
-                        text={catalogLocalizedDisplayName(section.course, locale)}
-                      >
-                        {#snippet children()}
-                          <CatalogEntityName item={section.course} locale={locale} />
-                        {/snippet}
-                      </TruncatedText>
+                  <span class="break-words">{sectionSummary(section, locale)}</span>
                     </CatalogTableLink>
                   </Table.Cell>
               <Table.Cell >

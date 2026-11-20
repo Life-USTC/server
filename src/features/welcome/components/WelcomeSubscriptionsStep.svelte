@@ -155,10 +155,10 @@ export let welcomeCopy: WelcomeCopy;
                   />
                   <Field.Content>
                     <SectionCardIdentity course={section.course} teachers={section.teachers} code={section.code} semester={{ nameCn: section.semester?.nameCn ?? section.semester?.namePrimary }} {locale}>
-                      {#snippet title()}
+                      {#snippet title(summary)}
                         <Field.Label class="block w-full cursor-pointer break-words [overflow-wrap:anywhere]" for={checkboxId}>
                           <span class="sr-only">{formatCopy(welcomeCopy.selectSection, { code: section.code })} · </span>
-                          {displayName(section.course)}
+                          {summary}
                         </Field.Label>
                       {/snippet}
                     </SectionCardIdentity>

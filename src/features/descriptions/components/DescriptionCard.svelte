@@ -1,7 +1,7 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import { toast } from "svelte-sonner";
-import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import SignInButton from "#lib/components/SignInButton.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
@@ -252,7 +252,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
         {saveDescription}
       />
     {:else if softEmpty}
-      <CompactEmpty class="min-h-0 px-0 py-1" title={copy.emptyTitle} description={copy.empty} />
+      <CollectionEmpty variant="quiet" description={`${copy.emptyTitle} · ${copy.empty}`} />
     {:else}
       <DescriptionReadPanel
         bind:activePanelTab

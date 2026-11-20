@@ -1,3 +1,4 @@
+import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
 import { CATALOG_SEARCH_MIN_LENGTH } from "@/features/catalog/lib/catalog-list-query";
 import { searchLinksForGlobal } from "@/features/search/server/global-search-link-queries";
 import {
@@ -62,7 +63,7 @@ export function searchDemoGlobally(input: {
       .map((section) => ({
         id: `section:${section.jwId}`,
         code: section.code,
-        title: `${section.course.namePrimary} · ${section.teachers.map((teacher) => teacher.namePrimary).join(input.locale === "en-us" ? ", " : "、")}`,
+        title: sectionSummary(section, input.locale),
         description: section.semester?.nameCn
           ? formatSemesterName(input.locale, section.semester.nameCn)
           : null,

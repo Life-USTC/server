@@ -1,4 +1,6 @@
 <script lang="ts">
+import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
+
 import type { DemoIdentity } from "@/features/demo/lib/demo-types";
 export let pageDemo: DemoIdentity | null | undefined = null;
 
@@ -50,7 +52,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
             href={detailHref}
           >
             <span class="min-w-0 max-w-full break-words [overflow-wrap:anywhere]">
-            {exam.courseName}
+            {sectionSummary(exam.section, locale)}
             </span>
           </a>
         </Item.Title>

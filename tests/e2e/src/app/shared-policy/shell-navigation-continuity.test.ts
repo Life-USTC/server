@@ -263,7 +263,11 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           await expect(
             directory.getByTestId("section-course-link"),
           ).toHaveCount(0);
-          await expect(directory).toContainText(fixture.section.code);
+          await expect(directory).toContainText(
+            locale === "en-us"
+              ? "Navigation continuity course"
+              : "导航连续性课程",
+          );
           const sectionNavigation = await navigation();
           expect(
             await sectionNavigation

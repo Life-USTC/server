@@ -22,6 +22,7 @@ export type ShellLink = {
   href: string;
   icon?: Component;
   items?: ShellLink[];
+  labelLines?: string[];
   label: string;
   rel?: string;
   target?: "_blank";

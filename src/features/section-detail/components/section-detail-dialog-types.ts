@@ -6,7 +6,6 @@ import type {
   SectionPrimaryName,
   SectionTeacherCopy,
   SectionTeacherName,
-  SectionTeachersLabel,
 } from "./section-basic-info-types";
 
 import type {
@@ -229,7 +228,6 @@ export type SectionDetailMainContentProps = {
   roomMapCopy: RoomMapCopy;
   sectionCalendarEvents: SectionCalendarEvent[];
   sectionCopy: SectionDetailMainSectionCopy;
-  sectionTeachersLabel: SectionTeachersLabel;
   setSelectedHomework: (homework: SectionHomework) => void | Promise<void>;
   retryStreamPanels: () => void;
   streamError: string | null;

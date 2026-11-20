@@ -87,7 +87,14 @@ function isCoursePageSection(value: unknown) {
 function isTeacherPageSection(value: unknown) {
   if (
     !isPlainRecord(value) ||
-    !hasExactKeys(value, ["jwId", "code", "credits", "course", "semester"])
+    !hasExactKeys(value, [
+      "jwId",
+      "code",
+      "credits",
+      "course",
+      "semester",
+      "teachers",
+    ])
   ) {
     return false;
   }
@@ -96,6 +103,8 @@ function isTeacherPageSection(value: unknown) {
     isSafeInteger(value.jwId) &&
     typeof value.code === "string" &&
     (value.credits === null || isFiniteNumber(value.credits)) &&
+    Array.isArray(value.teachers) &&
+    value.teachers.every(isLocalizedName) &&
     isLocalizedName(value.course) &&
     (value.semester === null || isSemesterName(value.semester))
   );

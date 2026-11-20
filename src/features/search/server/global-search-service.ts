@@ -1,3 +1,4 @@
+import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
 import { CATALOG_SEARCH_MIN_LENGTH } from "@/features/catalog/lib/catalog-list-query";
 import { cachedCatalogRuntimeData } from "@/features/catalog/server/catalog-runtime-cache";
 import {
@@ -70,15 +71,6 @@ function toSectionItem(
   locale: AppLocale,
   unknownSemester: string,
 ): GlobalSearchResultItem {
-  const courseName = catalogPrimaryName(section.course);
-  const teacherNames = section.teachers
-    .map((teacher) => catalogPrimaryName(teacher))
-    .filter(Boolean);
-  const teacherSeparator = locale === "en-us" ? ", " : "、";
-  const title =
-    teacherNames.length > 0
-      ? `${courseName} · ${teacherNames.join(teacherSeparator)}`
-      : courseName;
   const semesterName = section.semester?.nameCn
     ? formatSemesterName(locale, section.semester.nameCn)
     : unknownSemester;
@@ -89,7 +81,7 @@ function toSectionItem(
   return {
     id: `section:${section.jwId}`,
     code: section.code,
-    title,
+    title: sectionSummary(section, locale),
     description: description || null,
     href: `/catalog/sections/${section.jwId}`,
   };

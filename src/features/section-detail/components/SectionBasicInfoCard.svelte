@@ -6,14 +6,12 @@ import type {
   SectionBasicInfo,
   SectionBasicInfoCopy,
   SectionPrimaryName,
-  SectionTeachersLabel,
 } from "./section-basic-info-types";
 
 export let notAvailable: string;
 export let primaryName: SectionPrimaryName;
 export let section: SectionBasicInfo;
 export let sectionCopy: SectionBasicInfoCopy;
-export let sectionTeachersLabel: SectionTeachersLabel;
 </script>
 
 <div class="grid gap-4">
@@ -30,9 +28,7 @@ export let sectionTeachersLabel: SectionTeachersLabel;
   />
 
   <SectionBasicInfoRelatedSections
-    {notAvailable}
     {section}
     {sectionCopy}
-    {sectionTeachersLabel}
   />
 </div>

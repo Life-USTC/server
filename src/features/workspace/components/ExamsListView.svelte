@@ -1,4 +1,6 @@
 <script lang="ts">
+import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
+
 import type { DemoIdentity } from "@/features/demo/lib/demo-types";
 export let pageDemo: DemoIdentity | null | undefined = null;
 
@@ -62,7 +64,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
               class="block min-w-0 max-w-full overflow-hidden py-0.5 font-medium underline-offset-4 hover:underline"
               href={detailHref}
             >
-              <TruncatedText text={exam.courseName} />
+              <TruncatedText text={sectionSummary(exam.section, locale)} />
             </a>
             <details class="mt-1 text-xs text-muted-foreground">
               <summary class="cursor-pointer py-1">{sectionCopy.moreDetails}</summary>
