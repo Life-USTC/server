@@ -47,7 +47,7 @@ jobs:
       - name: Generate application and database clients
         run: bun run app:prepare
       - name: Check Cloudflare bindings
-        run: bunx wrangler types --include-runtime=false --check
+        run: bunx wrangler types --include-runtime=false --env-file .env.example --check
       - name: Check formatting and lint
         run: bunx biome check
       - name: Validate feature specifications
