@@ -7,6 +7,14 @@ import {
   loadScheduleLookups,
   loadSemesters,
 } from "./catalog-plan";
+import {
+  findOfficialCourseConflicts,
+  loadCatalogProfiles,
+  mergeOfficialCourses,
+  officialCourseLookups,
+  upsertOfficialProfiles,
+} from "./catalog-profiles";
+import { loadRelatedCatalog, replaceRelatedCatalog } from "./catalog-related";
 import { deleteMissingSnapshotRows } from "./database-writes";
 import { collectCodeOnlyDepartmentPlaceholders } from "./department-placeholder";
 import {
@@ -153,18 +161,24 @@ export async function runImport(
   const semesters = loadSemesters(snapshot);
   const departments = loadDepartments(snapshot);
 
-  const {
-    courseCategories,
-    courseClassifies,
-    courseGradations,
-    courseTypes,
-    educationLevels,
-    classTypes,
-    examModes,
-    teachLanguages,
-  } = loadCatalogLookups(snapshot);
-
   const { courses, courseJwIdByParentId } = loadCourses(snapshot);
+  const officialProfiles = loadCatalogProfiles(snapshot);
+  const relatedCatalog = loadRelatedCatalog(snapshot, metadata);
+  const officialProfileCount =
+    officialProfiles.courses.length +
+    officialProfiles.sections.length +
+    officialProfiles.courseIdentityConflicts +
+    officialProfiles.sectionIdentityConflicts;
+  const archivedCourseIds = new Set(courses.map((course) => course.jwId));
+  const officialOnlyCourses = mergeOfficialCourses(
+    courses,
+    officialProfiles,
+  ).filter((course) => !archivedCourseIds.has(course.jwId));
+  const catalogLookups = loadCatalogLookups(snapshot);
+  const courseProfileLookups = officialCourseLookups(
+    catalogLookups,
+    officialOnlyCourses,
+  );
 
   const { teacherTitles, teacherLessonTypes, examBatches } =
     loadScheduleLookups(snapshot);
@@ -220,7 +234,7 @@ export async function runImport(
   const plannedRecordCounts: ImportRecordCounts = {
     semesters: semesters.length,
     departments: departments.length + departmentPlaceholders.length,
-    courses: courses.length,
+    courses: courses.length + officialOnlyCourses.length,
     sections: sections.length,
     teachers: teachers.length,
     scheduleGroups: scheduleGroups.length,
@@ -232,6 +246,10 @@ export async function runImport(
     adminClasses: adminClasses.length,
     youngEvents: youngEvents?.length ?? 0,
   };
+  const catalogStats: Pick<
+    ImportReport["reconciliation"],
+    "officialProfiles" | "officialRelationships"
+  > = {};
   let sectionPresenceStats:
     | SectionPresenceStats
     | { status: "already-applied" } = { status: "already-applied" };
@@ -287,20 +305,35 @@ export async function runImport(
       () => upsertDepartments(tx, departments, departmentPlaceholders),
     );
     const lookupMaps = await logStep("loadLookupTables", 8, () =>
-      loadLookupTables(tx, {
-        courseCategories,
-        courseClassifies,
-        courseGradations,
-        courseTypes,
-        educationLevels,
-        classTypes,
-        examModes,
-        teachLanguages,
-      }),
+      loadLookupTables(tx, catalogLookups, courseProfileLookups),
     );
     const courseMap = await logStep("upsertCourses", courses.length, () =>
       upsertCourses(tx, courses, lookupMaps),
     );
+    const blockedOfficialCourseIds =
+      officialProfiles.courses.length === 0
+        ? new Set<number>()
+        : await logStep(
+            "findOfficialCourseConflicts",
+            officialProfiles.courses.length,
+            () => findOfficialCourseConflicts(tx, officialProfiles),
+          );
+    const eligibleOfficialCourses = officialOnlyCourses.filter(
+      (course) => !blockedOfficialCourseIds.has(course.jwId),
+    );
+    if (eligibleOfficialCourses.length > 0) {
+      await logStep(
+        "upsertOfficialOnlyCourses",
+        eligibleOfficialCourses.length,
+        () =>
+          upsertCourses(
+            tx,
+            eligibleOfficialCourses,
+            lookupMaps,
+            "officialCatalog",
+          ),
+      );
+    }
     const teacherTitleMap = await logStep(
       "upsertTeacherTitles",
       teacherTitles.length,
@@ -348,6 +381,19 @@ export async function runImport(
         roomTypeMap,
       ),
     );
+    if (officialProfileCount > 0) {
+      const profileStats = await logStep(
+        "upsertOfficialProfiles",
+        officialProfileCount,
+        () =>
+          upsertOfficialProfiles(
+            tx,
+            officialProfiles,
+            blockedOfficialCourseIds,
+          ),
+      );
+      catalogStats.officialProfiles = profileStats;
+    }
     const scheduleGroupMap = await logStep(
       "upsertScheduleGroups",
       scheduleGroups.length,
@@ -424,6 +470,16 @@ export async function runImport(
         );
       },
     );
+    if (
+      relatedCatalog.substitutions ||
+      relatedCatalog.groups ||
+      relatedCatalog.studyPlans
+    ) {
+      catalogStats.officialRelationships = await replaceRelatedCatalog(
+        tx,
+        relatedCatalog,
+      );
+    }
     const importedYoungSyncedAt =
       youngEvents == null
         ? undefined
@@ -499,6 +555,7 @@ export async function runImport(
     databaseRecordCounts,
     reconciliation: {
       sectionPresence: sectionPresenceStats,
+      ...catalogStats,
     },
   };
 }

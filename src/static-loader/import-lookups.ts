@@ -89,17 +89,24 @@ export type LookupMaps = {
   teachLanguage: Map<string, number>;
 };
 
+type LookupName = { nameCn: string; nameEn?: string };
+
 export async function loadLookupTables(
   tx: Prisma.TransactionClient,
   lookups: {
-    courseCategories: { nameCn: string; nameEn?: string }[];
-    courseClassifies: { nameCn: string; nameEn?: string }[];
-    courseGradations: { nameCn: string; nameEn?: string }[];
-    courseTypes: { nameCn: string; nameEn?: string }[];
-    educationLevels: { nameCn: string; nameEn?: string }[];
-    classTypes: { nameCn: string; nameEn?: string }[];
-    examModes: { nameCn: string; nameEn?: string }[];
-    teachLanguages: { nameCn: string; nameEn?: string }[];
+    courseCategories: LookupName[];
+    courseClassifies: LookupName[];
+    courseGradations: LookupName[];
+    courseTypes: LookupName[];
+    educationLevels: LookupName[];
+    classTypes: LookupName[];
+    examModes: LookupName[];
+    teachLanguages: LookupName[];
+  },
+  officialLookups?: {
+    courseCategories: LookupName[];
+    courseClassifies: LookupName[];
+    courseTypes: LookupName[];
   },
 ): Promise<LookupMaps> {
   async function loadModel(
@@ -112,27 +119,49 @@ export async function loadLookupTables(
       | "ClassType"
       | "ExamMode"
       | "TeachLanguage",
-    items: { nameCn: string; nameEn?: string }[],
+    items: LookupName[],
+    officialItems: LookupName[] = [],
   ) {
-    return bulkUpsert(
-      tx,
-      table,
-      "nameCn",
-      "text",
-      ["nameEn"],
-      ["text"],
-      items.map((item) => ({ key: item.nameCn, values: [item.nameEn] })),
+    const upsert = (names: LookupName[], ignoreConflicts = false) =>
+      bulkUpsert(
+        tx,
+        table,
+        "nameCn",
+        "text",
+        ["nameEn"],
+        ["text"],
+        names.map((item) => ({ key: item.nameCn, values: [item.nameEn] })),
+        { ignoreConflicts },
+      );
+    const ids = await upsert(items);
+    const officialIds = await upsert(
+      officialItems.filter((item) => !ids.has(item.nameCn)),
+      true,
     );
+    for (const [name, id] of officialIds) ids.set(name, id);
+    return ids;
   }
 
   return {
-    courseCategory: await loadModel("CourseCategory", lookups.courseCategories),
-    courseClassify: await loadModel("CourseClassify", lookups.courseClassifies),
+    courseCategory: await loadModel(
+      "CourseCategory",
+      lookups.courseCategories,
+      officialLookups?.courseCategories,
+    ),
+    courseClassify: await loadModel(
+      "CourseClassify",
+      lookups.courseClassifies,
+      officialLookups?.courseClassifies,
+    ),
     courseGradation: await loadModel(
       "CourseGradation",
       lookups.courseGradations,
     ),
-    courseType: await loadModel("CourseType", lookups.courseTypes),
+    courseType: await loadModel(
+      "CourseType",
+      lookups.courseTypes,
+      officialLookups?.courseTypes,
+    ),
     educationLevel: await loadModel("EducationLevel", lookups.educationLevels),
     classType: await loadModel("ClassType", lookups.classTypes),
     examMode: await loadModel("ExamMode", lookups.examModes),

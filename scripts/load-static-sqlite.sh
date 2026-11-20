@@ -2,26 +2,40 @@
 set -eu
 
 : "${DATABASE_URL:?DATABASE_URL is required}"
-: "${STATIC_SNAPSHOT_URL:=https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite}"
+default_url=https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite
+work_dir=$(mktemp -d)
+trap 'rm -rf "$work_dir"' EXIT
+
+download() {
+  curl --fail --location --silent --show-error --retry 3 --retry-delay 5 \
+    --write-out '%{http_code}' --output "$work_dir/download" "$1"
+}
 
 if [ "${STATIC_SNAPSHOT_PATH+x}" = x ]; then
-  if [ -z "$STATIC_SNAPSHOT_PATH" ] || [ ! -f "$STATIC_SNAPSHOT_PATH" ]; then
-    echo "Local snapshot not found: ${STATIC_SNAPSHOT_PATH}" >&2
+  input=$STATIC_SNAPSHOT_PATH
+  if [ ! -f "$input" ]; then
+    echo "Local snapshot not found: $input" >&2
     exit 1
   fi
-  echo "Using local snapshot: ${STATIC_SNAPSHOT_PATH}"
-  STATIC_SNAPSHOT_PATH="$STATIC_SNAPSHOT_PATH" bun run static:load
-  exit 0
+  echo "Using local snapshot: $input"
+else
+  url=${STATIC_SNAPSHOT_URL:-"$default_url.gz"}
+  echo "Downloading snapshot from $url"
+  if status=$(download "$url"); then
+    :
+  elif [ -z "${STATIC_SNAPSHOT_URL:-}" ] && { [ "$status" = 404 ] || [ "$status" = 410 ]; }; then
+    # Before the first enriched publication, Pages only has the raw snapshot.
+    echo "Compressed snapshot unavailable; downloading $default_url"
+    download "$default_url" >/dev/null
+  else
+    echo "Snapshot download failed (HTTP $status)" >&2
+    exit 1
+  fi
+  input=$work_dir/download
 fi
 
-SNAPSHOT_PATH="$(mktemp /tmp/life-ustc-static-XXXXXX.sqlite)"
-cleanup() {
-  rm -f "$SNAPSHOT_PATH"
-}
-trap cleanup EXIT INT TERM
-
-echo "Downloading snapshot from ${STATIC_SNAPSHOT_URL}"
-curl -fL --retry 3 --retry-delay 5 "$STATIC_SNAPSHOT_URL" -o "$SNAPSHOT_PATH"
-echo "Download complete"
-
-STATIC_SNAPSHOT_PATH="$SNAPSHOT_PATH" bun run static:load
+if [ "$(od -An -tx1 -N2 "$input" | tr -d ' \n')" = 1f8b ]; then
+  gzip -dc "$input" > "$work_dir/snapshot.sqlite"
+  input=$work_dir/snapshot.sqlite
+fi
+STATIC_SNAPSHOT_PATH="$input" bun run static:load

@@ -15,7 +15,9 @@ export async function upsertCourses(
   tx: Prisma.TransactionClient,
   builds: CourseBuild[],
   lookupMaps: LookupMaps,
+  source: "semester" | "officialCatalog" = "semester",
 ): Promise<Map<number, number>> {
+  const officialCatalogOnly = source === "officialCatalog";
   const columns = [
     "code",
     "nameCn",
@@ -26,6 +28,7 @@ export async function upsertCourses(
     "educationLevelId",
     "gradationId",
     "typeId",
+    "officialCatalogOnly",
   ];
   const records = builds.map((build) => ({
     key: build.jwId,
@@ -63,6 +66,7 @@ export async function upsertCourses(
         build.typeName,
         `CourseType ${build.typeName} for Course jwId ${build.jwId}`,
       ),
+      officialCatalogOnly,
     ] satisfies ColumnValue[],
   }));
   return bulkUpsert(
@@ -71,8 +75,20 @@ export async function upsertCourses(
     "jwId",
     "int",
     columns,
-    ["text", "text", "text", "int", "int", "int", "int", "int", "int"],
+    [
+      "text",
+      "text",
+      "text",
+      "int",
+      "int",
+      "int",
+      "int",
+      "int",
+      "int",
+      "boolean",
+    ],
     records,
+    { updateWhenTrue: officialCatalogOnly ? "officialCatalogOnly" : undefined },
   );
 }
 

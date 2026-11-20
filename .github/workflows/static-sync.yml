@@ -49,7 +49,7 @@ jobs:
         id: load
         env:
           DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
-          STATIC_SNAPSHOT_URL: ${{ vars.STATIC_SNAPSHOT_URL || 'https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite' }}
+          STATIC_SNAPSHOT_URL: ${{ vars.STATIC_SNAPSHOT_URL }}
           STATIC_LOADER_DRY_RUN: "false"
           STATIC_LOADER_STATS_FILE: /tmp/static-load-stats.json
           # A committed import must invalidate both cache layers. The zone

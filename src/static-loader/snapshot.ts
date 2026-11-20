@@ -68,6 +68,14 @@ export class Snapshot {
       .iterate() as Iterable<SnapshotRow>;
   }
 
+  rowCount(tableName: string): number {
+    assertIdentifier(tableName, "table");
+    const row = this.db
+      .query(`SELECT COUNT(*) AS count FROM "${tableName}"`)
+      .get() as { count: number };
+    return row.count;
+  }
+
   /** Keep large normalized tables bounded to one semester while joining children. */
   *iterateSemesterTables(
     tableNames: readonly string[],

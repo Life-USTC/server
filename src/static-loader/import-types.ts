@@ -1,4 +1,6 @@
 /** Shared static-import config and report types. */
+import type { upsertOfficialProfiles } from "./catalog-profile-writes";
+import type { replaceRelatedCatalog } from "./catalog-related";
 import type { SectionPresenceStats } from "./section-lifecycle";
 
 export type ImportConfig = {
@@ -38,6 +40,8 @@ export type ImportReport = {
   plannedRecordCounts: ImportRecordCounts | null;
   databaseRecordCounts: ImportRecordCounts | null;
   reconciliation: {
+    officialProfiles?: Awaited<ReturnType<typeof upsertOfficialProfiles>>;
+    officialRelationships?: Awaited<ReturnType<typeof replaceRelatedCatalog>>;
     sectionPresence: SectionPresenceStats | { status: "already-applied" };
   };
 };

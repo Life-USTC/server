@@ -217,12 +217,14 @@ model Course {
   nameCn String
   nameEn String?
 
-  categoryId       Int?
-  classTypeId      Int?
-  classifyId       Int?
-  educationLevelId Int?
-  gradationId      Int?
-  typeId           Int?
+  categoryId          Int?
+  classTypeId         Int?
+  classifyId          Int?
+  educationLevelId    Int?
+  gradationId         Int?
+  typeId              Int?
+  officialProfile     Json?
+  officialCatalogOnly Boolean @default(false)
 
   category       CourseCategory?  @relation(fields: [categoryId], references: [id])
   classType      ClassType?       @relation(fields: [classTypeId], references: [id])
@@ -259,6 +261,101 @@ model CourseAlias {
   createdAt DateTime @default(now())
 
   @@index([courseId])
+}
+
+model CourseSubstitutionRule {
+  jwId Int @id
+  originalCodes String[]
+  substituteCodes String[]
+  payload Json
+
+  @@index([originalCodes], type: Gin)
+  @@index([substituteCodes], type: Gin)
+}
+
+model OfficialCourseGroupSource {
+  sourceKind String
+  sourceId String
+  payload Json
+
+  entries OfficialCourseGroupEntry[]
+  paths OfficialCourseGroupPath[]
+
+  @@id([sourceKind, sourceId])
+}
+
+model OfficialCourseGroupEntry {
+  routeKey String
+  sourceKind String
+  sourceId String
+  routePosition Int
+  sourcePosition Int
+  nameCn String
+  nameEn String
+
+  source OfficialCourseGroupSource @relation(fields: [sourceKind, sourceId], references: [sourceKind, sourceId], onDelete: Cascade)
+
+  @@id([routeKey, sourcePosition])
+  @@index([sourceKind, sourceId])
+}
+
+model OfficialCourseGroupPath {
+  sourceKind String
+  sourceId String
+  path String
+  parentPath String
+  groupKey String
+  groupKind String
+  position Int
+  memberCount Int
+  displayLabelCn String
+
+  source OfficialCourseGroupSource @relation(fields: [sourceKind, sourceId], references: [sourceKind, sourceId], onDelete: Cascade)
+  members OfficialCourseGroupMember[]
+
+  @@id([sourceKind, sourceId, path])
+}
+
+model OfficialCourseGroupMember {
+  sourceKind String
+  sourceId String
+  path String
+  position Int
+  courseCode String
+
+  group OfficialCourseGroupPath @relation(fields: [sourceKind, sourceId, path], references: [sourceKind, sourceId, path], onDelete: Cascade)
+
+  @@id([sourceKind, sourceId, path, position])
+  @@index([courseCode])
+}
+
+model OfficialStudyPlanTree {
+  id Int @id
+  payload Json
+}
+
+model OfficialStudyPlan {
+  jwId Int @id
+  departmentJwId Int
+  majorJwId Int
+  grade String
+  trainType String?
+  publicModuleJwIds Int[]
+  summary Json
+  payload Json
+
+  @@index([departmentJwId, majorJwId, grade])
+}
+
+model OfficialStudyPlanModule {
+  jwId Int @id
+  publicModuleJwIds Int[]
+  payload Json
+}
+
+model OfficialRelatedCatalogState {
+  source String @id
+  digest String
 }
 
 model CourseCategory {
@@ -469,6 +566,7 @@ model Section {
   graduateAndPostgraduate Boolean?
   dateTimePlaceText       String?
   dateTimePlacePersonText Json?
+  officialProfile         Json?
 
   actualPeriods     Float?
   theoryPeriods     Float?
