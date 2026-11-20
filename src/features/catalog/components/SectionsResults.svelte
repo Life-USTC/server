@@ -8,8 +8,8 @@ import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import {
   type CatalogNamed,
-  sectionSummary,
   catalogLocalizedNames,
+  sectionSummary,
 } from "@/features/catalog/lib/catalog-list-display";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page as routePage } from "$app/state";
