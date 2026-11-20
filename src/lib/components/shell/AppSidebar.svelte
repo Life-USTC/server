@@ -13,7 +13,6 @@ import {
   isCurrentScopeLink,
   type NavigationScope,
   navigationScopeChildren,
-  navigationScopeForLink,
   primaryDestination,
 } from "./navigation-scopes";
 import SettingsGlyph from "./SettingsGlyph.svelte";
@@ -86,36 +85,6 @@ function changeLevel(next: string) {
       );
     target?.focus();
   });
-}
-function restoresCurrent(link: ShellLink) {
-  return (
-    level !== currentLevel &&
-    currentLevel !== "root" &&
-    ((level === "root" && link.id === primaryDestination(currentPathname)) ||
-      navigationScopeForLink(
-        scopes,
-        scopes[currentLevel].parent ?? "root",
-        link,
-      )?.id === currentLevel)
-  );
-}
-function selectDestination(event: MouseEvent, link: ShellLink) {
-  if (
-    event.button !== 0 ||
-    event.metaKey ||
-    event.ctrlKey ||
-    event.altKey ||
-    event.shiftKey
-  )
-    return;
-  if (restoresCurrent(link)) {
-    event.preventDefault();
-    changeLevel(currentLevel);
-    return;
-  }
-  // Keep the clicked anchor intact until the router consumes its real href.
-  // The completed navigation retires this preview through navigationOwnerKey.
-  sidebar.setOpenMobile(false);
 }
 function revealCurrent(node: HTMLElement, active: boolean) {
   let current = false;
@@ -227,12 +196,10 @@ function revealCurrent(node: HTMLElement, active: boolean) {
         {:else}
           <a {...props} href={link.href} data-detail-page={link.detail?.tab}
             data-navigation-depth={depth}
-            data-sveltekit-preload-data={restoresCurrent(link) ? "false" : undefined}
-            data-sveltekit-preload-code={restoresCurrent(link) ? "false" : undefined}
             aria-label={link.ariaLabel ?? link.label}
             aria-current={active ? "page" : ancestor ? "location" : undefined}
             use:revealCurrent={active}
-            onclick={(event) => selectDestination(event, link)}
+            onclick={() => sidebar.setOpenMobile(false)}
           >{@render linkLabel(link, depth, hasChildren)}</a>
         {/if}
       {/snippet}
@@ -286,8 +253,8 @@ function revealCurrent(node: HTMLElement, active: boolean) {
           <Sidebar.Trigger
             aria-label={copy.shell.toggleSidebar}
             title={copy.shell.toggleSidebar}
-            variant="outline"
-            class="size-9 shrink-0 shadow-sm group-data-[collapsible=icon]:size-8"
+            variant="ghost"
+            class="size-9 shrink-0 bg-transparent shadow-none hover:bg-transparent dark:hover:bg-transparent group-data-[collapsible=icon]:size-8"
           >
             {#if sidebar.state === "expanded"}<PanelLeftCloseIcon />{:else}<PanelLeftOpenIcon />{/if}
           </Sidebar.Trigger>
@@ -295,10 +262,10 @@ function revealCurrent(node: HTMLElement, active: boolean) {
       </div>
       {#if scope.parent}
         <Sidebar.Menu><Sidebar.MenuItem>
-          <Sidebar.MenuButton tooltipContent={compactTooltips ? copy.shell.primaryDestinations.back.replace("{section}", scopes[scope.parent ?? "root"].label) : undefined}>
+          <Sidebar.MenuButton class="h-auto min-h-11 py-2" tooltipContent={compactTooltips ? copy.shell.primaryDestinations.back : undefined}>
             {#snippet child({ props })}
-              <button {...props} type="button" data-local-navigation-back data-testid={`${currentScope}-sidebar-back`} onclick={() => changeLevel(scope.parent ?? "root")}>
-                <ArrowLeftIcon /><span>{copy.shell.primaryDestinations.back.replace("{section}", scopes[scope.parent ?? "root"].label)}</span>
+              <button {...props} type="button" data-local-navigation-back data-testid={`${currentScope}-sidebar-back`} onclick={() => changeLevel(scope.parent === "admin" ? "admin" : "root")}>
+                <ArrowLeftIcon /><span>{copy.shell.primaryDestinations.back}</span>
               </button>
             {/snippet}
           </Sidebar.MenuButton>
@@ -310,7 +277,9 @@ function revealCurrent(node: HTMLElement, active: boolean) {
       <div class="flex min-w-0 shrink-0 flex-col" data-slot="sidebar-flow" class:sidebar-level-enter={true}>
         {#each scope.groups as group}
           <Sidebar.Group>
+            {#if ["sections", "courses", "teachers"].includes(level)}
             <Sidebar.GroupLabel class="group-data-[collapsible=icon]:hidden">{group.label}</Sidebar.GroupLabel>
+          {/if}
             <Sidebar.GroupContent>
               <Sidebar.Menu>
                 {#each group.links as link}

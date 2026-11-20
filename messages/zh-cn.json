@@ -1548,6 +1548,11 @@
     "teacherCount": "教师人数"
   },
   "sectionDetail": {
+    "totalPeriods": "总学时",
+    "actualPeriods": "实际学时",
+    "assessmentMode": "考试形式",
+    "scheduleDateTime": "日期时间",
+    "classSchedule": "上课安排",
     "basicInfo": "教学班信息",
     "basicInfoDescription": "已导入的教学班元数据。",
     "courseCode": "课程代码",
@@ -1608,7 +1613,7 @@
     "subscriptionMissing": "前往教学班订阅页面安全查看你的个人日历订阅链接",
     "subscriptionHintLabel": "此链接包含您在 Life@USTC 中订阅的所有教学班，会自动同步更新，不代表学校官方选课结果。",
     "subscriptionPrivacyNote": "此链接相当于你的私人凭证，请勿公开分享。",
-    "subscribeLabel": "订阅教学班",
+    "subscribeLabel": "订阅",
     "unsubscribeLabel": "取消订阅教学班",
     "copyToClipboard": "复制",
     "close": "关闭",
@@ -3233,10 +3238,11 @@
       "campus": "校园",
       "activities": "活动",
       "campusDescription": "公开课程目录与校园服务",
-      "back": "返回{section}"
+      "back": "返回"
     },
     "currentLocation": "当前位置",
     "detailNavigation": {
+      "schedule": "日程",
       "label": "本页目录",
       "relatedCourse": "查看所属课程",
       "introduction": "简介",

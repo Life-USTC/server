@@ -58,7 +58,7 @@ export let showSubscribeDialog: boolean;
 export let singleCalendarUrl: string;
 export let startEditHomework: SectionDetailDialogsProps["startEditHomework"];
 export let subscriptionAction: SectionDetailDialogsProps["subscriptionAction"];
-export let subscriptionCalendarUrl: string;
+export let courseName: string;
 export let subscriptionPendingAction: SectionDetailDialogsProps["subscriptionPendingAction"];
 export let updateHomework: SectionDetailDialogsProps["updateHomework"];
 export let toggleHomeworkCompletion: SectionDetailDialogsProps["toggleHomeworkCompletion"];
@@ -190,22 +190,19 @@ $: if (isCalendarDialogOpen) {
     label: sectionCopy.calendarUrlLabel,
     onCopy: () => copyText(singleCalendarUrl, "single"),
     value: singleCalendarUrl,
-  }, {
-    copied: copiedCalendarTarget === "subscription",
-    description: sectionCopy.subscriptionUrlDescription,
-    id: "subscription-url",
-    label: sectionCopy.subscriptionUrlLabel,
-    missingLabel: sectionCopy.subscriptionMissing,
-    onCopy: () => copyText(subscriptionCalendarUrl, "subscription"),
-    value: subscriptionCalendarUrl,
-    warning: sectionCopy.subscriptionPrivacyNote,
   }]}
   />
 {/if}
 
-{#if showSubscribeDialog && data.section.retiredAt == null}
+{#if showSubscribeDialog && (data.section.retiredAt == null || data.viewer.isSubscribed)}
   <SectionSubscribeDialog
     close={closeSubscribeDialog}
+    {courseName}
+    isSubscribed={Boolean(data.viewer.isSubscribed)}
+    {singleCalendarUrl}
+    copied={copiedCalendarTarget === "single"}
+    {clipboardError}
+    onCopy={() => copyText(singleCalendarUrl, "single")}
     {commonCopy}
     {homeworkCopy}
     {sectionCopy}

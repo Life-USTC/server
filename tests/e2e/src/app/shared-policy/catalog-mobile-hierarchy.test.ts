@@ -289,14 +289,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           },
           {
             path: `/catalog/sections/${fixture.section.jwId}`,
-            sections: [
-              "introduction",
-              "calendar",
-              "exams",
-              "homework",
-              "comments",
-              "overview",
-            ],
+            sections: ["introduction", "schedule", "homework"],
           },
         ]) {
           if (!item.path.startsWith(`/catalog/${domain.toLowerCase()}s`))
@@ -361,10 +354,11 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
             .getByRole("link", { name: "Jump to discussion", exact: true });
           await expect(link).toHaveAttribute("href", "#comments");
           const target = page.locator("#comments");
-          await expect(target).toHaveCount(0);
+          const onSection = domain === "Section";
+          await expect(target).toHaveCount(onSection ? 1 : 0);
           await link.click();
           await expect(page).toHaveURL(
-            `${new URL(path, page.url()).href}/comments`,
+            `${new URL(path, page.url()).href}/${onSection ? "introduction#comments" : "comments"}`,
           );
           await expect
             .poll(async () => {
@@ -372,8 +366,9 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
               return bounds !== null && bounds.y >= 0 && bounds.y < 844;
             })
             .toBe(true);
-          await expect(page.locator("#introduction")).toBeHidden();
-          await expect(page.locator("#introduction")).toHaveCount(0);
+          await expect(page.locator("#introduction")).toHaveCount(
+            onSection ? 1 : 0,
+          );
         }
       }
     });
@@ -597,7 +592,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
 
           const identity = page.locator("[data-detail-identity]");
           const reading = page.locator("[data-detail-reading-stream]");
-          await expect(identity).toHaveCount(0);
+          await expect(identity).toHaveCount(item.kind === "section" ? 1 : 0);
           await expect(reading.locator("#introduction")).toContainText(
             "Readable introduction",
           );

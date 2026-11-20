@@ -13,6 +13,7 @@ export const sectionPageTeachersSelect = {
 export const sectionPageTeachersWithDepartmentSelect = {
   select: {
     ...entityNameSelect,
+    teacherTitle: { select: localizedNameSelect },
     department: {
       select: localizedNameSelect,
     },

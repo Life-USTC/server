@@ -40,6 +40,22 @@ describe("four primary navigation and adjacent owned directories", () => {
   ] as const)("owns %s as %s", (path, expected) =>
     expect(primaryDestination(path)).toBe(expected),
   );
+  test.each([
+    "/",
+    "/workspace/homeworks",
+    "/workspace/todos",
+    "/workspace/exams",
+    "/workspace/calendar",
+    "/campus",
+    "/catalog/sections",
+    "/catalog/young-events/calendar",
+  ])("retains both visible root levels on %s", (pathname) => {
+    const { current } = buildNavigationScopes(buildLayoutCopy("en-us"), user, {
+      ...context,
+      pathname,
+    });
+    expect(current).toBe("root");
+  });
   test.each(["en-us", "zh-cn"] as const)(
     "keeps the four roots and public Campus separate in %s",
     (locale) => {
@@ -476,9 +492,9 @@ describe("four primary navigation and adjacent owned directories", () => {
     for (const [pathname, current] of [
       ["/workspace/uploads", "uploads"],
       ["/account/settings/security", "settings"],
-      ["/workspace/subscriptions/activities", "activity-workspace"],
+      ["/workspace/subscriptions/activities", "root"],
       ["/admin/moderation", "admin-queues"],
-      ["/workspace/calendar", "calendar"],
+      ["/workspace/calendar", "root"],
     ])
       expect(
         buildNavigationScopes(copy, admin, { ...context, pathname }).current,

@@ -554,7 +554,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
       await expect(detailViewport).toBeVisible();
 
       await gotoAndWaitForReady(page, `${SECTION_URL}#calendar`);
-      await page.waitForURL(/\/catalog\/sections\/\d+\/calendar$/);
+      await page.waitForURL(/\/catalog\/sections\/\d+\/schedule$/);
       await waitForUiSettled(page);
 
       await expect(page.locator("#calendar")).toBeInViewport();

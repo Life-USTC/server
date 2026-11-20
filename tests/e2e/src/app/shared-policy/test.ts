@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { test } from "../../../utils/catalog-search-fixture";
 import { DEV_SEED } from "../../../utils/dev-seed";
-import { selectDetailTab } from "../../../utils/locators";
+import { openShellNavigation, selectDetailTab } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
   applyWorkspaceTaskFilter,
@@ -90,9 +90,11 @@ async function openMobileMenu(page: Page) {
 }
 
 async function assertDetailTabs(page: Page, items: readonly string[]) {
-  const actual = await page
-    .locator("[data-detail-reading-stream] > section[id]")
-    .evaluateAll((nodes) => nodes.map((node) => node.id));
+  const actual = await (await openShellNavigation(page))
+    .locator("a[data-detail-page]")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute("data-detail-page")),
+    );
   expect(actual).toEqual(items);
   for (const id of items) await selectDetailTab(page, id);
 }
@@ -109,14 +111,7 @@ test("ui.detail-two-column-stream-2", { tag: "@Section/Web" }, async ({
         page,
         `/catalog/sections/${DEV_SEED.section.jwId}`,
       );
-      await assertDetailTabs(page, [
-        "introduction",
-        "calendar",
-        "exams",
-        "homework",
-        "comments",
-        "overview",
-      ]);
+      await assertDetailTabs(page, ["introduction", "schedule", "homework"]);
     }
   });
 });

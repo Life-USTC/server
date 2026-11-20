@@ -1,14 +1,12 @@
 import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
 import { catalogDetailTabs } from "@/features/catalog/lib/catalog-detail-tab";
-import { sectionDetailTabs } from "@/features/section-detail/lib/section-detail-tab";
+import {
+  isSectionDetailTab,
+  sectionDetailTabs,
+  sectionTabPage,
+} from "@/features/section-detail/lib/section-detail-tab";
 import { currentCatalogDetailItem } from "./shell-nav-helpers";
 import type { ShellLink } from "./types";
-
-function record(value: unknown): Record<string, unknown> | null {
-  return value != null && typeof value === "object"
-    ? (value as Record<string, unknown>)
-    : null;
-}
 
 export function detailTabIds(kind: unknown) {
   return kind === "section"
@@ -44,18 +42,27 @@ export function legacyDetailDestination(
   const root = url.pathname.split("/").slice(0, 4).join("/");
   const fragment = url.hash.slice(1);
   const homework = kind === "section" && url.searchParams.get("homeworkId");
-  const tab = fragment.startsWith("comment-")
-    ? homework
+  let tab: DetailTab | undefined;
+  if (fragment.startsWith("comment-")) {
+    tab = homework
       ? "homework"
-      : "comments"
-    : fragment === "teachers" && kind === "section"
-      ? "overview"
-      : (detailTabIds(kind).find((id) => id === fragment) ??
-        (!fragment && homework && url.pathname === root
-          ? "homework"
-          : undefined));
+      : kind === "section"
+        ? "introduction"
+        : "comments";
+  } else if (kind === "section" && isSectionDetailTab(fragment)) {
+    tab = sectionTabPage(fragment);
+  } else {
+    tab = detailTabIds(kind).find((id) => id === fragment);
+    if (!fragment && homework && url.pathname === root) tab = "homework";
+  }
   if (!tab || url.pathname === `${root}/${tab}`) return null;
-  return `${root}/${tab}${url.search}${fragment.startsWith("comment-") || fragment === "teachers" ? url.hash : ""}`;
+  const anchor =
+    fragment.startsWith("comment-") ||
+    fragment === "teachers" ||
+    (fragment === "comments" && kind === "section")
+      ? url.hash
+      : "";
+  return `${root}/${tab}${url.search}${anchor}`;
 }
 
 /** Public entity facts and route-declared content capabilities only. */
@@ -86,14 +93,6 @@ export function detailNavigation(
       sharedSearch = params.size ? `?${params}` : "";
     }
   }
-  const course = record(record(pageData.section)?.course);
-  const jwId = course?.jwId;
-  const courseHref =
-    kind === "section" &&
-    ((typeof jwId === "number" && Number.isSafeInteger(jwId) && jwId > 0) ||
-      (typeof jwId === "string" && /^[1-9]\d*$/.test(jwId)))
-      ? `/catalog/courses/${jwId}`
-      : null;
   return {
     collection: {
       href: collection,
@@ -106,14 +105,24 @@ export function detailNavigation(
     },
     current: {
       ...current,
-      items: tabs.map(
-        (tab): ShellLink => ({
-          href: `${current.href}/${tab}${tab === "homework" ? search : sharedSearch}`,
-          label: labels[tab],
-          detail: { tab, kind },
-        }),
-      ),
+      ...(kind === "section"
+        ? {
+            label: String(
+              (pageData.section as { code?: string })?.code || current.label,
+            ),
+            href: `${current.href}/introduction${sharedSearch}`,
+            detail: { kind: "section" as const, tab: "introduction" as const },
+          }
+        : {}),
+      items: tabs
+        .filter((tab) => kind !== "section" || tab !== "introduction")
+        .map(
+          (tab): ShellLink => ({
+            href: `${current.href}/${tab}${tab === "homework" ? search : sharedSearch}`,
+            label: labels[tab],
+            detail: { tab, kind },
+          }),
+        ),
     },
-    courseHref,
   };
 }

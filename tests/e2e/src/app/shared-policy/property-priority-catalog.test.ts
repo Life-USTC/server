@@ -452,17 +452,19 @@ for (const locale of ["zh-cn", "en-us"] as const)
               if (kind === "section") {
                 for (const [tab, values] of [
                   [
-                    "calendar",
+                    "introduction",
                     [
-                      "31 / 29",
-                      "5 x 4",
+                      "31",
+                      "29",
+                      "5",
+                      "4",
                       name(roomType, locale),
                       ...Array.from({ length: 6 }, (_, index) =>
                         String(11 + index),
                       ),
                     ],
                   ],
-                  ["exams", [name(examMode, locale)]],
+                  ["introduction", [name(examMode, locale)]],
                   [
                     "introduction",
                     [name(language, locale), locale === "en-us" ? "Yes" : "是"],

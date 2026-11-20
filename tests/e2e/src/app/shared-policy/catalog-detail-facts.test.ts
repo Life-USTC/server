@@ -131,11 +131,8 @@ test("ui.detail-two-column-stream-4 Section", { tag: "@Section/Web" }, async ({
           await reachable(
             aside.getByRole("definition").filter({ hasText: text }),
           );
-        await selectDetailTab(page, "calendar");
-        await reachable(
-          page.locator("#calendar").getByText("32 / 30", { exact: true }),
-        );
-        await selectDetailTab(page, "overview");
+        for (const value of ["32", "30"])
+          await reachable(aside.getByText(value, { exact: true }));
         await teacherLink.click();
         await expect(page).toHaveURL(
           new RegExp(`/catalog/teachers/${teacher.id}$`),

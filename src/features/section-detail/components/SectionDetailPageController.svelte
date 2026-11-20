@@ -219,7 +219,7 @@ async function ensureStreamPanelsLoaded() {
   streamError = null;
   try {
     const tab =
-      data.detailSection === "overview" ? "teachers" : data.detailSection;
+      data.detailSection === "introduction" ? "teachers" : data.detailSection;
     if (tab !== "homework" && !tabPanelStore.isLoaded(tab)) {
       tabPanelState = await tabPanelStore.ensureLoaded(tab, panelInput);
     }
@@ -287,7 +287,6 @@ $: calendarUrls = sectionDetailCalendarUrls({
   origin: _origin,
 });
 $: singleCalendarUrl = calendarUrls.singleCalendarUrl;
-$: subscriptionCalendarUrl = "";
 $: periodDetailRows = buildSectionPeriodDetailRows(_sectionCopy, data.section);
 $: _canWriteHomework = canWriteSectionHomework(_homeworkViewer);
 $: _canManageSelectedHomework = canManageSectionHomework(
@@ -299,9 +298,6 @@ $: sectionCalendarEvents = buildSectionDetailCalendarEvents({
   section: displaySection,
   sectionCopy: _sectionCopy,
 });
-$: unscheduledCalendarEvents = sectionCalendarEvents.filter(
-  (event) => !event.dateKey,
-);
 
 const {
   cancelEditHomework: _cancelEditHomework,
@@ -559,10 +555,7 @@ onMount(() => {
     {retryStreamPanels}
     streamError={personalFailed ? _sectionCopy.operationFailed : streamError}
     streamLoading={streamLoading || personalLoading}
-    subscriptionAction={_subscriptionAction}
-    subscriptionPendingAction={_subscriptionPendingAction}
     teacherName={_teacherName}
-    {unscheduledCalendarEvents}
     viewer={overlayData.viewer}
     yesNo={_yesNo}
   />
@@ -639,9 +632,9 @@ onMount(() => {
   showCreateHomework={_showCreateHomework}
   showSubscribeDialog={_showSubscribeDialog && !personalLoading && !personalFailed}
   {singleCalendarUrl}
+  courseName={_courseName}
   startEditHomework={_startEditHomework}
   subscriptionAction={_subscriptionAction}
-  {subscriptionCalendarUrl}
   subscriptionPendingAction={_subscriptionPendingAction}
   toggleHomeworkCompletion={_toggleHomeworkCompletion}
   updateHomework={_updateHomework}

@@ -12,11 +12,11 @@ function request(path: string, method = "GET") {
 describe("section detail paths", () => {
   it.each([
     [301, undefined, "/catalog/sections/301"],
-    [301, "overview", "/catalog/sections/301/overview"],
+    [301, "overview", "/catalog/sections/301/introduction"],
     [301, "introduction", "/catalog/sections/301/introduction"],
-    [301, "calendar", "/catalog/sections/301/calendar"],
+    [301, "calendar", "/catalog/sections/301/schedule"],
     [301, "homework", "/catalog/sections/301/homework"],
-    [301, "comments", "/catalog/sections/301/comments"],
+    [301, "comments", "/catalog/sections/301/introduction#comments"],
   ] as const)("builds canonical path for tab %s", (jwId, tab, expected) => {
     expect(sectionDetailPagePath(jwId, tab)).toBe(expected);
   });
@@ -35,15 +35,15 @@ describe("section detail redirects", () => {
   it.each([
     [
       "/catalog/sections/159446?tab=overview",
-      "/catalog/sections/159446/overview",
+      "/catalog/sections/159446/introduction",
     ],
     [
       "/catalog/sections/159446?tab=calendar",
-      "/catalog/sections/159446/calendar",
+      "/catalog/sections/159446/schedule",
     ],
     [
       "/catalog/sections/159446?tab=calendar&page=2",
-      "/catalog/sections/159446/calendar?page=2",
+      "/catalog/sections/159446/schedule?page=2",
     ],
   ])("strips tab query %s to canonical URL", (path, target) => {
     expect(resolveSectionDetailTabQueryRedirect(request(path))).toBe(target);

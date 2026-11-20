@@ -64,6 +64,9 @@ export function getSsrLoadedSectionDetailTabs(
     loaded.push("exams");
   }
 
+  if (loaded.includes("calendar") && loaded.includes("exams"))
+    loaded.push("schedule");
+
   if (sectionTeachersSsrLoaded(data.section.teachers)) {
     loaded.push("teachers");
   }

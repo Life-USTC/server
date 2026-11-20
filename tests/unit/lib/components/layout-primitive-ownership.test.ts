@@ -130,7 +130,7 @@ it("ui.layout-principles-4", async () => {
   // composition; each reuses the primitives appropriate to those structures.
   for (const route of [
     "catalog/sections/[jwId]",
-    "catalog/sections/[jwId]/comments",
+    "catalog/sections/[jwId]/schedule",
   ])
     expect(
       await renderedPrimitives(`src/routes/${route}/+page.svelte`),

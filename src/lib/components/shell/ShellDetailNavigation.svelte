@@ -36,14 +36,13 @@ $effect(() => {
           <ol class="flex min-w-0 flex-wrap items-center gap-1.5">
             <li><a class="underline-offset-4 hover:underline" href={detail.collection.href}>{detail.collection.label}</a></li>
             <li aria-hidden="true"><ChevronRightIcon class="size-3 text-muted-foreground" /></li>
-            <li class="min-w-0 [overflow-wrap:anywhere]">{detail.current.label}</li>
+            <li aria-current={pageData.shellDetail === "section" && tab === "introduction" ? "page" : undefined} class="min-w-0 [overflow-wrap:anywhere]">{detail.current.label}</li>
+            {#if pageData.shellDetail !== "section" || tab !== "introduction"}
             <li aria-hidden="true"><ChevronRightIcon class="size-3 text-muted-foreground" /></li>
             <li aria-current="page">{copy.shell.detailNavigation[tab]}</li>
+            {/if}
           </ol>
         </nav>
-        {#if detail.courseHref}
-          <a class="underline underline-offset-4" href={detail.courseHref} data-testid="section-course-link">{copy.shell.detailNavigation.relatedCourse}</a>
-        {/if}
       </div>
     </div>
   </div>

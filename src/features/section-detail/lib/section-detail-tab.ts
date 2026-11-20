@@ -2,17 +2,31 @@ export const SECTION_DETAIL_TAB_QUERY = "tab";
 
 export const sectionDetailTabs = [
   "introduction",
+  "schedule",
+  "homework",
+] as const;
+export type SectionDetailTab =
+  | (typeof sectionDetailTabs)[number]
+  | "calendar"
+  | "exams"
+  | "comments"
+  | "overview"
+  | "teachers";
+const sectionDetailTabSet = new Set<string>([
+  ...sectionDetailTabs,
   "calendar",
   "exams",
-  "homework",
   "comments",
   "overview",
-] as const;
+  "teachers",
+]);
 
-export type SectionDetailTab = (typeof sectionDetailTabs)[number] | "teachers";
-
-const sectionDetailTabSet = new Set<string>([...sectionDetailTabs, "teachers"]);
-
+export function sectionTabPage(tab: SectionDetailTab) {
+  if (tab === "calendar" || tab === "exams") return "schedule";
+  if (tab === "overview" || tab === "comments" || tab === "teachers")
+    return "introduction";
+  return tab;
+}
 export function isSectionDetailTab(
   value: string | null | undefined,
 ): value is SectionDetailTab {
@@ -29,7 +43,10 @@ export function sectionDetailPagePath(
   jwId: number | string,
   tab?: SectionDetailTab,
 ) {
-  return `/catalog/sections/${jwId}${tab === "teachers" ? "/overview#teachers" : tab ? `/${tab}` : ""}`;
+  const root = `/catalog/sections/${jwId}`;
+  if (!tab) return root;
+  const fragment = tab === "teachers" || tab === "comments" ? `#${tab}` : "";
+  return `${root}/${sectionTabPage(tab)}${fragment}`;
 }
 
 export function sectionDetailHomeworkPath(

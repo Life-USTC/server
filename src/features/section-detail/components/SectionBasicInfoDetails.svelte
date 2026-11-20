@@ -1,8 +1,4 @@
 <script lang="ts">
-import {
-  detailDefinitionListClass,
-  detailDefinitionTermClass,
-} from "#lib/components/detail-definition-list.js";
 import type {
   SectionBasicInfo,
   SectionBasicInfoCopy,
@@ -13,18 +9,37 @@ import type {
 export let commonCopy: SectionCommonInfoCopy;
 export let notAvailable: string;
 export let primaryName: SectionPrimaryName;
-export let section: SectionBasicInfo;
+export let section: SectionBasicInfo & { exams: Array<{ examMode?: string | null }> };
 export let sectionCopy: SectionBasicInfoCopy;
 export let yesNo: (value: boolean | null | undefined) => string;
+export let periodDetailRows: Array<[string, number]>;
+$: assessmentModes = [...new Set([
+  primaryName(section.examMode),
+  ...section.exams.map(exam => exam.examMode?.trim()),
+].filter(Boolean))].join(" · ");
+$: fields = [
+  [sectionCopy.department, primaryName(section.openDepartment)],
+  [sectionCopy.teachLanguage, primaryName(section.teachLanguage)],
+  [commonCopy.undergraduateGraduate, yesNo(section.graduateAndPostgraduate)],
+  [sectionCopy.totalPeriods, section.period],
+  [sectionCopy.actualPeriods, section.actualPeriods],
+  [sectionCopy.timesPerWeek, section.timesPerWeek],
+  [sectionCopy.periodsPerWeek, section.periodsPerWeek],
+  ...periodDetailRows,
+  [sectionCopy.roomType, primaryName(section.roomType)],
+  [sectionCopy.assessmentMode, assessmentModes],
+];
 </script>
 
-<dl class={detailDefinitionListClass}>
-  <dt class={detailDefinitionTermClass}>{sectionCopy.teachLanguage}</dt>
-  <dd class="m-0 min-w-0">{primaryName(section.teachLanguage) || notAvailable}</dd>
-
-  <dt class={detailDefinitionTermClass}>{commonCopy.undergraduateGraduate}</dt>
-  <dd class="m-0 min-w-0">{yesNo(section.graduateAndPostgraduate)}</dd>
-
-  <dt class={detailDefinitionTermClass}>{sectionCopy.department}</dt>
-  <dd class="m-0 min-w-0">{primaryName(section.openDepartment) || notAvailable}</dd>
+<dl class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+  {#each fields as [label, value]}
+    {#if value != null && value !== "" && value !== notAvailable}
+      <div class="flex items-baseline gap-2">
+        <dt class="text-muted-foreground">{label}</dt><dd>{value}</dd>
+      </div>
+    {/if}
+  {/each}
+  {#if section.scheduleRemark?.trim()}
+    <div class="flex w-full gap-2"><dt class="shrink-0 text-muted-foreground">{sectionCopy.scheduleRemark}</dt><dd class="whitespace-pre-wrap">{section.scheduleRemark}</dd></div>
+  {/if}
 </dl>

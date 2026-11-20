@@ -35,66 +35,28 @@ describe("route-owned shell capabilities", () => {
       shellPresentation("standard", false),
     );
   });
-  it("uses the collection as canonical parent and the true course jwId as a section relation", () => {
+  it("links the current section code to its introduction and lists its two child pages", () => {
     const model = detailNavigation(
       {
         shellDetail: "section",
-        section: {
-          code: "not-an-id",
-          course: { jwId: 400, nameCn: "Course name" },
-        },
+        section: { code: "022063.01", course: { jwId: 400, nameCn: "Course" } },
       },
       "/catalog/sections/1800",
       copy,
     );
-    expect(model).toMatchObject({
-      collection: { href: "/catalog/sections" },
-      current: { href: "/catalog/sections/1800", label: "Course name" },
-      courseHref: "/catalog/courses/400",
+    expect(model?.current).toMatchObject({
+      href: "/catalog/sections/1800/introduction",
+      label: "022063.01",
     });
-    expect(
-      model?.current.items.map((item) =>
-        new URL(item.href, "https://life.example").pathname.split("/").at(-1),
-      ),
-    ).toEqual([
-      "introduction",
-      "calendar",
-      "exams",
+    expect(model?.current.items.map((item) => item.detail?.tab)).toEqual([
+      "schedule",
       "homework",
-      "comments",
-      "overview",
     ]);
-  });
-  it.each(["400/another", null, 0, -1, {}])(
-    "never guesses a course identifier from %s",
-    (jwId) => {
-      const model = detailNavigation(
-        {
-          shellDetail: "section",
-          section: { code: "400", course: { jwId, nameCn: "Course" } },
-        },
-        "/catalog/sections/1800",
-        copy,
-      );
-      expect(model?.courseHref).toBeNull();
-    },
-  );
-  it("keeps the demo course relation available across detail tabs", () => {
-    expect(
-      detailNavigation(
-        {
-          shellDetail: "section",
-          demo: { mode: "sample" },
-          section: { course: { jwId: 400, nameCn: "Course" } },
-        },
-        "/catalog/sections/1800",
-        copy,
-      )?.courseHref,
-    ).toBe("/catalog/courses/400");
+    expect(model).not.toHaveProperty("courseHref");
   });
   it("lists only tabs owned by the declared detail kind", () => {
     expect(detailTabIds("course")).not.toContain("calendar");
-    expect(detailTabIds("section")).toContain("calendar");
+    expect(detailTabIds("section")).toContain("schedule");
     expect(detailTabIds(undefined)).toEqual([]);
   });
   it("requires explicit detail metadata and creates only same-entity tab links", () => {
@@ -119,7 +81,6 @@ describe("route-owned shell capabilities", () => {
           new URL(item.href, "https://life.example").pathname.split("/").at(-1),
         ),
       ).toEqual(["introduction", "sections", "comments", "overview"]);
-      expect(model?.courseHref).toBeNull();
     }
   });
   it("limits the focused homework parameter to its own tab", () => {
@@ -134,9 +95,9 @@ describe("route-owned shell capabilities", () => {
         ?.href,
     ).toBe("/catalog/sections/1800/homework?homeworkId=42&source=calendar");
     expect(
-      section?.current.items.find((link) => link.detail?.tab === "comments")
+      section?.current.items.find((link) => link.detail?.tab === "schedule")
         ?.href,
-    ).toBe("/catalog/sections/1800/comments?source=calendar");
+    ).toBe("/catalog/sections/1800/schedule?source=calendar");
   });
 
   it.each([
@@ -144,8 +105,8 @@ describe("route-owned shell capabilities", () => {
     ["section", "?homeworkId=42", "homework"],
     ["section", "?homeworkId=42#introduction", "introduction"],
     ["section", "?homeworkId=42#comment-reply", "homework"],
-    ["section", "#comment-reply", "comments"],
-    ["section", "#teachers", "overview"],
+    ["section", "#comment-reply", "introduction"],
+    ["section", "#teachers", "introduction"],
     ["course", "#calendar", "introduction"],
     ["course", "#comment-abc", "comments"],
     ["teacher", "?sectionsPage=2#sections", "sections"],

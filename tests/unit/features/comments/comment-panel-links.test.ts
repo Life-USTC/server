@@ -37,7 +37,7 @@ describe("评论面板链接", () => {
     [
       "section",
       commentTargetPermalinkBaseHref({ sectionJwId: 12345, type: "section" }),
-      "/catalog/sections/12345/comments#comment-comment-1",
+      "/catalog/sections/12345/introduction#comment-comment-1",
     ],
     [
       "section-teacher",
@@ -45,7 +45,7 @@ describe("评论面板链接", () => {
         sectionJwId: 12345,
         type: "section-teacher",
       }),
-      "/catalog/sections/12345/comments#comment-comment-1",
+      "/catalog/sections/12345/introduction#comment-comment-1",
     ],
     [
       "course",

@@ -21,7 +21,7 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
     id: jwId,
     kind: "section",
     locale,
-    shape: "page-core-v1",
+    shape: "page-core-v2",
     load: () =>
       runCloudflareTraceSpan(
         "catalog.detail.section.query",

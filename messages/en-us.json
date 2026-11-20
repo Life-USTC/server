@@ -1910,6 +1910,11 @@
     "teacherCount": "Teacher count"
   },
   "sectionDetail": {
+    "totalPeriods": "Total hours",
+    "actualPeriods": "Actual hours",
+    "assessmentMode": "Assessment format",
+    "scheduleDateTime": "Date and time",
+    "classSchedule": "Class schedule",
     "basicInfo": "Section Information",
     "basicInfoDescription": "Imported section metadata.",
     "courseCode": "Course Code",
@@ -1970,7 +1975,7 @@
     "subscriptionMissing": "Open section subscriptions to securely view your personal calendar feed",
     "subscriptionHintLabel": "This URL includes all sections you subscribe to in Life@USTC and auto-syncs. It does not change official USTC course enrollment.",
     "subscriptionPrivacyNote": "Treat this link like a private credential. Do not share it publicly.",
-    "subscribeLabel": "Subscribe to section",
+    "subscribeLabel": "Subscribe",
     "unsubscribeLabel": "Unsubscribe from section",
     "copyToClipboard": "Copy",
     "close": "Close",
@@ -1979,7 +1984,7 @@
     "subscribing": "Adding...",
     "unsubscribing": "Removing...",
     "pleaseWait": "Please wait",
-    "subscribeSuccess": "Added",
+    "subscribeSuccess": "Subscribed",
     "unsubscribeSuccess": "This section has been removed from your Life@USTC subscriptions",
     "subscribeSuccessDescription": "This section has been added to your Life@USTC subscriptions only",
     "unsubscribeSuccessDescription": "This section has been removed from your Life@USTC subscriptions",
@@ -3233,10 +3238,11 @@
       "campus": "Campus",
       "activities": "Activities",
       "campusDescription": "Public courses and campus services",
-      "back": "Back to {section}"
+      "back": "Back"
     },
     "currentLocation": "Current location",
     "detailNavigation": {
+      "schedule": "Schedule",
       "label": "On this page",
       "relatedCourse": "View course",
       "introduction": "Description",

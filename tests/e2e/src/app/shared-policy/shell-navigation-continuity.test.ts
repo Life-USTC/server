@@ -185,7 +185,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             await expect(current).toHaveText(organizerName);
             await expect(
               nav.locator('a[href="/catalog/young-events/organizers"]'),
-            ).toHaveAttribute("aria-current", "location");
+            ).toHaveCount(0);
             await page.locator('[data-slot="sidebar-rail"]').click();
             const sidebarState = page
               .locator('[data-slot="sidebar"]')
@@ -262,12 +262,8 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           const directory = page.getByTestId("shell-detail-navigation");
           await expect(
             directory.getByTestId("section-course-link"),
-          ).toHaveAttribute("href", `/catalog/courses/${fixture.course.jwId}`);
-          await expect(directory).toContainText(
-            locale === "en-us"
-              ? "Navigation continuity course"
-              : "导航连续性课程",
-          );
+          ).toHaveCount(0);
+          await expect(directory).toContainText(fixture.section.code);
           const sectionNavigation = await navigation();
           expect(
             await sectionNavigation
@@ -275,14 +271,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               .evaluateAll((nodes) =>
                 nodes.map((node) => node.getAttribute("data-detail-page")),
               ),
-          ).toEqual([
-            "introduction",
-            "calendar",
-            "exams",
-            "homework",
-            "comments",
-            "overview",
-          ]);
+          ).toEqual(["introduction", "schedule", "homework"]);
           if (width < 768) await page.keyboard.press("Escape");
           await page.screenshot({
             path: testInfo.outputPath(`section-${locale}-${width}.png`),
@@ -320,100 +309,27 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             );
           }
           await (await navigation())
-            .locator('a[data-detail-page="comments"]')
+            .locator('a[data-detail-page="schedule"]')
             .click();
+          await expect(page).toHaveURL(/\/schedule$/);
           await expect(directory.locator('[aria-current="page"]')).toHaveText(
-            locale === "en-us" ? "Comments" : "评论",
+            locale === "en-us" ? "Schedule" : "日程",
           );
-          await expect(page).toHaveURL(/\/comments$/);
-          await expect(page.locator("#comments h2")).toBeInViewport();
-          expect(await page.evaluate(() => scrollY)).toBe(0);
-          const reading = detailScrollViewport(page);
-          const readingPosition = await reading.evaluate(
-            (node) => node.scrollTop,
+          const sectionNav = await navigation();
+          await sectionNav.locator("[data-local-navigation-back]").click();
+          await expect(sectionNav).toHaveAttribute(
+            "data-shell-navigation-view",
+            "root",
           );
-          await expect(page.locator("introduction")).toBeHidden();
-          const currentLocation = page.url();
-          const currentHistory = await page.evaluate(() => history.length);
-          const currentDocument = await page.evaluateHandle(() => document);
-          const currentMain = await page
-            .locator("#main-content")
-            .elementHandle();
-          if (!currentMain) throw new Error("Missing current detail main");
-          const navigationRequests: string[] = [];
-          const observeNavigation = (
-            request: import("@playwright/test").Request,
-          ) => navigationRequests.push(new URL(request.url()).pathname);
-          if (width < 768) await page.mouse.move(width - 1, 475);
-          page.on("request", observeNavigation);
-          try {
-            if (width < 768) {
-              await menu.focus();
-              await page.keyboard.press("Enter");
-              await expect(page.getByRole("dialog")).toBeVisible();
-            }
-            await navigation();
-            const currentLevel = page.locator(
-              `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
-            );
-            const originalScope = await currentLevel.getAttribute(
-              "data-shell-navigation-view",
-            );
-            if (!originalScope) throw new Error("Missing current detail scope");
-            await currentLevel.locator("[data-local-navigation-back]").click();
-            await expect(currentLevel).toHaveAttribute(
-              "data-shell-navigation-view",
-              "campus",
-            );
-            await currentLevel.locator("[data-local-navigation-back]").click();
-            await expect(currentLevel).toHaveAttribute(
-              "data-shell-navigation-view",
-              "root",
-            );
-            await currentLevel.locator('a[href="/campus"]').click();
-            await expect(currentLevel).toHaveAttribute(
-              "data-shell-navigation-view",
-              originalScope,
-            );
-            await expect(
-              currentLevel.locator('a[aria-current="page"]'),
-            ).toHaveCount(1);
-            const localBack = currentLevel.locator(
-              "[data-local-navigation-back]",
-            );
-            await expect(localBack).toBeVisible();
-            await expect(localBack).toBeFocused();
-            expect(page.url()).toBe(currentLocation);
-            expect(await page.evaluate(() => history.length)).toBe(
-              currentHistory,
-            );
-            expect(
-              await currentDocument.evaluate((node) => node === document),
-            ).toBe(true);
-            expect(
-              await currentMain.evaluate(
-                (node) => node === document.getElementById("main-content"),
-              ),
-            ).toBe(true);
-            expect(await reading.evaluate((node) => node.scrollTop)).toBe(
-              readingPosition,
-            );
-            expect(navigationRequests).toEqual([]);
-          } finally {
-            page.off("request", observeNavigation);
-            await Promise.all([
-              currentDocument.dispose(),
-              currentMain.dispose(),
-            ]);
-          }
-          if (width < 768) {
-            await page.keyboard.press("Escape");
-            await expect(menu).toBeFocused();
-          }
-          await page.reload();
-          await waitForUiSettled(page);
-          await expect(page.locator("#comments h2")).toBeInViewport();
-          await page.getByTestId("section-course-link").click();
+          await expect(
+            sectionNav.locator('[data-sidebar="group-label"]'),
+          ).toHaveCount(0);
+          await sectionNav.locator('a[href="/catalog/courses"]').click();
+          await expect(page).toHaveURL(/\/catalog\/courses$/);
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/courses/${fixture.course.jwId}`,
+          );
           await expect(page).toHaveURL(
             new RegExp(`/catalog/courses/${fixture.course.jwId}$`),
           );

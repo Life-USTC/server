@@ -9,12 +9,9 @@ import { Spinner } from "#lib/components/ui/spinner/index.js";
 import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
 import type { SectionDetailSection } from "@/features/section-detail/lib/section-detail-controller-types";
-import type { SubmitFunction } from "$app/forms";
 import SectionDetailHeader from "./SectionDetailHeader.svelte";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
 import type { SectionDetailMainContentProps } from "./section-detail-dialog-types";
-
-type SubscriptionActionKey = "subscribe" | "unsubscribe";
 
 export let canWriteHomework: boolean;
 export let commentTargets: SectionDetailMainContentProps["commentTargets"];
@@ -44,12 +41,7 @@ export let setSelectedHomework: SectionDetailMainContentProps["setSelectedHomewo
 export let retryStreamPanels: () => void;
 export let streamError: string | null;
 export let streamLoading: boolean;
-export let subscriptionAction: (
-  action: SubscriptionActionKey,
-) => SubmitFunction;
-export let subscriptionPendingAction: SubscriptionActionKey | null;
 export let teacherName: SectionDetailMainContentProps["teacherName"];
-export let unscheduledCalendarEvents: SectionDetailMainContentProps["unscheduledCalendarEvents"];
 export let viewer: SectionDetailMainContentProps["viewer"];
 export let yesNo: SectionDetailMainContentProps["yesNo"];
 
@@ -63,7 +55,6 @@ $: pageContent = {
   openCalendarDialog,
   roomMapCopy,
   sectionCalendarEvents,
-  unscheduledCalendarEvents,
   sectionExamEvents,
   fmtDate,
   fmtDateTime,
@@ -97,8 +88,6 @@ $: pageContent = {
         onOpenSubscribe={openSubscribeDialog}
         section={displaySection}
         sectionCopy={sectionCopy}
-        subscriptionAction={subscriptionAction}
-        subscriptionPendingAction={subscriptionPendingAction}
         viewer={viewer}
         readOnlyReason={data.demo?.readOnlyReason}
       />
@@ -152,14 +141,11 @@ $: pageContent = {
     <Separator />
     <div class="px-3 pt-3 pb-3">
       <SectionDetailPrimaryActions
-        {courseName}
         onOpenCalendar={openCalendarDialog}
         onOpenSubscribe={openSubscribeDialog}
         retired={data.section.retiredAt != null}
         sectionCopy={sectionCopy}
         stretched
-        subscriptionAction={subscriptionAction}
-        subscriptionPendingAction={subscriptionPendingAction}
         viewer={viewer}
         readOnlyReason={data.demo?.readOnlyReason}
       />

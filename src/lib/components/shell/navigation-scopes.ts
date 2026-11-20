@@ -282,7 +282,9 @@ export function buildNavigationScopes(
     )
       if (detail && detail.collection.href === feature.href) {
         add(feature.id, feature.label, "campus", [
-          { ...feature, items: undefined },
+          ...(feature.id === "sections"
+            ? []
+            : [{ ...feature, items: undefined }]),
           detail.current,
         ]);
       } else {
@@ -377,5 +379,22 @@ export function buildNavigationScopes(
     ].includes(current)
   )
     current = "root";
+  // Both visible levels belong to the same directory. Only destinations
+  // beyond the root rows and their immediate children need a local sidebar.
+  const primaryId = primaryDestination(path);
+  const rootEntry = primary.find((link) => link.id === primaryId);
+  if (rootEntry) {
+    const visible = [
+      rootEntry,
+      ...navigationScopeChildren(scopes, "root", rootEntry),
+    ];
+    if (
+      visible.some(
+        (link) =>
+          new URL(link.href, "https://navigation.invalid").pathname === path,
+      )
+    )
+      current = "root";
+  }
   return { current: scopes[current] ? current : "root", scopes, primary };
 }

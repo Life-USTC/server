@@ -197,11 +197,9 @@ test("section.mobile-detail-actions", { tag: "@Section/Web" }, async ({
           const code = overview.getByText(fixture.sections[0].code, {
             exact: true,
           });
-          await selectDetailTab(page, "calendar");
-          await reachable(
-            page.locator("#calendar").getByText("32 / 32", { exact: true }),
-          );
-          await selectDetailTab(page, "overview");
+          await expect(
+            overview.locator("dd").filter({ hasText: /^32$/ }),
+          ).toHaveCount(2);
           await reachable(code);
           expect(
             await code.evaluate(
@@ -374,7 +372,7 @@ for (const domain of ["Calendar", "Subscription"] as const) {
 
           if (domain === "Calendar") {
             await bar
-              .getByRole("button", { name: "添加到日历", exact: true })
+              .getByRole("button", { name: "订阅", exact: true })
               .click();
             await expect(page.getByRole("dialog")).toBeVisible();
             await page.keyboard.press("Escape");
@@ -382,15 +380,15 @@ for (const domain of ["Calendar", "Subscription"] as const) {
           }
           if (domain === "Subscription") {
             await bar
-              .getByRole("button", { name: "订阅教学班", exact: true })
+              .getByRole("button", { name: "订阅", exact: true })
               .click();
             const dialog = page.getByRole("dialog");
             await expect(dialog).toBeVisible();
             await dialog
-              .getByRole("button", { name: "订阅教学班", exact: true })
+              .getByRole("button", { name: "订阅", exact: true })
               .click();
             await expect(
-              bar.getByRole("button", { name: "取消订阅教学班", exact: true }),
+              bar.getByRole("button", { name: "已订阅", exact: true }),
             ).toBeVisible();
             await expect
               .poll(() =>
@@ -405,6 +403,9 @@ for (const domain of ["Calendar", "Subscription"] as const) {
               )
               .toBe(1);
             await bar
+              .getByRole("button", { name: "已订阅", exact: true })
+              .click();
+            await dialog
               .getByRole("button", { name: "取消订阅教学班", exact: true })
               .click();
             await page
@@ -412,7 +413,7 @@ for (const domain of ["Calendar", "Subscription"] as const) {
               .getByRole("button", { name: "确认取消订阅", exact: true })
               .click();
             await expect(
-              bar.getByRole("button", { name: "订阅教学班", exact: true }),
+              bar.getByRole("button", { name: "订阅", exact: true }),
             ).toBeVisible();
             await expect
               .poll(() =>

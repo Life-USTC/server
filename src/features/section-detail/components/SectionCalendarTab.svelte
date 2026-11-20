@@ -9,18 +9,16 @@ import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import { formatMessage } from "@/features/section-detail/lib/display";
 import {
-  calendarEventDetail,
   calendarEventLocation,
-  calendarEventTime,
+  sectionLessonRows,
 } from "@/features/section-detail/lib/section-calendar-display";
-import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 import type { SectionCalendarEvent } from "./section-calendar-tab-types";
 
 export let sectionCalendarEvents: SectionCalendarEvent[];
 export let roomMapCopy: RoomMapCopy;
 export let sectionCopy: {
   calendarEmpty: string;
-  date: string;
+  scheduleDateTime: string;
   dateTBD: string;
   examEvent: string;
   lecture: string;
@@ -30,133 +28,54 @@ export let sectionCopy: {
   teacher: string;
   week: string;
 };
-export let unscheduledCalendarEvents: SectionCalendarEvent[];
-
-/** Campus date → YYYY-MM-DD. */
-function formatYyyyMmDd(value: string | Date | null | undefined) {
-  if (value == null) return "";
-  try {
-    return formatShanghaiDate(value);
-  } catch {
-    return "";
-  }
-}
-
-function lectureLabel(event: SectionCalendarEvent) {
-  if (event.kind === "exam") return sectionCopy.examEvent;
-  return formatMessage(sectionCopy.lectureNumber, {
-    num: String(classLectureNumberById.get(event.id) ?? ""),
-  });
-}
-
-$: datedEvents = sectionCalendarEvents
-  .filter((event) => event.dateKey)
-  .slice()
-  .sort((left, right) => {
-    const leftKey = left.dateKey ?? "";
-    const rightKey = right.dateKey ?? "";
-    if (leftKey !== rightKey) return leftKey.localeCompare(rightKey);
-    return left.meta.localeCompare(right.meta);
-  });
-
-$: classLectureNumberById = new Map(
-  datedEvents
-    .filter((event) => event.kind === "class")
-    .map((event, index) => [event.id, index + 1] as const),
-);
+$: rows = sectionLessonRows(sectionCalendarEvents, sectionCopy.week);
 </script>
 
-{#if datedEvents.length > 0 || unscheduledCalendarEvents.length > 0}
-  <div class="min-w-0 max-w-full">
-    <Table.Root
-      class="min-w-[42rem] md:min-w-0"
-      containerLabel={sectionCopy.lecture}
-      data-testid="section-calendar-table"
-    >
+{#if rows.length}
+  <Table.Root containerLabel={sectionCopy.lecture} data-testid="section-calendar-table">
     <Table.Caption class="sr-only">{sectionCopy.lecture}</Table.Caption>
     <Table.Header>
       <Table.Row>
-        <Table.Head scope="col">{sectionCopy.lecture}</Table.Head>
-        <Table.Head scope="col">{sectionCopy.date}</Table.Head>
         <Table.Head scope="col">{sectionCopy.week}</Table.Head>
-        <Table.Head scope="col">{sectionCopy.time}</Table.Head>
+        <Table.Head scope="col">{sectionCopy.lecture}</Table.Head>
+        <Table.Head scope="col">{sectionCopy.scheduleDateTime}</Table.Head>
         <Table.Head scope="col">{sectionCopy.location}</Table.Head>
       </Table.Row>
     </Table.Header>
     <Table.Body>
-      {#each datedEvents as event (event.id)}
+      {#each rows as row, index (row.event.id)}
         <Table.Row>
+          {#if row.weekSpan}
+            <Table.Cell rowspan={row.weekSpan} class="align-top tabular-nums">{row.week || "—"}</Table.Cell>
+          {/if}
           <Table.Cell>
             <div class="flex flex-wrap items-baseline gap-x-2">
-              <span class="whitespace-nowrap">{lectureLabel(event)}</span>
-            {#if event.teachers?.length}
-              <div class="flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground" aria-label={sectionCopy.teacher}>
-                {#each event.teachers as teacher (teacher.id)}
-                  <a class="inline-flex min-h-6 min-w-6 items-center whitespace-nowrap underline-offset-4 hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
-                {/each}
-              </div>
-            {/if}
+              <span class="whitespace-nowrap">{formatMessage(sectionCopy.lectureNumber, { num: String(index + 1) })}</span>
+              {#each row.event.teachers ?? [] as teacher (teacher.id)}
+                <a class="inline-flex min-h-6 min-w-6 items-center text-xs text-muted-foreground hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
+              {/each}
             </div>
           </Table.Cell>
-          <Table.Cell class="whitespace-nowrap font-semibold">
-            {formatYyyyMmDd(event.dateKey ?? event.date) || sectionCopy.dateTBD}
-          </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">
-            {calendarEventDetail(event, sectionCopy.week, "—")}
-          </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">
-            {calendarEventTime(event, "—")}
-          </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">
-            {#if event.roomCodes?.length}
-              <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                {#each event.roomCodes as room (room)}
-                  <RoomMapPreview {pageDemo} {locale} code={room} label={event.roomCodes.length === 1 ? calendarEventLocation(event, room) : room} copy={roomMapCopy} />
-                {/each}
+          {#if row.timeSpan}
+            <Table.Cell rowspan={row.timeSpan} class="align-top tabular-nums">
+              <div class="flex flex-wrap gap-x-2">
+                <span>{row.event.dateKey || sectionCopy.dateTBD}</span><span>{row.time}</span>
               </div>
+            </Table.Cell>
+          {/if}
+          <Table.Cell class="text-foreground [&_button]:text-foreground">
+            {#if row.event.roomCodes?.length}
+              {#each row.event.roomCodes as room (room)}
+                <RoomMapPreview {pageDemo} {locale} code={room} label={row.event.roomCodes.length === 1 ? calendarEventLocation(row.event, room) : room} copy={roomMapCopy} />
+              {/each}
             {:else}
-              {calendarEventLocation(event, "—")}
-            {/if}
-          </Table.Cell>
-        </Table.Row>
-      {/each}
-      {#each unscheduledCalendarEvents as event (event.id)}
-        <Table.Row>
-          <Table.Cell>
-            <div class="flex flex-wrap items-baseline gap-x-2">
-              <span class="whitespace-nowrap">{lectureLabel(event)}</span>
-            {#if event.teachers?.length}
-              <div class="flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground" aria-label={sectionCopy.teacher}>
-                {#each event.teachers as teacher (teacher.id)}
-                  <a class="inline-flex min-h-6 min-w-6 items-center whitespace-nowrap underline-offset-4 hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
-                {/each}
-              </div>
-            {/if}
-            </div>
-          </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">{sectionCopy.dateTBD}</Table.Cell>
-          <Table.Cell class="whitespace-nowrap">
-            {calendarEventDetail(event, sectionCopy.week, "—")}
-          </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">
-            {calendarEventTime(event, "—")}
-          </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">
-            {#if event.roomCodes?.length}
-              <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                {#each event.roomCodes as room (room)}
-                  <RoomMapPreview {pageDemo} {locale} code={room} label={event.roomCodes.length === 1 ? calendarEventLocation(event, room) : room} copy={roomMapCopy} />
-                {/each}
-              </div>
-            {:else}
-              {calendarEventLocation(event, "—")}
+              {calendarEventLocation(row.event, "—")}
             {/if}
           </Table.Cell>
         </Table.Row>
       {/each}
     </Table.Body>
-    </Table.Root>
-  </div>
+  </Table.Root>
 {:else}
   <CollectionEmpty variant="compact" description={sectionCopy.calendarEmpty} />
 {/if}

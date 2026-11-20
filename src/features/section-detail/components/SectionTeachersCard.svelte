@@ -23,6 +23,7 @@ export let teachers: SectionTeacherSummary[];
             href={`/catalog/teachers/${teacher.id}`}
           >
             {teacherName(teacher)}
+            {#if teacher.teacherTitle}<span class="text-muted-foreground"> · {primaryName(teacher.teacherTitle)}</span>{/if}
             {#if teacher.department}
               <span class="text-muted-foreground">
                 · {primaryName(teacher.department)}

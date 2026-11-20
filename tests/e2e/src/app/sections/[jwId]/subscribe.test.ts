@@ -9,7 +9,7 @@ import {
   test,
 } from "../../../../utils/section-subscription-fixture";
 
-const subscribeName = /订阅教学班|Subscribe to section/i;
+const subscribeName = /^(订阅|Subscribe)$/i;
 const unsubscribeName = /取消订阅|Unsubscribe from section/i;
 
 test("匿名订阅入口说明非选课含义并要求登录", {
@@ -101,6 +101,9 @@ test("已订阅用户仍可取消订阅已退役教学班", {
       await expect(
         page.getByText(/历史教学班|Historical section/i).first(),
       ).toBeVisible();
+      await page
+        .getByRole("button", { name: /^(已订阅|Subscribed)$/i })
+        .click();
       const unsubscribe = page.getByRole("button", { name: unsubscribeName });
       await expect(unsubscribe.first()).toBeVisible();
       await expect(

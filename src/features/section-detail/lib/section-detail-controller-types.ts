@@ -17,6 +17,7 @@ export type SectionDetailNamed = {
 };
 
 export type SectionDetailTeacher = SectionDetailNamed & {
+  teacherTitle?: SectionDetailNamed | null;
   department?: SectionDetailNamed | null;
   id: string | number;
 };
@@ -229,6 +230,12 @@ export type SectionDetailCopy = {
     titlePlaceholder: string;
   };
   sectionDetail: {
+    timesPerWeek: string;
+    totalPeriods: string;
+    actualPeriods: string;
+    assessmentMode: string;
+    scheduleDateTime: string;
+    classSchedule: string;
     addToCalendar: string;
     adminClasses: string;
     basicInfo: string;
@@ -383,6 +390,7 @@ export type SectionDetailPageData = {
   detailSection:
     | "overview"
     | "introduction"
+    | "schedule"
     | "calendar"
     | "exams"
     | "homework"

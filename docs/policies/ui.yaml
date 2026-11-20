@@ -595,16 +595,13 @@ requirements:
     surface: web
     target:
       by: css
-      value: '[data-detail-reading-stream] > section[id]'
+      value: 'nav[data-shell-navigation] a[data-detail-page]'
     items:
     - introduction
-    - calendar
-    - exams
+    - schedule
     - homework
-    - comments
-    - overview
   acceptance:
-    given: A public section detail contains introduction, calendar, exams, homework, and comments sections.
+    given: A teaching section has introduction, schedule and homework pages.
     when: The browser loads the detail at 1280 and 390 pixels and reads the tab order and the selected panel.
     then:
     - Detail tabs follow the declared ordered_items expectation at desktop and mobile widths.
@@ -621,7 +618,7 @@ requirements:
     surface: web
     target:
       by: css
-      value: '[data-detail-reading-stream] > section[id]'
+      value: 'nav[data-shell-navigation] a[data-detail-page]'
     items:
     - introduction
     - sections
@@ -643,7 +640,7 @@ requirements:
   rule: Catalog detail information regions contain feature-specific structured facts. Section detail includes
     teacher links, with subscription and calendar actions reachable in the desktop header and mobile fixed action bar.
     Course and teacher pages do not offer section-specific actions before a section is selected.
-  rationale: The introduction contains teaching language, department and student level. Calendar presents workload and scheduling facts. Exams presents the assessment mode. More details contains teachers, enrollment and related sections.
+  rationale: The section introduction contains the description, teaching and assessment facts, enrollment, related sections and discussion. Schedule presents exams followed by lessons.
     Section primary actions stay in the header or fixed mobile bar so they remain reachable across tabs.
   acceptance:
     given: Isolated catalog fixtures contain course classifications, teacher contact and affiliation facts, section counts and an authenticated viewer.
@@ -947,7 +944,7 @@ requirements:
     when: Desktop and mobile navigation opens, collapses, closes, reloads and follows the content directory.
     then:
     - Actual current entities and compact ancestors remain identifiable, and sibling destinations stay accessible.
-    - Content anchors scroll their actual target into view, the course relation uses its true identifier, and legal links remain reachable.
+    - Content anchors scroll their actual target into view, the section code links to its introduction, and legal links remain reachable.
     - Mobile close returns focus to its trigger without a write; route transitions and browser history preserve their context.
     test:
       file: tests/e2e/src/app/shared-policy/shell-navigation-continuity.test.ts
@@ -1639,7 +1636,7 @@ requirements:
 - id: ui.navigation-landmarks-1
   category: presentation
   topic: navigation-landmarks
-  rule: The desktop sidebar landmark is named for its current directory; its root preview is named Primary navigation in English and 主导航 in Chinese.
+  rule: The first two levels of the primary directory share the root sidebar without a visible group title. Deeper records open a local sidebar. The desktop sidebar landmark is named for its current directory; its root preview is named Primary navigation in English and 主导航 in Chinese.
   acceptance:
     given: An anonymous browser uses a 1280-pixel viewport.
     when: The browser opens the public course list in Chinese and English and locates the primary navigation

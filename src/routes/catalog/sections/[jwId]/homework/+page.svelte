@@ -17,10 +17,7 @@ const SectionHomeworkTab = $derived(module.component);
 <SectionDetailRoute {data} {form}>
   {#snippet content({ data, sectionCopy, fmtDateTime, viewer, canWriteHomework, openHomeworkAuditDialog, openCreateHomeworkDialog, homeworkCopy, homeworks, setSelectedHomework })}
     <section id="homework" data-detail-tab="homework" class="scroll-mt-4">
-      <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h2 class="text-lg font-semibold tracking-tight">
-          {sectionCopy.tabs.homeworks}
-        </h2>
+      <div class="mb-3 flex flex-wrap items-center justify-end gap-3">
         <div class="flex flex-wrap items-center gap-2">
         {#if !data.demo && !viewer.loading && !viewer.failed && (viewer.isAuthenticated ?? viewer.signedIn === true)}
           <Button type="button" variant="outline" class="min-h-11 sm:min-h-9 md:min-h-9" onclick={openHomeworkAuditDialog}>{homeworkCopy.auditTitle}</Button>

@@ -78,14 +78,7 @@ it("ui.list-table-9", async () => {
     directory?.current.items.map((item) =>
       new URL(item.href, "https://life.example").pathname.split("/").at(-1),
     ),
-  ).toEqual([
-    "introduction",
-    "calendar",
-    "exams",
-    "homework",
-    "comments",
-    "overview",
-  ]);
+  ).toEqual(["schedule", "homework"]);
   const sidebarRouteOwners = [
     "src/features/young/components/YoungEventsPage.svelte",
     "src/features/young/components/YoungEventDetailPage.svelte",

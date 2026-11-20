@@ -5,6 +5,7 @@ export type PageSsrClass = "dynamic-ssr" | "public-ssr";
 export type PageAuthSignalPresence = "absent" | "present";
 
 export type PageCatalogDetailTab =
+  | "schedule"
   | "calendar"
   | "comments"
   | "exams"

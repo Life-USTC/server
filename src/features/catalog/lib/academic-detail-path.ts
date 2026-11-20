@@ -1,4 +1,4 @@
-import { sectionDetailTabs } from "@/features/section-detail/lib/section-detail-tab";
+import { isSectionDetailTab } from "@/features/section-detail/lib/section-detail-tab";
 import { catalogDetailTabs } from "./catalog-detail-tab";
 
 /** Match only real academic entity pages and their declared child routes. */
@@ -9,7 +9,10 @@ export function academicEntityPath(pathname: string): string | null {
     );
   if (!match || !Number.isSafeInteger(Number(match[3]))) return null;
   const [, entity, collection, , tab] = match;
-  const tabs =
-    collection === "sections" ? sectionDetailTabs : catalogDetailTabs;
-  return !tab || tabs.some((id) => id === tab) ? entity : null;
+  if (!tab) return entity;
+  const valid =
+    collection === "sections"
+      ? isSectionDetailTab(tab)
+      : catalogDetailTabs.some((id) => id === tab);
+  return valid ? entity : null;
 }
