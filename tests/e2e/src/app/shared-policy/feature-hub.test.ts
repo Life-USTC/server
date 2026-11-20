@@ -164,8 +164,8 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           courses.locator('[data-feature-entry] [data-slot="item-title"]'),
         ).toHaveText(
           locale === "zh-cn"
-            ? ["浏览教学班", "浏览课程", "教师"]
-            : ["Browse sections", "Browse courses", "Teachers"],
+            ? ["班级", "浏览课程", "教师"]
+            : ["Classes", "Browse courses", "Teachers"],
         );
         const activities = hub.getByRole("region", {
           name: copy.activities,

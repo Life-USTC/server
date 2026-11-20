@@ -57,7 +57,7 @@ for (const method of ["Web", "REST", "GraphQL", "MCP"] as const)
     await calendarProtocolRun(async (io) => {
       await observation.prepare(io);
       await setLocale(page, "en-us", isolatedWorker.origin);
-      const sectionUrl = `/catalog/sections/${sectionJwId}#homework`;
+      const sectionUrl = `/catalog/sections/${sectionJwId}/homework`;
       const title = (surface: string) =>
         `${facts.course.nameCn} ${facts.course.code} 第一章作业 ${surface}`;
 
@@ -222,7 +222,7 @@ for (const method of ["Web", "REST"] as const)
             await page.setViewportSize({ width, height: 844 });
             for (const path of [
               "/workspace/homeworks",
-              `/catalog/sections/${sectionJwId}#homework`,
+              `/catalog/sections/${sectionJwId}/homework`,
             ]) {
               await gotoAndWaitForReady(page, path);
               if (path === "/workspace/homeworks") {
@@ -275,7 +275,7 @@ for (const method of ["Web", "REST"] as const)
             const publicPage = await anonymous.newPage();
             await gotoAndWaitForReady(
               publicPage,
-              `/catalog/sections/${sectionJwId}#homework`,
+              `/catalog/sections/${sectionJwId}/homework`,
             );
             await publicPage
               .getByRole("button", { name: title, exact: true })

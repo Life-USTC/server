@@ -44,7 +44,7 @@ describe("fixed personal calendar", () => {
         expect(schedule).toMatchObject({
           at: `${section.schedules[0].date?.slice(0, 10)}T08:00:00+08:00`,
           endsAt: `${section.schedules[0].date?.slice(0, 10)}T09:45:00+08:00`,
-          url: `/catalog/sections/${jwId}`,
+          url: `/catalog/sections/${jwId}/schedule`,
           title: section.course.namePrimary,
         });
         expect(schedule?.conflictIntervals).toHaveLength(1);

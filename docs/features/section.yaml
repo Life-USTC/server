@@ -21,7 +21,7 @@ access:
 requirements:
 - id: section.web-module-recovery
   category: presentation
-  rule: Detail introduction, calendar, exams, homework and discussion modules load independently. Each
+  rule: Schedule renders exams and classes together. The introduction, homework and discussion modules load independently. Each
     pending module retains a clear heading and, when no server-rendered content exists, a bounded skeleton; a failed module offers a local retry
     without blocking other modules, reloading the document or repeating a write. Existing server-rendered
     introduction text remains readable while the interactive module loads or fails.
@@ -179,14 +179,13 @@ requirements:
       name: section.mobile-detail-actions
 - id: section.detail-canonical-url
   category: behavior
-  rule: The canonical section detail URL is /catalog/sections/[jwId]. Optional hash anchors identify content
-    within that page.
+  rule: The section detail entry point is /catalog/sections/[jwId]. Each sidebar tab has its own child page. Legacy fragments resolve to the matching page.
   acceptance:
     given: An isolated Section has a persisted upstream jwId.
     when: A browser opens its entity URL with an extra query and hash.
     then:
     - The detail renders the course name.
-    - The canonical URL is the Section entity root while the optional page hash remains usable.
+    - The canonical URL identifies the introduction page and omits the query and legacy fragment.
     test:
       file: tests/e2e/src/app/sections/public-catalog-contracts.test.ts
       name: section.detail-canonical-url
@@ -430,7 +429,7 @@ requirements:
       name: section.empty-semester-retirement
 - id: section.mobile-sticky-actions
   category: presentation
-  rule: Mobile calendar and subscription actions remain reachable in a bottom action bar above the signed-in
+  rule: The mobile subscription dialog contains section and personal calendar choices and remains reachable in a bottom action bar above the signed-in
     shell navigation.
   acceptance:
     given: A signed-in user opens an unsubscribed Section at mobile widths.
@@ -705,7 +704,7 @@ capabilities:
           - section.jwId
           tertiary: []
       items:
-      - Continuous description, schedule, exam, homework and comment reading stream.
+      - Sidebar tabs for description, schedule, exams, homework, comments and details.
     requirement_refs:
     - subscription.subscription-language
   section-ical:

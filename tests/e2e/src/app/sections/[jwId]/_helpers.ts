@@ -20,6 +20,7 @@ export async function jumpToSection(
   const hash = selector.replace(/^#/, "");
   if (
     hash === "calendar" ||
+    hash === "exams" ||
     hash === "homework" ||
     hash === "comments" ||
     hash === "teachers"
@@ -30,7 +31,7 @@ export async function jumpToSection(
       await expect(
         page
           .locator("#calendar")
-          .getByRole("heading", { name: /日历|Calendar/i })
+          .getByRole("heading", { name: /上课安排|Class schedule/i })
           .or(page.locator("#calendar table"))
           .first(),
       ).toBeVisible({ timeout: 60_000 });

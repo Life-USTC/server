@@ -47,7 +47,7 @@ onMount(() => {
 
 <div data-testid="section-homeworks-list">
   {#if homeworks.length === 0}
-    <CollectionEmpty variant="compact" description={sectionCopy.noHomework} />
+    <CollectionEmpty variant="quiet" description={sectionCopy.noHomework} />
   {:else}
     <ResponsiveCollection>
       {#snippet mobile()}

@@ -1,6 +1,7 @@
 import { error, redirect } from "@sveltejs/kit";
 import {
   type CatalogDetailTab,
+  isCatalogDetailTab,
   resolveCatalogDetailTabQueryRedirect,
 } from "@/features/catalog/lib/catalog-detail-tab";
 import { catalogPrimaryName } from "@/features/catalog/lib/catalog-list-display";
@@ -54,6 +55,8 @@ async function loadCourseDetailPageData({
   request,
   url,
 }: CourseDetailPageInput) {
+  const segment = url.pathname.split("/")[4];
+  const detailSection = isCatalogDetailTab(segment) ? segment : "introduction";
   const tabQueryRedirect = resolveCatalogDetailTabQueryRedirect(
     request,
     "courses",
@@ -68,7 +71,6 @@ async function loadCourseDetailPageData({
   const sectionsPage = parseSectionHistoryPage(
     url.searchParams.get("sectionsPage"),
   );
-  // Stream layout always shows the sections table; include on first load.
   const [course, viewer] = await Promise.all([
     runCloudflareTraceSpan(
       "catalog.detail.core",
@@ -89,7 +91,10 @@ async function loadCourseDetailPageData({
   ]);
   if (!course) error(404, copy.notFound.description);
   if (course.jwId !== jwId) {
-    const redirectUrl = new URL(`/catalog/courses/${course.jwId}`, url.origin);
+    const redirectUrl = new URL(
+      `/catalog/courses/${course.jwId}${segment ? `/${detailSection}` : ""}`,
+      url.origin,
+    );
     for (const [key, value] of url.searchParams) {
       if (key === "tab") continue;
       redirectUrl.searchParams.append(key, value);
@@ -111,7 +116,7 @@ async function loadCourseDetailPageData({
             ),
           }
         : loadCatalogDetailCommentsData({
-            includeDescription: true,
+            includeDescription: detailSection === "introduction",
             includeDescriptionHistory: false,
             targetId: course.id,
             type: "course",
@@ -119,7 +124,7 @@ async function loadCourseDetailPageData({
           }),
   );
   const socialMetadata = buildSocialMetadata({
-    canonicalPath: `/catalog/courses/${course.jwId}`,
+    canonicalPath: url.pathname,
     description: formatSocialMetadataMessage(
       copy.metadata.social.courseDescription,
       { code: course.code, name: displayName },
@@ -135,7 +140,7 @@ async function loadCourseDetailPageData({
     copy,
     descriptionData,
     commentsData,
-    detailSection: "overview" as const,
+    detailSection,
     sectionsPagination: buildPaginatedResponse(
       course.sections,
       sectionsPage,
@@ -172,6 +177,8 @@ async function loadTeacherDetailPageData({
   request,
   url,
 }: TeacherDetailPageInput) {
+  const segment = url.pathname.split("/")[4];
+  const detailSection = isCatalogDetailTab(segment) ? segment : "introduction";
   const tabQueryRedirect = resolveCatalogDetailTabQueryRedirect(
     request,
     "teachers",
@@ -186,7 +193,6 @@ async function loadTeacherDetailPageData({
   const sectionsPage = parseSectionHistoryPage(
     url.searchParams.get("sectionsPage"),
   );
-  // Stream layout always shows teaching sections; include on first load.
   const [teacher, viewer] = await Promise.all([
     runCloudflareTraceSpan(
       "catalog.detail.core",
@@ -221,7 +227,7 @@ async function loadTeacherDetailPageData({
             ),
           }
         : loadCatalogDetailCommentsData({
-            includeDescription: true,
+            includeDescription: detailSection === "introduction",
             includeDescriptionHistory: false,
             targetId: teacher.id,
             type: "teacher",
@@ -229,7 +235,7 @@ async function loadTeacherDetailPageData({
           }),
   );
   const socialMetadata = buildSocialMetadata({
-    canonicalPath: `/catalog/teachers/${teacher.id}`,
+    canonicalPath: url.pathname,
     description: formatSocialMetadataMessage(
       copy.metadata.social.teacherDescription,
       { name: displayName },
@@ -247,7 +253,7 @@ async function loadTeacherDetailPageData({
     copy,
     descriptionData,
     commentsData,
-    detailSection: "overview" as const,
+    detailSection,
     sectionsPagination: buildPaginatedResponse(
       teacher.sections,
       sectionsPage,

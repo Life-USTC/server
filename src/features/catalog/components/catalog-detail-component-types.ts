@@ -14,6 +14,7 @@ export type CourseDetailCopy = {
     classType: string;
     courseType: string;
     emptySectionsDescription: string;
+    teachingSections: string;
     noSections: string;
     sectionCode: string;
     semester: string;
@@ -61,6 +62,7 @@ export type CourseDetailCourse = CatalogNamed & {
 };
 
 export type TeacherDetailSection = {
+  teachers?: CatalogNamed[];
   code: string;
   course: CatalogNamed;
   credits?: number | string | null;

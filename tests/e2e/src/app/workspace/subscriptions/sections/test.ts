@@ -244,7 +244,7 @@ test.describe("仪表盘教学班订阅", () => {
       ).toBeVisible();
       const content = page.locator("[data-shell-scroll-container]");
       for (const [name, href] of [
-        [/浏览教学班|Browse Sections/i, "/catalog/sections"],
+        [/班级|Classes/i, "/catalog/sections"],
         [/浏览课程|Browse Courses/i, "/catalog/courses"],
       ] as const) {
         const link = content.getByRole("link", { name });

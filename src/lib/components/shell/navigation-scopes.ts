@@ -3,6 +3,7 @@ import LandmarkIcon from "@lucide/svelte/icons/landmark";
 import PartyPopperIcon from "@lucide/svelte/icons/party-popper";
 import SunriseIcon from "@lucide/svelte/icons/sunrise";
 import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
+import { detailNavigation } from "./detail-navigation";
 import {
   buildAdminNavGroups,
   buildSettingsNavGroups,
@@ -168,7 +169,10 @@ export function isCurrentScopeLink(
     if (candidate.href === link.href || !isActive(candidate)) return false;
     const child = new URL(candidate.href, "https://navigation.invalid");
     if (child.pathname === path)
-      return target.searchParams.size === 0 && child.searchParams.size > 0;
+      return (
+        (!target.hash && Boolean(candidate.detail)) ||
+        (target.searchParams.size === 0 && child.searchParams.size > 0)
+      );
     return child.pathname.startsWith(`${path.replace(/\/$/, "")}/`);
   });
 }
@@ -256,6 +260,12 @@ export function buildNavigationScopes(
       .filter((g) => g.id === "courses" || g.id === "campus")
       .flatMap((g) => g.links.map((link) => ({ ...link, items: undefined }))),
   );
+  const detail = detailNavigation(
+    context.pageData,
+    context.pathname,
+    copy,
+    context.search,
+  );
   for (const feature of publicGroups.flatMap((g) => g.links)) {
     if (
       feature.id &&
@@ -270,7 +280,16 @@ export function buildNavigationScopes(
         "news",
       ].includes(feature.id)
     )
-      add(feature.id, feature.label, "campus", [feature], true);
+      if (detail && detail.collection.href === feature.href) {
+        add(feature.id, feature.label, "campus", [
+          ...(feature.id === "sections"
+            ? []
+            : [{ ...feature, items: undefined }]),
+          { ...detail.current, icon: feature.icon },
+        ]);
+      } else {
+        add(feature.id, feature.label, "campus", [feature], true);
+      }
   }
   add(
     "activities",
@@ -360,5 +379,22 @@ export function buildNavigationScopes(
     ].includes(current)
   )
     current = "root";
+  // Both visible levels belong to the same directory. Only destinations
+  // beyond the root rows and their immediate children need a local sidebar.
+  const primaryId = primaryDestination(path);
+  const rootEntry = primary.find((link) => link.id === primaryId);
+  if (rootEntry) {
+    const visible = [
+      rootEntry,
+      ...navigationScopeChildren(scopes, "root", rootEntry),
+    ];
+    if (
+      visible.some(
+        (link) =>
+          new URL(link.href, "https://navigation.invalid").pathname === path,
+      )
+    )
+      current = "root";
+  }
   return { current: scopes[current] ? current : "root", scopes, primary };
 }

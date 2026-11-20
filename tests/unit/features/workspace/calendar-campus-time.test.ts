@@ -94,7 +94,7 @@ test("the agenda orders timestamp deadlines alongside campus course and exam slo
       examsHref: "/workspace/exams",
       todosHref: "/workspace/todos",
       sessionHref: () => "/catalog/sections/1",
-      homeworkHref: () => "/catalog/sections/1#homework",
+      homeworkHref: () => "/catalog/sections/1/homework",
       sessionFields: calendarSessionTimelineFields,
       examFields: calendarExamChipFields,
       homeworkFields: calendarHomeworkChipFields,

@@ -1,3 +1,7 @@
+import {
+  type SectionIdentity,
+  sectionSummaryParts,
+} from "@/features/catalog/lib/catalog-list-display";
 import type { ShellLink } from "./types";
 
 type Named = {
@@ -12,7 +16,8 @@ type DetailPageData = {
     id?: string | null;
     revision?: { title?: string | null } | null;
   } | null;
-  section?: { course?: Named | null } | null;
+  locale?: string;
+  section?: SectionIdentity | null;
   teacher?: Named | null;
 };
 
@@ -24,15 +29,6 @@ export type ShellCatalogCollection =
 function displayName(entity: Named | null | undefined) {
   const label = entity?.namePrimary ?? entity?.nameCn ?? entity?.name;
   return label?.trim() ? label.trim() : null;
-}
-
-function detailEntity(
-  collection: ShellCatalogCollection,
-  pageData: DetailPageData,
-) {
-  if (collection === "/catalog/courses") return pageData.course;
-  if (collection === "/catalog/sections") return pageData.section?.course;
-  return pageData.teacher;
 }
 
 /**
@@ -48,9 +44,27 @@ export function currentCatalogDetailItem(
     /^\/catalog\/(courses|sections|teachers)\/([^/]+)/,
   );
   if (!match || `/catalog/${match[1]}` !== collection) return null;
-  const label = displayName(detailEntity(collection, pageData));
-  if (!label) return null;
-  return { href: `${collection}/${match[2]}`, label };
+  const href = `${collection}/${match[2]}`;
+  if (collection === "/catalog/sections") {
+    if (!pageData.section) return null;
+    const lines = sectionSummaryParts(pageData.section, pageData.locale);
+    const label = lines.join("");
+    if (!label) return null;
+    const [course, context] = lines;
+    if (!context) return { href, label };
+    return {
+      href,
+      label,
+      labelLines: [
+        course,
+        context.replace(/^(（\d{4})年(?=[春秋]季学期)/, "$1"),
+      ],
+    };
+  }
+  const label = displayName(
+    collection === "/catalog/courses" ? pageData.course : pageData.teacher,
+  );
+  return label ? { href, label } : null;
 }
 
 export function currentNewsItem(

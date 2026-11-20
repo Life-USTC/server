@@ -588,38 +588,38 @@ export async function assertPageContract(
       return;
     }
 
-    case "/catalog/courses/[jwId]/[section]": {
+    case "/catalog/courses/[jwId]/introduction": {
       await gotoContractPage(
         page,
         `/catalog/courses/${DEV_SEED.course.jwId}/introduction`,
       );
       await expect(page).toHaveURL(
-        new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}#introduction$`),
+        new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}/introduction$`),
       );
       await expectMainContent(page);
       return;
     }
 
-    case "/catalog/sections/[jwId]/[section]": {
+    case "/catalog/sections/[jwId]/introduction": {
       await gotoContractPage(
         page,
         `/catalog/sections/${DEV_SEED.section.jwId}/introduction`,
       );
       await expect(page).toHaveURL(
-        new RegExp(`/catalog/sections/${DEV_SEED.section.jwId}#introduction$`),
+        new RegExp(`/catalog/sections/${DEV_SEED.section.jwId}/introduction$`),
       );
       await expectMainContent(page);
       return;
     }
 
-    case "/catalog/teachers/[id]/[section]": {
+    case "/catalog/teachers/[id]/introduction": {
       const teacherId = await resolveSeedTeacherId(page);
       await gotoContractPage(
         page,
         `/catalog/teachers/${teacherId}/introduction`,
       );
       await expect(page).toHaveURL(
-        new RegExp(`/catalog/teachers/${teacherId}#introduction$`),
+        new RegExp(`/catalog/teachers/${teacherId}/introduction$`),
       );
       await expectMainContent(page);
       return;

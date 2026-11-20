@@ -8,6 +8,10 @@ export type SectionLocalizedName = {
 export type SectionPrimaryName = (item?: SectionLocalizedName | null) => string;
 
 export type SectionBasicInfoCopy = {
+  totalPeriods: string;
+  actualPeriods: string;
+  assessmentMode: string;
+  teachingRole: string;
   adminClasses: string;
   basicInfo: string;
   basicInfoDescription: string;
@@ -18,6 +22,7 @@ export type SectionBasicInfoCopy = {
   moreDetails: string;
   otherSections: string;
   period: string;
+  timesPerWeek: string;
   periodsPerWeek: string;
   remark: string;
   roomType: string;
@@ -42,11 +47,15 @@ export type SectionRelatedSummary = {
 };
 
 export type SectionBasicInfo = {
+  teacherAssignments?: Array<{
+    role?: string | null;
+    teacherLessonType?: SectionLocalizedName | null;
+  }>;
   actualPeriods?: number | null;
   adminClasses: SectionLocalizedName[];
   campus?: SectionLocalizedName | null;
   code: string;
-  course: {
+  course: SectionLocalizedName & {
     jwId: number | string;
   };
   credits?: number | null;
@@ -69,9 +78,8 @@ export type SectionBasicInfo = {
   timesPerWeek?: number | null;
 };
 
-export type SectionTeachersLabel = (section: SectionRelatedSummary) => string;
-
 export type SectionTeacherSummary = SectionLocalizedName & {
+  teacherTitle?: SectionLocalizedName | null;
   department?: SectionLocalizedName | null;
   id: number | string;
 };

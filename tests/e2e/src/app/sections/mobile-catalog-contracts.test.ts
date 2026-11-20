@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
+import { selectDetailTab } from "../../../utils/locators";
 import {
   detailScrollViewport,
   expectNoPageHorizontalOverflow,
@@ -83,6 +84,7 @@ test("course.mobile-detail-hierarchy", { tag: "@Course/Web" }, async ({
               (element) => getComputedStyle(element).fontFamily,
             ),
           ).toMatch(/mono/i);
+          await selectDetailTab(page, "sections");
           const offering = page.locator(
             `#sections a[href="/catalog/sections/${fixture.sections[0].jwId}"]:visible`,
           );
@@ -149,6 +151,7 @@ test("teacher.mobile-detail-hierarchy", { tag: "@Teacher/Web" }, async ({
               { exact: true },
             );
           await reachable(title);
+          await selectDetailTab(page, "sections");
           const offering = page.locator(
             `#sections a[href="/catalog/sections/${fixture.sections[0].jwId}"]:visible`,
           );
@@ -189,17 +192,21 @@ test("section.mobile-detail-actions", { tag: "@Section/Web" }, async ({
             `/catalog/sections/${fixture.sections[0].jwId}`,
           );
           await readableHeading(page, courseNames[language]);
+          await selectDetailTab(page, "overview");
           const overview = page.locator("#overview");
           const code = overview.getByText(fixture.sections[0].code, {
             exact: true,
           });
+          await expect(
+            overview.locator("dd").filter({ hasText: /^32$/ }),
+          ).toHaveCount(2);
           await reachable(code);
           expect(
             await code.evaluate(
               (element) => getComputedStyle(element).fontFamily,
             ),
           ).toMatch(/mono/i);
-          for (const value of ["3.5", "12 / 40", "32 / 32"])
+          for (const value of ["3.5", "12 / 40"])
             await reachable(overview.getByText(value, { exact: true }));
           await reachable(
             page.getByRole("definition").filter({
@@ -365,7 +372,7 @@ for (const domain of ["Calendar", "Subscription"] as const) {
 
           if (domain === "Calendar") {
             await bar
-              .getByRole("button", { name: "添加到日历", exact: true })
+              .getByRole("button", { name: "订阅", exact: true })
               .click();
             await expect(page.getByRole("dialog")).toBeVisible();
             await page.keyboard.press("Escape");
@@ -373,15 +380,15 @@ for (const domain of ["Calendar", "Subscription"] as const) {
           }
           if (domain === "Subscription") {
             await bar
-              .getByRole("button", { name: "订阅教学班", exact: true })
+              .getByRole("button", { name: "订阅", exact: true })
               .click();
             const dialog = page.getByRole("dialog");
             await expect(dialog).toBeVisible();
             await dialog
-              .getByRole("button", { name: "订阅教学班", exact: true })
+              .getByRole("button", { name: "订阅", exact: true })
               .click();
             await expect(
-              bar.getByRole("button", { name: "取消订阅教学班", exact: true }),
+              bar.getByRole("button", { name: "已订阅", exact: true }),
             ).toBeVisible();
             await expect
               .poll(() =>
@@ -396,6 +403,9 @@ for (const domain of ["Calendar", "Subscription"] as const) {
               )
               .toBe(1);
             await bar
+              .getByRole("button", { name: "已订阅", exact: true })
+              .click();
+            await dialog
               .getByRole("button", { name: "取消订阅教学班", exact: true })
               .click();
             await page
@@ -403,7 +413,7 @@ for (const domain of ["Calendar", "Subscription"] as const) {
               .getByRole("button", { name: "确认取消订阅", exact: true })
               .click();
             await expect(
-              bar.getByRole("button", { name: "订阅教学班", exact: true }),
+              bar.getByRole("button", { name: "订阅", exact: true }),
             ).toBeVisible();
             await expect
               .poll(() =>

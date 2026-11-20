@@ -62,7 +62,7 @@ test(
       ).toEqual([
         expect.objectContaining({
           id: `section:${catalog.analysisSection.jwId}`,
-          title: "数学分析 · 程艺",
+          title: "数学分析（程艺）",
           href: `/catalog/sections/${catalog.analysisSection.jwId}`,
         }),
       ]);

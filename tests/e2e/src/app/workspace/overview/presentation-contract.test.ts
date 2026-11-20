@@ -143,7 +143,7 @@ test("overview.workspace-card-priority", { tag: "@Overview/Web" }, async ({
           [
             "11:30",
             homework.title,
-            `/catalog/sections/${fixture.section.jwId}?homeworkId=${fixture.homework.id}#homework`,
+            `/catalog/sections/${fixture.section.jwId}/homework?homeworkId=${fixture.homework.id}`,
             "Homework",
             "Up next",
             "12:00",

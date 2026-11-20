@@ -3,6 +3,7 @@ import {
   type arrangeDetailCatalog,
   test,
 } from "../../../../utils/catalog-detail-fixture";
+import { selectDetailTab } from "../../../../utils/locators";
 /**
  * E2E tests for /teachers/[id] — Teacher Detail Page
  *
@@ -209,6 +210,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           .or(page.getByText(DEV_SEED.teacher.titleNameEn))
           .first(),
       ).toBeVisible();
+      await selectDetailTab(page, "overview");
       // teacher.email (if not null)
       await expect(visibleText(page, DEV_SEED.teacher.email)).toBeVisible();
     });
@@ -233,7 +235,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           await gotoAndWaitForReady(page, `/catalog/courses/${course.jwId}`);
           await gotoAndWaitForReady(
             page,
-            `/catalog/courses/${course.jwId}#sections`,
+            `/catalog/courses/${course.jwId}/sections`,
           );
           await expect(page.locator("#sections")).toBeVisible();
 
@@ -379,7 +381,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       ).toBeVisible();
 
       await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
-      await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
+      await expect(page).toHaveURL(/\/catalog\/teachers\/\d+\/comments$/);
       await expect(page.locator("#comments")).toBeVisible();
     });
   });
@@ -407,6 +409,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
       await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
       await expect(page.locator("#comments")).toBeVisible();
+      await selectDetailTab(page, "sections");
       const section = page
         .locator("#sections a")
         .filter({ visible: true })
@@ -441,7 +444,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           );
           await gotoAndWaitForReady(
             page,
-            `/catalog/teachers/${community.teacher.id}#introduction`,
+            `/catalog/teachers/${community.teacher.id}/introduction`,
           );
           const introduction = page.locator("#introduction");
           await expect(introduction).toBeVisible();
@@ -529,9 +532,9 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         async () => {
           await gotoAndWaitForReady(
             page,
-            `/catalog/teachers/${community.teacher.id}#comments`,
+            `/catalog/teachers/${community.teacher.id}/comments`,
           );
-          await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
+          await expect(page).toHaveURL(/\/catalog\/teachers\/\d+\/comments$/);
           const composer = await openCommentComposer(page);
           const anonymousCheckbox = page
             .locator("#comments")
@@ -612,7 +615,7 @@ test("页面契约", { tag: "@Teacher/Web" }, async ({
 }) => {
   await preferenceFlow.run(async () => {
     await assertPageContract(page, {
-      routePath: "/catalog/teachers/[id]/[section]",
+      routePath: "/catalog/teachers/[id]/introduction",
     });
   });
 });

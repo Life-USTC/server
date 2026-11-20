@@ -1,10 +1,11 @@
-import { parseSectionDetailTab } from "@/features/section-detail/lib/section-detail-tab";
-
+import { isCatalogDetailTab } from "@/features/catalog/lib/catalog-detail-tab";
+import { isSectionDetailTab } from "@/features/section-detail/lib/section-detail-tab";
 export type PageSsrClass = "dynamic-ssr" | "public-ssr";
 
 export type PageAuthSignalPresence = "absent" | "present";
 
 export type PageCatalogDetailTab =
+  | "schedule"
   | "calendar"
   | "comments"
   | "exams"
@@ -14,20 +15,6 @@ export type PageCatalogDetailTab =
   | "overview"
   | "sections"
   | "teachers";
-
-const COURSE_TEACHER_DETAIL_TABS = new Set([
-  "comments",
-  "introduction",
-  "overview",
-  "sections",
-]);
-
-const SECTION_DETAIL_ROUTE = "/catalog/sections/[jwId]";
-const SECTION_DETAIL_SECTION_ROUTE = "/catalog/sections/[jwId]/[section]";
-const COURSE_DETAIL_ROUTE = "/catalog/courses/[jwId]";
-const COURSE_DETAIL_SECTION_ROUTE = "/catalog/courses/[jwId]/[section]";
-const TEACHER_DETAIL_ROUTE = "/catalog/teachers/[id]";
-const TEACHER_DETAIL_SECTION_ROUTE = "/catalog/teachers/[id]/[section]";
 
 export function classifyPageSsrClass(publicSsr: boolean): PageSsrClass {
   return publicSsr ? "public-ssr" : "dynamic-ssr";
@@ -39,42 +26,15 @@ export function classifyPageAuthSignalPresence(
   return hasAuthSignal ? "present" : "absent";
 }
 
-function resolveCourseTeacherDetailTab(
-  section: string | undefined,
-): PageCatalogDetailTab {
-  if (!section) return "overview";
-  return COURSE_TEACHER_DETAIL_TABS.has(section)
-    ? (section as PageCatalogDetailTab)
-    : "not_applicable";
-}
-
 export function resolvePageCatalogDetailTab(
   routeId: string | null,
-  _url: URL,
-  params: Record<string, string> = {},
 ): PageCatalogDetailTab {
-  if (!routeId) return "not_applicable";
-
-  // Catalog detail pages are a single stream (no Context Tabs). Hash anchors are
-  // client-only; server attribution treats the canonical page as overview.
-  if (
-    routeId === SECTION_DETAIL_ROUTE ||
-    routeId === COURSE_DETAIL_ROUTE ||
-    routeId === TEACHER_DETAIL_ROUTE
-  ) {
-    return "overview";
-  }
-
-  if (routeId === SECTION_DETAIL_SECTION_ROUTE) {
-    return parseSectionDetailTab(params.section);
-  }
-
-  if (
-    routeId === COURSE_DETAIL_SECTION_ROUTE ||
-    routeId === TEACHER_DETAIL_SECTION_ROUTE
-  ) {
-    return resolveCourseTeacherDetailTab(params.section);
-  }
-
-  return "not_applicable";
+  const match = routeId?.match(
+    /^\/catalog\/(sections|courses|teachers)\/\[(?:jwId|id)\](?:\/(\w+))?$/,
+  );
+  if (!match) return "not_applicable";
+  const tab = match[2] ?? "introduction";
+  if (match[1] === "sections")
+    return isSectionDetailTab(tab) ? tab : "not_applicable";
+  return isCatalogDetailTab(tab) ? tab : "not_applicable";
 }

@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import { createCatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
 import { test } from "../../../utils/catalog-subscription-fixture";
+import { selectDetailTab } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 function requiredText(value: string | null) {
@@ -73,14 +74,15 @@ async function createFactsFixture(
 async function detailColumns(page: Page, width: number) {
   const main = page.locator("#main-content");
   const identity = main.locator("[data-detail-identity]");
-  const aside = main.locator("aside");
+  await selectDetailTab(page, "overview");
+  const aside = main.locator("#overview");
   const reading = main.locator("[data-detail-reading-stream]");
   await expect(identity).toHaveCount(1);
   await expect(aside).toHaveCount(1);
   if (width === 1280) {
     const boxes = await Promise.all([identity, aside, reading].map(bounds));
-    expect(boxes[0].x).toBeGreaterThan(boxes[2].x + boxes[2].width);
-    expect(boxes[1].x).toBe(boxes[0].x);
+    expect(boxes[0].x).toBe(boxes[2].x);
+    expect(boxes[1].x).toBe(boxes[2].x);
   }
   return { main, identity, aside };
 }
@@ -125,10 +127,12 @@ test("ui.detail-two-column-stream-4 Section", { tag: "@Section/Web" }, async ({
           "href",
           `/catalog/teachers/${teacher.id}`,
         );
-        for (const text of [section.code, "3.5", "12 / 40", "32 / 30"])
+        for (const text of [section.code, "3.5", "12 / 40"])
           await reachable(
             aside.getByRole("definition").filter({ hasText: text }),
           );
+        for (const value of ["32", "30"])
+          await reachable(aside.getByText(value, { exact: true }));
         await teacherLink.click();
         await expect(page).toHaveURL(
           new RegExp(`/catalog/teachers/${teacher.id}$`),
@@ -188,6 +192,7 @@ test("ui.detail-two-column-stream-4 Course", { tag: "@Course/Web" }, async ({
             name: /^(Subscribe to section|Unsubscribe from section|Add to Calendar)$/,
           }),
         ).toHaveCount(0);
+        await selectDetailTab(page, "sections");
         const offering = main
           .locator(
             `#sections a[href="/catalog/sections/${section.jwId}"]:visible`,
@@ -263,6 +268,7 @@ test("ui.detail-two-column-stream-4 Teacher", { tag: "@Teacher/Web" }, async ({
             name: /^(Subscribe to section|Unsubscribe from section|Add to Calendar)$/,
           }),
         ).toHaveCount(0);
+        await selectDetailTab(page, "sections");
         const offering = main
           .locator(
             `#sections a[href="/catalog/sections/${section.jwId}"]:visible`,

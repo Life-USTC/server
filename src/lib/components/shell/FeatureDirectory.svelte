@@ -140,7 +140,7 @@ const groups = $derived(
             {@const extras =
               feature.items?.filter((item) => item.href !== feature.href) ?? []}
             <div class="grid min-w-0 gap-0.5" data-feature-entry>
-              <Item.Root size="sm" class="items-start py-2">
+              <Item.Root size="sm" class="min-h-11 items-start py-2">
                 {#snippet child({ props })}
                   <svelte:element
                     this={feature.disabledReason ? "div" : "a"}
@@ -191,7 +191,7 @@ const groups = $derived(
                         : undefined}
                       variant="outline"
                       size="xs"
-                      class="min-h-6 font-normal text-muted-foreground md:min-h-6"
+                      class="min-h-11 py-2 font-normal text-muted-foreground md:min-h-11"
                       >{item.label}</Button
                     >
                   {/each}

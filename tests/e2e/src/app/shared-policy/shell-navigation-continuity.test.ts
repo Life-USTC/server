@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { openShellNavigation } from "../../../utils/locators";
 import {
   detailScrollViewport,
   gotoAndWaitForReady,
@@ -184,7 +185,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             await expect(current).toHaveText(organizerName);
             await expect(
               nav.locator('a[href="/catalog/young-events/organizers"]'),
-            ).toHaveAttribute("aria-current", "location");
+            ).toHaveCount(0);
             await page.locator('[data-slot="sidebar-rail"]').click();
             const sidebarState = page
               .locator('[data-slot="sidebar"]')
@@ -261,26 +262,21 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           const directory = page.getByTestId("shell-detail-navigation");
           await expect(
             directory.getByTestId("section-course-link"),
-          ).toHaveAttribute("href", `/catalog/courses/${fixture.course.jwId}`);
-          await expect(directory.locator('[aria-current="page"]')).toHaveText(
+          ).toHaveCount(0);
+          await expect(directory).toContainText(
             locale === "en-us"
               ? "Navigation continuity course"
               : "导航连续性课程",
           );
+          const sectionNavigation = await navigation();
           expect(
-            await directory
-              .locator('[data-slot="page-section-nav"] a')
+            await sectionNavigation
+              .locator("a[data-detail-page]")
               .evaluateAll((nodes) =>
-                nodes.map((node) => node.getAttribute("href")),
+                nodes.map((node) => node.getAttribute("data-detail-page")),
               ),
-          ).toEqual([
-            "#introduction",
-            "#calendar",
-            "#exams",
-            "#homework",
-            "#comments",
-            "#overview",
-          ]);
+          ).toEqual(["introduction", "schedule", "homework"]);
+          if (width < 768) await page.keyboard.press("Escape");
           await page.screenshot({
             path: testInfo.outputPath(`section-${locale}-${width}.png`),
           });
@@ -290,7 +286,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               academicNav.locator('a[aria-current="page"]'),
             ).toHaveAttribute(
               "href",
-              `/catalog/sections/${fixture.section.jwId}`,
+              `/catalog/sections/${fixture.section.jwId}/introduction`,
             );
             await expect(
               academicNav.locator('a[href="/catalog/sections"]'),
@@ -316,111 +312,41 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               "expanded",
             );
           }
-          await directory.locator('a[href="#comments"]').click();
-          await expect(page).toHaveURL(/#comments$/);
-          await expect(page.locator("#comments h2")).toBeInViewport();
-          expect(await page.evaluate(() => scrollY)).toBe(0);
-          const reading = detailScrollViewport(page);
-          const readingPosition = await reading.evaluate(
-            (node) => node.scrollTop,
+          await (await navigation())
+            .locator('a[data-detail-page="schedule"]')
+            .click();
+          await expect(page).toHaveURL(/\/schedule$/);
+          await expect(directory.locator('[aria-current="page"]')).toHaveText(
+            locale === "en-us" ? "Schedule" : "日程",
           );
-          expect(readingPosition).toBeGreaterThan(0);
-          const currentLocation = page.url();
-          const currentHistory = await page.evaluate(() => history.length);
-          const currentDocument = await page.evaluateHandle(() => document);
-          const currentMain = await page
-            .locator("#main-content")
-            .elementHandle();
-          if (!currentMain) throw new Error("Missing current detail main");
-          const navigationRequests: string[] = [];
-          const observeNavigation = (
-            request: import("@playwright/test").Request,
-          ) => navigationRequests.push(new URL(request.url()).pathname);
-          if (width < 768) await page.mouse.move(width - 1, 475);
-          page.on("request", observeNavigation);
-          try {
-            if (width < 768) {
-              await menu.focus();
-              await page.keyboard.press("Enter");
-              await expect(page.getByRole("dialog")).toBeVisible();
-            }
-            await navigation();
-            const currentLevel = page.locator(
-              `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
-            );
-            const originalScope = await currentLevel.getAttribute(
-              "data-shell-navigation-view",
-            );
-            if (!originalScope) throw new Error("Missing current detail scope");
-            await currentLevel.locator("[data-local-navigation-back]").click();
-            await expect(currentLevel).toHaveAttribute(
-              "data-shell-navigation-view",
-              "campus",
-            );
-            await currentLevel.locator("[data-local-navigation-back]").click();
-            await expect(currentLevel).toHaveAttribute(
-              "data-shell-navigation-view",
-              "root",
-            );
-            await currentLevel.locator('a[href="/campus"]').click();
-            await expect(currentLevel).toHaveAttribute(
-              "data-shell-navigation-view",
-              originalScope,
-            );
-            await expect(
-              currentLevel.locator('a[aria-current="page"]'),
-            ).toHaveCount(1);
-            const localBack = currentLevel.locator(
-              "[data-local-navigation-back]",
-            );
-            await expect(localBack).toBeVisible();
-            await expect(localBack).toBeFocused();
-            expect(page.url()).toBe(currentLocation);
-            expect(await page.evaluate(() => history.length)).toBe(
-              currentHistory,
-            );
-            expect(
-              await currentDocument.evaluate((node) => node === document),
-            ).toBe(true);
-            expect(
-              await currentMain.evaluate(
-                (node) => node === document.getElementById("main-content"),
-              ),
-            ).toBe(true);
-            expect(await reading.evaluate((node) => node.scrollTop)).toBe(
-              readingPosition,
-            );
-            expect(navigationRequests).toEqual([]);
-          } finally {
-            page.off("request", observeNavigation);
-            await Promise.all([
-              currentDocument.dispose(),
-              currentMain.dispose(),
-            ]);
-          }
-          if (width < 768) {
-            await page.keyboard.press("Escape");
-            await expect(menu).toBeFocused();
-          }
-          await page.reload();
-          await waitForUiSettled(page);
-          await expect(page.locator("#comments h2")).toBeInViewport();
-          await page.getByTestId("section-course-link").click();
+          const sectionNav = await navigation();
+          await sectionNav.locator("[data-local-navigation-back]").click();
+          await expect(sectionNav).toHaveAttribute(
+            "data-shell-navigation-view",
+            "root",
+          );
+          await expect(
+            sectionNav.locator('[data-sidebar="group-label"]'),
+          ).toHaveCount(0);
+          await sectionNav.locator('a[href="/catalog/courses"]').click();
+          await expect(page).toHaveURL(/\/catalog\/courses$/);
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/courses/${fixture.course.jwId}`,
+          );
           await expect(page).toHaveURL(
             new RegExp(`/catalog/courses/${fixture.course.jwId}$`),
           );
           await waitForUiSettled(page);
           expect(
-            await page
-              .getByTestId("shell-detail-navigation")
-              .locator('[data-slot="page-section-nav"] a')
+            await (await navigation())
+              .locator("a[data-detail-page]")
               .evaluateAll((nodes) =>
-                nodes.map((node) => node.getAttribute("href")),
+                nodes.map((node) => node.getAttribute("data-detail-page")),
               ),
-          ).toEqual(["#introduction", "#sections", "#comments", "#overview"]);
-          await page
-            .getByTestId("shell-detail-navigation")
-            .locator('a[href="#sections"]')
+          ).toEqual(["introduction", "sections", "comments", "overview"]);
+          await (await navigation())
+            .locator('a[data-detail-page="sections"]')
             .click();
           await expect(page.locator("#sections h2")).toBeInViewport();
 
@@ -536,7 +462,7 @@ for (const mode of [
         },
       );
       try {
-        await page.goto(`/catalog/sections/${section.jwId}#comments`, {
+        await page.goto(`/catalog/sections/${section.jwId}/comments`, {
           waitUntil: "domcontentloaded",
         });
         await requested;
@@ -544,17 +470,8 @@ for (const mode of [
           () => document.documentElement.dataset.lifeUstcHydrated === "true",
         );
         const inner = detailScrollViewport(page);
-        // Public lazy modules settle independently of the held personal bootstrap.
-        for (const [id, empty] of [
-          ["introduction", "No description yet"],
-          ["calendar", "No schedule or exam events available for this section"],
-          ["exams", "No exam arrangements available yet"],
-          ["homework", "No homework listed."],
-          ["comments", "No comments yet"],
-        ] as const)
-          await expect(
-            page.locator(`#${id}`).getByTestId("compact-empty"),
-          ).toContainText(empty);
+        await expect(page.locator("[data-detail-tab]")).toHaveCount(1);
+        await expect(page.locator("#comments")).toBeVisible();
         await expect(
           page.locator('#comments [data-slot="skeleton"]'),
         ).toHaveCount(0);
@@ -565,11 +482,10 @@ for (const mode of [
             .poll(() => inner.evaluate((node) => node.scrollTop))
             .toBe(0);
         } else if (mode === "new-anchor") {
-          await page
-            .getByTestId("shell-detail-navigation")
-            .locator('a[href="#introduction"]')
+          await (await openShellNavigation(page))
+            .locator('a[data-detail-page="introduction"]')
             .click();
-          await expect(page).toHaveURL(/#introduction$/);
+          await expect(page).toHaveURL(/\/introduction$/);
         } else if (mode === "keyboard-input") {
           // Arrange the read position without dispatching an already-covered
           // wheel/Home cancellation; the new intent comes only from keyboard.
@@ -582,9 +498,9 @@ for (const mode of [
           ).toBeFocused();
           await page.keyboard.type("Anchor");
         } else {
-          const anchor = page
-            .getByTestId("shell-detail-navigation")
-            .locator('a[href="#comments"]');
+          const anchor = (await openShellNavigation(page)).locator(
+            'a[data-detail-page="comments"]',
+          );
           if (mode === "same-anchor-keyboard") {
             await inner.hover();
             await page.mouse.wheel(0, -10000);
@@ -594,7 +510,7 @@ for (const mode of [
             await anchor.focus();
             await page.keyboard.press("Enter");
           } else await anchor.click();
-          await expect(page).toHaveURL(/#comments$/);
+          await expect(page).toHaveURL(/\/comments$/);
         }
         const response = preferenceFlow.waitForResponse(page, (res) =>
           res.url().endsWith("/_internal/shell-bootstrap"),
@@ -606,9 +522,9 @@ for (const mode of [
           await expect
             .poll(() => inner.evaluate((node) => node.scrollTop))
             .toBe(0);
-          await expect(page.locator("#comments h2")).not.toBeInViewport();
+          await expect(page.locator("comments")).toBeVisible();
         } else if (mode === "new-anchor") {
-          await expect(page).toHaveURL(/#introduction$/);
+          await expect(page).toHaveURL(/\/introduction$/);
           await expect(page.locator("#introduction h2")).toBeInViewport();
         } else if (mode === "keyboard-input") {
           await expect(page.locator("#global-search-dialog-input")).toHaveValue(
@@ -621,7 +537,7 @@ for (const mode of [
             .poll(() => inner.evaluate((node) => node.scrollTop))
             .toBe(0);
         } else {
-          await expect(page).toHaveURL(/#comments$/);
+          await expect(page).toHaveURL(/\/comments$/);
           await expect(page.locator("#comments h2")).toBeInViewport();
         }
       } finally {
@@ -686,17 +602,19 @@ for (const [locale, width] of [
       await expect(
         directory.locator("nav").first().locator("a"),
       ).toHaveAttribute("href", "/catalog/teachers");
-      await expect(directory.locator('[aria-current="page"]')).toHaveText(
+      await expect(directory).toContainText(
         locale === "en-us" ? "Navigation teacher" : "导航教师",
       );
       expect(
-        await directory
-          .locator('[data-slot="page-section-nav"] a')
+        await (await openShellNavigation(page))
+          .locator("a[data-detail-page]")
           .evaluateAll((nodes) =>
-            nodes.map((node) => node.getAttribute("href")),
+            nodes.map((node) => node.getAttribute("data-detail-page")),
           ),
-      ).toEqual(["#introduction", "#sections", "#comments", "#overview"]);
-      await directory.locator('a[href="#sections"]').click();
+      ).toEqual(["introduction", "sections", "comments", "overview"]);
+      await (await openShellNavigation(page))
+        .locator('a[data-detail-page="sections"]')
+        .click();
       await expect(page.locator("#sections h2")).toBeInViewport();
       await expect(
         page

@@ -1,5 +1,7 @@
 import type { Component } from "svelte";
 
+import type { DetailTab } from "./detail-navigation";
+
 export type ShellGlyph =
   | "profile"
   | "preferences"
@@ -11,6 +13,7 @@ export type ShellLink = {
   /** Static destination identity, independent of locale and viewer records. */
   id?: string;
   disabledReason?: string;
+  detail?: { kind: "course" | "section" | "teacher"; tab: DetailTab };
   ariaLabel?: string;
   badge?: number | null;
   /** Accessible unit and exact summary scope; only the number is displayed. */
@@ -19,6 +22,7 @@ export type ShellLink = {
   href: string;
   icon?: Component;
   items?: ShellLink[];
+  labelLines?: string[];
   label: string;
   rel?: string;
   target?: "_blank";

@@ -173,7 +173,7 @@ for (const domain of ["Overview", "Subscription"] as const) {
           ).toHaveAttribute("href", "/catalog/courses");
           await expect(
             content.getByRole("link", {
-              name: /Browse Sections|浏览教学班/,
+              name: /Classes|班级/,
               exact: true,
             }),
           ).toHaveAttribute("href", "/catalog/sections");

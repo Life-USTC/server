@@ -94,15 +94,14 @@ requirements:
     when: A browser opens Chinese and English detail at 320 and 390 pixel widths.
     then:
     - The localized name is a readable wrapping heading without horizontal overflow.
-    - Public department and title details are directly reachable by scrolling.
+    - Public department and title details are reachable from More details.
     - The offering displays its course name and links to the exact Section.
     test:
       file: tests/e2e/src/app/sections/mobile-catalog-contracts.test.ts
       name: teacher.mobile-detail-hierarchy
 - id: teacher.detail-canonical-url
   category: behavior
-  rule: The canonical teacher detail URL is /catalog/teachers/[id]. Optional hash anchors identify content
-    within that page.
+  rule: The teacher detail entry point is /catalog/teachers/[id]. Each sidebar tab has its own child page. Legacy fragments resolve to the matching page.
   acceptance:
     given: An isolated Teacher has a persisted database id.
     when: A browser opens its entity URL with an extra query and hash.
@@ -115,9 +114,9 @@ requirements:
 - id: teacher.bounded-detail-history
   category: consistency
   rule: 'Detail returns 20 Section offerings per page and the full count, including retired offerings.
-    Web appends each batch using sectionsPage=N and #sections, without page controls or count summaries. Ordering ends in unique jwId. Paginated
-    HTML bypasses shared SSR caching; page-core cache keys include the page; canonical URLs remain the
-    entity root.'
+    Web appends each batch using sectionsPage=N on the sections page, without page controls or count summaries. Ordering ends in unique jwId. Paginated
+    HTML bypasses shared SSR caching; page-core cache keys include the page; canonical URLs identify the
+    sections page.'
   acceptance:
     given: An isolated teacher has 23 equal-sort-value offerings including three retired offerings.
     when: Desktop and mobile viewers scroll through both history batches, directly load and reload page two, and follow a retired

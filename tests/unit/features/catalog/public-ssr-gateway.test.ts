@@ -9,13 +9,10 @@ import {
   PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS,
   publicSsrCacheHeaders,
   resolvePublicSsrMode as resolveBasePublicSsrMode,
-  resolveCourseDetailTabRedirect,
   resolveLegacyCalendarFeedRedirect,
   resolveLegacyCatalogRedirect,
   resolveLegacySignInRedirect,
   resolvePublicSsrLocale,
-  resolveSectionDetailTabRedirect,
-  resolveTeacherDetailTabRedirect,
   shouldRoutePublicSsrCache,
 } from "@/lib/cloudflare/public-ssr-gateway";
 
@@ -82,32 +79,6 @@ describe("public SSR gateway", () => {
     ["/teachers/abc123", "/catalog/teachers/abc123"],
   ])("redirects legacy catalog path %s before 404 handling", (path, target) => {
     expect(resolveLegacyCatalogRedirect(request(path))).toBe(target);
-  });
-
-  test.each([
-    [
-      "/catalog/sections/159446/introduction",
-      "/catalog/sections/159446#introduction",
-    ],
-    [
-      "/catalog/sections/159446/calendar?page=2",
-      "/catalog/sections/159446?page=2#calendar",
-    ],
-    [
-      "/catalog/courses/11145/introduction",
-      "/catalog/courses/11145#introduction",
-    ],
-    [
-      "/catalog/courses/11145/sections?page=2",
-      "/catalog/courses/11145?page=2#sections",
-    ],
-    ["/catalog/teachers/42/comments", "/catalog/teachers/42#comments"],
-  ])("redirects legacy catalog tab path %s to hash anchor", (path, target) => {
-    const redirect =
-      resolveSectionDetailTabRedirect(request(path)) ??
-      resolveCourseDetailTabRedirect(request(path)) ??
-      resolveTeacherDetailTabRedirect(request(path));
-    expect(redirect).toBe(target);
   });
 
   test("does not redirect a non-read legacy request", () => {
@@ -255,10 +226,9 @@ describe("public SSR gateway", () => {
     "/catalog/sections/159446/calendar",
     "/catalog/sections/159446/exams",
     "/catalog/sections/159446/homework",
-    "/catalog/sections/159446/teachers",
     "/catalog/sections/159446/comments",
-  ])("bypasses legacy catalog tab path %s", (path) => {
-    expect(resolvePublicSsrMode(request(path))).toBeNull();
+  ])("serves academic detail pages at %s", (path) => {
+    expect(resolvePublicSsrMode(request(path))).toBe("page");
   });
 
   test("admits the anonymous home page but still renders for a session", () => {

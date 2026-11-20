@@ -209,6 +209,7 @@ const tabLoaders: Record<
   }) => Promise<SectionDetailTabPanelPatch>
 > = {
   introduction: ({ sectionId }) => loadIntroductionPanel(sectionId),
+  schedule: ({ jwId, locale }) => loadCalendarPanel(jwId, locale),
   calendar: ({ jwId, locale }) => loadCalendarPanel(jwId, locale),
   exams: ({ jwId, locale }) => loadExamsPanel(jwId, locale),
   homework: ({ errorMessage, sectionId, state }) =>

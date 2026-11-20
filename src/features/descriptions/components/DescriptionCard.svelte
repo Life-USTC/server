@@ -1,7 +1,8 @@
 <script lang="ts">
 import { onMount } from "svelte";
 import { toast } from "svelte-sonner";
-import CompactEmpty from "#lib/components/CompactEmpty.svelte";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import SignInButton from "#lib/components/SignInButton.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
@@ -185,7 +186,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
 </script>
 
 {#if usePageHeading}
-  <div class="mb-3 flex flex-wrap items-center gap-3">
+  <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
     <h2 class="text-lg font-semibold tracking-tight">{heading}</h2>
     {#if readOnlyReason}
       <Button type="button" variant="outline" disabled title={readOnlyReason}>{copy.edit}</Button>
@@ -201,13 +202,12 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
         {copy.edit}
       </Button>
     {:else if !viewerFailed && !viewer.isAuthenticated}
-      <Button
+      <SignInButton
         data-testid="description-edit-login"
-        href="/account/sign-in"
         variant="secondary"
       >
         {copy.loginToEdit}
-      </Button>
+      </SignInButton>
     {/if}
   </div>
 {/if}
@@ -252,7 +252,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
         {saveDescription}
       />
     {:else if softEmpty}
-      <CompactEmpty title={copy.emptyTitle} description={copy.empty} />
+      <CollectionEmpty variant="quiet" description={`${copy.emptyTitle} · ${copy.empty}`} />
     {:else}
       <DescriptionReadPanel
         bind:activePanelTab

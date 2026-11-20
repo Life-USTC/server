@@ -1,3 +1,5 @@
+import { catalogDetailTabs } from "@/features/catalog/lib/catalog-detail-tab";
+import { sectionDetailTabs } from "@/features/section-detail/lib/section-detail-tab";
 /** Browser route samples and mobile batches. Behavioral coverage is reviewed manually. */
 
 import { SETTINGS_TABS } from "@/features/settings/lib/settings-tabs";
@@ -166,6 +168,14 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     mobileChecks: ["public"],
   },
   {
+    routeId: "/catalog/rooms/[code]",
+    domain: "RoomMap",
+    samplePath: "/catalog/rooms/2304",
+    kind: "page",
+    auth: "public",
+    mobileChecks: ["public"],
+  },
+  {
     routeId: "/catalog/weather",
     domain: "Weather",
     samplePath: "/catalog/weather",
@@ -221,13 +231,15 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     mobileChecks: ["public"],
   },
-  {
-    routeId: "/catalog/courses/[jwId]/[section]",
-    domain: "Course",
-    samplePath: `/catalog/courses/${DEV_SEED.course.jwId}/introduction`,
-    kind: "redirect",
-    auth: "public",
-  },
+  ...catalogDetailTabs.map(
+    (tab): PageInventoryEntry => ({
+      routeId: `/catalog/courses/[jwId]/${tab}`,
+      domain: "Course",
+      samplePath: `/catalog/courses/${DEV_SEED.course.jwId}/${tab}`,
+      kind: "page",
+      auth: "public",
+    }),
+  ),
   {
     routeId: "/catalog/links",
     domain: "CatalogLink",
@@ -252,13 +264,15 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     auth: "public",
     mobileChecks: ["public"],
   },
-  {
-    routeId: "/catalog/sections/[jwId]/[section]",
-    domain: "Section",
-    samplePath: `/catalog/sections/${DEV_SEED.section.jwId}/introduction`,
-    kind: "redirect",
-    auth: "public",
-  },
+  ...sectionDetailTabs.map(
+    (tab): PageInventoryEntry => ({
+      routeId: `/catalog/sections/[jwId]/${tab}`,
+      domain: "Section",
+      samplePath: `/catalog/sections/${DEV_SEED.section.jwId}/${tab}`,
+      kind: "page",
+      auth: "public",
+    }),
+  ),
   {
     routeId: "/catalog/teachers",
     domain: "Teacher",
@@ -274,13 +288,15 @@ export const PAGE_INVENTORY: readonly PageInventoryEntry[] = [
     kind: "page",
     auth: "public",
   },
-  {
-    routeId: "/catalog/teachers/[id]/[section]",
-    domain: "Teacher",
-    samplePath: "/catalog/teachers/[id]/introduction",
-    kind: "redirect",
-    auth: "public",
-  },
+  ...catalogDetailTabs.map(
+    (tab): PageInventoryEntry => ({
+      routeId: `/catalog/teachers/[id]/${tab}`,
+      domain: "Teacher",
+      samplePath: `/catalog/teachers/[id]/${tab}`,
+      kind: "page",
+      auth: "public",
+    }),
+  ),
   {
     routeId: "/community/comments/[id]",
     domain: "Comment",

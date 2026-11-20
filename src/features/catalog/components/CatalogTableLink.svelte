@@ -1,5 +1,6 @@
 <script lang="ts">
 import { cn } from "#lib/utils.js";
+import CatalogDetailIcon from "./CatalogDetailIcon.svelte";
 
 export let href: string;
 export let nowrap = false;
@@ -21,5 +22,6 @@ export { className as class };
   )}
   {href}
 >
+  <CatalogDetailIcon {href} />
   <slot />
 </a>

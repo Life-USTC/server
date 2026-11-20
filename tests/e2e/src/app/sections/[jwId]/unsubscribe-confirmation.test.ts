@@ -35,6 +35,7 @@ for (const width of [1280, 390]) {
           },
         );
         await gotoAndWaitForReady(page, section.path);
+        await page.getByRole("button", { name: "已订阅", exact: true }).click();
         const trigger = page
           .getByRole("button", { name: "取消订阅教学班", exact: true })
           .filter({ visible: true });

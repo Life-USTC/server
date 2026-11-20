@@ -1,3 +1,4 @@
+import { academicEntityPath } from "@/features/catalog/lib/academic-detail-path";
 import type { ShellLink } from "@/lib/components/shell/types";
 import { isDemoNewsId } from "./demo-news-ids";
 import { isDemoYoungId, isDemoYoungOrganizerId } from "./demo-young-ids";
@@ -51,6 +52,9 @@ export function isDemoNavigationDestination(href: string) {
     "/news",
     "/news/sources",
     "/catalog/rooms",
+    "/catalog/rooms/DEMO-101",
+    "/catalog/rooms/DEMO-1",
+    "/catalog/rooms/DEMO-NONE",
     "/catalog/links",
     "/catalog/weather",
     "/catalog/bus",
@@ -73,9 +77,19 @@ export function isDemoNavigationDestination(href: string) {
 export function demoNavigationLink<Link extends ShellLink>(
   link: Link,
   reason: string,
+  currentPathname?: string,
 ): Link {
-  const items = link.items?.map((item) => demoNavigationLink(item, reason));
-  if (!isDemoNavigationDestination(link.href))
+  const items = link.items?.map((item) =>
+    demoNavigationLink(item, reason, currentPathname),
+  );
+  const destination = link.detail ? link.href.split(/[?#]/, 1)[0] : link.href;
+  // A rendered catalog record can come from the public demo snapshot as well.
+  const recordPath = academicEntityPath(destination);
+  const currentRecord =
+    recordPath !== null &&
+    currentPathname !== undefined &&
+    recordPath === academicEntityPath(currentPathname);
+  if (!currentRecord && !isDemoNavigationDestination(destination))
     return { ...link, items, disabledReason: reason };
   return {
     ...link,

@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { Button } from "#lib/components/ui/button/index.js";
-	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
-	import { cn } from "#lib/utils.js";
-	import type { ComponentProps } from "svelte";
+	import PanelLeftIcon from "@lucide/svelte/icons/panel-left";
+	import { cn, type WithElementRef } from "#lib/utils.js";
+	import type { HTMLButtonAttributes } from "svelte/elements";
 	import { useSidebar } from "./context.svelte.js";
 
 	let {
@@ -11,28 +10,24 @@
 		onclick,
 		children,
 		...restProps
-	}: ComponentProps<typeof Button> & {
-		onclick?: (e: MouseEvent) => void;
-	} = $props();
+	}: WithElementRef<HTMLButtonAttributes, HTMLButtonElement> = $props();
 
 	const sidebar = useSidebar();
 </script>
 
-<Button
-	bind:ref
+<button
+	bind:this={ref}
 	data-sidebar="trigger"
 	data-slot="sidebar-trigger"
-	variant="ghost"
-	size="icon-sm"
-	class={cn("cn-sidebar-trigger", className)}
+	class={cn("inline-flex size-9 shrink-0 appearance-none items-center justify-center rounded-md border-0 bg-transparent p-0 text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&_svg]:size-4", className)}
 	aria-expanded={sidebar.isMobile ? sidebar.openMobile : sidebar.state === "expanded"}
 	type="button"
-	onclick={(e) => {
-		onclick?.(e);
+	onclick={(event) => {
+		onclick?.call(event.currentTarget, event);
 		sidebar.toggle();
 	}}
 	{...restProps}
 >
 	{#if children}{@render children()}{:else}<PanelLeftIcon />{/if}
 	<span class="sr-only">Toggle Sidebar</span>
-</Button>
+</button>

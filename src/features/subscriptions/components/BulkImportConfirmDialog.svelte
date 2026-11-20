@@ -68,11 +68,10 @@ const titleId = "bulk-import-confirm-title";
                   />
                   <Field.Content>
                     <SectionCardIdentity course={{ namePrimary: section.courseName, nameSecondary: section.courseSecondaryName }} teachers={section.teacherNames ? [{ namePrimary: section.teacherNames }] : []} code={section.code} semester={{ nameCn: section.semesterName }} locale={page.data.locale ?? "zh-cn"}>
-                      {#snippet title()}
+                      {#snippet title(summary)}
                         <Field.Label class="block w-full cursor-pointer break-words [overflow-wrap:anywhere]" for={checkboxId}>
                           <span class="sr-only">{formatMessage(copy.selectSection, { code: section.code })} · </span>
-                          {section.courseName}
-                          {#if section.courseSecondaryName}<span class="text-muted-foreground">({section.courseSecondaryName})</span>{/if}
+                          {summary}
                         </Field.Label>
                       {/snippet}
                     </SectionCardIdentity>

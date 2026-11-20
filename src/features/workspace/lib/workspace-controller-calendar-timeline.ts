@@ -1,3 +1,4 @@
+import { sectionDetailPagePath } from "@/features/section-detail/lib/section-detail-tab";
 import type { calendarEventsForDay } from "./calendar";
 import {
   buildCalendarTimelineItemsForDay,
@@ -20,7 +21,7 @@ export function sessionHrefForWorkspaceCalendar(
   tabHref: WorkspaceTabHref,
 ) {
   return session.sectionJwId
-    ? `/catalog/sections/${session.sectionJwId}`
+    ? sectionDetailPagePath(session.sectionJwId, "calendar")
     : tabHref("subscriptions");
 }
 

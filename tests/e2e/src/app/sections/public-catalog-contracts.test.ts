@@ -1,6 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { unflatten } from "devalue";
 import type { CatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
+import { selectDetailTab } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import type { PreferenceFlow } from "../../../utils/preference-flow";
 import { observeSectionDetailNavigation } from "../../../utils/section-detail-navigation";
@@ -24,13 +25,16 @@ async function canonical(
   await chinese(page, flow);
   await gotoAndWaitForReady(page, `${path}?source=contract#overview`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
-  const root = new URL(path, page.url()).href;
+  const targetPage = path.startsWith("/catalog/sections/")
+    ? "introduction"
+    : "overview";
+  const overview = new URL(`${path}/${targetPage}`, page.url()).href;
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
     "href",
-    root,
+    overview,
   );
   await expect(page).toHaveURL(
-    new RegExp(`${path}\\?source=contract#overview$`),
+    new RegExp(`${path}/${targetPage}\\?source=contract$`),
   );
 }
 test("course.detail-canonical-url", { tag: "@Course/Web" }, async ({
@@ -180,6 +184,7 @@ test("teacher.section-code-auxiliary", { tag: "@Teacher/Web" }, async ({
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(
         fixture.teachers[0].nameCn,
       );
+      await selectDetailTab(page, "sections");
       const history = page.locator("#sections");
       await expect(history).toContainText(fixture.courses[0].nameCn);
       const code = history
@@ -378,7 +383,7 @@ test("section.personal-deep-link-gate", { tag: "@Subscription/Web" }, async ({
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
     await expect(
-      dialog.getByRole("button", { name: "订阅教学班", exact: true }),
+      dialog.getByRole("button", { name: "订阅", exact: true }),
     ).toBeEnabled();
     await flow.clearRoutes(page);
     // Deliberate browser-side failure: no native request is claimed for this 503.

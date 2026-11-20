@@ -230,7 +230,7 @@ export function buildDemoCatalogDescription(
     type === "teacher"
       ? english
         ? "Explore the sample teaching sections below."
-        : "你可以在下方浏览这位老师的演示教学班。"
+        : "你可以在下方浏览这位老师的演示班级。"
       : english
         ? "This sample introduces the course topics. Review the timetable, examination and teaching information below."
         : "这份样例介绍课程内容。你可以继续查看下方的课表、考试与教学信息。";

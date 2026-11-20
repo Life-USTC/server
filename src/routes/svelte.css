@@ -271,6 +271,10 @@ html {
     @apply mx-auto w-full min-w-0 max-w-7xl;
   }
 
+  .detail-frame-gutter {
+    @apply px-4 sm:px-5 lg:px-6;
+  }
+
   .page-frame-reading {
     @apply max-w-4xl;
   }

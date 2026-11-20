@@ -328,20 +328,24 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             910001,
             "DEMO-MATH01.01",
             english
-              ? "Linear Algebra · Teacher Chen, Teacher Lin"
-              : "线性代数 · 陈老师、林老师",
+              ? "Linear Algebra (Fall 2026, Teacher Chen, Teacher Lin)"
+              : "线性代数（2026年秋季学期，陈老师、林老师）",
             english ? "Fall 2026" : "2026年秋季学期",
           ],
           [
             910002,
             "DEMO-PHYS01.01",
-            english ? "College Physics · Teacher Chen" : "大学物理 · 陈老师",
+            english
+              ? "College Physics (Fall 2026, Teacher Chen)"
+              : "大学物理（2026年秋季学期，陈老师）",
             english ? "Fall 2026" : "2026年秋季学期",
           ],
           [
             910003,
             "DEMO-CS01.01",
-            english ? "Data Structures · Teacher Lin" : "数据结构 · 林老师",
+            english
+              ? "Data Structures (Spring 2026, Teacher Lin)"
+              : "数据结构（2026年春季学期，林老师）",
             english ? "Spring 2026" : "2026年春季学期",
           ],
         ].map(([id, code, title, description]) => ({

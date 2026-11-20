@@ -1,3 +1,4 @@
+import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
 import { CATALOG_SEARCH_MIN_LENGTH } from "@/features/catalog/lib/catalog-list-query";
 import { searchLinksForGlobal } from "@/features/search/server/global-search-link-queries";
 import {
@@ -6,6 +7,7 @@ import {
   type GlobalSearchResultGroupType,
   type GlobalSearchResultItem,
 } from "@/features/search/server/global-search-types";
+import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
 import type { AppLocale } from "@/i18n/config";
 import { searchTerms } from "@/lib/query-filter-helpers";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
@@ -61,7 +63,7 @@ export function searchDemoGlobally(input: {
       .map((section) => ({
         id: `section:${section.jwId}`,
         code: section.code,
-        title: `${section.course.namePrimary} · ${section.teachers.map((teacher) => teacher.namePrimary).join(input.locale === "en-us" ? ", " : "、")}`,
+        title: sectionSummary(section, input.locale),
         description: section.semester?.nameCn
           ? formatSemesterName(input.locale, section.semester.nameCn)
           : null,
@@ -125,7 +127,9 @@ export function searchDemoGlobally(input: {
         id: `homework:${homework.id}`,
         title: homework.title,
         description: homework.section.course.namePrimary,
-        href: `/catalog/sections/${homework.section.jwId}?homeworkId=${encodeURIComponent(homework.id)}#homework`,
+        href: sectionDetailHomeworkPath(homework.section.jwId, {
+          homeworkId: homework.id,
+        }),
       }));
     groups.todos = getDemoTodos(input.locale)
       .filter(

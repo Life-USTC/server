@@ -65,7 +65,7 @@ test("overview.current-semester-priority", { tag: "@Overview/Web" }, async ({
               [
                 "2026-04-29T11:30:00+08:00",
                 fixture.homework.title,
-                `/catalog/sections/${fixture.section.jwId}?homeworkId=${fixture.homework.id}#homework`,
+                `/catalog/sections/${fixture.section.jwId}/homework?homeworkId=${fixture.homework.id}`,
               ],
               [
                 "2026-04-30T16:30:00+08:00",

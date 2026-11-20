@@ -257,7 +257,7 @@ for (const [domain, method] of [
                 expect.objectContaining({
                   type: "schedule",
                   title: own.course.nameEn,
-                  url: `/catalog/sections/${own.section.jwId}`,
+                  url: `/catalog/sections/${own.section.jwId}/calendar`,
                 }),
                 expect.objectContaining({
                   type: "exam",

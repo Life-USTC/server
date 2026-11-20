@@ -1,12 +1,10 @@
 <script lang="ts">
 import { onMount, tick } from "svelte";
 import { toast } from "svelte-sonner";
+import { signInHrefForPage } from "#lib/auth/auth-routing.js";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import {
-  commentEditAttachmentOptions,
-  commentPanelSignInHref,
-} from "@/features/comments/lib/comment-panel-controller";
+import { commentEditAttachmentOptions } from "@/features/comments/lib/comment-panel-controller";
 import {
   type CommentsInitialData,
   type CommentTargetLoadState,
@@ -143,9 +141,7 @@ let _dateTimeFormatter = $derived(
     },
   ),
 );
-let _signInHref = $derived(
-  commentPanelSignInHref(routePage.url.pathname, routePage.url.search),
-);
+let _signInHref = $derived(signInHrefForPage(routePage.url));
 let _resolvedTargets = $derived(
   resolveCommentTargets({
     copy: _commentCopy,

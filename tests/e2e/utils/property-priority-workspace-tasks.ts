@@ -225,7 +225,7 @@ export async function checkWorkspaceTaskPriorityViews(
     await checkHomeworkDetail();
     await gotoAndWaitForReady(
       page,
-      `/catalog/sections/${section.jwId}?homeworkId=${homework.id}#homework`,
+      `/catalog/sections/${section.jwId}/homework?homeworkId=${homework.id}`,
     );
     // The deep link opens the dialog after the section viewer data arrives.
     await checkHomeworkDetail();
@@ -278,7 +278,7 @@ export async function checkWorkspaceTaskPriorityViews(
       },
     });
 
-    await gotoAndWaitForReady(page, `/catalog/sections/${section.jwId}#exams`);
+    await gotoAndWaitForReady(page, `/catalog/sections/${section.jwId}/exams`);
     const sectionExam = main
       .getByTestId("section-exams-list")
       .getByRole("row")

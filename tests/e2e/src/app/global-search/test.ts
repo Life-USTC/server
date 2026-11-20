@@ -201,7 +201,7 @@ test("global search trigger opens dialog and navigates to a result", {
         .first(),
     ).toBeVisible();
     await dialog
-      .getByRole("option", { name: /Advanced Linear Algebra · / })
+      .getByRole("option", { name: /Advanced Linear Algebra [(（]/ })
       .first()
       .click();
 

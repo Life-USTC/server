@@ -403,7 +403,7 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", {
         await expect(targetLink).toBeVisible();
         await expect(targetLink).toHaveAttribute(
           "href",
-          `/catalog/sections/${moderation.section.jwId}#comment-${comment.id}`,
+          `/catalog/sections/${moderation.section.jwId}/comments#comment-${comment.id}`,
         );
         await Promise.all([
           page.waitForURL(new RegExp(`#comment-${comment.id}$`)),

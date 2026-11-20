@@ -23,6 +23,7 @@ import {
 } from "../lib/room-map-types";
 
 export let code = "";
+export let initialMap: RoomMapResult | null = null;
 export let pageDemo: DemoIdentity | null | undefined = null;
 export let locale = "";
 export let label: string | undefined = undefined;
@@ -30,6 +31,7 @@ export let copy: RoomMapCopy;
 export let loadOnMount = false;
 export let inline = false;
 export let className = "";
+export let tableCell = false;
 
 const shellViewer = getShellViewer();
 let mounted = false;
@@ -42,7 +44,7 @@ let previewOpen = false;
 let dialogOpen = false;
 let zoom = 1;
 let requestCode = "";
-let trigger: HTMLButtonElement | null = null;
+let trigger: HTMLAnchorElement | null = null;
 let openButton: HTMLButtonElement | null = null;
 let previewContent: HTMLDivElement | null = null;
 let closeTimer: ReturnType<typeof setTimeout> | undefined;
@@ -55,7 +57,9 @@ $: ownerEpoch = readEpoch ? `${readEpoch}:${locale}` : "";
 $: visibleMap =
   ownerEpoch && mapEpoch === ownerEpoch && map?.code === normalizedCode
     ? map
-    : null;
+    : initialMap?.code === normalizedCode
+      ? initialMap
+      : null;
 $: imageUrl = allowedImage(
   visibleMap?.imageUrl ?? visibleMap?.sourceImageUrl ?? null,
 );
@@ -144,17 +148,16 @@ function handlePreviewIntent(event?: PointerEvent | FocusEvent) {
   void loadMap();
 }
 
-function handleTriggerClick(event: MouseEvent) {
-  event.preventDefault();
-  openMap();
-}
-
 async function loadMap() {
   const requestedCode = normalizedCode;
   const epoch = ownerEpoch;
   if (!epoch || !requestedCode || (loading && requestCode === requestedCode))
     return;
-  if (map?.code === requestedCode && mapEpoch === epoch) return;
+  if (
+    initialMap?.code === requestedCode ||
+    (map?.code === requestedCode && mapEpoch === epoch)
+  )
+    return;
 
   requestController?.abort();
   const controller = new AbortController();
@@ -300,37 +303,27 @@ function handleWheel(event: WheelEvent) {
       </div>
 {/snippet}
 
-<span class={cn("inline-flex max-w-full", className)} data-testid="room-map-preview">
+<span class={cn("inline-flex max-w-full", tableCell && "align-middle", className)} data-testid="room-map-preview">
   {#if inline}
     <div class="w-full">{@render mapDetails()}</div>
   {:else}
   <Popover.Root bind:open={previewOpen}>
     <Popover.Trigger>
       {#snippet child({ props })}
-        <Button
+        <a
           {...props}
-          disabled={!ownerEpoch}
-          bind:ref={trigger}
+          bind:this={trigger}
+          href={`/catalog/rooms/${encodeURIComponent(code.trim())}`}
           aria-label={triggerLabel}
-          class="max-w-full px-1.5"
-          size="sm"
-          type="button"
-          variant="link"
+          class={cn("inline-flex max-w-full items-baseline gap-1 text-foreground no-underline", tableCell && "align-baseline")}
           onfocus={handlePreviewIntent}
           onpointerenter={handlePreviewIntent}
           onpointerleave={dismissPreview}
           onblur={dismissPreview}
-          onclick={handleTriggerClick}
-          onkeydown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              openMap();
-            }
-          }}
         >
-          <MapPinnedIcon data-icon="inline-start" aria-hidden="true" />
-          <span class="truncate">{label ?? normalizedCode}</span>
-        </Button>
+          <MapPinnedIcon class="size-4 shrink-0 self-center" aria-hidden="true" />
+          <span class={tableCell ? "whitespace-normal" : "truncate"}>{label ?? normalizedCode}</span>
+        </a>
       {/snippet}
     </Popover.Trigger>
     <Popover.Content

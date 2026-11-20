@@ -33,6 +33,7 @@ import WrenchIcon from "@lucide/svelte/icons/wrench";
 import type { Component } from "svelte";
 import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
 import type { WorkspaceNavigationSummary } from "#lib/shell/shell-bootstrap.js";
+import { activeDetailTab } from "./detail-navigation";
 import {
   currentCatalogDetailItem,
   currentNewsItem,
@@ -342,6 +343,7 @@ export function buildShellFeatureGroups(
 }
 
 type SidebarContext = {
+  search?: string;
   navigation: WorkspaceNavigationSummary | null;
   pageData: Record<string, unknown>;
   pathname: string;
@@ -365,6 +367,18 @@ function sidebarItems(
         ),
       );
       break;
+    case "rooms": {
+      const room = pageData.map;
+      if (
+        pathname.startsWith("/catalog/rooms/") &&
+        room &&
+        typeof room === "object" &&
+        "code" in room &&
+        typeof room.code === "string"
+      )
+        items.push({ href: pathname, label: room.code, icon: MapPinnedIcon });
+      break;
+    }
     case "bus":
       items.push({
         href: "/catalog/bus/map",
@@ -597,7 +611,7 @@ export function buildSettingsNavGroups(copy: LayoutCopy): ShellNavGroup[] {
   ];
 }
 
-type NavigationUrl = Pick<URL, "origin" | "pathname"> & {
+type NavigationUrl = Pick<URL, "origin" | "pathname" | "hash"> & {
   searchParams: Pick<URLSearchParams, "get">;
 };
 
@@ -633,6 +647,13 @@ export function isShellLinkActive(link: ShellLink, current: NavigationUrl) {
   const target = new URL(link.href, current.origin);
   const pathname = current.pathname;
 
+  if (link.detail)
+    return (
+      (pathname === target.pathname ||
+        (link.detail.tab === "introduction" &&
+          pathname + "/introduction" === target.pathname)) &&
+      activeDetailTab(link.detail.kind, current) === link.detail.tab
+    );
   if (target.searchParams.size > 0) return queryLinkMatches(target, current);
 
   if (target.pathname === "/news") {

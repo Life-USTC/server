@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import type { TestPrismaClient } from "../../../../shared/prisma";
+import { selectDetailTab } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../../../utils/personal-preferences-fixture";
 
@@ -188,12 +189,12 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
         },
         {
           name: "course-history",
-          path: `/catalog/courses/${fixture.course.jwId}`,
+          path: `/catalog/courses/${fixture.course.jwId}/sections`,
           selector: "#sections table",
         },
         {
           name: "teacher-history",
-          path: `/catalog/teachers/${fixture.teacher.id}`,
+          path: `/catalog/teachers/${fixture.teacher.id}/sections`,
           selector: "#sections table",
         },
       ]) {
@@ -280,21 +281,15 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
         for (const item of [
           {
             path: `/catalog/courses/${fixture.course.jwId}`,
-            sections: ["introduction", "sections", "comments"],
+            sections: ["introduction", "sections", "comments", "overview"],
           },
           {
             path: `/catalog/teachers/${fixture.teacher.id}`,
-            sections: ["introduction", "sections", "comments"],
+            sections: ["introduction", "sections", "comments", "overview"],
           },
           {
             path: `/catalog/sections/${fixture.section.jwId}`,
-            sections: [
-              "introduction",
-              "calendar",
-              "exams",
-              "homework",
-              "comments",
-            ],
+            sections: ["introduction", "schedule", "homework"],
           },
         ]) {
           if (!item.path.startsWith(`/catalog/${domain.toLowerCase()}s`))
@@ -303,19 +298,14 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           const stream = page.locator("[data-detail-reading-stream]");
           await expect(stream).toHaveCount(1);
           for (const id of item.sections) {
-            const section = stream.locator(`:scope > section#${id}`);
-            await expect(section).toBeVisible();
-            await section.scrollIntoViewIfNeeded();
-            await expect(page).toHaveURL(new RegExp(`${item.path}$`));
-            for (const other of item.sections)
-              await expect(
-                stream.locator(`:scope > section#${other}`),
-              ).toBeVisible();
+            await selectDetailTab(page, id);
+            await expect(page).toHaveURL(new RegExp(`${item.path}/${id}$`));
+            await expect(stream.locator("[data-detail-tab]")).toHaveCount(1);
+            await expect(stream.locator("[data-detail-tab]")).toHaveAttribute(
+              "id",
+              id,
+            );
           }
-          const sections = await stream
-            .locator(":scope > section")
-            .evaluateAll((elements) => elements.map((element) => element.id));
-          expect(sections).toEqual(item.sections);
           const links = await page
             .getByRole("main")
             .locator("a[href]")
@@ -346,7 +336,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
         db.description.updateMany({
           where: { lastEditedById: fixture.user.id },
           data: {
-            content: `[Jump to discussion](#comments)\n\n${Array.from({ length: 35 }, (_, index) => `Reading paragraph ${index + 1}: public detail context remains in the same continuous reading stream.`).join("\n\n")}`,
+            content: `[Jump to discussion](#comments)\n\n${Array.from({ length: 35 }, (_, index) => `Reading paragraph ${index + 1}: public detail links can point to the discussion panel.`).join("\n\n")}`,
           },
         }),
       );
@@ -364,33 +354,11 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
             .getByRole("link", { name: "Jump to discussion", exact: true });
           await expect(link).toHaveAttribute("href", "#comments");
           const target = page.locator("#comments");
-          await expect(target).toHaveCount(1);
-          const before = await target.boundingBox();
-          expect(before?.y).toBeGreaterThan(844);
-          const scrollOffset = () =>
-            target.evaluate((element) => {
-              let offset = 0;
-              for (
-                let ancestor = element.parentElement;
-                ancestor;
-                ancestor = ancestor.parentElement
-              )
-                offset += ancestor.scrollTop;
-              return offset;
-            });
-          const initialScroll = await scrollOffset();
-          const navigation: string[] = [];
-          const observe = (request: import("@playwright/test").Request) => {
-            if (
-              request.isNavigationRequest() ||
-              new URL(request.url()).pathname.endsWith("/__data.json")
-            )
-              navigation.push(request.url());
-          };
-          page.on("request", observe);
+          const onSection = domain === "Section";
+          await expect(target).toHaveCount(onSection ? 1 : 0);
           await link.click();
           await expect(page).toHaveURL(
-            `${new URL(path, page.url()).href}#comments`,
+            `${new URL(path, page.url()).href}/${onSection ? "introduction#comments" : "comments"}`,
           );
           await expect
             .poll(async () => {
@@ -398,9 +366,9 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
               return bounds !== null && bounds.y >= 0 && bounds.y < 844;
             })
             .toBe(true);
-          expect(await scrollOffset()).toBeGreaterThan(initialScroll);
-          expect(navigation).toEqual([]);
-          page.off("request", observe);
+          await expect(page.locator("#introduction")).toHaveCount(
+            onSection ? 1 : 0,
+          );
         }
       }
     });
@@ -624,57 +592,21 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
 
           const identity = page.locator("[data-detail-identity]");
           const reading = page.locator("[data-detail-reading-stream]");
-          const secondary = page.locator(
-            "[data-detail-scroll-container] aside",
-          );
-          await expect(identity).toBeVisible();
+          await expect(identity).toHaveCount(item.kind === "section" ? 1 : 0);
           await expect(reading.locator("#introduction")).toContainText(
             "Readable introduction",
           );
+          await selectDetailTab(page, "overview");
           for (const value of item.identity)
             await expect(identity).toContainText(value);
-          await expect(secondary).toContainText(item.secondary);
-          const order = await page.evaluate(() => {
-            const hero = document.querySelector("h1");
-            const identity = document.querySelector("[data-detail-identity]");
-            const reading = document.querySelector(
-              "[data-detail-reading-stream]",
-            );
-            const secondary = document.querySelector(
-              "[data-detail-scroll-container] aside",
-            );
-            if (!hero || !identity || !reading || !secondary)
-              throw new Error("Missing catalog region");
-            return [
-              Boolean(
-                hero.compareDocumentPosition(identity) &
-                  Node.DOCUMENT_POSITION_FOLLOWING,
-              ),
-              Boolean(
-                identity.compareDocumentPosition(reading) &
-                  Node.DOCUMENT_POSITION_FOLLOWING,
-              ),
-              Boolean(
-                reading.compareDocumentPosition(secondary) &
-                  Node.DOCUMENT_POSITION_FOLLOWING,
-              ),
-            ];
-          });
-          expect(order).toEqual([true, true, true]);
-          // Read one layout so streamed content cannot shift later measurements.
-          const [hero, identityBounds, readingBounds, secondaryBounds] =
-            await regionBounds(page, [
-              "h1",
-              "[data-detail-identity]",
-              "[data-detail-reading-stream]",
-              "[data-detail-scroll-container] aside",
-            ]);
-          expect(hero.y + hero.height).toBeLessThanOrEqual(identityBounds.y);
-          expect(identityBounds.y + identityBounds.height).toBeLessThanOrEqual(
-            readingBounds.y,
+          const [hero, identityBounds, readingBounds] = await regionBounds(
+            page,
+            ["h1", "[data-detail-identity]", "#overview"],
           );
-          expect(readingBounds.y + readingBounds.height).toBeLessThanOrEqual(
-            secondaryBounds.y,
+          expect(hero.y + hero.height).toBeLessThanOrEqual(identityBounds.y);
+          expect(identityBounds.x).toBe(readingBounds.x);
+          await expect(reading.locator("#overview")).toContainText(
+            item.secondary,
           );
           expect(
             await page.evaluate(
@@ -699,19 +631,11 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           await page.setViewportSize({ width: 1280, height: 900 });
           // Resizing animates the sidebar width. Compare regions from one layout
           // observation so a transition cannot move the grid between measurements.
-          const [desktopReading, desktopIdentity, desktopSecondary] =
-            await regionBounds(page, [
-              "[data-detail-reading-stream]",
-              "[data-detail-identity]",
-              "[data-detail-scroll-container] aside",
-            ]);
-          expect(desktopIdentity.x).toBeGreaterThan(
-            desktopReading.x + desktopReading.width,
-          );
-          expect(desktopSecondary.x).toBe(desktopIdentity.x);
-          expect(desktopSecondary.y).toBeGreaterThan(
-            desktopIdentity.y + desktopIdentity.height,
-          );
+          const [desktopReading, desktopIdentity] = await regionBounds(page, [
+            "#overview",
+            "[data-detail-identity]",
+          ]);
+          expect(desktopIdentity.x).toBe(desktopReading.x);
         }
       }
     });

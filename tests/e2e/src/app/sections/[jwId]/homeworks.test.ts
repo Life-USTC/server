@@ -720,7 +720,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
       await gotoAndWaitForReady(page, `/community/comments/${commentId}`);
       await expect(page).toHaveURL(
         new RegExp(
-          `/catalog/sections/${section.jwId}\\?homeworkId=${escapeForRegExp(homeworkId)}#comment-${escapeForRegExp(commentId)}$`,
+          `/catalog/sections/${section.jwId}/homework\\?homeworkId=${escapeForRegExp(homeworkId)}#comment-${escapeForRegExp(commentId)}$`,
         ),
       );
 

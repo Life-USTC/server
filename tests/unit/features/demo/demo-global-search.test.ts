@@ -106,10 +106,10 @@ describe("Demo global search shares the existing fictional graph", () => {
       "homework:demo-homework-project",
     ]);
     expect(homeworks[0].href).toBe(
-      "/catalog/sections/910003?homeworkId=demo-homework-structures#homework",
+      "/catalog/sections/910003/homework?homeworkId=demo-homework-structures",
     );
     expect(homeworks.at(-1)?.href).toBe(
-      "/catalog/sections/910001?homeworkId=demo-homework-project#homework",
+      "/catalog/sections/910001/homework?homeworkId=demo-homework-project",
     );
     expect(
       result.groups.find((group) => group.type === "todos")?.items,

@@ -173,7 +173,7 @@ describe("global search service", () => {
       "todos",
     ]);
     expect(result.groups[0]?.items[0]?.href).toContain("homeworkId=hw-1");
-    expect(result.groups[0]?.items[0]?.href).toContain("#homework");
+    expect(result.groups[0]?.items[0]?.href).toContain("/homework?");
     expect(result.groups[0]?.items[0]?.href).not.toContain("tab=homework");
     expect(
       runCloudflareTraceSpanMock.mock.calls.map(([name, attributes]) => [
@@ -452,14 +452,14 @@ describe("global search service", () => {
     ]);
     expect(result.groups[0]?.items[0]).toEqual({
       id: "section:42",
-      title: "数据结构 · 程艺",
+      title: "数据结构（2026 春，程艺）",
       description: "2026 春 · 东区",
       code: "001",
       href: "/catalog/sections/42",
     });
   });
 
-  it("falls back section titles to course · code when teachers are empty", async () => {
+  it("omits missing teachers from section summaries", async () => {
     searchSectionsForGlobalMock.mockResolvedValue([
       {
         jwId: 7,
@@ -483,7 +483,7 @@ describe("global search service", () => {
 
     expect(result.groups[0]?.items[0]).toEqual({
       id: "section:7",
-      title: "数学分析",
+      title: "数学分析（2026 秋）",
       description: "2026 秋",
       code: "02",
       href: "/catalog/sections/7",

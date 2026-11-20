@@ -7,7 +7,6 @@ export {
 } from "./comment-panel-draft-state";
 export {
   absoluteCommentPermalinkHref,
-  commentPanelSignInHref,
   commentPanelStatusLabel,
   commentPermalinkHref,
   commentTargetPermalinkBaseHref,

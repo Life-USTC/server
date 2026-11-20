@@ -96,7 +96,7 @@ async function useEnglish(page: Page, origin: string) {
 
 async function openSectionComments(page: Page, origin: string, jwId: number) {
   await useEnglish(page, origin);
-  await gotoAndWaitForReady(page, `/catalog/sections/${jwId}#comments`);
+  await gotoAndWaitForReady(page, `/catalog/sections/${jwId}/comments`);
 }
 
 async function openCommentPermalink(page: Page, origin: string, id: string) {
@@ -621,7 +621,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
       const before = await commentRows(db);
       const thread = {
         author: account.name,
-        canonicalUrl: `${isolatedWorker.origin}/catalog/sections/${community.section.jwId}#comment-${comment.id}`,
+        canonicalUrl: `${isolatedWorker.origin}/catalog/sections/${community.section.jwId}/comments#comment-${comment.id}`,
         commentId: comment.id,
         otherRootBody: foreign.body,
         otherRootId: foreign.id,
@@ -769,7 +769,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
           const contents = "section-attachment";
           await gotoAndWaitForReady(
             page,
-            `/catalog/sections/${community.section.jwId}#comments`,
+            `/catalog/sections/${community.section.jwId}/comments`,
           );
           const comments = page.locator("#comments");
           await openCommentComposer(page, comments);

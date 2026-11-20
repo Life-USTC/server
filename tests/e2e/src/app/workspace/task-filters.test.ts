@@ -22,7 +22,7 @@ function taskTitle(
     tab === "exams"
       ? page
           .getByTestId("room-map-preview")
-          .getByRole("button", { name: new RegExp(title, "i") })
+          .getByRole("link", { name: new RegExp(title, "i") })
       : page.getByText(title, { exact: true });
   return locator.filter({ visible: true });
 }

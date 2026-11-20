@@ -81,7 +81,9 @@ for (const locale of ["zh-CN", "en-US"]) {
               : "workspace-calendar-grid",
           );
           const course = calendar
-            .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
+            .locator(
+              `a[href="/catalog/sections/${fixture.section.jwId}/calendar"]`,
+            )
             .first();
           await expect(course).toBeVisible();
           const title = await course
