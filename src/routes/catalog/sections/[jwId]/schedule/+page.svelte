@@ -14,7 +14,9 @@ let { data, form }: { data: PageData; form: ActionData } = $props();
       <section id="exams">
         <div class="mb-3 flex items-center justify-between gap-2">
           <h2 class="font-semibold">{sectionCopy.tabs.exams}</h2>
-          <Button variant="ghost" size="sm" disabled={Boolean(data.demo)} onclick={openCalendarDialog}>{sectionCopy.addToCalendar}</Button>
+          {#if sectionExamEvents.length}
+            <Button variant="ghost" size="sm" disabled={Boolean(data.demo)} onclick={openCalendarDialog}>{sectionCopy.addToCalendar}</Button>
+          {/if}
         </div>
         <SectionExamSection
           events={sectionExamEvents}

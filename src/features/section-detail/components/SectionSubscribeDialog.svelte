@@ -61,19 +61,19 @@ export let subscriptionPendingAction: "subscribe" | "unsubscribe" | null;
         {sectionCopy.subscriptionDisclaimer}
       </Dialog.Description>
     </Dialog.Header>
-    <fieldset class="mx-5 mb-4 grid gap-3">
+    <fieldset class="grid min-w-0 gap-3">
       <legend class="mb-2 font-medium">{sectionCopy.addToCalendar}</legend>
-      <p class="text-sm text-muted-foreground">{sectionCopy.calendarSheetDescription}</p>
       <div class="flex flex-wrap gap-4 text-sm">
         <label class="flex items-center gap-2"><input type="radio" bind:group={scope} value="single" />{sectionCopy.calendarUrlLabel}</label>
         <label class="flex items-center gap-2"><input type="radio" bind:group={scope} value="all" />{sectionCopy.subscriptionUrlLabel}</label>
       </div>
       {#if scope === "single"}
+        <p class="text-sm text-muted-foreground">{sectionCopy.calendarSheetDescription}</p>
         <CalendarSubscriptionUrlRow buttonLabel={sectionCopy.copyToClipboard} {copied} copiedLabel={sectionCopy.copied} id="section-subscription-feed" label={sectionCopy.calendarUrlLabel} value={singleCalendarUrl} {onCopy} />
         {#if clipboardError}<p role="alert">{clipboardError}</p>{/if}
       {:else}
         <p class="text-sm text-muted-foreground">{sectionCopy.subscriptionUrlDescription}</p>
-        <a class="w-fit text-sm underline underline-offset-4" href="/workspace/subscriptions?calendarLink=1">{sectionCopy.subscriptionMissing}</a>
+        <a class="w-fit text-pretty text-sm underline underline-offset-4" href="/workspace/subscriptions?calendarLink=1">{sectionCopy.subscriptionMissing}</a>
       {/if}
     </fieldset>
     <Dialog.Footer>

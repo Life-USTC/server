@@ -82,5 +82,5 @@ $: rows = sectionLessonRows(sectionCalendarEvents, sectionCopy.week);
     </Table.Body>
   </Table.Root>
 {:else}
-  <CollectionEmpty variant="compact" description={sectionCopy.calendarEmpty} />
+  <CollectionEmpty variant="quiet" description={sectionCopy.calendarEmpty} />
 {/if}

@@ -66,7 +66,7 @@ export let sectionCopy: SectionExamCopy;
               {#if event.roomCodes?.length}
                 <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
                   {#each event.roomCodes as room (room)}
-                    <RoomMapPreview {pageDemo} {locale} code={room} copy={roomMapCopy} />
+                    <RoomMapPreview tableCell {pageDemo} {locale} code={room} copy={roomMapCopy} />
                   {/each}
                 </div>
               {:else}
@@ -87,5 +87,5 @@ export let sectionCopy: SectionExamCopy;
     </Table.Root>
   </div>
 {:else}
-  <CollectionEmpty variant="compact" description={sectionCopy.examEmpty} />
+  <CollectionEmpty variant="quiet" description={sectionCopy.examEmpty} />
 {/if}

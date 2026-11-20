@@ -2,6 +2,8 @@ import { expect } from "@playwright/test";
 import { test } from "../../../utils/catalog-browser-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
+test.use({ deviceScaleFactor: 2 });
+
 for (const kind of ["course", "teacher", "section"] as const) {
   test(
     `ui.detail-content-width ${kind}`,
@@ -71,8 +73,8 @@ for (const kind of ["course", "teacher", "section"] as const) {
               },
             });
           }
-          for (const width of [390, 1023, 1024, 1144, 1280, 1440]) {
-            await page.setViewportSize({ width, height: 900 });
+          for (const width of [390, 1023, 1024, 1144, 1280, 1440, 1920]) {
+            await page.setViewportSize({ width, height: 1080 });
             await gotoAndWaitForReady(
               page,
               `${route}/${kind === "section" ? "calendar" : "introduction"}`,
@@ -84,7 +86,30 @@ for (const kind of ["course", "teacher", "section"] as const) {
               .locator("[data-detail-scroll-container]")
               .evaluate((node) => node.clientWidth);
             const bounds = await stream.boundingBox();
-            expect(bounds?.width).toBeGreaterThan(available - 65);
+            expect(bounds?.width).toBeGreaterThanOrEqual(
+              Math.min(1152, available - 65),
+            );
+            const edges = await stream.evaluate((body) => {
+              const rect = body.getBoundingClientRect();
+              const frames = [
+                document.querySelector(
+                  "[data-testid=shell-detail-navigation] .page-frame",
+                ),
+                document.querySelector("#main-content h1")?.closest("header"),
+              ];
+              return frames.map((frame) => {
+                if (!frame) return null;
+                const { left, right } = frame.getBoundingClientRect();
+                return [
+                  Math.round(left - rect.left),
+                  Math.round(right - rect.right),
+                ];
+              });
+            });
+            expect(edges).toEqual([
+              [0, 0],
+              [0, 0],
+            ]);
             if (kind === "section") {
               const table = page.getByTestId("section-calendar-table");
               await expect(

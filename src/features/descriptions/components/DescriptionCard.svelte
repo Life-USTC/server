@@ -186,7 +186,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
 </script>
 
 {#if usePageHeading}
-  <div class="mb-3 flex flex-wrap items-center gap-3">
+  <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
     <h2 class="text-lg font-semibold tracking-tight">{heading}</h2>
     {#if readOnlyReason}
       <Button type="button" variant="outline" disabled title={readOnlyReason}>{copy.edit}</Button>
@@ -252,7 +252,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
         {saveDescription}
       />
     {:else if softEmpty}
-      <CompactEmpty title={copy.emptyTitle} description={copy.empty} />
+      <CompactEmpty class="min-h-0 px-0 py-1" title={copy.emptyTitle} description={copy.empty} />
     {:else}
       <DescriptionReadPanel
         bind:activePanelTab

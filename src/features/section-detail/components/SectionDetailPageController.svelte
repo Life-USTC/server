@@ -525,7 +525,7 @@ onMount(() => {
   titleTemplate={_copy.metadata.pages.sectionDetail}
 />
 
-<section class="min-h-full lg:h-full lg:min-h-0">
+<section class="flex min-h-full flex-col lg:h-full lg:min-h-0">
   <SectionDetailMainContent {content}
     canWriteHomework={!personalLoading && !personalFailed && _canWriteHomework}
     commentTargets={_commentTargets}

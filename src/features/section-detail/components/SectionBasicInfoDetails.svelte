@@ -37,15 +37,15 @@ $: fields = [
 ];
 </script>
 
-<dl class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+<dl class="grid grid-cols-1 gap-x-6 gap-y-2 text-sm @sm/detail:grid-cols-2 @3xl/detail:grid-cols-3">
   {#each fields as [label, value]}
     {#if value != null && value !== "" && value !== notAvailable}
-      <div class="flex items-baseline gap-2">
+      <div class="grid grid-cols-[7.5rem_minmax(0,1fr)] items-baseline gap-x-3">
         <dt class="text-muted-foreground">{label}</dt><dd>{value}</dd>
       </div>
     {/if}
   {/each}
   {#if section.scheduleRemark?.trim()}
-    <div class="flex w-full gap-2"><dt class="shrink-0 text-muted-foreground">{sectionCopy.scheduleRemark}</dt><dd class="whitespace-pre-wrap">{section.scheduleRemark}</dd></div>
+    <div class="col-span-full grid grid-cols-[7.5rem_minmax(0,1fr)] items-baseline gap-x-3"><dt class="shrink-0 text-muted-foreground">{sectionCopy.scheduleRemark}</dt><dd class="whitespace-pre-wrap">{section.scheduleRemark}</dd></div>
   {/if}
 </dl>

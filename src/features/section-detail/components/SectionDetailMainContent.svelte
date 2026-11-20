@@ -77,9 +77,9 @@ $: pageContent = {
 };
 </script>
 
-<div class="grid min-h-full grid-rows-[auto_minmax(0,1fr)_auto] bg-card lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
-  <div class="bg-card" data-testid="detail-pinned-summary">
-    <div class="page-frame page-frame-content px-4 sm:px-5 lg:px-6">
+<div class="grid flex-1 grid-rows-[auto_minmax(0,1fr)_auto] bg-card lg:h-full lg:min-h-0 lg:grid-rows-[auto_minmax(0,1fr)]">
+  <div class="detail-frame-gutter bg-card" data-testid="detail-pinned-summary">
+    <div class="page-frame page-frame-content">
       <SectionDetailHeader
         courseName={courseName}
         courseSecondaryName={courseSecondaryName}
@@ -95,7 +95,7 @@ $: pageContent = {
   </div>
 
   <div
-    class="@container/detail min-w-0 min-h-0 overflow-x-clip px-4 py-4 sm:px-5 lg:overflow-x-hidden lg:overflow-y-auto lg:px-6"
+    class="detail-frame-gutter @container/detail min-w-0 min-h-0 overflow-x-clip py-4 lg:overflow-x-hidden lg:overflow-y-auto"
     aria-busy={streamLoading}
     data-detail-scroll-container
   >
@@ -139,7 +139,7 @@ $: pageContent = {
     data-testid="section-mobile-primary-actions"
   >
     <Separator />
-    <div class="px-3 pt-3 pb-3">
+    <div class="detail-frame-gutter py-3">
       <SectionDetailPrimaryActions
         onOpenCalendar={openCalendarDialog}
         onOpenSubscribe={openSubscribeDialog}

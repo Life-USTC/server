@@ -29,7 +29,7 @@ $effect(() => {
 </script>
 
 {#if detail}
-  <div class="shrink-0 border-b bg-card px-4 py-2 sm:px-5 lg:px-6" data-testid="shell-detail-navigation">
+  <div class="detail-frame-gutter shrink-0 border-b bg-card py-2" data-testid="shell-detail-navigation">
     <div class="page-frame page-frame-content">
       <div class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm">
         <nav aria-label={copy.shell.currentLocation}>
