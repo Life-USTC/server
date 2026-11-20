@@ -103,7 +103,7 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
           <Table.Body>
             {#each data.data as course}
               {@const courseHref = `/catalog/courses/${course.jwId}`}
-              <Table.Row class="has-[a:hover]:bg-muted/50">
+              <Table.Row>
                 <Table.Cell class="p-0">
                   <CatalogTableLink class="font-medium" href={courseHref}>
                   <TruncatedText class="font-medium"

@@ -1910,6 +1910,7 @@
     "teacherCount": "Teacher count"
   },
   "sectionDetail": {
+    "teachingRole": "Teaching role",
     "totalPeriods": "Total hours",
     "actualPeriods": "Actual hours",
     "assessmentMode": "Assessment format",

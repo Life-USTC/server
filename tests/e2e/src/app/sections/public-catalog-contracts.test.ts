@@ -383,7 +383,7 @@ test("section.personal-deep-link-gate", { tag: "@Subscription/Web" }, async ({
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
     await expect(
-      dialog.getByRole("button", { name: "订阅教学班", exact: true }),
+      dialog.getByRole("button", { name: "订阅", exact: true }),
     ).toBeEnabled();
     await flow.clearRoutes(page);
     // Deliberate browser-side failure: no native request is claimed for this 503.

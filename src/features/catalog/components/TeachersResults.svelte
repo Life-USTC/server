@@ -146,7 +146,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
             {#each teachers as teacher}
               {@const teacherHref = `/catalog/teachers/${teacher.id}`}
               {@const sectionCount = teacher._count.sections}
-              <Table.Row class="has-[a:hover]:bg-muted/50">
+              <Table.Row>
                 <Table.Cell class="p-0">
                   <CatalogTableLink class="font-medium" href={teacherHref}>
                   <TruncatedText class="font-medium"

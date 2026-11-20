@@ -118,7 +118,7 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
             <Table.Body>
               {#each data.data as section}
                 {@const sectionHref = `/catalog/sections/${section.jwId}`}
-                <Table.Row class="has-[a:hover]:bg-muted/50">
+                <Table.Row>
                   <Table.Cell class="whitespace-nowrap">
                     {section.semester?.nameCn
                       ? formatSemesterName(locale, section.semester.nameCn)

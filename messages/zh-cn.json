@@ -1548,6 +1548,7 @@
     "teacherCount": "教师人数"
   },
   "sectionDetail": {
+    "teachingRole": "教师类型",
     "totalPeriods": "总学时",
     "actualPeriods": "实际学时",
     "assessmentMode": "考试形式",

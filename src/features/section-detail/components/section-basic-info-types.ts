@@ -11,6 +11,7 @@ export type SectionBasicInfoCopy = {
   totalPeriods: string;
   actualPeriods: string;
   assessmentMode: string;
+  teachingRole: string;
   adminClasses: string;
   basicInfo: string;
   basicInfoDescription: string;
@@ -46,6 +47,10 @@ export type SectionRelatedSummary = {
 };
 
 export type SectionBasicInfo = {
+  teacherAssignments?: Array<{
+    role?: string | null;
+    teacherLessonType?: SectionLocalizedName | null;
+  }>;
   actualPeriods?: number | null;
   adminClasses: SectionLocalizedName[];
   campus?: SectionLocalizedName | null;

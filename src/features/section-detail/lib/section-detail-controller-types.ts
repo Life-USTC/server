@@ -64,6 +64,10 @@ export type SectionDetailExam = {
 };
 
 export type SectionDetailSection = {
+  teacherAssignments?: Array<{
+    role?: string | null;
+    teacherLessonType?: SectionDetailNamed | null;
+  }>;
   actualPeriods?: number | null;
   adminClasses: SectionDetailNamed[];
   campus?: SectionDetailNamed | null;
@@ -234,6 +238,7 @@ export type SectionDetailCopy = {
     totalPeriods: string;
     actualPeriods: string;
     assessmentMode: string;
+    teachingRole: string;
     scheduleDateTime: string;
     classSchedule: string;
     addToCalendar: string;

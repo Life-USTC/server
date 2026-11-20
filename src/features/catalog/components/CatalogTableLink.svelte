@@ -1,8 +1,6 @@
 <script lang="ts">
-import CourseIcon from "@lucide/svelte/icons/book-open";
-import ClassIcon from "@lucide/svelte/icons/graduation-cap";
-import TeacherIcon from "@lucide/svelte/icons/user-round";
 import { cn } from "#lib/utils.js";
+import CatalogDetailIcon from "./CatalogDetailIcon.svelte";
 
 export let href: string;
 export let nowrap = false;
@@ -24,6 +22,6 @@ export { className as class };
   )}
   {href}
 >
-  {#if href.startsWith("/catalog/teachers/")}<TeacherIcon aria-hidden="true" class="me-1 size-4 shrink-0" />{:else if href.startsWith("/catalog/sections/")}<ClassIcon aria-hidden="true" class="me-1 size-4 shrink-0" />{:else if href.startsWith("/catalog/courses/")}<CourseIcon aria-hidden="true" class="me-1 size-4 shrink-0" />{/if}
+  <CatalogDetailIcon {href} />
   <slot />
 </a>

@@ -41,6 +41,18 @@ $: assessmentModes = [
     ].filter(Boolean),
   ),
 ].join(" · ");
+$: teachingRoles = [
+  ...new Set(
+    (section.teacherAssignments ?? [])
+      .map(
+        ({ teacherLessonType: type, role }) =>
+          (page.data.locale === "en-us"
+            ? type?.nameEn || type?.nameCn
+            : type?.nameCn || type?.nameEn) || role,
+      )
+      .filter(Boolean),
+  ),
+].join(" · ");
 type Fact = [string, string | number | null | undefined, typeof Clock];
 $: fields = [
   [sectionCopy.sectionCode, section.code, Hash],
@@ -73,6 +85,7 @@ $: fields = [
   [sectionCopy.periodsPerWeek, section.periodsPerWeek, CalendarClock],
   ...periodDetailRows.map(([label, value]): Fact => [label, value, BookOpen]),
   [sectionCopy.roomType, primaryName(section.roomType), DoorOpen],
+  [sectionCopy.teachingRole, teachingRoles, GraduationCap],
   [sectionCopy.assessmentMode, assessmentModes, FilePen],
   [sectionCopy.remark, section.remark?.trim() || notAvailable, Notebook],
   [sectionCopy.scheduleRemark, section.scheduleRemark?.trim(), Notebook],
@@ -87,7 +100,7 @@ $: fields = [
           <svelte:component this={icon} aria-hidden="true" class="size-4 shrink-0" />
           {label}
         </dt>
-        <dd class="whitespace-pre-wrap font-medium [overflow-wrap:anywhere]">{value}</dd>
+        <dd class:font-mono={label === sectionCopy.sectionCode} class="whitespace-pre-wrap font-medium [overflow-wrap:anywhere]">{value}</dd>
       </div>
     {/if}
   {/each}
