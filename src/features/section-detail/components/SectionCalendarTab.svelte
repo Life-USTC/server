@@ -32,7 +32,7 @@ $: rows = sectionLessonRows(sectionCalendarEvents, sectionCopy.week);
 </script>
 
 {#if rows.length}
-  <Table.Root containerLabel={sectionCopy.lecture} data-testid="section-calendar-table">
+  <Table.Root class="max-sm:[&_td]:px-1.5 max-sm:[&_th]:px-1.5" containerLabel={sectionCopy.lecture} data-testid="section-calendar-table">
     <Table.Caption class="sr-only">{sectionCopy.lecture}</Table.Caption>
     <Table.Header>
       <Table.Row>
@@ -46,10 +46,10 @@ $: rows = sectionLessonRows(sectionCalendarEvents, sectionCopy.week);
       {#each rows as row, index (row.event.id)}
         <Table.Row>
           {#if row.weekSpan}
-            <Table.Cell rowspan={row.weekSpan} class="align-top tabular-nums">{row.week || "—"}</Table.Cell>
+            <Table.Cell rowspan={row.weekSpan} class="tabular-nums">{row.week || "—"}</Table.Cell>
           {/if}
           <Table.Cell>
-            <div class="flex flex-wrap items-baseline gap-x-2">
+            <div class="flex flex-wrap items-center gap-x-2">
               <span class="whitespace-nowrap">{formatMessage(sectionCopy.lectureNumber, { num: String(index + 1) })}</span>
               {#each row.event.teachers ?? [] as teacher (teacher.id)}
                 <a class="inline-flex min-h-6 min-w-6 items-center text-xs text-muted-foreground hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
@@ -57,16 +57,16 @@ $: rows = sectionLessonRows(sectionCalendarEvents, sectionCopy.week);
             </div>
           </Table.Cell>
           {#if row.timeSpan}
-            <Table.Cell rowspan={row.timeSpan} class="align-top tabular-nums">
+            <Table.Cell rowspan={row.timeSpan} class="tabular-nums">
               <div class="flex flex-wrap gap-x-2">
-                <span>{row.event.dateKey || sectionCopy.dateTBD}</span><span>{row.time}</span>
+                <span class="whitespace-nowrap">{row.event.dateKey || sectionCopy.dateTBD}</span><span class="whitespace-nowrap">{row.time}</span>
               </div>
             </Table.Cell>
           {/if}
-          <Table.Cell class="text-foreground [&_button]:text-foreground">
+          <Table.Cell class="text-foreground">
             {#if row.event.roomCodes?.length}
               {#each row.event.roomCodes as room (room)}
-                <RoomMapPreview {pageDemo} {locale} code={room} label={row.event.roomCodes.length === 1 ? calendarEventLocation(row.event, room) : room} copy={roomMapCopy} />
+                <RoomMapPreview tableCell {pageDemo} {locale} code={room} label={row.event.roomCodes.length === 1 ? calendarEventLocation(row.event, room) : room} copy={roomMapCopy} />
               {/each}
             {:else}
               {calendarEventLocation(row.event, "—")}

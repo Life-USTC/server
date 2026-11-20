@@ -30,6 +30,7 @@ export let copy: RoomMapCopy;
 export let loadOnMount = false;
 export let inline = false;
 export let className = "";
+export let tableCell = false;
 
 const shellViewer = getShellViewer();
 let mounted = false;
@@ -300,7 +301,7 @@ function handleWheel(event: WheelEvent) {
       </div>
 {/snippet}
 
-<span class={cn("inline-flex max-w-full", className)} data-testid="room-map-preview">
+<span class={cn("inline-flex max-w-full", tableCell && "align-middle", className)} data-testid="room-map-preview">
   {#if inline}
     <div class="w-full">{@render mapDetails()}</div>
   {:else}
@@ -312,7 +313,7 @@ function handleWheel(event: WheelEvent) {
           disabled={!ownerEpoch}
           bind:ref={trigger}
           aria-label={triggerLabel}
-          class="max-w-full px-1.5"
+          class={cn("max-w-full px-1.5", tableCell && "h-auto border-0 px-0 text-left text-foreground has-data-[icon=inline-start]:pl-0 md:min-h-7")}
           size="sm"
           type="button"
           variant="link"
@@ -329,7 +330,7 @@ function handleWheel(event: WheelEvent) {
           }}
         >
           <MapPinnedIcon data-icon="inline-start" aria-hidden="true" />
-          <span class="truncate">{label ?? normalizedCode}</span>
+          <span class={tableCell ? "whitespace-normal" : "truncate"}>{label ?? normalizedCode}</span>
         </Button>
       {/snippet}
     </Popover.Trigger>
