@@ -1,7 +1,7 @@
 <script lang="ts">
+import CourseDetailPageController from "@/features/catalog/components/CourseDetailPageController.svelte";
 import LazyCommentsPanel from "@/features/comments/components/LazyCommentsPanel.svelte";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
-import CourseDetailPageController from "@/features/catalog/components/CourseDetailPageController.svelte";
 import type { PageData } from "./$types";
 
 let { data }: { data: PageData } = $props();

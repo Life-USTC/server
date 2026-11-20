@@ -1,9 +1,9 @@
 <script lang="ts">
 import CatalogSectionHistory from "@/features/catalog/components/CatalogSectionHistory.svelte";
+import CourseDetailPageController from "@/features/catalog/components/CourseDetailPageController.svelte";
 import CourseDetailSections from "@/features/catalog/components/CourseDetailSections.svelte";
 import { createEndlessList } from "@/lib/navigation/endless-list.svelte";
 import { page } from "$app/state";
-import CourseDetailPageController from "@/features/catalog/components/CourseDetailPageController.svelte";
 import type { PageData } from "./$types";
 
 let { data }: { data: PageData } = $props();

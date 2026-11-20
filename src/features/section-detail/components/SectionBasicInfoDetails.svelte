@@ -9,14 +9,20 @@ import type {
 export let commonCopy: SectionCommonInfoCopy;
 export let notAvailable: string;
 export let primaryName: SectionPrimaryName;
-export let section: SectionBasicInfo & { exams: Array<{ examMode?: string | null }> };
+export let section: SectionBasicInfo & {
+  exams: Array<{ examMode?: string | null }>;
+};
 export let sectionCopy: SectionBasicInfoCopy;
 export let yesNo: (value: boolean | null | undefined) => string;
 export let periodDetailRows: Array<[string, number]>;
-$: assessmentModes = [...new Set([
-  primaryName(section.examMode),
-  ...section.exams.map(exam => exam.examMode?.trim()),
-].filter(Boolean))].join(" · ");
+$: assessmentModes = [
+  ...new Set(
+    [
+      primaryName(section.examMode),
+      ...section.exams.map((exam) => exam.examMode?.trim()),
+    ].filter(Boolean),
+  ),
+].join(" · ");
 $: fields = [
   [sectionCopy.department, primaryName(section.openDepartment)],
   [sectionCopy.teachLanguage, primaryName(section.teachLanguage)],
