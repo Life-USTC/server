@@ -97,17 +97,17 @@ function readProfiles<T extends Profile>(
   snapshot: ProfileSnapshot,
   tables: string[],
   mapper: (row: SnapshotRow) => T | undefined,
-  codeKey: (profile: T) => string,
+  identityKey: (profile: T) => string,
 ) {
   const combined = new Map<number, T>();
   const owners = new Map<string, number>();
   const blockedIds = new Set<number>();
-  const blockedCodes = new Set<string>();
+  const blockedKeys = new Set<string>();
   let conflicts = 0;
   for (const table of tables) {
     if (!snapshot.hasTable(table)) continue;
     const seen = new Set<number>();
-    const byCode = new Map<string, number>();
+    const byKey = new Map<string, number>();
     const invalid = new Set<number>();
     for (const row of snapshot.iterateAll(table)) {
       const profile = mapper(row);
@@ -117,38 +117,40 @@ function readProfiles<T extends Profile>(
         else invalid.add(id);
         continue;
       }
-      const key = codeKey(profile);
+      const key = identityKey(profile);
       if (seen.has(profile.jwId)) invalid.add(profile.jwId);
-      const owner = byCode.get(key);
+      const owner = byKey.get(key);
       if (owner != null && owner !== profile.jwId) {
         invalid.add(owner);
         invalid.add(profile.jwId);
       }
       seen.add(profile.jwId);
-      byCode.set(key, profile.jwId);
+      byKey.set(key, profile.jwId);
     }
     conflicts += invalid.size;
     for (const id of invalid) {
       if (!combined.has(id)) blockedIds.add(id);
     }
-    for (const [code, id] of byCode)
-      if (invalid.has(id) && !owners.has(code)) blockedCodes.add(code);
+    for (const [key, id] of byKey)
+      if (invalid.has(id) && !owners.has(key)) blockedKeys.add(key);
     // Validate identities first, then stream documents instead of retaining two
     // full source payload maps alongside the merged profiles.
     for (const row of snapshot.iterateAll(table)) {
       const profile = mapper(row);
       if (!profile || invalid.has(profile.jwId)) continue;
-      const key = codeKey(profile);
+      const key = identityKey(profile);
       const known = combined.get(profile.jwId);
       const owner = owners.get(key);
       const payload = JSON.parse(profile.payloadJson);
       const preferred = known && JSON.parse(known.payloadJson);
       if (
         blockedIds.has(profile.jwId) ||
-        blockedCodes.has(key) ||
+        blockedKeys.has(key) ||
         (owner != null && owner !== profile.jwId) ||
         (known &&
-          (codeKey(known) !== key || preferred.courseId !== payload.courseId))
+          (identityKey(known) !== key ||
+            known.code !== profile.code ||
+            preferred.courseId !== payload.courseId))
       ) {
         conflicts++;
         continue;
@@ -200,7 +202,7 @@ export function loadCatalogProfiles(
     snapshot,
     [SECTION_TABLE, "jw_catalog_lesson_infos"],
     officialSection,
-    (profile) => `${profile.semesterJwId}:${profile.code}`,
+    (profile) => `${profile.semesterJwId}:${profile.jwId}`,
   );
   return {
     courses: courses.profiles,
