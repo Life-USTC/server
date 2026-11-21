@@ -50,3 +50,32 @@ Use the [PR template](.github/PULL_REQUEST_TEMPLATE.md) to explain the behavior
 change, validation results, and applicable compatibility or migration concerns.
 The [CI workflow](.github/workflows/ci.yml) runs on pull requests; its jobs and
 the compatibility workflows provide the review checks.
+
+## Import school catalog data locally
+
+Run `uv run python main.py --course-catalog` in the sibling static checkout
+to add official profiles to a complete curriculum snapshot. Apply Prisma
+migrations, then run the loader with the local importer connection.
+
+```sh
+STATIC_SNAPSHOT_PATH=../static/build/life-ustc-static.sqlite \
+ALLOW_SKIPPING_POST_IMPORT_CACHE_PURGE=true scripts/load-static-sqlite.sh
+```
+
+The script accepts raw and gzip snapshots. The default download falls back to
+the old raw URL during rollout. If an enriched build's compatibility file was
+already imported, wait for the next build before switching to the full file.
+
+`OfficialCatalogRecord` indexes substitution and directory records by course
+code. Study documents use `plan/<id>` and `module/<id>` keys. Expanded study-plan
+memberships remain in SQLite.
+
+The loader compares mapped content by semester before writing sections, schedules,
+exams and their relations. Official profiles have a separate content digest.
+Group digests use namespaced rows in `StaticImportState`, committed with the data
+under the existing import lock and transaction. Exam availability participates in
+the digest so a failed source cannot be confused with a confirmed empty result.
+The first run after a transform revision change processes every group; subsequent
+runs skip unchanged groups while still reconciling section presence. Complete
+SQLite snapshots remain the recovery input; no delta files or extra migration
+are required.

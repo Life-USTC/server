@@ -44,6 +44,14 @@ export function createBasePrisma(
 ) {
   const adapter = createPrismaAdapter(connectionString, database);
   const options: Prisma.PrismaClientOptions = { adapter };
+  if (database === "app") {
+    // The raw school documents are only needed by explicit profile queries.
+    // Keep them out of the default course and section projections, including relations.
+    options.omit = {
+      course: { officialProfile: true, officialCatalogOnly: true },
+      section: { officialProfile: true },
+    };
+  }
   if (database === "auth") {
     options.omit = { user: { calendarFeedToken: true } };
   }

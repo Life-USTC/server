@@ -14,24 +14,21 @@ export async function writeSectionTeachers(
   pairs: SectionTeacherPair[],
   sectionDbIds: number[],
 ): Promise<void> {
-  const resolved: Array<{ sectionId: number; teacherId: number }> = [];
-  const seen = new Set<string>();
-  for (const pair of pairs) {
-    const sectionId = requiredId(
-      sectionMap,
-      pair.sectionJwId,
-      `Section jwId ${pair.sectionJwId} for teacher relation`,
-    );
-    const teacherId = requiredId(
-      teacherMap,
-      pair.teacherJwId,
-      `Teacher jwId ${pair.teacherJwId} for Section jwId ${pair.sectionJwId}`,
-    );
-    const key = `${sectionId}:${teacherId}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    resolved.push({ sectionId, teacherId });
-  }
+  const resolved = uniqueBy(
+    pairs.map((pair) => ({
+      sectionId: requiredId(
+        sectionMap,
+        pair.sectionJwId,
+        `Section jwId ${pair.sectionJwId} for teacher relation`,
+      ),
+      teacherId: requiredId(
+        teacherMap,
+        pair.teacherJwId,
+        `Teacher jwId ${pair.teacherJwId} for Section jwId ${pair.sectionJwId}`,
+      ),
+    })),
+    (pair) => `${pair.sectionId}:${pair.teacherId}`,
+  );
 
   await syncJoinPairs(
     tx,
@@ -149,13 +146,11 @@ export async function writeAdminClassSections(
 }
 
 function uniqueBy<T>(values: readonly T[], key: (value: T) => string): T[] {
-  const result: T[] = [];
   const seen = new Set<string>();
-  for (const value of values) {
-    const valueKey = key(value);
-    if (seen.has(valueKey)) continue;
-    seen.add(valueKey);
-    result.push(value);
-  }
-  return result;
+  return values.filter((value) => {
+    const id = key(value);
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
 }

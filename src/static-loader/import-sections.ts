@@ -3,7 +3,7 @@ import type { Prisma } from "../generated/prisma-node/client";
 import { bulkUpsert, type ColumnValue } from "./database-writes";
 import type { LookupMaps } from "./import-lookups";
 import type { ExamBuild, ScheduleGroupBuild, SectionBuild } from "./mappers";
-import { requiredId } from "./required-id";
+import { optionalId, requiredId } from "./required-id";
 
 export async function upsertSections(
   tx: Prisma.TransactionClient,
@@ -50,7 +50,7 @@ export async function upsertSections(
     "openDepartmentId",
     "teachLanguageId",
     "roomTypeId",
-  ];
+  ] as const;
   const records: Array<{ key: number; values: ColumnValue[] }> = [];
   const unresolvedDepartmentCodes = new Set<string>();
   for (const build of builds) {
@@ -78,68 +78,44 @@ export async function upsertSections(
         `Campus jwId ${build.campusId} did not resolve for section jwId ${build.jwId}`,
       );
     }
+    const values = {
+      ...build,
+      catalogAdminClasses: JSON.stringify(build.catalogAdminClasses ?? []),
+      dateTimePlacePersonText:
+        build.dateTimePlacePersonText == null
+          ? null
+          : JSON.stringify(build.dateTimePlacePersonText),
+      suggestScheduleWeeks:
+        build.suggestScheduleWeeks == null
+          ? null
+          : JSON.stringify(build.suggestScheduleWeeks),
+      scheduleJsonParams:
+        build.scheduleJsonParams == null
+          ? null
+          : JSON.stringify(build.scheduleJsonParams),
+      courseId,
+      semesterId,
+      campusId,
+      openDepartmentId,
+      examModeId: optionalId(
+        lookupMaps.examMode,
+        build.examModeName,
+        `ExamMode ${build.examModeName} for Section jwId ${build.jwId}`,
+      ),
+      teachLanguageId: optionalId(
+        lookupMaps.teachLanguage,
+        build.teachLanguageName,
+        `TeachLanguage ${build.teachLanguageName} for Section jwId ${build.jwId}`,
+      ),
+      roomTypeId: optionalId(
+        roomTypeMap,
+        build.roomTypeId,
+        `RoomType jwId ${build.roomTypeId} for Section jwId ${build.jwId}`,
+      ),
+    };
     records.push({
       key: build.jwId,
-      values: [
-        build.code,
-        build.bizTypeId,
-        build.credits,
-        build.period,
-        build.requiredWeeks,
-        JSON.stringify(build.catalogAdminClasses ?? []),
-        build.periodsPerWeek,
-        build.timesPerWeek,
-        build.stdCount,
-        build.limitCount,
-        build.graduateAndPostgraduate,
-        build.dateTimePlaceText,
-        build.dateTimePlacePersonText != null
-          ? JSON.stringify(build.dateTimePlacePersonText)
-          : null,
-        build.actualPeriods,
-        build.theoryPeriods,
-        build.practicePeriods,
-        build.experimentPeriods,
-        build.machinePeriods,
-        build.designPeriods,
-        build.testPeriods,
-        build.scheduleState,
-        build.suggestScheduleWeeks != null
-          ? JSON.stringify(build.suggestScheduleWeeks)
-          : null,
-        build.suggestScheduleWeekInfo,
-        build.scheduleJsonParams != null
-          ? JSON.stringify(build.scheduleJsonParams)
-          : null,
-        build.selectedStdCount,
-        build.remark,
-        build.scheduleRemark,
-        courseId,
-        semesterId,
-        campusId,
-        build.examModeName == null
-          ? null
-          : requiredId(
-              lookupMaps.examMode,
-              build.examModeName,
-              `ExamMode ${build.examModeName} for Section jwId ${build.jwId}`,
-            ),
-        openDepartmentId,
-        build.teachLanguageName == null
-          ? null
-          : requiredId(
-              lookupMaps.teachLanguage,
-              build.teachLanguageName,
-              `TeachLanguage ${build.teachLanguageName} for Section jwId ${build.jwId}`,
-            ),
-        build.roomTypeId == null
-          ? null
-          : requiredId(
-              roomTypeMap,
-              build.roomTypeId,
-              `RoomType jwId ${build.roomTypeId} for Section jwId ${build.jwId}`,
-            ),
-      ],
+      values: columns.map((column) => values[column]),
     });
   }
   if (unresolvedDepartmentCodes.size > 0) {
@@ -152,7 +128,7 @@ export async function upsertSections(
     "Section",
     "jwId",
     "int",
-    columns,
+    [...columns],
     [
       "text",
       "int",
@@ -205,7 +181,7 @@ export async function upsertScheduleGroups(
     "actualPeriods",
     "isDefault",
     "sectionId",
-  ];
+  ] as const;
   const records: Array<{ key: number; values: ColumnValue[] }> = [];
   for (const build of builds) {
     const sectionId = requiredId(
@@ -215,14 +191,9 @@ export async function upsertScheduleGroups(
     );
     records.push({
       key: build.jwId,
-      values: [
-        build.no,
-        build.limitCount,
-        build.stdCount,
-        build.actualPeriods,
-        build.isDefault,
-        sectionId,
-      ],
+      values: columns.map((column) =>
+        column === "sectionId" ? sectionId : build[column],
+      ),
     });
   }
   return bulkUpsert(
@@ -230,7 +201,7 @@ export async function upsertScheduleGroups(
     "ScheduleGroup",
     "jwId",
     "int",
-    columns,
+    [...columns],
     ["int", "int", "int", "float8", "boolean", "int"],
     records,
   );
@@ -254,7 +225,7 @@ export async function upsertExams(
     "monitors",
     "examBatchId",
     "sectionId",
-  ];
+  ] as const;
   const records: Array<{ key: number; values: ColumnValue[] }> = [];
   for (const build of builds) {
     const sectionId = requiredId(
@@ -262,29 +233,20 @@ export async function upsertExams(
       build.sectionJwId,
       `Section jwId ${build.sectionJwId} for Exam jwId ${build.jwId}`,
     );
-    const examBatchId =
-      build.examBatchJwId == null
-        ? null
-        : requiredId(
-            examBatchMap,
-            build.examBatchJwId,
-            `ExamBatch jwId ${build.examBatchJwId} for Exam jwId ${build.jwId}`,
-          );
+    const examBatchId = optionalId(
+      examBatchMap,
+      build.examBatchJwId,
+      `ExamBatch jwId ${build.examBatchJwId} for Exam jwId ${build.jwId}`,
+    );
+    const values = {
+      ...build,
+      monitors: JSON.stringify(build.monitors ?? []),
+      examBatchId,
+      sectionId,
+    };
     records.push({
       key: build.jwId,
-      values: [
-        build.examType,
-        build.startTime,
-        build.endTime,
-        build.examDate,
-        build.examTakeCount,
-        build.examMode,
-        build.grades,
-        build.adminClassNames,
-        JSON.stringify(build.monitors ?? []),
-        examBatchId,
-        sectionId,
-      ],
+      values: columns.map((column) => values[column]),
     });
   }
   return bulkUpsert(
@@ -292,7 +254,7 @@ export async function upsertExams(
     "Exam",
     "jwId",
     "int",
-    columns,
+    [...columns],
     [
       "int",
       "int",

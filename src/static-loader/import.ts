@@ -7,6 +7,13 @@ import {
   loadScheduleLookups,
   loadSemesters,
 } from "./catalog-plan";
+import {
+  findOfficialCourseConflicts,
+  loadCatalogProfiles,
+  officialCourseBuilds,
+  upsertOfficialProfiles,
+} from "./catalog-profiles";
+import { loadRelatedCatalog, replaceRelatedCatalog } from "./catalog-related";
 import { deleteMissingSnapshotRows } from "./database-writes";
 import { collectCodeOnlyDepartmentPlaceholders } from "./department-placeholder";
 import {
@@ -16,6 +23,11 @@ import {
   upsertTeachers,
   upsertTeacherTitles,
 } from "./import-courses";
+import {
+  changedImportGroups,
+  importGroupDigest,
+  semesterImportDigests,
+} from "./import-groups";
 import {
   upsertAdminClasses,
   upsertBuildings,
@@ -84,29 +96,32 @@ export async function runImport(
   config: ImportConfig,
 ): Promise<ImportReport> {
   const snapshot = new Snapshot(config.snapshotPath);
+  try {
+    return await importSnapshot(prisma, config, snapshot);
+  } finally {
+    snapshot.close();
+  }
+}
+
+async function importSnapshot(
+  prisma: PrismaClient,
+  config: ImportConfig,
+  snapshot: Snapshot,
+): Promise<ImportReport> {
   const metadata = snapshot.metadata();
   const schemaVersion = metadata.schema_version;
-  let snapshotGeneratedAt: Date;
-  let completeness: ReturnType<typeof validateSnapshotCompleteness>;
-  try {
-    if (schemaVersion !== "6") {
-      throw new Error(
-        `Unsupported snapshot schema version: ${schemaVersion ?? "unknown"}`,
-      );
-    }
-    snapshotGeneratedAt = parseSnapshotGeneratedAt(metadata.generated_at);
-    completeness = validateSnapshotCompleteness({
-      metadata,
-      semesterRows: snapshot.queryAll("catalog_teach_semester_list"),
-      catalogLessonRows: snapshot.queryAll(
-        "catalog_teach_lesson_list_for_teach",
-      ),
-      fetchRows: snapshot.queryAll("upstream_fetches"),
-    });
-  } catch (error) {
-    snapshot.close();
-    throw error;
+  if (schemaVersion !== "6") {
+    throw new Error(
+      `Unsupported snapshot schema version: ${schemaVersion ?? "unknown"}`,
+    );
   }
+  const snapshotGeneratedAt = parseSnapshotGeneratedAt(metadata.generated_at);
+  const completeness = validateSnapshotCompleteness({
+    metadata,
+    semesterRows: snapshot.queryAll("catalog_teach_semester_list"),
+    catalogLessonRows: snapshot.queryAll("catalog_teach_lesson_list_for_teach"),
+    fetchRows: snapshot.queryAll("upstream_fetches"),
+  });
 
   if (!config.dryRun) {
     const alreadyImported = await prisma.$transaction(
@@ -121,7 +136,6 @@ export async function runImport(
       { maxWait: 60_000, timeout: 60_000 },
     );
     if (alreadyImported) {
-      snapshot.close();
       return {
         mode: "apply",
         outcome: "unchanged",
@@ -153,18 +167,16 @@ export async function runImport(
   const semesters = loadSemesters(snapshot);
   const departments = loadDepartments(snapshot);
 
-  const {
-    courseCategories,
-    courseClassifies,
-    courseGradations,
-    courseTypes,
-    educationLevels,
-    classTypes,
-    examModes,
-    teachLanguages,
-  } = loadCatalogLookups(snapshot);
-
   const { courses, courseJwIdByParentId } = loadCourses(snapshot);
+  const officialProfiles = loadCatalogProfiles(snapshot);
+  const relatedCatalog = loadRelatedCatalog(snapshot, metadata);
+  const officialProfileCount =
+    officialProfiles.courses.length +
+    officialProfiles.sections.length +
+    officialProfiles.courseIdentityConflicts +
+    officialProfiles.sectionIdentityConflicts;
+  const officialOnlyCourses = officialCourseBuilds(courses, officialProfiles);
+  const catalogLookups = loadCatalogLookups(snapshot);
 
   const { teacherTitles, teacherLessonTypes, examBatches } =
     loadScheduleLookups(snapshot);
@@ -213,6 +225,41 @@ export async function runImport(
         .map((section) => section.jwId),
     ),
   );
+  const plan = {
+    sections,
+    scheduleGroups,
+    schedules,
+    sectionTeacherPairs,
+    teacherAssignments,
+    adminClassSectionPairs,
+    exams,
+  };
+  const groupDigests = semesterImportDigests(sections, examSemesterJwIds, [
+    scheduleGroups,
+    schedules,
+    sectionTeacherPairs,
+    teacherAssignments,
+    adminClassSectionPairs,
+    exams,
+  ]);
+  groupDigests.set(
+    "official-profiles",
+    importGroupDigest([
+      officialProfiles.courses,
+      officialProfiles.sections,
+      courses.map(({ jwId, code }) => [jwId, code]),
+      sections.map(({ jwId, code, courseJwId, semesterCode }) => [
+        jwId,
+        code,
+        courseJwId,
+        semesterCode,
+      ]),
+      [
+        officialProfiles.courseIdentityConflicts,
+        officialProfiles.sectionIdentityConflicts,
+      ],
+    ]),
+  );
   const youngEvents = loadYoungEvents(snapshot);
   const youngSyncedAt = youngSnapshotSyncedAt(snapshot);
   // The write phase needs only mapped records, not the full raw history.
@@ -220,7 +267,7 @@ export async function runImport(
   const plannedRecordCounts: ImportRecordCounts = {
     semesters: semesters.length,
     departments: departments.length + departmentPlaceholders.length,
-    courses: courses.length,
+    courses: courses.length + officialOnlyCourses.length,
     sections: sections.length,
     teachers: teachers.length,
     scheduleGroups: scheduleGroups.length,
@@ -232,44 +279,60 @@ export async function runImport(
     adminClasses: adminClasses.length,
     youngEvents: youngEvents?.length ?? 0,
   };
+  const catalogStats: Pick<
+    ImportReport["reconciliation"],
+    "officialProfiles" | "officialRelationships"
+  > = {};
   let sectionPresenceStats:
     | SectionPresenceStats
     | { status: "already-applied" } = { status: "already-applied" };
   const observedAt = snapshotGeneratedAt;
   let unchanged = false;
 
-  async function logStep<T>(
-    name: string,
-    count: number,
-    fn: () => Promise<T>,
-  ): Promise<T> {
+  async function step<A extends unknown[], R>(
+    fn: (...args: A) => Promise<R>,
+    ...args: A
+  ): Promise<R> {
     const start = Date.now();
-    console.log(`[${new Date().toISOString()}] ${name}: ${count} items...`);
-    const result = await fn();
-    console.log(
-      `[${new Date().toISOString()}] ${name}: done in ${Date.now() - start}ms`,
-    );
+    const result = await fn(...args);
+    console.log(`${fn.name}: done in ${Date.now() - start}ms`);
     return result;
   }
 
   const runInTransaction = async (tx: Prisma.TransactionClient) => {
-    await logStep("acquireStaticImportLock", 1, () =>
-      acquireStaticImportLock(tx),
-    );
-    const alreadyImported = await logStep("validateStaticImportState", 1, () =>
-      assertStaticImportStateAllowsSnapshot(tx, {
+    await step(acquireStaticImportLock, tx);
+    const alreadyImported = await step(
+      assertStaticImportStateAllowsSnapshot,
+      tx,
+      {
         observedAt,
         snapshotSha256: config.snapshotSha256,
         transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
-      }),
+      },
     );
     if (alreadyImported && !config.dryRun) {
       unchanged = true;
       return null;
     }
-    const semesterMap = await logStep("upsertSemesters", semesters.length, () =>
-      upsertSemesters(tx, semesters),
+    const changed = await changedImportGroups(tx, groupDigests);
+    const sections = plan.sections.filter((row) =>
+      changed.has(`semester:${row.semesterCode}`),
     );
+    const sectionIds = new Set(sections.map((row) => row.jwId));
+    const forSections = <T extends { sectionJwId: number }>(rows: T[]) =>
+      rows.filter((row) => sectionIds.has(row.sectionJwId));
+    const forLessons = <T extends { lessonJwId: number }>(rows: T[]) =>
+      rows.filter((row) => sectionIds.has(row.lessonJwId));
+    const scheduleGroups = forLessons(plan.scheduleGroups);
+    const schedules = forLessons(plan.schedules);
+    const sectionTeacherPairs = forSections(plan.sectionTeacherPairs);
+    const teacherAssignments = forSections(plan.teacherAssignments);
+    const adminClassSectionPairs = forSections(plan.adminClassSectionPairs);
+    const exams = forSections(plan.exams);
+    console.log(
+      `Import groups: ${changed.size} changed, ${groupDigests.size - changed.size} unchanged`,
+    );
+    const semesterMap = await step(upsertSemesters, tx, semesters);
     const scopedSemesterIds = completeness.sectionSemesterJwIds.map(
       (semesterJwId) => {
         const semesterId = semesterMap.get(semesterJwId);
@@ -281,177 +344,174 @@ export async function runImport(
         return semesterId;
       },
     );
-    const departmentMap = await logStep(
-      "upsertDepartments",
-      departments.length + departmentPlaceholders.length,
-      () => upsertDepartments(tx, departments, departmentPlaceholders),
+    const departmentMap = await step(
+      upsertDepartments,
+      tx,
+      departments,
+      departmentPlaceholders,
     );
-    const lookupMaps = await logStep("loadLookupTables", 8, () =>
-      loadLookupTables(tx, {
-        courseCategories,
-        courseClassifies,
-        courseGradations,
-        courseTypes,
-        educationLevels,
-        classTypes,
-        examModes,
-        teachLanguages,
-      }),
+    const lookupMaps = await step(
+      loadLookupTables,
+      tx,
+      catalogLookups,
+      officialOnlyCourses,
     );
-    const courseMap = await logStep("upsertCourses", courses.length, () =>
-      upsertCourses(tx, courses, lookupMaps),
+    const courseMap = await step(upsertCourses, tx, courses, lookupMaps);
+    const blockedOfficialCourseIds = await findOfficialCourseConflicts(
+      tx,
+      officialProfiles,
     );
-    const teacherTitleMap = await logStep(
-      "upsertTeacherTitles",
-      teacherTitles.length,
-      () => upsertTeacherTitles(tx, teacherTitles),
-    );
-    const teacherLessonTypeMap = await logStep(
-      "upsertTeacherLessonTypes",
-      teacherLessonTypes.length,
-      () => upsertTeacherLessonTypes(tx, teacherLessonTypes),
-    );
-    const examBatchMap = await logStep(
-      "upsertExamBatches",
-      examBatches.length,
-      () => upsertExamBatches(tx, examBatches),
-    );
-    const teacherMap = await logStep("upsertTeachers", teachers.length, () =>
-      upsertTeachers(tx, teachers, departmentMap),
-    );
-    const campusMap = await logStep("upsertCampuses", campuses.length, () =>
-      upsertCampuses(tx, campuses),
-    );
-    const roomTypeMap = await logStep("upsertRoomTypes", roomTypes.length, () =>
-      upsertRoomTypes(tx, roomTypes),
-    );
-    const buildingMap = await logStep("upsertBuildings", buildings.length, () =>
-      upsertBuildings(tx, buildings, campusMap),
-    );
-    const roomMap = await logStep("upsertRooms", rooms.length, () =>
-      upsertRooms(tx, rooms, buildingMap, roomTypeMap),
-    );
-    const adminClassMap = await logStep(
-      "upsertAdminClasses",
-      adminClasses.length,
-      () => upsertAdminClasses(tx, adminClasses),
-    );
-    const sectionMap = await logStep("upsertSections", sections.length, () =>
-      upsertSections(
-        tx,
-        sections,
-        semesterMap,
-        departmentMap,
-        courseMap,
-        lookupMaps,
-        campusMap,
-        roomTypeMap,
+    await upsertCourses(
+      tx,
+      officialOnlyCourses.filter(
+        (course) => !blockedOfficialCourseIds.has(course.jwId),
       ),
+      lookupMaps,
+      "officialCatalog",
     );
-    const scheduleGroupMap = await logStep(
-      "upsertScheduleGroups",
-      scheduleGroups.length,
-      () => upsertScheduleGroups(tx, scheduleGroups, sectionMap),
+    const teacherTitleMap = await step(upsertTeacherTitles, tx, teacherTitles);
+    const teacherLessonTypeMap = await step(
+      upsertTeacherLessonTypes,
+      tx,
+      teacherLessonTypes,
+    );
+    const examBatchMap = await step(upsertExamBatches, tx, examBatches);
+    const teacherMap = await step(upsertTeachers, tx, teachers, departmentMap);
+    const campusMap = await step(upsertCampuses, tx, campuses);
+    const roomTypeMap = await step(upsertRoomTypes, tx, roomTypes);
+    const buildingMap = await step(upsertBuildings, tx, buildings, campusMap);
+    const roomMap = await step(
+      upsertRooms,
+      tx,
+      rooms,
+      buildingMap,
+      roomTypeMap,
+    );
+    const adminClassMap = await step(upsertAdminClasses, tx, adminClasses);
+    const sectionMap = await step(
+      upsertSections,
+      tx,
+      sections,
+      semesterMap,
+      departmentMap,
+      courseMap,
+      lookupMaps,
+      campusMap,
+      roomTypeMap,
+    );
+    if (officialProfileCount > 0 && changed.has("official-profiles")) {
+      const profileStats = await step(
+        upsertOfficialProfiles,
+        tx,
+        officialProfiles,
+        blockedOfficialCourseIds,
+      );
+      catalogStats.officialProfiles = profileStats;
+    }
+    const scheduleGroupMap = await step(
+      upsertScheduleGroups,
+      tx,
+      scheduleGroups,
+      sectionMap,
     );
 
     const sectionDbIds = Array.from(sectionMap.values());
     const examSectionDbIds = sections
       .filter((section) => examSemesterJwIds.has(section.semesterCode))
       .map((section) => sectionMap.get(section.jwId) as number);
-    await logStep("writeSectionTeachers", sectionTeacherPairs.length, () =>
-      writeSectionTeachers(
-        tx,
-        sectionMap,
-        teacherMap,
-        sectionTeacherPairs,
-        sectionDbIds,
-      ),
+    await step(
+      writeSectionTeachers,
+      tx,
+      sectionMap,
+      teacherMap,
+      sectionTeacherPairs,
+      sectionDbIds,
     );
-    await logStep("writeTeacherAssignments", teacherAssignments.length, () =>
-      writeTeacherAssignments(
-        tx,
-        teacherAssignments,
-        sectionMap,
-        teacherMap,
-        teacherLessonTypeMap,
-        teacherTitleMap,
-      ),
+    await step(
+      writeTeacherAssignments,
+      tx,
+      teacherAssignments,
+      sectionMap,
+      teacherMap,
+      teacherLessonTypeMap,
+      teacherTitleMap,
     );
-    await logStep(
-      "writeAdminClassSections",
-      adminClassSectionPairs.length,
-      () =>
-        writeAdminClassSections(
-          tx,
-          adminClassSectionPairs,
-          sectionMap,
-          adminClassMap,
-        ),
+    await step(
+      writeAdminClassSections,
+      tx,
+      adminClassSectionPairs,
+      sectionMap,
+      adminClassMap,
     );
 
-    await logStep("writeSchedules", schedules.length, () =>
-      writeSchedules(
+    await step(
+      writeSchedules,
+      tx,
+      schedules,
+      sectionMap,
+      scheduleGroupMap,
+      roomMap,
+      teacherMap,
+      sectionDbIds,
+    );
+    const examMap = await step(
+      upsertExams,
+      tx,
+      exams,
+      sectionMap,
+      examBatchMap,
+    );
+    await step(writeExamRooms, tx, exams, examMap);
+    await step(async function reconcileRemovedSnapshotRows() {
+      await deleteMissingSnapshotRows(
         tx,
-        schedules,
-        sectionMap,
-        scheduleGroupMap,
-        roomMap,
-        teacherMap,
+        "scheduleGroup",
         sectionDbIds,
-      ),
-    );
-    const examMap = await logStep("upsertExams", exams.length, () =>
-      upsertExams(tx, exams, sectionMap, examBatchMap),
-    );
-    await logStep("writeExamRooms", exams.length, () =>
-      writeExamRooms(tx, exams, examMap),
-    );
-    await logStep(
-      "reconcileRemovedSnapshotRows",
-      scheduleGroups.length + exams.length,
-      async () => {
-        await deleteMissingSnapshotRows(
-          tx,
-          "scheduleGroup",
-          sectionDbIds,
-          scheduleGroups.map((group) => group.jwId),
-        );
-        await deleteMissingSnapshotRows(
-          tx,
-          "exam",
-          examSectionDbIds,
-          exams.map((exam) => exam.jwId),
-        );
-      },
-    );
+        scheduleGroups.map((group) => group.jwId),
+      );
+      await deleteMissingSnapshotRows(
+        tx,
+        "exam",
+        examSectionDbIds,
+        exams.map((exam) => exam.jwId),
+      );
+    });
+    if (
+      relatedCatalog.rules ||
+      relatedCatalog.directory ||
+      relatedCatalog.programs
+    ) {
+      catalogStats.officialRelationships = await replaceRelatedCatalog(
+        tx,
+        relatedCatalog,
+      );
+    }
     const importedYoungSyncedAt =
       youngEvents == null
         ? undefined
-        : await logStep("syncYoungEvents", youngEvents.length, () =>
-            syncYoungSnapshot(tx, youngEvents, youngSyncedAt),
-          );
-    const databaseRecordCounts = await logStep("countDatabaseRecords", 13, () =>
-      countStats(tx),
-    );
-    sectionPresenceStats = await logStep(
-      "reconcileSectionPresence",
-      sections.length,
-      () =>
-        reconcileSectionPresence(tx, {
-          observedAt,
-          scopedSemesterIds,
-          seenSectionJwIds: [...allSectionJwIds],
-          snapshotSha256: config.snapshotSha256,
-        }),
-    );
-    await logStep("recordStaticImportState", 1, () =>
-      recordStaticImportState(tx, {
+        : await step(syncYoungSnapshot, tx, youngEvents, youngSyncedAt);
+    const databaseRecordCounts = await step(countStats, tx);
+    sectionPresenceStats = await step(reconcileSectionPresence, tx, {
+      observedAt,
+      scopedSemesterIds,
+      seenSectionJwIds: [...allSectionJwIds],
+      snapshotSha256: config.snapshotSha256,
+    });
+    for (const [id, digest] of groupDigests) {
+      if (!changed.has(id)) continue;
+      await recordStaticImportState(tx, {
+        id,
         observedAt,
-        youngSyncedAt: importedYoungSyncedAt,
-        snapshotSha256: config.snapshotSha256,
+        snapshotSha256: digest,
         transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
-      }),
-    );
+      });
+    }
+    await step(recordStaticImportState, tx, {
+      observedAt,
+      youngSyncedAt: importedYoungSyncedAt,
+      snapshotSha256: config.snapshotSha256,
+      transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
+    });
 
     if (config.dryRun) throw new Error("DRY_RUN: rolling back transaction");
 
@@ -474,8 +534,6 @@ export async function runImport(
     } else {
       throw error;
     }
-  } finally {
-    snapshot.close();
   }
 
   return {
@@ -499,6 +557,7 @@ export async function runImport(
     databaseRecordCounts,
     reconciliation: {
       sectionPresence: sectionPresenceStats,
+      ...catalogStats,
     },
   };
 }

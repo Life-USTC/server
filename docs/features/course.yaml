@@ -40,6 +40,20 @@ requirements:
     test:
       file: tests/unit/static-loader/static-direct-identity.test.ts
       name: course.static-course-identity
+- id: course.official-profile-import
+  category: consistency
+  rule: The public directory can supply a course before it appears in a timetable. Store its
+    official profile separately from each class profile and preserve the school's stable identities.
+  acceptance:
+    given: The directory includes an existing course, a directory-only course, and class profiles.
+    when: The loader imports successive snapshots with updated directory names and timetable coverage.
+    then:
+    - Directory-only courses refresh their names until the timetable supplies their base fields.
+    - Class profiles attach to the matching class, course and semester.
+    - Older snapshots without profiles retain previously imported official details.
+    test:
+      file: tests/integration/static-import-contracts.test.ts
+      name: course.official-profile-import
 - id: course.static-section-course-link
   category: consistency
   rule: Each imported Section resolves the upstream Course jwId attached to its lesson parent. Static

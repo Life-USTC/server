@@ -14,7 +14,8 @@ for (const [locale, width] of [
       tag: "@Site/Web",
     }, async ({ page, isolatedWorker, preferenceFlow }) => {
       const menuName = locale === "en-us" ? "Menu" : "菜单";
-      const anchor = new Date("2026-11-12T00:00:00Z");
+      const anchor = new Date();
+      anchor.setUTCHours(0, 0, 0, 0);
       const at = (days: number) => new Date(anchor.getTime() + days * 86400000);
       const fixture = await preferenceFlow.prepare(async () => {
         const db = isolatedWorker.database.owner;

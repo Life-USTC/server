@@ -1,7 +1,9 @@
 /** Static-import upserts for semesters, departments, and catalog lookup tables. */
 import type { Prisma } from "../generated/prisma-node/client";
+import type { loadCatalogLookups } from "./catalog-plan";
 import { bulkUpsert } from "./database-writes";
 import type {
+  CourseBuild,
   DepartmentBuild,
   DepartmentPlaceholderRequest,
   SemesterBuild,
@@ -32,21 +34,16 @@ export async function upsertDepartments(
 ): Promise<Map<string, number>> {
   const jwIdToId = new Map<number, number>();
   for (const build of builds) {
+    const data = {
+      code: build.code,
+      nameCn: build.nameCn,
+      nameEn: build.nameEn,
+      isCollege: build.isCollege,
+    };
     const result = await tx.department.upsert({
       where: { jwId: build.jwId },
-      create: {
-        jwId: build.jwId,
-        code: build.code,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        isCollege: build.isCollege,
-      },
-      update: {
-        code: build.code,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        isCollege: build.isCollege,
-      },
+      create: { jwId: build.jwId, ...data },
+      update: data,
     });
     jwIdToId.set(build.jwId, result.id);
   }
@@ -89,50 +86,58 @@ export type LookupMaps = {
   teachLanguage: Map<string, number>;
 };
 
+type LookupName = { nameCn: string; nameEn?: string };
+
 export async function loadLookupTables(
   tx: Prisma.TransactionClient,
-  lookups: {
-    courseCategories: { nameCn: string; nameEn?: string }[];
-    courseClassifies: { nameCn: string; nameEn?: string }[];
-    courseGradations: { nameCn: string; nameEn?: string }[];
-    courseTypes: { nameCn: string; nameEn?: string }[];
-    educationLevels: { nameCn: string; nameEn?: string }[];
-    classTypes: { nameCn: string; nameEn?: string }[];
-    examModes: { nameCn: string; nameEn?: string }[];
-    teachLanguages: { nameCn: string; nameEn?: string }[];
-  },
+  lookups: ReturnType<typeof loadCatalogLookups>,
+  officialCourses: CourseBuild[],
 ): Promise<LookupMaps> {
   async function loadModel(
-    table:
-      | "CourseCategory"
-      | "CourseClassify"
-      | "CourseGradation"
-      | "CourseType"
-      | "EducationLevel"
-      | "ClassType"
-      | "ExamMode"
-      | "TeachLanguage",
-    items: { nameCn: string; nameEn?: string }[],
+    table: Capitalize<keyof LookupMaps>,
+    items: LookupName[],
+    field?: "categoryName" | "classifyName" | "typeName",
   ) {
-    return bulkUpsert(
-      tx,
-      table,
-      "nameCn",
-      "text",
-      ["nameEn"],
-      ["text"],
-      items.map((item) => ({ key: item.nameCn, values: [item.nameEn] })),
+    const upsert = (names: LookupName[], ignoreConflicts = false) =>
+      bulkUpsert(
+        tx,
+        table,
+        "nameCn",
+        "text",
+        ["nameEn"],
+        ["text"],
+        names.map((item) => ({ key: item.nameCn, values: [item.nameEn] })),
+        { ignoreConflicts },
+      );
+    const ids = await upsert(items);
+    if (!field) return ids;
+    const names = new Set(
+      officialCourses.flatMap((course) => course[field] ?? []),
     );
+    const missing = [...names].filter((name) => !ids.has(name));
+    const added = await upsert(
+      missing.map((nameCn) => ({ nameCn })),
+      true,
+    );
+    return new Map([...ids, ...added]);
   }
 
   return {
-    courseCategory: await loadModel("CourseCategory", lookups.courseCategories),
-    courseClassify: await loadModel("CourseClassify", lookups.courseClassifies),
+    courseCategory: await loadModel(
+      "CourseCategory",
+      lookups.courseCategories,
+      "categoryName",
+    ),
+    courseClassify: await loadModel(
+      "CourseClassify",
+      lookups.courseClassifies,
+      "classifyName",
+    ),
     courseGradation: await loadModel(
       "CourseGradation",
       lookups.courseGradations,
     ),
-    courseType: await loadModel("CourseType", lookups.courseTypes),
+    courseType: await loadModel("CourseType", lookups.courseTypes, "typeName"),
     educationLevel: await loadModel("EducationLevel", lookups.educationLevels),
     classType: await loadModel("ClassType", lookups.classTypes),
     examMode: await loadModel("ExamMode", lookups.examModes),
