@@ -149,6 +149,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           "ExamBatch",
           "ExamMode",
           "ExamRoom",
+          "OfficialCatalogState",
           "Room",
           "RoomType",
           "Schedule",
@@ -186,7 +187,16 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           ),
         );
         expectedGrants.push(...deleteTables.map((table) => `${table}:DELETE`));
+        expectedGrants.push(
+          "OfficialCatalogRecord:SELECT",
+          "OfficialCatalogRecord:INSERT",
+          "OfficialCatalogRecord:DELETE",
+        );
         expect(grants.map((row) => row.name)).toEqual(expectedGrants.sort());
+        await importer.$queryRaw`SELECT "jwId" FROM "CourseAlias" LIMIT 1`;
+        await expect(
+          importer.$queryRaw`SELECT "courseId" FROM "CourseAlias" LIMIT 1`,
+        ).rejects.toThrow(/permission denied/);
         const sequences = await importer.$queryRaw<Array<{ name: string }>>`
         SELECT c.relname AS name FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
         WHERE n.nspname = 'public' AND c.relkind = 'S'
@@ -231,6 +241,7 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
           "YoungEvent",
           "YoungOrganizer",
           "StaticImportState",
+          "OfficialCatalogState",
         ])
           await expect(
             importer.$executeRawUnsafe(`DELETE FROM "${table}"`),

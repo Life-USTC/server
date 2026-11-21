@@ -81,6 +81,7 @@ FROM (
     ('public.IngestionRun:SELECT'),
     ('public.IngestionRun:UPDATE'),
     ('public.OAuthGrantUsageDaily:SELECT'),
+    ('public.OfficialCatalogRecord:SELECT'),
     ('public.Publication:INSERT'),
     ('public.Publication:SELECT'),
     ('public.Publication:UPDATE'),

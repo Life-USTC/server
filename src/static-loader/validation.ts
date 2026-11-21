@@ -403,22 +403,3 @@ export function validateMappedSectionJwIds(
       .join("; "),
   );
 }
-
-export type MissingSnapshotRowsWhere = {
-  sectionId: { in: number[] };
-  jwId?: { notIn: number[] };
-};
-
-export function missingSnapshotRowsWhere(
-  sectionIds: number[],
-  currentJwIds: number[],
-): MissingSnapshotRowsWhere | undefined {
-  if (sectionIds.length === 0) return undefined;
-  const where: MissingSnapshotRowsWhere = {
-    sectionId: { in: [...sectionIds] },
-  };
-  if (currentJwIds.length > 0) {
-    where.jwId = { notIn: [...currentJwIds] };
-  }
-  return where;
-}

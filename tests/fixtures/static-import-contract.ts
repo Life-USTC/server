@@ -124,6 +124,148 @@ try {
   }
 
   switch (scenario) {
+    case "course.official-profile-import": {
+      await apply();
+      const legacy = await section();
+      const addedId = courseJwId + 1;
+      const category = await fixture.courseCategory.create({
+        data: { nameCn: "目录类别", nameEn: "Existing translation" },
+      });
+      change(
+        "CREATE TABLE catalog_teach_course_infos (id INTEGER, code TEXT, payload_json TEXT)",
+      );
+      change(
+        "CREATE TABLE catalog_teach_lesson_infos (id INTEGER, code TEXT, courseId INTEGER, semester_id INTEGER, payload_json TEXT)",
+      );
+
+      const courseProfile = {
+        id: courseJwId,
+        code: "FIXTURE-NEW",
+        desc: { cn: "<p>简介</p>", en: null },
+      };
+      const added = {
+        id: addedId,
+        code: "ADDED",
+        name: { cn: "目录课程" },
+        courseCategory: category.nameCn,
+      };
+      for (const profile of [courseProfile, added]) {
+        change(
+          "INSERT INTO catalog_teach_course_infos VALUES (?, ?, ?)",
+          profile.id,
+          profile.code,
+          JSON.stringify(profile),
+        );
+      }
+      const sectionProfile = {
+        id: sectionJwId,
+        code: legacy.code,
+        courseId: courseJwId,
+        syllabus: [{ topic: "Topic" }],
+      };
+      const missing = {
+        ...sectionProfile,
+        id: sectionJwId + 1,
+        code: "FIXTURE.03",
+      };
+      const wrongTerm = { ...missing, id: sectionJwId + 2, code: "WRONG-TERM" };
+      const wrongCourse = {
+        ...missing,
+        id: sectionJwId + 3,
+        code: "WRONG-COURSE",
+        courseId: addedId,
+      };
+      const retiredAt = new Date(originalTime - 1000);
+      const archived = await fixture.section.create({
+        data: {
+          jwId: sectionJwId + 4,
+          code: legacy.code,
+          courseId: legacy.courseId,
+          semesterId: legacy.semesterId,
+          retiredAt,
+        },
+      });
+      await fixture.section.createMany({
+        data: [
+          {
+            jwId: wrongTerm.id,
+            code: wrongTerm.code,
+            courseId: legacy.courseId,
+          },
+          {
+            jwId: wrongCourse.id,
+            code: wrongCourse.code,
+            courseId: legacy.courseId,
+            semesterId: legacy.semesterId,
+          },
+        ],
+      });
+      for (const profile of [sectionProfile, missing, wrongTerm, wrongCourse]) {
+        change(
+          "INSERT INTO catalog_teach_lesson_infos VALUES (?, ?, ?, ?, ?)",
+          profile.id,
+          profile.code,
+          profile.courseId,
+          semesterJwId,
+          JSON.stringify(profile),
+        );
+      }
+
+      const applied = await apply();
+      strictEqual(applied.reconciliation.officialProfiles?.sectionMissing, 1);
+      strictEqual(
+        applied.reconciliation.officialProfiles?.sectionIdentityConflicts,
+        2,
+      );
+      const current = await section();
+      strictEqual(current.id, legacy.id);
+      strictEqual(current.code, legacy.code);
+      strictEqual(current.course.code, legacy.course.code);
+      deepStrictEqual(current.course.officialProfile, courseProfile);
+      deepStrictEqual(current.officialProfile, sectionProfile);
+      deepStrictEqual(
+        await fixture.section.findUniqueOrThrow({ where: { id: archived.id } }),
+        archived,
+      );
+
+      const addedCourse = () =>
+        fixture.course.findUniqueOrThrow({
+          where: { jwId: addedId },
+          include: { category: true },
+        });
+      const inserted = await addedCourse();
+      strictEqual(inserted.nameCn, added.name.cn);
+      strictEqual(inserted.officialCatalogOnly, true);
+      deepStrictEqual(inserted.category, category);
+
+      const renamed = { ...added, name: { cn: "目录更名" } };
+      change(
+        "UPDATE catalog_teach_course_infos SET payload_json = ? WHERE id = ?",
+        JSON.stringify(renamed),
+        addedId,
+      );
+      await apply();
+      strictEqual((await addedCourse()).nameCn, renamed.name.cn);
+
+      change(
+        `UPDATE ${catalog}_course SET id = ?, code = ?, cn = ?`,
+        addedId,
+        "ARCHIVE",
+        "学期课程",
+      );
+      await apply();
+      const promoted = (await section()).course;
+      strictEqual(promoted.id, inserted.id);
+      strictEqual(promoted.nameCn, "学期课程");
+      strictEqual(promoted.officialCatalogOnly, false);
+
+      change("DROP TABLE catalog_teach_course_infos");
+      change("DROP TABLE catalog_teach_lesson_infos");
+      await apply();
+      deepStrictEqual((await addedCourse()).officialProfile, renamed);
+      deepStrictEqual((await section()).officialProfile, sectionProfile);
+      break;
+    }
     case "course.static-section-course-link": {
       await apply();
       strictEqual((await section()).course.jwId, courseJwId);
@@ -156,9 +298,9 @@ try {
       strictEqual((await section()).course.classifyId, null);
       break;
     }
-    case "section.source-lifecycle": {
+    case "section.source-import-atomicity": {
       change("UPDATE upstream_fetches SET ok = 0 WHERE source = ?", catalog);
-      const before = await storedRevision();
+      const emptyRevision = await storedRevision();
       await rejects(apply, /fetch|coverage|complete/i);
       strictEqual(
         await fixture.semester.count({ where: { jwId: semesterJwId } }),
@@ -172,11 +314,22 @@ try {
         await fixture.section.count({ where: { jwId: sectionJwId } }),
         0,
       );
-      deepStrictEqual(await storedRevision(), before);
-      break;
-    }
-    case "section.source-import-atomicity": {
+      deepStrictEqual(await storedRevision(), emptyRevision);
+      change("UPDATE upstream_fetches SET ok = 1 WHERE source = ?", catalog);
       await apply();
+      const group = () =>
+        fixture.staticImportState.findMany({
+          where: { id: { not: "global" } },
+          orderBy: { id: "asc" },
+        });
+      const firstGroups = await group();
+      const firstAssignments = await fixture.teacherAssignment.findMany();
+      await apply(); // Changed file timestamp, identical school data.
+      deepStrictEqual(await group(), firstGroups);
+      deepStrictEqual(
+        await fixture.teacherAssignment.findMany(),
+        firstAssignments,
+      );
       const before = await storedRevision();
       const current = await section();
       // A real PostgreSQL trigger fails the final revision write, after all
@@ -193,6 +346,7 @@ try {
         await rejects(apply, /static contract final write rejected/);
         deepStrictEqual(await storedRevision(), before);
         deepStrictEqual(await section(), current);
+        deepStrictEqual(await group(), firstGroups);
       } finally {
         await fixture.$executeRawUnsafe(
           `DROP TRIGGER reject_static_contract_${base} ON public."StaticImportState"`,
