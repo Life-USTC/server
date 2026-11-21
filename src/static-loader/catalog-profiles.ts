@@ -95,33 +95,55 @@ function officialSection(row: SnapshotRow): OfficialSection | undefined {
 
 function readProfiles<T extends Profile>(
   snapshot: ProfileSnapshot,
-  table: string,
+  tables: string[],
   mapper: (row: SnapshotRow) => T | undefined,
   codeKey: (profile: T) => string,
-): { profiles: T[]; conflicts: number } {
-  if (!snapshot.hasTable(table)) return { profiles: [], conflicts: 0 };
-
+) {
   const byId = new Map<number, T>();
   const byCode = new Map<string, number>();
   const conflicted = new Set<number>();
   let malformed = 0;
-  for (const row of snapshot.iterateAll(table)) {
-    const profile = mapper(row);
-    if (!profile) {
-      const id = jwId(row.id);
-      if (id == null) malformed++;
-      else conflicted.add(id);
-      continue;
+  for (const table of tables) {
+    if (!snapshot.hasTable(table)) continue;
+    const seen = new Set<number>();
+    for (const row of snapshot.iterateAll(table)) {
+      const profile = mapper(row);
+      if (!profile) {
+        const id = jwId(row.id);
+        if (id == null) malformed++;
+        else conflicted.add(id);
+        continue;
+      }
+      const key = codeKey(profile);
+      const known = byId.get(profile.jwId);
+      if (
+        seen.has(profile.jwId) ||
+        (known &&
+          (codeKey(known) !== key ||
+            JSON.parse(known.payloadJson).courseId !==
+              JSON.parse(profile.payloadJson).courseId))
+      )
+        conflicted.add(profile.jwId);
+      seen.add(profile.jwId);
+      const codeOwner = byCode.get(key);
+      if (codeOwner != null && codeOwner !== profile.jwId) {
+        conflicted.add(codeOwner);
+        conflicted.add(profile.jwId);
+      }
+      const merged = known
+        ? mapper({
+            ...row,
+            payload_json: JSON.stringify(
+              supplement(
+                JSON.parse(known.payloadJson),
+                JSON.parse(profile.payloadJson),
+              ),
+            ),
+          })
+        : profile;
+      byId.set(profile.jwId, merged ?? profile);
+      byCode.set(key, profile.jwId);
     }
-    const key = codeKey(profile);
-    if (byId.has(profile.jwId)) conflicted.add(profile.jwId);
-    const codeOwner = byCode.get(key);
-    if (codeOwner != null && codeOwner !== profile.jwId) {
-      conflicted.add(codeOwner);
-      conflicted.add(profile.jwId);
-    }
-    byId.set(profile.jwId, profile);
-    byCode.set(key, profile.jwId);
   }
 
   return {
@@ -132,18 +154,35 @@ function readProfiles<T extends Profile>(
   };
 }
 
+function supplement(primary: unknown, fallback: unknown): unknown {
+  if (primary == null || primary === "")
+    return fallback == null || fallback === "" ? primary : fallback;
+  if (
+    typeof primary !== "object" ||
+    Array.isArray(primary) ||
+    typeof fallback !== "object" ||
+    fallback == null ||
+    Array.isArray(fallback)
+  )
+    return primary;
+  const result = { ...fallback } as Record<string, unknown>;
+  for (const [key, value] of Object.entries(primary))
+    result[key] = supplement(value, result[key]);
+  return result;
+}
+
 export function loadCatalogProfiles(
   snapshot: ProfileSnapshot,
 ): CatalogProfiles {
   const courses = readProfiles(
     snapshot,
-    COURSE_TABLE,
+    [COURSE_TABLE, "jw_catalog_course_infos"],
     officialCourse,
     (profile) => profile.code,
   );
   const sections = readProfiles(
     snapshot,
-    SECTION_TABLE,
+    [SECTION_TABLE, "jw_catalog_lesson_infos"],
     officialSection,
     (profile) => `${profile.semesterJwId}:${profile.code}`,
   );
