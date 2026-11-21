@@ -57,7 +57,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
     <Table.Body>
       {#each exams as exam}
         {@const detailHref = exam.section.jwId
-          ? `/catalog/sections/${exam.section.jwId}`
+          ? `/catalog/sections/${exam.section.jwId}/schedule#exams`
           : workspaceTabHref("subscriptions")}
         <Table.Row class="group">
           <Table.Cell>

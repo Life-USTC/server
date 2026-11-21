@@ -112,8 +112,6 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
     const topbar = page.locator("[data-shell-topbar]");
     for (const button of [
       topbar.getByRole("button", { name: /^菜单$|^Menu$/i }),
-      topbar.getByRole("button", { name: /语言|Language/i }),
-      topbar.getByRole("button", { name: /主题|Theme/i }),
     ]) {
       await expect(button).toBeVisible();
       const box = await button.boundingBox();
@@ -130,10 +128,10 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
     });
     await expect(
       sidebar.getByRole("button", { name: /语言|Language/i }),
-    ).toHaveCount(0);
+    ).toHaveCount(1);
     await expect(
       sidebar.getByRole("button", { name: /主题|Theme/i }),
-    ).toHaveCount(0);
+    ).toHaveCount(1);
     await expect(
       sidebar.getByRole("button", { name: /个人菜单|Profile menu/i }),
     ).toHaveCount(0);
@@ -181,7 +179,9 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
     await rootNav.locator('a[href="/campus"]').click();
     await expect(page).toHaveURL(/\/campus$/);
     await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
-    const campus = page.getByRole("dialog", { name: /^(Campus|校园)$/ });
+    const campus = page.getByRole("dialog", {
+      name: /^(Primary navigation|主导航)$/,
+    });
     for (const href of [
       "/catalog/bus",
       "/catalog/links",
@@ -192,7 +192,7 @@ test("/ shell 匿名 390px 抽屉只展示公开导航", { tag: "@Site/Web" }, a
       await expect(campus.locator(`a[href="${href}"]`)).toBeVisible();
     await expect(
       campus.locator(
-        'a[href^="/workspace"],a[href^="/account"],a[href^="/admin"]',
+        'a[href^="/workspace"],a[href^="/account"]:not([href^="/account/sign-in"]),a[href^="/admin"]',
       ),
     ).toHaveCount(0);
     await page.keyboard.press("Escape");
@@ -500,7 +500,7 @@ shellTest(
             'a[href="/workspace/uploads"],a[href^="/account"],a[href^="/admin"]',
           ),
         ).toHaveCount(0);
-        await page.getByTestId("workspace-sidebar-back").click();
+        await expect(page.getByTestId("workspace-sidebar-back")).toHaveCount(0);
         await navigation.locator('a[href="/campus"]').click();
         await expect(page).toHaveURL(/\/campus$/);
         await expect(
@@ -508,9 +508,9 @@ shellTest(
             name: /^(浏览课程|Browse courses)$/i,
           }),
         ).toBeVisible();
-        await expect(navigation.locator('a[href^="/workspace"]')).toHaveCount(
-          0,
-        );
+        await expect(
+          navigation.locator('a[href="/workspace/todos"]'),
+        ).toBeVisible();
       },
       { calendarTokenCreated: true },
     );
@@ -578,9 +578,11 @@ shellTest(
       await expect(sidebarRoot).toHaveAttribute("data-state", "collapsed");
       await expect(sidebarRoot).toHaveAttribute("data-collapsible", "icon");
 
-      const coursesLink = sidebar.locator('a[href="/workspace/todos"]');
+      const coursesLink = sidebar.locator(
+        'a[data-navigation-depth="0"][href="/"]',
+      );
       await expect(coursesLink).toBeVisible();
-      await expect(coursesLink).toHaveAccessibleName(/^(待办|Todos)$/i);
+      await expect(coursesLink).toHaveAccessibleName(/^(工作台|Workspace)$/i);
       await expect(
         sidebar.locator(
           'button[data-shell-expand-sidebar],[data-slot="collapsible-trigger"]',
@@ -630,7 +632,7 @@ shellTest(
       expect(iconBox?.height ?? 0).toBeGreaterThanOrEqual(24);
       await coursesLink.focus();
       await page.keyboard.press("Enter");
-      await expect(page).toHaveURL(/\/workspace\/todos$/);
+      await expect(page).toHaveURL(/\/$/);
       await expect(coursesLink).toHaveAttribute("aria-current", "page");
     }, {});
   },
@@ -761,42 +763,22 @@ shellTest(
     await communityFlow.run(async () => {
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, "/workspace/todos");
-
-      await expect(
-        page.locator("[data-mobile-primary-navigation]"),
-      ).toHaveCount(1);
-      const selector =
-        "[data-shell-topbar] button:visible, [data-shell-topbar] a:visible";
-      const controls = page.locator(selector);
-      expect(await controls.count()).toBeGreaterThan(0);
-      for (const control of await controls.all()) {
-        await expect(control).toBeVisible();
+      const topbar = page.locator("[data-shell-topbar]");
+      for (const control of await topbar
+        .locator("button:visible, a:visible")
+        .all()) {
         const box = await control.boundingBox();
         expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
         expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
       }
-
-      const topbar = page.locator("[data-shell-topbar]");
-      await expect(
-        topbar.getByRole("button", { name: /语言|Language/i }),
-      ).toBeVisible();
-      await expect(
-        topbar.getByRole("button", { name: /主题|Theme/i }),
-      ).toBeVisible();
-
-      for (const button of [
-        topbar.getByRole("button", { name: /^菜单$|^Menu$/i }),
-        topbar.getByRole("button", { name: /语言|Language/i }),
-        topbar.getByRole("button", { name: /主题|Theme/i }),
-      ]) {
-        const box = await button.boundingBox();
-        expect(box?.width).toBeGreaterThanOrEqual(44);
-        expect(box?.height).toBeGreaterThanOrEqual(44);
-      }
       await expect(
         topbar.getByRole("button", { name: /个人菜单|Profile menu/i }),
       ).toHaveCount(1);
+      await expect(
+        topbar.getByRole("button", { name: /语言|Language|主题|Theme/i }),
+      ).toHaveCount(0);
       const primary = page.locator("[data-mobile-primary-navigation]");
+      await expect(primary).toHaveCount(1);
       expect(
         await primary
           .getByRole("link")
@@ -810,41 +792,34 @@ shellTest(
         "/catalog/young-events",
       ]);
       await topbar.getByRole("button", { name: /^菜单$|^Menu$/i }).click();
-      const sidebar = page.getByRole("dialog", {
-        name: /^(Workspace|工作台)$/,
-      });
-      await expect(sidebar).toBeVisible();
-      const group = sidebar.locator('[data-slot="sidebar-group"]');
-      await expect(group).toHaveCount(1);
+      const drawer = page.getByRole("dialog");
+      await expect(drawer).toBeVisible();
+      for (const name of [/语言|Language/i, /主题|Theme/i]) {
+        const control = drawer.getByRole("button", { name });
+        await expect(control).toBeVisible();
+        const box = await control.boundingBox();
+        expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+        expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+      }
       await expect(
-        group.locator('[data-slot="sidebar-group-label"]'),
-      ).toHaveText(/^(Workspace|工作台)$/);
+        drawer.getByRole("button", { name: /个人菜单|Profile menu/i }),
+      ).toHaveCount(0);
+      const navigation = drawer.locator("nav[data-shell-navigation]");
+      await expect(navigation).toHaveAttribute(
+        "data-shell-navigation-view",
+        "root",
+      );
       await expect(
-        group.locator('[data-slot="sidebar-group-label"]'),
-      ).not.toHaveAttribute("aria-expanded");
+        navigation.locator('[data-navigation-depth="0"][href]'),
+      ).toHaveCount(4);
       await expect(
-        group.locator('[data-slot="sidebar-group-content"]'),
-      ).toBeVisible();
-      await expect(
-        group.locator(
-          '[data-slot="sidebar-menu-action"],[data-slot="collapsible-trigger"]',
-        ),
+        navigation.locator('[data-slot="sidebar-group-label"]'),
       ).toHaveCount(0);
       await expect(
-        sidebar.getByRole("button", { name: /语言|Language/i }),
-      ).toHaveCount(0);
-      await expect(
-        sidebar.getByRole("button", { name: /主题|Theme/i }),
-      ).toHaveCount(0);
-      await expect(
-        sidebar.getByRole("button", { name: /个人菜单|Profile menu/i }),
-      ).toHaveCount(0);
-      await expect(sidebar.locator('[aria-current="page"]')).toHaveCount(1);
-      await expect(
-        sidebar.getByRole("link", { name: /^(待办|Todos)$/i }),
+        navigation.locator('a[href="/workspace/todos"]'),
       ).toHaveAttribute("aria-current", "page");
       await expect(
-        sidebar.getByRole("button", { name: /^Toggle /i }),
+        navigation.locator("[data-local-navigation-back]"),
       ).toHaveCount(0);
     }, {});
   },
@@ -986,7 +961,7 @@ test("/ shell 桌面导航后内容滚动回到顶部", { tag: "@Site/Web" }, as
     await waitForUiSettled(page);
     await expect(navigation).toHaveAttribute(
       "data-shell-navigation-view",
-      "campus",
+      "root",
     );
     // The first real hop must reset the genuinely scrolled Terms pane before
     // the second scope's course link is exercised.

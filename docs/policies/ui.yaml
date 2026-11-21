@@ -307,7 +307,7 @@ requirements:
     when: A browser opens those views at 320 and 390 pixels, reaches every compact record and scrolls wide comparison tables to their final column.
     then:
     - Compact records and task fact tables fit the viewport without horizontal document overflow.
-    - Section calendar/exam tables retain all five/six columns in overflowing local scroll containers; their final column is reachable.
+    - Section calendars fit their four columns within the viewport. Exam tables retain all six columns in a local horizontal scroll container; their final column is reachable.
     - Bus rows retain every stop column, matching the desktop headers, and their final column remains reachable within the local table region.
     test:
       file: tests/e2e/src/app/shared-policy/embedded-collection-layout.test.ts

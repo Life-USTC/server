@@ -63,7 +63,7 @@ for (const suspended of [false, true]) {
           const href = await fullDetails.getAttribute("href");
           const target = new URL(href ?? "", "https://example.test");
           expect(target.pathname).toBe(
-            `/catalog/sections/${academic.section.jwId}`,
+            `/catalog/sections/${academic.section.jwId}/homework`,
           );
           expect(target.searchParams.get("homeworkId")).toBe(homework.id);
           await fullDetails.click();

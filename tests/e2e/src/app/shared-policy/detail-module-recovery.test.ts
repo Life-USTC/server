@@ -71,14 +71,14 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             await expect(page.locator("#introduction")).toBeVisible();
             await selectDetailTab(page, "calendar");
             await expect(
-              page.locator("#calendar [data-slot=empty]"),
+              page.locator("#calendar [data-empty-variant=quiet]"),
             ).toBeVisible();
             await expect(
-              page.locator("#exams [data-slot=empty]"),
+              page.locator("#exams [data-empty-variant=quiet]"),
             ).toBeVisible();
             await selectDetailTab(page, "homework");
             await expect(
-              page.locator("#homework [data-slot=empty]"),
+              page.locator("#homework [data-empty-variant=quiet]"),
             ).toBeVisible();
             await selectDetailTab(page, "comments");
             await expect(page.locator("#comments h2")).toBeVisible();
@@ -97,7 +97,10 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           await expect(
             page.locator("#introduction [aria-busy=true]"),
           ).toHaveCount(0);
-          await expect(page.locator("#introduction h2")).toHaveCount(1);
+          await expect(page.locator("#comments h2")).toBeVisible();
+          await expect(
+            page.locator("#introduction [data-empty-variant=quiet]").first(),
+          ).toBeVisible();
           await page.screenshot({
             path: testInfo.outputPath(`ready-${locale}-${width}.png`),
             fullPage: true,
@@ -262,8 +265,12 @@ for (const [locale, width] of [
         const homework = page.locator("#homework");
         await expect(homework.getByRole("alert")).toBeVisible();
         await selectDetailTab(page, "schedule");
-        await expect(page.locator("#calendar [data-slot=empty]")).toBeVisible();
-        await expect(page.locator("#exams [data-slot=empty]")).toBeVisible();
+        await expect(
+          page.locator("#calendar [data-empty-variant=quiet]"),
+        ).toBeVisible();
+        await expect(
+          page.locator("#exams [data-empty-variant=quiet]"),
+        ).toBeVisible();
         await selectDetailTab(page, "introduction");
         await expect(page.locator("#comments h2")).toBeVisible();
         await selectDetailTab(page, "homework");
@@ -280,7 +287,9 @@ for (const [locale, width] of [
           })
           .click();
         await expect(homework.getByRole("alert")).toHaveCount(0);
-        await expect(homework.locator("[data-slot=empty]")).toBeVisible();
+        await expect(
+          homework.locator("[data-empty-variant=quiet]"),
+        ).toBeVisible();
         expect(requests).toBeGreaterThan(initialRequests);
         expect(navigations).toBe(initialNavigations);
         expect(uncaught).toEqual([]);

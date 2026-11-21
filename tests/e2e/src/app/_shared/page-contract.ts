@@ -190,16 +190,14 @@ export async function assertPageContract(
     await gotoContractPage(page, routePath);
     await expectMainContent(page);
     const expectedScope =
-      routePath === "/workspace/calendar"
-        ? "calendar"
-        : routePath === "/workspace/subscriptions/activities"
-          ? "activity-workspace"
-          : "workspace";
-    await expect(page.getByTestId(`${expectedScope}-sidebar`)).toHaveAttribute(
+      routePath === "/workspace/subscriptions/activities"
+        ? "activity-workspace"
+        : "root";
+    await expect(page.locator("nav[data-shell-navigation]")).toHaveAttribute(
       "data-shell-navigation-view",
-      expectedScope === "calendar" ? "root" : expectedScope,
+      expectedScope,
     );
-    if (expectedScope === "workspace") await expandDaySidebarGroup(page);
+    if (expectedScope === "root") await expandDaySidebarGroup(page);
     await expect(sidebarNavigationLink(page, /^Life@USTC$/)).toBeVisible({
       timeout: 10_000,
     });

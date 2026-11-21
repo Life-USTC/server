@@ -60,7 +60,7 @@ test.describe("仪表盘", () => {
         await expect(
           sidebarNavigationLink(page, /^(作业|Homework)$/i),
         ).toBeVisible();
-        await page.getByTestId("workspace-sidebar-back").click();
+        await expect(page.getByTestId("workspace-sidebar-back")).toHaveCount(0);
         await expect(
           page.locator("nav[data-shell-navigation]"),
         ).toHaveAttribute("data-shell-navigation-view", "root");
@@ -75,7 +75,7 @@ test.describe("仪表盘", () => {
           page.locator("nav[data-shell-navigation]"),
         ).toHaveAttribute("data-shell-navigation-view", "root");
         await expect(
-          sidebarNavigationLink(page, /^(总览|Overview)$/i),
+          appSidebar(page).locator('a[data-navigation-depth="0"][href="/"]'),
         ).toHaveAttribute("aria-current", "page");
         await expect(
           appSidebar(page).getByRole("link", {
@@ -252,7 +252,7 @@ test.describe("仪表盘", () => {
         expect(
           bootstrapResponse.headers()["cloudflare-cdn-cache-control"],
         ).toBe("no-store");
-        await page.getByTestId("workspace-sidebar-back").click();
+        await expect(page.getByTestId("workspace-sidebar-back")).toHaveCount(0);
         await expect(
           page.locator("nav[data-shell-navigation]"),
         ).toHaveAttribute("data-shell-navigation-view", "root");
@@ -263,10 +263,9 @@ test.describe("仪表盘", () => {
           )
           .click();
         await expect(page).toHaveURL(/\/workspace\/calendar$/);
-        await expect(page.getByTestId("calendar-sidebar")).toHaveAttribute(
-          "data-shell-navigation-view",
-          "root",
-        );
+        await expect(
+          page.locator("nav[data-shell-navigation]").first(),
+        ).toHaveAttribute("data-shell-navigation-view", "root");
         await expectNavigationCount(
           appSidebar(page),
           "/workspace/calendar",

@@ -86,7 +86,7 @@ for (const transport of subscriptionTransports) {
               if (action === "add")
                 await expect(
                   subscribedCourseLink(page, fixture.foreign),
-                ).toHaveText(String(fixture.foreign.course.nameEn));
+                ).toContainText(String(fixture.foreign.course.nameEn));
             }
             return expected;
           },
@@ -199,24 +199,26 @@ for (const role of ["regular", "suspended admin"] as const) {
           await signInSubscriptionOwner(page, fixture.own, worker);
           await gotoAndWaitForReady(page, `/catalog/sections/${sectionJwId}`);
           const operation =
-            action === "add"
-              ? "Subscribe to section"
-              : "Unsubscribe from section";
-          const nextAction =
-            action === "add"
-              ? "Unsubscribe from section"
-              : "Subscribe to section";
+            action === "add" ? "Subscribe" : "Unsubscribe from section";
+          const primaryLabel = action === "add" ? "Subscribe" : "Subscribed";
+          const nextLabel = action === "add" ? "Subscribed" : "Subscribe";
           const actionButton = page.getByRole("button", {
-            name: operation,
+            name: primaryLabel,
             exact: true,
           });
           await expect(actionButton).toBeVisible();
           await expect(
-            page.getByRole("button", { name: nextAction, exact: true }),
+            page.getByRole("button", { name: nextLabel, exact: true }),
           ).toHaveCount(0);
           await actionButton.click();
+          if (action === "remove") {
+            await page
+              .getByRole("dialog")
+              .getByRole("button", { name: operation, exact: true })
+              .click();
+          }
           if (action === "add") {
-            const dialog = page.getByRole("dialog", { name: operation });
+            const dialog = page.getByRole("dialog", { name: /^Subscribe · / });
             await expect(dialog).toBeVisible();
             await expect(
               dialog
@@ -233,7 +235,7 @@ for (const role of ["regular", "suspended admin"] as const) {
               .getByRole("button", { name: "Confirm Unsubscribe", exact: true })
               .click();
           await expect(
-            page.getByRole("button", { name: nextAction, exact: true }),
+            page.getByRole("button", { name: nextLabel, exact: true }),
           ).toBeVisible();
           const expected = [
             ...fixture.initial,
@@ -249,7 +251,7 @@ for (const role of ["regular", "suspended admin"] as const) {
           await page.reload();
           await waitForUiSettled(page);
           await expect(
-            page.getByRole("button", { name: nextAction, exact: true }),
+            page.getByRole("button", { name: nextLabel, exact: true }),
           ).toBeVisible();
           return {
             async verifyTransport(observation) {

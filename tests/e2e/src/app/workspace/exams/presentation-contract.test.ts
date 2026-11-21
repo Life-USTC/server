@@ -153,7 +153,7 @@ test("exam.attached-to-section", { tag: "@Exam/Web" }, async ({
         await expect(rows).toHaveCount(1);
         await expect(rows.getByRole("link").first()).toHaveAttribute(
           "href",
-          `/catalog/sections/${data.section.jwId}`,
+          `/catalog/sections/${data.section.jwId}/schedule#exams`,
         );
         await page
           .locator('[data-slot="table-column-header"]:visible')
@@ -171,7 +171,9 @@ test("exam.attached-to-section", { tag: "@Exam/Web" }, async ({
         await expect(rows).toHaveCount(2);
         for (const section of [data.currentSection, data.section]) {
           const row = rows.filter({
-            has: page.locator(`a[href="/catalog/sections/${section.jwId}"]`),
+            has: page.locator(
+              `a[href="/catalog/sections/${section.jwId}/schedule#exams"]`,
+            ),
           });
           await expect(row).toContainText(String(data.course.nameEn));
           await expect(row).toContainText(String(section.code));
@@ -214,7 +216,9 @@ test("exam.semester-required", { tag: "@Exam/Web" }, async ({
         ] as const) {
           await expect(
             visibleRows(page, width).filter({
-              has: page.locator(`a[href="/catalog/sections/${section.jwId}"]`),
+              has: page.locator(
+                `a[href="/catalog/sections/${section.jwId}/schedule#exams"]`,
+              ),
             }),
           ).toContainText(formatSemesterName("en-us", semester.nameCn));
         }

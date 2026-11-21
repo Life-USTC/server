@@ -25,7 +25,8 @@ test("comment.public-permission-recovery", { tag: "@Comment/Web" }, async ({
             url: absoluteTestUrl("/", baseURL),
           },
         ]);
-        for (const { path } of community.targets) {
+        for (const target of community.targets) {
+          const path = `${target.path}/${target.type === "section" ? "introduction" : "comments"}`;
           let entered = () => {};
           const reading = new Promise<void>((resolve) => {
             entered = resolve;

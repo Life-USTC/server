@@ -621,7 +621,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       const before = await commentRows(db);
       const thread = {
         author: account.name,
-        canonicalUrl: `${isolatedWorker.origin}/catalog/sections/${community.section.jwId}/comments#comment-${comment.id}`,
+        canonicalUrl: `${isolatedWorker.origin}/catalog/sections/${community.section.jwId}/introduction#comment-${comment.id}`,
         commentId: comment.id,
         otherRootBody: foreign.body,
         otherRootId: foreign.id,

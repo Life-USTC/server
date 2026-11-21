@@ -147,7 +147,14 @@ export async function checkWorkspaceOverviewPriorityViews(
       "navigation.title": field(title, locale === "en-us" ? "Todos" : "待办"),
     },
     secondary: {
-      "navigation.count": field(count, "1"),
+      "navigation.count": {
+        locator: count,
+        expected:
+          locale === "en-us"
+            ? /1 pending.*undated and overdue/
+            : /1 未完成.*未定日期和已逾期/,
+        attribute: "aria-label",
+      },
     },
     tertiary: {},
   });

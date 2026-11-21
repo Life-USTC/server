@@ -325,9 +325,7 @@ for (const width of [1280, 390]) {
         page.getByRole("button", { name: /^(活动|Event)$/ }),
       ).toHaveCount(0);
       const listNav = await openYoungSidebar(page);
-      await listNav
-        .getByRole("link", { name: /^(活动列表|Activity list)$/ })
-        .click();
+      await listNav.locator('a[href="/catalog/young-events"]').click();
       await expect(page).toHaveURL(/\/catalog\/young-events$/);
       for (const timeBasis of ["activity", "registration"]) {
         await gotoAndWaitForReady(

@@ -41,7 +41,7 @@ function escapeForRegExp(value: string) {
 }
 async function openBulkImportDialog(page: import("@playwright/test").Page) {
   const textarea = page.getByRole("textbox", {
-    name: /班级或课程代码|Section or course codes|粘贴|Paste/i,
+    name: /班级或课程编号|Section or course codes|粘贴|Paste/i,
   });
   if ((await textarea.count()) === 0) {
     await page

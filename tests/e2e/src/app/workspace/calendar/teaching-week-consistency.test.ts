@@ -378,31 +378,33 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             ]);
           await gotoAndWaitForReady(
             page,
-            `/catalog/sections/${fixture.section.jwId}/calendar`,
+            `/catalog/sections/${fixture.section.jwId}/schedule`,
           );
           const table = page.getByTestId("section-calendar-table");
           for (const meeting of meetings) {
             const row = table
               .getByRole("row")
               .filter({
-                has: page.getByRole("cell", {
-                  name: meeting.date,
-                  exact: true,
-                }),
+                has: page.getByText(meeting.date, { exact: true }),
               })
               .filter({ hasText: meeting.place });
             await expect(row).toHaveCount(1);
-            const cells = row.getByRole("cell");
-            await expect(cells.nth(1)).toHaveText(meeting.date);
-            await expect(cells.nth(2)).toHaveText(String(meeting.week));
-            await expect(cells.nth(3)).toContainText("09:00");
-            await expect(cells.nth(3)).toContainText("10:00");
-            await expect(cells.nth(4)).toHaveText(meeting.place);
-            // The phone table intentionally scrolls locally; bring each real
-            // field into view rather than treating page-level overflow as proof.
-            for (const index of [1, 2, 3, 4]) {
-              await cells.nth(index).scrollIntoViewIfNeeded();
-              await expectUnclipped(cells.nth(index));
+            const week =
+              meeting.date === "2026-05-01"
+                ? row.locator("xpath=preceding-sibling::tr[1]/td[1]")
+                : row.getByRole("cell").first();
+            const date = row.getByText(meeting.date, { exact: true });
+            const time = row.getByText("09:00-10:00", { exact: true });
+            const place = row.getByRole("cell").last();
+            await expect(week).toHaveText(String(meeting.week));
+            if (meeting.date === "2026-05-01")
+              await expect(week).toHaveAttribute("rowspan", "2");
+            await expect(date).toBeVisible();
+            await expect(time).toBeVisible();
+            await expect(place).toHaveText(meeting.place);
+            for (const field of [week, date, time, place]) {
+              await field.scrollIntoViewIfNeeded();
+              await expectUnclipped(field);
             }
           }
 
@@ -469,7 +471,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                   has: page.getByText(meeting.date.slice(5), { exact: true }),
                 });
                 const course = cell.locator(
-                  `a[href="/catalog/sections/${fixture.section.jwId}/calendar"]`,
+                  `a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
                 );
                 await expect(course).toHaveCount(1);
                 await expect(course).toContainText(title);
@@ -534,7 +536,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                   day.locator(`#agenda-${meeting.date}`),
                 ).toBeVisible();
                 const course = day.locator(
-                  `a[href="/catalog/sections/${fixture.section.jwId}/calendar"]`,
+                  `a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
                 );
                 await expect(course).toHaveCount(1);
                 await expect(
@@ -640,7 +642,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                   has: page.getByText(meeting.date.slice(5), { exact: true }),
                 })
                 .locator(
-                  `a[href="/catalog/sections/${fixture.section.jwId}/calendar"]`,
+                  `a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
                 );
               await expect(course).toHaveCount(1);
               await expect(course).toContainText("11:00");

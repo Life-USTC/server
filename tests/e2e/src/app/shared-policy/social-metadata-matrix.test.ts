@@ -187,6 +187,16 @@ for (const sample of new Map(
         "/community/users/[identifier]": `/community/users/${calendar.users[0].username}`,
         "/news/[id]": `/news/${extra.publication.id}`,
       };
+      for (const base of [
+        "/catalog/courses/[jwId]",
+        "/catalog/sections/[jwId]",
+        "/catalog/teachers/[id]",
+      ]) {
+        if (sample.routeId.startsWith(`${base}/`)) {
+          dynamic[sample.routeId] =
+            `${dynamic[base]}${sample.routeId.slice(base.length)}`;
+        }
+      }
       const entry = {
         path: dynamic[sample.routeId] ?? sample.samplePath,
         auth: sample.auth,

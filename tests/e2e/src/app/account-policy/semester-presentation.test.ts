@@ -115,8 +115,8 @@ for (const domain of [
         for (const width of [1280, 390]) {
           await page.setViewportSize({ width, height: 900 });
           for (const route of [
-            `/catalog/courses/${f.course.jwId}`,
-            `/catalog/teachers/${f.teacher.id}`,
+            `/catalog/courses/${f.course.jwId}/sections`,
+            `/catalog/teachers/${f.teacher.id}/sections`,
             `/catalog/sections?courseCode=${marker}`,
             "/workspace/subscriptions",
           ]) {

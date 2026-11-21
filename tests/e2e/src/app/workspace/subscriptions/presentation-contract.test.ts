@@ -380,7 +380,10 @@ test("subscription.subscription-language", {
           .filter({ visible: true });
         await first.click();
         await page.waitForURL(`**/catalog/sections/${sections[0].jwId}`);
-        const unsubscribe = page.getByRole("button", {
+        await page
+          .getByRole("button", { name: /^(已订阅|Subscribed)$/ })
+          .click();
+        const unsubscribe = page.getByRole("dialog").getByRole("button", {
           name: /^(取消订阅班级|Unsubscribe from section)$/,
         });
         await expect(unsubscribe).toBeVisible();
@@ -392,7 +395,7 @@ test("subscription.subscription-language", {
             .click();
         await expect(
           page.getByRole("button", {
-            name: /^(订阅班级|Subscribe to section)$/,
+            name: /^(订阅|Subscribe)$/,
           }),
         ).toBeVisible();
         await expect(
@@ -956,10 +959,7 @@ test("subscribed-sections.sidebar-summary-only", {
           await page.getByRole("button", { name: /^(菜单|Menu)$/ }).click();
         const sidebar =
           width < 768
-            ? page.getByRole("dialog", {
-                name: "工作台",
-                exact: true,
-              })
+            ? page.locator('nav[data-shell-navigation="mobile"]')
             : page.getByTestId("app-sidebar");
         await expect(sidebar).toBeVisible();
         const destination = sidebar.locator(

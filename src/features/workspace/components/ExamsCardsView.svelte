@@ -43,7 +43,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
   <Item.Group class="gap-0">
   {#each exams as exam, index (exam.id)}
     {@const detailHref = exam.section.jwId
-      ? `/catalog/sections/${exam.section.jwId}`
+      ? `/catalog/sections/${exam.section.jwId}/schedule#exams`
       : workspaceTabHref("subscriptions")}
     <MobileListCard>
       <Item.Content class="min-w-0 gap-1">

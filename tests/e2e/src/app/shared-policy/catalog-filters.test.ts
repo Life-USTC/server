@@ -106,7 +106,7 @@ async function cases(db: TestPrismaClient): Promise<FilterCase[]> {
       {
         route: "/catalog/sections",
         search: course.code,
-        result: course.nameCn,
+        result: section.code,
         filters: {
           semesterId: String(section.semesterId),
           teacher: teacher.nameCn,
@@ -119,14 +119,14 @@ async function cases(db: TestPrismaClient): Promise<FilterCase[]> {
         },
         columns: [
           { label: /^(学期|Semester)$/i, fields: ["semesterId"] },
-          { label: /^(课程代码|Course Code)$/i, fields: ["courseCode"] },
+          { label: /^(课程编号|Course Code)$/i, fields: ["courseCode"] },
           { label: /^(课程类别|Course Category)$/i, fields: ["categoryId"] },
           {
             label: /^(教育层次|Education Level)$/i,
             fields: ["educationLevelId"],
           },
           { label: /^(课程类型|Class Type)$/i, fields: ["classTypeId"] },
-          { label: /^(班级代码|Section Code)$/i, fields: ["sectionCode"] },
+          { label: /^(班级编号|Section Code)$/i, fields: ["sectionCode"] },
           { label: /^(教师|Teachers)$/i, fields: ["teacher"] },
           { label: /^(学分|Credits)$/i, fields: ["credits"] },
           { label: /^(校区|Campus)$/i, fields: ["campusId"] },
@@ -308,7 +308,7 @@ test("section sorting shares the page filter draft and applies once", {
     const sorts = [
       { key: "semester", label: /^(学期|Semester)$/i },
       { key: "course", label: /^(课程名称|Course Name)$/i },
-      { key: "code", label: /^(班级代码|Section Code)$/i },
+      { key: "code", label: /^(班级编号|Section Code)$/i },
       { key: "teacher", label: /^(教师|Teachers)$/i },
       { key: "credits", label: /^(学分|Credits)$/i },
       { key: "capacity", label: /^(容量|Capacity)$/i },

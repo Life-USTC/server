@@ -694,10 +694,7 @@ test("sidebar.root-preview retires a held administrator bootstrap on Demo naviga
       await expect(page).toHaveURL(/\/catalog\/young-events$/);
       await waitForUiSettled(page);
       const young = page.locator("nav[data-shell-navigation]");
-      await expect(young).toHaveAttribute(
-        "data-shell-navigation-view",
-        "activities",
-      );
+      await expect(young).toHaveAttribute("data-shell-navigation-view", "root");
       expect(await original.evaluate((doc) => doc === document)).toBe(true);
       await expect(page.getByTestId("demo-notice")).toBeVisible();
       await page.getByTestId("activities-sidebar-back").click();

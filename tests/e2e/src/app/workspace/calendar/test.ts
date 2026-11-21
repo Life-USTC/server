@@ -234,7 +234,6 @@ test.describe("仪表盘日历", () => {
           `/catalog/sections/${academic.section.jwId}/schedule`,
         );
         await page
-          .getByTestId("detail-pinned-summary")
           .getByRole("button", { name: /添加到日历|Add to calendar/i })
           .first()
           .click();
@@ -288,7 +287,7 @@ test.describe("仪表盘日历", () => {
           await expect(agenda.locator("a").first()).toBeVisible();
           const courseEvent = agenda
             .locator(
-              `a[href="/catalog/sections/${fixture.section.jwId}/calendar"]`,
+              `a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
             )
             .first();
           await expect(

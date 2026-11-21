@@ -49,8 +49,10 @@ async function readableHeading(page: Page, name: string) {
   await expectNoPageHorizontalOverflow(page);
 }
 async function reachable(locator: Locator) {
-  await locator.scrollIntoViewIfNeeded();
-  await expect(locator).toBeInViewport();
+  await expect(async () => {
+    await locator.scrollIntoViewIfNeeded();
+    await expect(locator).toBeInViewport();
+  }).toPass({ timeout: 5000 });
 }
 
 test("course.mobile-detail-hierarchy", { tag: "@Course/Web" }, async ({
@@ -133,6 +135,7 @@ test("teacher.mobile-detail-hierarchy", { tag: "@Teacher/Web" }, async ({
               ? `${teacherNames[language]} (${teacherNames["zh-cn"]})`
               : teacherNames[language],
           );
+          await selectDetailTab(page, "overview");
           const department = page
             .locator("#main-content")
             .getByText(

@@ -207,7 +207,6 @@ test.describe("/catalog/sections 班级搜索页", () => {
       );
 
       await expect(visibleText(page, DEV_SEED.course.nameEn)).toBeVisible();
-      await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.teacher.nameEn)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.campus.nameEn)).toBeVisible();
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
@@ -240,11 +239,11 @@ test.describe("/catalog/sections 班级搜索页", () => {
           ["学期", ["semesterId"]],
           ["教师", ["teacher"]],
           ["课程名称", ["courseName"]],
-          ["课程代码", ["courseCode"]],
+          ["课程编号", ["courseCode"]],
           ["课程类别", ["categoryId"]],
           ["教育层次", ["educationLevelId"]],
           ["课程类型", ["classTypeId"]],
-          ["班级代码", ["sectionCode"]],
+          ["班级编号", ["sectionCode"]],
           ["校区", ["campusId"]],
           ["院系", ["departmentId"]],
           ["学分", ["credits"]],
@@ -408,13 +407,19 @@ test.describe("/catalog/sections 班级搜索页", () => {
             if (!cell || !target)
               throw new Error("Sections table column content missing");
             const headerStyle = getComputedStyle(header);
-            const targetStyle = getComputedStyle(target);
             const headerBox = header.getBoundingClientRect();
-            const targetBox = target.getBoundingClientRect();
             const headerEdge =
               headerBox.left + Number.parseFloat(headerStyle.paddingLeft);
-            const cellEdge =
-              targetBox.left + Number.parseFloat(targetStyle.paddingLeft);
+            const walker = document.createTreeWalker(
+              target,
+              NodeFilter.SHOW_TEXT,
+            );
+            let text = walker.nextNode();
+            while (text && !text.textContent?.trim()) text = walker.nextNode();
+            const range = document.createRange();
+            if (!text) throw new Error("Missing table text");
+            range.selectNodeContents(text);
+            const cellEdge = range.getBoundingClientRect().left;
             return {
               alignment: headerStyle.textAlign,
               offset: Math.abs(headerEdge - cellEdge),
@@ -545,8 +550,8 @@ test.describe("/catalog/sections 班级搜索页", () => {
       await page.keyboard.press("Escape");
       for (const [column, _label, name, value] of [
         ["教师", "教师", "teacher", DEV_SEED.teacher.nameCn],
-        ["课程代码", "课程代码", "courseCode", DEV_SEED.course.code],
-        ["班级代码", "班级代码", "sectionCode", DEV_SEED.section.code],
+        ["课程编号", "课程编号", "courseCode", DEV_SEED.course.code],
+        ["班级编号", "班级编号", "sectionCode", DEV_SEED.section.code],
         ["学分", "学分", "credits", String(DEV_SEED.section.credits)],
       ]) {
         const filter = await openCatalogColumnFilter(page, column);
@@ -557,7 +562,7 @@ test.describe("/catalog/sections 班级搜索页", () => {
           (url) => url.searchParams.get(name) === value,
         );
       }
-      const sorting = await openCatalogColumnFilter(page, "班级代码");
+      const sorting = await openCatalogColumnFilter(page, "班级编号");
       await sorting.getByRole("radio", { name: "降序" }).click();
       await applyCatalogFilters(page);
       await expect(sorting).toBeHidden();

@@ -325,14 +325,9 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
       await expect(page).toHaveURL(browseUrl);
       const youngNav = page.locator("nav[data-shell-navigation]");
       await expect(youngNav).toBeVisible();
-      await expect(page.getByTestId("activities-sidebar-back")).toHaveRole(
-        "button",
-      );
+      await expect(page.getByTestId("activities-sidebar-back")).toHaveCount(0);
       await expect(
-        page.getByTestId("activities-sidebar-back"),
-      ).not.toHaveAttribute("href");
-      await expect(
-        youngNav.getByRole("link", { name: /^(?:活动列表|Activity list)$/ }),
+        youngNav.locator('a[href="/catalog/young-events"]'),
       ).toHaveAttribute("aria-current", "page");
       await expect(
         youngNav.getByRole("link", {

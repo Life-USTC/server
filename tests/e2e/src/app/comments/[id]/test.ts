@@ -24,7 +24,7 @@ test("/community/comments/[id] 页面契约", { tag: "@Comment/Web" }, async ({
     );
     expect(response?.ok()).toBe(true);
     expect(new URL(page.url()).pathname).toBe(
-      `/catalog/sections/${community.section.jwId}`,
+      `/catalog/sections/${community.section.jwId}/introduction`,
     );
     expect(new URL(page.url()).hash).toBe(`#comment-${comment.id}`);
     await expect(page.locator("#main-content")).toBeVisible();
@@ -58,7 +58,7 @@ test("/community/comments/[id] 公开评论为匿名读者重定向到目标页�
       expectMainContent: false,
     });
     expect(new URL(page.url()).pathname).toBe(
-      `/catalog/sections/${community.section.jwId}`,
+      `/catalog/sections/${community.section.jwId}/introduction`,
     );
     expect(new URL(page.url()).hash).toBe(`#comment-${comment.id}`);
     await expect(page.locator(`#comment-${comment.id}`)).toContainText(
@@ -91,7 +91,9 @@ test("/community/comments/[id] 按目标解析到对应详情页锚点", {
     );
     for (const { body, target, row } of seeded) {
       await gotoAndWaitForReady(page, `/community/comments/${row.id}`);
-      expect(new URL(page.url()).pathname).toBe(target.path);
+      expect(new URL(page.url()).pathname).toBe(
+        `${target.path}/${target.type === "section" ? "introduction" : "comments"}`,
+      );
       expect(new URL(page.url()).hash).toBe(`#comment-${row.id}`);
       await expect(page.locator(`#comment-${row.id}`)).toContainText(body);
     }

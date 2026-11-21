@@ -73,13 +73,9 @@ for (const [domain, method, locales, widths] of [
             ).toHaveCount(0);
             if (width < 768)
               await page.getByRole("button", { name: /^(菜单|Menu)$/ }).click();
-            const sidebar =
-              width < 768
-                ? page.getByRole("dialog", {
-                    name: locale === "en-us" ? "Workspace" : "工作台",
-                    exact: true,
-                  })
-                : page.getByTestId("app-sidebar");
+            const sidebar = page.locator(
+              `nav[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
+            );
             await expect(sidebar).toBeVisible();
             const todoLink = sidebar.locator('a[href="/workspace/todos"]');
             const todoGroup = sidebar
@@ -173,7 +169,7 @@ for (const domain of ["Overview", "Subscription"] as const) {
           ).toHaveAttribute("href", "/catalog/courses");
           await expect(
             content.getByRole("link", {
-              name: /Classes|班级/,
+              name: /^(Classes|班级)$/,
               exact: true,
             }),
           ).toHaveAttribute("href", "/catalog/sections");

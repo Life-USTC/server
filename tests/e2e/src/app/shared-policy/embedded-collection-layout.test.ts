@@ -70,7 +70,7 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
     {
       name: "section-homework",
       path: `/catalog/sections/${c.sections[0].jwId}/homework`,
-      heading: "#homework h2",
+      heading: "main h1",
       filter: "",
       summary: "",
       continuation: false,
@@ -228,6 +228,15 @@ for (const [domain, names] of [
           const table = page.getByTestId("section-calendar-table");
           await expect(table).toBeVisible();
           await expect(table.getByRole("columnheader")).toHaveCount(4);
+        }
+        if (item.name === "section-exams") {
+          const table = page.getByTestId("section-exams-list");
+          await expect(table.getByRole("columnheader")).toHaveCount(6);
+          const lastColumn = table.getByRole("columnheader").last();
+          await lastColumn.scrollIntoViewIfNeeded();
+          await expect(lastColumn).toBeInViewport();
+          await expectNoPageHorizontalOverflow(page);
+          continue;
         }
         for (const row of await rows.all()) {
           await row.scrollIntoViewIfNeeded();

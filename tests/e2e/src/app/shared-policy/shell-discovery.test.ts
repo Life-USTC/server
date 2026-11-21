@@ -405,8 +405,10 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             page.locator(
               `[data-shell-navigation="${width === 390 ? "mobile" : "desktop"}"]`,
             ),
-          ).toHaveAttribute("data-shell-navigation-view", "campus");
-          await nav.locator("[data-local-navigation-back]").click();
+          ).toHaveAttribute("data-shell-navigation-view", "root");
+          await expect(nav.locator("[data-local-navigation-back]")).toHaveCount(
+            0,
+          );
           await expect(
             page.locator(
               `[data-shell-navigation="${width === 390 ? "mobile" : "desktop"}"]`,
@@ -625,7 +627,7 @@ test(
           'xpath=ancestor::*[@data-slot="sidebar-menu-item" or @data-slot="sidebar-menu-sub-item"][1]',
         );
         await expect(row.locator("[data-shell-count-value]")).toHaveCount(0);
-        await preview.click();
+        await expect(preview).toHaveCount(0);
         await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
         await expect(nav.locator("[data-local-navigation-back]")).toHaveCount(
           0,
@@ -686,6 +688,8 @@ test(
             );
           });
         await expect.poll(activeVisible).toBe(true);
+        await active.focus();
+        await expect(active).toBeFocused();
         const response = preferenceFlow.waitForResponse(page, (res) =>
           res.url().endsWith("/_internal/shell-bootstrap"),
         );
@@ -710,6 +714,10 @@ test(
           ),
         ).toBe(true);
         await active.click();
+        await expect(sheet).not.toBeVisible();
+        await page
+          .locator('[data-shell-topbar] [data-slot="sidebar-trigger"]')
+          .click();
         await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
         expect(page.url()).toBe(routeBefore);
         expect(

@@ -261,7 +261,9 @@ test("ui.navigation-landmarks-6", { tag: "@Site/Web" }, async ({
         const localNav = page.locator(
           `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
         );
-        await localNav.locator("[data-local-navigation-back]").click();
+        await expect(
+          localNav.locator("[data-local-navigation-back]"),
+        ).toHaveCount(0);
         await expect(localNav).toHaveAttribute(
           "data-shell-navigation-view",
           "root",

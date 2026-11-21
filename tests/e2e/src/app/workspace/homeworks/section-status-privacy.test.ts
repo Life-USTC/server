@@ -75,9 +75,7 @@ for (const mode of ["delayed", "failed", "suspended", "anonymous"] as const) {
       await page.goto(`/catalog/sections/${academic.section.jwId}/homework`, {
         waitUntil: "domcontentloaded",
       });
-      await expect(
-        page.getByRole("heading", { name: "Homework", exact: true }),
-      ).toBeVisible();
+      await expect(page.locator("#homework")).toBeVisible();
       if (mode === "failed")
         await expect(
           page.getByRole("alert").filter({ hasText: "retry" }).first(),

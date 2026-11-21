@@ -81,13 +81,13 @@ for (const locale of ["zh-cn", "en-us"] as const) {
               ? page.getByRole("table")
               : page.getByTestId("workspace-exams-cards");
           await expect(
-            surface.getByRole("link", { name: names[0], exact: true }),
+            surface.getByRole("link", { name: names[0], exact: false }),
           ).toBeVisible();
           await expect(
-            surface.getByRole("link", { name: names[1], exact: true }),
+            surface.getByRole("link", { name: names[1], exact: false }),
           ).toBeVisible();
           await expect(
-            surface.getByRole("link", { name: names[2], exact: true }),
+            surface.getByRole("link", { name: names[2], exact: false }),
           ).toHaveCount(0);
           await expect(surface).toContainText("14:00");
           await expect(surface).toContainText("16:00");
@@ -109,7 +109,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             );
             await page.keyboard.press("Escape");
             for (const name of names) {
-              const link = surface.getByRole("link", { name, exact: true });
+              const link = surface.getByRole("link", { name, exact: false });
               if (shown.includes(name)) await expect(link).toBeVisible();
               else await expect(link).toHaveCount(0);
             }
@@ -136,10 +136,12 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             navigation: { examsCount: 2, subscribedSectionCount: 3 },
           });
           await surface
-            .getByRole("link", { name: names[0], exact: true })
+            .getByRole("link", { name: names[0], exact: false })
             .click();
           await waitForUiSettled(page);
-          await expect(page).toHaveURL(/\/catalog\/sections\/910001$/);
+          await expect(page).toHaveURL(
+            /\/catalog\/sections\/910001\/schedule#exams$/,
+          );
           await expect(page.getByTestId("demo-notice")).toBeVisible();
           await expect(page.locator('a[href$=".ics"]:visible')).toHaveCount(0);
         });

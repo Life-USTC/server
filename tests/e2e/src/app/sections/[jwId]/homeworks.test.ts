@@ -83,7 +83,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         "避免使用“第一章作业”等仅按章节命名的标题",
       );
       await expect(createGuide).toContainText(
-        "不要在标题中包含课程名称或课程代码",
+        "不要在标题中包含课程名称或课程编号",
       );
       await expect(createGuide.locator("pre")).toContainText(
         "- 题目：...\n- 提交方式：...\n- 提交地址：...\n- 备注：...",

@@ -167,20 +167,15 @@ test.describe("仪表盘网站链接", () => {
         "data-shell-navigation-view",
         "root",
       );
-      await page.getByTestId("workspace-sidebar-back").click();
-      await expect(sidebar).toHaveAttribute(
-        "data-shell-navigation-view",
-        "root",
-      );
       const campus = sidebar.locator(
         '[data-slot="sidebar-content"] a[href="/campus"]',
       );
       await expect(campus).toHaveCount(1);
       await campus.click();
       await expect(page).toHaveURL(/\/campus$/);
-      await expect(page.getByTestId("campus-sidebar")).toHaveAttribute(
+      await expect(sidebar).toHaveAttribute(
         "data-shell-navigation-view",
-        "campus",
+        "root",
       );
 
       const linksTab = sidebarNavigationLink(page, /^(网站|Websites)$/i);

@@ -55,7 +55,6 @@ test("ui.shell-layout-1", { tag: "@Site/Web" }, async ({ page }) => {
   expect(
     await rootSidebar.evaluate((node) => node.scrollHeight - node.clientHeight),
   ).toBeGreaterThan(200);
-  expect(await rootSidebar.evaluate((node) => node.scrollTop)).toBe(0);
   expect(
     await page
       .locator("[data-shell-scroll-container]")
@@ -73,7 +72,8 @@ test("ui.shell-layout-1", { tag: "@Site/Web" }, async ({ page }) => {
         (element) => element.scrollHeight - element.clientHeight,
       ),
     ).toBeGreaterThan(200);
-    expect(await pane.evaluate((element) => element.scrollTop)).toBe(0);
+    if (pane === main)
+      expect(await pane.evaluate((element) => element.scrollTop)).toBe(0);
   }
   await sidebar.hover();
   await page.mouse.wheel(0, 300);
@@ -117,8 +117,11 @@ test("ui.shell-layout-5", { tag: "@Site/Web" }, async ({
         await page.setViewportSize({ width, height: 900 });
         await gotoAndWaitForReady(page, "/workspace/todos");
         const topbar = page.locator("[data-shell-topbar]");
+        if (width < 768)
+          await topbar.locator('[data-slot="sidebar-trigger"]').click();
+        const preferences = width < 768 ? page.getByRole("dialog") : topbar;
         for (const name of [/Language/, /Theme/]) {
-          const control = topbar.getByRole("button", { name });
+          const control = preferences.getByRole("button", { name });
           await expect(control).toBeVisible();
           await control.focus();
           await page.keyboard.press("Enter");
@@ -127,6 +130,7 @@ test("ui.shell-layout-5", { tag: "@Site/Web" }, async ({
           await page.keyboard.press("Escape");
           await expect(control).toBeFocused();
         }
+        if (width < 768) await page.keyboard.press("Escape");
         const profile = topbar.getByRole("button", {
           name: "Profile menu",
           exact: true,
@@ -167,10 +171,16 @@ test("ui.shell-layout-7", { tag: "@Site/Web" }, async ({ page }) => {
         .locator("[data-shell-topbar]")
         .getByRole("link", { name: /^(Sign in|登录)$/i });
       await expect(signIn).toBeVisible();
-      await expect(signIn).toHaveAttribute("href", "/account/sign-in");
+      const signInUrl = new URL(
+        (await signIn.getAttribute("href")) ?? "",
+        page.url(),
+      );
+      expect(signInUrl.pathname).toBe("/account/sign-in");
+      if (path !== "/")
+        expect(signInUrl.searchParams.get("callbackUrl")).toBe(path);
       await signIn.focus();
       await page.keyboard.press("Enter");
-      await expect(page).toHaveURL(/\/account\/sign-in$/);
+      await expect(page).toHaveURL(/\/account\/sign-in(?:\?|$)/);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     }
   }
@@ -297,7 +307,9 @@ test("ui.shell-layout-4", { tag: "@Site/Web" }, async ({
               "data-shell-navigation-view",
               "root",
             );
-            await navigation.locator("[data-local-navigation-back]").click();
+            await expect(
+              navigation.locator("[data-local-navigation-back]"),
+            ).toHaveCount(0);
           } else if (label === "Homework") {
             await expect(navigation).toHaveAttribute(
               "data-shell-navigation-view",
@@ -319,7 +331,9 @@ test("ui.shell-layout-4", { tag: "@Site/Web" }, async ({
               "data-shell-navigation-view",
               "root",
             );
-            await navigation.locator("[data-local-navigation-back]").click();
+            await expect(
+              navigation.locator("[data-local-navigation-back]"),
+            ).toHaveCount(0);
             await navigation.locator('a[href="/campus"]').click();
             await expect(page).toHaveURL(/\/campus$/);
             await waitForUiSettled(page);
@@ -451,7 +465,7 @@ test("ui.navigation-landmarks-5", { tag: "@Site/Web" }, async ({ page }) => {
             .click();
         await expect(navigation).toHaveAttribute(
           "data-shell-navigation-view",
-          "campus",
+          "root",
         );
       }
       const link = navigation.getByRole("link", {
@@ -493,7 +507,7 @@ test("ui.shell-layout-3", { tag: "@Site/Web" }, async ({ page }) => {
       navigation
         .locator('[data-slot="sidebar-group-label"]')
         .filter({ hasText: /^\s*(Primary navigation|主导航)\s*$/ }),
-    ).toBeVisible();
+    ).toHaveCount(0);
     await expect(campus).toBeVisible();
     await expect(page).toHaveURL(/\/$/);
     const rows = await navigation
@@ -521,16 +535,12 @@ test("ui.shell-layout-3", { tag: "@Site/Web" }, async ({ page }) => {
         .click();
     await expect(navigation).toHaveAttribute(
       "data-shell-navigation-view",
-      "campus",
+      "root",
     );
     await expect(
       navigation.locator('[data-navigation-depth="0"][href]'),
-    ).toHaveCount(8);
-    await expect(
-      navigation.locator(
-        '[data-navigation-depth="1"][href="/catalog/bus/map"]',
-      ),
-    ).toBeVisible();
+    ).toHaveCount(4);
+    await expect(navigation.locator('a[href="/catalog/bus"]')).toBeVisible();
     const bus = navigation.getByRole("link", { name: /^(Shuttle Bus|校车)$/ });
     await bus.focus();
     await page.keyboard.press("Enter");

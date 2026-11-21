@@ -58,7 +58,7 @@ async function checkEvent(
     kind === "activity"
       ? `/catalog/young-events/${data.activity.youngId}`
       : kind === "class"
-        ? `/catalog/sections/${data.section.jwId}`
+        ? `/catalog/sections/${data.section.jwId}/schedule`
         : kind === "exam"
           ? "/workspace/exams"
           : kind === "todo"

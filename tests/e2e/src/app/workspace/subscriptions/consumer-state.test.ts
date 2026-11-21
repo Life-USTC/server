@@ -121,13 +121,13 @@ for (const domain of ["Subscription", "Calendar", "Overview"] as const) {
             await focus.getByRole("link").click();
             await expect(page).toHaveURL(
               new URL(
-                `/catalog/sections/${own.section.jwId}`,
+                `/catalog/sections/${own.section.jwId}/schedule`,
                 isolatedWorker.origin,
               ).toString(),
             );
             await expect(
               page.getByRole("button", {
-                name: "Unsubscribe from section",
+                name: "Subscribed",
                 exact: true,
               }),
             ).toBeVisible();
@@ -257,7 +257,7 @@ for (const [domain, method] of [
                 expect.objectContaining({
                   type: "schedule",
                   title: own.course.nameEn,
-                  url: `/catalog/sections/${own.section.jwId}/calendar`,
+                  url: `/catalog/sections/${own.section.jwId}/schedule`,
                 }),
                 expect.objectContaining({
                   type: "exam",
@@ -556,7 +556,7 @@ for (const role of ["regular", "suspended admin"] as const) {
           );
           await expect(
             page.getByRole("button", {
-              name: "Subscribe to section",
+              name: "Subscribe",
               exact: true,
             }),
           ).toBeVisible();

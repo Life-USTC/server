@@ -82,7 +82,7 @@ for (const locale of ["zh-CN", "en-US"]) {
           );
           const course = calendar
             .locator(
-              `a[href="/catalog/sections/${fixture.section.jwId}/calendar"]`,
+              `a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
             )
             .first();
           await expect(course).toBeVisible();

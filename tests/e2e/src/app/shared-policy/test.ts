@@ -154,6 +154,9 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           const navigation = page.locator(
             `[data-shell-navigation="${viewport.width < 768 ? "mobile" : "desktop"}"]`,
           );
+          if (collection === "/catalog/sections") {
+            await navigation.locator("[data-local-navigation-back]").click();
+          }
           const link = navigation.locator(`a[href="${collection}"]`);
           await expect(link).toBeVisible();
           await link.click();
@@ -208,7 +211,9 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           const reading = await column.locator(`#${id}`).boundingBox();
           const stream = await column.boundingBox();
           expect(reading?.width).toBe(stream?.width);
-          await expect(page.locator("[data-detail-identity]")).toHaveCount(0);
+          await expect(page.locator("[data-detail-identity]")).toHaveCount(
+            collection === "/catalog/sections" && id !== "homework" ? 1 : 0,
+          );
         }
       }
     });
@@ -331,7 +336,7 @@ test("ui.navigation-landmarks-1", { tag: "@Site/Web" }, async ({
       await setLocale(page, locale);
       await gotoAndWaitForReady(page, "/catalog/courses");
       const nav = page.getByRole("navigation", {
-        name: locale === "zh-cn" ? "校园" : "Campus",
+        name: locale === "zh-cn" ? "主导航" : "Primary navigation",
         exact: true,
       });
       await expect(nav).toHaveCount(1);
@@ -373,7 +378,7 @@ taskFilterTest(
           await openMobileMenu(page);
           await expect(
             page.getByRole("navigation", {
-              name: locale === "zh-cn" ? "工作台" : "Workspace",
+              name: locale === "zh-cn" ? "主导航" : "Primary navigation",
               exact: true,
             }),
           ).toBeVisible();
