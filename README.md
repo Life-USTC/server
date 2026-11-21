@@ -32,6 +32,3 @@ bun run check          # static, type, specification, and unit checks
 For tests, specification changes, and API contracts, read
 [CONTRIBUTING.md](CONTRIBUTING.md).
 Production monitoring and deploy runbooks are kept out of the public tree.
-
-`bun run app:prepare` generates `worker-configuration.d.ts` from `wrangler.jsonc`.
-Local `.env` values configure the app at runtime.
