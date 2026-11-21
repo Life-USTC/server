@@ -106,7 +106,7 @@ function readProfiles<T extends Profile>(
   let conflicts = 0;
   for (const table of tables) {
     if (!snapshot.hasTable(table)) continue;
-    const byId = new Map<number, T>();
+    const seen = new Set<number>();
     const byCode = new Map<string, number>();
     const invalid = new Set<number>();
     for (const row of snapshot.iterateAll(table)) {
@@ -118,13 +118,13 @@ function readProfiles<T extends Profile>(
         continue;
       }
       const key = codeKey(profile);
-      if (byId.has(profile.jwId)) invalid.add(profile.jwId);
+      if (seen.has(profile.jwId)) invalid.add(profile.jwId);
       const owner = byCode.get(key);
       if (owner != null && owner !== profile.jwId) {
         invalid.add(owner);
         invalid.add(profile.jwId);
       }
-      byId.set(profile.jwId, profile);
+      seen.add(profile.jwId);
       byCode.set(key, profile.jwId);
     }
     conflicts += invalid.size;
@@ -133,8 +133,11 @@ function readProfiles<T extends Profile>(
     }
     for (const [code, id] of byCode)
       if (invalid.has(id) && !owners.has(code)) blockedCodes.add(code);
-    for (const profile of byId.values()) {
-      if (invalid.has(profile.jwId)) continue;
+    // Validate identities first, then stream documents instead of retaining two
+    // full source payload maps alongside the merged profiles.
+    for (const row of snapshot.iterateAll(table)) {
+      const profile = mapper(row);
+      if (!profile || invalid.has(profile.jwId)) continue;
       const key = codeKey(profile);
       const known = combined.get(profile.jwId);
       const owner = owners.get(key);
