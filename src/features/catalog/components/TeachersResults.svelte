@@ -130,7 +130,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
         <Table.Root class="">
           <Table.Header>
             <Table.Row>
-              <Table.Head><CatalogColumnFilter {...columnFilters.name} idPrefix="desktop-teacher-name" /></Table.Head>
+              <Table.Head class="pl-8"><CatalogColumnFilter {...columnFilters.name} idPrefix="desktop-teacher-name" /></Table.Head>
               <Table.Head><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-teacher-code" /></Table.Head>
               <Table.Head><CatalogColumnFilter {...columnFilters.department} idPrefix="desktop-teacher-department" /></Table.Head>
               {#if showTitleColumn}
@@ -139,7 +139,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
               {#if showEmailColumn}
                 <Table.Head><CatalogColumnFilter {...columnFilters.email} idPrefix="desktop-teacher-email" /></Table.Head>
               {/if}
-              <Table.Head><CatalogColumnFilter {...columnFilters.sections} idPrefix="desktop-teacher-sections" /></Table.Head>
+              <Table.Head class="pl-8"><CatalogColumnFilter {...columnFilters.sections} idPrefix="desktop-teacher-sections" /></Table.Head>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -191,7 +191,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
                   </CatalogTableLink>
                 {:else}
                   <span
-                    class="flex h-full min-h-12 min-w-0 w-full items-center px-3 tabular-nums"
+                    class="flex h-full min-h-12 min-w-0 w-full items-center pr-3 pl-8 tabular-nums"
                     data-testid="teacher-section-count"
                   >0</span>
                 {/if}

@@ -93,7 +93,7 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
         <Table.Root>
           <Table.Header>
             <Table.Row>
-              <Table.Head><CatalogColumnFilter {...columnFilters.name} idPrefix="desktop-course-name" /></Table.Head>
+              <Table.Head class="pl-8"><CatalogColumnFilter {...columnFilters.name} idPrefix="desktop-course-name" /></Table.Head>
               <Table.Head><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-course-code" /></Table.Head>
               <Table.Head><CatalogColumnFilter {...columnFilters.educationLevel} idPrefix="desktop-course-educationLevel" /></Table.Head>
               <Table.Head><CatalogColumnFilter {...columnFilters.category} idPrefix="desktop-course-category" /></Table.Head>

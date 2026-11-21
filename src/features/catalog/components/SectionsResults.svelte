@@ -107,7 +107,7 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
             <Table.Header class="bg-muted/30">
               <Table.Row>
                 <Table.Head class="w-36" aria-sort={filters.sort === "semester" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.semester} idPrefix="desktop-section-semester" /></Table.Head>
-                <Table.Head aria-sort={filters.sort === "course" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.course} idPrefix="desktop-section-course" /></Table.Head>
+                <Table.Head class="pl-8" aria-sort={filters.sort === "course" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.course} idPrefix="desktop-section-course" /></Table.Head>
                 <Table.Head class="w-36" aria-sort={filters.sort === "code" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-section-code" /></Table.Head>
                 <Table.Head class="w-36" aria-sort={filters.sort === "teacher" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.teacher} idPrefix="desktop-section-teacher" /></Table.Head>
                 <Table.Head class="w-20" aria-sort={filters.sort === "credits" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.credits} idPrefix="desktop-section-credits" /></Table.Head>

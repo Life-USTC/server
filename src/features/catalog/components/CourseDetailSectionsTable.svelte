@@ -31,7 +31,7 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
     <Table.Root class="">
       <Table.Header>
         <Table.Row>
-          <Table.Head>{copy.courseDetail.teachingSections}</Table.Head>
+          <Table.Head class="pl-8">{copy.courseDetail.teachingSections}</Table.Head>
           <Table.Head>{copy.courseDetail.sectionCode}</Table.Head>
           <Table.Head>{copy.courseDetail.campus}</Table.Head>
           <Table.Head>{copy.courseDetail.capacity}</Table.Head>

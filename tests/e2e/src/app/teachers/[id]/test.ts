@@ -382,7 +382,6 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         page.getByRole("heading", { name: /评论|Comments/i }),
       ).toBeVisible();
 
-      await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
       await expect(page).toHaveURL(/\/catalog\/teachers\/\d+\/comments$/);
       await expect(page.locator("#comments")).toBeVisible();
     });

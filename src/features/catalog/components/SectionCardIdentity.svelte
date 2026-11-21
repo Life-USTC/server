@@ -22,6 +22,6 @@ $: summary = sectionSummary({ course, semester, teachers, code }, locale);
     {#if title}{@render title(summary)}{:else}<ClassIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" />{summary}{/if}
   </Item.Title>
   {#if code && summary !== code}
-    <span class="font-mono text-xs text-muted-foreground" data-slot="catalog-code">{code}</span>
+    <span class="font-mono text-xs text-muted-foreground group-hover/item:text-foreground" data-slot="catalog-code">{code}</span>
   {/if}
 </Item.Content>
