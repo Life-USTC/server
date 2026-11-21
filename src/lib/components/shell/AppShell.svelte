@@ -389,8 +389,8 @@ afterNavigate(({ from, to, type, shallow }) => {
   globalSearchGeneration += 1;
   void resolveClientShell(type);
   if (
-    from.url.pathname === to.url.pathname &&
-    from.url.search === to.url.search
+    to.url.hash ||
+    (from.url.pathname === to.url.pathname && from.url.search === to.url.search)
   ) {
     return;
   }

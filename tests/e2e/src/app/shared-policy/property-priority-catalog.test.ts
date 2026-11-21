@@ -263,11 +263,6 @@ for (const locale of ["zh-cn", "en-us"] as const)
                         "teacher.code": text(row, teacher.code ?? ""),
                       }
                     : {
-                        "section.course.nameSecondary": secondaryName(
-                          identity,
-                          course,
-                          locale,
-                        ),
                         "section.semester.nameCn": field(
                           row
                             .getByText(semester, { exact: false })
@@ -303,6 +298,11 @@ for (const locale of ["zh-cn", "en-us"] as const)
                         ),
                       };
 
+              if (kind === "section" && width === 390) {
+                primary["section.semester.nameCn"] =
+                  secondary["section.semester.nameCn"];
+                delete secondary["section.semester.nameCn"];
+              }
               await assertPriorityView({
                 scope: row,
                 identity,
@@ -409,12 +409,9 @@ for (const locale of ["zh-cn", "en-us"] as const)
                             ? course.nameCn
                             : (course.nameEn ?? ""),
                         ),
-                        "section.semester.nameCn": text(
-                          main.locator("[data-detail-identity]"),
-                          semester,
-                        ),
+                        "section.semester.nameCn": text(overview, semester),
                         "section.campus.namePrimary": text(
-                          main.locator("[data-detail-identity]"),
+                          overview,
                           name(campus, locale),
                         ),
                         "section.code": text(overview, section.code),
@@ -515,25 +512,52 @@ for (const locale of ["zh-cn", "en-us"] as const)
                             identity,
                             name(course, locale),
                           ),
+                          ...(width === 390
+                            ? {
+                                "section.semester.nameCn": text(
+                                  offering,
+                                  semester,
+                                ),
+                                "section.teachers.namePrimary": text(
+                                  offering,
+                                  name(teacher, locale),
+                                ),
+                              }
+                            : {}),
                         }
                       : {
                           "section.course.namePrimary": field(
                             identity,
                             name(course, locale),
                           ),
+                          ...(width === 390
+                            ? {
+                                "section.semester.nameCn": text(
+                                  offering,
+                                  semester,
+                                ),
+                              }
+                            : {}),
                         },
                   secondary:
                     kind === "course"
                       ? {
-                          "section.semester.nameCn": text(offering, semester),
-                          "section.teachers.namePrimary": field(
-                            offering
-                              .getByText(name(teacher, locale), {
-                                exact: false,
-                              })
-                              .first(),
-                            name(teacher, locale),
-                          ),
+                          ...(width === 1280
+                            ? {
+                                "section.semester.nameCn": text(
+                                  offering,
+                                  semester,
+                                ),
+                                "section.teachers.namePrimary": field(
+                                  offering
+                                    .getByText(name(teacher, locale), {
+                                      exact: false,
+                                    })
+                                    .first(),
+                                  name(teacher, locale),
+                                ),
+                              }
+                            : {}),
                           "section.code": text(offering, section.code),
                           "section.campus.namePrimary": field(
                             offering
@@ -555,7 +579,14 @@ for (const locale of ["zh-cn", "en-us"] as const)
                           ),
                         }
                       : {
-                          "section.semester.nameCn": text(offering, semester),
+                          ...(width === 1280
+                            ? {
+                                "section.semester.nameCn": text(
+                                  offering,
+                                  semester,
+                                ),
+                              }
+                            : {}),
                           "section.code": text(offering, section.code),
                           "section.credits": field(
                             offering.getByText("3.5", { exact: false }).first(),

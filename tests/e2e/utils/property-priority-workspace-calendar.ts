@@ -40,7 +40,12 @@ export async function checkWorkspaceCalendarPriorityViews(
     const table = main.getByTestId("section-calendar-table");
     const row = table.getByRole("row").filter({ hasText: "08:00" });
     const date = row.getByRole("cell").nth(2);
-    const lecture = row.getByRole("cell").nth(1).locator("span").filter({ visible: true }).first();
+    const lecture = row
+      .getByRole("cell")
+      .nth(1)
+      .locator("span")
+      .filter({ visible: true })
+      .first();
     await assertPriorityView({
       scope: row,
       identity: date,
@@ -79,7 +84,9 @@ export async function checkWorkspaceCalendarPriorityViews(
         },
       },
     });
-    await expect(row.getByRole("link", { name: roomName, exact: false })).toHaveAttribute(
+    await expect(
+      row.getByRole("link", { name: roomName, exact: false }),
+    ).toHaveAttribute(
       "href",
       `/catalog/rooms/${encodeURIComponent(room.code ?? "")}`,
     );

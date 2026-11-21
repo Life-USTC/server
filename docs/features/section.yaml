@@ -601,9 +601,8 @@ capabilities:
           primary:
           - section.course.namePrimary
           - section.teachers.namePrimary
-          secondary:
-          - section.course.nameSecondary
           - section.semester.nameCn
+          secondary:
           - section.campus.namePrimary
           - section.code
           - section.credits

@@ -460,11 +460,15 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
             const hero = title.locator("xpath=ancestor::header[1]");
             if (!item.bilingualHeading) {
               await expect(
-                hero.getByText(
-                  locale === "zh-cn" ? "授课班级" : "Teaching section",
-                  { exact: true },
-                ),
+                hero.getByText(fixture.semester.nameCn, { exact: true }),
               ).toBeVisible();
+              await expect(
+                hero.locator(
+                  `a[href="/catalog/teachers/${fixture.teacher.id}"]`,
+                ),
+              ).toContainText(
+                locale === "zh-cn" ? teacherNames.nameCn : teacherNames.nameEn,
+              );
             }
             if (item.code) {
               const code = hero.getByText(item.code, { exact: true });
@@ -598,7 +602,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           );
           await selectDetailTab(page, "overview");
           for (const value of item.identity)
-            await expect(identity).toContainText(value);
+            await expect(reading.locator("#overview")).toContainText(value);
           const [hero, identityBounds, readingBounds] = await regionBounds(
             page,
             ["h1", "[data-detail-identity]", "#overview"],
@@ -699,7 +703,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
             ).toHaveCount(0);
             const rows = page.locator("main table:visible tbody tr");
             const links = page.locator(
-              `main a[href^="/catalog/${route}/"]:not([href*="#"]):visible`,
+              `main a[href^="/catalog/${route}/"]:not([href*="#"]):not([href$="/sections"]):visible`,
             );
             await expect(links).toHaveCount(count);
             if (count === 0) {

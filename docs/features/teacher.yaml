@@ -343,8 +343,8 @@ capabilities:
         web-history:
           primary:
           - section.course.namePrimary
-          secondary:
           - section.semester.nameCn
+          secondary:
           - section.code
           - section.credits
           tertiary:

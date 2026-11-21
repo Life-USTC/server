@@ -441,10 +441,10 @@ capabilities:
         web-history:
           primary:
           - course.namePrimary
-          secondary:
           - section.teachers.namePrimary
-          - section.code
           - section.semester.nameCn
+          secondary:
+          - section.code
           - section.campus.namePrimary
           - section.stdCount
           - section.limitCount
