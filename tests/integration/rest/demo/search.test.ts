@@ -656,7 +656,9 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           });
           // The existing page hydrates personal homework details separately.
           const personal: unknown = await (
-            await read(`/_internal${target.pathname}/viewer${target.search}`)
+            await read(
+              `/_internal/catalog/sections/${target.pathname.split("/")[3]}/viewer${target.search}`,
+            )
           ).json();
           expect(personal).toMatchObject({
             viewer: { signedIn: false, isSubscribed: true },
