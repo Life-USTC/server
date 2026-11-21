@@ -346,7 +346,9 @@ test("ui.global-search-results-2", { tag: "@Search/Web" }, async ({
       for (const [section, title, description] of [
         [
           fixture.section,
-          `${courseName} · ${teachers}`,
+          locale === "zh-cn"
+            ? `${courseName}（2015年秋季学期，${teachers}）`
+            : `${courseName} (Fall 2015, ${teachers})`,
           `${locale === "zh-cn" ? "2015年秋季学期" : "Fall 2015"} · ${campusName} · ${fixture.section.code}`,
         ],
         [

@@ -176,10 +176,10 @@ test("search.section-student-identity-teachers", {
       await expect(withoutTeacher).toBeVisible();
 
       await expect(withTeacher.locator(".font-medium")).toHaveText(
-        `${fixture.course.nameCn} · ${fixture.teacher.nameCn}`,
+        `${fixture.course.nameCn}（${fixture.semester.nameCn}，${fixture.teacher.nameCn}）`,
       );
       await expect(withoutTeacher.locator(".font-medium")).toHaveText(
-        fixture.course.nameCn,
+        `${fixture.course.nameCn}（${fixture.semester.nameCn}）`,
       );
       await expectMonospace(withTeacher.locator('[data-slot="catalog-code"]'));
       await expectMonospace(

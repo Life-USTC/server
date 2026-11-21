@@ -308,10 +308,9 @@ function handleWheel(event: WheelEvent) {
     <div class="w-full">{@render mapDetails()}</div>
   {:else}
   <Popover.Root bind:open={previewOpen}>
-    <Popover.Trigger>
-      {#snippet child({ props })}
         <a
-          {...props}
+          aria-haspopup="dialog"
+          aria-expanded={previewOpen}
           bind:this={trigger}
           href={`/catalog/rooms/${encodeURIComponent(code.trim())}`}
           aria-label={triggerLabel}
@@ -324,9 +323,8 @@ function handleWheel(event: WheelEvent) {
           <MapPinnedIcon class="size-4 shrink-0 self-center" aria-hidden="true" />
           <span class={tableCell ? "whitespace-normal" : "truncate"}>{label ?? normalizedCode}</span>
         </a>
-      {/snippet}
-    </Popover.Trigger>
     <Popover.Content
+      customAnchor={trigger}
       align="start"
       class="w-[min(24rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]"
       data-testid="room-map-preview-popover"
