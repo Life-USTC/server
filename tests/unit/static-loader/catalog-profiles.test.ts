@@ -51,6 +51,16 @@ it("quarantines competing identities while preserving nullable fields and reused
       ],
       jw_catalog_lesson_infos: [
         {
+          ...info(21, "WRONG.01", { courseId: 13 }),
+          semester_id: "461",
+          courseId: 13,
+        },
+        {
+          ...info(22, "REAL.01", { courseId: 13 }),
+          semester_id: "461",
+          courseId: 13,
+        },
+        {
           ...info(25, "REAL.01", { courseId: 13 }),
           semester_id: "461",
           courseId: 13,
@@ -66,7 +76,7 @@ it("quarantines competing identities while preserving nullable fields and reused
       nameCn: "00013",
     }),
   ]);
-  expect(profiles.sectionIdentityConflicts).toBe(1);
+  expect(profiles.sectionIdentityConflicts).toBe(3);
   expect(
     profiles.sections.map(({ jwId, semesterJwId }) => [jwId, semesterJwId]),
   ).toEqual([
