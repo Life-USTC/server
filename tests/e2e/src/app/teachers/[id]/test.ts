@@ -194,6 +194,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
   }) => {
     await preferenceFlow.run(async () => {
       await navigateToSeedTeacher(page);
+      await selectDetailTab(page, "overview");
 
       // teacher.department.namePrimary (locale-dependent)
       await expect(
@@ -210,7 +211,6 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           .or(page.getByText(DEV_SEED.teacher.titleNameEn))
           .first(),
       ).toBeVisible();
-      await selectDetailTab(page, "overview");
       // teacher.email (if not null)
       await expect(visibleText(page, DEV_SEED.teacher.email)).toBeVisible();
     });
@@ -364,7 +364,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("详情流式布局包含主要锚点区块", { tag: "@Teacher/Web" }, async ({
+  test("侧栏切换教师简介、授课班级与评论", { tag: "@Teacher/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -373,9 +373,11 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       await navigateToSeedTeacher(page);
 
       await expect(page.locator("#introduction")).toBeVisible();
+      await selectDetailTab(page, "sections");
       await expect(
         page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
+      await selectDetailTab(page, "comments");
       await expect(
         page.getByRole("heading", { name: /评论|Comments/i }),
       ).toBeVisible();
@@ -416,14 +418,8 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         .first();
       await section.hover();
       expect(await page.evaluate(() => scrollY)).toBe(0);
-      expect(
-        await detailScrollViewport(page).evaluate(
-          (element) => element.scrollTop,
-        ),
-      ).toBeGreaterThan(0);
-      await expect(
-        section.locator('[data-slot="entity-secondary-name"]'),
-      ).toBeVisible();
+      await expect(section).toBeInViewport();
+      await expect(section).toContainText(DEV_SEED.course.nameEn);
       await expectRenderedUiQuality(page);
     });
   });

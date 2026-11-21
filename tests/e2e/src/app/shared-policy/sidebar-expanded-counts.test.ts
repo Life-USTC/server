@@ -263,14 +263,16 @@ for (const [locale, width] of [
                   .click();
               await expect(nav).toHaveAttribute(
                 "data-shell-navigation-view",
-                index === 0 ? "root" : "workspace",
+                "root",
               );
             }
             const link = nav.locator(
               `a[data-sidebar="menu-button"][href="${href}"]`,
             );
             const badge = link
-              .locator('xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]')
+              .locator(
+                'xpath=ancestor::*[@data-slot="sidebar-menu-item" or @data-slot="sidebar-menu-sub-item"][1]',
+              )
               .locator("[data-shell-count-value]");
             const value = [4, 1, 2, 1, 1, 1][index];
             await expect(badge).toHaveText(String(value));

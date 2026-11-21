@@ -847,7 +847,9 @@ test("sidebar.root-preview retires a held administrator bootstrap on Demo naviga
         .locator(
           'a[data-sidebar="menu-button"][href="/workspace/subscriptions/activities?view=notifications"]',
         )
-        .locator('xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]')
+        .locator(
+          'xpath=ancestor::*[@data-slot="sidebar-menu-item" or @data-slot="sidebar-menu-sub-item"][1]',
+        )
         .locator("[data-shell-count-value]");
       await expect(currentCount).toHaveAttribute(
         "data-shell-count-value",

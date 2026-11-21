@@ -273,7 +273,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                 const link = factLink(href);
                 await expect(link).toHaveCount(1);
                 const row = link.locator(
-                  'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
+                  'xpath=ancestor::*[@data-slot="sidebar-menu-item" or @data-slot="sidebar-menu-sub-item"][1]',
                 );
                 const explicit = row.locator("[data-shell-count-value]");
                 await expect(explicit).toHaveCount(1);
@@ -286,13 +286,15 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                 const link = factLink(href);
                 await expect(link).toHaveCount(1);
                 const row = link.locator(
-                  'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
+                  'xpath=ancestor::*[@data-slot="sidebar-menu-item" or @data-slot="sidebar-menu-sub-item"][1]',
                 );
                 await expect(
                   row.locator("[data-shell-count-value]"),
                 ).toHaveCount(1);
                 return link.evaluate((node, href) => {
-                  const row = node.closest('[data-slot="sidebar-menu-item"]');
+                  const row = node.closest(
+                    '[data-slot="sidebar-menu-item"], [data-slot="sidebar-menu-sub-item"]',
+                  );
                   const count = row?.querySelector("[data-shell-count-value]");
                   const label = node.querySelector(":scope > span");
                   const summary = node.parentElement?.querySelector(
@@ -620,7 +622,7 @@ test(
           'a[data-sidebar="menu-button"][href="/workspace/subscriptions/activities?view=notifications"]',
         );
         const row = activity.locator(
-          'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
+          'xpath=ancestor::*[@data-slot="sidebar-menu-item" or @data-slot="sidebar-menu-sub-item"][1]',
         );
         await expect(row.locator("[data-shell-count-value]")).toHaveCount(0);
         await preview.click();

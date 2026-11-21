@@ -4,7 +4,9 @@ import { expect, type Locator } from "@playwright/test";
 export function navigationCount(navigation: Locator, href: string): Locator {
   return navigation
     .locator(`a[data-sidebar="menu-button"][href="${href}"]`)
-    .locator("xpath=ancestor::*[@data-slot='sidebar-menu-item'][1]")
+    .locator(
+      "xpath=ancestor::*[@data-slot='sidebar-menu-item' or @data-slot='sidebar-menu-sub-item'][1]",
+    )
     .locator("[data-shell-count-value]");
 }
 
@@ -19,7 +21,9 @@ export async function expectNavigationCount(
   ).toHaveCount(1);
   const row = navigation
     .locator(`a[data-sidebar="menu-button"][href="${href}"]`)
-    .locator("xpath=ancestor::*[@data-slot='sidebar-menu-item'][1]");
+    .locator(
+      "xpath=ancestor::*[@data-slot='sidebar-menu-item' or @data-slot='sidebar-menu-sub-item'][1]",
+    );
   await expect(row.locator('[data-slot="sidebar-menu-badge"]')).toHaveCount(
     count > 0 ? 1 : 0,
   );

@@ -86,7 +86,7 @@ async function verifyHistory(
           history.locator('[data-slot="results-summary"]'),
         ).toHaveCount(0);
         const rows = page.locator(
-          '#sections table:visible tbody tr td:first-child a, #sections a[data-slot="item"]:visible',
+          '#sections a[href^="/catalog/sections/"]:visible',
         );
         const firstPageIds = new Set(
           await rows.evaluateAll((links) =>

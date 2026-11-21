@@ -92,7 +92,6 @@ for (const [locale, width] of [
         "false",
       );
       await open();
-      await page.getByTestId("workspace-sidebar-back").click();
       await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
       expect(
         await nav
@@ -150,7 +149,7 @@ for (const [locale, width] of [
         ).toBeVisible();
         await page.emulateMedia({ reducedMotion: "no-preference" });
       }
-      await gotoAndWaitForReady(page, "/catalog/bus");
+      await gotoAndWaitForReady(page, "/catalog/bus/map");
       await open();
       await expect(nav).toHaveAttribute("data-shell-navigation-view", "bus");
       expect(
@@ -172,14 +171,14 @@ for (const [locale, width] of [
       await expectRenderedUiQuality(page);
       await capture("bus");
       await page.getByTestId("bus-sidebar-back").click();
-      await expect(nav).toHaveAttribute("data-shell-navigation-view", "campus");
+      await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
       await expect(
         nav.locator('[data-navigation-depth="1"][href="/catalog/bus/map"]'),
-      ).toBeVisible();
+      ).toHaveCount(0);
       await capture("campus");
       await gotoAndWaitForReady(page, "/catalog/weather");
       await open();
-      await expect(nav).toHaveAttribute("data-shell-navigation-view", "campus");
+      await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
       await expect(nav.locator('a[href="/catalog/weather"]')).toHaveAttribute(
         "aria-current",
         "page",

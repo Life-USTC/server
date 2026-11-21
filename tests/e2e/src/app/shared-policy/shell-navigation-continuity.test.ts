@@ -174,6 +174,12 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                 '[data-navigation-depth="0"][href="/catalog/young-events"]',
               )
               .click();
+            await expect(page).toHaveURL(/\/catalog\/young-events$/);
+            await expect(
+              page.locator("nav[data-shell-navigation]"),
+            ).toHaveAttribute("data-shell-navigation-view", "root");
+            await page.goBack();
+            await waitForUiSettled(page);
             await expect(
               page.locator("nav[data-shell-navigation]"),
             ).toHaveAttribute("data-shell-navigation-view", "activities");
@@ -185,7 +191,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             await expect(current).toHaveText(organizerName);
             await expect(
               nav.locator('a[href="/catalog/young-events/organizers"]'),
-            ).toHaveCount(0);
+            ).toBeVisible();
             await page.locator('[data-slot="sidebar-rail"]').click();
             const sidebarState = page
               .locator('[data-slot="sidebar"]')
@@ -290,7 +296,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             );
             await expect(
               academicNav.locator('a[href="/catalog/sections"]'),
-            ).toHaveAttribute("aria-current", "location");
+            ).toHaveCount(0);
             await page.locator('[data-slot="sidebar-rail"]').click();
             const sidebarState = page
               .locator('[data-slot="sidebar"]')
@@ -321,10 +327,9 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           );
           const sectionNav = await navigation();
           await sectionNav.locator("[data-local-navigation-back]").click();
-          await expect(sectionNav).toHaveAttribute(
-            "data-shell-navigation-view",
-            "root",
-          );
+          await expect(
+            sectionNav.locator("nav[data-shell-navigation]"),
+          ).toHaveAttribute("data-shell-navigation-view", "root");
           await expect(
             sectionNav.locator('[data-sidebar="group-label"]'),
           ).toHaveCount(0);
@@ -400,7 +405,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           nav = await navigation();
           await expect(nav.locator("[data-shell-navigation]")).toHaveAttribute(
             "data-shell-navigation-view",
-            "campus",
+            "root",
           );
           await nav.locator('a[href="/catalog/sections"]').click();
           await expect(page).toHaveURL(/\/catalog\/sections$/);
@@ -499,7 +504,7 @@ for (const mode of [
           await page.keyboard.type("Anchor");
         } else {
           const anchor = (await openShellNavigation(page)).locator(
-            'a[data-detail-page="comments"]',
+            'a[data-detail-page="introduction"]',
           );
           if (mode === "same-anchor-keyboard") {
             await inner.hover();
@@ -510,7 +515,7 @@ for (const mode of [
             await anchor.focus();
             await page.keyboard.press("Enter");
           } else await anchor.click();
-          await expect(page).toHaveURL(/\/comments$/);
+          await expect(page).toHaveURL(/\/introduction$/);
         }
         const response = preferenceFlow.waitForResponse(page, (res) =>
           res.url().endsWith("/_internal/shell-bootstrap"),
@@ -522,7 +527,7 @@ for (const mode of [
           await expect
             .poll(() => inner.evaluate((node) => node.scrollTop))
             .toBe(0);
-          await expect(page.locator("comments")).toBeVisible();
+          await expect(page.locator("#comments")).toBeVisible();
         } else if (mode === "new-anchor") {
           await expect(page).toHaveURL(/\/introduction$/);
           await expect(page.locator("#introduction h2")).toBeInViewport();
@@ -537,8 +542,10 @@ for (const mode of [
             .poll(() => inner.evaluate((node) => node.scrollTop))
             .toBe(0);
         } else {
-          await expect(page).toHaveURL(/\/comments$/);
-          await expect(page.locator("#comments h2")).toBeInViewport();
+          await expect(page).toHaveURL(/\/introduction$/);
+          await expect(
+            page.locator("#introduction h2").first(),
+          ).toBeInViewport();
         }
       } finally {
         release();
