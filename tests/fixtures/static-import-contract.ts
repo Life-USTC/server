@@ -159,7 +159,7 @@ try {
       }
       const sectionProfile = {
         id: sectionJwId,
-        code: "FIXTURE.02",
+        code: legacy.code,
         courseId: courseJwId,
         syllabus: [{ topic: "Topic" }],
       };
@@ -168,14 +168,44 @@ try {
         id: sectionJwId + 1,
         code: "FIXTURE.03",
       };
-      // A different school ID cannot claim the existing semester and class code.
-      const competing = { ...missing, id: missing.id + 1, code: legacy.code };
-      for (const profile of [sectionProfile, missing, competing]) {
+      const wrongTerm = { ...missing, id: sectionJwId + 2, code: "WRONG-TERM" };
+      const wrongCourse = {
+        ...missing,
+        id: sectionJwId + 3,
+        code: "WRONG-COURSE",
+        courseId: addedId,
+      };
+      const retiredAt = new Date(originalTime - 1000);
+      const archived = await fixture.section.create({
+        data: {
+          jwId: sectionJwId + 4,
+          code: legacy.code,
+          courseId: legacy.courseId,
+          semesterId: legacy.semesterId,
+          retiredAt,
+        },
+      });
+      await fixture.section.createMany({
+        data: [
+          {
+            jwId: wrongTerm.id,
+            code: wrongTerm.code,
+            courseId: legacy.courseId,
+          },
+          {
+            jwId: wrongCourse.id,
+            code: wrongCourse.code,
+            courseId: legacy.courseId,
+            semesterId: legacy.semesterId,
+          },
+        ],
+      });
+      for (const profile of [sectionProfile, missing, wrongTerm, wrongCourse]) {
         change(
           "INSERT INTO catalog_teach_lesson_infos VALUES (?, ?, ?, ?, ?)",
           profile.id,
           profile.code,
-          courseJwId,
+          profile.courseId,
           semesterJwId,
           JSON.stringify(profile),
         );
@@ -185,7 +215,7 @@ try {
       strictEqual(applied.reconciliation.officialProfiles?.sectionMissing, 1);
       strictEqual(
         applied.reconciliation.officialProfiles?.sectionIdentityConflicts,
-        1,
+        2,
       );
       const current = await section();
       strictEqual(current.id, legacy.id);
@@ -193,6 +223,10 @@ try {
       strictEqual(current.course.code, legacy.course.code);
       deepStrictEqual(current.course.officialProfile, courseProfile);
       deepStrictEqual(current.officialProfile, sectionProfile);
+      deepStrictEqual(
+        await fixture.section.findUniqueOrThrow({ where: { id: archived.id } }),
+        archived,
+      );
 
       const addedCourse = () =>
         fixture.course.findUniqueOrThrow({
