@@ -26,6 +26,7 @@ it("quarantines competing identities while preserving nullable source fields and
         info(12, "SECOND"),
         partial,
       ],
+      jw_catalog_course_infos: [info(14, "FIRST")],
       catalog_teach_lesson_infos: [
         {
           ...info(21, "REAL.01", { courseId: 13 }),
@@ -45,7 +46,7 @@ it("quarantines competing identities while preserving nullable source fields and
       ],
     }),
   );
-  expect(profiles.courseIdentityConflicts).toBe(3);
+  expect(profiles.courseIdentityConflicts).toBe(4);
   expect(profiles.courses).toEqual([
     expect.objectContaining({
       jwId: 13,
@@ -72,6 +73,7 @@ it("supplements missing profile fields from JW without replacing catalog values 
           desc: { cn: "catalog", en: null },
           syllabus: { documents: "preserved" },
         }),
+        info(15, "PRIMARY"),
         info(20, "CONFLICT"),
         info(21, "CONFLICT"),
       ],
@@ -85,6 +87,7 @@ it("supplements missing profile fields from JW without replacing catalog values 
           syllabus: null,
         }),
         info(11, "0011", { name: { cn: "JW only" } }),
+        info(12, "PRIMARY"), // A fallback conflict must not remove catalog course 15.
         info(20, "CONFLICT"),
       ],
       jw_catalog_lesson_infos: [
@@ -96,7 +99,7 @@ it("supplements missing profile fields from JW without replacing catalog values 
       ],
     }),
   );
-  expect(profiles.courses.map(({ jwId }) => jwId)).toEqual([10, 11]);
+  expect(profiles.courses.map(({ jwId }) => jwId)).toEqual([10, 15, 11]);
   expect(JSON.parse(profiles.courses[0].payloadJson)).toMatchObject({
     credit: 0,
     textbook: "",
@@ -105,7 +108,7 @@ it("supplements missing profile fields from JW without replacing catalog values 
     ref: "Reference",
     syllabus: { documents: "preserved" },
   });
-  expect(profiles.courses[1].nameCn).toBe("JW only");
+  expect(profiles.courses[2].nameCn).toBe("JW only");
   expect(profiles.sections[0]).toMatchObject({
     jwId: 30,
     courseJwId: 11,

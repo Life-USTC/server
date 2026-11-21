@@ -99,59 +99,72 @@ function readProfiles<T extends Profile>(
   mapper: (row: SnapshotRow) => T | undefined,
   codeKey: (profile: T) => string,
 ) {
-  const byId = new Map<number, T>();
-  const byCode = new Map<string, number>();
-  const conflicted = new Set<number>();
-  let malformed = 0;
+  const combined = new Map<number, T>();
+  const owners = new Map<string, number>();
+  const blockedIds = new Set<number>();
+  const blockedCodes = new Set<string>();
+  let conflicts = 0;
   for (const table of tables) {
     if (!snapshot.hasTable(table)) continue;
-    const seen = new Set<number>();
+    const byId = new Map<number, T>();
+    const byCode = new Map<string, number>();
+    const invalid = new Set<number>();
     for (const row of snapshot.iterateAll(table)) {
       const profile = mapper(row);
       if (!profile) {
         const id = jwId(row.id);
-        if (id == null) malformed++;
-        else conflicted.add(id);
+        if (id == null) conflicts++;
+        else invalid.add(id);
         continue;
       }
       const key = codeKey(profile);
-      const known = byId.get(profile.jwId);
+      if (byId.has(profile.jwId)) invalid.add(profile.jwId);
+      const owner = byCode.get(key);
+      if (owner != null && owner !== profile.jwId) {
+        invalid.add(owner);
+        invalid.add(profile.jwId);
+      }
+      byId.set(profile.jwId, profile);
+      byCode.set(key, profile.jwId);
+    }
+    conflicts += invalid.size;
+    for (const id of invalid) {
+      if (!combined.has(id)) blockedIds.add(id);
+    }
+    for (const [code, id] of byCode)
+      if (invalid.has(id) && !owners.has(code)) blockedCodes.add(code);
+    for (const profile of byId.values()) {
+      if (invalid.has(profile.jwId)) continue;
+      const key = codeKey(profile);
+      const known = combined.get(profile.jwId);
+      const owner = owners.get(key);
+      const payload = JSON.parse(profile.payloadJson);
+      const preferred = known && JSON.parse(known.payloadJson);
       if (
-        seen.has(profile.jwId) ||
+        blockedIds.has(profile.jwId) ||
+        blockedCodes.has(key) ||
+        (owner != null && owner !== profile.jwId) ||
         (known &&
-          (codeKey(known) !== key ||
-            JSON.parse(known.payloadJson).courseId !==
-              JSON.parse(profile.payloadJson).courseId))
-      )
-        conflicted.add(profile.jwId);
-      seen.add(profile.jwId);
-      const codeOwner = byCode.get(key);
-      if (codeOwner != null && codeOwner !== profile.jwId) {
-        conflicted.add(codeOwner);
-        conflicted.add(profile.jwId);
+          (codeKey(known) !== key || preferred.courseId !== payload.courseId))
+      ) {
+        conflicts++;
+        continue;
       }
       const merged = known
         ? mapper({
-            ...row,
-            payload_json: JSON.stringify(
-              supplement(
-                JSON.parse(known.payloadJson),
-                JSON.parse(profile.payloadJson),
-              ),
-            ),
+            id: profile.jwId,
+            code: profile.code,
+            courseId: payload.courseId,
+            semester_id:
+              "semesterJwId" in profile ? profile.semesterJwId : undefined,
+            payload_json: JSON.stringify(supplement(preferred, payload)),
           })
         : profile;
-      byId.set(profile.jwId, merged ?? profile);
-      byCode.set(key, profile.jwId);
+      combined.set(profile.jwId, merged ?? known ?? profile);
+      owners.set(key, profile.jwId);
     }
   }
-
-  return {
-    profiles: [...byId.values()].filter(
-      (profile) => !conflicted.has(profile.jwId),
-    ),
-    conflicts: malformed + conflicted.size,
-  };
+  return { profiles: [...combined.values()], conflicts };
 }
 
 function supplement(primary: unknown, fallback: unknown): unknown {
