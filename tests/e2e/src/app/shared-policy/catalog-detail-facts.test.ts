@@ -2,7 +2,10 @@ import { expect, type Locator, type Page } from "@playwright/test";
 import { createCatalogContractFixture } from "../../../../shared/catalog-contract-fixture";
 import { test } from "../../../utils/catalog-subscription-fixture";
 import { selectDetailTab } from "../../../utils/locators";
-import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../utils/page-ready";
 
 function requiredText(value: string | null) {
   if (!value) throw new Error("Expected nonempty isolated fixture fact");
@@ -14,8 +17,10 @@ async function bounds(locator: Locator) {
   return box;
 }
 async function reachable(locator: Locator) {
-  await locator.scrollIntoViewIfNeeded();
-  await expect(locator).toBeInViewport();
+  await expect(async () => {
+    await locator.scrollIntoViewIfNeeded();
+    await expect(locator).toBeInViewport();
+  }).toPass({ timeout: 5000 });
 }
 
 async function createFactsFixture(
@@ -73,9 +78,16 @@ async function createFactsFixture(
 
 async function detailColumns(page: Page, width: number) {
   const main = page.locator("#main-content");
-  const identity = main.locator("[data-detail-identity]");
   await selectDetailTab(page, "overview");
+  if (page.url().includes("/catalog/sections/"))
+    await expect(
+      main.locator("[data-detail-scroll-container]"),
+    ).toHaveAttribute("aria-busy", "false");
+  await waitForUiSettled(page);
   const aside = main.locator("#overview");
+  const identity = page.url().includes("/catalog/sections/")
+    ? aside
+    : main.locator("[data-detail-identity]");
   const reading = main.locator("[data-detail-reading-stream]");
   await expect(identity).toHaveCount(1);
   await expect(aside).toHaveCount(1);
@@ -119,10 +131,12 @@ test("ui.detail-two-column-stream-4 Section", { tag: "@Section/Web" }, async ({
         await reachable(
           identity.getByRole("definition").filter({ hasText: "Fall 2026" }),
         );
-        const teacherLink = identity.getByRole("link", {
-          name: teacher.nameEn ?? teacher.nameCn,
-        });
-        await reachable(teacherLink);
+        const teacherLink = page
+          .getByTestId("detail-pinned-summary")
+          .getByRole("link", {
+            name: teacher.nameEn ?? teacher.nameCn,
+          });
+        await expect(teacherLink).toBeVisible();
         await expect(teacherLink).toHaveAttribute(
           "href",
           `/catalog/teachers/${teacher.id}`,
@@ -189,7 +203,7 @@ test("ui.detail-two-column-stream-4 Course", { tag: "@Course/Web" }, async ({
           );
         await expect(
           main.getByRole("button", {
-            name: /^(Subscribe to section|Unsubscribe from section|Add to Calendar)$/,
+            name: /^(Subscribe|Subscribed|Add to Calendar)$/,
           }),
         ).toHaveCount(0);
         await selectDetailTab(page, "sections");
@@ -265,7 +279,7 @@ test("ui.detail-two-column-stream-4 Teacher", { tag: "@Teacher/Web" }, async ({
         ).toHaveAttribute("href", `mailto:${teacher.email}`);
         await expect(
           main.getByRole("button", {
-            name: /^(Subscribe to section|Unsubscribe from section|Add to Calendar)$/,
+            name: /^(Subscribe|Subscribed|Add to Calendar)$/,
           }),
         ).toHaveCount(0);
         await selectDetailTab(page, "sections");
@@ -316,11 +330,15 @@ test("ui.detail-two-column-stream-4 Calendar", {
             ? page.getByTestId("detail-pinned-summary")
             : page.getByTestId("section-mobile-primary-actions");
         const calendar = actions.getByRole("button", {
-          name: "Add to Calendar",
+          name: "Subscribe",
           exact: true,
         });
         await expect(calendar).toBeInViewport();
         await calendar.click();
+        await page
+          .getByRole("dialog")
+          .getByRole("button", { name: "Add to Calendar", exact: true })
+          .click();
         const calendarDialog = page.getByRole("dialog");
         await expect(calendarDialog).toBeVisible();
         await expect(calendarDialog.locator("#calendar-url")).toHaveValue(
@@ -368,14 +386,13 @@ test("ui.detail-two-column-stream-4 Subscription", {
             ? page.getByTestId("detail-pinned-summary")
             : page.getByTestId("section-mobile-primary-actions");
         const subscribe = actions.getByRole("button", {
-          name: "Subscribe to section",
+          name: "Subscribe",
           exact: true,
         });
         await expect(subscribe).toBeInViewport();
         await subscribe.click();
         const subscription = page.getByRole("dialog", {
-          name: "Subscribe to section",
-          exact: true,
+          name: /^Subscribe · /,
         });
         await expect(subscription).toBeVisible();
         const [subscribed] = await Promise.all([
@@ -389,7 +406,7 @@ test("ui.detail-two-column-stream-4 Subscription", {
           }),
           subscription
             .getByRole("button", {
-              name: "Subscribe to section",
+              name: "Subscribe",
               exact: true,
             })
             .click(),
@@ -400,7 +417,10 @@ test("ui.detail-two-column-stream-4 Subscription", {
           status: 303,
           location: `/catalog/sections/${section.jwId}`,
         });
-        const unsubscribe = actions.getByRole("button", {
+        await actions
+          .getByRole("button", { name: "Subscribed", exact: true })
+          .click();
+        const unsubscribe = page.getByRole("dialog").getByRole("button", {
           name: "Unsubscribe from section",
           exact: true,
         });

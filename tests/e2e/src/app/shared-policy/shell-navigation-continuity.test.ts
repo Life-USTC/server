@@ -530,7 +530,9 @@ for (const mode of [
           await expect(page.locator("#comments")).toBeVisible();
         } else if (mode === "new-anchor") {
           await expect(page).toHaveURL(/\/introduction$/);
-          await expect(page.locator("#introduction h2")).toBeInViewport();
+          await expect(
+            page.locator("#introduction h2").first(),
+          ).toBeInViewport();
         } else if (mode === "keyboard-input") {
           await expect(page.locator("#global-search-dialog-input")).toHaveValue(
             "Anchor",
