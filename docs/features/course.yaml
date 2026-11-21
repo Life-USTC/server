@@ -49,7 +49,9 @@ requirements:
     when: The loader imports successive snapshots with updated directory names and timetable coverage.
     then:
     - Directory-only courses refresh their names until the timetable supplies their base fields.
-    - Class profiles attach to the matching class, course and semester.
+    - Class profiles attach by school section ID, with matching course and semester.
+    - Reused class codes do not block profiles or change historical section identities.
+    - A mismatched course or semester rejects that profile.
     - Older snapshots without profiles retain previously imported official details.
     test:
       file: tests/integration/static-import-contracts.test.ts

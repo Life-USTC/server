@@ -74,10 +74,11 @@ export async function upsertOfficialProfiles(
     stats.courses += counts.matched;
     stats.courseMissing += counts.missing;
   }
+  // Class codes can be reused; attach profiles by school ID and verify their parents.
   for (const batch of chunks(profiles.sections, 250)) {
     const values = batch.map(
-      ({ jwId, code, courseJwId, semesterJwId, payloadJson }) =>
-        Prisma.sql`(${jwId}::int, ${code}::text, ${courseJwId}::int, ${semesterJwId}::int, ${payloadJson}::jsonb)`,
+      ({ jwId, courseJwId, semesterJwId, payloadJson }) =>
+        Prisma.sql`(${jwId}::int, ${courseJwId}::int, ${semesterJwId}::int, ${payloadJson}::jsonb)`,
     );
     const counts = await writeMatchedProfiles(
       tx,
@@ -86,11 +87,8 @@ export async function upsertOfficialProfiles(
       SELECT s.id, p.payload,
         (s.id IS NOT NULL AND (
           s."courseId" IS DISTINCT FROM c.id OR term.id IS NULL OR s."semesterId" IS DISTINCT FROM term.id
-        )) OR EXISTS (
-          SELECT FROM "Section" owner
-          WHERE owner."semesterId" = term.id AND owner.code = p.code AND owner."jwId" <> p.jw_id
-        ) AS conflict
-      FROM (VALUES ${Prisma.join(values)}) AS p(jw_id, code, course_id, semester_id, payload)
+        )) AS conflict
+      FROM (VALUES ${Prisma.join(values)}) AS p(jw_id, course_id, semester_id, payload)
       LEFT JOIN "Section" s ON s."jwId" = p.jw_id
       LEFT JOIN "Semester" term ON term."jwId" = p.semester_id
       LEFT JOIN "Course" c ON c."jwId" = p.course_id

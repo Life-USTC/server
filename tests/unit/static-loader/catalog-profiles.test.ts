@@ -15,7 +15,7 @@ function snapshot(tables: Record<string, SnapshotRow[]>) {
   };
 }
 
-it("quarantines competing identities while preserving nullable source fields and term-scoped codes", () => {
+it("quarantines competing identities while preserving nullable fields and reused section codes", () => {
   const partial = info(13, "00013", { name: null });
   const profiles = loadCatalogProfiles(
     snapshot({
@@ -39,7 +39,29 @@ it("quarantines competing identities while preserving nullable source fields and
           courseId: 13,
         },
         {
+          ...info(24, "REAL.01", { courseId: 13 }),
+          semester_id: "461",
+          courseId: 13,
+        },
+        {
           ...info(23, "BAD.01", { courseId: 12 }),
+          semester_id: "461",
+          courseId: 13,
+        },
+      ],
+      jw_catalog_lesson_infos: [
+        {
+          ...info(21, "WRONG.01", { courseId: 13 }),
+          semester_id: "461",
+          courseId: 13,
+        },
+        {
+          ...info(22, "REAL.01", { courseId: 13 }),
+          semester_id: "461",
+          courseId: 13,
+        },
+        {
+          ...info(25, "REAL.01", { courseId: 13 }),
           semester_id: "461",
           courseId: 13,
         },
@@ -54,12 +76,14 @@ it("quarantines competing identities while preserving nullable source fields and
       nameCn: "00013",
     }),
   ]);
-  expect(profiles.sectionIdentityConflicts).toBe(1);
+  expect(profiles.sectionIdentityConflicts).toBe(3);
   expect(
     profiles.sections.map(({ jwId, semesterJwId }) => [jwId, semesterJwId]),
   ).toEqual([
     [21, 461],
     [22, 421],
+    [24, 461],
+    [25, 461],
   ]);
 });
 
