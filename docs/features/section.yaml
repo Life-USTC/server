@@ -87,7 +87,7 @@ requirements:
     - No semester, course, Section or import revision is written.
     test:
       file: tests/integration/static-import-contracts.test.ts
-      name: section.source-lifecycle
+      name: section.source-import-atomicity
 - id: section.retirement-preserves-data
   category: consistency
   rule: Section retirement preserves the Section, comments, description, homework, subscriptions, schedules,
@@ -375,7 +375,8 @@ requirements:
 - id: section.source-import-atomicity
   category: consistency
   rule: Imported data and its generated_at/SHA-256 revision commit together; a failed import does not
-    advance the stored revision.
+    advance the stored revision or semester content digests. Unchanged semester data skips writes,
+    while complete source coverage still reconciles Section presence.
   acceptance:
     given: An existing completed import is followed by changed course and Section data, while a real database
       trigger rejects the final revision write.

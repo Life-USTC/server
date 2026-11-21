@@ -69,3 +69,13 @@ already imported, wait for the next build before switching to the full file.
 `OfficialCatalogRecord` indexes substitution and directory records by course
 code. Study documents use `plan/<id>` and `module/<id>` keys. Expanded study-plan
 memberships remain in SQLite.
+
+The loader compares mapped content by semester before writing sections, schedules,
+exams and their relations. Official profiles have a separate content digest.
+Group digests use namespaced rows in `StaticImportState`, committed with the data
+under the existing import lock and transaction. Exam availability participates in
+the digest so a failed source cannot be confused with a confirmed empty result.
+The first run after a transform revision change processes every group; subsequent
+runs skip unchanged groups while still reconciling section presence. Complete
+SQLite snapshots remain the recovery input; no delta files or extra migration
+are required.

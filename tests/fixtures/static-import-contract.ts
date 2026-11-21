@@ -264,9 +264,9 @@ try {
       strictEqual((await section()).course.classifyId, null);
       break;
     }
-    case "section.source-lifecycle": {
+    case "section.source-import-atomicity": {
       change("UPDATE upstream_fetches SET ok = 0 WHERE source = ?", catalog);
-      const before = await storedRevision();
+      const emptyRevision = await storedRevision();
       await rejects(apply, /fetch|coverage|complete/i);
       strictEqual(
         await fixture.semester.count({ where: { jwId: semesterJwId } }),
@@ -280,11 +280,22 @@ try {
         await fixture.section.count({ where: { jwId: sectionJwId } }),
         0,
       );
-      deepStrictEqual(await storedRevision(), before);
-      break;
-    }
-    case "section.source-import-atomicity": {
+      deepStrictEqual(await storedRevision(), emptyRevision);
+      change("UPDATE upstream_fetches SET ok = 1 WHERE source = ?", catalog);
       await apply();
+      const group = () =>
+        fixture.staticImportState.findMany({
+          where: { id: { not: "global" } },
+          orderBy: { id: "asc" },
+        });
+      const firstGroups = await group();
+      const firstAssignments = await fixture.teacherAssignment.findMany();
+      await apply(); // Changed file timestamp, identical school data.
+      deepStrictEqual(await group(), firstGroups);
+      deepStrictEqual(
+        await fixture.teacherAssignment.findMany(),
+        firstAssignments,
+      );
       const before = await storedRevision();
       const current = await section();
       // A real PostgreSQL trigger fails the final revision write, after all
@@ -301,6 +312,7 @@ try {
         await rejects(apply, /static contract final write rejected/);
         deepStrictEqual(await storedRevision(), before);
         deepStrictEqual(await section(), current);
+        deepStrictEqual(await group(), firstGroups);
       } finally {
         await fixture.$executeRawUnsafe(
           `DROP TRIGGER reject_static_contract_${base} ON public."StaticImportState"`,
