@@ -26,6 +26,7 @@ it("quarantines competing identities while preserving nullable source fields and
         info(12, "SECOND"),
         partial,
       ],
+      jw_catalog_course_infos: [info(14, "FIRST")],
       catalog_teach_lesson_infos: [
         {
           ...info(21, "REAL.01", { courseId: 13 }),
@@ -45,7 +46,7 @@ it("quarantines competing identities while preserving nullable source fields and
       ],
     }),
   );
-  expect(profiles.courseIdentityConflicts).toBe(3);
+  expect(profiles.courseIdentityConflicts).toBe(4);
   expect(profiles.courses).toEqual([
     expect.objectContaining({
       jwId: 13,
@@ -60,4 +61,58 @@ it("quarantines competing identities while preserving nullable source fields and
     [21, 461],
     [22, 421],
   ]);
+});
+
+it("supplements missing profile fields from JW without replacing catalog values or identities", () => {
+  const profiles = loadCatalogProfiles(
+    snapshot({
+      catalog_teach_course_infos: [
+        info(10, "0010", {
+          credit: 0,
+          textbook: "",
+          desc: { cn: "catalog", en: null },
+          syllabus: { documents: "preserved" },
+        }),
+        info(15, "PRIMARY"),
+        info(20, "CONFLICT"),
+        info(21, "CONFLICT"),
+      ],
+      jw_catalog_course_infos: [
+        info(10, "0010", {
+          credit: 3,
+          textbook: null,
+          jw: { periods: { theory: 20 } },
+          desc: { cn: "jw", en: "English" },
+          ref: "Reference",
+          syllabus: null,
+        }),
+        info(11, "0011", { name: { cn: "JW only" } }),
+        info(12, "PRIMARY"), // A fallback conflict must not remove catalog course 15.
+        info(20, "CONFLICT"),
+      ],
+      jw_catalog_lesson_infos: [
+        {
+          ...info(30, "0011.01", { courseId: 11 }),
+          courseId: 11,
+          semester_id: "461",
+        },
+      ],
+    }),
+  );
+  expect(profiles.courses.map(({ jwId }) => jwId)).toEqual([10, 15, 11]);
+  expect(JSON.parse(profiles.courses[0].payloadJson)).toMatchObject({
+    credit: 0,
+    textbook: "",
+    jw: { periods: { theory: 20 } },
+    desc: { cn: "catalog", en: "English" },
+    ref: "Reference",
+    syllabus: { documents: "preserved" },
+  });
+  expect(profiles.courses[2].nameCn).toBe("JW only");
+  expect(profiles.sections[0]).toMatchObject({
+    jwId: 30,
+    courseJwId: 11,
+    semesterJwId: 461,
+  });
+  expect(profiles.courseIdentityConflicts).toBeGreaterThan(0);
 });

@@ -3,26 +3,6 @@ import { bulkUpdate, type ColumnValue, chunks } from "./database-writes";
 import { type ScheduleBuild, scheduleKey } from "./mappers";
 import { requiredId } from "./required-id";
 
-type ResolvedSchedule = {
-  periods: number;
-  date: Date | undefined;
-  weekday: number;
-  startTime: number;
-  endTime: number;
-  experiment: string | undefined;
-  customPlace: string | undefined;
-  lessonType: string | undefined;
-  weekIndex: number;
-  exerciseClass: boolean | null | undefined;
-  startUnit: number;
-  endUnit: number;
-  roomId: number | undefined;
-  sectionId: number;
-  scheduleGroupId: number;
-  key: string;
-  teacherParticipations: ScheduleBuild["teacherParticipations"];
-};
-
 const SCHEDULE_COLUMNS = [
   "periods",
   "date",
@@ -39,7 +19,7 @@ const SCHEDULE_COLUMNS = [
   "roomId",
   "sectionId",
   "scheduleGroupId",
-];
+] as const;
 
 const SCHEDULE_COLUMN_TYPES = [
   "float8",
@@ -58,6 +38,15 @@ const SCHEDULE_COLUMN_TYPES = [
   "int",
   "int",
 ];
+
+type ScheduleValues = Pick<
+  Prisma.ScheduleUncheckedCreateInput,
+  (typeof SCHEDULE_COLUMNS)[number]
+>;
+type ResolvedSchedule = ScheduleValues & {
+  key: string;
+  teacherParticipations: ScheduleBuild["teacherParticipations"];
+};
 
 export async function writeSchedules(
   tx: Prisma.TransactionClient,
@@ -160,24 +149,6 @@ async function writeScheduleBatch(
 
   const existingRows = await tx.schedule.findMany({
     where: { sectionId: { in: sectionDbIds } },
-    select: {
-      id: true,
-      periods: true,
-      date: true,
-      weekday: true,
-      startTime: true,
-      endTime: true,
-      experiment: true,
-      customPlace: true,
-      lessonType: true,
-      weekIndex: true,
-      exerciseClass: true,
-      startUnit: true,
-      endUnit: true,
-      roomId: true,
-      sectionId: true,
-      scheduleGroupId: true,
-    },
   });
 
   const existingByKey = new Map<string, (typeof existingRows)[number]>();
@@ -208,7 +179,7 @@ async function writeScheduleBatch(
   await bulkUpdate(
     tx,
     "Schedule",
-    SCHEDULE_COLUMNS,
+    [...SCHEDULE_COLUMNS],
     SCHEDULE_COLUMN_TYPES,
     updates,
   );
@@ -216,23 +187,12 @@ async function writeScheduleBatch(
     await tx.schedule.createMany({ data: chunk.map(scheduleCreateData) });
   }
 
-  const scheduleRows = await tx.schedule.findMany({
-    where: { sectionId: { in: sectionDbIds } },
-    select: {
-      id: true,
-      sectionId: true,
-      scheduleGroupId: true,
-      date: true,
-      weekday: true,
-      startTime: true,
-      endTime: true,
-      startUnit: true,
-      endUnit: true,
-      customPlace: true,
-      weekIndex: true,
-      roomId: true,
-    },
-  });
+  const scheduleRows =
+    inserts.length === 0
+      ? [...existingByKey.values()]
+      : await tx.schedule.findMany({
+          where: { sectionId: { in: sectionDbIds } },
+        });
   const scheduleKeyToId = new Map<string, number>();
   for (const row of scheduleRows) {
     scheduleKeyToId.set(scheduleRowKey(row), row.id);
@@ -292,105 +252,35 @@ async function writeScheduleBatch(
 }
 
 function scheduleColumnValues(schedule: ResolvedSchedule): ColumnValue[] {
-  return [
-    schedule.periods,
-    schedule.date,
-    schedule.weekday,
-    schedule.startTime,
-    schedule.endTime,
-    schedule.experiment,
-    schedule.customPlace,
-    schedule.lessonType,
-    schedule.weekIndex,
-    schedule.exerciseClass ?? undefined,
-    schedule.startUnit,
-    schedule.endUnit,
-    schedule.roomId,
-    schedule.sectionId,
-    schedule.scheduleGroupId,
-  ];
+  return SCHEDULE_COLUMNS.map((column) => schedule[column]);
 }
 
 function scheduleCreateData(schedule: ResolvedSchedule) {
-  return {
-    periods: schedule.periods,
-    date: schedule.date,
-    weekday: schedule.weekday,
-    startTime: schedule.startTime,
-    endTime: schedule.endTime,
-    experiment: schedule.experiment,
-    customPlace: schedule.customPlace,
-    lessonType: schedule.lessonType,
-    weekIndex: schedule.weekIndex,
-    exerciseClass: schedule.exerciseClass,
-    startUnit: schedule.startUnit,
-    endUnit: schedule.endUnit,
-    roomId: schedule.roomId,
-    sectionId: schedule.sectionId,
-    scheduleGroupId: schedule.scheduleGroupId,
-  };
+  const { key: _key, teacherParticipations: _teachers, ...data } = schedule;
+  return data;
 }
 
-function scheduleRowKey(row: {
-  sectionId: number;
-  scheduleGroupId: number;
-  date: Date | null;
-  weekday: number;
-  startTime: number;
-  endTime: number;
-  startUnit: number;
-  endUnit: number;
-  customPlace: string | null;
-  weekIndex: number;
-  roomId: number | null;
-}): string {
+function scheduleRowKey(row: Prisma.ScheduleGetPayload<object>): string {
   return scheduleKey(
     {
+      ...row,
       lessonId: row.sectionId,
       scheduleGroupId: row.scheduleGroupId,
       date: row.date == null ? undefined : formatLocalDate(row.date),
-      weekday: row.weekday,
-      startTime: row.startTime,
-      endTime: row.endTime,
-      startUnit: row.startUnit,
-      endUnit: row.endUnit,
-      customPlace: row.customPlace,
-      weekIndex: row.weekIndex,
     },
     row.roomId ?? undefined,
   );
 }
 
 function scheduleRowMatches(
-  row: Parameters<typeof scheduleRowKey>[0] & {
-    periods: number;
-    experiment: string | null;
-    lessonType: string | null;
-    exerciseClass: boolean | null;
-  },
+  row: Prisma.ScheduleGetPayload<object>,
   schedule: ResolvedSchedule,
 ): boolean {
-  const rowValues = [
-    row.periods,
-    row.date?.getTime(),
-    row.weekday,
-    row.startTime,
-    row.endTime,
-    row.experiment ?? undefined,
-    row.customPlace ?? undefined,
-    row.lessonType ?? undefined,
-    row.weekIndex,
-    row.exerciseClass ?? undefined,
-    row.startUnit,
-    row.endUnit,
-    row.roomId ?? undefined,
-    row.sectionId,
-    row.scheduleGroupId,
-  ];
-  const scheduleValues = scheduleColumnValues(schedule).map((value) =>
-    value instanceof Date ? value.getTime() : value,
+  const normalize = (value: unknown) =>
+    value instanceof Date ? value.getTime() : (value ?? null);
+  return SCHEDULE_COLUMNS.every(
+    (column) => normalize(row[column]) === normalize(schedule[column]),
   );
-  return rowValues.every((value, index) => value === scheduleValues[index]);
 }
 
 function formatLocalDate(date: Date): string {

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  missingSnapshotRowsWhere,
   parseBooleanSetting,
   parsePositiveIntegerSetting,
   parseSnapshotGeneratedAt,
@@ -432,24 +431,5 @@ describe("snapshot completeness validation", () => {
     expect(() =>
       validateMappedSectionJwIds([101, 102], [101, 102, 102]),
     ).toThrow("duplicate jwIds=102");
-  });
-});
-
-describe("snapshot reconciliation scope", () => {
-  it("limits deletion to imported sections and preserves current IDs", () => {
-    expect(missingSnapshotRowsWhere([10, 20], [101, 102])).toEqual({
-      sectionId: { in: [10, 20] },
-      jwId: { notIn: [101, 102] },
-    });
-  });
-
-  it("deletes every scoped row when the current snapshot set is empty", () => {
-    expect(missingSnapshotRowsWhere([10, 20], [])).toEqual({
-      sectionId: { in: [10, 20] },
-    });
-  });
-
-  it("skips reconciliation when no sections are in scope", () => {
-    expect(missingSnapshotRowsWhere([], [101])).toBeUndefined();
   });
 });

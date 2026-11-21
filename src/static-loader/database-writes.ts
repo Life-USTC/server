@@ -161,22 +161,14 @@ export async function bulkUpsert<K extends string | number>(
         IS DISTINCT FROM ROW(${updateColumns.map((column) => `EXCLUDED."${column}"`).join(",")})${updateGuard}`;
 
   for (const batch of chunks(records, 500)) {
-    const params: ColumnValue[] = [];
-    const valuePlaceholders: string[] = [];
-
-    for (const record of batch) {
-      const placeholders: string[] = [];
-      const rowValues = [record.key, ...record.values];
-      for (let index = 0; index < rowValues.length; index++) {
-        params.push(rowValues[index] ?? null);
-        placeholders.push(`$${params.length}::${allTypes[index]}`);
-      }
-      valuePlaceholders.push(`(${placeholders.join(",")})`);
-    }
+    const { params, values } = bindRows(
+      batch.map((record) => [record.key, ...record.values]),
+      allTypes,
+    );
 
     const sql = `
       INSERT INTO "${table}" (${allColumns.map((column) => `"${column}"`).join(",")})
-      VALUES ${valuePlaceholders.join(",")}
+      VALUES ${values}
       ON CONFLICT ("${uniqueColumn}") ${onConflict}
       RETURNING "id", "${uniqueColumn}"
     `;
@@ -219,27 +211,35 @@ export async function bulkUpdate(
     throw new Error(`Record values do not match columns for ${table}`);
   }
   for (const batch of chunks(records, 500)) {
-    const params: ColumnValue[] = [];
-    const valuePlaceholders: string[] = [];
-
-    for (const record of batch) {
-      const placeholders: string[] = [];
-      for (let index = 0; index < record.values.length; index++) {
-        params.push(record.values[index] ?? null);
-        placeholders.push(`$${params.length}::${columnTypes[index]}`);
-      }
-      params.push(record.id);
-      placeholders.push(`$${params.length}::int`);
-      valuePlaceholders.push(`(${placeholders.join(",")})`);
-    }
+    const { params, values } = bindRows(
+      batch.map((record) => [...record.values, record.id]),
+      [...columnTypes, "int"],
+    );
 
     const sql = `
       UPDATE "${table}" AS target SET
         ${columns.map((column) => `"${column}" = data."${column}"`).join(",\n        ")}
-      FROM (VALUES ${valuePlaceholders.join(",")}) AS data(${columns.map((column) => `"${column}"`).join(",")}, "id")
+      FROM (VALUES ${values}) AS data(${columns.map((column) => `"${column}"`).join(",")}, "id")
       WHERE target."id" = data."id"
     `;
 
     await tx.$executeRawUnsafe(sql, ...params);
   }
+}
+
+/** Bind row-major parameters once for both INSERT and UPDATE statements. */
+function bindRows(rows: ColumnValue[][], types: string[]) {
+  const params: ColumnValue[] = [];
+  const values = rows
+    .map(
+      (row) =>
+        `(${row
+          .map((value, index) => {
+            params.push(value ?? null);
+            return `$${params.length}::${types[index]}`;
+          })
+          .join(",")})`,
+    )
+    .join(",");
+  return { params, values };
 }

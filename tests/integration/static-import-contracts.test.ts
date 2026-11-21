@@ -4,7 +4,6 @@ for (const name of [
   "course.official-profile-import",
   "course.static-section-course-link",
   "course.static-classification-unsupported",
-  "section.source-lifecycle",
   "section.source-import-atomicity",
   "section.source-section-presence",
   "section.retirement-audit",

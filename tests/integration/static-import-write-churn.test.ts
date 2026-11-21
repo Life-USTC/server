@@ -310,6 +310,14 @@ describe("static import write churn", () => {
           await tupleId(tx, "_ScheduleTeachers", `"A" = ${firstRow.id}`),
         ).toBe(firstJoinTuple);
 
+        // Reconcile a duplicate without linking teachers to the deleted row.
+        const {
+          id: _id,
+          teacherParticipations: _teachers,
+          ...duplicate
+        } = unchanged;
+        await tx.schedule.create({ data: duplicate });
+
         const participationOnlyChange: ScheduleBuild = {
           ...schedule,
           teacherParticipations: [

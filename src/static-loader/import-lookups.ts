@@ -34,21 +34,16 @@ export async function upsertDepartments(
 ): Promise<Map<string, number>> {
   const jwIdToId = new Map<number, number>();
   for (const build of builds) {
+    const data = {
+      code: build.code,
+      nameCn: build.nameCn,
+      nameEn: build.nameEn,
+      isCollege: build.isCollege,
+    };
     const result = await tx.department.upsert({
       where: { jwId: build.jwId },
-      create: {
-        jwId: build.jwId,
-        code: build.code,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        isCollege: build.isCollege,
-      },
-      update: {
-        code: build.code,
-        nameCn: build.nameCn,
-        nameEn: build.nameEn,
-        isCollege: build.isCollege,
-      },
+      create: { jwId: build.jwId, ...data },
+      update: data,
     });
     jwIdToId.set(build.jwId, result.id);
   }

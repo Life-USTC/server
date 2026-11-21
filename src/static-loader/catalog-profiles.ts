@@ -95,41 +95,96 @@ function officialSection(row: SnapshotRow): OfficialSection | undefined {
 
 function readProfiles<T extends Profile>(
   snapshot: ProfileSnapshot,
-  table: string,
+  tables: string[],
   mapper: (row: SnapshotRow) => T | undefined,
   codeKey: (profile: T) => string,
-): { profiles: T[]; conflicts: number } {
-  if (!snapshot.hasTable(table)) return { profiles: [], conflicts: 0 };
-
-  const byId = new Map<number, T>();
-  const byCode = new Map<string, number>();
-  const conflicted = new Set<number>();
-  let malformed = 0;
-  for (const row of snapshot.iterateAll(table)) {
-    const profile = mapper(row);
-    if (!profile) {
-      const id = jwId(row.id);
-      if (id == null) malformed++;
-      else conflicted.add(id);
-      continue;
+) {
+  const combined = new Map<number, T>();
+  const owners = new Map<string, number>();
+  const blockedIds = new Set<number>();
+  const blockedCodes = new Set<string>();
+  let conflicts = 0;
+  for (const table of tables) {
+    if (!snapshot.hasTable(table)) continue;
+    const seen = new Set<number>();
+    const byCode = new Map<string, number>();
+    const invalid = new Set<number>();
+    for (const row of snapshot.iterateAll(table)) {
+      const profile = mapper(row);
+      if (!profile) {
+        const id = jwId(row.id);
+        if (id == null) conflicts++;
+        else invalid.add(id);
+        continue;
+      }
+      const key = codeKey(profile);
+      if (seen.has(profile.jwId)) invalid.add(profile.jwId);
+      const owner = byCode.get(key);
+      if (owner != null && owner !== profile.jwId) {
+        invalid.add(owner);
+        invalid.add(profile.jwId);
+      }
+      seen.add(profile.jwId);
+      byCode.set(key, profile.jwId);
     }
-    const key = codeKey(profile);
-    if (byId.has(profile.jwId)) conflicted.add(profile.jwId);
-    const codeOwner = byCode.get(key);
-    if (codeOwner != null && codeOwner !== profile.jwId) {
-      conflicted.add(codeOwner);
-      conflicted.add(profile.jwId);
+    conflicts += invalid.size;
+    for (const id of invalid) {
+      if (!combined.has(id)) blockedIds.add(id);
     }
-    byId.set(profile.jwId, profile);
-    byCode.set(key, profile.jwId);
+    for (const [code, id] of byCode)
+      if (invalid.has(id) && !owners.has(code)) blockedCodes.add(code);
+    // Validate identities first, then stream documents instead of retaining two
+    // full source payload maps alongside the merged profiles.
+    for (const row of snapshot.iterateAll(table)) {
+      const profile = mapper(row);
+      if (!profile || invalid.has(profile.jwId)) continue;
+      const key = codeKey(profile);
+      const known = combined.get(profile.jwId);
+      const owner = owners.get(key);
+      const payload = JSON.parse(profile.payloadJson);
+      const preferred = known && JSON.parse(known.payloadJson);
+      if (
+        blockedIds.has(profile.jwId) ||
+        blockedCodes.has(key) ||
+        (owner != null && owner !== profile.jwId) ||
+        (known &&
+          (codeKey(known) !== key || preferred.courseId !== payload.courseId))
+      ) {
+        conflicts++;
+        continue;
+      }
+      const merged = known
+        ? mapper({
+            id: profile.jwId,
+            code: profile.code,
+            courseId: payload.courseId,
+            semester_id:
+              "semesterJwId" in profile ? profile.semesterJwId : undefined,
+            payload_json: JSON.stringify(supplement(preferred, payload)),
+          })
+        : profile;
+      combined.set(profile.jwId, merged ?? known ?? profile);
+      owners.set(key, profile.jwId);
+    }
   }
+  return { profiles: [...combined.values()], conflicts };
+}
 
-  return {
-    profiles: [...byId.values()].filter(
-      (profile) => !conflicted.has(profile.jwId),
-    ),
-    conflicts: malformed + conflicted.size,
-  };
+function supplement(primary: unknown, fallback: unknown): unknown {
+  if (primary == null || primary === "")
+    return fallback == null || fallback === "" ? primary : fallback;
+  if (
+    typeof primary !== "object" ||
+    Array.isArray(primary) ||
+    typeof fallback !== "object" ||
+    fallback == null ||
+    Array.isArray(fallback)
+  )
+    return primary;
+  const result = { ...fallback } as Record<string, unknown>;
+  for (const [key, value] of Object.entries(primary))
+    result[key] = supplement(value, result[key]);
+  return result;
 }
 
 export function loadCatalogProfiles(
@@ -137,13 +192,13 @@ export function loadCatalogProfiles(
 ): CatalogProfiles {
   const courses = readProfiles(
     snapshot,
-    COURSE_TABLE,
+    [COURSE_TABLE, "jw_catalog_course_infos"],
     officialCourse,
     (profile) => profile.code,
   );
   const sections = readProfiles(
     snapshot,
-    SECTION_TABLE,
+    [SECTION_TABLE, "jw_catalog_lesson_infos"],
     officialSection,
     (profile) => `${profile.semesterJwId}:${profile.code}`,
   );
