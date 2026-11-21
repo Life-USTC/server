@@ -1,6 +1,6 @@
 /** Static-import upserts for campuses, buildings, rooms, and admin classes. */
 import type { Prisma } from "../generated/prisma-node/client";
-import { bulkUpsert, type ColumnValue } from "./database-writes";
+import { bulkUpsert } from "./database-writes";
 import type {
   AdminClassBuild,
   BuildingBuild,
@@ -8,7 +8,7 @@ import type {
   RoomBuild,
   RoomTypeBuild,
 } from "./mappers";
-import { requiredId } from "./required-id";
+import { optionalId } from "./required-id";
 
 export async function upsertCampuses(
   tx: Prisma.TransactionClient,
@@ -64,13 +64,11 @@ export async function upsertBuildings(
         build.nameCn,
         build.nameEn,
         build.code,
-        build.campusJwId == null
-          ? null
-          : requiredId(
-              campusMap,
-              build.campusJwId,
-              `Campus jwId ${build.campusJwId} for Building jwId ${build.jwId}`,
-            ),
+        optionalId(
+          campusMap,
+          build.campusJwId,
+          `Campus jwId ${build.campusJwId} for Building jwId ${build.jwId}`,
+        ),
       ],
     })),
   );
@@ -93,40 +91,29 @@ export async function upsertRooms(
     "seats",
     "buildingId",
     "roomTypeId",
-  ];
-  const records = builds.map((build) => ({
-    key: build.jwId,
-    values: [
-      build.nameCn,
-      build.nameEn,
-      build.code,
-      build.floor,
-      build.virtual,
-      build.seatsForSection,
-      build.remark,
-      build.seats,
-      build.buildingJwId == null
-        ? null
-        : requiredId(
-            buildingMap,
-            build.buildingJwId,
-            `Building jwId ${build.buildingJwId} for Room jwId ${build.jwId}`,
-          ),
-      build.roomTypeJwId == null
-        ? null
-        : requiredId(
-            roomTypeMap,
-            build.roomTypeJwId,
-            `RoomType jwId ${build.roomTypeJwId} for Room jwId ${build.jwId}`,
-          ),
-    ] satisfies ColumnValue[],
-  }));
+  ] as const;
+  const records = builds.map((build) => {
+    const values = {
+      ...build,
+      buildingId: optionalId(
+        buildingMap,
+        build.buildingJwId,
+        `Building jwId ${build.buildingJwId} for Room jwId ${build.jwId}`,
+      ),
+      roomTypeId: optionalId(
+        roomTypeMap,
+        build.roomTypeJwId,
+        `RoomType jwId ${build.roomTypeJwId} for Room jwId ${build.jwId}`,
+      ),
+    };
+    return { key: build.jwId, values: columns.map((column) => values[column]) };
+  });
   return bulkUpsert(
     tx,
     "Room",
     "jwId",
     "int",
-    columns,
+    [...columns],
     [
       "text",
       "text",
@@ -157,27 +144,17 @@ export async function upsertAdminClasses(
     "enabled",
     "abbrZh",
     "abbrEn",
-  ];
+  ] as const;
   const records = builds.map((build) => ({
     key: build.jwId,
-    values: [
-      build.code,
-      build.grade,
-      build.nameCn,
-      build.nameEn,
-      build.stdCount,
-      build.planCount,
-      build.enabled,
-      build.abbrZh,
-      build.abbrEn,
-    ] satisfies ColumnValue[],
+    values: columns.map((column) => build[column]),
   }));
   return bulkUpsert(
     tx,
     "AdminClass",
     "jwId",
     "int",
-    columns,
+    [...columns],
     ["text", "text", "text", "text", "int", "int", "boolean", "text", "text"],
     records,
   );

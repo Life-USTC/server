@@ -1,6 +1,6 @@
 /** Static-import upserts for courses, teachers, titles, lesson types, and exam batches. */
 import type { Prisma } from "../generated/prisma-node/client";
-import { bulkUpsert, type ColumnValue } from "./database-writes";
+import { bulkUpsert } from "./database-writes";
 import type { LookupMaps } from "./import-lookups";
 import type {
   CourseBuild,
@@ -136,7 +136,7 @@ export async function upsertTeachers(
     "qq",
     "wechat",
     "departmentId",
-  ];
+  ] as const;
 
   const resolved = builds.map((build) => {
     const departmentId = build.departmentCode
@@ -146,21 +146,9 @@ export async function upsertTeachers(
       build,
       departmentId,
       key: build.jwId,
-      values: [
-        build.personId ?? null,
-        build.code ?? null,
-        build.nameCn,
-        build.nameEn ?? null,
-        build.age ?? null,
-        build.email ?? null,
-        build.telephone ?? null,
-        build.mobile ?? null,
-        build.address ?? null,
-        build.postcode ?? null,
-        build.qq ?? null,
-        build.wechat ?? null,
-        departmentId ?? null,
-      ] satisfies ColumnValue[],
+      values: columns.map((column) =>
+        column === "departmentId" ? departmentId : build[column],
+      ),
     };
   });
   const unresolvedTeacherDepartmentCodes = new Set(
@@ -181,7 +169,7 @@ export async function upsertTeachers(
     "Teacher",
     "jwId",
     "int",
-    columns,
+    [...columns],
     [
       "int",
       "text",

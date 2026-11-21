@@ -189,7 +189,7 @@ async function writeScheduleBatch(
 
   const scheduleRows =
     inserts.length === 0
-      ? existingRows
+      ? [...existingByKey.values()]
       : await tx.schedule.findMany({
           where: { sectionId: { in: sectionDbIds } },
         });
@@ -260,19 +260,7 @@ function scheduleCreateData(schedule: ResolvedSchedule) {
   return data;
 }
 
-function scheduleRowKey(row: {
-  sectionId: number;
-  scheduleGroupId: number;
-  date: Date | null;
-  weekday: number;
-  startTime: number;
-  endTime: number;
-  startUnit: number;
-  endUnit: number;
-  customPlace: string | null;
-  weekIndex: number;
-  roomId: number | null;
-}): string {
+function scheduleRowKey(row: Prisma.ScheduleGetPayload<object>): string {
   return scheduleKey(
     {
       ...row,
@@ -285,10 +273,7 @@ function scheduleRowKey(row: {
 }
 
 function scheduleRowMatches(
-  row: Pick<
-    Prisma.ScheduleGetPayload<object>,
-    (typeof SCHEDULE_COLUMNS)[number]
-  >,
+  row: Prisma.ScheduleGetPayload<object>,
   schedule: ResolvedSchedule,
 ): boolean {
   const normalize = (value: unknown) =>
