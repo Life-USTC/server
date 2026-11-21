@@ -3,6 +3,7 @@ import { expectRequiresSignIn } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import {
   expandDaySidebarGroup,
+  selectDetailTab,
   sidebarNavigationLink,
   visibleText,
 } from "../../../utils/locators";
@@ -285,8 +286,9 @@ export async function assertPageContract(
       await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await expect(page.locator("#introduction")).toBeVisible();
+      await selectDetailTab(page, "schedule");
       await expect(
-        page.getByRole("heading", { name: /日历|Calendar/i }),
+        page.getByRole("heading", { name: /上课安排|Class schedule/i }),
       ).toBeVisible();
       return;
     }
@@ -297,8 +299,9 @@ export async function assertPageContract(
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
       await expect(page.locator("#introduction")).toBeVisible();
+      await selectDetailTab(page, "sections");
       await expect(
-        page.getByRole("heading", { name: /授课教学班|Teaching Sections/i }),
+        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
       return;
     }
@@ -311,8 +314,9 @@ export async function assertPageContract(
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
       await expect(page.locator("#introduction")).toBeVisible();
+      await selectDetailTab(page, "sections");
       await expect(
-        page.getByRole("heading", { name: /授课教学班|Teaching Sections/i }),
+        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
       return;
     }

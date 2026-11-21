@@ -86,10 +86,7 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
       filter: "",
       summary: "",
       continuation: false,
-      records:
-        width < COLLECTION_DESKTOP_MIN_WIDTH_PX
-          ? `#${name} [data-slot="item"]:visible`
-          : `#${name} table tbody tr`,
+      records: `#${name} table tbody tr`,
     })),
   ];
 }
@@ -228,15 +225,9 @@ for (const [domain, names] of [
         const rows = page.locator(item.records);
         await expect(rows.first()).toBeVisible();
         if (item.name === "section-calendar") {
-          await expect(
-            rows.first().locator("[data-calendar-date]"),
-          ).toBeVisible();
-          await expect(
-            rows.first().locator("[data-calendar-time]"),
-          ).toBeVisible();
-          await expect(
-            rows.first().locator("[data-calendar-location]"),
-          ).toBeVisible();
+          const table = page.getByTestId("section-calendar-table");
+          await expect(table).toBeVisible();
+          await expect(table.getByRole("columnheader")).toHaveCount(4);
         }
         for (const row of await rows.all()) {
           await row.scrollIntoViewIfNeeded();

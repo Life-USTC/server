@@ -9,8 +9,7 @@ import {
 } from "./catalog-personal-overlay-fixture";
 
 const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
-const subscriptionLabel =
-  /订阅教学班|Subscribe to section|取消订阅|Unsubscribe from section/i;
+const subscriptionLabel = /^(订阅|Subscribe|已订阅|Subscribed)$/i;
 
 // These tests intentionally observe the unsettled public page before the
 // private request finishes, so they do not use gotoAndWaitForReady.

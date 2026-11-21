@@ -671,7 +671,7 @@ shellTest(
         expect(page.url()).toBe(originalUrl);
         await expect(navigation).toHaveAttribute(
           "data-shell-navigation-view",
-          "workspace",
+          "root",
         );
         const parent = navigation.locator('a[href="/workspace/subscriptions"]');
         await expect(parent).toBeVisible();
@@ -1076,7 +1076,7 @@ test("/ shell 折叠桌面侧边栏后分组入口展开并可跳转", {
 });
 
 shellTest(
-  "/ 登录用户在空状态总览页可看到教学班发现入口",
+  "/ 登录用户在空状态总览页可看到班级发现入口",
   { tag: "@Site/Web" },
   async ({ communityFlow, page, account, isolatedWorker }) => {
     await communityFlow.run(async () => {
@@ -1128,7 +1128,7 @@ shellTest(
 
         await expect(
           page.getByText(
-            /往期教学班、作业、课表和考试仍然保留|past sections, homework, schedules, and exams are still available/i,
+            /往期班级、作业、课表和考试仍然保留|past sections, homework, schedules, and exams are still available/i,
           ),
         ).toBeVisible();
         await expect(
@@ -1142,7 +1142,7 @@ shellTest(
         );
         await expect(
           page.getByRole("link", {
-            name: /查看往期教学班|View Past Sections/i,
+            name: /查看往期班级|View Past Sections/i,
           }),
         ).toBeVisible();
 

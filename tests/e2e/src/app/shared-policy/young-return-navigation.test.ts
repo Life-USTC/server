@@ -56,7 +56,7 @@ test("ui.navigation-landmarks-7", { tag: "@Young/Web" }, async ({
         await expect(rows).toHaveCount(25);
       }
       const expected = destination(item.url.toString());
-      const nav = page.getByTestId("activities-sidebar");
+      const nav = page.locator("nav[data-shell-navigation]");
       const routeBeforePreview = page.url();
       await page.getByTestId("activities-sidebar-back").click();
       await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");

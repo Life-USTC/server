@@ -54,14 +54,14 @@ for (const count of [1, 2]) {
           page.locator('[data-slot="alert-description"]').filter({
             hasText: en
               ? `Added ${count} new ${count === 1 ? "section" : "sections"}.`
-              : `已新增 ${count} 个教学班订阅。`,
+              : `已新增 ${count} 个班级订阅。`,
           }),
         ).toBeVisible();
         // The same summary the workspace subscriptions list renders.
         await expect(page.getByTestId("welcome-import-included")).toHaveText(
           en
             ? `${count} ${count === 1 ? "section" : "sections"} included`
-            : `包含 ${count} 个教学班`,
+            : `包含 ${count} 个班级`,
         );
 
         return observation.checks({

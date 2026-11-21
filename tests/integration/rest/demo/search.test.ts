@@ -201,7 +201,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             id: `homework:${homework.id}`,
             title: homework.title,
             description: sentinel,
-            href: `/catalog/sections/812001?homeworkId=${homework.id}#homework`,
+            href: `/catalog/sections/812001/homework?homeworkId=${homework.id}`,
           },
         ]);
         expect(items(ordinaryBody, "todos")).toEqual([
@@ -418,9 +418,8 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           href:
             "/catalog/sections/" +
             sectionId +
-            "?homeworkId=demo-homework-" +
-            id +
-            "#homework",
+            "/homework?homeworkId=demo-homework-" +
+            id,
         }));
         const expectedTodos = [
           {
@@ -629,7 +628,8 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           ).json();
           expect(dto).toMatchObject({ homework: { id, title: item.title } });
           const target = new URL(item.href, isolatedWorker.origin);
-          expect(target.hash).toBe("#homework");
+          expect(target.hash).toBe("");
+          expect(target.pathname).toMatch(/\/homework$/);
           const html = await (
             await read(target.pathname + target.search, 200, "GET", {
               accept: "text/html",
@@ -650,7 +650,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             nodes.push(value);
           }
           expect(Object.assign({}, ...nodes)).toMatchObject({
-            section: { jwId: Number(target.pathname.split("/").at(-1)) },
+            section: { jwId: Number(target.pathname.split("/")[3]) },
             focusedHomeworkId: id,
             homeworkData: { homeworks: [] },
           });

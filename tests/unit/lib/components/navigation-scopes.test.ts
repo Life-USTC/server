@@ -492,7 +492,7 @@ describe("four primary navigation and adjacent owned directories", () => {
     for (const [pathname, current] of [
       ["/workspace/uploads", "uploads"],
       ["/account/settings/security", "settings"],
-      ["/workspace/subscriptions/activities", "root"],
+      ["/workspace/subscriptions/activities", "activity-workspace"],
       ["/admin/moderation", "admin-queues"],
       ["/workspace/calendar", "root"],
     ])
@@ -506,6 +506,27 @@ describe("four primary navigation and adjacent owned directories", () => {
       }).current,
     ).toBe("root");
   });
+  test.each(["events", "organizers", "notifications"])(
+    "keeps sibling activity subscription pages reachable from %s",
+    (view) => {
+      const model = buildNavigationScopes(buildLayoutCopy("en-us"), user, {
+        ...context,
+        pathname: "/workspace/subscriptions/activities",
+        search: `?view=${view}`,
+      });
+      expect(model.current).toBe("activity-workspace");
+      expect(displayNavigationScope(model.scopes, model.current)).toBe(
+        "activity-workspace",
+      );
+      expect(
+        model.scopes[model.current].groups[0].links.map((link) => link.href),
+      ).toEqual([
+        "/workspace/subscriptions/activities?view=events",
+        "/workspace/subscriptions/activities?view=organizers",
+        "/workspace/subscriptions/activities?view=notifications",
+      ]);
+    },
+  );
 });
 
 vi.mock("@lucide/svelte/icons/app-window", () => ({ default: () => null }));

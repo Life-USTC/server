@@ -295,7 +295,7 @@ test("ui.shell-layout-4", { tag: "@Site/Web" }, async ({
           if (label === "Calendar") {
             await expect(navigation).toHaveAttribute(
               "data-shell-navigation-view",
-              "workspace",
+              "root",
             );
             await navigation.locator("[data-local-navigation-back]").click();
           } else if (label === "Homework") {
@@ -317,7 +317,7 @@ test("ui.shell-layout-4", { tag: "@Site/Web" }, async ({
           } else if (label === "Browse courses") {
             await expect(navigation).toHaveAttribute(
               "data-shell-navigation-view",
-              "workspace",
+              "root",
             );
             await navigation.locator("[data-local-navigation-back]").click();
             await navigation.locator('a[href="/campus"]').click();

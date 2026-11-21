@@ -94,7 +94,9 @@ test("/account/sign-in uses the focused auth shell", {
     await gotoAndWaitForReady(page, "/account/sign-in");
     await expect(page.locator('[data-shell="focused"]')).toBeVisible();
     await expect(page.locator("[data-shell-navigation]")).toHaveCount(0);
-    await expect(page.locator('[data-slot="sidebar-trigger"]')).toHaveCount(0);
+    await expect(
+      page.locator('[data-slot="sidebar-trigger"]:visible'),
+    ).toHaveCount(0);
     await expect(page.locator("[data-shell-preferences]")).toBeVisible();
     await expect(page.locator('[data-slot="card"]')).toBeVisible();
     await expect(

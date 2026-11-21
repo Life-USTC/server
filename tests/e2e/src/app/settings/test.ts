@@ -109,7 +109,7 @@ test.describe("/account/settings 设置中心", () => {
 
       await page.setViewportSize({ width: 390, height: 844 });
       await gotoAndWaitForReady(page, "/account/settings/danger");
-      await page.locator('[data-slot="sidebar-trigger"]').click();
+      await page.locator('[data-slot="sidebar-trigger"]:visible').click();
       const mobileSidebar = page.getByTestId("settings-sidebar");
       await expect(mobileSidebar).toBeVisible();
       await expect(page.getByTestId("settings-sidebar-back")).toBeVisible();
@@ -133,7 +133,7 @@ test.describe("/account/settings 设置中心", () => {
         ]);
       await page.setViewportSize({ width: 375, height: 900 });
       await gotoAndWaitForReady(page, "/account/settings/danger");
-      await page.locator('[data-slot="sidebar-trigger"]').click();
+      await page.locator('[data-slot="sidebar-trigger"]:visible').click();
       const sidebar = page.getByTestId("settings-sidebar");
       const activeLink = sidebar.locator('a[aria-current="page"]');
       await expect(activeLink).toHaveCount(1);

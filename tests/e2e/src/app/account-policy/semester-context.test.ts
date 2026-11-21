@@ -61,7 +61,7 @@ for (const [domain, method, locales, widths] of [
             ).not.toContain(
               locale === "en-us"
                 ? "You only have past-term section subscriptions."
-                : "你目前只订阅了往期教学班",
+                : "你目前只订阅了往期班级",
             );
             // Undated tasks stay in the full inventory. The overview does not
             // recreate empty dated bands just to supply navigation links.
@@ -179,7 +179,7 @@ for (const domain of ["Overview", "Subscription"] as const) {
           ).toHaveAttribute("href", "/catalog/sections");
           await page
             .getByRole("link", {
-              name: /View Past Sections|查看往期教学班/,
+              name: /View Past Sections|查看往期班级/,
               exact: true,
             })
             .click();
@@ -200,7 +200,7 @@ for (const domain of ["Overview", "Subscription"] as const) {
           ).toBeVisible();
           await page
             .getByRole("button", {
-              name: /Bulk Add Section Subscriptions|批量添加教学班订阅/,
+              name: /Bulk Add Section Subscriptions|批量添加班级订阅/,
             })
             .click();
           await expect(page.locator("#bulk-import-semester")).toHaveValue("");
@@ -278,14 +278,14 @@ for (const domain of ["Overview", "Subscription"] as const) {
               name:
                 locale === "en-us"
                   ? "No current-term section subscriptions"
-                  : "当前学期暂无教学班订阅",
+                  : "当前学期暂无班级订阅",
               exact: true,
             }),
           ).toBeVisible();
           await expect(page.locator("#main-content")).toContainText(
             locale === "en-us"
               ? "You only have past-term section subscriptions."
-              : "你目前只订阅了往期教学班。",
+              : "你目前只订阅了往期班级。",
           );
           expect(await page.locator("#main-content").innerText()).not.toContain(
             locale === "en-us"

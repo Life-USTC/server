@@ -162,10 +162,10 @@ test.describe("仪表盘网站链接", () => {
   }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/workspace/overview");
-      const sidebar = page.getByTestId("workspace-sidebar");
+      const sidebar = page.locator("nav[data-shell-navigation]");
       await expect(sidebar).toHaveAttribute(
         "data-shell-navigation-view",
-        "workspace",
+        "root",
       );
       await page.getByTestId("workspace-sidebar-back").click();
       await expect(sidebar).toHaveAttribute(

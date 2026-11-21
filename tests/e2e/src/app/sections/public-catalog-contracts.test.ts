@@ -283,7 +283,7 @@ test("section.private-section-projection", { tag: "@Section/REST" }, async ({
     );
     await gotoAndWaitForReady(
       page,
-      `/catalog/sections/${fixture.sections[0].jwId}?homeworkId=${homework.id}`,
+      `/catalog/sections/${fixture.sections[0].jwId}/homework?homeworkId=${homework.id}`,
     );
     const own = await projection;
     expect(own.headers()["cache-control"]).toBe("private, no-store");

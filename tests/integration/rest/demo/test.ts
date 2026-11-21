@@ -733,7 +733,6 @@ test.describe("enabled demo", () => {
             "POST",
             "/api/workspace/young-notifications/demo-young-notification-change-01/read",
           ],
-          ["GET", "/catalog/sections/910001/homework"],
           ["GET", "/api/catalog/sections/910001/calendar.ics"],
           ["POST", "/catalog/sections/910001?/subscribe"],
           ["POST", "/api/community/descriptions"],
@@ -814,7 +813,8 @@ test.describe("enabled demo", () => {
           "/api/community/section-homeworks/audit?sectionId=101",
           "/_internal/catalog/sections/910001/viewer?homeworkId=demo-homework-vectors",
           "/api/community/comments?targetType=homework&targetId=demo-homework-vectors",
-          "/catalog/sections/910001?homeworkId=demo-homework-vectors",
+          "/catalog/sections/910001/homework?homeworkId=demo-homework-vectors",
+          "/catalog/sections/910001/homework",
           "/catalog/sections/910001/__data.json",
           "/catalog/courses",
           "/catalog/sections",
@@ -854,8 +854,8 @@ test.describe("enabled demo", () => {
         }
         for (const path of [
           "/catalog/sections/999999",
-          "/catalog/sections/910001?homeworkId=private",
-          "/catalog/sections/910001?homeworkId=demo-homework-physics",
+          "/catalog/sections/910001/homework?homeworkId=private",
+          "/catalog/sections/910001/homework?homeworkId=demo-homework-physics",
           "/_internal/catalog/sections/910001/viewer?homeworkId=demo-homework-physics",
           "/api/community/section-homeworks?sectionIds=101,999",
           "/api/community/section-homeworks?sectionId=101&sectionJwId=910002",

@@ -323,7 +323,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
       ).toHaveCount(0);
       await page.goBack();
       await expect(page).toHaveURL(browseUrl);
-      const youngNav = page.getByTestId("activities-sidebar");
+      const youngNav = page.locator("nav[data-shell-navigation]");
       await expect(youngNav).toBeVisible();
       await expect(page.getByTestId("activities-sidebar-back")).toHaveRole(
         "button",

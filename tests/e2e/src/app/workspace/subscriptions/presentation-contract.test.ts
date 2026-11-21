@@ -46,7 +46,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
               apply: "应用筛选",
               semester: "学期",
               course: "课程名称",
-              code: "教学班",
+              code: "班级",
               teacher: "教师",
               credits: "学分",
               regular: "普通",
@@ -360,14 +360,14 @@ test("subscription.subscription-language", {
         await setLocale(page, locale, effects.headers);
         await open(page, 1280);
         await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-          locale === "zh-cn" ? "教学班订阅" : "Section Subscriptions",
+          locale === "zh-cn" ? "班级订阅" : "Section Subscriptions",
         );
         await expect(
           page
             .getByRole("button", {
               name:
                 locale === "zh-cn"
-                  ? "取消订阅教学班"
+                  ? "取消订阅班级"
                   : "Unsubscribe from section",
               exact: true,
             })
@@ -381,7 +381,7 @@ test("subscription.subscription-language", {
         await first.click();
         await page.waitForURL(`**/catalog/sections/${sections[0].jwId}`);
         const unsubscribe = page.getByRole("button", {
-          name: /^(取消订阅教学班|Unsubscribe from section)$/,
+          name: /^(取消订阅班级|Unsubscribe from section)$/,
         });
         await expect(unsubscribe).toBeVisible();
         await unsubscribe.click();
@@ -392,7 +392,7 @@ test("subscription.subscription-language", {
             .click();
         await expect(
           page.getByRole("button", {
-            name: /^(订阅教学班|Subscribe to section)$/,
+            name: /^(订阅班级|Subscribe to section)$/,
           }),
         ).toBeVisible();
         await expect(
@@ -460,7 +460,7 @@ test("subscription.quick-add-result-bound", {
           await open(page, width);
           await page
             .getByRole("button", {
-              name: /^(添加教学班订阅|Add Section Subscription)$/i,
+              name: /^(添加班级订阅|Add Section Subscription)$/i,
             })
             .click();
           const dialog = page.getByRole("dialog");
@@ -475,7 +475,7 @@ test("subscription.quick-add-result-bound", {
           await expect(
             dialog.getByText(
               locale === "zh-cn"
-                ? "最多显示 20 个教学班，请增加限定条件"
+                ? "最多显示 20 个班级，请增加限定条件"
                 : "Up to 20 sections are shown. Add more details to narrow your search.",
               { exact: true },
             ),
@@ -515,7 +515,7 @@ test("subscription.kind-web-editor-location", {
   try {
     await page.addInitScript(() => {
       let remaining = 1200;
-      const role = /^(教学班订阅身份|Section subscription role)$/;
+      const role = /^(班级订阅身份|Section subscription role)$/;
       const describeNode = (target: EventTarget | null) =>
         target instanceof Element
           ? {
@@ -771,11 +771,11 @@ test("subscription.kind-web-editor-location", {
               );
               await row
                 .getByRole("button", {
-                  name: /^(教学班订阅身份|Section subscription role)$/,
+                  name: /^(班级订阅身份|Section subscription role)$/,
                 })
                 .click();
               const dialog = page.getByRole("dialog", {
-                name: /^(教学班订阅身份|Section subscription role)$/,
+                name: /^(班级订阅身份|Section subscription role)$/,
               });
               await dialog.getByRole("radio", { name: label }).click();
               await dialog
@@ -794,7 +794,7 @@ test("subscription.kind-web-editor-location", {
               ).toMatchObject({ kind });
               await row
                 .getByRole("button", {
-                  name: /^(教学班订阅身份|Section subscription role)$/,
+                  name: /^(班级订阅身份|Section subscription role)$/,
                 })
                 .click();
               await expect(
@@ -869,7 +869,7 @@ test("subscribed-sections.grouped-by-semester", {
               .getByTestId("subscription-course-link")
               .filter({ visible: true }),
           ).toHaveCount(expected.length);
-          await expect(group).toContainText(`${expected.length} 个教学班`);
+          await expect(group).toContainText(`${expected.length} 个班级`);
           for (const section of expected)
             await expect(
               group
@@ -966,7 +966,7 @@ test("subscribed-sections.sidebar-summary-only", {
           'a[href="/workspace/subscriptions"]',
         );
         await expect(destination).toHaveCount(1);
-        await expect(destination).toContainText("教学班订阅");
+        await expect(destination).toContainText("班级订阅");
         await expect(destination).toHaveAttribute("aria-current", "page");
         await expect(
           sidebar.locator('a[href^="/catalog/sections/"]'),

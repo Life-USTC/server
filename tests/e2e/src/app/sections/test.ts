@@ -45,7 +45,7 @@ async function useChineseLocale(page: Page) {
   expect(response.status()).toBe(200);
 }
 
-test.describe("/catalog/sections 教学班搜索页", () => {
+test.describe("/catalog/sections 班级搜索页", () => {
   test("页面契约", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
@@ -58,7 +58,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
     });
   });
 
-  test("无匹配教学班时显示明确空状态且不渲染结果链接", {
+  test("无匹配班级时显示明确空状态且不渲染结果链接", {
     tag: "@Section/Web",
   }, async ({ page, preferenceFlow, searchSection: _searchSection }) => {
     await preferenceFlow.run(async () => {
@@ -71,7 +71,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
 
         await expect(
           page
-            .getByText(/未找到教学班|No sections found/i)
+            .getByText(/未找到班级|No sections found/i)
             .filter({ visible: true }),
         ).toBeVisible();
         await expect(
@@ -143,10 +143,10 @@ test.describe("/catalog/sections 教学班搜索页", () => {
         page.locator('[data-slot="active-filters"]:visible'),
       ).toBeVisible();
       await expect(
-        page.getByRole("heading", { name: "所有教学班" }),
+        page.getByRole("heading", { name: "所有班级" }),
       ).toBeVisible();
       await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
-      await expect(page).toHaveTitle(/教学班/);
+      await expect(page).toHaveTitle(/班级/);
 
       const header = page.locator('[data-slot="collection-header"]');
       const bounds = await header.boundingBox();
@@ -181,7 +181,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
     });
   });
 
-  test("英文界面本地化教学班列表名称", { tag: "@Section/Web" }, async ({
+  test("英文界面本地化班级列表名称", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
     searchSection: _searchSection,
@@ -244,7 +244,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
           ["课程类别", ["categoryId"]],
           ["教育层次", ["educationLevelId"]],
           ["课程类型", ["classTypeId"]],
-          ["教学班代码", ["sectionCode"]],
+          ["班级代码", ["sectionCode"]],
           ["校区", ["campusId"]],
           ["院系", ["departmentId"]],
           ["学分", ["credits"]],
@@ -323,7 +323,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
         await gotoAndWaitForReady(page, "/catalog/sections");
 
         await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
-        await expect(page).toHaveTitle(/教学班/);
+        await expect(page).toHaveTitle(/班级/);
         await expect(page.locator("vite-error-overlay")).toHaveCount(0);
         await expect(
           page.locator('[data-slot="table-filter-toolbar"]:visible'),
@@ -546,7 +546,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
       for (const [column, _label, name, value] of [
         ["教师", "教师", "teacher", DEV_SEED.teacher.nameCn],
         ["课程代码", "课程代码", "courseCode", DEV_SEED.course.code],
-        ["教学班代码", "教学班代码", "sectionCode", DEV_SEED.section.code],
+        ["班级代码", "班级代码", "sectionCode", DEV_SEED.section.code],
         ["学分", "学分", "credits", String(DEV_SEED.section.credits)],
       ]) {
         const filter = await openCatalogColumnFilter(page, column);
@@ -557,7 +557,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
           (url) => url.searchParams.get(name) === value,
         );
       }
-      const sorting = await openCatalogColumnFilter(page, "教学班代码");
+      const sorting = await openCatalogColumnFilter(page, "班级代码");
       await sorting.getByRole("radio", { name: "降序" }).click();
       await applyCatalogFilters(page);
       await expect(sorting).toBeHidden();

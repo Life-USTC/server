@@ -117,7 +117,7 @@ export async function checkWorkspaceCalendarPriorityViews(
           calendar,
           locale === "en-us"
             ? "Lectures, exams, and homework for this section."
-            : "只包含本教学班的上课、考试与作业。",
+            : "只包含本班级的上课、考试与作业。",
         ),
       },
       tertiary: {},
@@ -140,10 +140,10 @@ export async function checkWorkspaceCalendarPriorityViews(
     const semesterScope = subscriptionRow.locator("xpath=ancestor::section[1]");
     // Inspect the current value before changing this isolated subscription through the real API.
     await subscriptionRow
-      .getByRole("button", { name: /教学班订阅身份|Section subscription role/ })
+      .getByRole("button", { name: /班级订阅身份|Section subscription role/ })
       .click();
     const roleDialog = page.getByRole("dialog", {
-      name: /教学班订阅身份|Section subscription role/,
+      name: /班级订阅身份|Section subscription role/,
     });
     const regular = roleDialog.getByRole("radio", { name: /^(普通|Regular)$/ });
     await expect(regular).toBeChecked();
@@ -209,7 +209,7 @@ export async function checkWorkspaceCalendarPriorityViews(
           personal,
           locale === "en-us"
             ? /Every section you subscribe to/
-            : /订阅的所有教学班/,
+            : /订阅的所有班级/,
         ),
       },
       tertiary: {},
@@ -217,7 +217,7 @@ export async function checkWorkspaceCalendarPriorityViews(
     await page.keyboard.press("Escape");
     await main
       .getByRole("button", {
-        name: /^(添加教学班订阅|Add Section Subscription)$/i,
+        name: /^(添加班级订阅|Add Section Subscription)$/i,
       })
       .click();
     const quick = page.getByRole("dialog");
@@ -270,7 +270,7 @@ export async function checkWorkspaceCalendarPriorityViews(
     await page.keyboard.press("Escape");
     await main
       .getByRole("button", {
-        name: /批量添加教学班订阅|Bulk Add Section Subscriptions/i,
+        name: /批量添加班级订阅|Bulk Add Section Subscriptions/i,
       })
       .click();
     const bulk = page.getByRole("dialog");

@@ -606,7 +606,7 @@ test(
         await page
           .locator('[data-shell-topbar] [data-slot="sidebar-trigger"]')
           .click();
-        const nav = page.getByTestId("workspace-sidebar");
+        const nav = page.locator("nav[data-shell-navigation]");
         const preview = page.getByTestId("workspace-sidebar-back");
         const routeBefore = page.url();
         originalDocument = await page.evaluateHandle(() => document);
@@ -708,10 +708,7 @@ test(
           ),
         ).toBe(true);
         await active.click();
-        await expect(nav).toHaveAttribute(
-          "data-shell-navigation-view",
-          "workspace",
-        );
+        await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
         expect(page.url()).toBe(routeBefore);
         expect(
           await originalDocument.evaluate((node) => node === document),

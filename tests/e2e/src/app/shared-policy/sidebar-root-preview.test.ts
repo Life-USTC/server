@@ -513,10 +513,9 @@ for (const [locale, width] of [
         }
         if (context === "activities" && locale === "en-us") {
           await page.getByTestId("activities-sidebar-back").click();
-          await expect(page.getByTestId("activities-sidebar")).toHaveAttribute(
-            "data-shell-navigation-view",
-            "root",
-          );
+          await expect(
+            page.locator("nav[data-shell-navigation]"),
+          ).toHaveAttribute("data-shell-navigation-view", "root");
           await page.evaluate(() =>
             Object.assign(window, { sidebarRootLocaleDocument: true }),
           );
@@ -540,10 +539,9 @@ for (const [locale, width] of [
           expect(
             await page.evaluate(() => !("sidebarRootLocaleDocument" in window)),
           ).toBe(true);
-          await expect(page.getByTestId("activities-sidebar")).toHaveAttribute(
-            "data-shell-navigation-view",
-            "activities",
-          );
+          await expect(
+            page.locator("nav[data-shell-navigation]"),
+          ).toHaveAttribute("data-shell-navigation-view", "activities");
           await expect(
             page.getByTestId("activities-sidebar-back"),
           ).toHaveAccessibleName("返回主导航");
@@ -675,7 +673,7 @@ for (const [locale, width] of [
             }),
           ).toBeVisible();
           await expect(
-            page.locator('[data-slot="sidebar-trigger"]'),
+            page.locator('[data-slot="sidebar-trigger"]:visible'),
           ).toHaveCount(0);
           await expect(page.locator("[data-shell-navigation]")).toHaveCount(0);
           await expect(
@@ -819,7 +817,7 @@ test("sidebar.root-preview retires a held administrator bootstrap on Demo naviga
         .click();
       await expect(page).toHaveURL(/\/catalog\/young-events$/);
       await waitForUiSettled(page);
-      const young = page.getByTestId("activities-sidebar");
+      const young = page.locator("nav[data-shell-navigation]");
       await expect(young).toHaveAttribute(
         "data-shell-navigation-view",
         "activities",
@@ -840,10 +838,10 @@ test("sidebar.root-preview retires a held administrator bootstrap on Demo naviga
         .click();
       await expect(page).toHaveURL(/\/$/);
       await waitForUiSettled(page);
-      const workspace = page.getByTestId("workspace-sidebar");
+      const workspace = page.locator("nav[data-shell-navigation]");
       await expect(workspace).toHaveAttribute(
         "data-shell-navigation-view",
-        "workspace",
+        "root",
       );
       const currentCount = workspace
         .locator(
@@ -1026,7 +1024,7 @@ test("sidebar.root-preview retires a held administrator bootstrap on Demo naviga
       await workspace.locator('[data-navigation-depth="0"][href="/"]').click();
       await expect(workspace).toHaveAttribute(
         "data-shell-navigation-view",
-        "workspace",
+        "root",
       );
       await expect(currentCount).toHaveAttribute(
         "data-shell-count-value",

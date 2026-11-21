@@ -43,10 +43,10 @@ for (const locale of ["zh-cn", "en-us"] as const)
                   fullPage: true,
                 });
                 if (width === 1280) {
-                  const workspace = page.getByTestId("workspace-sidebar");
+                  const workspace = page.locator("nav[data-shell-navigation]");
                   await expect(workspace).toHaveAttribute(
                     "data-shell-navigation-view",
-                    "workspace",
+                    "root",
                   );
                   await page.getByTestId("workspace-sidebar-back").click();
                   await expect(workspace).toHaveAttribute(

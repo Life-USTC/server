@@ -26,7 +26,7 @@ async function cases(db: TestPrismaClient): Promise<FilterCase[]> {
       data: { nameCn: "筛选课程类别", nameEn: "Filter course category" },
     });
     const classType = await db.classType.create({
-      data: { nameCn: "筛选教学班类型", nameEn: "Filter class type" },
+      data: { nameCn: "筛选班级类型", nameEn: "Filter class type" },
     });
     const department = await db.department.create({
       data: {
@@ -126,7 +126,7 @@ async function cases(db: TestPrismaClient): Promise<FilterCase[]> {
             fields: ["educationLevelId"],
           },
           { label: /^(课程类型|Class Type)$/i, fields: ["classTypeId"] },
-          { label: /^(教学班代码|Section Code)$/i, fields: ["sectionCode"] },
+          { label: /^(班级代码|Section Code)$/i, fields: ["sectionCode"] },
           { label: /^(教师|Teachers)$/i, fields: ["teacher"] },
           { label: /^(学分|Credits)$/i, fields: ["credits"] },
           { label: /^(校区|Campus)$/i, fields: ["campusId"] },
@@ -308,7 +308,7 @@ test("section sorting shares the page filter draft and applies once", {
     const sorts = [
       { key: "semester", label: /^(学期|Semester)$/i },
       { key: "course", label: /^(课程名称|Course Name)$/i },
-      { key: "code", label: /^(教学班代码|Section Code)$/i },
+      { key: "code", label: /^(班级代码|Section Code)$/i },
       { key: "teacher", label: /^(教师|Teachers)$/i },
       { key: "credits", label: /^(学分|Credits)$/i },
       { key: "capacity", label: /^(容量|Capacity)$/i },

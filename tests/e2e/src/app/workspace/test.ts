@@ -61,21 +61,19 @@ test.describe("仪表盘", () => {
           sidebarNavigationLink(page, /^(作业|Homework)$/i),
         ).toBeVisible();
         await page.getByTestId("workspace-sidebar-back").click();
-        await expect(page.getByTestId("workspace-sidebar")).toHaveAttribute(
-          "data-shell-navigation-view",
-          "root",
-        );
+        await expect(
+          page.locator("nav[data-shell-navigation]"),
+        ).toHaveAttribute("data-shell-navigation-view", "root");
         await expect(
           sidebarNavigationLink(page, /^(日历|Calendar)$/i),
         ).toBeVisible();
         await page
-          .getByTestId("workspace-sidebar")
+          .locator("nav[data-shell-navigation]")
           .locator('[data-navigation-depth="0"][href="/"]')
           .click();
-        await expect(page.getByTestId("workspace-sidebar")).toHaveAttribute(
-          "data-shell-navigation-view",
-          "workspace",
-        );
+        await expect(
+          page.locator("nav[data-shell-navigation]"),
+        ).toHaveAttribute("data-shell-navigation-view", "root");
         await expect(
           sidebarNavigationLink(page, /^(总览|Overview)$/i),
         ).toHaveAttribute("aria-current", "page");
@@ -235,7 +233,7 @@ test.describe("仪表盘", () => {
           ],
           [
             "subscriptions",
-            /^(教学班订阅|Section subscriptions)$/i,
+            /^(班级订阅|Section subscriptions)$/i,
             payload.navigation.subscribedSectionCount,
             /subscribed|已订阅/,
           ],
@@ -255,12 +253,11 @@ test.describe("仪表盘", () => {
           bootstrapResponse.headers()["cloudflare-cdn-cache-control"],
         ).toBe("no-store");
         await page.getByTestId("workspace-sidebar-back").click();
-        await expect(page.getByTestId("workspace-sidebar")).toHaveAttribute(
-          "data-shell-navigation-view",
-          "root",
-        );
+        await expect(
+          page.locator("nav[data-shell-navigation]"),
+        ).toHaveAttribute("data-shell-navigation-view", "root");
         await page
-          .getByTestId("workspace-sidebar")
+          .locator("nav[data-shell-navigation]")
           .locator(
             '[data-slot="sidebar-content"] a[href="/workspace/calendar"]',
           )
@@ -321,7 +318,7 @@ test.describe("仪表盘", () => {
         await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
         await expect(
           appSidebar(page).getByRole("link", {
-            name: /^(教学班订阅|Section subscriptions)$/i,
+            name: /^(班级订阅|Section subscriptions)$/i,
           }),
         ).toBeVisible();
         await expect(

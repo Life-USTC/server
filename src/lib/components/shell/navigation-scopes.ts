@@ -383,7 +383,7 @@ export function buildNavigationScopes(
   // beyond the root rows and their immediate children need a local sidebar.
   const primaryId = primaryDestination(path);
   const rootEntry = primary.find((link) => link.id === primaryId);
-  if (rootEntry) {
+  if (rootEntry && current !== "activity-workspace") {
     const visible = [
       rootEntry,
       ...navigationScopeChildren(scopes, "root", rootEntry),

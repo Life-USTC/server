@@ -190,15 +190,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
         );
         await expect(navigation).toBeVisible();
-        // The feature directory keeps all destinations; the sidebar exposes only
-        // the selected directory and its direct children.
-        if (role !== "anonymous") {
-          await expect(navigation).toHaveAttribute(
-            "data-shell-navigation-view",
-            "workspace",
-          );
-          await navigation.locator("[data-local-navigation-back]").click();
-        }
+        // The root sidebar exposes each primary destination and its direct children.
         await expect(navigation).toHaveAttribute(
           "data-shell-navigation-view",
           "root",

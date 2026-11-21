@@ -8,37 +8,19 @@ export function appSidebar(page: Page): Locator {
   return page.getByTestId("app-sidebar");
 }
 
-export async function expandSidebarGroup(
-  page: Page,
-  name: RegExp,
-): Promise<void> {
-  const sidebar = appSidebar(page);
-  const group = sidebar.locator('[data-slot="sidebar-group"]').filter({
-    has: page
-      .locator('[data-slot="sidebar-group-label"]')
-      .filter({ hasText: name }),
-  });
-  await expect(group).toHaveCount(1);
-  const globalExpansion = group.locator("button[data-shell-expand-sidebar]");
-  if (await globalExpansion.count()) await globalExpansion.click();
-  await expect(
-    group.locator('[data-slot="sidebar-group-label"]'),
-  ).not.toHaveAttribute("aria-expanded");
-  await expect(
-    group.locator('[data-slot="sidebar-group-content"]'),
-  ).toBeVisible();
-  await expect(group.locator('[data-slot="sidebar-menu-action"]')).toHaveCount(
-    0,
-  );
-}
-
-/** Verify the real current Workspace directory; never switch navigation levels implicitly. */
+/** Workspace destinations are visible together in the root sidebar. */
 export async function expandDaySidebarGroup(page: Page): Promise<void> {
-  await expect(page.getByTestId("workspace-sidebar")).toHaveAttribute(
+  const navigation = await openShellNavigation(page);
+  await expect(navigation).toHaveAttribute(
     "data-shell-navigation-view",
-    "workspace",
+    "root",
   );
-  await expandSidebarGroup(page, /^(工作台|Workspace)$/i);
+  for (const path of [
+    "/workspace/homeworks",
+    "/workspace/todos",
+    "/workspace/exams",
+  ])
+    await expect(navigation.locator(`a[href="${path}"]`)).toBeVisible();
 }
 
 export function sidebarNavigationLink(page: Page, name: RegExp): Locator {

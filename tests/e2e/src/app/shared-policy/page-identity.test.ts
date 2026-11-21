@@ -104,7 +104,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             'a[href="/account/settings/danger"][aria-current="page"]',
           );
           if ((await dangerLink.count()) === 0)
-            await page.locator('[data-slot="sidebar-trigger"]').click();
+            await page.locator('[data-slot="sidebar-trigger"]:visible').click();
           await expect(dangerLink).toHaveCount(1);
         } else {
           await expect(danger).toHaveCount(0);

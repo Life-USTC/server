@@ -483,12 +483,11 @@ test("rendering-and-cache.web-rendering-and-cache-1", {
           await gotoAndWaitForReady(page, "/workspace/todos");
           await expectAvatarViewer(page, users[0].name);
           await page.getByTestId("workspace-sidebar-back").click();
-          await expect(page.getByTestId("workspace-sidebar")).toHaveAttribute(
-            "data-shell-navigation-view",
-            "root",
-          );
+          await expect(
+            page.locator("nav[data-shell-navigation]"),
+          ).toHaveAttribute("data-shell-navigation-view", "root");
           await page
-            .getByTestId("workspace-sidebar")
+            .locator("nav[data-shell-navigation]")
             .locator('[data-slot="sidebar-content"] a[href="/campus"]')
             .click();
           await expect(page).toHaveURL(/\/campus$/);

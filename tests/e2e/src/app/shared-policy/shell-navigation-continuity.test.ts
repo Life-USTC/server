@@ -161,7 +161,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             await waitForUiSettled(page);
             await page.getByTestId("activities-sidebar-back").click();
             await expect(
-              page.getByTestId("activities-sidebar"),
+              page.locator("nav[data-shell-navigation]"),
             ).toHaveAttribute("data-shell-navigation-view", "root");
             await expect(nav.locator('a[href="/campus"]')).toBeVisible();
             await expect(
@@ -175,7 +175,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               )
               .click();
             await expect(
-              page.getByTestId("activities-sidebar"),
+              page.locator("nav[data-shell-navigation]"),
             ).toHaveAttribute("data-shell-navigation-view", "activities");
             await expect(
               nav.locator(

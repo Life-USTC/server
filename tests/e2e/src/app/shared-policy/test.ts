@@ -22,7 +22,7 @@ const workspace = {
   homeworks: ["作业", "Homework"],
   todos: ["待办", "Todos"],
   exams: ["考试", "Exams"],
-  subscriptions: ["教学班订阅", "Section Subscriptions"],
+  subscriptions: ["班级订阅", "Section Subscriptions"],
 } as const;
 
 async function setLocale(

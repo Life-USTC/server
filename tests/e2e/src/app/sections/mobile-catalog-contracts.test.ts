@@ -406,7 +406,7 @@ for (const domain of ["Calendar", "Subscription"] as const) {
               .getByRole("button", { name: "已订阅", exact: true })
               .click();
             await dialog
-              .getByRole("button", { name: "取消订阅教学班", exact: true })
+              .getByRole("button", { name: "取消订阅班级", exact: true })
               .click();
             await page
               .getByRole("alertdialog")

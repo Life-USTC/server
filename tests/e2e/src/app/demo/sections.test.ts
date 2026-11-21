@@ -41,10 +41,10 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                 ]);
                 await gotoAndWaitForReady(page, "/workspace/subscriptions");
                 if (width === 1280) {
-                  const workspace = page.getByTestId("workspace-sidebar");
+                  const workspace = page.locator("nav[data-shell-navigation]");
                   await expect(workspace).toHaveAttribute(
                     "data-shell-navigation-view",
-                    "workspace",
+                    "root",
                   );
                   await page.getByTestId("workspace-sidebar-back").click();
                   await expect(workspace).toHaveAttribute(
@@ -65,9 +65,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                 } else await gotoAndWaitForReady(page, "/catalog/sections");
                 await expect(
                   page.getByRole("heading", { level: 1 }),
-                ).toHaveText(
-                  locale === "en-us" ? "All Sections" : "所有教学班",
-                );
+                ).toHaveText(locale === "en-us" ? "All Sections" : "所有班级");
                 await expect(page.getByTestId("demo-notice")).toContainText(
                   locale === "en-us" ? "Read only" : "只读",
                 );
@@ -117,7 +115,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                 await expect(rows).toHaveCount(0);
                 await expect(
                   page
-                    .getByText(/未找到教学班|No sections found/i)
+                    .getByText(/未找到班级|No sections found/i)
                     .filter({ visible: true }),
                 ).toBeVisible();
                 await page
@@ -191,7 +189,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                 await expect(rows).toHaveCount(0);
                 await expect(
                   page
-                    .getByText(/未找到教学班|No sections found/i)
+                    .getByText(/未找到班级|No sections found/i)
                     .filter({ visible: true }),
                 ).toBeVisible();
                 await page.screenshot({

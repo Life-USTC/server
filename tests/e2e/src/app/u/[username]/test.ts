@@ -196,7 +196,7 @@ test.describe("/community/users/[identifier]", () => {
       ]) {
         await expect(summary.getByText(label, { exact: true })).toBeVisible();
       }
-      await expect(summary.getByText(/^(教学班订阅|Sections)$/)).toHaveCount(0);
+      await expect(summary.getByText(/^(班级订阅|Sections)$/)).toHaveCount(0);
       const response = await page.request.get(
         `/api/community/users/${DEV_SEED.adminUsername}`,
       );

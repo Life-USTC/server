@@ -26,7 +26,7 @@ test("活动、主办方订阅和提醒入口可用", { tag: "@Young/Web" }, asy
       },
     );
     expect(response?.ok()).toBe(true);
-    const activityNavigation = page.getByTestId("activity-workspace-sidebar");
+    const activityNavigation = page.locator("nav[data-shell-navigation]");
     await expect(activityNavigation).toHaveAttribute(
       "data-shell-navigation-view",
       "activity-workspace",
@@ -593,7 +593,7 @@ test("reading the last unread reminder on page two returns to the remaining remi
       await back.click();
       await expect(navigation).toHaveAttribute(
         "data-shell-navigation-view",
-        "workspace",
+        "root",
       );
       await expect(
         navigation.locator(`a[href="${remindersHref}"]`),
@@ -604,12 +604,8 @@ test("reading the last unread reminder on page two returns to the remaining remi
         value,
         /unread|未读/,
       );
-      await back.click();
-      await expect(navigation).toHaveAttribute(
-        "data-shell-navigation-view",
-        "root",
-      );
-      await navigation.locator('[data-navigation-depth="0"][href="/"]').click();
+      await expect(page).toHaveURL(originalUrl);
+      await gotoAndWaitForReady(page, originalUrl);
       await expect(navigation).toHaveAttribute(
         "data-shell-navigation-view",
         "activity-workspace",

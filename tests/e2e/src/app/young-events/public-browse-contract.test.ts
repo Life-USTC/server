@@ -50,9 +50,9 @@ async function returnFromDetail(
   await expect(page).toHaveURL(origin);
 }
 async function openYoungSidebar(page: Page) {
-  const sidebar = page.getByTestId("activities-sidebar");
+  const sidebar = page.locator("nav[data-shell-navigation]");
   if (!(await sidebar.isVisible()))
-    await page.locator('[data-slot="sidebar-trigger"]').click();
+    await page.locator('[data-slot="sidebar-trigger"]:visible').click();
   await expect(sidebar).toBeVisible();
   return sidebar;
 }

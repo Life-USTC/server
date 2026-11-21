@@ -60,7 +60,7 @@ test("overview.current-semester-priority", { tag: "@Overview/Web" }, async ({
                 locale === "en-us"
                   ? (fixture.course.nameEn ?? fixture.course.nameCn)
                   : fixture.course.nameCn,
-                `/catalog/sections/${fixture.section.jwId}`,
+                `/catalog/sections/${fixture.section.jwId}/schedule`,
               ],
               [
                 "2026-04-29T11:30:00+08:00",
@@ -123,7 +123,7 @@ test("overview.current-semester-priority", { tag: "@Overview/Web" }, async ({
       await expect(selectedCalendar).toBeVisible();
       await expect(
         selectedCalendar.locator(
-          `a[href="/catalog/sections/${fixture.section.jwId}"]`,
+          `a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
         ),
       ).toHaveCount(0);
       await expect(

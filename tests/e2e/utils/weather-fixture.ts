@@ -133,10 +133,10 @@ export async function showWeatherFixture(
   await campus.click();
   await expect(page).toHaveURL(/\/campus$/);
   await waitForUiSettled(page);
-  await openSidebar(messages.shell.primaryDestinations.campus);
+  await openSidebar(messages.common.primaryNavigation);
   await expect(navigation).toHaveAttribute(
     "data-shell-navigation-view",
-    "campus",
+    "root",
   );
   const weather = navigation.locator('a[href="/catalog/weather"]');
   await expect(weather).toHaveCount(1);

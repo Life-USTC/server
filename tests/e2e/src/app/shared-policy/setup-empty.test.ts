@@ -44,9 +44,7 @@ for (const [locale, width] of [
               const action = empty.locator(`a[href="/catalog/${destination}"]`);
               await expect(action).toBeVisible();
               await expect(action).toHaveAccessibleName(
-                destination === "sections"
-                  ? /教学班|Sections/i
-                  : /课程|Courses/i,
+                destination === "sections" ? /班级|Sections/i : /课程|Courses/i,
               );
               await action.click();
               await expect(page).toHaveURL(

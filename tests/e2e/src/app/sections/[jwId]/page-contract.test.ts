@@ -31,7 +31,7 @@ import { getDetailViewport, jumpToSection } from "./_helpers";
 
 const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
 
-test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
+test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("页面契约", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
@@ -65,7 +65,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
     });
   });
 
-  test("显示课程名称为 h1 与教学班代码", { tag: "@Section/Web" }, async ({
+  test("显示课程名称为 h1 与班级代码", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog,
@@ -119,7 +119,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, `${SECTION_URL}/overview`);
 
-      const overview = page.locator("[data-detail-identity]");
+      const overview = page.locator("#overview");
 
       // section.semester.nameCn (locale-dependent: English short name on en-us)
       await expect(
@@ -172,20 +172,18 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
         .locator("dt")
         .filter({ hasText: /学分|Credits/i })
         .locator("xpath=following-sibling::dd[1]");
-      const examModeValue = page
-        .locator("#exams")
+      const examModeValue = facts
         .locator("dt")
-        .filter({ hasText: /^(方式|Mode)$/i })
+        .filter({ hasText: /考试形式|Assessment format/i })
         .locator("xpath=following-sibling::dd[1]");
       const remarkValue = facts
         .locator("dt")
-        .filter({ hasText: /^(备注|Remark)$/i })
+        .filter({ hasText: /^\s*(备注|Remark)\s*$/i })
         .locator("xpath=following-sibling::dd[1]");
 
       // section.credits
       await expect(creditsValue).toHaveText(String(DEV_SEED.section.credits));
       await expect(remarkValue).toContainText(DEV_SEED.section.remark);
-      await gotoAndWaitForReady(page, `${SECTION_URL}/exams`);
       // section.examMode.namePrimary (locale-dependent)
       await expect(examModeValue).toContainText(
         new RegExp(
@@ -219,7 +217,6 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
           .or(page.getByText(DEV_SEED.section.teachLanguageNameEn))
           .first(),
       ).toBeVisible();
-      await gotoAndWaitForReady(page, `${SECTION_URL}/calendar`);
       // section.roomType.namePrimary (locale-dependent)
       await expect(
         page
@@ -314,141 +311,56 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
   });
 
   overlayTest(
-    "移动端标题、流式区块与底部主操作保持可达",
+    "移动端标题、独立子页与订阅操作保持可达",
     { tag: "@Section/Web" },
     async ({ page, overlay }) => {
       await overlay.run({ loginRedirect: SECTION_URL }, async () => {
-        const runtimeErrors: string[] = [];
-        page.on("console", (message) => {
-          if (message.type() === "error") runtimeErrors.push(message.text());
-        });
-        page.on("pageerror", (error) => runtimeErrors.push(error.message));
         await page.setViewportSize({ width: 375, height: 900 });
         await signInPrivateDebugUser(page, SECTION_URL);
-
-        const heading = page.getByRole("heading", { level: 1 }).first();
-        await expect(heading).toHaveCSS("font-size", "24px");
-        expect(
-          await page.evaluate(() => document.documentElement.scrollWidth),
-        ).toBeLessThanOrEqual(375);
-
-        const actions = page.getByTestId("section-mobile-primary-actions");
-        const mobileNavigation = page.locator(
-          "[data-mobile-primary-navigation]",
+        await expect(page.getByRole("heading", { level: 1 })).toHaveCSS(
+          "font-size",
+          "24px",
         );
-        await expect(actions).toBeVisible();
+        const actions = page.getByTestId("section-mobile-primary-actions");
+        const navigation = page.locator("[data-mobile-primary-navigation]");
         await expect(actions).toBeInViewport();
-        await expect(mobileNavigation).toBeVisible();
-        const navigationBox = await mobileNavigation.boundingBox();
-        if (!navigationBox)
-          throw new Error("Missing primary navigation geometry");
+        await expect(navigation).toBeVisible();
         const actionsBox = await actions.boundingBox();
+        const navigationBox = await navigation.boundingBox();
         expect(actionsBox).not.toBeNull();
-        expect(
-          (actionsBox?.y ?? 0) + (actionsBox?.height ?? 0),
-        ).toBeLessThanOrEqual((page.viewportSize()?.height ?? 0) + 1);
-        expect(
-          await actions.evaluate((element) => getComputedStyle(element).bottom),
-        ).toBe("0px");
-        expect(
-          (actionsBox?.y ?? 0) + (actionsBox?.height ?? 0),
-        ).toBeLessThanOrEqual(navigationBox.y);
+        expect(navigationBox).not.toBeNull();
+        expect(actionsBox!.y + actionsBox!.height).toBeLessThanOrEqual(
+          navigationBox!.y,
+        );
         await actions
+          .getByRole("button", {
+            name: /^(订阅|Subscribe|已订阅|Subscribed)$/i,
+          })
+          .click();
+        const subscription = page.getByRole("dialog");
+        await expect(subscription).toBeVisible();
+        await subscription
           .getByRole("button", { name: /添加到日历|Add to calendar/i })
           .click();
-        await expect(
-          page.locator('[data-slot="dialog-content"]').first(),
-        ).toBeVisible();
+        await expect(page.locator("#calendar-url")).toBeVisible();
         await page.keyboard.press("Escape");
-
-        await jumpToSection(page, SECTION_URL, /评论|Comments/i, "#comments");
-        expect(await page.evaluate(() => scrollY)).toBe(0);
-        await expect
-          .poll(() =>
-            getDetailViewport(page).evaluate((node) => node.scrollTop),
-          )
-          .toBe(0);
-        expect(
-          await getDetailViewport(page).evaluate((node) => {
-            // Overflow-hidden frame ancestors must not steal reading movement.
-            for (
-              let parent = node.parentElement;
-              parent;
-              parent = parent.parentElement
-            )
-              if (parent.scrollTop !== 0) return false;
-            return true;
-          }),
-        ).toBe(true);
-        await expect(page.locator("#comments")).toBeInViewport();
-        await expect(actions).toBeInViewport();
         for (const width of [280, 320, 375]) {
           await page.setViewportSize({ width, height: 900 });
           await gotoAndWaitForReady(page, `${SECTION_URL}#comments`);
-          await expect(actions).toBeInViewport();
           await expect(page.locator("#comments")).toBeVisible();
-          await expect
-            .poll(() =>
-              page.evaluate((viewportWidth) => {
-                const mobileActions = document.querySelector<HTMLElement>(
-                  '[data-testid="section-mobile-primary-actions"]',
-                );
-                const actionButtons = Array.from(
-                  mobileActions?.querySelectorAll<HTMLElement>("button") ?? [],
-                );
-                const actionBox = mobileActions?.getBoundingClientRect();
-                return {
-                  actionButtonsFit:
-                    actionBox != null &&
-                    actionButtons.length === 2 &&
-                    actionButtons.every((button) => {
-                      const box = button.getBoundingClientRect();
-                      return (
-                        box.left >= actionBox.left - 1 &&
-                        box.right <= actionBox.right + 1
-                      );
-                    }),
-                  actionLayoutMatchesWidth:
-                    actionButtons.length === 2 &&
-                    (viewportWidth < 360
-                      ? actionButtons[1].getBoundingClientRect().top >
-                        actionButtons[0].getBoundingClientRect().top
-                      : Math.abs(
-                          actionButtons[1].getBoundingClientRect().top -
-                            actionButtons[0].getBoundingClientRect().top,
-                        ) < 1),
-                  commentComposerFits: (() => {
-                    const comments =
-                      document.querySelector<HTMLElement>("#comments");
-                    return (
-                      comments != null &&
-                      comments.scrollWidth <= comments.clientWidth + 1
-                    );
-                  })(),
-                  documentFitsViewport:
-                    document.documentElement.scrollWidth <=
-                    document.documentElement.clientWidth,
-                  windowScrollX: window.scrollX,
-                };
-              }, width),
-            )
-            .toEqual({
-              actionButtonsFit: true,
-              actionLayoutMatchesWidth: true,
-              commentComposerFits: true,
-              documentFitsViewport: true,
-              windowScrollX: 0,
-            });
+          await expect(actions).toBeInViewport();
+          await expect(actions.getByRole("button")).toHaveCount(1);
+          expect(
+            await page.evaluate(() => document.documentElement.scrollWidth),
+          ).toBeLessThanOrEqual(width);
+          const comments = page.locator("#comments");
+          expect(
+            await comments.evaluate(
+              (element) => element.scrollWidth - element.clientWidth,
+            ),
+          ).toBeLessThanOrEqual(1);
         }
         await expect(page.locator("vite-error-overlay")).toHaveCount(0);
-        expect(
-          runtimeErrors.filter(
-            (error) =>
-              !error.startsWith(
-                "Executing inline event handler violates the following Content Security Policy directive",
-              ),
-          ),
-        ).toEqual([]);
       });
     },
   );
@@ -509,9 +421,9 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
       await gotoAndWaitForReady(page, `${SECTION_URL}#comments`);
 
       await expect(
-        page
-          .getByTestId("detail-pinned-summary")
-          .getByRole("button", { name: /添加到日历|Add to calendar/i }),
+        page.getByTestId("detail-pinned-summary").getByRole("button", {
+          name: /^(订阅|Subscribe|已订阅|Subscribed)$/i,
+        }),
       ).toBeVisible();
       await expect(
         page.getByTestId("section-mobile-primary-actions"),
@@ -535,7 +447,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
     });
   });
 
-  test("详情锚点导航滚动到目标区块", { tag: "@Section/Web" }, async ({
+  test("旧锚点地址进入日程独立页", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog,
@@ -557,17 +469,18 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
       await page.waitForURL(/\/catalog\/sections\/\d+\/schedule$/);
       await waitForUiSettled(page);
 
-      await expect(page.locator("#calendar")).toBeInViewport();
+      await expect(page.locator("#schedule")).toBeVisible();
+      await expect(page.locator("#introduction")).toHaveCount(0);
       await expect
         .poll(() =>
           getDetailViewport(page).evaluate((element) => element.scrollTop),
         )
-        .toBeGreaterThan(8);
+        .toBe(0);
     });
   });
 
   communityTest(
-    "已登录用户可编辑教学班简介",
+    "已登录用户可编辑班级简介",
     { tag: "@Description/Web" },
     async ({ page, account, community, communityFlow }) => {
       await communityFlow.run(

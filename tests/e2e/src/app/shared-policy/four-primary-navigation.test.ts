@@ -122,7 +122,7 @@ for (const [locale, width] of [
       await expectRenderedUiQuality(page);
       await capture("root");
       if (width === 1280) {
-        const collapse = nav.locator('[data-slot="sidebar-trigger"]');
+        const collapse = nav.locator('[data-slot="sidebar-trigger"]:visible');
         await expect(collapse).toBeVisible();
         await expect(collapse).toHaveAttribute("aria-expanded", "true");
         await collapse.click();
@@ -193,10 +193,7 @@ for (const [locale, width] of [
       ).toHaveAttribute("aria-current", "page");
       await gotoAndWaitForReady(page, "/workspace/homeworks");
       await open();
-      await expect(nav).toHaveAttribute(
-        "data-shell-navigation-view",
-        "workspace",
-      );
+      await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
       await expect(
         nav.locator(
           'a[href^="/admin"],a[href^="/account"],a[href="/workspace/uploads"]',

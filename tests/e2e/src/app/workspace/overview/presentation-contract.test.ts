@@ -134,7 +134,7 @@ test("overview.workspace-card-priority", { tag: "@Overview/Web" }, async ({
           [
             "09:30",
             String(course.nameEn),
-            `/catalog/sections/${fixture.section.jwId}`,
+            `/catalog/sections/${fixture.section.jwId}/schedule`,
             "Courses",
             "Happening now",
             "09:00-10:00",
@@ -422,13 +422,13 @@ test("overview.workspace-card-disambiguation", {
           // The focused class is not repeated. The next class keeps its
           // distinguishing section/campus context in the unified upcoming list.
           const upcoming = page.getByTestId("workspace-overview-upcoming");
-          const currentHref = `/catalog/sections/${section.jwId}`;
+          const currentHref = `/catalog/sections/${section.jwId}/schedule`;
           await expect(
             page.locator(`[data-overview-item][href="${currentHref}"]`),
           ).toHaveCount(0);
           if (time === "09:30") {
             const row = upcoming.locator(
-              `a[data-slot="item"][href="/catalog/sections/${extra.section.jwId}"]`,
+              `a[data-slot="item"][href="/catalog/sections/${extra.section.jwId}/schedule"]`,
             );
             await expect(row).toContainText(extra.section.code);
             await expect(row).toContainText(String(extra.campuses[1].nameEn));

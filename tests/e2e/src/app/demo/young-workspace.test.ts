@@ -668,7 +668,7 @@ test("demo young workspace calendar and public detail share membership", {
             historyState: JSON.stringify(history.state),
           }));
           try {
-            const navigation = page.getByTestId("activities-sidebar");
+            const navigation = page.locator("nav[data-shell-navigation]");
             await expect(navigation).toHaveAttribute(
               "data-shell-navigation-view",
               "activities",
@@ -700,12 +700,12 @@ test("demo young workspace calendar and public detail share membership", {
             await mountedDetail.dispose();
           }
           await page
-            .getByTestId("activities-sidebar")
+            .locator("nav[data-shell-navigation]")
             .locator('[data-slot="sidebar-content"] a[href="/"]')
             .click();
           await expect(page).toHaveURL(`${isolatedWorker.origin}/`);
           const manage = page
-            .getByTestId("workspace-sidebar")
+            .locator("nav[data-shell-navigation]")
             .getByRole("link", {
               name: "Activity subscriptions",
               exact: true,
@@ -881,8 +881,9 @@ test("demo young workspace retires an admitted ordinary subscription write", {
               }),
             ).toBeNull();
             const ordinaryDetailUrl = page.url();
-            const ordinaryYoungNavigation =
-              page.getByTestId("activities-sidebar");
+            const ordinaryYoungNavigation = page.locator(
+              "nav[data-shell-navigation]",
+            );
             await expect(ordinaryYoungNavigation).toHaveAttribute(
               "data-shell-navigation-view",
               "activities",
@@ -908,7 +909,7 @@ test("demo young workspace retires an admitted ordinary subscription write", {
               .click();
             await expect(page).toHaveURL(`${isolatedWorker.origin}/`);
             const manage = page
-              .getByTestId("workspace-sidebar")
+              .locator("nav[data-shell-navigation]")
               .getByRole("link", {
                 name: "Activity subscriptions",
                 exact: true,
@@ -955,7 +956,7 @@ test("demo young workspace retires an admitted ordinary subscription write", {
             await Promise.all(operations);
             await expect.poll(() => terminal).toBe("finished");
             const detailUrl = page.url();
-            const youngNavigation = page.getByTestId("activities-sidebar");
+            const youngNavigation = page.locator("nav[data-shell-navigation]");
             await expect(youngNavigation).toHaveAttribute(
               "data-shell-navigation-view",
               "activities",

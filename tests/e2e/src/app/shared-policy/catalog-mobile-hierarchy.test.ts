@@ -461,7 +461,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
             if (!item.bilingualHeading) {
               await expect(
                 hero.getByText(
-                  locale === "zh-cn" ? "授课教学班" : "Teaching section",
+                  locale === "zh-cn" ? "授课班级" : "Teaching section",
                   { exact: true },
                 ),
               ).toBeVisible();
@@ -679,7 +679,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
         for (const [route, code, emptyEn, emptyCn] of [
           ["courses", "COURSE", "No courses found", "未找到课程"],
           ["teachers", "TEACHER", "No teachers found", "未找到教师"],
-          ["sections", "SECTION", "No sections found", "未找到教学班"],
+          ["sections", "SECTION", "No sections found", "未找到班级"],
         ] as const) {
           if (route !== `${domain.toLowerCase()}s`) continue;
           for (const count of [0, 1, 2]) {
