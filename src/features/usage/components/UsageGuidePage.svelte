@@ -297,7 +297,6 @@ async function copyInstallCommand() {
           class="group h-auto min-w-0 w-full justify-between rounded-xl p-3 text-left whitespace-normal"
           type="button"
           variant="outline"
-          aria-label={`${data.copy.copyInstallAction} ${data.copy.installCommand}`}
           onclick={copyInstallCommand}
         >
           <code class="min-w-0 flex-1 overflow-x-auto font-mono text-sm"
