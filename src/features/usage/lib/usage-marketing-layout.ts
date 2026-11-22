@@ -15,7 +15,7 @@ export const usageMarketingHeroGridClass =
 export const usageMarketingHeroCopyClass = "hero-copy grid max-w-xl gap-6";
 
 export const usageMarketingIconClass =
-  "flex size-14 items-center justify-center rounded-2xl border border-border bg-primary/10 text-primary shadow-sm";
+  "flex size-14 items-center justify-center rounded-xl border border-border bg-primary/10 text-primary shadow-sm";
 
 export const usageMarketingIconGlyphClass = "size-7";
 
@@ -35,7 +35,7 @@ export const usageMarketingSectionTitleClass =
 export const usageMarketingExampleGridClass = "grid min-w-0 gap-6";
 
 export const usageMarketingExampleCardClass =
-  "grid min-w-0 content-start rounded-2xl border border-border bg-card text-foreground shadow-sm";
+  "grid min-w-0 content-start rounded-xl border border-border bg-card text-foreground shadow-sm";
 
 export const usageMarketingExampleCardBodyClass =
   "grid min-w-0 gap-5 p-5 sm:p-6";

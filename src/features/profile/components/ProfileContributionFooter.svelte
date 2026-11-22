@@ -29,7 +29,7 @@ export let stats: ProfileStat[];
     {#each contributionLegend as item}
       <span
         aria-label={item.label}
-        class={cn("size-3 rounded-[2px]", item.className)}
+        class={cn("size-3 rounded-xs", item.className)}
         role="img"
       ></span>
     {/each}

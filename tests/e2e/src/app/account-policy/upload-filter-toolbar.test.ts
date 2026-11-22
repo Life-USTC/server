@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect } from "@playwright/test";
 import { createDeferred } from "../../../../shared/deferred";
 import { expectFilterToolbarGeometry } from "../../../utils/filter-toolbar-geometry";
@@ -384,3 +385,41 @@ for (const hasZeroByteFile of [false, true])
       }
     });
   });
+
+test("default filter button uses the existing readable accent pair in each theme", {
+  tag: "@Upload/Web",
+}, async ({ page, preferenceFlow }) => {
+  await preferenceFlow.run(async () => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await gotoAndWaitForReady(page, "/workspace/uploads");
+    const apply = page.locator(
+      '[data-slot="filter-actions"] button[type="submit"]:visible',
+    );
+    for (const theme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme: theme });
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      const palette = await apply.evaluate((button) => {
+        const reference = document.createElement("span");
+        reference.style.cssText =
+          "background:var(--accent);color:var(--accent-foreground)";
+        button.append(reference);
+        const style = getComputedStyle(reference);
+        const pair = [style.backgroundColor, style.color];
+        reference.remove();
+        return pair;
+      });
+      await expect(apply).toHaveCSS("background-color", palette[0]);
+      await expect(apply).toHaveCSS("color", palette[1]);
+      const contrast = await new AxeBuilder({ page })
+        .include('[data-slot="filter-actions"]')
+        .withRules(["color-contrast"])
+        .analyze();
+      expect(contrast.violations).toEqual([]);
+      if (evidence)
+        await page.screenshot({
+          path: `${evidence}/upload-accent-${theme}.png`,
+          animations: "disabled",
+        });
+    }
+  });
+});

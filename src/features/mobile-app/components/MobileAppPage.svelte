@@ -197,7 +197,7 @@ let frontIndex = 0;
       <div class="hero-copy grid max-w-xl content-center gap-5 pb-2 lg:pb-6">
         <img
           alt=""
-          class="size-14 rounded-2xl border border-border shadow-sm"
+          class="size-14 rounded-xl border border-border shadow-sm"
           height="56"
           src="/images/mobile-app/app-icon.png"
           width="56"

@@ -200,11 +200,15 @@ html {
   }
 }
 
-@theme inline {
+@theme static {
+  --radius-xs: calc(var(--radius) - 6px);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+}
+
+@theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -324,17 +328,19 @@ html {
   }
 
   & [data-button-variant] {
-    position: relative;
+    --radius-lg: calc(var(--radius) + var(--toolbar-face-inset));
     border: var(--toolbar-face-inset) solid transparent;
     background-clip: padding-box;
   }
 
-  & [data-button-variant="outline"]::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border: 1px solid var(--border);
-    border-radius: inherit;
-    pointer-events: none;
+  & [data-button-variant="outline"] {
+    @apply inset-shadow-[0_0_0_1px_var(--border)];
+  }
+
+  & [data-slot="button-group"][data-orientation="horizontal"] > [data-button-variant] {
+    border-inline-width: 0;
+    & + [data-button-variant] {
+      margin-inline-start: -1px;
+    }
   }
 }
