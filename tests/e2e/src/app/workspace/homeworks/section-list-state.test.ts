@@ -87,7 +87,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             ).toBeVisible();
             await gotoAndWaitForReady(
               page,
-              `/catalog/sections/${academic.section.jwId}#homework`,
+              `/catalog/sections/${academic.section.jwId}/homework`,
             );
             const list = page.getByTestId("section-homeworks-list");
             await expect(

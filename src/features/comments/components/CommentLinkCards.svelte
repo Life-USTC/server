@@ -1,5 +1,6 @@
 <script lang="ts">
 import * as Item from "#lib/components/ui/item/index.js";
+import CatalogDetailIcon from "@/features/catalog/components/CatalogDetailIcon.svelte";
 
 type LinkCard = {
   description: string;
@@ -89,7 +90,7 @@ $: cards = extractLinkCards(content, copy);
         {#snippet child({ props })}
           <a {...props} href={card.href}>
             <Item.Content>
-              <Item.Title>{card.label}</Item.Title>
+              <Item.Title><CatalogDetailIcon href={card.href} />{card.label}</Item.Title>
               <Item.Description>{card.description}</Item.Description>
             </Item.Content>
           </a>

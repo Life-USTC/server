@@ -2,7 +2,9 @@
 import BookPlus from "@lucide/svelte/icons/book-plus";
 import ClipboardList from "@lucide/svelte/icons/clipboard-list";
 import Link2 from "@lucide/svelte/icons/link-2";
+import { onMount, tick } from "svelte";
 import { Button } from "#lib/components/ui/button/index.js";
+import { page } from "$app/state";
 import PersonalCalendarLinkButton from "./PersonalCalendarLinkButton.svelte";
 import type {
   WorkspaceSubscriptionsTabCopy,
@@ -21,6 +23,13 @@ export let openQuickAddDialog: () => void;
 export let sectionCopy: WorkspaceSubscriptionsTabProps["sectionCopy"];
 export let subscriptionsCopy: WorkspaceSubscriptionsTabCopy;
 export let readOnlyReason: string | undefined = undefined;
+let calendarLink: PersonalCalendarLinkButton;
+onMount(async () => {
+  if (page.url.searchParams.get("calendarLink") === "1") {
+    await tick();
+    calendarLink?.open();
+  }
+});
 </script>
 
 <div class="grid min-w-0 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
@@ -47,7 +56,7 @@ export let readOnlyReason: string | undefined = undefined;
       {subscriptionsCopy.iCalLink}
     </Button>
   {:else}
-    <PersonalCalendarLinkButton
+    <PersonalCalendarLinkButton bind:this={calendarLink}
       buttonLabel={subscriptionsCopy.iCalLink}
       className="w-full sm:w-auto"
       failureMessage={subscriptionsCopy.optOutRetry}

@@ -1,13 +1,8 @@
 <script lang="ts">
-import SectionDetailPageController from "@/features/section-detail/components/SectionDetailPageController.svelte";
-import { getShellViewer } from "@/lib/shell/shell-viewer";
 import type { ActionData, PageData } from "./$types";
+import Introduction from "./introduction/+page.svelte";
 
-export let data: PageData;
-export let form: ActionData;
-const shellViewer = getShellViewer();
+let { data, form }: { data: PageData; form: ActionData } = $props();
 </script>
 
-{#key `${data.section.id}:${data.focusedHomeworkId ?? ""}:${data.showSubscribeDialog}:${$shellViewer.status}:${$shellViewer.viewer?.id ?? ""}`}
-  <SectionDetailPageController {data} {form} />
-{/key}
+<Introduction {data} {form} />

@@ -80,7 +80,10 @@ for (const locale of ["en-us", "zh-cn"] as const)
             .addCookies([
               (await isolatedWorker.createSession(f.author.id)).cookie,
             ]);
-          await gotoAndWaitForReady(page, `/catalog/courses/${f.course.jwId}`);
+          await gotoAndWaitForReady(
+            page,
+            `/catalog/courses/${f.course.jwId}${domain === "Comment" ? "/comments" : ""}`,
+          );
           if (domain === "Comment") {
             const comment = page.locator(`#comment-${f.comment.id}`);
             await expect(comment).toBeVisible();
@@ -452,7 +455,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
           if (domain === "Comment") {
             await gotoAndWaitForReady(
               page,
-              `/catalog/courses/${f.course.jwId}`,
+              `/catalog/courses/${f.course.jwId}/comments`,
             );
             const composer = page.locator("#comments");
             await composer

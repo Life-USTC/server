@@ -48,16 +48,13 @@ import {
   publicSsrCacheHeaders,
   removePublicSsrHeaders,
   resolveCourseDetailTabQueryRedirect,
-  resolveCourseDetailTabRedirect,
   resolveLegacyCalendarFeedRedirect,
   resolveLegacyCatalogRedirect,
   resolveLegacySignInRedirect,
   resolvePublicSsrLocale,
   resolvePublicSsrMode,
   resolveSectionDetailTabQueryRedirect,
-  resolveSectionDetailTabRedirect,
   resolveTeacherDetailTabQueryRedirect,
-  resolveTeacherDetailTabRedirect,
   shouldRoutePublicSsrCache,
 } from "./lib/cloudflare/public-ssr-gateway";
 import { maintenancePrisma } from "./lib/db/maintenance-prisma";
@@ -391,20 +388,6 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
       "/api/calendar-subscriptions/:id/calendar.ics",
     );
   }
-  const sectionTabRedirect = resolveSectionDetailTabRedirect(request);
-  if (sectionTabRedirect) {
-    return finish(
-      new Response(null, {
-        status: 308,
-        headers: {
-          "Cache-Control": "public, max-age=86400",
-          Location: sectionTabRedirect,
-        },
-      }),
-      "catalog-redirect",
-      "/catalog/sections/:id/:legacy-tab",
-    );
-  }
   const sectionTabQueryRedirect = resolveSectionDetailTabQueryRedirect(request);
   if (sectionTabQueryRedirect) {
     return finish(
@@ -419,20 +402,6 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
       "/catalog/sections/:id",
     );
   }
-  const courseTabRedirect = resolveCourseDetailTabRedirect(request);
-  if (courseTabRedirect) {
-    return finish(
-      new Response(null, {
-        status: 308,
-        headers: {
-          "Cache-Control": "public, max-age=86400",
-          Location: courseTabRedirect,
-        },
-      }),
-      "catalog-redirect",
-      "/catalog/courses/:id/:legacy-tab",
-    );
-  }
   const courseTabQueryRedirect = resolveCourseDetailTabQueryRedirect(request);
   if (courseTabQueryRedirect) {
     return finish(
@@ -445,20 +414,6 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
       }),
       "catalog-redirect",
       "/catalog/courses/:id",
-    );
-  }
-  const teacherTabRedirect = resolveTeacherDetailTabRedirect(request);
-  if (teacherTabRedirect) {
-    return finish(
-      new Response(null, {
-        status: 308,
-        headers: {
-          "Cache-Control": "public, max-age=86400",
-          Location: teacherTabRedirect,
-        },
-      }),
-      "catalog-redirect",
-      "/catalog/teachers/:id/:legacy-tab",
     );
   }
   const teacherTabQueryRedirect = resolveTeacherDetailTabQueryRedirect(request);

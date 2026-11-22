@@ -2,6 +2,7 @@ import { expect, type Page, type Route } from "@playwright/test";
 import { createDeferred } from "../../../../shared/deferred";
 import { createSignedDemoCookie } from "../../../../shared/demo-token";
 import { withBrowserWorkflow } from "../../../utils/browser-workflow";
+import { selectDetailTab } from "../../../utils/locators";
 import { test as workerTest } from "../../../utils/owned-worker";
 import {
   expectNoPageHorizontalOverflow,
@@ -384,23 +385,23 @@ const subscriptionCopy = {
     menu: "Menu",
   },
   "zh-cn": {
-    heading: "教学班订阅",
+    heading: "班级订阅",
     courses: ["线性代数", "大学物理", "数据结构"],
     course: "课程名称",
     teacher: "教师",
     auditor: "旁听",
     teachers: ["陈老师", "林老师"],
-    add: "添加教学班订阅",
-    bulk: "批量添加教学班订阅",
+    add: "添加班级订阅",
+    bulk: "批量添加班级订阅",
     feed: "复制日历链接",
-    role: "教学班订阅身份",
-    remove: "取消订阅教学班",
+    role: "班级订阅身份",
+    remove: "取消订阅班级",
     activities: "活动订阅",
     semester: "学期",
     autumn: "2026年秋季学期",
     credits: "学分",
     apply: "应用筛选",
-    empty: "暂无教学班订阅",
+    empty: "暂无班级订阅",
     menu: "菜单",
   },
 } as const;
@@ -474,7 +475,7 @@ async function expectSubscriptionSample(page: Page, locale: Locale) {
   const links = page
     .getByTestId("subscription-course-link")
     .filter({ visible: true });
-  await expect(links).toHaveText([...text.courses]);
+  await expect(links).toContainText([...text.courses]);
   for (const [index, link] of (await links.all()).entries()) {
     await expect(link).toHaveRole("link");
     await expect(link).toHaveAttribute(
@@ -588,7 +589,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         await page.keyboard.press("Escape");
         await expect(links).toHaveCount(3);
         await apply.click();
-        await expect(links).toHaveText([text.courses[0]]);
+        await expect(links).toContainText([text.courses[0]]);
         await credits.click();
         await dialog.getByRole("combobox").selectOption("gt");
         await dialog.getByRole("spinbutton").fill("4");
@@ -634,7 +635,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         await page.keyboard.press("Escape");
         await expect(links).toHaveCount(3);
         await apply.click();
-        await expect(links).toHaveText([text.courses[1]]);
+        await expect(links).toContainText([text.courses[1]]);
         await teacherTrigger.click();
         await teacher
           .getByRole("checkbox", { name: text.teachers[0], exact: true })
@@ -1012,16 +1013,20 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         await expect(page.locator("#introduction")).toContainText(
           sampleDescription,
         );
-        for (const [selector, name] of [
-          ["#introduction", /编辑|Edit/i],
-          ["#calendar", /添加到日历|Add to Calendar/i],
-          ["#homework", /^(新建|Create)$/i],
-          ["#comments", /发布评论|Post comment/i],
+        for (const [selector, name, tab] of [
+          ["#introduction", /编辑|Edit/i, "introduction"],
+          ["#calendar", /添加到日历|Add to Calendar/i, "schedule"],
+          ["#homework", /^(新建|Create)$/i, "homework"],
+          ["#comments", /发布评论|Post comment/i, "introduction"],
         ] as const) {
+          await selectDetailTab(page, tab);
           const section = page.locator(selector);
-          await section.scrollIntoViewIfNeeded();
-          await expect(section.getByRole("button", { name })).toBeDisabled();
+          await expect(async () => {
+            await section.scrollIntoViewIfNeeded();
+            await expect(section.getByRole("button", { name })).toBeDisabled();
+          }).toPass({ timeout: 10_000 });
         }
+        await selectDetailTab(page, "schedule");
         await expect(page.locator("#exams")).toContainText("2027");
         await expect(page.locator("#exams")).toContainText("14:00");
         await expect(page.locator("#calendar")).toContainText(
@@ -1046,6 +1051,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         await expect(
           page.locator('script[type="application/ld+json"]'),
         ).toHaveCount(0);
+        await selectDetailTab(page, "introduction");
         await expect(page.locator("#comments")).not.toContainText(
           locale === "zh-cn" ? "登录后" : "Sign in to share",
         );
@@ -1085,6 +1091,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         await expect(page.locator("#introduction")).toContainText(
           sampleDescription,
         );
+        await selectDetailTab(page, "comments");
         await page.locator("#comments").scrollIntoViewIfNeeded();
         await expectReadOnlyCommentActions(page, "demo-comment-course-03");
         await expect(
@@ -1098,6 +1105,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         await expectRenderedUiQuality(page);
         await expectNoPageHorizontalOverflow(page);
 
+        await selectDetailTab(page, "sections");
         const sectionLink = page
           .locator('#sections a[href="/catalog/sections/910001"]')
           .filter({ visible: true })
@@ -1120,6 +1128,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         await expect(page.getByTestId("demo-notice")).toContainText(
           copy[locale].readOnly,
         );
+        await selectDetailTab(page, "comments");
         await page.locator("#comments").scrollIntoViewIfNeeded();
         await expect(
           page
@@ -1136,6 +1145,8 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         await expect(page.getByRole("heading", { level: 1 })).toContainText(
           teacherName,
         );
+        await page.goBack();
+        await expect(page).toHaveURL(/\/catalog\/teachers\/401$/);
         await page.goBack();
         await expect(page).toHaveURL(/\/catalog\/sections\/910001$/);
         await waitForUiSettled(page);

@@ -1,5 +1,6 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import ClassIcon from "@lucide/svelte/icons/graduation-cap";
 import Pencil from "@lucide/svelte/icons/pencil";
 import UserMinus from "@lucide/svelte/icons/user-minus";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
@@ -27,10 +28,6 @@ export let removingSectionId: SubscriptionSection["id"] | null;
 export let sectionCopy: WorkspaceSectionCopy;
 export let sections: SubscriptionSection[];
 export let subscriptionsCopy: WorkspaceSubscriptionsCopy;
-
-function courseName(section: SubscriptionSection) {
-  return section.course.namePrimary ?? workspaceCopy.notAvailable;
-}
 </script>
 
 <div class="min-w-0" data-testid="subscription-semester-cards">
@@ -38,8 +35,8 @@ function courseName(section: SubscriptionSection) {
     {#each sections as section, index}
       <MobileListCard>
         <SectionCardIdentity course={section.course} teachers={section.teachers} code={section.code} semester={section.semester} {locale}>
-          {#snippet title()}
-            <a class="flex min-h-11 min-w-0 max-w-full items-center break-words font-medium hover:underline [overflow-wrap:anywhere]" href={`/catalog/sections/${section.jwId}`} data-testid="subscription-course-link">{courseName(section)}</a>
+          {#snippet title(summary)}
+            <a class="flex min-h-11 min-w-0 max-w-full items-center break-words font-medium [overflow-wrap:anywhere]" href={`/catalog/sections/${section.jwId}`} data-testid="subscription-course-link"><ClassIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" />{summary}</a>
           {/snippet}
         </SectionCardIdentity>
         <Item.Footer class="flex-wrap justify-start gap-2">

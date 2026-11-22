@@ -1,5 +1,5 @@
 /**
- * MCP seeded tools — 种子工具：目录课程与教学班
+ * MCP seeded tools — 种子工具：目录课程与班级
  */
 
 import { expect } from "@playwright/test";
@@ -13,7 +13,7 @@ import { test } from "../../../../utils/mcp-worker";
 
 test.describe("/api/mcp - 种子工具覆盖", () => {
   for (const domain of ["Course", "Section", "Schedule", "Exam"] as const) {
-    test(`种子工具：目录课程与教学班 ${domain}`, {
+    test(`种子工具：目录课程与班级 ${domain}`, {
       tag: `@${domain}/MCP`,
     }, async ({ mcpRun }) => {
       await mcpRun(

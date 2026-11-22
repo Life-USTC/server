@@ -84,7 +84,7 @@ test("user.public-identity-display", { tag: "@Account/Web" }, async ({
         }
         await gotoAndWaitForReady(
           page,
-          `/catalog/courses/${fixture.course.jwId}`,
+          `/catalog/courses/${fixture.course.jwId}/comments`,
         );
         for (const { user, comments } of fixture.entries) {
           const anonymousLabel = locale === "en-us" ? "Anonymous" : "匿名";

@@ -19,7 +19,8 @@ for (const [locale, width] of [
       tag: "@Site/Web",
     }, async ({ page, isolatedWorker, preferenceFlow }) => {
       const menuName = locale === "en-us" ? "Menu" : "菜单";
-      const anchor = new Date("2026-11-12T00:00:00Z");
+      const anchor = new Date();
+      anchor.setUTCHours(0, 0, 0, 0);
       const at = (days: number) => new Date(anchor.getTime() + days * 86400000);
       const fixture = await preferenceFlow.prepare(async () => {
         const db = isolatedWorker.database.owner;
@@ -202,9 +203,9 @@ for (const [locale, width] of [
           context === "settings"
             ? "/account/settings/profile"
             : context === "activities"
-              ? "/catalog/young-events"
+              ? `/catalog/young-events/${fixture.event!.youngId}`
               : context === "bus"
-                ? "/catalog/bus?campus=east#routes"
+                ? "/catalog/bus/map?campus=east"
                 : "/admin/users?search=sidebar-case";
         await gotoAndWaitForReady(page, route);
         if (width === 390)
@@ -226,14 +227,7 @@ for (const [locale, width] of [
           path: `/tmp/life-four-primary-preview-after-section-${context}-${locale}-${width}.png`,
         });
         const toggle = page.getByTestId(`${context}-sidebar-back`);
-        const rootLabel =
-          context === "bus"
-            ? locale === "en-us"
-              ? "Back to Campus"
-              : "返回校园"
-            : locale === "en-us"
-              ? "Back to Primary navigation"
-              : "返回主导航";
+        const rootLabel = locale === "en-us" ? "Back" : "返回";
         const rootNavigationLabel =
           locale === "en-us" ? "Primary navigation" : "主导航";
         const sectionLabel =
@@ -277,17 +271,6 @@ for (const [locale, width] of [
         try {
           await toggle.focus();
           await page.keyboard.press("Enter");
-          if (context === "bus") {
-            await expect(nav).toHaveAttribute(
-              "data-shell-navigation-view",
-              "campus",
-            );
-            await expect(
-              nav.locator('a[href="/catalog/bus/map"]'),
-            ).toBeVisible();
-            await expect(toggle).toBeFocused();
-            await page.keyboard.press("Enter");
-          }
           await expect(nav).toHaveAttribute(
             "data-shell-navigation-view",
             "root",
@@ -344,25 +327,6 @@ for (const [locale, width] of [
           await page.screenshot({
             path: `/tmp/life-four-primary-preview-after-root-${context}-${locale}-${width}.png`,
           });
-          if (context === "bus" || context === "activities") {
-            // A matching real destination restores the local directory. The root
-            // deliberately has no dedicated “return to current page” control.
-            const restore = nav.locator(
-              `[data-slot="sidebar-content"] a[href="${context === "bus" ? "/catalog/bus" : "/catalog/young-events"}"]`,
-            );
-            await restore.focus();
-            await page.keyboard.press("Enter");
-            await expect(nav).toHaveAttribute(
-              "data-shell-navigation-view",
-              context,
-            );
-            await expect(toggle).toHaveAccessibleName(rootLabel);
-            if (width === 390)
-              await expect(page.getByRole("dialog")).toHaveAccessibleName(
-                sectionLabel,
-              );
-            await expect(toggle).toBeFocused();
-          }
           expect(
             await original.evaluate(
               (owner) =>
@@ -391,11 +355,9 @@ for (const [locale, width] of [
             .click();
           await expect(nav).toHaveAttribute(
             "data-shell-navigation-view",
-            context === "settings" || context === "admin" ? "root" : context,
+            "root",
           );
         }
-        if (context === "activities" || context === "bus") await toggle.click();
-        if (context === "bus") await toggle.click();
         const destination =
           context === "bus" ? "/catalog/young-events" : "/campus";
         const actualDestination = nav.locator(
@@ -428,95 +390,11 @@ for (const [locale, width] of [
         await expect(
           page.getByTestId(`${context}-sidebar-back`),
         ).toHaveAccessibleName(rootLabel);
-        if (context === "bus") {
-          // A real same-URL link still completes navigation and restores the actual directory.
-          await nav
-            .locator('[data-slot="sidebar-content"] a[href="/catalog/bus"]')
-            .click();
-          await expect(page).toHaveURL(`${isolatedWorker.origin}/catalog/bus`);
-          await waitForUiSettled(page);
-          if (width === 390)
-            await page
-              .getByRole("button", { name: menuName, exact: true })
-              .click();
-          const sameDocument = await page.evaluateHandle(() => ({
-            document,
-            main: document.querySelector("#main-content"),
-          }));
-          try {
-            await page.getByTestId("bus-sidebar-back").click();
-            await expect(nav).toHaveAttribute(
-              "data-shell-navigation-view",
-              "campus",
-            );
-            const sameUrl = nav.locator(
-              '[data-slot="sidebar-content"] a[href="/catalog/bus"]',
-            );
-            await expect(sameUrl).toHaveAttribute("href", "/catalog/bus");
-            const localRequests: string[] = [];
-            const observeRestore = (request: Request) => {
-              if (["document", "fetch", "xhr"].includes(request.resourceType()))
-                localRequests.push(request.url());
-            };
-            page.on("request", observeRestore);
-            try {
-              await sameUrl.click();
-              await expect(nav).toHaveAttribute(
-                "data-shell-navigation-view",
-                "bus",
-              );
-              await expect(page).toHaveURL(
-                `${isolatedWorker.origin}/catalog/bus`,
-              );
-              expect(localRequests).toEqual([]);
-            } finally {
-              page.off("request", observeRestore);
-            }
-            // Restoring the current directory is local; clicking its real link
-            // from the restored Bus scope must still perform same-URL navigation.
-            const actualSameUrl = nav.locator(
-              '[data-slot="sidebar-content"] a[href="/catalog/bus"]',
-            );
-            const [response] = await Promise.all([
-              page.waitForResponse(
-                (response) =>
-                  new URL(response.url()).pathname ===
-                    "/catalog/bus/__data.json" &&
-                  response.request().method() === "GET",
-              ),
-              actualSameUrl.click(),
-            ]);
-            expect(response.status()).toBe(200);
-            await expect(page).toHaveURL(
-              `${isolatedWorker.origin}/catalog/bus`,
-            );
-            if (width === 390) {
-              await expect(nav).toBeHidden();
-              await page
-                .getByRole("button", { name: menuName, exact: true })
-                .click();
-            }
-            await expect(nav).toHaveAttribute(
-              "data-shell-navigation-view",
-              "bus",
-            );
-            expect(
-              await sameDocument.evaluate(
-                (owner) =>
-                  owner.document === document &&
-                  owner.main === document.querySelector("#main-content"),
-              ),
-            ).toBe(true);
-          } finally {
-            await sameDocument.dispose();
-          }
-        }
         if (context === "activities" && locale === "en-us") {
           await page.getByTestId("activities-sidebar-back").click();
-          await expect(page.getByTestId("activities-sidebar")).toHaveAttribute(
-            "data-shell-navigation-view",
-            "root",
-          );
+          await expect(
+            page.locator("nav[data-shell-navigation]"),
+          ).toHaveAttribute("data-shell-navigation-view", "root");
           await page.evaluate(() =>
             Object.assign(window, { sidebarRootLocaleDocument: true }),
           );
@@ -540,13 +418,12 @@ for (const [locale, width] of [
           expect(
             await page.evaluate(() => !("sidebarRootLocaleDocument" in window)),
           ).toBe(true);
-          await expect(page.getByTestId("activities-sidebar")).toHaveAttribute(
-            "data-shell-navigation-view",
-            "activities",
-          );
+          await expect(
+            page.locator("nav[data-shell-navigation]"),
+          ).toHaveAttribute("data-shell-navigation-view", "activities");
           await expect(
             page.getByTestId("activities-sidebar-back"),
-          ).toHaveAccessibleName("返回主导航");
+          ).toHaveAccessibleName("返回");
         }
         if (context === "activities") {
           if (!fixture.event)
@@ -632,7 +509,7 @@ for (const [locale, width] of [
           const anonymousNavigation = await openNavigation();
           await expect(anonymousNavigation).toHaveAttribute(
             "data-shell-navigation-view",
-            "campus",
+            "root",
           );
           await expect(
             page.getByRole("heading", {
@@ -641,9 +518,6 @@ for (const [locale, width] of [
               level: 1,
             }),
           ).toBeVisible();
-          await anonymousNavigation
-            .locator("[data-local-navigation-back]")
-            .click();
           await expect(anonymousNavigation).toHaveAttribute(
             "data-shell-navigation-view",
             "root",
@@ -675,7 +549,7 @@ for (const [locale, width] of [
             }),
           ).toBeVisible();
           await expect(
-            page.locator('[data-slot="sidebar-trigger"]'),
+            page.locator('[data-slot="sidebar-trigger"]:visible'),
           ).toHaveCount(0);
           await expect(page.locator("[data-shell-navigation]")).toHaveCount(0);
           await expect(
@@ -819,14 +693,11 @@ test("sidebar.root-preview retires a held administrator bootstrap on Demo naviga
         .click();
       await expect(page).toHaveURL(/\/catalog\/young-events$/);
       await waitForUiSettled(page);
-      const young = page.getByTestId("activities-sidebar");
-      await expect(young).toHaveAttribute(
-        "data-shell-navigation-view",
-        "activities",
-      );
+      const young = page.locator("nav[data-shell-navigation]");
+      await expect(young).toHaveAttribute("data-shell-navigation-view", "root");
       expect(await original.evaluate((doc) => doc === document)).toBe(true);
       await expect(page.getByTestId("demo-notice")).toBeVisible();
-      await page.getByTestId("activities-sidebar-back").click();
+      await expect(page.getByTestId("activities-sidebar-back")).toHaveCount(0);
       await expect(young).toHaveAttribute("data-shell-navigation-view", "root");
       await expect(young.locator('a[aria-current="page"]')).toHaveCount(1);
       await expect(young.locator('a[aria-current="page"]')).toBeInViewport({
@@ -840,22 +711,24 @@ test("sidebar.root-preview retires a held administrator bootstrap on Demo naviga
         .click();
       await expect(page).toHaveURL(/\/$/);
       await waitForUiSettled(page);
-      const workspace = page.getByTestId("workspace-sidebar");
+      const workspace = page.locator("nav[data-shell-navigation]");
       await expect(workspace).toHaveAttribute(
         "data-shell-navigation-view",
-        "workspace",
+        "root",
       );
       const currentCount = workspace
         .locator(
           'a[data-sidebar="menu-button"][href="/workspace/subscriptions/activities?view=notifications"]',
         )
-        .locator('xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]')
+        .locator(
+          'xpath=ancestor::*[@data-slot="sidebar-menu-item" or @data-slot="sidebar-menu-sub-item"][1]',
+        )
         .locator("[data-shell-count-value]");
       await expect(currentCount).toHaveAttribute(
         "data-shell-count-value",
         "21",
       );
-      await page.getByTestId("workspace-sidebar-back").click();
+      await expect(page.getByTestId("workspace-sidebar-back")).toHaveCount(0);
       await expect(workspace).toHaveAttribute(
         "data-shell-navigation-view",
         "root",
@@ -1026,13 +899,15 @@ test("sidebar.root-preview retires a held administrator bootstrap on Demo naviga
       await workspace.locator('[data-navigation-depth="0"][href="/"]').click();
       await expect(workspace).toHaveAttribute(
         "data-shell-navigation-view",
-        "workspace",
+        "root",
       );
       await expect(currentCount).toHaveAttribute(
         "data-shell-count-value",
         "21",
       );
-      await expect(page.getByTestId("workspace-sidebar-back")).toBeFocused();
+      await expect(
+        workspace.locator('[data-navigation-depth="0"][href="/"]'),
+      ).toBeFocused();
       await expect(page.locator("#app-user-menu")).toHaveCount(0);
       await expect(
         page.locator("#demo-navigation-menu button"),

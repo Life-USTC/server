@@ -118,7 +118,7 @@ for (const [domain, names] of [
         },
         {
           name: "exam-count",
-          path: `/catalog/sections/${f.section.jwId}`,
+          path: `/catalog/sections/${f.section.jwId}/schedule`,
           table: '[data-testid="section-exams-list"]',
           numeric: [5],
         },

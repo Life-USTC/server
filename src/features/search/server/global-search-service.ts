@@ -1,3 +1,4 @@
+import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
 import { CATALOG_SEARCH_MIN_LENGTH } from "@/features/catalog/lib/catalog-list-query";
 import { cachedCatalogRuntimeData } from "@/features/catalog/server/catalog-runtime-cache";
 import {
@@ -13,6 +14,7 @@ import type {
   GlobalSearchResultItem,
 } from "@/features/search/server/global-search-types";
 import { GLOBAL_SEARCH_GROUP_ORDER } from "@/features/search/server/global-search-types";
+import { sectionDetailHomeworkPath } from "@/features/section-detail/lib/section-detail-tab";
 import type { AppLocale } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages.server";
 import { withUserDbContext } from "@/lib/db/prisma";
@@ -69,15 +71,6 @@ function toSectionItem(
   locale: AppLocale,
   unknownSemester: string,
 ): GlobalSearchResultItem {
-  const courseName = catalogPrimaryName(section.course);
-  const teacherNames = section.teachers
-    .map((teacher) => catalogPrimaryName(teacher))
-    .filter(Boolean);
-  const teacherSeparator = locale === "en-us" ? ", " : "、";
-  const title =
-    teacherNames.length > 0
-      ? `${courseName} · ${teacherNames.join(teacherSeparator)}`
-      : courseName;
   const semesterName = section.semester?.nameCn
     ? formatSemesterName(locale, section.semester.nameCn)
     : unknownSemester;
@@ -88,7 +81,7 @@ function toSectionItem(
   return {
     id: `section:${section.jwId}`,
     code: section.code,
-    title,
+    title: sectionSummary(section, locale),
     description: description || null,
     href: `/catalog/sections/${section.jwId}`,
   };
@@ -262,7 +255,9 @@ async function searchWorkspaceGroups(
             ? workspaceCourseName(homework.section.course, locale)
             : null,
           href: homework.section?.jwId
-            ? `/catalog/sections/${homework.section.jwId}?homeworkId=${encodeURIComponent(homework.id)}#homework`
+            ? sectionDetailHomeworkPath(homework.section.jwId, {
+                homeworkId: homework.id,
+              })
             : "/workspace/homeworks",
         })),
       });

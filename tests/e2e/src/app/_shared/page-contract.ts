@@ -3,6 +3,7 @@ import { expectRequiresSignIn } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import {
   expandDaySidebarGroup,
+  selectDetailTab,
   sidebarNavigationLink,
   visibleText,
 } from "../../../utils/locators";
@@ -189,16 +190,14 @@ export async function assertPageContract(
     await gotoContractPage(page, routePath);
     await expectMainContent(page);
     const expectedScope =
-      routePath === "/workspace/calendar"
-        ? "calendar"
-        : routePath === "/workspace/subscriptions/activities"
-          ? "activity-workspace"
-          : "workspace";
-    await expect(page.getByTestId(`${expectedScope}-sidebar`)).toHaveAttribute(
+      routePath === "/workspace/subscriptions/activities"
+        ? "activity-workspace"
+        : "root";
+    await expect(page.locator("nav[data-shell-navigation]")).toHaveAttribute(
       "data-shell-navigation-view",
-      expectedScope === "calendar" ? "root" : expectedScope,
+      expectedScope,
     );
-    if (expectedScope === "workspace") await expandDaySidebarGroup(page);
+    if (expectedScope === "root") await expandDaySidebarGroup(page);
     await expect(sidebarNavigationLink(page, /^Life@USTC$/)).toBeVisible({
       timeout: 10_000,
     });
@@ -285,8 +284,9 @@ export async function assertPageContract(
       await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await expect(page.locator("#introduction")).toBeVisible();
+      await selectDetailTab(page, "schedule");
       await expect(
-        page.getByRole("heading", { name: /日历|Calendar/i }),
+        page.getByRole("heading", { name: /上课安排|Class schedule/i }),
       ).toBeVisible();
       return;
     }
@@ -297,8 +297,9 @@ export async function assertPageContract(
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
       await expect(page.locator("#introduction")).toBeVisible();
+      await selectDetailTab(page, "sections");
       await expect(
-        page.getByRole("heading", { name: /授课教学班|Teaching Sections/i }),
+        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
       return;
     }
@@ -311,8 +312,9 @@ export async function assertPageContract(
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
       await expect(page.locator("#introduction")).toBeVisible();
+      await selectDetailTab(page, "sections");
       await expect(
-        page.getByRole("heading", { name: /授课教学班|Teaching Sections/i }),
+        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
       return;
     }
@@ -588,38 +590,38 @@ export async function assertPageContract(
       return;
     }
 
-    case "/catalog/courses/[jwId]/[section]": {
+    case "/catalog/courses/[jwId]/introduction": {
       await gotoContractPage(
         page,
         `/catalog/courses/${DEV_SEED.course.jwId}/introduction`,
       );
       await expect(page).toHaveURL(
-        new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}#introduction$`),
+        new RegExp(`/catalog/courses/${DEV_SEED.course.jwId}/introduction$`),
       );
       await expectMainContent(page);
       return;
     }
 
-    case "/catalog/sections/[jwId]/[section]": {
+    case "/catalog/sections/[jwId]/introduction": {
       await gotoContractPage(
         page,
         `/catalog/sections/${DEV_SEED.section.jwId}/introduction`,
       );
       await expect(page).toHaveURL(
-        new RegExp(`/catalog/sections/${DEV_SEED.section.jwId}#introduction$`),
+        new RegExp(`/catalog/sections/${DEV_SEED.section.jwId}/introduction$`),
       );
       await expectMainContent(page);
       return;
     }
 
-    case "/catalog/teachers/[id]/[section]": {
+    case "/catalog/teachers/[id]/introduction": {
       const teacherId = await resolveSeedTeacherId(page);
       await gotoContractPage(
         page,
         `/catalog/teachers/${teacherId}/introduction`,
       );
       await expect(page).toHaveURL(
-        new RegExp(`/catalog/teachers/${teacherId}#introduction$`),
+        new RegExp(`/catalog/teachers/${teacherId}/introduction$`),
       );
       await expectMainContent(page);
       return;

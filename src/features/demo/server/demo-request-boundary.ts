@@ -1,4 +1,5 @@
 import { isDemoApiDocsReadPath } from "@/features/api-docs/lib/docs-navigation";
+import { academicEntityPath } from "@/features/catalog/lib/academic-detail-path";
 import { isDemoInformationReadPathname } from "@/features/demo/lib/demo-information-paths";
 import type { DemoIdentity } from "@/features/demo/lib/demo-types";
 import {
@@ -52,9 +53,11 @@ function isDemoCatalogPage(path: string) {
       "/catalog/bus/map",
     ].includes(path) ||
     path === "/catalog/courses" ||
+    /^\/catalog\/rooms\/[^/]+$/.test(path) ||
     path === "/catalog/sections" ||
     path === "/catalog/teachers" ||
-    /^\/catalog\/(?:sections|courses|teachers)\/[1-9]\d*$/.test(path)
+    Boolean(academicEntityPath(path)) ||
+    /^\/catalog\/sections\/[1-9]\d*\/teachers$/.test(path)
   );
 }
 

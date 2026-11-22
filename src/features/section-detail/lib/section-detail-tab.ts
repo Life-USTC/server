@@ -1,32 +1,32 @@
 export const SECTION_DETAIL_TAB_QUERY = "tab";
 
 export const sectionDetailTabs = [
-  "overview",
   "introduction",
+  "schedule",
+  "homework",
+] as const;
+export type SectionDetailTab =
+  | (typeof sectionDetailTabs)[number]
+  | "calendar"
+  | "exams"
+  | "comments"
+  | "overview"
+  | "teachers";
+const sectionDetailTabSet = new Set<string>([
+  ...sectionDetailTabs,
   "calendar",
   "exams",
-  "homework",
-  "teachers",
   "comments",
-] as const;
+  "overview",
+  "teachers",
+]);
 
-export type SectionDetailTab = (typeof sectionDetailTabs)[number];
-
-const sectionDetailTabSet = new Set<string>(sectionDetailTabs);
-
-const sectionDetailLegacyPathTab =
-  /^(introduction|calendar|exams|homework|teachers|comments)$/;
-
-const sectionDetailHashByTab: Record<SectionDetailTab, string> = {
-  overview: "",
-  introduction: "introduction",
-  calendar: "calendar",
-  exams: "exams",
-  homework: "homework",
-  teachers: "teachers",
-  comments: "comments",
-};
-
+export function sectionTabPage(tab: SectionDetailTab) {
+  if (tab === "calendar" || tab === "exams") return "schedule";
+  if (tab === "overview" || tab === "comments" || tab === "teachers")
+    return "introduction";
+  return tab;
+}
 export function isSectionDetailTab(
   value: string | null | undefined,
 ): value is SectionDetailTab {
@@ -39,17 +39,14 @@ export function parseSectionDetailTab(
   return isSectionDetailTab(value) ? value : "overview";
 }
 
-export function sectionDetailHashForTab(tab: SectionDetailTab) {
-  const hash = sectionDetailHashByTab[tab];
-  return hash ? `#${hash}` : "";
-}
-
-/** Canonical section detail URL (no tab query). Optional hash for in-page anchors. */
 export function sectionDetailPagePath(
   jwId: number | string,
-  tab: SectionDetailTab = "overview",
+  tab?: SectionDetailTab,
 ) {
-  return `/catalog/sections/${jwId}${sectionDetailHashForTab(tab)}`;
+  const root = `/catalog/sections/${jwId}`;
+  if (!tab) return root;
+  const fragment = tab === "teachers" || tab === "comments" ? `#${tab}` : "";
+  return `${root}/${sectionTabPage(tab)}${fragment}`;
 }
 
 export function sectionDetailHomeworkPath(
@@ -61,7 +58,7 @@ export function sectionDetailHomeworkPath(
     params.set("homeworkId", String(options.homeworkId));
   }
   const search = params.toString();
-  return `/catalog/sections/${jwId}${search ? `?${search}` : ""}#homework`;
+  return `/catalog/sections/${jwId}/homework${search ? `?${search}` : ""}`;
 }
 
 function appendSearchParamsPreserving(from: URL, to: URL) {
@@ -71,26 +68,6 @@ function appendSearchParamsPreserving(from: URL, to: URL) {
   }
 }
 
-/** Legacy `/catalog/sections/[jwId]/{tab}` → root + hash (no `?tab=`). */
-export function resolveSectionDetailTabRedirect(request: Request) {
-  if (request.method !== "GET" && request.method !== "HEAD") return null;
-
-  const url = new URL(request.url);
-  const match = /^\/catalog\/sections\/([1-9]\d*)\/([^/]+)\/?$/.exec(
-    url.pathname,
-  );
-  if (!match) return null;
-
-  const [, jwId, segment] = match;
-  if (!sectionDetailLegacyPathTab.test(segment)) return null;
-
-  const tab = parseSectionDetailTab(segment);
-  const redirectUrl = new URL(`/catalog/sections/${jwId}`, url.origin);
-  appendSearchParamsPreserving(url, redirectUrl);
-  return `${redirectUrl.pathname}${redirectUrl.search}${sectionDetailHashForTab(tab)}`;
-}
-
-/** Strip `?tab=` on the canonical section URL → optional hash. */
 export function resolveSectionDetailTabQueryRedirect(request: Request) {
   if (request.method !== "GET" && request.method !== "HEAD") return null;
 
@@ -100,8 +77,14 @@ export function resolveSectionDetailTabQueryRedirect(request: Request) {
   const tabParam = url.searchParams.get(SECTION_DETAIL_TAB_QUERY);
   if (!tabParam) return null;
 
-  const tab = parseSectionDetailTab(tabParam);
-  const redirectUrl = new URL(url.pathname, url.origin);
+  const jwId = url.pathname.split("/")[3];
+  const redirectUrl = new URL(
+    sectionDetailPagePath(
+      jwId,
+      isSectionDetailTab(tabParam) ? tabParam : undefined,
+    ),
+    url.origin,
+  );
   appendSearchParamsPreserving(url, redirectUrl);
-  return `${redirectUrl.pathname}${redirectUrl.search}${sectionDetailHashForTab(tab)}`;
+  return redirectUrl.pathname + redirectUrl.search + redirectUrl.hash;
 }

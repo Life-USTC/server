@@ -12,7 +12,10 @@ import {
   formatMessage,
   primaryName,
 } from "@/features/section-detail/lib/display";
-import { resolveSectionDetailTabQueryRedirect } from "@/features/section-detail/lib/section-detail-tab";
+import {
+  isSectionDetailTab,
+  resolveSectionDetailTabQueryRedirect,
+} from "@/features/section-detail/lib/section-detail-tab";
 import { getSectionPage } from "@/features/section-detail/server/section-page-data";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
@@ -49,7 +52,12 @@ async function loadSectionDetailPageData({
 
   const jwId = parseSectionJwId(params.jwId);
   if (jwId === null) error(404, "Section not found");
-  const focusedHomeworkId = url.searchParams.get("homeworkId");
+  const segment = url.pathname.split("/")[4];
+  const detailSection = isSectionDetailTab(segment) ? segment : "introduction";
+  const focusedHomeworkId =
+    !segment || detailSection === "homework"
+      ? url.searchParams.get("homeworkId")
+      : null;
   if (
     locals.demo &&
     !getDemoCatalogPersonal(jwId, locals.locale, focusedHomeworkId)
@@ -90,7 +98,7 @@ async function loadSectionDetailPageData({
   };
   const descriptionData = { description, history: [], viewer };
   const socialMetadata = buildSocialMetadata({
-    canonicalPath: `/catalog/sections/${jwId}`,
+    canonicalPath: url.pathname,
     description: formatSocialMetadataMessage(
       copy.metadata.social.sectionDescription,
       { code: section.code, name: courseName },
@@ -116,7 +124,7 @@ async function loadSectionDetailPageData({
     copy,
     descriptionData,
     commentsData: null,
-    detailSection: "overview" as const,
+    detailSection,
     homeworkData,
     focusedHomeworkId,
     homeworkView:

@@ -26,7 +26,7 @@ it("ui.basic-info-card-2", async () => {
   const roots = [
     "src/features/catalog/components/CourseDetailBasicInfo.svelte",
     "src/features/catalog/components/TeacherDetailBasicInfo.svelte",
-    "src/features/section-detail/components/SectionBasicInfoCard.svelte",
+    "src/features/section-detail/components/SectionBasicInfoDetails.svelte",
   ];
   for (const root of roots) {
     const pending = [root];

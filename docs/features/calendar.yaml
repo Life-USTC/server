@@ -454,7 +454,7 @@ capabilities:
       - Context Tabs
     web:
       pages:
-      - /catalog/sections/[jwId]
+      - /catalog/sections/[jwId]/schedule
     rest: stable
     presentation:
       kind: fields
@@ -465,8 +465,8 @@ capabilities:
           - event.startAt
           - event.endAt
           - event.type
-          secondary:
           - event.location
+          secondary:
           - event.teachers
           tertiary:
           - event.id

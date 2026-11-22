@@ -300,10 +300,9 @@ test("rendering-and-cache.personal-overlays-5", { tag: "@Site/Web" }, async ({
               : await page.goto("/workspace/calendar");
             if (calendarResponse) expect(calendarResponse.status()).toBe(200);
             await expectAvatarViewer(page, user.name);
-            await expect(page.getByTestId("calendar-sidebar")).toHaveAttribute(
-              "data-shell-navigation-view",
-              "root",
-            );
+            await expect(
+              page.locator("nav[data-shell-navigation]").first(),
+            ).toHaveAttribute("data-shell-navigation-view", "root");
             await expectNavigationCount(
               navigation,
               "/workspace/calendar",
@@ -482,20 +481,20 @@ test("rendering-and-cache.web-rendering-and-cache-1", {
           const page = await signed.newPage();
           await gotoAndWaitForReady(page, "/workspace/todos");
           await expectAvatarViewer(page, users[0].name);
-          await page.getByTestId("workspace-sidebar-back").click();
-          await expect(page.getByTestId("workspace-sidebar")).toHaveAttribute(
-            "data-shell-navigation-view",
-            "root",
+          await expect(page.getByTestId("workspace-sidebar-back")).toHaveCount(
+            0,
           );
+          await expect(
+            page.locator("nav[data-shell-navigation]"),
+          ).toHaveAttribute("data-shell-navigation-view", "root");
           await page
-            .getByTestId("workspace-sidebar")
+            .locator("nav[data-shell-navigation]")
             .locator('[data-slot="sidebar-content"] a[href="/campus"]')
             .click();
           await expect(page).toHaveURL(/\/campus$/);
-          await expect(page.getByTestId("campus-sidebar")).toHaveAttribute(
-            "data-shell-navigation-view",
-            "campus",
-          );
+          await expect(
+            page.locator("nav[data-shell-navigation]").first(),
+          ).toHaveAttribute("data-shell-navigation-view", "root");
           const catalogData = await observeAction(
             () =>
               page.waitForResponse(

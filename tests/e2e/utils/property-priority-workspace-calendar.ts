@@ -35,12 +35,17 @@ export async function checkWorkspaceCalendarPriorityViews(
   if (domain === "Schedule") {
     await gotoAndWaitForReady(
       page,
-      `/catalog/sections/${section.jwId}#calendar`,
+      `/catalog/sections/${section.jwId}/schedule`,
     );
     const table = main.getByTestId("section-calendar-table");
     const row = table.getByRole("row").filter({ hasText: "08:00" });
-    const date = row.getByRole("cell").nth(1);
-    const lecture = row.getByRole("cell").first().locator("div").first();
+    const date = row.getByRole("cell").nth(2);
+    const lecture = row
+      .getByRole("cell")
+      .nth(1)
+      .locator("span")
+      .filter({ visible: true })
+      .first();
     await assertPriorityView({
       scope: row,
       identity: date,
@@ -52,9 +57,9 @@ export async function checkWorkspaceCalendarPriorityViews(
           lecture,
           locale === "en-us" ? /Lecture|Class/i : /第.*讲|课程|课/,
         ),
+        "event.location": text(row, roomName),
       },
       secondary: {
-        "event.location": text(row, roomName),
         "event.teachers": text(row, teacherName),
       },
       tertiary: { "event.id": { value: `class-${schedule.id}` } },
@@ -66,17 +71,9 @@ export async function checkWorkspaceCalendarPriorityViews(
         "schedule.date": field(date, data.today),
         "schedule.startTime": text(row, "08:00"),
         "schedule.endTime": text(row, "09:35"),
+        "schedule.room.namePrimary": text(row, roomName),
       },
       secondary: {
-        "schedule.room.namePrimary": text(row, roomName),
-        "schedule.room.building.namePrimary": text(
-          row,
-          local(data.building, locale),
-        ),
-        "schedule.room.building.campus.namePrimary": text(
-          row,
-          local(data.campus, locale),
-        ),
         "schedule.teachers.namePrimary": text(row, teacherName),
       },
       tertiary: {
@@ -87,11 +84,17 @@ export async function checkWorkspaceCalendarPriorityViews(
         },
       },
     });
+    await expect(
+      row.getByRole("link", { name: roomName, exact: false }),
+    ).toHaveAttribute(
+      "href",
+      `/catalog/rooms/${encodeURIComponent(room.code ?? "")}`,
+    );
   }
   if (domain === "Calendar") {
     await gotoAndWaitForReady(
       page,
-      `/catalog/sections/${section.jwId}#calendar`,
+      `/catalog/sections/${section.jwId}/schedule`,
     );
     await page
       .getByRole("button", { name: /^(添加到日历|Add to calendar)$/i })
@@ -117,7 +120,7 @@ export async function checkWorkspaceCalendarPriorityViews(
           calendar,
           locale === "en-us"
             ? "Lectures, exams, and homework for this section."
-            : "只包含本教学班的上课、考试与作业。",
+            : "只包含本班级的上课、考试与作业。",
         ),
       },
       tertiary: {},
@@ -140,10 +143,10 @@ export async function checkWorkspaceCalendarPriorityViews(
     const semesterScope = subscriptionRow.locator("xpath=ancestor::section[1]");
     // Inspect the current value before changing this isolated subscription through the real API.
     await subscriptionRow
-      .getByRole("button", { name: /教学班订阅身份|Section subscription role/ })
+      .getByRole("button", { name: /班级订阅身份|Section subscription role/ })
       .click();
     const roleDialog = page.getByRole("dialog", {
-      name: /教学班订阅身份|Section subscription role/,
+      name: /班级订阅身份|Section subscription role/,
     });
     const regular = roleDialog.getByRole("radio", { name: /^(普通|Regular)$/ });
     await expect(regular).toBeChecked();
@@ -209,7 +212,7 @@ export async function checkWorkspaceCalendarPriorityViews(
           personal,
           locale === "en-us"
             ? /Every section you subscribe to/
-            : /订阅的所有教学班/,
+            : /订阅的所有班级/,
         ),
       },
       tertiary: {},
@@ -217,7 +220,7 @@ export async function checkWorkspaceCalendarPriorityViews(
     await page.keyboard.press("Escape");
     await main
       .getByRole("button", {
-        name: /^(添加教学班订阅|Add Section Subscription)$/i,
+        name: /^(添加班级订阅|Add Section Subscription)$/i,
       })
       .click();
     const quick = page.getByRole("dialog");
@@ -270,7 +273,7 @@ export async function checkWorkspaceCalendarPriorityViews(
     await page.keyboard.press("Escape");
     await main
       .getByRole("button", {
-        name: /批量添加教学班订阅|Bulk Add Section Subscriptions/i,
+        name: /批量添加班级订阅|Bulk Add Section Subscriptions/i,
       })
       .click();
     const bulk = page.getByRole("dialog");
@@ -291,14 +294,16 @@ export async function checkWorkspaceCalendarPriorityViews(
     await assertPriorityView({
       scope: confirm,
       identity: matchTitle,
-      primary: { "section.course.namePrimary": field(matchTitle, courseName) },
+      primary: {
+        "section.course.namePrimary": field(matchTitle, courseName),
+        "semester.nameCn": text(matchDetails, semester),
+        "section.teachers.namePrimary": text(matchDetails, teacherName),
+      },
       secondary: {
         "section.code": field(
           matchDetails.locator('[data-slot="catalog-code"]'),
           section.code,
         ),
-        "semester.nameCn": text(matchDetails, semester),
-        "section.teachers.namePrimary": text(matchDetails, teacherName),
         "unmatched.code": text(confirm, unmatched),
       },
       tertiary: {},

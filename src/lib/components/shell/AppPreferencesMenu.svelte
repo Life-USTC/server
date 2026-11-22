@@ -1,6 +1,6 @@
 <script lang="ts">
 import LanguagesIcon from "@lucide/svelte/icons/languages";
-import MonitorIcon from "@lucide/svelte/icons/monitor";
+import MonitorCogIcon from "@lucide/svelte/icons/monitor-cog";
 import MoonIcon from "@lucide/svelte/icons/moon";
 import SunIcon from "@lucide/svelte/icons/sun";
 import type { ThemeMode } from "#lib/components/shell/layout-shell.js";
@@ -25,14 +25,14 @@ function setThemeValue(value: string) {
 }
 </script>
 
-<div data-shell-preferences class="flex items-center gap-1">
+<div data-shell-preferences class="flex items-center gap-0.5 min-[360px]:gap-2">
   <DropdownMenu.Root open={localeMenuOpen} onOpenChange={setLocaleMenuOpen}>
     <DropdownMenu.Trigger>
       {#snippet child({ props })}
         <Button
           {...props}
           aria-label={copy.language.selector}
-          class="size-11 md:size-8"
+          class="size-11"
           size="icon-sm"
           variant="outline"
         >
@@ -70,7 +70,7 @@ function setThemeValue(value: string) {
         <Button
           {...props}
           aria-label={copy.theme.selector}
-          class="size-11 md:size-8"
+          class="size-11"
           size="icon-sm"
           variant="outline"
         >
@@ -79,7 +79,7 @@ function setThemeValue(value: string) {
           {:else if themeMode === "dark"}
             <MoonIcon data-icon="inline-start" />
           {:else}
-            <MonitorIcon data-icon="inline-start" />
+            <MonitorCogIcon data-icon="inline-start" />
           {/if}
         </Button>
       {/snippet}
@@ -95,7 +95,7 @@ function setThemeValue(value: string) {
           value={themeMode}
         >
           <DropdownMenu.RadioItem value="system">
-            <MonitorIcon />
+            <MonitorCogIcon />
             {copy.theme.system}
           </DropdownMenu.RadioItem>
           <DropdownMenu.RadioItem value="light">

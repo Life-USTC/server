@@ -273,7 +273,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                 const link = factLink(href);
                 await expect(link).toHaveCount(1);
                 const row = link.locator(
-                  'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
+                  'xpath=ancestor::*[@data-slot="sidebar-menu-item" or @data-slot="sidebar-menu-sub-item"][1]',
                 );
                 const explicit = row.locator("[data-shell-count-value]");
                 await expect(explicit).toHaveCount(1);
@@ -286,13 +286,15 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                 const link = factLink(href);
                 await expect(link).toHaveCount(1);
                 const row = link.locator(
-                  'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
+                  'xpath=ancestor::*[@data-slot="sidebar-menu-item" or @data-slot="sidebar-menu-sub-item"][1]',
                 );
                 await expect(
                   row.locator("[data-shell-count-value]"),
                 ).toHaveCount(1);
                 return link.evaluate((node, href) => {
-                  const row = node.closest('[data-slot="sidebar-menu-item"]');
+                  const row = node.closest(
+                    '[data-slot="sidebar-menu-item"], [data-slot="sidebar-menu-sub-item"]',
+                  );
                   const count = row?.querySelector("[data-shell-count-value]");
                   const label = node.querySelector(":scope > span");
                   const summary = node.parentElement?.querySelector(
@@ -403,8 +405,10 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             page.locator(
               `[data-shell-navigation="${width === 390 ? "mobile" : "desktop"}"]`,
             ),
-          ).toHaveAttribute("data-shell-navigation-view", "campus");
-          await nav.locator("[data-local-navigation-back]").click();
+          ).toHaveAttribute("data-shell-navigation-view", "root");
+          await expect(nav.locator("[data-local-navigation-back]")).toHaveCount(
+            0,
+          );
           await expect(
             page.locator(
               `[data-shell-navigation="${width === 390 ? "mobile" : "desktop"}"]`,
@@ -606,7 +610,7 @@ test(
         await page
           .locator('[data-shell-topbar] [data-slot="sidebar-trigger"]')
           .click();
-        const nav = page.getByTestId("workspace-sidebar");
+        const nav = page.locator("nav[data-shell-navigation]");
         const preview = page.getByTestId("workspace-sidebar-back");
         const routeBefore = page.url();
         originalDocument = await page.evaluateHandle(() => document);
@@ -620,10 +624,10 @@ test(
           'a[data-sidebar="menu-button"][href="/workspace/subscriptions/activities?view=notifications"]',
         );
         const row = activity.locator(
-          'xpath=ancestor::*[@data-slot="sidebar-menu-item"][1]',
+          'xpath=ancestor::*[@data-slot="sidebar-menu-item" or @data-slot="sidebar-menu-sub-item"][1]',
         );
         await expect(row.locator("[data-shell-count-value]")).toHaveCount(0);
-        await preview.click();
+        await expect(preview).toHaveCount(0);
         await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
         await expect(nav.locator("[data-local-navigation-back]")).toHaveCount(
           0,
@@ -684,6 +688,8 @@ test(
             );
           });
         await expect.poll(activeVisible).toBe(true);
+        await active.focus();
+        await expect(active).toBeFocused();
         const response = preferenceFlow.waitForResponse(page, (res) =>
           res.url().endsWith("/_internal/shell-bootstrap"),
         );
@@ -708,10 +714,11 @@ test(
           ),
         ).toBe(true);
         await active.click();
-        await expect(nav).toHaveAttribute(
-          "data-shell-navigation-view",
-          "workspace",
-        );
+        await expect(sheet).not.toBeVisible();
+        await page
+          .locator('[data-shell-topbar] [data-slot="sidebar-trigger"]')
+          .click();
+        await expect(nav).toHaveAttribute("data-shell-navigation-view", "root");
         expect(page.url()).toBe(routeBefore);
         expect(
           await originalDocument.evaluate((node) => node === document),

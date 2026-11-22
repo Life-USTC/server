@@ -131,7 +131,7 @@ test.describe("/catalog/rooms 教室地图", () => {
       const trigger = page
         .locator("#calendar")
         .getByTestId("room-map-preview")
-        .getByRole("button")
+        .getByRole("link")
         .first();
       expect(requests).toHaveLength(0);
       await trigger.hover();
@@ -145,9 +145,12 @@ test.describe("/catalog/rooms 教室地图", () => {
       await expect(preview).toBeVisible();
       await expect(trigger).toBeFocused();
       await page.keyboard.press("Enter");
-      await expect(page.getByTestId("room-map-dialog")).toBeVisible();
-      await page.keyboard.press("Escape");
-      await expect(trigger).toBeFocused();
+      await expect(page).toHaveURL(new RegExp(`/catalog/rooms/${ROOM_CODE}$`));
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        ROOM_CODE,
+      );
+      await page.goBack();
+      await expect(trigger).toBeVisible();
     });
   });
 
@@ -178,7 +181,7 @@ test.describe("/catalog/rooms 教室地图", () => {
         const trigger = page
           .locator("#calendar")
           .getByTestId("room-map-preview")
-          .getByRole("button")
+          .getByRole("link")
           .first();
         await expect(trigger).toBeVisible();
         await expect(trigger).toHaveText(label);
@@ -188,14 +191,15 @@ test.describe("/catalog/rooms 教室地图", () => {
             : `查看 ${label} 的位置地图`,
         );
         await trigger.click();
-        const dialog = page.getByTestId("room-map-dialog");
-        await expect(dialog).toBeVisible();
-        await expect(dialog.getByRole("img")).toBeVisible();
-        expect(requests.map((url) => new URL(url).pathname)).toEqual([
-          `/api/catalog/rooms/${ROOM_CODE}/map`,
-        ]);
-        await page.keyboard.press("Escape");
-        await expect(dialog).toBeHidden();
+        await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+          ROOM_CODE,
+        );
+        expect(
+          requests.every(
+            (url) =>
+              new URL(url).pathname === `/api/catalog/rooms/${ROOM_CODE}/map`,
+          ),
+        ).toBe(true);
       });
     });
   }
@@ -211,15 +215,18 @@ test.describe("/catalog/rooms 教室地图", () => {
       const trigger = page
         .locator("#calendar")
         .getByTestId("room-map-preview")
-        .getByRole("button")
+        .getByRole("link")
         .first();
       await trigger.focus();
       await expect(page.getByTestId("room-map-preview-popover")).toBeVisible();
       await page.keyboard.press("Enter");
-      await expect(page.getByTestId("room-map-dialog")).toBeVisible();
-      await page.keyboard.press("Escape");
+      await expect(page).toHaveURL(new RegExp(`/catalog/rooms/${ROOM_CODE}$`));
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        ROOM_CODE,
+      );
+      await page.goBack();
       await expect(page.getByTestId("room-map-dialog")).toBeHidden();
-      await expect(trigger).toBeFocused();
+      await expect(trigger).toBeVisible();
     });
   });
 
@@ -294,9 +301,9 @@ test.describe("/catalog/rooms 教室地图", () => {
         ROOM_CODE,
       );
       await page.getByTestId("room-map-sample-chip").first().click();
-      await expect(
-        page.getByTestId("room-map-preview").getByRole("img"),
-      ).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        ROOM_CODE,
+      );
       await expect(page.getByTestId("room-map-sample-chips")).toHaveCount(0);
     });
   });

@@ -311,20 +311,20 @@ for (const locale of ["en-us", "zh-cn"] as const)
                     : DEV_SEED.course.nameCn,
                 ),
                 "section.teachers.namePrimary": text(
-                  details.locator('[data-slot="item-description"]'),
+                  identity,
                   locale === "en-us"
                     ? DEV_SEED.teacher.nameEn
                     : DEV_SEED.teacher.nameCn,
+                ),
+                "semester.nameCn": text(
+                  identity,
+                  locale === "en-us" ? "Spring 2026" : DEV_SEED.semesterNameCn,
                 ),
               },
               secondary: {
                 "section.code": text(
                   details.locator('[data-slot="catalog-code"]'),
                   DEV_SEED.section.code,
-                ),
-                "semester.nameCn": text(
-                  details.locator('[data-slot="catalog-code"] + span'),
-                  locale === "en-us" ? "Spring 2026" : DEV_SEED.semesterNameCn,
                 ),
               },
               tertiary: {},

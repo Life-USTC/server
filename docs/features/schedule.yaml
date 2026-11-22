@@ -356,7 +356,7 @@ capabilities:
       - Schedule
     web:
       pages:
-      - /catalog/sections/[jwId]
+      - /catalog/sections/[jwId]/schedule
     rest:
       routes:
       - path: /api/catalog/sections/[jwId]/schedules
@@ -400,10 +400,8 @@ capabilities:
           - schedule.date
           - schedule.startTime
           - schedule.endTime
-          secondary:
           - schedule.room.namePrimary
-          - schedule.room.building.namePrimary
-          - schedule.room.building.campus.namePrimary
+          secondary:
           - schedule.teachers.namePrimary
           tertiary:
           - schedule.id

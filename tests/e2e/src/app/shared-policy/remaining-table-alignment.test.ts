@@ -126,21 +126,21 @@ for (const [domain, names] of [
       },
       {
         name: "section-homeworks",
-        path: sectionPath,
+        path: `${sectionPath}/homework`,
         selector: '[data-testid="section-homeworks-list"] table:visible',
         columns: ["left", "left", "left", "left"],
       },
       {
         name: "section-exams",
-        path: sectionPath,
+        path: `${sectionPath}/schedule`,
         selector: '[data-testid="section-exams-list"]',
         columns: ["left", "left", "left", "left", "left", null],
       },
       {
         name: "section-calendar",
-        path: sectionPath,
+        path: `${sectionPath}/schedule`,
         selector: '[data-testid="section-calendar-table"]',
-        columns: ["left", "left", "left", "left", "left"],
+        columns: ["left", "left", "left", "left"],
       },
       {
         name: "homeworks",

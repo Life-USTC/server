@@ -1,6 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { test } from "../../../utils/catalog-search-fixture";
 import { DEV_SEED } from "../../../utils/dev-seed";
+import { openShellNavigation, selectDetailTab } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import {
   applyWorkspaceTaskFilter,
@@ -21,7 +22,7 @@ const workspace = {
   homeworks: ["作业", "Homework"],
   todos: ["待办", "Todos"],
   exams: ["考试", "Exams"],
-  subscriptions: ["教学班订阅", "Section Subscriptions"],
+  subscriptions: ["班级订阅", "Section Subscriptions"],
 } as const;
 
 async function setLocale(
@@ -88,19 +89,14 @@ async function openMobileMenu(page: Page) {
   await expect(page.locator('[data-shell-navigation="mobile"]')).toBeVisible();
 }
 
-async function assertReadingOrder(page: Page, items: readonly string[]) {
-  const actual = await page
-    .locator("[data-detail-reading-stream] > section[id]")
-    .evaluateAll((nodes) => nodes.map((node) => node.id));
+async function assertDetailTabs(page: Page, items: readonly string[]) {
+  const actual = await (await openShellNavigation(page))
+    .locator("a[data-detail-page]")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute("data-detail-page")),
+    );
   expect(actual).toEqual(items);
-  let previousBottom = -Infinity;
-  for (const id of items) {
-    const box = await page.locator(`#${id}`).boundingBox();
-    expect(box).not.toBeNull();
-    if (!box) throw new Error(`Missing section ${id}`);
-    expect(box.y).toBeGreaterThanOrEqual(previousBottom);
-    previousBottom = box.y + box.height;
-  }
+  for (const id of items) await selectDetailTab(page, id);
 }
 
 test("ui.detail-two-column-stream-2", { tag: "@Section/Web" }, async ({
@@ -115,13 +111,7 @@ test("ui.detail-two-column-stream-2", { tag: "@Section/Web" }, async ({
         page,
         `/catalog/sections/${DEV_SEED.section.jwId}`,
       );
-      await assertReadingOrder(page, [
-        "introduction",
-        "calendar",
-        "exams",
-        "homework",
-        "comments",
-      ]);
+      await assertDetailTabs(page, ["introduction", "schedule", "homework"]);
     }
   });
 });
@@ -136,10 +126,11 @@ for (const domain of ["Course", "Teacher"] as const) {
         await page.setViewportSize(viewport);
         for (const { href } of pages) {
           await gotoAndWaitForReady(page, href);
-          await assertReadingOrder(page, [
+          await assertDetailTabs(page, [
             "introduction",
             "sections",
             "comments",
+            "overview",
           ]);
         }
       }
@@ -163,6 +154,9 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           const navigation = page.locator(
             `[data-shell-navigation="${viewport.width < 768 ? "mobile" : "desktop"}"]`,
           );
+          if (collection === "/catalog/sections") {
+            await navigation.locator("[data-local-navigation-back]").click();
+          }
           const link = navigation.locator(`a[href="${collection}"]`);
           await expect(link).toBeVisible();
           await link.click();
@@ -213,16 +207,13 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           "comments",
           ...(collection === "/catalog/sections" ? ["homework"] : []),
         ]) {
-          await expect(column.locator(`#${id}`)).toHaveCount(1);
+          await selectDetailTab(page, id);
           const reading = await column.locator(`#${id}`).boundingBox();
-          const aside = await page
-            .locator("[data-detail-scroll-container] aside")
-            .boundingBox();
-          expect(reading).not.toBeNull();
-          expect(aside).not.toBeNull();
-          if (!reading || !aside)
-            throw new Error("Missing reading/sidebar geometry");
-          expect(reading.x + reading.width).toBeLessThan(aside.x);
+          const stream = await column.boundingBox();
+          expect(reading?.width).toBe(stream?.width);
+          await expect(page.locator("[data-detail-identity]")).toHaveCount(
+            collection === "/catalog/sections" && id !== "homework" ? 1 : 0,
+          );
         }
       }
     });
@@ -239,15 +230,11 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
       await page.setViewportSize(viewports[0]);
       for (const { href } of await catalogPages(page, [domain])) {
         await gotoAndWaitForReady(page, href);
-        const aside = page.locator("[data-detail-scroll-container] aside");
-        await expect(page.locator("#overview")).toBeVisible();
-        await expect(aside.locator("dl, table").first()).toBeVisible();
-        const main = await page.locator("#introduction").boundingBox();
-        const facts = await aside.boundingBox();
-        expect(main).not.toBeNull();
-        expect(facts).not.toBeNull();
-        if (!main || !facts) throw new Error("Missing detail columns");
-        expect(facts.x).toBeGreaterThan(main.x + main.width);
+        await selectDetailTab(page, "overview");
+        await expect(
+          page.locator("#overview").locator("dl, table").first(),
+        ).toBeVisible();
+        await expect(page.locator("[data-detail-identity]")).toBeVisible();
       }
     });
   });
@@ -349,7 +336,7 @@ test("ui.navigation-landmarks-1", { tag: "@Site/Web" }, async ({
       await setLocale(page, locale);
       await gotoAndWaitForReady(page, "/catalog/courses");
       const nav = page.getByRole("navigation", {
-        name: locale === "zh-cn" ? "校园" : "Campus",
+        name: locale === "zh-cn" ? "主导航" : "Primary navigation",
         exact: true,
       });
       await expect(nav).toHaveCount(1);
@@ -390,10 +377,7 @@ taskFilterTest(
           ]);
           await openMobileMenu(page);
           await expect(
-            page.getByRole("navigation", {
-              name: locale === "zh-cn" ? "工作台" : "Workspace",
-              exact: true,
-            }),
+            page.locator('nav[data-shell-navigation="mobile"]'),
           ).toBeVisible();
         }
         await checkpoint("mobile navigation has no calendar side effects", {

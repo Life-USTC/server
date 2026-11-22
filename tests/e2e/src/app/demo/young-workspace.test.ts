@@ -668,13 +668,13 @@ test("demo young workspace calendar and public detail share membership", {
             historyState: JSON.stringify(history.state),
           }));
           try {
-            const navigation = page.getByTestId("activities-sidebar");
+            const navigation = page.locator("nav[data-shell-navigation]");
             await expect(navigation).toHaveAttribute(
               "data-shell-navigation-view",
               "activities",
             );
             const viewMainNavigation = page.getByRole("button", {
-              name: "Back to Primary navigation",
+              name: "Back",
               exact: true,
             });
             await expect(viewMainNavigation).toHaveCount(1);
@@ -700,12 +700,12 @@ test("demo young workspace calendar and public detail share membership", {
             await mountedDetail.dispose();
           }
           await page
-            .getByTestId("activities-sidebar")
+            .locator("nav[data-shell-navigation]")
             .locator('[data-slot="sidebar-content"] a[href="/"]')
             .click();
           await expect(page).toHaveURL(`${isolatedWorker.origin}/`);
           const manage = page
-            .getByTestId("workspace-sidebar")
+            .locator("nav[data-shell-navigation]")
             .getByRole("link", {
               name: "Activity subscriptions",
               exact: true,
@@ -881,14 +881,15 @@ test("demo young workspace retires an admitted ordinary subscription write", {
               }),
             ).toBeNull();
             const ordinaryDetailUrl = page.url();
-            const ordinaryYoungNavigation =
-              page.getByTestId("activities-sidebar");
+            const ordinaryYoungNavigation = page.locator(
+              "nav[data-shell-navigation]",
+            );
             await expect(ordinaryYoungNavigation).toHaveAttribute(
               "data-shell-navigation-view",
               "activities",
             );
             const ordinaryViewMainNavigation = page.getByRole("button", {
-              name: "Back to Primary navigation",
+              name: "Back",
               exact: true,
             });
             await expect(ordinaryViewMainNavigation).toHaveCount(1);
@@ -908,7 +909,7 @@ test("demo young workspace retires an admitted ordinary subscription write", {
               .click();
             await expect(page).toHaveURL(`${isolatedWorker.origin}/`);
             const manage = page
-              .getByTestId("workspace-sidebar")
+              .locator("nav[data-shell-navigation]")
               .getByRole("link", {
                 name: "Activity subscriptions",
                 exact: true,
@@ -955,13 +956,13 @@ test("demo young workspace retires an admitted ordinary subscription write", {
             await Promise.all(operations);
             await expect.poll(() => terminal).toBe("finished");
             const detailUrl = page.url();
-            const youngNavigation = page.getByTestId("activities-sidebar");
+            const youngNavigation = page.locator("nav[data-shell-navigation]");
             await expect(youngNavigation).toHaveAttribute(
               "data-shell-navigation-view",
               "activities",
             );
             const viewMainNavigation = page.getByRole("button", {
-              name: "Back to Primary navigation",
+              name: "Back",
               exact: true,
             });
             await expect(viewMainNavigation).toHaveCount(1);
@@ -977,14 +978,11 @@ test("demo young workspace retires an admitted ordinary subscription write", {
               .locator('[data-slot="sidebar"]')
               .filter({ has: sidebar });
             await expect(sidebarState).toHaveCount(1);
-            const rootGroup = sidebar
-              .locator('[data-slot="sidebar-group"]')
-              .filter({
-                has: page
-                  .locator('[data-slot="sidebar-group-label"]')
-                  .filter({ hasText: /^Primary navigation$/ }),
-              });
+            const rootGroup = sidebar.locator("nav[data-shell-navigation]");
             await expect(rootGroup).toHaveCount(1);
+            await expect(
+              rootGroup.locator('[data-navigation-depth="0"][href]'),
+            ).toHaveCount(4);
             await expect(
               rootGroup.getByRole("button", {
                 name: "Primary navigation",

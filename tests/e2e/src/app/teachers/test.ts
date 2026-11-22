@@ -291,7 +291,7 @@ test.describe("/catalog/teachers", () => {
       await expect(countLink).toHaveText("1");
       await expect(countLink.locator("xpath=ancestor::a[1]")).toHaveAttribute(
         "href",
-        `/catalog/teachers/${teacher.id}#sections`,
+        `/catalog/teachers/${teacher.id}/sections`,
       );
       await page.setViewportSize({ width: 390, height: 900 });
       const mobileCount = page.locator(
@@ -300,7 +300,7 @@ test.describe("/catalog/teachers", () => {
       await expect(mobileCount).toHaveText("1");
       await expect(mobileCount).toHaveAttribute(
         "href",
-        `/catalog/teachers/${teacher.id}#sections`,
+        `/catalog/teachers/${teacher.id}/sections`,
       );
     });
   });

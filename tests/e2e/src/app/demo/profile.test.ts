@@ -418,10 +418,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
                 await expect(toggle).toBeVisible();
                 await expect(toggle).toHaveAttribute("type", "button");
                 await expect(toggle).not.toHaveAttribute("href");
-                const rootLabel =
-                  locale === "en-us"
-                    ? "Back to Primary navigation"
-                    : "返回主导航";
+                const rootLabel = locale === "en-us" ? "Back" : "返回";
                 await expect(toggle).toHaveAccessibleName(rootLabel);
                 await expect(form).toHaveCount(1);
                 await expect(form).toBeVisible();
@@ -461,10 +458,11 @@ for (const locale of ["en-us", "zh-cn"] as const)
                 const observePreview = (request: {
                   method(): string;
                   url(): string;
-                }) =>
-                  previewRequests.push(
-                    `${request.method()} ${new URL(request.url()).pathname}`,
-                  );
+                }) => {
+                  const path = new URL(request.url()).pathname;
+                  if (!path.startsWith("/_app/immutable/"))
+                    previewRequests.push(`${request.method()} ${path}`);
+                };
                 page.on("request", observePreview);
                 try {
                   await toggle.click();

@@ -45,7 +45,7 @@ async function useChineseLocale(page: Page) {
   expect(response.status()).toBe(200);
 }
 
-test.describe("/catalog/sections 教学班搜索页", () => {
+test.describe("/catalog/sections 班级搜索页", () => {
   test("页面契约", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
@@ -58,7 +58,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
     });
   });
 
-  test("无匹配教学班时显示明确空状态且不渲染结果链接", {
+  test("无匹配班级时显示明确空状态且不渲染结果链接", {
     tag: "@Section/Web",
   }, async ({ page, preferenceFlow, searchSection: _searchSection }) => {
     await preferenceFlow.run(async () => {
@@ -71,7 +71,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
 
         await expect(
           page
-            .getByText(/未找到教学班|No sections found/i)
+            .getByText(/未找到班级|No sections found/i)
             .filter({ visible: true }),
         ).toBeVisible();
         await expect(
@@ -143,10 +143,10 @@ test.describe("/catalog/sections 教学班搜索页", () => {
         page.locator('[data-slot="active-filters"]:visible'),
       ).toBeVisible();
       await expect(
-        page.getByRole("heading", { name: "所有教学班" }),
+        page.getByRole("heading", { name: "所有班级" }),
       ).toBeVisible();
       await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
-      await expect(page).toHaveTitle(/教学班/);
+      await expect(page).toHaveTitle(/班级/);
 
       const header = page.locator('[data-slot="collection-header"]');
       const bounds = await header.boundingBox();
@@ -181,7 +181,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
     });
   });
 
-  test("英文界面本地化教学班列表名称", { tag: "@Section/Web" }, async ({
+  test("英文界面本地化班级列表名称", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
     searchSection: _searchSection,
@@ -207,7 +207,6 @@ test.describe("/catalog/sections 教学班搜索页", () => {
       );
 
       await expect(visibleText(page, DEV_SEED.course.nameEn)).toBeVisible();
-      await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.teacher.nameEn)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.campus.nameEn)).toBeVisible();
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
@@ -240,11 +239,11 @@ test.describe("/catalog/sections 教学班搜索页", () => {
           ["学期", ["semesterId"]],
           ["教师", ["teacher"]],
           ["课程名称", ["courseName"]],
-          ["课程代码", ["courseCode"]],
+          ["课程编号", ["courseCode"]],
           ["课程类别", ["categoryId"]],
           ["教育层次", ["educationLevelId"]],
           ["课程类型", ["classTypeId"]],
-          ["教学班代码", ["sectionCode"]],
+          ["班级编号", ["sectionCode"]],
           ["校区", ["campusId"]],
           ["院系", ["departmentId"]],
           ["学分", ["credits"]],
@@ -323,7 +322,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
         await gotoAndWaitForReady(page, "/catalog/sections");
 
         await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
-        await expect(page).toHaveTitle(/教学班/);
+        await expect(page).toHaveTitle(/班级/);
         await expect(page.locator("vite-error-overlay")).toHaveCount(0);
         await expect(
           page.locator('[data-slot="table-filter-toolbar"]:visible'),
@@ -408,13 +407,19 @@ test.describe("/catalog/sections 教学班搜索页", () => {
             if (!cell || !target)
               throw new Error("Sections table column content missing");
             const headerStyle = getComputedStyle(header);
-            const targetStyle = getComputedStyle(target);
             const headerBox = header.getBoundingClientRect();
-            const targetBox = target.getBoundingClientRect();
             const headerEdge =
               headerBox.left + Number.parseFloat(headerStyle.paddingLeft);
-            const cellEdge =
-              targetBox.left + Number.parseFloat(targetStyle.paddingLeft);
+            const walker = document.createTreeWalker(
+              target,
+              NodeFilter.SHOW_TEXT,
+            );
+            let text = walker.nextNode();
+            while (text && !text.textContent?.trim()) text = walker.nextNode();
+            const range = document.createRange();
+            if (!text) throw new Error("Missing table text");
+            range.selectNodeContents(text);
+            const cellEdge = range.getBoundingClientRect().left;
             return {
               alignment: headerStyle.textAlign,
               offset: Math.abs(headerEdge - cellEdge),
@@ -545,8 +550,8 @@ test.describe("/catalog/sections 教学班搜索页", () => {
       await page.keyboard.press("Escape");
       for (const [column, _label, name, value] of [
         ["教师", "教师", "teacher", DEV_SEED.teacher.nameCn],
-        ["课程代码", "课程代码", "courseCode", DEV_SEED.course.code],
-        ["教学班代码", "教学班代码", "sectionCode", DEV_SEED.section.code],
+        ["课程编号", "课程编号", "courseCode", DEV_SEED.course.code],
+        ["班级编号", "班级编号", "sectionCode", DEV_SEED.section.code],
         ["学分", "学分", "credits", String(DEV_SEED.section.credits)],
       ]) {
         const filter = await openCatalogColumnFilter(page, column);
@@ -557,7 +562,7 @@ test.describe("/catalog/sections 教学班搜索页", () => {
           (url) => url.searchParams.get(name) === value,
         );
       }
-      const sorting = await openCatalogColumnFilter(page, "教学班代码");
+      const sorting = await openCatalogColumnFilter(page, "班级编号");
       await sorting.getByRole("radio", { name: "降序" }).click();
       await applyCatalogFilters(page);
       await expect(sorting).toBeHidden();

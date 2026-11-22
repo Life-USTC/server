@@ -7,7 +7,7 @@ export const facts = {
   section: { jwId: 1, code: "MCP1001.01" },
   teacher: { jwId: 1, code: "MCPTEACHER", nameCn: "验证教师" },
   roomJwId: 1,
-  homeworks: { title: "独立教学班作业" },
+  homeworks: { title: "独立班级作业" },
   todos: { dueTodayTitle: "独立待办事项", completedTitle: "已完成待办事项" },
   bus: {
     versionTitle: "Private MCP timetable",

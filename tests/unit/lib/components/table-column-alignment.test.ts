@@ -635,6 +635,13 @@ for (const table of columnTables) {
       continue;
     }
     const cellBlocks = relativeBlocks(row.cells);
+    // A conditional cell with rowspan={n} exists only at the start of its
+    // group. Its slot persists in subsequent rows via native table layout.
+    for (const [index, cell] of row.cells.entries()) {
+      const span = /\browspan=\{([\w.]+)\}/.exec(cell.element.attributes)?.[1];
+      if (span && cellBlocks[index].at(-1) === `{#if ${span}}`)
+        cellBlocks[index].pop();
+    }
     const diverged = headBlocks.findIndex(
       (blocks, index) =>
         blocks.join("\u0000") !== cellBlocks[index].join("\u0000"),

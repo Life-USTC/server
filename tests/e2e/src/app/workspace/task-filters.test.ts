@@ -22,7 +22,7 @@ function taskTitle(
     tab === "exams"
       ? page
           .getByTestId("room-map-preview")
-          .getByRole("button", { name: new RegExp(title, "i") })
+          .getByRole("link", { name: new RegExp(title, "i") })
       : page.getByText(title, { exact: true });
   return locator.filter({ visible: true });
 }
@@ -105,7 +105,7 @@ test("task filters respond after navigating between workspace pages", {
       await gotoAndWaitForReady(page, "/workspace/homeworks");
       for (const tab of ["todos", "exams", "homeworks", "todos"] as const) {
         if (isMobile)
-          await page.locator('[data-slot="sidebar-trigger"]').click();
+          await page.locator('[data-slot="sidebar-trigger"]:visible').click();
         await page
           .locator(`a[href="/workspace/${tab}"]`)
           .filter({ visible: true })

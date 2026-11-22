@@ -562,7 +562,7 @@ for (const [locale, width] of [
               await expect(homework).toBeVisible();
               await homework.click();
               await expect(page).toHaveURL(
-                /\/catalog\/sections\/910001\?homeworkId=demo-homework-project#homework$/,
+                /\/catalog\/sections\/910001\/homework\?homeworkId=demo-homework-project$/,
               );
               await expect(
                 page.getByRole("dialog", {
@@ -854,7 +854,7 @@ test("demo search: same-query locale change retires a held Demo response", {
               expect(
                 body.groups.find((group) => group.type === "sections")?.items[0]
                   ?.title,
-              ).toBe("Linear Algebra · Teacher Chen, Teacher Lin");
+              ).toBe("Linear Algebra (Fall 2026, Teacher Chen, Teacher Lin)");
               return true;
             },
             async (capture) => {

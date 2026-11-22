@@ -37,7 +37,6 @@ type Props = {
   eyebrow?: string;
   eyebrowContent?: Snippet;
   footer?: Snippet;
-  identity?: Snippet;
   header?: Snippet;
   headerClass?: string;
   layout?: PageTemplateLayout;
@@ -65,7 +64,6 @@ let {
   eyebrow = "",
   eyebrowContent,
   footer,
-  identity,
   header: customHeader,
   headerClass = "",
   layout = "stack",
@@ -124,14 +122,11 @@ let {
 {/snippet}
 
 {#if layout === "detail"}
-  <DetailPageLayout {identity}>
+  <DetailPageLayout aside={asideContent}>
     {#snippet header()}
       {@render pageHeader()}
     {/snippet}
     {@render children()}
-    {#snippet aside()}
-      {#if asideContent}{@render asideContent()}{/if}
-    {/snippet}
   </DetailPageLayout>
 {:else}
   <PageLayout {width} class={className}>

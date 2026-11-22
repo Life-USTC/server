@@ -1,4 +1,5 @@
 <script lang="ts">
+import TeacherIcon from "@lucide/svelte/icons/user-round";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
@@ -46,7 +47,7 @@ let showEmailColumn = $derived(
 );
 
 function teacherSectionsHref(teacher: TeacherListRow) {
-  return `/catalog/teachers/${teacher.id}#sections`;
+  return `/catalog/teachers/${teacher.id}/sections`;
 }
 </script>
 
@@ -79,7 +80,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
               <MobileListCard size="sm">
                 {#snippet child({ props })}
                   <a href={teacherHref} {...props}>
-                    <Item.Content><Item.Title><CatalogEntityName item={teacher} locale={locale} /></Item.Title></Item.Content>
+                    <Item.Content><Item.Title><TeacherIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" /><CatalogEntityName item={teacher} locale={locale} /></Item.Title></Item.Content>
                     <Item.Actions>
                       {#if sectionCount > 0}
                         <span
@@ -111,7 +112,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
               {#if sectionCount > 0}
                 <a
                   href={teacherSectionsHref(teacher)}
-                  class="absolute right-3 top-0 flex min-h-11 min-w-11 items-center justify-end text-sm tabular-nums text-muted-foreground underline-offset-2 hover:underline"
+                  class="absolute right-3 top-0 flex min-h-11 min-w-11 items-center justify-end text-sm tabular-nums text-muted-foreground underline-offset-2"
                   data-testid="teacher-section-count"
                 >{sectionCount}</a>
               {/if}
@@ -129,7 +130,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
         <Table.Root class="">
           <Table.Header>
             <Table.Row>
-              <Table.Head><CatalogColumnFilter {...columnFilters.name} idPrefix="desktop-teacher-name" /></Table.Head>
+              <Table.Head class="pl-8"><CatalogColumnFilter {...columnFilters.name} idPrefix="desktop-teacher-name" /></Table.Head>
               <Table.Head><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-teacher-code" /></Table.Head>
               <Table.Head><CatalogColumnFilter {...columnFilters.department} idPrefix="desktop-teacher-department" /></Table.Head>
               {#if showTitleColumn}
@@ -138,14 +139,14 @@ function teacherSectionsHref(teacher: TeacherListRow) {
               {#if showEmailColumn}
                 <Table.Head><CatalogColumnFilter {...columnFilters.email} idPrefix="desktop-teacher-email" /></Table.Head>
               {/if}
-              <Table.Head><CatalogColumnFilter {...columnFilters.sections} idPrefix="desktop-teacher-sections" /></Table.Head>
+              <Table.Head class="pl-8"><CatalogColumnFilter {...columnFilters.sections} idPrefix="desktop-teacher-sections" /></Table.Head>
             </Table.Row>
           </Table.Header>
           <Table.Body>
             {#each teachers as teacher}
               {@const teacherHref = `/catalog/teachers/${teacher.id}`}
               {@const sectionCount = teacher._count.sections}
-              <Table.Row class="has-[a:hover]:bg-muted/50">
+              <Table.Row>
                 <Table.Cell class="p-0">
                   <CatalogTableLink class="font-medium" href={teacherHref}>
                   <TruncatedText class="font-medium"
@@ -190,7 +191,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
                   </CatalogTableLink>
                 {:else}
                   <span
-                    class="flex h-full min-h-12 min-w-0 w-full items-center px-3 tabular-nums"
+                    class="flex h-full min-h-12 min-w-0 w-full items-center pr-3 pl-8 tabular-nums"
                     data-testid="teacher-section-count"
                   >0</span>
                 {/if}

@@ -34,14 +34,6 @@ export function teacherName(teacher: TeacherName) {
   return secondary ? `${primary} (${secondary})` : primary;
 }
 
-export function sectionTeachersLabel(
-  section: { teachers: TeacherName[] },
-  noTeacherLabel: string,
-) {
-  if (section.teachers.length === 0) return noTeacherLabel;
-  return section.teachers.map(teacherName).join(", ");
-}
-
 export function yesNoLabel(
   value: boolean | null | undefined,
   labels: { fallback: string; no: string; yes: string },

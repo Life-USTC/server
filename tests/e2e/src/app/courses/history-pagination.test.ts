@@ -80,13 +80,13 @@ async function verifyHistory(
         { width: 390, height: 844 },
       ]) {
         await page.setViewportSize(viewport);
-        const response = await gotoAndWaitForReady(page, route);
+        const response = await gotoAndWaitForReady(page, `${route}/sections`);
         const history = page.getByTestId("section-history");
         await expect(
           history.locator('[data-slot="results-summary"]'),
         ).toHaveCount(0);
         const rows = page.locator(
-          '#sections table:visible tbody tr td:first-child a, #sections a[data-slot="item"]:visible',
+          '#sections a[href^="/catalog/sections/"]:visible',
         );
         const firstPageIds = new Set(
           await rows.evaluateAll((links) =>
@@ -98,11 +98,11 @@ async function verifyHistory(
         const loading = history.locator('[data-slot="endless-scroll"]');
         await expect(loading.getByRole("link")).toHaveAttribute(
           "href",
-          `${route}?sectionsPage=2#sections`,
+          `${route}/sections?sectionsPage=2`,
         );
         await loading.scrollIntoViewIfNeeded();
         await expect(rows).toHaveCount(23);
-        await expect(page).toHaveURL(new RegExp(`${route}$`));
+        await expect(page).toHaveURL(new RegExp(`${route}/sections$`));
         const allIds = await rows.evaluateAll((links) =>
           links.map((link) => link.getAttribute("href")),
         );
@@ -111,12 +111,12 @@ async function verifyHistory(
         await expect(loading).toHaveCount(0);
         await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
           "href",
-          new RegExp(`${route}$`),
+          new RegExp(`${route}/sections$`),
         );
         // A direct reload must retain page 2 even after root HTML warmed its cache.
         const pagedResponse = await gotoAndWaitForReady(
           page,
-          `${route}?sectionsPage=2#sections`,
+          `${route}/sections?sectionsPage=2`,
         );
         expect(pagedResponse?.headers()["cache-control"]).toContain("no-store");
         await expect(rows).toHaveCount(3);
@@ -130,11 +130,11 @@ async function verifyHistory(
         await page.reload();
         await expect(rows).toHaveCount(3);
         await expect(page).toHaveURL(
-          new RegExp(`${route}\\?sectionsPage=2#sections$`),
+          new RegExp(`${route}/sections\\?sectionsPage=2$`),
         );
         expect(response?.status()).toBe(200);
       }
-      await gotoAndWaitForReady(page, `${route}?sectionsPage=2#sections`);
+      await gotoAndWaitForReady(page, `${route}/sections?sectionsPage=2`);
       const viewerPath = `/_internal/catalog/sections/${sectionBase + 22}/viewer`;
       // Client navigation reads the destination section viewer. Observe that
       // actual read before clicking and require it to complete successfully.

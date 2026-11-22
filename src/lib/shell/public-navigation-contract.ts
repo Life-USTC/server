@@ -1,3 +1,4 @@
+import { academicEntityPath } from "@/features/catalog/lib/academic-detail-path";
 /** Server attestation: every returned layout/page node is a public projection. */
 export const PUBLIC_NAVIGATION_HEADER = "x-life-public-navigation";
 
@@ -47,7 +48,8 @@ export function isPublicNavigationPath(pathname: string) {
   if (pathname.endsWith("/")) pathname = pathname.slice(0, -1);
   return (
     PUBLIC_PATHS.has(pathname) ||
-    /^\/catalog\/(?:courses|sections|teachers)\/[1-9]\d*$/.test(pathname) ||
+    /^\/catalog\/rooms\/[^/]+$/.test(pathname) ||
+    Boolean(academicEntityPath(pathname)) ||
     /^\/catalog\/young-events(?:\/(?:organizers(?:\/[^/]+)?|[^/]+))?$/.test(
       pathname,
     ) ||

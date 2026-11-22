@@ -1,5 +1,4 @@
 import {
-  sectionTeachersLabel as buildSectionTeachersLabel,
   teacherName as buildTeacherName,
   formatMessage as formatSectionMessage,
   primaryName as sectionPrimaryName,
@@ -73,19 +72,6 @@ export function createSectionDetailDisplayActions(input: {
     formatMessage,
     primaryName: sectionPrimaryName,
     secondaryName: sectionSecondaryName,
-    sectionTeachersLabel(section: {
-      teachers?: Array<{
-        namePrimary?: string | null;
-        nameSecondary?: string | null;
-        nameCn?: string | null;
-        nameEn?: string | null;
-      }>;
-    }) {
-      return buildSectionTeachersLabel(
-        { teachers: section.teachers ?? [] },
-        input.getSectionCopy().noTeacher,
-      );
-    },
     semesterWeekLabel,
     teacherName,
     yesNo(value: boolean | null | undefined) {

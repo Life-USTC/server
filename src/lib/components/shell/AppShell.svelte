@@ -48,6 +48,7 @@ import {
 import type { DemoView } from "@/features/demo/lib/demo-types";
 import { afterNavigate, goto } from "$app/navigation";
 import { navigating, page as routePage } from "$app/state";
+import AppPreferencesMenu from "./AppPreferencesMenu.svelte";
 import MobilePrimaryNavigation from "./MobilePrimaryNavigation.svelte";
 import {
   buildShellNavGroups,
@@ -316,7 +317,7 @@ async function resolveClientShell(
         hasCompleteProfile: Boolean(viewerUser?.name && viewerUser.username),
       })
     ) {
-      const returnTo = `${routePage.url.pathname}${routePage.url.search}`;
+      const returnTo = `${routePage.url.pathname}${routePage.url.search}${routePage.url.hash}`;
       await goto(
         `/account/welcome?callbackUrl=${encodeURIComponent(returnTo)}`,
       );
@@ -388,8 +389,8 @@ afterNavigate(({ from, to, type, shallow }) => {
   globalSearchGeneration += 1;
   void resolveClientShell(type);
   if (
-    from.url.pathname === to.url.pathname &&
-    from.url.search === to.url.search
+    to.url.hash ||
+    (from.url.pathname === to.url.pathname && from.url.search === to.url.search)
   ) {
     return;
   }
@@ -475,6 +476,7 @@ let navViewer = $derived(
         : null,
 );
 let navContext = $derived({
+  search: routePage.url.search,
   pathname: routePage.url.pathname,
   pageData: routePage.data,
   navigation: workspaceNavigation,
@@ -484,7 +486,11 @@ function projectNavigation(groups: ReturnType<typeof buildShellNavGroups>) {
     ? groups.map((group) => ({
         ...group,
         links: group.links.map((link) =>
-          demoNavigationLink(link, viewerDemo?.unavailableReason ?? ""),
+          demoNavigationLink(
+            link,
+            viewerDemo?.unavailableReason ?? "",
+            routePage.url.pathname,
+          ),
         ),
       }))
     : groups;
@@ -623,7 +629,11 @@ let globalSearchShortcutLabel = $derived(
         scopes={navigationScopes}
         currentScope={scopedNavigation.current}
         {navigationOwnerKey}
-      />
+      >
+        {#snippet mobilePreferences()}
+          <AppPreferencesMenu copy={data.copy} locale={data.locale} {localeMenuOpen} {setLocale} {setLocaleMenuOpen} {setThemeMenuOpen} {setThemeMode} {themeMenuOpen} {themeMode} />
+        {/snippet}
+      </AppSidebar>
 
       <Sidebar.Inset
         aria-label={mainContentLabel}
@@ -681,8 +691,6 @@ let globalSearchShortcutLabel = $derived(
             <ShellDetailNavigation
               pageData={routePage.data}
               pathname={routePage.url.pathname}
-              hash={routePage.url.hash}
-              viewerReady={!viewerLoading}
               copy={data.copy}
             />
           {/if}

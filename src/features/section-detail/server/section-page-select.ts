@@ -13,6 +13,7 @@ export const sectionPageTeachersSelect = {
 export const sectionPageTeachersWithDepartmentSelect = {
   select: {
     ...entityNameSelect,
+    teacherTitle: { select: localizedNameSelect },
     department: {
       select: localizedNameSelect,
     },
@@ -80,6 +81,12 @@ export const sectionPageSelect = {
   },
   roomType: {
     select: localizedNameSelect,
+  },
+  teacherAssignments: {
+    select: {
+      role: true,
+      teacherLessonType: { select: { nameCn: true, nameEn: true } },
+    },
   },
   teachers: sectionPageTeachersWithDepartmentSelect,
   adminClasses: {

@@ -6,8 +6,8 @@ import * as Table from "#lib/components/ui/table/index.js";
 import {
   type CatalogNamed,
   catalogLocalizedNames,
+  sectionSummary,
 } from "@/features/catalog/lib/catalog-list-display";
-import { formatSemesterName } from "@/lib/text/format-semester-name";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
   CourseDetailCopy,
@@ -31,7 +31,7 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
     <Table.Root class="">
       <Table.Header>
         <Table.Row>
-          <Table.Head>{copy.courseDetail.semester}</Table.Head>
+          <Table.Head class="pl-8">{copy.courseDetail.teachingSections}</Table.Head>
           <Table.Head>{copy.courseDetail.sectionCode}</Table.Head>
           <Table.Head>{copy.courseDetail.campus}</Table.Head>
           <Table.Head>{copy.courseDetail.capacity}</Table.Head>
@@ -43,32 +43,16 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
           {@const sectionHref = `/catalog/sections/${section.jwId}`}
           <Table.Row>
             <Table.Cell class="p-0">
-              <CatalogTableLink class="font-medium" href={sectionHref} nowrap>
-                {section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : notAvailable}
+              <CatalogTableLink class="font-medium" href={sectionHref}>
+                {sectionSummary({ ...section, course }, locale)}
               </CatalogTableLink>
             </Table.Cell>
-            <Table.Cell class="p-0">
-              <CatalogTableLink href={sectionHref}>
-                <TruncatedCode text={section.code} />
-              </CatalogTableLink>
-            </Table.Cell>
-            <Table.Cell class="p-0">
-              <CatalogTableLink href={sectionHref} nowrap>
-                {primaryName(section.campus) || notAvailable}
-              </CatalogTableLink>
-            </Table.Cell>
-            <Table.Cell class="p-0">
-              <CatalogTableLink href={sectionHref} nowrap numeric>
-                {section.stdCount ?? 0} / {section.limitCount ?? notAvailable}
-              </CatalogTableLink>
-            </Table.Cell>
-            <Table.Cell class="p-0">
-              <CatalogTableLink href={sectionHref}>
-                <TruncatedText
+            <Table.Cell><TruncatedCode text={section.code} /></Table.Cell>
+            <Table.Cell>{primaryName(section.campus) || notAvailable}</Table.Cell>
+            <Table.Cell>{section.stdCount ?? 0} / {section.limitCount ?? notAvailable}</Table.Cell>
+            <Table.Cell><TruncatedText
                   text={catalogLocalizedNames(section.teachers, locale) || notAvailable}
-                />
-              </CatalogTableLink>
-            </Table.Cell>
+                /></Table.Cell>
           </Table.Row>
         {/each}
       </Table.Body>

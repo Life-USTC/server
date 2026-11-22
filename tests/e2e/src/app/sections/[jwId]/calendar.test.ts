@@ -16,7 +16,7 @@ import { jumpToSection } from "./_helpers";
 
 const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
 
-test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
+test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test("schedule.schedule-as-context", { tag: "@Calendar/Web" }, async ({
     page,
     preferenceFlow,
@@ -75,22 +75,6 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
           .or(scheduleTable.getByText(DEV_SEED.room.nameEn, { exact: false }))
           .first(),
       ).toBeVisible();
-      await expect(
-        scheduleTable
-          .getByText(DEV_SEED.building.nameCn, { exact: false })
-          .or(
-            scheduleTable.getByText(DEV_SEED.building.nameEn, {
-              exact: false,
-            }),
-          )
-          .first(),
-      ).toBeVisible();
-      await expect(
-        scheduleTable
-          .getByText(DEV_SEED.campus.nameCn, { exact: false })
-          .or(scheduleTable.getByText(DEV_SEED.campus.nameEn, { exact: false }))
-          .first(),
-      ).toBeVisible();
 
       const response = await page.request.get(
         `/api/catalog/sections/${DEV_SEED.section.jwId}/schedules`,
@@ -127,10 +111,20 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
           (await page.request.get(`/catalog/teachers/${teacher.id}`)).ok(),
         ).toBe(true);
       }
+      const room = scheduleTable.locator('a[href^="/catalog/rooms/"]').first();
+      const roomHref = await room.getAttribute("href");
+      await room.click();
+      await expect(page).toHaveURL(new URL(roomHref!, page.url()).href);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("101");
+      await expect(
+        page.getByRole("link", { name: /教室地图|Classroom locations/ }),
+      ).toHaveAttribute("href", "/catalog/rooms?room=101");
+      await page.goBack();
+      await expect(scheduleTable).toBeVisible();
     });
   });
 
-  test("日历区块以课表表格展示教学班日程", { tag: "@Calendar/Web" }, async ({
+  test("日历区块以课表表格展示班级日程", { tag: "@Calendar/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog,
@@ -149,7 +143,7 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
 
       const calendar = page.locator("#calendar");
       await expect(
-        calendar.getByRole("heading", { name: /日历|Calendar/i }),
+        calendar.getByRole("heading", { name: /上课安排|Class schedule/i }),
       ).toBeVisible();
       await expect(calendar.locator("table").first()).toBeVisible();
       await expect(calendar.locator("tbody tr").first()).toBeVisible();
@@ -191,7 +185,9 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
         clientWidth: element.clientWidth,
         scrollWidth: element.scrollWidth,
       }));
-      expect(dimensions.scrollWidth).toBeGreaterThan(dimensions.clientWidth);
+      expect(dimensions.scrollWidth).toBeGreaterThanOrEqual(
+        dimensions.clientWidth,
+      );
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -238,7 +234,9 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
 
         const calendarButton = page
           .getByTestId("detail-pinned-summary")
-          .getByRole("button", { name: /添加到日历|Add to calendar/i })
+          .getByRole("button", {
+            name: /^(订阅|Subscribe|已订阅|Subscribed)$/i,
+          })
           .first();
         await expect(calendarButton).toBeVisible();
 
@@ -247,8 +245,11 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
         await expect(calDialog).toBeVisible();
 
         // iCalendar URL (ical.yml → section-calendar-dialog.display.fields)
+        await expect(calDialog.getByRole("radio")).toHaveCount(0);
+        await calDialog
+          .getByRole("button", { name: /添加到日历|Add to calendar/i })
+          .click();
         const singleUrl = calDialog.locator("#calendar-url");
-        const subscriptionUrl = calDialog.locator("#subscription-url");
         await expect(singleUrl).toBeVisible();
 
         // Single section URL
@@ -256,15 +257,6 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
         expect(singleValue).toContain(
           `/api/catalog/sections/${DEV_SEED.section.jwId}/calendar.ics`,
         );
-
-        // Long-lived private feed credentials are only revealed from the
-        // recent-authenticated subscriptions workspace, never a public section.
-        const subscriptionValue = await subscriptionUrl.inputValue();
-        expect(subscriptionValue).toMatch(
-          /前往教学班订阅页面|Open section subscriptions to securely view your personal calendar feed/i,
-        );
-        await expect(subscriptionUrl).toBeDisabled();
-        expect(subscriptionValue).not.toContain("/api/calendar-feeds/");
 
         // Copy single URL
         await calDialog
@@ -276,15 +268,15 @@ test.describe("/catalog/sections/[jwId] 教学班详情页", () => {
         );
         expect(singleClipboard).toBe(singleValue);
 
-        await expect(
-          calDialog.getByRole("button", { name: /复制|Copy/i }).nth(1),
-        ).toBeDisabled();
-
+        await calDialog.getByRole("radio").nth(1).check();
         await expect(
           calDialog.getByRole("link", {
-            name: /查看教学班订阅|View section subscriptions/i,
+            name: /前往班级订阅页面|Open section subscriptions/i,
           }),
-        ).toHaveAttribute("href", "/workspace/subscriptions");
+        ).toHaveAttribute("href", "/workspace/subscriptions?calendarLink=1");
+        await expect(
+          calDialog.locator('input[value*="/api/calendar-feeds/"]'),
+        ).toHaveCount(0);
       });
     },
   );

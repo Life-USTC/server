@@ -15,10 +15,10 @@ async function openKindDialog(page: Page, jwId: number, width: number) {
     .filter({ visible: true })
     .first();
   await row
-    .getByRole("button", { name: /教学班订阅身份|Section subscription role/ })
+    .getByRole("button", { name: /班级订阅身份|Section subscription role/ })
     .click();
   const dialog = page.getByRole("dialog", {
-    name: /教学班订阅身份|Section subscription role/,
+    name: /班级订阅身份|Section subscription role/,
   });
   await expect(dialog).toBeVisible();
   return dialog;

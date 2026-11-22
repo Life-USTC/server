@@ -6,6 +6,7 @@ import {
   openCatalogColumnFilter,
   setCatalogFilterValue,
 } from "../../../utils/catalog-table-filters";
+import { selectDetailTab } from "../../../utils/locators";
 import { test } from "../../../utils/owned-worker";
 import {
   expectNoPageHorizontalOverflow,
@@ -47,12 +48,14 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                   fullPage: true,
                 });
                 if (width === 1280) {
-                  const workspace = page.getByTestId("workspace-sidebar");
+                  const workspace = page.locator("nav[data-shell-navigation]");
                   await expect(workspace).toHaveAttribute(
                     "data-shell-navigation-view",
-                    "workspace",
+                    "root",
                   );
-                  await page.getByTestId("workspace-sidebar-back").click();
+                  await expect(
+                    page.getByTestId("workspace-sidebar-back"),
+                  ).toHaveCount(0);
                   await expect(workspace).toHaveAttribute(
                     "data-shell-navigation-view",
                     "root",
@@ -61,10 +64,10 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                     .locator('[data-slot="sidebar-content"] a[href="/campus"]')
                     .click();
                   await expect(page).toHaveURL(/\/campus$/);
-                  const campus = page.getByTestId("campus-sidebar");
+                  const campus = page.locator("nav[data-shell-navigation]");
                   await expect(campus).toHaveAttribute(
                     "data-shell-navigation-view",
-                    "campus",
+                    "root",
                   );
                   await campus.locator('a[href="/catalog/courses"]').click();
                   await waitForUiSettled(page);
@@ -114,7 +117,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                 await page.keyboard.press("Escape");
                 const code = await openCatalogColumnFilter(
                   page,
-                  /^(课程代码|Course Code)$/i,
+                  /^(课程编号|Course Code)$/i,
                 );
                 await setCatalogFilterValue(code, "code", "MATH");
                 await page.keyboard.press("Escape");
@@ -164,14 +167,12 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                 await expect(
                   page.locator('a[href$=".ics"]:visible'),
                 ).toHaveCount(0);
+                await selectDetailTab(page, "sections");
                 const sectionLinks = page.locator(
                   '#main-content a[href="/catalog/sections/910001"]:visible',
                 );
-                // Desktop history exposes one link per cell; select its code.
-                await (width === 1280
-                  ? sectionLinks.filter({ hasText: "DEMO-MATH01.01" })
-                  : sectionLinks
-                ).click();
+                await expect(sectionLinks).toHaveCount(1);
+                await sectionLinks.click();
                 await waitForUiSettled(page);
                 await expect(page).toHaveURL(/\/catalog\/sections\/910001$/);
                 await expect(page.getByTestId("demo-notice")).toBeVisible();

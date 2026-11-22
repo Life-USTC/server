@@ -29,10 +29,7 @@ for (const kind of ["regular", "auditor", "teaching_assistant"] as const) {
           await expect(
             page
               .getByRole("button", {
-                name:
-                  locale === "zh-cn"
-                    ? "取消订阅教学班"
-                    : "Unsubscribe from section",
+                name: locale === "zh-cn" ? "已订阅" : "Subscribed",
                 exact: true,
               })
               .filter({ visible: true }),

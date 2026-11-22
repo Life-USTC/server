@@ -201,7 +201,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             id: `homework:${homework.id}`,
             title: homework.title,
             description: sentinel,
-            href: `/catalog/sections/812001?homeworkId=${homework.id}#homework`,
+            href: `/catalog/sections/812001/homework?homeworkId=${homework.id}`,
           },
         ]);
         expect(items(ordinaryBody, "todos")).toEqual([
@@ -328,20 +328,24 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             910001,
             "DEMO-MATH01.01",
             english
-              ? "Linear Algebra · Teacher Chen, Teacher Lin"
-              : "线性代数 · 陈老师、林老师",
+              ? "Linear Algebra (Fall 2026, Teacher Chen, Teacher Lin)"
+              : "线性代数（2026年秋季学期，陈老师、林老师）",
             english ? "Fall 2026" : "2026年秋季学期",
           ],
           [
             910002,
             "DEMO-PHYS01.01",
-            english ? "College Physics · Teacher Chen" : "大学物理 · 陈老师",
+            english
+              ? "College Physics (Fall 2026, Teacher Chen)"
+              : "大学物理（2026年秋季学期，陈老师）",
             english ? "Fall 2026" : "2026年秋季学期",
           ],
           [
             910003,
             "DEMO-CS01.01",
-            english ? "Data Structures · Teacher Lin" : "数据结构 · 林老师",
+            english
+              ? "Data Structures (Spring 2026, Teacher Lin)"
+              : "数据结构（2026年春季学期，林老师）",
             english ? "Spring 2026" : "2026年春季学期",
           ],
         ].map(([id, code, title, description]) => ({
@@ -414,9 +418,8 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           href:
             "/catalog/sections/" +
             sectionId +
-            "?homeworkId=demo-homework-" +
-            id +
-            "#homework",
+            "/homework?homeworkId=demo-homework-" +
+            id,
         }));
         const expectedTodos = [
           {
@@ -625,7 +628,8 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           ).json();
           expect(dto).toMatchObject({ homework: { id, title: item.title } });
           const target = new URL(item.href, isolatedWorker.origin);
-          expect(target.hash).toBe("#homework");
+          expect(target.hash).toBe("");
+          expect(target.pathname).toMatch(/\/homework$/);
           const html = await (
             await read(target.pathname + target.search, 200, "GET", {
               accept: "text/html",
@@ -646,13 +650,15 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             nodes.push(value);
           }
           expect(Object.assign({}, ...nodes)).toMatchObject({
-            section: { jwId: Number(target.pathname.split("/").at(-1)) },
+            section: { jwId: Number(target.pathname.split("/")[3]) },
             focusedHomeworkId: id,
             homeworkData: { homeworks: [] },
           });
           // The existing page hydrates personal homework details separately.
           const personal: unknown = await (
-            await read(`/_internal${target.pathname}/viewer${target.search}`)
+            await read(
+              `/_internal/catalog/sections/${target.pathname.split("/")[3]}/viewer${target.search}`,
+            )
           ).json();
           expect(personal).toMatchObject({
             viewer: { signedIn: false, isSubscribed: true },

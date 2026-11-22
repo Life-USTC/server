@@ -18,7 +18,7 @@ async function prepareDescriptions(worker: IsolatedWorker) {
     [
       {
         sectionId: catalog.sections[0].id,
-        content: "课程建议：独立教学班简介",
+        content: "课程建议：独立班级简介",
       },
       { courseId: catalog.courses[0].id, content: "Known course description" },
       {

@@ -107,7 +107,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
                 try {
                   await gotoAndWaitForReady(
                     page,
-                    "/catalog/courses/920001#comments",
+                    "/catalog/courses/920001/comments",
                   );
                   const comments = page.locator("#comments");
                   const roots = comments.locator(
@@ -235,7 +235,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
                       page.evaluate(() => navigator.clipboard.readText()),
                     )
                     .toBe(
-                      `${isolatedWorker.origin}/catalog/courses/920001#comment-${rootId}`,
+                      `${isolatedWorker.origin}/catalog/courses/920001/comments#comment-${rootId}`,
                     );
                   for (const id of ["demo-comment-course-21", lastReply]) {
                     await gotoAndWaitForReady(
@@ -243,7 +243,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
                       `/community/comments/${id}`,
                     );
                     await expect(page).toHaveURL(
-                      `${isolatedWorker.origin}/catalog/courses/920001#comment-${id}`,
+                      `${isolatedWorker.origin}/catalog/courses/920001/comments#comment-${id}`,
                     );
                     await expect(page.locator(`#comment-${id}`)).toBeVisible();
                     await expectReadableText(
@@ -254,7 +254,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
                   }
                   await gotoAndWaitForReady(
                     page,
-                    "/catalog/sections/910001#comments",
+                    "/catalog/sections/910001/comments",
                   );
                   await expect(
                     page.locator("#comment-demo-comment-section-101"),
@@ -292,7 +292,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
                   expect((await courseApi.json()).pagination.total).toBe(21);
                   await gotoAndWaitForReady(
                     page,
-                    "/catalog/teachers/401#comments",
+                    "/catalog/teachers/401/comments",
                   );
                   await expect(
                     page.locator("#comment-demo-comment-teacher-401"),
@@ -402,7 +402,7 @@ test("demo.community: late private-owner responses and history cannot restore an
           await page.route(pattern, handler);
           try {
             // The real comment response stays held until after identity changes.
-            await page.goto("/catalog/courses/920001#comments", {
+            await page.goto("/catalog/courses/920001/comments", {
               waitUntil: "domcontentloaded",
             });
             await expect(page.locator("html")).toHaveAttribute(
@@ -435,7 +435,7 @@ test("demo.community: late private-owner responses and history cannot restore an
               .getByRole("button", { name: "Enter demo", exact: true })
               .click();
             await expect(page).toHaveURL(/\/workspace\/todos$/);
-            await gotoAndWaitForReady(page, "/catalog/courses/920001#comments");
+            await gotoAndWaitForReady(page, "/catalog/courses/920001/comments");
             await expect(page.locator(`#comment-${rootId}`)).toBeVisible();
             const bootstrap = await (
               await page.request.get("/_internal/shell-bootstrap")

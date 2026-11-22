@@ -40,6 +40,22 @@ describe("four primary navigation and adjacent owned directories", () => {
   ] as const)("owns %s as %s", (path, expected) =>
     expect(primaryDestination(path)).toBe(expected),
   );
+  test.each([
+    "/",
+    "/workspace/homeworks",
+    "/workspace/todos",
+    "/workspace/exams",
+    "/workspace/calendar",
+    "/campus",
+    "/catalog/sections",
+    "/catalog/young-events/calendar",
+  ])("retains both visible root levels on %s", (pathname) => {
+    const { current } = buildNavigationScopes(buildLayoutCopy("en-us"), user, {
+      ...context,
+      pathname,
+    });
+    expect(current).toBe("root");
+  });
   test.each(["en-us", "zh-cn"] as const)(
     "keeps the four roots and public Campus separate in %s",
     (locale) => {
@@ -478,7 +494,7 @@ describe("four primary navigation and adjacent owned directories", () => {
       ["/account/settings/security", "settings"],
       ["/workspace/subscriptions/activities", "activity-workspace"],
       ["/admin/moderation", "admin-queues"],
-      ["/workspace/calendar", "calendar"],
+      ["/workspace/calendar", "root"],
     ])
       expect(
         buildNavigationScopes(copy, admin, { ...context, pathname }).current,
@@ -490,6 +506,27 @@ describe("four primary navigation and adjacent owned directories", () => {
       }).current,
     ).toBe("root");
   });
+  test.each(["events", "organizers", "notifications"])(
+    "keeps sibling activity subscription pages reachable from %s",
+    (view) => {
+      const model = buildNavigationScopes(buildLayoutCopy("en-us"), user, {
+        ...context,
+        pathname: "/workspace/subscriptions/activities",
+        search: `?view=${view}`,
+      });
+      expect(model.current).toBe("activity-workspace");
+      expect(displayNavigationScope(model.scopes, model.current)).toBe(
+        "activity-workspace",
+      );
+      expect(
+        model.scopes[model.current].groups[0].links.map((link) => link.href),
+      ).toEqual([
+        "/workspace/subscriptions/activities?view=events",
+        "/workspace/subscriptions/activities?view=organizers",
+        "/workspace/subscriptions/activities?view=notifications",
+      ]);
+    },
+  );
 });
 
 vi.mock("@lucide/svelte/icons/app-window", () => ({ default: () => null }));

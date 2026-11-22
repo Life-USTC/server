@@ -40,7 +40,7 @@ for (const count of [1, 2]) {
         await gotoAndWaitForReady(page, "/workspace/subscriptions");
         await page
           .getByRole("button", {
-            name: en ? "Bulk Add Section Subscriptions" : "批量添加教学班订阅",
+            name: en ? "Bulk Add Section Subscriptions" : "批量添加班级订阅",
             exact: true,
           })
           .first()
@@ -67,7 +67,7 @@ for (const count of [1, 2]) {
             await checkbox.setChecked(selected > 0);
           const title = en
             ? `Confirm ${selected} section ${selected === 1 ? "subscription" : "subscriptions"}`
-            : `确认订阅 ${selected} 个教学班`;
+            : `确认订阅 ${selected} 个班级`;
           await check(
             confirm.locator("#bulk-import-confirm-title"),
             title,
@@ -78,7 +78,7 @@ for (const count of [1, 2]) {
             confirm.locator('[data-slot="dialog-footer"] button').last(),
             en
               ? `Subscribe to ${selected} ${selected === 1 ? "section" : "sections"}`
-              : `订阅已选的 ${selected} 个教学班`,
+              : `订阅已选的 ${selected} 个班级`,
             `bulk-button-${selected}`,
           );
           if (selected === 0)
@@ -98,7 +98,7 @@ for (const count of [1, 2]) {
           page.locator("[data-sonner-toast]").filter({
             hasText: en
               ? `Added ${count} new ${count === 1 ? "section" : "sections"} to Life@USTC`
-              : `已新增 ${count} 个教学班订阅`,
+              : `已新增 ${count} 个班级订阅`,
           }),
         ).toBeVisible();
         await expect(
@@ -106,7 +106,7 @@ for (const count of [1, 2]) {
             .getByText(
               en
                 ? `${count} ${count === 1 ? "section" : "sections"} included`
-                : `包含 ${count} 个教学班`,
+                : `包含 ${count} 个班级`,
               { exact: true },
             )
             .first(),

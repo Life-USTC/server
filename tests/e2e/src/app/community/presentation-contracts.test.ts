@@ -4,6 +4,7 @@ import {
   discussion,
   test,
 } from "../../../utils/community-fixture";
+import { selectDetailTab } from "../../../utils/locators";
 import { waitForUiSettled } from "../../../utils/page-ready";
 
 test.describe.configure({ mode: "parallel" });
@@ -65,7 +66,7 @@ test("description.public-web-personal-overlay", {
       },
     );
     for (const target of targets) {
-      await page.goto(`${target.path}#introduction`);
+      await page.goto(`${target.path}/introduction`);
       const introduction = page.locator("#introduction");
       const retry = introduction.getByRole("button", { name: /重试|Retry/i });
       await expect(retry).toBeVisible();
@@ -94,7 +95,10 @@ test("description.supplement-not-comment", { tag: "@Description/Web" }, async ({
       await expect(introduction).toContainText(content);
       await expect(introduction).toContainText(account.name);
       await expect(introduction).toContainText("2026");
-      await expect(introduction).not.toContainText(discussion);
+      await expect(
+        introduction.locator('[data-slot="markdown-preview"]').first(),
+      ).not.toContainText(discussion);
+      if (target.type !== "section") await selectDetailTab(page, "comments");
       await expect(comments).toContainText(discussion);
       await expect(comments).not.toContainText(content);
     }

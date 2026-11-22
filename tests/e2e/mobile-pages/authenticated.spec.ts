@@ -31,7 +31,7 @@ test.describe("移动端页面健全性", () => {
                   .getByTestId("calendar-agenda")
                   .filter({ visible: true })
                   .locator(
-                    `a[href="/catalog/sections/${DEV_SEED.section.jwId}"]`,
+                    `a[href="/catalog/sections/${DEV_SEED.section.jwId}/schedule"]`,
                   )
                   .first(),
               ).toBeVisible();

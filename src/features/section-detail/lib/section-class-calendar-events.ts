@@ -8,19 +8,13 @@ import type {
   SectionDetailSection,
 } from "./section-calendar-event-types";
 
-function roomLocationParts(schedule: ScheduleItem) {
-  if (schedule.customPlace) return [schedule.customPlace];
-  const room = primaryName(schedule.room);
-  const building = primaryName(schedule.room?.building);
-  const campus = primaryName(schedule.room?.building?.campus);
-  return [room, building, campus].filter((part): part is string =>
-    Boolean(part),
-  );
-}
-
 function roomLabel(schedule: ScheduleItem, sectionCopy: SectionDetailCopy) {
-  const parts = roomLocationParts(schedule);
-  return parts.length > 0 ? parts.join(" · ") : sectionCopy.roomTbd;
+  return (
+    schedule.customPlace ||
+    primaryName(schedule.room) ||
+    schedule.room?.code ||
+    sectionCopy.roomTbd
+  );
 }
 
 function roomDetailRows(

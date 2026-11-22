@@ -90,7 +90,7 @@ describe("application shell focused chrome", () => {
     expect(topbar).toContain("hideSignIn");
     // Loading, ordinary and sealed Demo owners take precedence over guest sign-in.
     expect(topbar).toMatch(
-      /\{#if viewerLoading\}[\s\S]*?\{:else if user \|\| demo\}[\s\S]*?<AppUserMenu\b[\s\S]*?\{:else if !hideSignIn\}[\s\S]*?<Button href="\/account\/sign-in"/,
+      /\{#if viewerLoading\}[\s\S]*?\{:else if user \|\| demo\}[\s\S]*?<AppUserMenu\b[\s\S]*?\{:else if !hideSignIn\}[\s\S]*?<SignInButton\b/,
     );
   });
 });

@@ -42,13 +42,13 @@ import {
 } from "../../../../utils/catalog-browser-fixture";
 import { openCommentComposer } from "../../../../utils/comments";
 import { DEV_SEED } from "../../../../utils/dev-seed";
-import { visibleText } from "../../../../utils/locators";
+import { selectDetailTab, visibleText } from "../../../../utils/locators";
 import { observeAction } from "../../../../utils/observed-action";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const COURSE_URL = `/catalog/courses/${DEV_SEED.course.jwId}`;
-const COURSE_WITH_DESCRIPTION_URL = `/catalog/courses/${scenarioData.courses[2].jwId}#introduction`;
+const COURSE_WITH_DESCRIPTION_URL = `/catalog/courses/${scenarioData.courses[2].jwId}/introduction`;
 const COURSE_WITH_DESCRIPTION_TEXT = "实验课建议准备护目镜并提前完成预习问答。";
 
 test.describe("/catalog/courses/[jwId] 课程详情", () => {
@@ -101,13 +101,13 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
     });
   });
 
-  test("显示培养层次、课程类别和教学班类型", { tag: "@Course/Web" }, async ({
+  test("显示培养层次、课程类别和班级类型", { tag: "@Course/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
   }) => {
     await preferenceFlow.run(async () => {
-      await gotoAndWaitForReady(page, COURSE_URL);
+      await gotoAndWaitForReady(page, `${COURSE_URL}/overview`);
 
       // course.educationLevel.namePrimary (locale-dependent)
       await expect(
@@ -138,7 +138,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("详情流式布局包含主要锚点区块", { tag: "@Course/Web" }, async ({
+  test("侧栏切换简介、开班记录和评论页面", { tag: "@Course/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -147,15 +147,18 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       await gotoAndWaitForReady(page, COURSE_URL);
 
       await expect(page.locator("#introduction")).toBeVisible();
+      await selectDetailTab(page, "sections");
       await expect(
-        page.getByRole("heading", { name: /授课教学班|Teaching Sections/i }),
+        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
+      await expect(page.locator("#introduction")).toHaveCount(0);
+      await selectDetailTab(page, "comments");
       await expect(
         page.getByRole("heading", { name: /评论|Comments/i }),
       ).toBeVisible();
 
       await gotoAndWaitForReady(page, `${COURSE_URL}#comments`);
-      await expect(page).toHaveURL(/\/catalog\/courses\/\d+#comments$/);
+      await expect(page).toHaveURL(/\/catalog\/courses\/\d+\/comments$/);
       await expect(page.locator("#comments")).toBeVisible();
     });
   });
@@ -179,7 +182,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
       expect(titleBox).not.toBeNull();
       if (!codeBox || !titleBox)
         throw new Error("Missing course title geometry");
-      expect(codeBox.y + codeBox.height).toBeLessThanOrEqual(titleBox.y);
+      expect(codeBox.y).toBeGreaterThanOrEqual(titleBox.y + titleBox.height);
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
       ).toBeLessThanOrEqual(390);
@@ -235,7 +238,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           );
           await gotoAndWaitForReady(
             page,
-            `/catalog/courses/${community.course.jwId}#introduction`,
+            `/catalog/courses/${community.course.jwId}/introduction`,
           );
           const introduction = page.locator("#introduction");
           await expect(introduction).toBeVisible();
@@ -341,9 +344,9 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
         async () => {
           await gotoAndWaitForReady(
             page,
-            `/catalog/courses/${community.course.jwId}#comments`,
+            `/catalog/courses/${community.course.jwId}/comments`,
           );
-          await expect(page).toHaveURL(/\/catalog\/courses\/\d+#comments$/);
+          await expect(page).toHaveURL(/\/catalog\/courses\/\d+\/comments$/);
           const body = `e2e-course-comment-${Date.now()}`;
           const composer = await openCommentComposer(page);
           await composer.fill(body);
@@ -428,7 +431,7 @@ test("页面契约", { tag: "@Course/Web" }, async ({
 }) => {
   await preferenceFlow.run(async () => {
     await assertPageContract(page, {
-      routePath: "/catalog/courses/[jwId]/[section]",
+      routePath: "/catalog/courses/[jwId]/introduction",
     });
   });
 });

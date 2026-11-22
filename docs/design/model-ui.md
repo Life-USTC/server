@@ -13,7 +13,7 @@ makes their composition visible instead of introducing another field registry.
 
 | Model    | Identity                                                                                     | Supporting context                                                        | Task state and action                                                                                               |
 | -------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Course   | Plain monospace course code as a small eyebrow, then the dominant localized name             | Secondary localized name where applicable, education level and category   | Browse its offerings; a course is not itself a semester subscription                                                |
+| Course   | Dominant localized name and subtitle, followed by the plain monospace course code            | Secondary localized name where applicable, education level and category   | Browse its offerings; a course is not itself a semester subscription                                                |
 | Section  | Course name, then teachers; keep the same order in cards, subscription selection and details | Section code in plain monospace, semester, campus, credits when available | Subscription state is separate from identity; subscribe to this specific offering                                   |
 | Homework | Homework title                                                                               | Linked section context, tags and other published facts                    | Absolute due date/time and own completion state remain visible across entry points; relative urgency is subordinate |
 
@@ -23,9 +23,7 @@ and subscription confirmation, including its course name. A section code never
 replaces the title. Existing semester-grouped history behavior remains owned by
 the feature policy rather than this illustrative offering card.
 
-Detail reading follows the existing responsive policy: hero, compact identity
-facts, reading stream, remaining facts on a narrow screen; reading stream and
-structured facts beside each other only when both have useful width. Long names
+Academic detail pages follow the single-column composition in the [academic navigation PRD](academic-navigation.md). Long names
 wrap in cards and headers. A table may truncate only with its existing complete
 text interaction. Internal row IDs and JW retrieval IDs do not become UI labels.
 

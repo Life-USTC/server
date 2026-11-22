@@ -17,6 +17,7 @@ export type SectionDetailNamed = {
 };
 
 export type SectionDetailTeacher = SectionDetailNamed & {
+  teacherTitle?: SectionDetailNamed | null;
   department?: SectionDetailNamed | null;
   id: string | number;
 };
@@ -63,6 +64,10 @@ export type SectionDetailExam = {
 };
 
 export type SectionDetailSection = {
+  teacherAssignments?: Array<{
+    role?: string | null;
+    teacherLessonType?: SectionDetailNamed | null;
+  }>;
   actualPeriods?: number | null;
   adminClasses: SectionDetailNamed[];
   campus?: SectionDetailNamed | null;
@@ -86,6 +91,7 @@ export type SectionDetailSection = {
   periodsPerWeek?: number | null;
   practicePeriods?: number | null;
   remark?: string | null;
+  scheduleRemark?: string | null;
   retiredAt?: string | Date | null;
   roomType?: SectionDetailNamed | null;
   schedules: SectionDetailSchedule[];
@@ -228,6 +234,13 @@ export type SectionDetailCopy = {
     titlePlaceholder: string;
   };
   sectionDetail: {
+    timesPerWeek: string;
+    totalPeriods: string;
+    actualPeriods: string;
+    assessmentMode: string;
+    teachingRole: string;
+    scheduleDateTime: string;
+    classSchedule: string;
     addToCalendar: string;
     adminClasses: string;
     basicInfo: string;
@@ -382,6 +395,7 @@ export type SectionDetailPageData = {
   detailSection:
     | "overview"
     | "introduction"
+    | "schedule"
     | "calendar"
     | "exams"
     | "homework"

@@ -16,85 +16,17 @@ describe("page request attribution", () => {
     expect(classifyPageAuthSignalPresence(false)).toBe("absent");
   });
 
-  it("treats canonical catalog detail routes as overview (stream layout)", () => {
-    const url = new URL(
-      "https://life.example/catalog/sections/12345?tab=calendar",
-    );
-
-    expect(resolvePageCatalogDetailTab("/catalog/sections/[jwId]", url)).toBe(
-      "overview",
-    );
-    expect(
-      resolvePageCatalogDetailTab("/catalog/sections/[jwId]", url, {
-        section: "introduction",
-      }),
-    ).toBe("overview");
-  });
-
-  it("resolves section detail legacy redirect routes from path params", () => {
-    expect(
-      resolvePageCatalogDetailTab(
-        "/catalog/sections/[jwId]/[section]",
-        new URL("https://life.example/catalog/sections/12345/homework"),
-        { section: "homework" },
-      ),
-    ).toBe("homework");
-    expect(
-      resolvePageCatalogDetailTab(
-        "/catalog/sections/[jwId]/[section]",
-        new URL("https://life.example/catalog/sections/12345/unknown"),
-        { section: "unknown" },
-      ),
-    ).toBe("overview");
-  });
-
-  it("defaults section and course detail routes without tabs to overview", () => {
-    expect(
-      resolvePageCatalogDetailTab(
-        "/catalog/sections/[jwId]",
-        new URL("https://life.example/catalog/sections/12345"),
-      ),
-    ).toBe("overview");
-    expect(
-      resolvePageCatalogDetailTab(
-        "/catalog/courses/[jwId]",
-        new URL("https://life.example/catalog/courses/42"),
-      ),
-    ).toBe("overview");
-    expect(
-      resolvePageCatalogDetailTab(
-        "/catalog/teachers/[id]",
-        new URL("https://life.example/catalog/teachers/7"),
-      ),
-    ).toBe("overview");
-  });
-
-  it("resolves course and teacher detail tabs from route params", () => {
-    expect(
-      resolvePageCatalogDetailTab(
-        "/catalog/courses/[jwId]/[section]",
-        new URL("https://life.example/catalog/courses/42/comments"),
-        { section: "comments" },
-      ),
-    ).toBe("comments");
-    expect(
-      resolvePageCatalogDetailTab(
-        "/catalog/teachers/[id]/[section]",
-        new URL("https://life.example/catalog/teachers/7/sections"),
-        { section: "sections" },
-      ),
-    ).toBe("sections");
-  });
-
-  it("returns not_applicable for non-catalog detail routes", () => {
-    expect(
-      resolvePageCatalogDetailTab(
-        "/workspace",
-        new URL("https://life.example/workspace"),
-      ),
-    ).toBe("not_applicable");
-    expect(
-      resolvePageCatalogDetailTab(null, new URL("https://life.example/")),
-    ).toBe("not_applicable");
+  it.each([
+    ["/catalog/sections/[jwId]", "introduction"],
+    ["/catalog/courses/[jwId]", "introduction"],
+    ["/catalog/sections/[jwId]/homework", "homework"],
+    ["/catalog/sections/[jwId]/calendar", "calendar"],
+    ["/catalog/courses/[jwId]/comments", "comments"],
+    ["/catalog/teachers/[id]/sections", "sections"],
+    ["/catalog/teachers/[id]/calendar", "not_applicable"],
+    ["/workspace", "not_applicable"],
+    [null, "not_applicable"],
+  ])("attributes %s to %s", (route, tab) => {
+    expect(resolvePageCatalogDetailTab(route)).toBe(tab);
   });
 });

@@ -41,12 +41,12 @@ function escapeForRegExp(value: string) {
 }
 async function openBulkImportDialog(page: import("@playwright/test").Page) {
   const textarea = page.getByRole("textbox", {
-    name: /教学班或课程代码|Section or course codes|粘贴|Paste/i,
+    name: /班级或课程编号|Section or course codes|粘贴|Paste/i,
   });
   if ((await textarea.count()) === 0) {
     await page
       .getByRole("button", {
-        name: /批量添加教学班订阅|Bulk Add Section Subscriptions/i,
+        name: /批量添加班级订阅|Bulk Add Section Subscriptions/i,
       })
       .first()
       .click();
@@ -85,9 +85,9 @@ async function assertDialogViewportSafe(
   await expect(dialog.locator('[data-slot="dialog-footer"]')).toBeInViewport();
   await expect(dialog.getByRole("button", { name: "Close" })).toBeInViewport();
 }
-test.describe("仪表盘教学班订阅", () => {
+test.describe("仪表盘班级订阅", () => {
   test.describe.configure({ mode: "parallel" });
-  test("旧版 /workspace/subscriptions/sections 重定向到教学班订阅页面", {
+  test("旧版 /workspace/subscriptions/sections 重定向到班级订阅页面", {
     tag: "@Subscription/Web",
   }, async ({ page, account: _account, subscriptionRun }) => {
     await subscriptionRun(async () => {
@@ -112,7 +112,7 @@ test.describe("仪表盘教学班订阅", () => {
       });
     },
   );
-  test("登录后显示独立教学班订阅、必填字段和英文单复数文案", {
+  test("登录后显示独立班级订阅、必填字段和英文单复数文案", {
     tag: "@Subscription/Web",
   }, async ({ page, subscriptions: catalog, baseURL, subscriptionRun }) => {
     await subscriptionRun(async () => {
@@ -123,7 +123,7 @@ test.describe("仪表盘教学班订阅", () => {
       const sidebar = page.getByTestId("app-sidebar");
       await expect(
         sidebar.getByRole("link", {
-          name: /教学班订阅|Section subscriptions/i,
+          name: /班级订阅|Section subscriptions/i,
         }),
       ).toHaveAttribute("aria-current", "page");
       await expect(
@@ -238,13 +238,13 @@ test.describe("仪表盘教学班订阅", () => {
       await expect(
         page
           .getByRole("button", {
-            name: /批量添加教学班订阅|Bulk Add Section Subscriptions/i,
+            name: /批量添加班级订阅|Bulk Add Section Subscriptions/i,
           })
           .first(),
       ).toBeVisible();
       const content = page.locator("[data-shell-scroll-container]");
       for (const [name, href] of [
-        [/浏览教学班|Browse Sections/i, "/catalog/sections"],
+        [/班级|Classes/i, "/catalog/sections"],
         [/浏览课程|Browse Courses/i, "/catalog/courses"],
       ] as const) {
         const link = content.getByRole("link", { name });
@@ -262,14 +262,14 @@ test.describe("仪表盘教学班订阅", () => {
       await expect(
         page
           .getByRole("button", {
-            name: /添加教学班订阅|Add Section Subscription/i,
+            name: /添加班级订阅|Add Section Subscription/i,
           })
           .first(),
       ).toBeVisible();
       await expect(
         page
           .getByRole("button", {
-            name: /批量添加教学班订阅|Bulk Add Section Subscriptions/i,
+            name: /批量添加班级订阅|Bulk Add Section Subscriptions/i,
           })
           .first(),
       ).toBeVisible();
@@ -291,7 +291,7 @@ test.describe("仪表盘教学班订阅", () => {
       ).toHaveCount(0);
     });
   });
-  test("课程名称链接到教学班主页", { tag: "@Subscription/Web" }, async ({
+  test("课程名称链接到班级主页", { tag: "@Subscription/Web" }, async ({
     page,
     subscriptions: catalog,
     subscriptionRun,
@@ -340,11 +340,11 @@ test.describe("仪表盘教学班订阅", () => {
         .first();
       await courseRow
         .getByRole("button", {
-          name: /^(取消订阅教学班|Unsubscribe from section)$/i,
+          name: /^(取消订阅班级|Unsubscribe from section)$/i,
         })
         .click();
       const confirmDialog = page.getByRole("alertdialog", {
-        name: /确认取消教学班订阅|Unsubscribe from this section/i,
+        name: /确认取消班级订阅|Unsubscribe from this section/i,
       });
       await expect(confirmDialog).toBeVisible();
       await expect(confirmDialog).not.toContainText(catalog.section.code);
@@ -373,13 +373,13 @@ test.describe("仪表盘教学班订阅", () => {
       await expect(
         page.locator("[data-sonner-toast]").filter({
           hasText:
-            /该教学班已从订阅列表中移除|This section has been removed from your Life@USTC subscriptions/i,
+            /该班级已从订阅列表中移除|This section has been removed from your Life@USTC subscriptions/i,
         }),
       ).toBeVisible();
       await expect(
         page.locator('[data-slot="alert"][role="alert"]').filter({
           hasText:
-            /该教学班已从订阅列表中移除|This section has been removed from your Life@USTC subscriptions/i,
+            /该班级已从订阅列表中移除|This section has been removed from your Life@USTC subscriptions/i,
         }),
       ).toHaveCount(0);
     });
@@ -487,13 +487,13 @@ test.describe("仪表盘教学班订阅", () => {
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
       await page
         .getByRole("button", {
-          name: /添加教学班订阅|Add Section Subscription/i,
+          name: /添加班级订阅|Add Section Subscription/i,
         })
         .first()
         .click();
       const quickAddDialog = page
         .getByRole("dialog", {
-          name: /添加教学班订阅|Add Section Subscription/i,
+          name: /添加班级订阅|Add Section Subscription/i,
         })
         .first();
       await expect(quickAddDialog).toBeVisible();
@@ -537,7 +537,7 @@ test.describe("仪表盘教学班订阅", () => {
       await expect(footer).toBeInViewport();
       await expect(closeButton).toBeInViewport();
       const subscribeButton = quickAddDialog.getByRole("button", {
-        name: /订阅所选教学班|Subscribe to selected sections/i,
+        name: /订阅所选班级|Subscribe to selected sections/i,
       });
       await expect(subscribeButton).toBeInViewport();
       const resultViewport = quickAddDialog
@@ -578,14 +578,14 @@ test.describe("仪表盘教学班订阅", () => {
         '[data-slot="separator"][data-orientation="horizontal"]',
       );
       const resultsLabel = quickAddDialog.getByText(
-        /找到 \d+ 个教学班|Found \d+ sections?/i,
+        /找到 \d+ 个班级|Found \d+ sections?/i,
       );
       const searchInput = quickAddDialog.getByRole("textbox", {
         name: /搜索课程或教师|Search courses or teachers/i,
       });
       await expect(
         quickAddDialog.getByText(
-          /最多显示 20 个教学班，请增加限定条件|Up to 20 sections are shown/i,
+          /最多显示 20 个班级，请增加限定条件|Up to 20 sections are shown/i,
         ),
       ).toBeVisible();
       await expect(
@@ -655,7 +655,7 @@ test.describe("仪表盘教学班订阅", () => {
         () =>
           quickAddDialog
             .getByRole("button", {
-              name: /订阅所选教学班|Subscribe to selected sections/i,
+              name: /订阅所选班级|Subscribe to selected sections/i,
             })
             .click(),
       );
@@ -663,13 +663,13 @@ test.describe("仪表盘教学班订阅", () => {
       await expect(
         page.locator("[data-sonner-toast]").filter({
           hasText:
-            /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
+            /已新增 \d+ 个班级订阅|Added \d+ new sections? to Life@USTC/i,
         }),
       ).toBeVisible();
       await expect(
         page.locator('[data-slot="alert"][role="alert"]').filter({
           hasText:
-            /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
+            /已新增 \d+ 个班级订阅|Added \d+ new sections? to Life@USTC/i,
         }),
       ).toHaveCount(0);
       await waitForUiSettled(page);
@@ -708,13 +708,13 @@ test.describe("仪表盘教学班订阅", () => {
         const openDialog = async () => {
           await page
             .getByRole("button", {
-              name: /添加教学班订阅|Add Section Subscription/i,
+              name: /添加班级订阅|Add Section Subscription/i,
             })
             .first()
             .click();
         };
         const dialog = page.getByRole("dialog", {
-          name: /添加教学班订阅|Add Section Subscription/i,
+          name: /添加班级订阅|Add Section Subscription/i,
         });
         const search = async (query: string) => {
           await dialog
@@ -735,7 +735,7 @@ test.describe("仪表盘教学班订阅", () => {
           expect(response.ok()).toBe(true);
         };
         const submit = dialog.getByRole("button", {
-          name: /订阅所选教学班|Subscribe to selected sections/i,
+          name: /订阅所选班级|Subscribe to selected sections/i,
         });
         const first = dialog.getByRole("checkbox", {
           name: new RegExp(escapeForRegExp(catalog.section.code), "i"),
@@ -805,13 +805,13 @@ test.describe("仪表盘教学班订阅", () => {
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
       await page
         .getByRole("button", {
-          name: /添加教学班订阅|Add Section Subscription/i,
+          name: /添加班级订阅|Add Section Subscription/i,
         })
         .first()
         .click();
       const quickAddDialog = page
         .getByRole("dialog", {
-          name: /添加教学班订阅|Add Section Subscription/i,
+          name: /添加班级订阅|Add Section Subscription/i,
         })
         .first();
       await expect(quickAddDialog).toBeVisible();
@@ -828,13 +828,13 @@ test.describe("仪表盘教学班订阅", () => {
       await gotoAndWaitForReady(page, "/workspace/subscriptions");
       await page
         .getByRole("button", {
-          name: /添加教学班订阅|Add Section Subscription/i,
+          name: /添加班级订阅|Add Section Subscription/i,
         })
         .first()
         .click();
       const quickAddDialog = page
         .getByRole("dialog", {
-          name: /添加教学班订阅|Add Section Subscription/i,
+          name: /添加班级订阅|Add Section Subscription/i,
         })
         .first();
       await quickAddDialog
@@ -854,11 +854,11 @@ test.describe("仪表盘教学班订阅", () => {
           quickAddDialog.getByRole("button", { name: /搜索|Search/i }).click(),
       );
       await expect(
-        quickAddDialog.getByText(/没有找到教学班|No sections found/i),
+        quickAddDialog.getByText(/没有找到班级|No sections found/i),
       ).toBeVisible();
       await expect(
         quickAddDialog.getByRole("button", {
-          name: /订阅所选教学班|Subscribe to selected sections/i,
+          name: /订阅所选班级|Subscribe to selected sections/i,
         }),
       ).toBeDisabled();
       await expect(
@@ -903,19 +903,19 @@ test.describe("仪表盘教学班订阅", () => {
       ).toBeVisible();
       await dialog
         .getByRole("button", {
-          name: /订阅已选的 \d+ 个教学班|订阅已选|Subscribe to \d+ sections|Subscribe/i,
+          name: /订阅已选的 \d+ 个班级|订阅已选|Subscribe to \d+ sections|Subscribe/i,
         })
         .click();
       await expect(
         page.locator("[data-sonner-toast]").filter({
           hasText:
-            /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
+            /已新增 \d+ 个班级订阅|Added \d+ new sections? to Life@USTC/i,
         }),
       ).toBeVisible({ timeout: 15000 });
       await expect(
         page.locator('[data-slot="alert"][role="alert"]').filter({
           hasText:
-            /已新增 \d+ 个教学班订阅|Added \d+ new sections? to Life@USTC/i,
+            /已新增 \d+ 个班级订阅|Added \d+ new sections? to Life@USTC/i,
         }),
       ).toHaveCount(0);
       await waitForUiSettled(page);

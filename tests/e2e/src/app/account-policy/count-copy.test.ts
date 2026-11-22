@@ -96,7 +96,7 @@ for (const count of [0, 1, 2]) {
           if (consumer === "Comment") {
             await gotoAndWaitForReady(
               page,
-              `/catalog/courses/${f.course.jwId}`,
+              `/catalog/courses/${f.course.jwId}/comments`,
             );
             const hidden = page
               .locator('#comments [data-slot="alert-description"]')

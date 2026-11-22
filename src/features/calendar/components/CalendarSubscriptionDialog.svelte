@@ -22,6 +22,7 @@ export type CalendarSubscriptionUrl = {
 </script>
 
 <script lang="ts">
+import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
@@ -41,15 +42,19 @@ export let onOpenChange: (open: boolean) => void;
 export let showSubscriptionsLink = true;
 export let urls: CalendarSubscriptionUrl[];
 
+export let personalScope: { label: string; description: string; linkLabel: string } | undefined = undefined;
+let scope: "single" | "all" = "single";
+$: if (!isOpen) scope = "single";
+
 const titleId = "calendar-subscription-title";
 </script>
 
 <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
-  <Dialog.Content class="max-w-3xl sm:max-w-3xl" aria-labelledby={titleId}>
+  <Dialog.Content class="sm:max-w-xl" aria-labelledby={titleId}>
     <Dialog.Header>
-      <Dialog.Title id={titleId}>{copy.calendarSheetTitle}</Dialog.Title>
+      <Dialog.Title id={titleId} class="flex items-center gap-2"><CalendarDaysIcon aria-hidden="true" class="size-5" />{copy.calendarSheetTitle}</Dialog.Title>
       <Dialog.Description>
-        {copy.calendarSheetDescription}
+        {scope === "all" && personalScope ? personalScope.description : copy.calendarSheetDescription}
         {" "}
         <a
           class="text-primary-text underline underline-offset-4"
@@ -61,7 +66,19 @@ const titleId = "calendar-subscription-title";
         </a>
       </Dialog.Description>
     </Dialog.Header>
-    <section class="grid min-w-0 gap-4 px-5 py-4">
+    {#if personalScope}
+      <fieldset class="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1" aria-label={copy.calendarSheetTitle}>
+        {#each [["single", urls[0]?.label], ["all", personalScope.label]] as [value, label]}
+          <label class="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md px-2 text-sm has-checked:bg-background has-checked:font-medium has-checked:shadow-sm">
+            <input type="radio" name="calendar-scope" bind:group={scope} {value} />{label}
+          </label>
+        {/each}
+      </fieldset>
+    {/if}
+    <section class="grid min-w-0 gap-4 rounded-lg border p-4">
+      {#if scope === "all" && personalScope}
+        <a class="text-sm underline underline-offset-4" href="/workspace/subscriptions?calendarLink=1">{personalScope.linkLabel}</a>
+      {:else}
       {#if clipboardMessage}
         <Alert.Root>
           <CheckCircleIcon />
@@ -86,6 +103,7 @@ const titleId = "calendar-subscription-title";
           warning={url.warning}
         />
       {/each}
+      {/if}
       {#if showSubscriptionsLink}
         <Button class="w-fit" href="/workspace/subscriptions" variant="link">
           {copy.viewAllSubscriptions}

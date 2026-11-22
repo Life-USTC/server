@@ -101,14 +101,12 @@ test("section.student-identity-teachers", { tag: "@Section/Web" }, async ({
 
       await gotoAndWaitForReady(
         page,
-        `/catalog/sections/${fixture.section.jwId}`,
+        `/catalog/sections/${fixture.section.jwId}/overview`,
       );
       const heading = page.getByRole("heading", { level: 1 });
       await expect(heading).toHaveText(fixture.course.nameCn);
       await expect(heading).not.toContainText(fixture.section.code);
-      const overview = page
-        .getByRole("complementary")
-        .filter({ hasText: fixture.section.code });
+      const overview = page.locator("#overview");
       await expect(
         page.locator("[data-detail-identity]").getByRole("link", {
           name: `${fixture.teacher.nameCn} (${fixture.teacher.nameEn})`,
@@ -178,10 +176,10 @@ test("search.section-student-identity-teachers", {
       await expect(withoutTeacher).toBeVisible();
 
       await expect(withTeacher.locator(".font-medium")).toHaveText(
-        `${fixture.course.nameCn} · ${fixture.teacher.nameCn}`,
+        `${fixture.course.nameCn}（${fixture.semester.nameCn}，${fixture.teacher.nameCn}）`,
       );
       await expect(withoutTeacher.locator(".font-medium")).toHaveText(
-        fixture.course.nameCn,
+        `${fixture.course.nameCn}（${fixture.semester.nameCn}）`,
       );
       await expectMonospace(withTeacher.locator('[data-slot="catalog-code"]'));
       await expectMonospace(

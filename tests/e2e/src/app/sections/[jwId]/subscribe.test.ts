@@ -9,7 +9,7 @@ import {
   test,
 } from "../../../../utils/section-subscription-fixture";
 
-const subscribeName = /订阅教学班|Subscribe to section/i;
+const subscribeName = /^(订阅|Subscribe)$/i;
 const unsubscribeName = /取消订阅|Unsubscribe from section/i;
 
 test("匿名订阅入口说明非选课含义并要求登录", {
@@ -51,7 +51,7 @@ test("section.retired-detail-presentation", {
     await page.setViewportSize({ width: 1440, height: 900 });
     await gotoAndWaitForReady(page, `${section.path}?subscribe=1`);
     await expect(
-      page.getByText(/历史教学班|Historical section/i).first(),
+      page.getByText(/历史班级|Historical section/i).first(),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: subscribeName })).toHaveCount(
       0,
@@ -65,7 +65,7 @@ test("section.retired-detail-presentation", {
   });
 });
 
-test("已订阅用户仍可取消订阅已退役教学班", {
+test("已订阅用户仍可取消订阅已退役班级", {
   tag: "@Subscription/Web",
 }, async ({ sectionRun, page, memberSection: section, isolatedWorker }) => {
   await sectionRun(
@@ -99,8 +99,12 @@ test("已订阅用户仍可取消订阅已退役教学班", {
       await expect(page).toHaveURL(new RegExp(`${section.path}$`));
       await waitForUiSettled(page);
       await expect(
-        page.getByText(/历史教学班|Historical section/i).first(),
+        page.getByText(/历史班级|Historical section/i).first(),
       ).toBeVisible();
+      await page
+        .getByRole("button", { name: /^(已订阅|Subscribed)$/i })
+        .filter({ visible: true })
+        .click();
       const unsubscribe = page.getByRole("button", { name: unsubscribeName });
       await expect(unsubscribe.first()).toBeVisible();
       await expect(

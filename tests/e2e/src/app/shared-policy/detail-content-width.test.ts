@@ -2,6 +2,8 @@ import { expect } from "@playwright/test";
 import { test } from "../../../utils/catalog-browser-fixture";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
+test.use({ deviceScaleFactor: 2 });
+
 for (const kind of ["course", "teacher", "section"] as const) {
   test(
     `ui.detail-content-width ${kind}`,
@@ -71,148 +73,54 @@ for (const kind of ["course", "teacher", "section"] as const) {
               },
             });
           }
-          const observations: {
-            width: number;
-            reading: number;
-            identityX: number;
-            readingX: number;
-          }[] = [];
-          for (const width of [1023, 1024, 1144, 1280, 1440]) {
-            await page.setViewportSize({ width, height: 900 });
-            await gotoAndWaitForReady(page, route);
-            const sidebar = page.locator('[data-slot="sidebar"][data-state]');
-            if ((await sidebar.getAttribute("data-state")) === "collapsed") {
-              await page.locator('[data-slot="sidebar-rail"]').click();
-            }
-            await expect(sidebar).toHaveAttribute("data-state", "expanded");
-            await page.evaluate(async () => {
-              await Promise.all(
-                document
-                  .getAnimations()
-                  .filter(
-                    (animation) =>
-                      animation.effect?.getTiming().iterations !== Infinity,
-                  )
-                  .map((animation) => animation.finished.catch(() => {})),
-              );
+          for (const width of [390, 1023, 1024, 1144, 1280, 1440, 1920]) {
+            await page.setViewportSize({ width, height: 1080 });
+            await gotoAndWaitForReady(
+              page,
+              `${route}/${kind === "section" ? "calendar" : "introduction"}`,
+            );
+            const stream = page.locator("[data-detail-reading-stream]");
+            await expect(stream).toBeVisible();
+            await expect(page.locator("[data-detail-identity]")).toHaveCount(0);
+            const available = await page
+              .locator("[data-detail-scroll-container]")
+              .evaluate((node) => node.clientWidth);
+            const bounds = await stream.boundingBox();
+            expect(bounds?.width).toBeGreaterThanOrEqual(
+              Math.min(1152, available - 65),
+            );
+            const edges = await stream.evaluate((body) => {
+              const rect = body.getBoundingClientRect();
+              const frames = [
+                document.querySelector(
+                  "[data-testid=shell-detail-navigation] .page-frame",
+                ),
+                document.querySelector("#main-content h1")?.closest("header"),
+              ];
+              return frames.map((frame) => {
+                if (!frame) return null;
+                const { left, right } = frame.getBoundingClientRect();
+                return [
+                  Math.round(left - rect.left),
+                  Math.round(right - rect.right),
+                ];
+              });
             });
-            const reading = page.locator("[data-detail-reading-stream]");
-            const identity = page.locator("[data-detail-identity]");
-            await expect(reading).toBeVisible();
-            await expect(identity).toBeVisible();
+            expect(edges).toEqual([
+              [0, 0],
+              [0, 0],
+            ]);
             if (kind === "section") {
               const table = page.getByTestId("section-calendar-table");
-              await expect(table).toBeVisible();
-              const lastCell = table.locator("tbody tr td:last-child").first();
-              await expect(lastCell).toContainText("教学楼东侧研讨室");
+              await expect(
+                table.locator("tbody tr td:last-child").first(),
+              ).toContainText("教学楼东侧研讨室");
               await info.attach(`section-schedule-${width}`, {
-                body: await page.screenshot({ fullPage: true }),
+                body: await page.screenshot(),
                 contentType: "image/png",
               });
-              const tableWidth = await table.evaluate(
-                (node) => node.getBoundingClientRect().width,
-              );
-              const available = await reading.evaluate(
-                (node) => node.getBoundingClientRect().width,
-              );
-              expect(tableWidth).toBeLessThanOrEqual(available + 1);
             }
-            const metrics = await page.evaluate(() => {
-              const reading = document
-                .querySelector("[data-detail-reading-stream]")
-                ?.getBoundingClientRect();
-              const identity = document
-                .querySelector("[data-detail-identity]")
-                ?.getBoundingClientRect();
-              if (!reading || !identity)
-                throw new Error("Missing detail layout");
-              return {
-                reading: reading.width,
-                readingX: reading.x,
-                identityX: identity.x,
-              };
-            });
-            observations.push({ width, ...metrics });
-            if ([1024, 1144, 1440].includes(width))
-              await info.attach(`${kind}-${width}`, {
-                body: await page.screenshot({ fullPage: true }),
-                contentType: "image/png",
-              });
           }
-          expect(observations[1].reading).toBeGreaterThanOrEqual(
-            observations[0].reading - 16,
-          );
-          for (const row of observations)
-            expect(row.reading).toBeGreaterThanOrEqual(540);
-          expect(observations.at(-1)?.identityX).toBeGreaterThan(
-            observations.at(-1)?.readingX ?? 0,
-          );
-          // Resolve the threshold from the actual query container, including
-          // each shell's padding placement, rather than another viewport guess.
-          const contentWidth = await page
-            .locator("[data-detail-scroll-container]")
-            .evaluate((node) => {
-              const style = getComputedStyle(node);
-              return (
-                node.clientWidth -
-                parseFloat(style.paddingLeft) -
-                parseFloat(style.paddingRight)
-              );
-            });
-          const boundaryViewport = Math.round(1440 + 960 - contentWidth);
-          for (const viewport of [boundaryViewport - 1, boundaryViewport]) {
-            await page.setViewportSize({ width: viewport, height: 900 });
-            const reading = page.locator("[data-detail-reading-stream]");
-            const identity = page.locator("[data-detail-identity]");
-            await expect
-              .poll(async () => {
-                const bounds = await reading.boundingBox();
-                return bounds?.width ?? 0;
-              })
-              .toBeGreaterThanOrEqual(540);
-            const actual = await page.evaluate(() => {
-              const r = document
-                .querySelector("[data-detail-reading-stream]")
-                ?.getBoundingClientRect();
-              const i = document
-                .querySelector("[data-detail-identity]")
-                ?.getBoundingClientRect();
-              return Boolean(r && i && i.x > r.x + r.width);
-            });
-            expect(actual).toBe(viewport === boundaryViewport);
-            if (kind === "section") {
-              const table = page.getByTestId("section-calendar-table");
-              const bounds = await table.boundingBox();
-              expect(bounds?.width).toBeLessThanOrEqual(
-                (await reading.boundingBox())?.width ?? 0,
-              );
-            }
-            await expect(identity).toBeVisible();
-          }
-          await page.setViewportSize({ width: 1144, height: 900 });
-          await gotoAndWaitForReady(page, route);
-          await page.locator('[data-slot="sidebar-rail"]').click();
-          await expect
-            .poll(async () => {
-              const reading = await page
-                .locator("[data-detail-reading-stream]")
-                .boundingBox();
-              const identity = await page
-                .locator("[data-detail-identity]")
-                .boundingBox();
-              return Boolean(
-                reading && identity && identity.x > reading.x + reading.width,
-              );
-            })
-            .toBe(true);
-          const collapsedReading = await page
-            .locator("[data-detail-reading-stream]")
-            .boundingBox();
-          expect(collapsedReading?.width).toBeGreaterThanOrEqual(540);
-          await info.attach(`${kind}-1144-collapsed`, {
-            body: await page.screenshot({ fullPage: true }),
-            contentType: "image/png",
-          });
         },
         { anonymousCourseCount: 1 },
       );

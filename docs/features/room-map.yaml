@@ -72,7 +72,7 @@ requirements:
       name: room-map.calendar
 - id: room-map.web
   category: presentation
-  rule: Room labels support a lazily loaded preview on pointer hover and keyboard focus.
+  rule: Room labels link to their dedicated room page and support a lazily loaded preview on pointer hover and keyboard focus.
   acceptance:
     given: A public section calendar contains a room label and no preview request has run.
     when: The viewer hovers the label and then focuses it by keyboard.
@@ -96,7 +96,7 @@ requirements:
       name: room-map.empty-samples
 - id: room-map.url-navigation
   category: behavior
-  rule: The selected room is derived from the URL room query. Search and room links
+  rule: The selected room has a dedicated /catalog/rooms/[code] URL. Existing directory query links retain their inline lookup. Search and room links
     preserve reload, share and browser history. The directory progressively expands
     campus, building and floor, opening the selected marked room's path. A campus
     is shown only from an unambiguous public catalog association; missing or conflicting
@@ -109,8 +109,8 @@ requirements:
     when: A visitor chooses a sample, reloads, selects another room, navigates Back/Forward,
       and submits a lowercase room code on desktop and mobile.
     then:
-    - URL, input and preview retain the chosen room, including restored browser history.
-    - The selected campus, building and floor expand; an initial directory keeps room lists collapsed.
+    - URL and detail heading identify the chosen room, including after reload and history navigation.
+    - Legacy directory queries expand the selected campus, building and floor; an initial directory keeps room lists collapsed.
     - A building without an authoritative campus remains available under an unknown-campus label.
     test:
       file: tests/e2e/src/app/rooms/navigation.test.ts
@@ -180,6 +180,7 @@ capabilities:
     web:
       pages:
       - /catalog/rooms
+      - /catalog/rooms/[code]
       - /catalog/sections/[jwId]
     rest:
       routes:

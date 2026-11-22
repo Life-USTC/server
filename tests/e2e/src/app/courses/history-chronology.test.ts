@@ -75,7 +75,7 @@ for (const kind of ["course", "teacher"] as const) {
             await page.setViewportSize(viewport);
             await gotoAndWaitForReady(page, `${route}#sections`);
             const rows = page.locator(
-              '#sections table:visible tbody tr td:first-child a, #sections a[data-slot="item"]:visible',
+              '#sections a[href^="/catalog/sections/"]:visible',
             );
             await expect(rows).toHaveCount(3);
             observed.push(

@@ -261,7 +261,7 @@ export function getDemoCommunityRecords(
       "demo-comment-section-101",
       { targetType: "section", targetId: "101" },
       [
-        "这份教学班样例把课程、教师与课堂日期放在同一处，复习前可以交叉检查。",
+        "这份班级样例把课程、教师与课堂日期放在同一处，复习前可以交叉检查。",
         "This sample section brings the course, teachers and class dates together for revision checks.",
       ],
       0,
@@ -281,7 +281,7 @@ export function getDemoCommunityRecords(
       "demo-comment-section-teacher-101-401",
       { targetType: "section-teacher", sectionId: "101", teacherId: "401" },
       [
-        "这条讨论属于本教学班与陈老师的授课关系，不会混入其他教学班。",
+        "这条讨论属于本班级与陈老师的授课关系，不会混入其他班级。",
         "This discussion belongs to Teacher Chen's assignment to this section, not another section.",
       ],
       0,

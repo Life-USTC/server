@@ -43,7 +43,9 @@ test("ui.detail-two-column-stream-6", { tag: "@Comment/Web" }, async ({
         if (!rows) throw new Error("Missing comment fixtures");
         // Read the actual SSR response under each actor; no viewer-sensitive
         // comment data may be embedded in reusable catalog HTML.
-        const response = await context.request.get(target.path);
+        const response = await context.request.get(
+          `${target.path}/${target.type === "section" ? "introduction" : "comments"}`,
+        );
         expect(response.status()).toBe(200);
         const html = await response.text();
         for (const row of rows) {
@@ -79,7 +81,9 @@ test("ui.detail-two-column-stream-6", { tag: "@Comment/Web" }, async ({
               ),
             async () => {
               try {
-                await page.goto(target.path);
+                await page.goto(
+                  `${target.path}/${target.type === "section" ? "introduction" : "comments"}`,
+                );
                 await intercepted;
                 for (const row of rows)
                   await expect(

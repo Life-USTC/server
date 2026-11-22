@@ -140,7 +140,7 @@ for (const [domain, method, feature] of [
               await expect(
                 page
                   .locator(
-                    `a[href="/catalog/sections/${fixture.section.jwId}"]`,
+                    `a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
                   )
                   .filter({ visible: true })
                   .first(),
@@ -155,7 +155,7 @@ for (const [domain, method, feature] of [
               await expect(
                 page
                   .locator(
-                    `a[href="/catalog/sections/${fixture.section.jwId}"]`,
+                    `a[href="/catalog/sections/${fixture.section.jwId}/schedule#exams"]`,
                   )
                   .filter({ visible: true })
                   .first(),

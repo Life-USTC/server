@@ -1,4 +1,5 @@
 <script lang="ts">
+import SignInButton from "#lib/components/SignInButton.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import { formatDescriptionCopy } from "@/features/descriptions/lib/description-card-actions";
 import type {
@@ -52,13 +53,12 @@ export let viewer: DescriptionViewer;
           {copy.edit}
         </Button>
       {:else if !viewer.isAuthenticated}
-        <Button
+        <SignInButton
           data-testid="description-edit-login"
-          href="/account/sign-in"
           variant="secondary"
         >
           {copy.loginToEdit}
-        </Button>
+        </SignInButton>
       {/if}
     {/if}
   </div>

@@ -3,6 +3,7 @@ import {
   type arrangeDetailCatalog,
   test,
 } from "../../../../utils/catalog-detail-fixture";
+import { selectDetailTab } from "../../../../utils/locators";
 /**
  * E2E tests for /teachers/[id] — Teacher Detail Page
  *
@@ -193,6 +194,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
   }) => {
     await preferenceFlow.run(async () => {
       await navigateToSeedTeacher(page);
+      await selectDetailTab(page, "overview");
 
       // teacher.department.namePrimary (locale-dependent)
       await expect(
@@ -233,7 +235,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           await gotoAndWaitForReady(page, `/catalog/courses/${course.jwId}`);
           await gotoAndWaitForReady(
             page,
-            `/catalog/courses/${course.jwId}#sections`,
+            `/catalog/courses/${course.jwId}/sections`,
           );
           await expect(page.locator("#sections")).toBeVisible();
 
@@ -316,7 +318,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           await navigateToSeedTeacher(page);
           await jumpToTeacherSection(
             page,
-            /授课教学班|Teaching Sections/i,
+            /授课班级|Teaching Sections/i,
             "#sections",
           );
 
@@ -362,7 +364,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
   // ── Navigation ──────────────────────────────────────────────────────────────
 
-  test("详情流式布局包含主要锚点区块", { tag: "@Teacher/Web" }, async ({
+  test("侧栏切换教师简介、授课班级与评论", { tag: "@Teacher/Web" }, async ({
     page,
     preferenceFlow,
     detailCatalog: _detailCatalog,
@@ -371,15 +373,16 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
       await navigateToSeedTeacher(page);
 
       await expect(page.locator("#introduction")).toBeVisible();
+      await selectDetailTab(page, "sections");
       await expect(
-        page.getByRole("heading", { name: /授课教学班|Teaching Sections/i }),
+        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
       ).toBeVisible();
+      await selectDetailTab(page, "comments");
       await expect(
         page.getByRole("heading", { name: /评论|Comments/i }),
       ).toBeVisible();
 
-      await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
-      await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
+      await expect(page).toHaveURL(/\/catalog\/teachers\/\d+\/comments$/);
       await expect(page.locator("#comments")).toBeVisible();
     });
   });
@@ -407,20 +410,15 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
 
       await gotoAndWaitForReady(page, `${page.url().split("#")[0]}#comments`);
       await expect(page.locator("#comments")).toBeVisible();
+      await selectDetailTab(page, "sections");
       const section = page
         .locator("#sections a")
         .filter({ visible: true })
         .first();
       await section.hover();
       expect(await page.evaluate(() => scrollY)).toBe(0);
-      expect(
-        await detailScrollViewport(page).evaluate(
-          (element) => element.scrollTop,
-        ),
-      ).toBeGreaterThan(0);
-      await expect(
-        section.locator('[data-slot="entity-secondary-name"]'),
-      ).toBeVisible();
+      await expect(section).toBeInViewport();
+      await expect(section).toContainText(DEV_SEED.course.nameEn);
       await expectRenderedUiQuality(page);
     });
   });
@@ -441,7 +439,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           );
           await gotoAndWaitForReady(
             page,
-            `/catalog/teachers/${community.teacher.id}#introduction`,
+            `/catalog/teachers/${community.teacher.id}/introduction`,
           );
           const introduction = page.locator("#introduction");
           await expect(introduction).toBeVisible();
@@ -529,9 +527,9 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
         async () => {
           await gotoAndWaitForReady(
             page,
-            `/catalog/teachers/${community.teacher.id}#comments`,
+            `/catalog/teachers/${community.teacher.id}/comments`,
           );
-          await expect(page).toHaveURL(/\/catalog\/teachers\/\d+#comments$/);
+          await expect(page).toHaveURL(/\/catalog\/teachers\/\d+\/comments$/);
           const composer = await openCommentComposer(page);
           const anonymousCheckbox = page
             .locator("#comments")
@@ -612,7 +610,7 @@ test("页面契约", { tag: "@Teacher/Web" }, async ({
 }) => {
   await preferenceFlow.run(async () => {
     await assertPageContract(page, {
-      routePath: "/catalog/teachers/[id]/[section]",
+      routePath: "/catalog/teachers/[id]/introduction",
     });
   });
 });

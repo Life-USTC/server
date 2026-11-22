@@ -1,18 +1,15 @@
 <script lang="ts">
+import type { Snippet } from "svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
+export let content: Snippet<[typeof pageContent]>;
+
 import {
   catalogPrimaryName,
   catalogSecondaryName,
 } from "@/features/catalog/lib/catalog-list-display";
-import LazyCommentsPanel from "@/features/comments/components/LazyCommentsPanel.svelte";
-import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
 import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
 import type { DemoView } from "@/features/demo/lib/demo-types";
-import LazyDescriptionCard from "@/features/descriptions/components/LazyDescriptionCard.svelte";
-import type {
-  EndlessScrollLabels,
-  EndlessScrollState,
-} from "@/lib/navigation/endless-list.svelte";
+import type { EndlessScrollLabels } from "@/lib/navigation/endless-list.svelte";
 import type { PaginatedResponse } from "@/lib/pagination";
 import type { CatalogNamed } from "../lib/catalog-list-display";
 import {
@@ -20,10 +17,6 @@ import {
   catalogPrimaryName as primaryName,
 } from "../lib/catalog-list-display";
 import { formatCatalogDetailMessage as formatMessage } from "../lib/course-detail-display";
-import CatalogSectionHistory from "./CatalogSectionHistory.svelte";
-import CourseDetailBasicInfo from "./CourseDetailBasicInfo.svelte";
-import CourseDetailIdentity from "./CourseDetailIdentity.svelte";
-import CourseDetailSections from "./CourseDetailSections.svelte";
 import type {
   CourseDetailCopy,
   CourseDetailSection,
@@ -85,13 +78,13 @@ type PageData = {
 };
 
 export let data: PageData;
-export let endless: EndlessScrollState;
 
 $: copy = data.copy;
 $: detailCopy = copy satisfies CourseDetailCopy;
 $: notAvailable = copy.courseDetail.notAvailable;
 $: displayName =
   catalogLocalizedDisplayName(data.course, data.locale) || data.course.code;
+$: pageContent = { data, copy, detailCopy, notAvailable, primaryName };
 </script>
 
 <svelte:head>
@@ -110,69 +103,9 @@ $: displayName =
   {#snippet titleExtra()}
     {#if data.locale === "en-us" && catalogSecondaryName(data.course) && catalogSecondaryName(data.course) !== catalogPrimaryName(data.course)}{" "}<span class="text-[0.85em] font-normal text-muted-foreground" data-slot="entity-secondary-name">({catalogSecondaryName(data.course)})</span>{/if}
   {/snippet}
-  {#snippet eyebrowContent()}
+  {#snippet belowTitle()}
     <p class="font-mono text-sm text-muted-foreground" data-testid="course-public-code">{data.course.code}</p>
   {/snippet}
-  {#snippet identity()}
-    <CourseDetailIdentity copy={detailCopy} course={data.course} {primaryName} />
-  {/snippet}
 
-        <section id="introduction" class="scroll-mt-4">
-          {#key `description:course:${data.course.id}`}
-            <LazyDescriptionCard
-              resolveViewer
-              targetType="course"
-              targetId={data.course.id}
-              initialData={data.descriptionData}
-              locale={data.locale as "en-us" | "zh-cn"}
-              copy={copy.descriptions}
-              heading={copy.courseDetail.tabs.description}
-              readOnlyReason={data.demo?.readOnlyReason}
-            />
-          {/key}
-        </section>
-
-        <section id="sections" class="scroll-mt-4">
-          <h2 class="mb-3 text-lg font-semibold tracking-tight">
-            {copy.courseDetail.teachingSections}
-          </h2>
-          <p class="mb-4 text-sm text-muted-foreground">
-            {copy.courseDetail.teachingSectionsDescription}
-          </p>
-          <CatalogSectionHistory state={endless} labels={copy.common.endlessScroll}>
-            <CourseDetailSections
-              copy={detailCopy}
-              course={data.course}
-              locale={data.locale}
-              {notAvailable}
-              {primaryName}
-            />
-          </CatalogSectionHistory>
-        </section>
-
-        <section id="comments" class="scroll-mt-4">
-          {#key `comments:course:${data.course.id}`}
-            <LazyCommentsPanel
-              initialData={data.commentsData}
-              permalinkBaseHref={commentTargetPermalinkBaseHref({
-                courseJwId: data.course.jwId,
-                type: "course",
-              })}
-              targetType="course"
-              targetId={data.course.id}
-              heading={copy.courseDetail.tabs.comments}
-              copy={copy.comments}
-              readOnlyReason={data.demo?.readOnlyReason}
-            />
-          {/key}
-        </section>
-  {#snippet aside()}
-        <section id="overview">
-          <CourseDetailBasicInfo
-            copy={detailCopy}
-            course={data.course}
-            {primaryName}
-          />
-        </section>
-  {/snippet}
+  {@render content(pageContent)}
 </CollectionPage>

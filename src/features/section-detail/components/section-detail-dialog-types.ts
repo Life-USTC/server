@@ -6,7 +6,6 @@ import type {
   SectionPrimaryName,
   SectionTeacherCopy,
   SectionTeacherName,
-  SectionTeachersLabel,
 } from "./section-basic-info-types";
 
 import type {
@@ -56,6 +55,7 @@ export type SectionDetailCommentsCopy = SectionCreateHomeworkCommentsCopy &
   SectionHomeworkMarkdownCopy;
 
 export type SectionDetailSectionCopy = SectionCreateHomeworkSectionCopy & {
+  addToCalendar: string;
   calendarSheetDescription: string;
   calendarSheetTitle: string;
   calendarUrlDescription: string;
@@ -164,7 +164,6 @@ export type SectionDetailDialogsProps = SectionDetailHomeworkDialogsProps & {
   showSubscribeDialog: boolean;
   singleCalendarUrl: string;
   subscriptionAction: SectionDetailSubscriptionAction;
-  subscriptionCalendarUrl: string;
   subscriptionPendingAction: SectionDetailSubscriptionPendingAction;
 };
 
@@ -176,6 +175,8 @@ export type SectionDetailMainSectionCopy = SectionCalendarCopy &
   SectionHomeworkTabSectionCopy &
   SectionTeacherCopy &
   SectionBasicInfoCopy & {
+    subscribeSuccess: string;
+    scheduleDateTime: string;
     addToCalendar: string;
     calendarDescription: string;
     calendarMiniDescription: string;
@@ -227,13 +228,11 @@ export type SectionDetailMainContentProps = {
   roomMapCopy: RoomMapCopy;
   sectionCalendarEvents: SectionCalendarEvent[];
   sectionCopy: SectionDetailMainSectionCopy;
-  sectionTeachersLabel: SectionTeachersLabel;
   setSelectedHomework: (homework: SectionHomework) => void | Promise<void>;
   retryStreamPanels: () => void;
   streamError: string | null;
   streamLoading: boolean;
   teacherName: SectionTeacherName;
-  unscheduledCalendarEvents: SectionCalendarEvent[];
   viewer: {
     isAuthenticated?: boolean;
     signedIn?: boolean;

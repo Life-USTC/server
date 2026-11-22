@@ -194,7 +194,7 @@ export async function expectSubscribedWebProjection(
         ),
       ).toHaveCount(0);
     }
-    await expect(subscribedCourseLink(page, fixture)).toHaveText(
+    await expect(subscribedCourseLink(page, fixture)).toContainText(
       String(fixture.course.nameEn),
     );
     await expectOwnerIsolation();
@@ -203,7 +203,7 @@ export async function expectSubscribedWebProjection(
     await gotoAndWaitForReady(page, fixture.academicUrl());
     const calendar = page
       .locator(
-        `#main-content a[href="/catalog/sections/${fixture.section.jwId}"]`,
+        `#main-content a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
       )
       .filter({ visible: true });
     await expect(calendar.first()).toContainText(String(fixture.course.nameEn));
@@ -227,7 +227,7 @@ export async function expectSubscribedWebProjection(
     const focus = page.getByTestId("workspace-overview-focus");
     await expect(focus.getByRole("link")).toHaveAttribute(
       "href",
-      `/catalog/sections/${fixture.section.jwId}`,
+      `/catalog/sections/${fixture.section.jwId}/schedule`,
     );
     await expect(focus).toContainText(String(fixture.course.nameEn));
     await expect(focus).toContainText("09:00-10:00");

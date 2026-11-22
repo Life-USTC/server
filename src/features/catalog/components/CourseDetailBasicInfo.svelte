@@ -1,4 +1,5 @@
 <script lang="ts">
+import BookIcon from "@lucide/svelte/icons/book-open";
 import {
   detailDefinitionListClass,
   detailDefinitionTermClass,
@@ -16,12 +17,12 @@ export let primaryName: (item: CatalogNamed | null | undefined) => string;
 
 <dl class={detailDefinitionListClass} data-testid="course-detail-aside-facts">
   {#if course.classType}
-    <dt class={detailDefinitionTermClass}>{copy.courseDetail.classType}</dt>
+    <dt class={detailDefinitionTermClass}><BookIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" />{copy.courseDetail.classType}</dt>
     <dd class="m-0 min-w-0 font-medium">{primaryName(course.classType)}</dd>
   {/if}
 
   {#if course.type}
-    <dt class={detailDefinitionTermClass}>{copy.courseDetail.courseType}</dt>
+    <dt class={detailDefinitionTermClass}><BookIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" />{copy.courseDetail.courseType}</dt>
     <dd class="m-0 min-w-0 font-medium">{primaryName(course.type)}</dd>
   {/if}
 </dl>

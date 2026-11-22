@@ -158,7 +158,7 @@ test("ui.context-tabs-3", { tag: "@Site/Web" }, async ({
       await page.goto(paths.at(-1) ?? "");
       await waitForUiSettled(page);
       if (width < 768)
-        await page.locator('[data-slot="sidebar-trigger"]').click();
+        await page.locator('[data-slot="sidebar-trigger"]:visible').click();
       const nav = page.getByTestId("settings-sidebar");
       const viewport = nav.locator('[data-slot="sidebar-content"]');
       const links = nav.locator(
@@ -206,7 +206,7 @@ test("ui.context-tabs-3", { tag: "@Site/Web" }, async ({
       await expect(page).toHaveURL(new RegExp(`${paths[0]}$`));
       for (let index = 0; index < paths.length; index++) {
         if (width < 768 && !(await nav.isVisible()))
-          await page.locator('[data-slot="sidebar-trigger"]').click();
+          await page.locator('[data-slot="sidebar-trigger"]:visible').click();
         const active = nav.locator('[aria-current="page"]');
         await expect(active).toHaveCount(1);
         await expect(active).toHaveAttribute("href", paths[index]);
@@ -261,7 +261,9 @@ test("ui.navigation-landmarks-6", { tag: "@Site/Web" }, async ({
         const localNav = page.locator(
           `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
         );
-        await localNav.locator("[data-local-navigation-back]").click();
+        await expect(
+          localNav.locator("[data-local-navigation-back]"),
+        ).toHaveCount(0);
         await expect(localNav).toHaveAttribute(
           "data-shell-navigation-view",
           "root",
@@ -350,7 +352,7 @@ test("ui.navigation-landmarks-6", { tag: "@Site/Web" }, async ({
           page.locator(
             `[data-shell-navigation="${width < 768 ? "mobile" : "desktop"}"]`,
           ),
-        ).toHaveAttribute("data-shell-navigation-view", "workspace");
+        ).toHaveAttribute("data-shell-navigation-view", "root");
         await expectNavigationCount(
           updatedShell,
           remindersHref,

@@ -162,12 +162,7 @@ test.describe("仪表盘网站链接", () => {
   }) => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/workspace/overview");
-      const sidebar = page.getByTestId("workspace-sidebar");
-      await expect(sidebar).toHaveAttribute(
-        "data-shell-navigation-view",
-        "workspace",
-      );
-      await page.getByTestId("workspace-sidebar-back").click();
+      const sidebar = page.locator("nav[data-shell-navigation]");
       await expect(sidebar).toHaveAttribute(
         "data-shell-navigation-view",
         "root",
@@ -178,9 +173,9 @@ test.describe("仪表盘网站链接", () => {
       await expect(campus).toHaveCount(1);
       await campus.click();
       await expect(page).toHaveURL(/\/campus$/);
-      await expect(page.getByTestId("campus-sidebar")).toHaveAttribute(
+      await expect(sidebar).toHaveAttribute(
         "data-shell-navigation-view",
-        "campus",
+        "root",
       );
 
       const linksTab = sidebarNavigationLink(page, /^(网站|Websites)$/i);

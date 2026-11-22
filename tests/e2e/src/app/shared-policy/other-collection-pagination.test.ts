@@ -77,13 +77,13 @@ for (const [domain, names] of [
         },
         {
           name: "course-history",
-          path: `/catalog/courses/${catalog.courses[0].jwId}`,
+          path: `/catalog/courses/${catalog.courses[0].jwId}/sections`,
           rows: "main table:visible tbody tr",
           text: false,
         },
         {
           name: "teacher-history",
-          path: `/catalog/teachers/${catalog.teachers[0].id}`,
+          path: `/catalog/teachers/${catalog.teachers[0].id}/sections`,
           rows: "main table:visible tbody tr",
           text: false,
         },

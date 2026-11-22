@@ -86,11 +86,13 @@ test(
         body: await page.screenshot({ fullPage: true }),
         contentType: "image/png",
       });
-      await expect(page).toHaveURL(/\?room=3A204$/);
+      await expect(page).toHaveURL(/\/rooms\/3A204$/);
       await page.reload();
       await expect(
         page.getByTestId("room-map-preview").getByRole("img"),
       ).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("3A204");
+      await page.locator('main a[href="/catalog/rooms?room=3A204"]').click();
       await expect(
         page.getByRole("textbox", { name: /教室编号|Room code/ }),
       ).toHaveValue("3A204");
@@ -107,17 +109,12 @@ test(
         contentType: "image/png",
       });
       await directory.getByRole("link", { name: "3A205", exact: true }).click();
-      await expect(page).toHaveURL(/\?room=3A205$/);
+      await expect(page).toHaveURL(/\/rooms\/3A205$/);
       await page.goBack();
       await expect(page).toHaveURL(/\?room=3A204$/);
-      await expect(
-        page.getByRole("textbox", { name: /教室编号|Room code/ }),
-      ).toHaveValue("3A204");
       await page.goForward();
-      await expect(page).toHaveURL(/\?room=3A205$/);
-      await expect(
-        page.getByRole("textbox", { name: /教室编号|Room code/ }),
-      ).toHaveValue("3A205");
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("3A205");
+      await page.locator('main a[href="/catalog/rooms?room=3A205"]').click();
       await page
         .getByRole("textbox", { name: /教室编号|Room code/ })
         .fill("3a204");
@@ -186,7 +183,7 @@ test("room-map.optional-campus-failure", { tag: "@RoomMap/Web" }, async ({
         .getByTestId("room-map-sample-chip")
         .filter({ hasText: "3A204" })
         .click();
-      await expect(page).toHaveURL(/\?room=3A204$/);
+      await expect(page).toHaveURL(/\/rooms\/3A204$/);
       await expect(
         page.getByTestId("room-map-preview").getByRole("img"),
       ).toBeVisible();

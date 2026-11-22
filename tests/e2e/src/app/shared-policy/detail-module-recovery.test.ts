@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect } from "@playwright/test";
+import { selectDetailTab } from "../../../utils/locators";
 import { test } from "../../../utils/owned-worker";
 
 for (const locale of ["en-us", "zh-cn"] as const) {
@@ -67,18 +68,19 @@ for (const locale of ["en-us", "zh-cn"] as const) {
               path: testInfo.outputPath(`loading-${locale}-${width}.png`),
               fullPage: true,
             });
-            await expect(page.locator("#introduction h2")).toHaveText(
-              locale === "en-us" ? "Description" : "简介",
-            );
+            await expect(page.locator("#introduction")).toBeVisible();
+            await selectDetailTab(page, "calendar");
             await expect(
-              page.locator("#calendar [data-slot=empty]"),
+              page.locator("#calendar [data-empty-variant=quiet]"),
             ).toBeVisible();
             await expect(
-              page.locator("#exams [data-slot=empty]"),
+              page.locator("#exams [data-empty-variant=quiet]"),
             ).toBeVisible();
+            await selectDetailTab(page, "homework");
             await expect(
-              page.locator("#homework [data-slot=empty]"),
+              page.locator("#homework [data-empty-variant=quiet]"),
             ).toBeVisible();
+            await selectDetailTab(page, "comments");
             await expect(page.locator("#comments h2")).toBeVisible();
             await expect(
               page.locator("#comments [aria-busy=true]"),
@@ -91,10 +93,14 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           } finally {
             release();
           }
+          await selectDetailTab(page, "introduction");
           await expect(
             page.locator("#introduction [aria-busy=true]"),
           ).toHaveCount(0);
-          await expect(page.locator("#introduction h2")).toHaveCount(1);
+          await expect(page.locator("#comments h2")).toBeVisible();
+          await expect(
+            page.locator("#introduction [data-empty-variant=quiet]").first(),
+          ).toBeVisible();
           await page.screenshot({
             path: testInfo.outputPath(`ready-${locale}-${width}.png`),
             fullPage: true,
@@ -237,7 +243,7 @@ for (const [locale, width] of [
         );
         const chunk =
           manifest[
-            "src/features/section-detail/components/SectionCalendarTab.svelte"
+            "src/features/section-detail/components/SectionHomeworkTab.svelte"
           ].file;
         let requests = 0;
         let recovering = false;
@@ -255,11 +261,19 @@ for (const [locale, width] of [
         await page.goto(`/catalog/sections/${section.jwId}`, {
           waitUntil: "domcontentloaded",
         });
-        const calendar = page.locator("#calendar");
-        await expect(calendar.getByRole("alert")).toBeVisible();
-        await expect(page.locator("#exams [data-slot=empty]")).toBeVisible();
-        await expect(page.locator("#homework [data-slot=empty]")).toBeVisible();
+        await selectDetailTab(page, "homework");
+        const homework = page.locator("#homework");
+        await expect(homework.getByRole("alert")).toBeVisible();
+        await selectDetailTab(page, "schedule");
+        await expect(
+          page.locator("#calendar [data-empty-variant=quiet]"),
+        ).toBeVisible();
+        await expect(
+          page.locator("#exams [data-empty-variant=quiet]"),
+        ).toBeVisible();
+        await selectDetailTab(page, "introduction");
         await expect(page.locator("#comments h2")).toBeVisible();
+        await selectDetailTab(page, "homework");
         await page.screenshot({
           path: testInfo.outputPath(`module-error-${locale}-${width}.png`),
           fullPage: true,
@@ -267,13 +281,15 @@ for (const [locale, width] of [
         const initialNavigations = navigations;
         const initialRequests = requests;
         recovering = true;
-        await calendar
+        await homework
           .getByRole("button", {
             name: locale === "en-us" ? "Please retry" : "请重试",
           })
           .click();
-        await expect(calendar.getByRole("alert")).toHaveCount(0);
-        await expect(calendar.locator("[data-slot=empty]")).toBeVisible();
+        await expect(homework.getByRole("alert")).toHaveCount(0);
+        await expect(
+          homework.locator("[data-empty-variant=quiet]"),
+        ).toBeVisible();
         expect(requests).toBeGreaterThan(initialRequests);
         expect(navigations).toBe(initialNavigations);
         expect(uncaught).toEqual([]);

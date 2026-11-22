@@ -1,5 +1,6 @@
 import { expect } from "@playwright/test";
 import { test } from "../../../utils/catalog-browser-fixture";
+import { selectDetailTab } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 
 for (const locale of ["zh-cn", "en-us"] as const) {
@@ -46,6 +47,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         for (const width of [1280, 390]) {
           await page.setViewportSize({ width, height: 900 });
           await gotoAndWaitForReady(page, `/catalog/sections/${section.jwId}`);
+          await selectDetailTab(page, "comments");
           const comments = page.locator("#comments");
           await comments.scrollIntoViewIfNeeded();
           await expect(
@@ -73,6 +75,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
             .not.toContainText(
               locale === "zh-cn" ? "登录后即可" : "Sign in to share",
             );
+          await selectDetailTab(page, "exams");
           const exams = page.locator("#exams");
           await exams.scrollIntoViewIfNeeded();
           await expect
@@ -158,7 +161,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
           ]);
         await gotoAndWaitForReady(
           page,
-          `/catalog/courses/${community.course.jwId}#comments`,
+          `/catalog/courses/${community.course.jwId}/comments`,
         );
         const comments = page.locator("#comments");
         await comments.scrollIntoViewIfNeeded();
@@ -191,7 +194,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         ]);
       await gotoAndWaitForReady(
         page,
-        `/catalog/courses/${community.course.jwId}#comments`,
+        `/catalog/courses/${community.course.jwId}/comments`,
       );
       const comments = page.locator("#comments");
       await comments.scrollIntoViewIfNeeded();

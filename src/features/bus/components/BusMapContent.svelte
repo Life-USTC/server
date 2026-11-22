@@ -29,9 +29,9 @@ $: busMapView = buildBusMapViewState(mapData, dayTypeLabels, locale);
     }
   }
   .bus-map-page {
-    /* Mobile topbar includes its border; md has an explicit border-box height.
-       Also reserve content padding and the shared primary bar/safe area. */
-    height: calc(100dvh - 3.5rem - 1px - 2rem - 4rem - env(safe-area-inset-bottom));
+    /* Reserve the shared topbar and its border, content padding, and the
+       mobile primary bar/safe area. */
+    height: calc(100dvh - 3.75rem - 1px - 2rem - 4rem - env(safe-area-inset-bottom));
     min-height: 20rem;
   }
 
@@ -39,15 +39,9 @@ $: busMapView = buildBusMapViewState(mapData, dayTypeLabels, locale);
     container-type: size;
   }
 
-  @media (min-width: 768px) {
-    .bus-map-page {
-      height: calc(100dvh - 3rem - 2rem - 4rem - env(safe-area-inset-bottom));
-    }
-  }
-
   @media (min-width: 1024px) {
     .bus-map-page {
-      height: calc(100dvh - 3rem - 2rem);
+      height: calc(100dvh - 3.75rem - 1px - 2rem);
     }
   }
 </style>

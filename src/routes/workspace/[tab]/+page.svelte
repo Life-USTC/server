@@ -8,7 +8,7 @@ export let form: ActionData | undefined = undefined;
 </script>
 
 {#if data.demo}
-  <DemoNotice demo={data.demo} locale={data.locale} />
+  <div class="page-frame"><DemoNotice demo={data.demo} locale={data.locale} /></div>
 {/if}
 
 {#key data.demo ? `${data.demo.fixtureVersion}:${data.demo.expiresAt}` : data.navStats?.user.id}

@@ -225,7 +225,7 @@ export async function checkWorkspaceTaskPriorityViews(
     await checkHomeworkDetail();
     await gotoAndWaitForReady(
       page,
-      `/catalog/sections/${section.jwId}?homeworkId=${homework.id}#homework`,
+      `/catalog/sections/${section.jwId}/homework?homeworkId=${homework.id}`,
     );
     // The deep link opens the dialog after the section viewer data arrives.
     await checkHomeworkDetail();
@@ -239,10 +239,12 @@ export async function checkWorkspaceTaskPriorityViews(
             .getByTestId("workspace-exams-cards")
             .locator('[data-slot="item"]')
             .filter({ hasText: courseName });
-    const examTitle = examRow.getByRole("link", {
-      name: courseName,
-      exact: true,
-    });
+    const examTitle = examRow
+      .getByRole("link", {
+        name: courseName,
+        exact: false,
+      })
+      .first();
     const examCountLabel = locale === "en-us" ? "People: 23" : "人数: 23";
     if (width >= 768) await examRow.locator("summary").click();
     await assertPriorityView({
@@ -256,8 +258,11 @@ export async function checkWorkspaceTaskPriorityViews(
         "exam.completed": text(examRow, /^(未结束|即将到来|Upcoming)$/i),
       },
       secondary: {
-        "section.semester.nameCn": text(
-          examRow,
+        "section.semester.nameCn": field(
+          examRow.getByText(
+            locale === "en-us" ? "Fall 2026" : "2026年秋季学期",
+            { exact: true },
+          ),
           locale === "en-us" ? "Fall 2026" : "2026年秋季学期",
         ),
         "exam.examMode": text(examRow, exam.examMode ?? ""),
@@ -278,7 +283,7 @@ export async function checkWorkspaceTaskPriorityViews(
       },
     });
 
-    await gotoAndWaitForReady(page, `/catalog/sections/${section.jwId}#exams`);
+    await gotoAndWaitForReady(page, `/catalog/sections/${section.jwId}/exams`);
     const sectionExam = main
       .getByTestId("section-exams-list")
       .getByRole("row")

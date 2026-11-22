@@ -1,13 +1,13 @@
 <script lang="ts">
+import TeacherIcon from "@lucide/svelte/icons/user-round";
 import PageHeader from "#lib/components/PageHeader.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import {
   type CatalogNamed,
-  catalogLocalizedNames,
+  catalogLocalizedDisplayName,
 } from "@/features/catalog/lib/catalog-list-display";
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
-import type { SubmitFunction } from "$app/forms";
 import { page } from "$app/state";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
 
@@ -16,6 +16,7 @@ type SectionHeaderCopy = {
   historicalSectionDescription: string;
   historicalSectionLabel: string;
   subscribeLabel: string;
+  subscribeSuccess: string;
   teachingSection: string;
   unsubscribeLabel: string;
   unsubscribing: string;
@@ -23,7 +24,7 @@ type SectionHeaderCopy = {
 
 type SectionHeaderSection = {
   code: string;
-  teachers?: CatalogNamed[];
+  teachers?: (CatalogNamed & { id: string | number })[];
   semester?: { nameCn?: string | null } | null;
   retiredAt?: string | Date | null;
 };
@@ -33,8 +34,6 @@ type SectionHeaderViewer = {
   subscriptionKind?: "regular" | "auditor" | "teaching_assistant";
 };
 
-type SubscriptionActionKey = "subscribe" | "unsubscribe";
-
 export let courseName: string;
 export let readOnlyReason: string | undefined = undefined;
 export let courseSecondaryName: string;
@@ -43,48 +42,36 @@ export let onOpenCalendar: () => void;
 export let onOpenSubscribe: () => void;
 export let section: SectionHeaderSection;
 export let sectionCopy: SectionHeaderCopy;
-export let subscriptionAction: (
-  action: SubscriptionActionKey,
-) => SubmitFunction;
-export let subscriptionPendingAction: SubscriptionActionKey | null;
 export let viewer: SectionHeaderViewer;
 let locale: "en-us" | "zh-cn";
 $: locale = page.data.locale === "en-us" ? "en-us" : "zh-cn";
 $: hasCourseName = courseName !== section.code;
-$: teacherNames = catalogLocalizedNames(section.teachers ?? [], locale);
 $: subscriptionsCopy = getWorkspacePageCopy(locale).subscriptions;
 </script>
 
 <PageHeader
   title={courseName}
   titleClass={hasCourseName ? "" : "font-mono [overflow-wrap:anywhere]"}
-  eyebrow={sectionCopy.teachingSection}
   description={courseSecondaryName}
-  actionsClass="hidden md:flex"
+  actionsClass="hidden self-center md:flex"
+  class="gap-1 [&>div:empty]:hidden [&_h1+p]:text-sm"
   density="detail"
 >
   {#snippet belowTitle()}
-    {#if teacherNames || hasCourseName || section.semester?.nameCn}
-    <div class="mt-2 grid min-w-0 gap-1">
-      {#if teacherNames}<p class="break-words text-sm">{teacherNames}</p>{/if}
-      {#if hasCourseName || section.semester?.nameCn}
-      <p class="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        {#if hasCourseName}<span class="min-w-0 font-mono [overflow-wrap:anywhere]" data-slot="catalog-code">{section.code}</span>{/if}
-        {#if section.semester?.nameCn}<span>{formatSemesterName(locale, section.semester.nameCn)}</span>{/if}
-      </p>
-      {/if}
+    <div class="mt-1 flex flex-wrap items-baseline gap-x-3 text-sm text-muted-foreground">
+      {#if section.semester?.nameCn}<span>{formatSemesterName(locale, section.semester.nameCn)}</span>{/if}
+      {#each section.teachers ?? [] as teacher (teacher.id)}
+        <a class="inline-block min-h-6 min-w-6 leading-6" href={`/catalog/teachers/${teacher.id}`}><TeacherIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" />{catalogLocalizedDisplayName(teacher, locale)}</a>
+      {/each}
+      {#if hasCourseName}<span class="font-mono" data-slot="catalog-code">{section.code}</span>{/if}
     </div>
-    {/if}
   {/snippet}
   {#snippet actions()}
     <SectionDetailPrimaryActions
-      {courseName}
       onOpenCalendar={onOpenCalendar}
       onOpenSubscribe={onOpenSubscribe}
       retired={section.retiredAt != null}
       sectionCopy={sectionCopy}
-      subscriptionAction={subscriptionAction}
-      subscriptionPendingAction={subscriptionPendingAction}
       viewer={viewer}
       {readOnlyReason}
     />

@@ -1,31 +1,23 @@
 <script lang="ts">
+import BookmarkPlusIcon from "@lucide/svelte/icons/bookmark-plus";
 import CalendarIcon from "@lucide/svelte/icons/calendar";
-import LinkIcon from "@lucide/svelte/icons/link-2";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
-import SectionCancelSubscription from "@/features/subscriptions/components/SectionCancelSubscription.svelte";
-import type { SubmitFunction } from "$app/forms";
-
-type SubscriptionActionKey = "subscribe" | "unsubscribe";
 
 type SectionActionsCopy = {
   addToCalendar: string;
+  subscribeSuccess: string;
   subscribeLabel: string;
   unsubscribeLabel: string;
   unsubscribing: string;
 };
 
-export let courseName: string;
 export let onOpenCalendar: () => void;
 export let onOpenSubscribe: () => void;
 export let retired = false;
 export let readOnlyReason: string | undefined = undefined;
 export let sectionCopy: SectionActionsCopy;
 export let stretched = false;
-export let subscriptionAction: (
-  action: SubscriptionActionKey,
-) => SubmitFunction;
-export let subscriptionPendingAction: SubscriptionActionKey | null;
 export let viewer: {
   isSubscribed?: boolean;
   loading?: boolean;
@@ -33,29 +25,12 @@ export let viewer: {
 };
 </script>
 
-<div
-  class={stretched
-    ? retired && !viewer.isSubscribed
-      ? "grid w-full grid-cols-1 gap-2 [&_[data-slot=button]]:h-auto [&_[data-slot=button]]:whitespace-normal"
-      : "grid w-full grid-cols-1 gap-2 min-[360px]:grid-cols-2 [&_[data-slot=button]]:h-auto [&_[data-slot=button]]:whitespace-normal"
-    : "flex flex-wrap gap-2"}
->
-  <Button
-    class={stretched ? "w-full" : undefined}
-    variant="outline"
-    type="button"
-    onclick={onOpenCalendar}
-    disabled={Boolean(readOnlyReason)}
-    title={readOnlyReason}
-  >
-    <CalendarIcon data-icon="inline-start" />
-    {sectionCopy.addToCalendar}
-  </Button>
+<div class={stretched ? "grid w-full" : "flex"}>
   {#if viewer.loading}
     <Skeleton class="h-9 w-28" />
-  {:else if !viewer.failed && viewer.isSubscribed}
-    <SectionCancelSubscription name={courseName} label={sectionCopy.unsubscribeLabel} pending={subscriptionPendingAction === "unsubscribe"} {stretched} {readOnlyReason} action={subscriptionAction("unsubscribe")} />
-  {:else if !viewer.failed && !retired}
+  {:else if retired && !viewer.isSubscribed}
+    <Button variant="outline" disabled={Boolean(readOnlyReason)} onclick={onOpenCalendar}><CalendarIcon data-icon="inline-start" />{sectionCopy.addToCalendar}</Button>
+  {:else if !viewer.failed}
     <form class={stretched ? "w-full" : undefined} method="GET">
       <input name="subscribe" type="hidden" value="1" />
       <Button
@@ -71,8 +46,8 @@ export let viewer: {
           onOpenSubscribe();
         }}
       >
-        <LinkIcon data-icon="inline-start" />
-        {sectionCopy.subscribeLabel}
+        <BookmarkPlusIcon data-icon="inline-start" />
+        {viewer.isSubscribed ? sectionCopy.subscribeSuccess : sectionCopy.subscribeLabel}
       </Button>
     </form>
   {/if}

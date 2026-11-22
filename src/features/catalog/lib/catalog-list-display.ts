@@ -1,3 +1,5 @@
+import { formatSemesterName } from "@/lib/text/format-semester-name";
+
 export type CatalogNamed = {
   nameCn?: string | null;
   nameEn?: string | null;
@@ -48,6 +50,42 @@ export function catalogLocalizedNames(
     .map((item) => catalogLocalizedDisplayName(item, locale))
     .filter(Boolean)
     .join(", ");
+}
+
+export type SectionIdentity = {
+  code?: string | null;
+  course?: CatalogNamed | null;
+  semester?: CatalogNamed | null;
+  teachers?: readonly CatalogNamed[] | null;
+};
+
+export function sectionSummaryParts(
+  section: SectionIdentity,
+  locale = "zh-cn",
+) {
+  const name = (item?: CatalogNamed | null) =>
+    item?.namePrimary?.trim() ||
+    (locale === "en-us"
+      ? item?.nameEn || item?.nameCn
+      : item?.nameCn || item?.nameEn
+    )?.trim() ||
+    "";
+  const course = name(section.course) || section.code || "";
+  const semester = section.semester?.nameCn || section.semester?.namePrimary;
+  const teachers = section.teachers?.map(name).filter(Boolean);
+  const english = locale === "en-us";
+  const context = [
+    semester && formatSemesterName(locale, semester),
+    teachers?.join(english ? ", " : "、"),
+  ]
+    .filter(Boolean)
+    .join(english ? ", " : "，");
+  if (!context || !course) return [course || context];
+  return [course, english ? ` (${context})` : `（${context}）`];
+}
+
+export function sectionSummary(section: SectionIdentity, locale = "zh-cn") {
+  return sectionSummaryParts(section, locale).join("");
 }
 
 export function catalogHref(

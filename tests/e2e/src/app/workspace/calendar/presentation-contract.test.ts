@@ -46,7 +46,9 @@ for (const [view, label] of [
         await expect(
           page
             .getByTestId("workspace-calendar-grid")
-            .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
+            .locator(
+              `a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
+            )
             .first(),
         ).toBeVisible();
       },
@@ -104,7 +106,7 @@ for (const locale of ["en-us", "zh-cn"]) {
           await expect(agenda.locator(`#agenda-${fixture.date}`)).toBeVisible();
           await expect(
             agenda.locator(
-              `a[href="/catalog/sections/${fixture.section.jwId}"]`,
+              `a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
             ),
           ).toContainText("09:00");
           await expect(
@@ -140,7 +142,7 @@ for (const locale of ["en-us", "zh-cn"]) {
           ).toContainText("16:00");
           await expect(
             agenda.locator(
-              `a[href="/catalog/sections/${fixture.section.jwId}"]`,
+              `a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
             ),
           ).toHaveCount(0);
           await page.reload();
@@ -216,7 +218,9 @@ for (const [view, label] of [
           }),
         ).toBeVisible();
         await expect(
-          page.locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`),
+          page.locator(
+            `a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
+          ),
         ).toHaveCount(0);
       },
       { accountIndex: 1, calendarTokenCreated: true },
@@ -249,7 +253,9 @@ for (const view of ["semester", "month", "week"]) {
         ]);
         const courseCell = page
           .getByTestId("workspace-calendar-grid")
-          .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
+          .locator(
+            `a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
+          )
           .first()
           .locator('xpath=ancestor::*[@role="gridcell"][1]');
         await expect(courseCell).toContainText("04-29");
@@ -309,17 +315,17 @@ test("calendar.public-section-lecture-fields", {
         ]);
       await gotoAndWaitForReady(
         page,
-        `/catalog/sections/${fixture.section.jwId}/calendar`,
+        `/catalog/sections/${fixture.section.jwId}/schedule`,
       );
       const lectureTable = page.getByTestId("section-calendar-table");
       const lecture = lectureTable
         .getByRole("row")
         .filter({ hasText: "09:00" });
       const cells = lecture.getByRole("cell");
-      await expect(cells.nth(1)).toHaveText(fixture.date);
-      await expect(cells.nth(2)).toContainText("8");
-      await expect(cells.nth(3)).toContainText("09:00");
-      await expect(cells.nth(4)).toContainText("Calendar teaching room");
+      await expect(cells.nth(0)).toHaveText("8");
+      await expect(cells.nth(2)).toContainText(fixture.date);
+      await expect(cells.nth(2)).toContainText("09:00");
+      await expect(cells.nth(3)).toContainText("Calendar teaching room");
     },
     { accountIndex: 0, calendarTokenCreated: false },
   );
@@ -345,7 +351,9 @@ for (const timezoneId of ["UTC", "Asia/Shanghai"]) {
               )
               .filter({ visible: true });
             const course = surface
-              .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
+              .locator(
+                `a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
+              )
               .first();
             await expect(course).toContainText(fixture.course.nameEn ?? "");
             await expect(course).toContainText("09:00");
@@ -525,7 +533,7 @@ test("calendar.mobile-long-semester-owner-isolation", {
       ).toHaveCount(0);
       await expect(
         activityAgenda.locator(
-          `a[href="/catalog/sections/${fixture.section.jwId}"]`,
+          `a[href="/catalog/sections/${fixture.section.jwId}/schedule"]`,
         ),
       ).toHaveCount(0);
     },

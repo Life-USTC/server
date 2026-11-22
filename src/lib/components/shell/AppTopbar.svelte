@@ -1,9 +1,11 @@
 <script lang="ts">
+import LogInIcon from "@lucide/svelte/icons/log-in";
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
+import SignInButton from "#lib/components/SignInButton.svelte";
 import type { ThemeMode } from "#lib/components/shell/layout-shell.js";
-import { Button } from "#lib/components/ui/button/index.js";
 import * as Sidebar from "#lib/components/ui/sidebar/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
+import { IsMobile } from "#lib/hooks/is-mobile.svelte.js";
 import type {
   LayoutCopy,
   LayoutUserSummary,
@@ -69,26 +71,16 @@ let {
   homeHref = "/",
   homeLabel = copy.shell.discovery.home,
 }: Props = $props();
+const mobile = new IsMobile();
 </script>
 
 <header
   data-shell-topbar
-  class="bg-card/95 sticky top-0 z-20 min-h-14 shrink-0 border-b backdrop-blur md:h-12 md:min-h-12"
+  class="bg-card/95 sticky top-0 z-20 shrink-0 border-b backdrop-blur"
 >
   <div
-    class="flex min-h-14 items-center gap-1 px-2 md:h-full md:min-h-0 sm:gap-2 sm:px-3 lg:px-6"
+    class="flex min-h-[3.75rem] items-center gap-0.5 px-2 py-2 min-[360px]:gap-2 sm:px-4"
   >
-    {#if !focused}
-      <!-- #1077: stay visible/focusable through the tablet range (hidden only
-           at >=1024px), while the focused onboarding shell has no sidebar to
-           toggle at all. -->
-      <Sidebar.Trigger
-        aria-label={copy.shell.menu}
-        class="size-11 lg:hidden"
-        onclick={closeMenus}
-      />
-    {/if}
-
     <a
       aria-label={`Life@USTC: ${homeLabel}`}
       class="hidden h-11 min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-md font-semibold leading-none transition-opacity hover:opacity-75 min-[320px]:inline-flex px-1 sm:px-2 {focused
@@ -108,7 +100,19 @@ let {
     </a>
 
     {#if !focused}
-      <div class="hidden min-w-0 flex-1 justify-center px-4 md:flex">
+      <!-- #1077: stay visible/focusable through the tablet range (hidden only
+           at >=1024px), while the focused onboarding shell has no sidebar to
+           toggle at all. -->
+      <Sidebar.Trigger
+        aria-label={copy.shell.menu}
+        class="size-11 lg:hidden"
+        onclick={closeMenus}
+      />
+    {/if}
+
+
+    {#if !focused}
+      <div class="hidden min-w-0 flex-1 justify-center md:flex">
         <GlobalSearchTrigger
           copy={copy.globalSearch}
           onOpen={onOpenGlobalSearch}
@@ -119,7 +123,7 @@ let {
       </div>
     {/if}
 
-    <div class="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1">
+    <div class="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-0.5 min-[360px]:gap-2">
       {#if !focused}
         <div class="md:hidden">
           <GlobalSearchTrigger
@@ -132,6 +136,7 @@ let {
         </div>
       {/if}
 
+      {#if focused || !mobile.current}
       <AppPreferencesMenu
         {copy}
         {locale}
@@ -143,6 +148,7 @@ let {
         {themeMenuOpen}
         {themeMode}
       />
+      {/if}
 
       {#if viewerLoading}
         <Skeleton
@@ -163,9 +169,9 @@ let {
           {demo}
         />
       {:else if !hideSignIn}
-        <Button href="/account/sign-in" data-shell-sign-in>
-          {copy.menu.signIn}
-        </Button>
+        <SignInButton class="size-11" size="icon" aria-label={copy.menu.signIn} title={copy.menu.signIn} data-shell-sign-in>
+          <LogInIcon aria-hidden="true" />
+        </SignInButton>
       {/if}
     </div>
   </div>

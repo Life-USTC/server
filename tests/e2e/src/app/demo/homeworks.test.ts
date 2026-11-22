@@ -118,7 +118,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         await expect(page).toHaveURL(/\/catalog\/sections\/910001$/);
         await gotoAndWaitForReady(
           page,
-          "/catalog/sections/910001?homeworkId=demo-homework-vectors",
+          "/catalog/sections/910001/homework?homeworkId=demo-homework-vectors",
         );
         await expect(
           page.getByRole("dialog", { name: title, exact: true }),

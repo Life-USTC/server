@@ -35,7 +35,7 @@ for (const count of [0, 1, 2]) {
         await gotoAndWaitForReady(page, "/workspace/subscriptions");
         await page
           .getByRole("button", {
-            name: en ? "Add Section Subscription" : "添加教学班订阅",
+            name: en ? "Add Section Subscription" : "添加班级订阅",
             exact: true,
           })
           .first()
@@ -52,7 +52,7 @@ for (const count of [0, 1, 2]) {
           await expect(
             page
               .getByRole("dialog")
-              .getByText(en ? "No sections found" : "没有找到教学班", {
+              .getByText(en ? "No sections found" : "没有找到班级", {
                 exact: true,
               }),
           ).toBeVisible();
@@ -61,7 +61,7 @@ for (const count of [0, 1, 2]) {
             page.getByRole("dialog").locator("legend"),
             en
               ? `${count} ${count === 1 ? "section" : "sections"} found`
-              : `找到 ${count} 个教学班`,
+              : `找到 ${count} 个班级`,
             "quick-add",
           );
         }

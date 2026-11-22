@@ -35,8 +35,9 @@ for (const width of [1280, 390]) {
           },
         );
         await gotoAndWaitForReady(page, section.path);
+        await page.getByRole("button", { name: "已订阅", exact: true }).click();
         const trigger = page
-          .getByRole("button", { name: "取消订阅教学班", exact: true })
+          .getByRole("button", { name: "取消订阅班级", exact: true })
           .filter({ visible: true });
         await expect(trigger).toHaveCount(1);
         await trigger.click();
@@ -45,7 +46,7 @@ for (const width of [1280, 390]) {
           contentType: "image/png",
         });
         const dialog = page.getByRole("alertdialog", {
-          name: "确认取消教学班订阅？",
+          name: "确认取消班级订阅？",
         });
         await expect(dialog).toBeVisible();
         await expect(dialog).toContainText(
@@ -102,6 +103,10 @@ test("section cancellation stays open during failure and explicit retry", {
     );
     try {
       await gotoAndWaitForReady(page, section.path);
+      await page
+        .getByRole("button", { name: "Subscribed", exact: true })
+        .filter({ visible: true })
+        .click();
       await page
         .getByRole("button", { name: "Unsubscribe from section", exact: true })
         .filter({ visible: true })

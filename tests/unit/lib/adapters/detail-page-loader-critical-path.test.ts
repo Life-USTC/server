@@ -571,7 +571,7 @@ describe("catalog detail loader critical path", () => {
     expect(put).not.toHaveBeenCalled();
   });
 
-  it("loads description in stream layout and defers comments to client", async () => {
+  it("keeps unrelated description and comment reads out of the teaching history page", async () => {
     const { loadTeacherDetailPage } = await import(
       "@/features/catalog/server/catalog-detail-page-server"
     );
@@ -579,15 +579,15 @@ describe("catalog detail loader critical path", () => {
     const result = await loadTeacherDetailPage({
       locals: locals(),
       params: { id: String(teacher.id) },
-      request: request(`/catalog/teachers/${teacher.id}#sections`),
+      request: request(`/catalog/teachers/${teacher.id}/sections`),
       url: new URL(
-        `https://example.test/catalog/teachers/${teacher.id}#sections`,
+        `https://example.test/catalog/teachers/${teacher.id}/sections`,
       ),
     });
 
-    expect(result.descriptionData).toEqual(descriptionData);
+    expect(result.detailSection).toBe("sections");
     expect(result.commentsData).toBeNull();
-    expect(getDescriptionPayloadMock).toHaveBeenCalled();
+    expect(getDescriptionPayloadMock).not.toHaveBeenCalled();
     expect(getCommentsPayloadMock).not.toHaveBeenCalled();
   });
 });
@@ -831,7 +831,7 @@ describe("section detail loader critical path", () => {
         ),
       }),
     ).rejects.toMatchObject({
-      location: `/catalog/sections/${section.jwId}#homework`,
+      location: `/catalog/sections/${section.jwId}/homework`,
       status: 308,
     });
   });
@@ -844,13 +844,15 @@ describe("section detail loader critical path", () => {
     const result = await loadSectionDetailPage({
       locals: locals(),
       params: { jwId: String(section.jwId) },
-      request: request(`/catalog/sections/${section.jwId}?homeworkId=hw-1`),
+      request: request(
+        `/catalog/sections/${section.jwId}/homework?homeworkId=hw-1`,
+      ),
       url: new URL(
-        `https://example.test/catalog/sections/${section.jwId}?homeworkId=hw-1`,
+        `https://example.test/catalog/sections/${section.jwId}/homework?homeworkId=hw-1`,
       ),
     });
 
-    expect(result.detailSection).toBe("overview");
+    expect(result.detailSection).toBe("homework");
     expect(result.focusedHomeworkId).toBe("hw-1");
     expect(result.commentsData).toBeNull();
     expect(result.homeworkData.homeworks).toEqual([]);

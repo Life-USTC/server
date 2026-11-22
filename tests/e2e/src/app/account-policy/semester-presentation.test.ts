@@ -115,8 +115,8 @@ for (const domain of [
         for (const width of [1280, 390]) {
           await page.setViewportSize({ width, height: 900 });
           for (const route of [
-            `/catalog/courses/${f.course.jwId}`,
-            `/catalog/teachers/${f.teacher.id}`,
+            `/catalog/courses/${f.course.jwId}/sections`,
+            `/catalog/teachers/${f.teacher.id}/sections`,
             `/catalog/sections?courseCode=${marker}`,
             "/workspace/subscriptions",
           ]) {
@@ -192,7 +192,7 @@ for (const domain of [
             await gotoAndWaitForReady(page, "/workspace/subscriptions");
             for (const action of locale === "en-us"
               ? ["Add Section Subscription", "Bulk Add Section Subscriptions"]
-              : ["添加教学班订阅", "批量添加教学班订阅"]) {
+              : ["添加班级订阅", "批量添加班级订阅"]) {
               await page
                 .getByRole("button", { name: action, exact: true })
                 .click();

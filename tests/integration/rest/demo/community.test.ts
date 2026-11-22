@@ -225,17 +225,20 @@ for (const locale of ["en-us", "zh-cn"] as const)
           expect(flatten(focused.thread).map(({ id }) => id)).toContain(id);
           const permalink = await read(`/community/comments/${id}`, 303);
           expect(permalink.headers().location).toBe(
-            `/catalog/courses/920001#comment-${id}`,
+            `/catalog/courses/920001/comments#comment-${id}`,
           );
           await permalink.body();
         }
         for (const [id, href] of [
-          ["demo-comment-section-101", "/catalog/sections/910001"],
-          ["demo-comment-teacher-401", "/catalog/teachers/401"],
-          ["demo-comment-section-teacher-101-401", "/catalog/sections/910001"],
+          ["demo-comment-section-101", "/catalog/sections/910001/introduction"],
+          ["demo-comment-teacher-401", "/catalog/teachers/401/comments"],
+          [
+            "demo-comment-section-teacher-101-401",
+            "/catalog/sections/910001/introduction",
+          ],
           [
             "demo-comment-homework-vectors",
-            "/catalog/sections/910001?homeworkId=demo-homework-vectors",
+            "/catalog/sections/910001/homework?homeworkId=demo-homework-vectors",
           ],
         ]) {
           const response = await read(`/community/comments/${id}`, 303);

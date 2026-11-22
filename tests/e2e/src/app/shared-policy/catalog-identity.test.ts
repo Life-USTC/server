@@ -1,6 +1,7 @@
 import { expect } from "@playwright/test";
 import type { TestPrismaClient } from "../../../../shared/prisma";
 import { test as subscriptionTest } from "../../../utils/catalog-subscription-fixture";
+import { selectDetailTab } from "../../../utils/locators";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../../../utils/personal-preferences-fixture";
 import { observeSectionDetailNavigation } from "../../../utils/section-detail-navigation";
@@ -135,7 +136,7 @@ for (const { domain, route, select } of [
       await gotoAndWaitForReady(page, `/catalog/${route}?search=${search}`);
       const item = page
         .getByRole("listitem")
-        .filter({ has: page.getByText(name, { exact: true }) })
+        .filter({ has: page.getByText(name, { exact: route !== "sections" }) })
         .filter({ visible: true });
       await expect(item).toHaveCount(1);
       await expect(item.getByRole("link")).toHaveCount(
@@ -148,7 +149,7 @@ for (const { domain, route, select } of [
         await expect(historyLink).toHaveCount(1);
         await expect(historyLink).toHaveAttribute(
           "href",
-          `/catalog/teachers/${destination}#sections`,
+          `/catalog/teachers/${destination}/sections`,
         );
         await expect(item.locator("a a")).toHaveCount(0);
         await link.focus();
@@ -156,7 +157,7 @@ for (const { domain, route, select } of [
         await expect(historyLink).toBeFocused();
         await page.keyboard.press("Enter");
         await expect(page).toHaveURL(
-          new RegExp(`/catalog/teachers/${destination}#sections$`),
+          new RegExp(`/catalog/teachers/${destination}/sections$`),
         );
         await expect(page.locator("#sections")).toBeInViewport();
         await page.goBack();
@@ -346,7 +347,9 @@ test("ui.global-search-results-2", { tag: "@Search/Web" }, async ({
       for (const [section, title, description] of [
         [
           fixture.section,
-          `${courseName} · ${teachers}`,
+          locale === "zh-cn"
+            ? `${courseName}（2015年秋季学期，${teachers}）`
+            : `${courseName} (Fall 2015, ${teachers})`,
           `${locale === "zh-cn" ? "2015年秋季学期" : "Fall 2015"} · ${campusName} · ${fixture.section.code}`,
         ],
         [
@@ -358,7 +361,7 @@ test("ui.global-search-results-2", { tag: "@Search/Web" }, async ({
         await gotoAndWaitForReady(page, `/search?q=${fixture.course.code}`);
         const result = page
           .getByRole("group", {
-            name: locale === "zh-cn" ? "教学班" : "Sections",
+            name: locale === "zh-cn" ? "班级" : "Sections",
             exact: true,
           })
           .getByRole("option")
@@ -568,9 +571,16 @@ test("ui.data-table-cells-2", { tag: "@Section/Web" }, async ({
       ).toBe(true);
 
       for (const value of values) {
-        const text = touchPage
-          .locator("#main-content")
-          .getByText(value, { exact: width !== 390 || value !== teacherName })
+        const scope =
+          width === 1280
+            ? touchPage
+                .locator("table:visible tbody tr")
+                .first()
+                .getByRole("cell")
+                .nth(value === courseName ? 1 : value === sectionCode ? 2 : 3)
+            : touchPage.getByTestId("catalog-results-cards");
+        const text = scope
+          .getByText(value, { exact: value === sectionCode })
           .filter({ visible: true });
         await expect(text).toHaveCount(1);
         const geometry = await text.evaluate((element) => ({
@@ -603,7 +613,7 @@ test("ui.data-table-cells-2", { tag: "@Section/Web" }, async ({
     );
     await touchPage
       .getByRole("link")
-      .filter({ has: touchPage.getByText(courseName, { exact: true }) })
+      .filter({ has: touchPage.getByText(courseName, { exact: false }) })
       .tap();
     await expect(touchPage).toHaveURL(
       new RegExp(`/catalog/sections/${fixture.section.jwId}$`),
@@ -615,7 +625,14 @@ test("ui.data-table-cells-2", { tag: "@Section/Web" }, async ({
       browserHealth: {},
       expectMeaningfulContent: true,
     });
-    for (const value of values) {
+    const link = page
+      .locator(`a[href="/catalog/sections/${fixture.section.jwId}"]`)
+      .filter({ visible: true })
+      .first();
+    await expect(link).toContainText(courseName);
+    await link.focus();
+    expect(await link.ariaSnapshot()).toContain(courseName);
+    for (const value of [sectionCode, teacherName]) {
       const text = page
         .locator('#main-content [data-slot="truncated-text"]')
         .filter({ hasText: value, visible: true });
@@ -629,32 +646,12 @@ test("ui.data-table-cells-2", { tag: "@Section/Web" }, async ({
       await expect(tooltip).toHaveText(value);
       await page.keyboard.press("Escape");
       await expect(tooltip).toHaveCount(0);
-    }
-    const link = page
-      .getByRole("link", { name: courseName, exact: true })
-      .filter({ visible: true });
-    await link.focus();
-    for (const value of values) {
-      const focused = page.locator(":focus");
-      await expect(focused).toContainText(value);
-      await expect(
-        page.locator('[data-slot="tooltip-content"]:visible'),
-      ).toHaveText(value);
-      expect(await focused.ariaSnapshot()).toContain(value);
+      await text.focus();
+      await expect(tooltip).toHaveText(value);
+      expect(await text.ariaSnapshot()).toContain(value);
       await page.keyboard.press("Escape");
-      await expect(
-        page.locator('[data-slot="tooltip-content"]:visible'),
-      ).toHaveCount(0);
-      await page.keyboard.press("Tab");
+      await expect(tooltip).toHaveCount(0);
     }
-    const code = page
-      .locator("#main-content")
-      .getByText(sectionCode, { exact: true })
-      .filter({ visible: true });
-    await code.hover();
-    await expect(
-      page.locator('[data-slot="tooltip-content"]:visible'),
-    ).toHaveText(sectionCode);
   });
 });
 
@@ -664,7 +661,10 @@ for (const { domain, select } of [
     select: (fixture: IdentityFixture) => [
       [`/catalog/courses?search=${fixture.course.code}`, fixture.course.code],
       [`/catalog/courses/${fixture.course.jwId}`, fixture.course.code],
-      [`/catalog/courses/${fixture.course.jwId}`, fixture.section.code],
+      [
+        `/catalog/courses/${fixture.course.jwId}/sections`,
+        fixture.section.code,
+      ],
     ],
   },
   {
@@ -680,7 +680,10 @@ for (const { domain, select } of [
   {
     domain: "Teacher",
     select: (fixture: IdentityFixture) => [
-      [`/catalog/teachers/${fixture.teacher.id}`, fixture.section.code],
+      [
+        `/catalog/teachers/${fixture.teacher.id}/sections`,
+        fixture.section.code,
+      ],
     ],
   },
 ] as const) {
@@ -775,6 +778,7 @@ for (const { domain, select } of [
         await expect(page.getByRole("heading", { level: 1 })).toContainText(
           name,
         );
+        if (domain === "Teacher") await selectDetailTab(page, "sections");
         await expect(page.locator("#main-content")).toContainText(code);
         const visible = await page.locator("#main-content").innerText();
         for (const id of forbidden) expect(visible).not.toContain(id);
@@ -901,7 +905,7 @@ test("cases.missing-data.section-missing-teacher-location-or-exam-1", {
       ).toBe(200);
       await gotoAndWaitForReady(
         page,
-        `/catalog/sections/${fixture.section.jwId}`,
+        `/catalog/sections/${fixture.section.jwId}/overview`,
       );
       const name =
         locale === "zh-cn" ? fixture.course.nameCn : fixture.course.nameEn;
@@ -911,15 +915,23 @@ test("cases.missing-data.section-missing-teacher-location-or-exam-1", {
         locale === "zh-cn" ? "暂无教师。" : "No teachers listed.",
       );
       const campus = page
-        .locator("[data-detail-identity] dt")
+        .locator("#overview dt")
         .filter({ hasText: locale === "zh-cn" ? "校区" : "Campus" });
       await expect(campus.locator("+ dd")).toHaveText(
         locale === "zh-cn" ? "暂无" : "N/A",
       );
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/sections/${fixture.section.jwId}/calendar`,
+      );
       await expect(page.locator("#calendar")).toContainText(
         locale === "zh-cn"
-          ? "此教学班暂无课程或考试安排"
+          ? "此班级暂无课程或考试安排"
           : "No schedule or exam events available for this section",
+      );
+      await gotoAndWaitForReady(
+        page,
+        `/catalog/sections/${fixture.section.jwId}/exams`,
       );
       await expect(page.locator("#exams")).toContainText(
         locale === "zh-cn"
@@ -1368,9 +1380,11 @@ subscriptionTest(
             await expect(page.getByRole("heading", { level: 1 })).toContainText(
               name,
             );
+            await selectDetailTab(page, "overview");
             const courseFacts = await page.locator("#overview").innerText();
             expect(courseFacts).not.toContain(current.nameCn);
             expect(courseFacts).not.toContain(previous.nameCn);
+            await selectDetailTab(page, "sections");
             for (const section of [fixture.section, ...sections]) {
               const link = page
                 .locator(`a[href="/catalog/sections/${section.jwId}"]`)
@@ -1380,6 +1394,11 @@ subscriptionTest(
                   ? link
                   : page.getByRole("row").filter({ has: link });
               await expect(row).toContainText(section.code);
+              if (!section.semesterId) {
+                await expect(row).not.toContainText(current.nameCn);
+                await expect(row).not.toContainText(previous.nameCn);
+                continue;
+              }
               await expect(row).toContainText(
                 section.semesterId === current.id
                   ? locale === "zh-cn"
@@ -1480,7 +1499,7 @@ subscriptionTest(
           await gotoAndWaitForReady(page, "/workspace/subscriptions");
           await page
             .getByRole("button", {
-              name: /批量添加教学班订阅|Bulk Add Section Subscriptions/i,
+              name: /批量添加班级订阅|Bulk Add Section Subscriptions/i,
             })
             .first()
             .click();
@@ -1520,7 +1539,7 @@ subscriptionTest(
             ),
             dialog
               .getByRole("button", {
-                name: /订阅已选的 2 个教学班|Subscribe to 2 sections/,
+                name: /订阅已选的 2 个班级|Subscribe to 2 sections/,
               })
               .click(),
           ]);

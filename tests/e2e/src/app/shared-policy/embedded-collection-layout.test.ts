@@ -47,8 +47,8 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
       name: `${name}-history`,
       path:
         name === "course"
-          ? `/catalog/courses/${c.courses[0].jwId}`
-          : `/catalog/teachers/${c.teachers[0].id}`,
+          ? `/catalog/courses/${c.courses[0].jwId}/sections`
+          : `/catalog/teachers/${c.teachers[0].id}/sections`,
       heading: "#sections h2",
       filter: "",
       summary: "",
@@ -69,8 +69,8 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
     },
     {
       name: "section-homework",
-      path: `/catalog/sections/${c.sections[0].jwId}`,
-      heading: "#homework h2",
+      path: `/catalog/sections/${c.sections[0].jwId}/homework`,
+      heading: "main h1",
       filter: "",
       summary: "",
       continuation: false,
@@ -81,7 +81,7 @@ function cases(width: number, fixture: EmbeddedTablePolicyFixture) {
     },
     ...["calendar", "exams"].map((name) => ({
       name: `section-${name}`,
-      path: `/catalog/sections/${c.sections[0].jwId}`,
+      path: `/catalog/sections/${c.sections[0].jwId}#${name}`,
       heading: `#${name} h2`,
       filter: "",
       summary: "",
@@ -224,40 +224,28 @@ for (const [domain, names] of [
         await expectNoPageHorizontalOverflow(page);
         const rows = page.locator(item.records);
         await expect(rows.first()).toBeVisible();
-        if (["section-calendar", "section-exams"].includes(item.name)) {
-          const table = rows.first().locator("xpath=ancestor::table");
-          const container = table.locator("xpath=..");
-          const count = item.name === "section-calendar" ? 5 : 6;
-          await expect(table.locator("thead th")).toHaveCount(count);
-          const size = await container.evaluate((node) => ({
-            width: node.clientWidth,
-            full: node.scrollWidth,
-            overflow: getComputedStyle(node).overflowX,
-          }));
-          expect(size.full).toBeGreaterThan(size.width);
-          expect(["auto", "scroll"]).toContain(size.overflow);
-          await container.evaluate((node) => {
-            node.scrollLeft = node.scrollWidth;
-          });
-          const last = await table.locator("thead th").last().boundingBox();
-          const bounds = await container.boundingBox();
-          if (!last || !bounds) throw new Error("Missing scroll bounds");
-          expect(last.x + last.width).toBeLessThanOrEqual(
-            bounds.x + bounds.width + 1,
-          );
-          expect(last.x).toBeGreaterThanOrEqual(bounds.x - 1);
-          for (const row of await rows.all())
-            await expect(row.locator("td")).toHaveCount(count);
-        } else {
-          for (const row of await rows.all()) {
-            await row.scrollIntoViewIfNeeded();
-            const bounds = await row.boundingBox();
-            if (!bounds) throw new Error("Missing compact record");
-            expect.soft(bounds.x, item.name).toBeGreaterThanOrEqual(0);
-            expect
-              .soft(bounds.x + bounds.width, item.name)
-              .toBeLessThanOrEqual(width + 1);
-          }
+        if (item.name === "section-calendar") {
+          const table = page.getByTestId("section-calendar-table");
+          await expect(table).toBeVisible();
+          await expect(table.getByRole("columnheader")).toHaveCount(4);
+        }
+        if (item.name === "section-exams") {
+          const table = page.getByTestId("section-exams-list");
+          await expect(table.getByRole("columnheader")).toHaveCount(6);
+          const lastColumn = table.getByRole("columnheader").last();
+          await lastColumn.scrollIntoViewIfNeeded();
+          await expect(lastColumn).toBeInViewport();
+          await expectNoPageHorizontalOverflow(page);
+          continue;
+        }
+        for (const row of await rows.all()) {
+          await row.scrollIntoViewIfNeeded();
+          const bounds = await row.boundingBox();
+          if (!bounds) throw new Error("Missing compact record");
+          expect.soft(bounds.x, item.name).toBeGreaterThanOrEqual(0);
+          expect
+            .soft(bounds.x + bounds.width, item.name)
+            .toBeLessThanOrEqual(width + 1);
         }
       }
       for (const kind of ["todos", "homeworks"] as const) {

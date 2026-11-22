@@ -5,43 +5,27 @@ import { detailColumnsClass } from "./detail-layout";
 
 let {
   header,
-  identity,
   children,
   aside,
 }: {
   header: Snippet;
-  identity?: Snippet;
   children: Snippet;
-  aside: Snippet;
+  aside?: Snippet;
 } = $props();
 </script>
 <section class="grid min-h-full grid-rows-[auto_minmax(0,1fr)] bg-card lg:h-full lg:min-h-0" data-slot="detail-page-layout">
-  <div class="bg-card"><div class="page-frame page-frame-content px-4 sm:px-5 lg:px-6">{@render header()}</div></div>
-  <div class="@container/detail min-h-0 min-w-0 lg:overflow-y-auto" data-detail-scroll-container>
+  <div class="detail-frame-gutter border-b bg-card"><div class="page-frame page-frame-content">{@render header()}</div></div>
+  <div class="detail-frame-gutter @container/detail min-h-0 min-w-0 lg:overflow-y-auto" data-detail-scroll-container>
     <div
       class={cn(
-        "page-frame page-frame-content min-h-full px-4 py-4 sm:px-5 lg:px-6",
-        identity
-          ? "grid gap-8 @[60rem]/detail:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] @[60rem]/detail:grid-rows-[auto_1fr] @[60rem]/detail:items-start @[60rem]/detail:gap-10"
-          : detailColumnsClass,
+        "page-frame page-frame-content min-h-full py-4",
+        aside && detailColumnsClass,
       )}
     >
-      {#if identity}
-        <div class="min-w-0 @[60rem]/detail:col-start-2 @[60rem]/detail:row-start-1" data-detail-identity>{@render identity()}</div>
+      <div class="min-w-0" data-detail-reading-stream>{@render children()}</div>
+      {#if aside}
+        <aside class="grid min-w-0 gap-6 @[60rem]/detail:sticky @[60rem]/detail:top-4">{@render aside()}</aside>
       {/if}
-      <div
-        class={cn(
-          "grid min-w-0 grid-cols-1 gap-10",
-          identity && "@[60rem]/detail:col-start-1 @[60rem]/detail:row-start-1 @[60rem]/detail:row-span-2",
-        )}
-        data-detail-reading-stream
-      >{@render children()}</div>
-      <aside
-        class={cn(
-          "grid min-w-0 gap-6",
-          identity ? "@[60rem]/detail:col-start-2 @[60rem]/detail:row-start-2" : "@[60rem]/detail:sticky @[60rem]/detail:top-4",
-        )}
-      >{@render aside()}</aside>
     </div>
   </div>
 </section>
