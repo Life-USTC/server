@@ -108,7 +108,7 @@ afterNavigate(({ to, shallow, type }) => {
       {data.copy.pageTitle}
     </Field.Label>
     <InputGroup.Root
-      class="h-9 max-h-9 md:h-9 rounded-md border-border/60 bg-muted/40 shadow-none has-[[data-slot=input-group-control]:focus-visible]:border-border has-[[data-slot=input-group-control]:focus-visible]:ring-1 has-[[data-slot=input-group-control]:focus-visible]:ring-border/60"
+      class="h-9 max-h-9 md:h-9 rounded-md border-border/60 bg-muted/40 shadow-none"
       data-search-page-field
     >
       <InputGroup.Addon class="px-0 ps-2.5">
@@ -123,12 +123,12 @@ afterNavigate(({ to, shallow, type }) => {
         aria-busy={$isSearching}
         aria-controls={GLOBAL_SEARCH_LISTBOX_ID}
         aria-expanded={$canNavigateResults}
-        class="h-9 rounded-md border-0 bg-transparent pr-2.5 ps-2.5 text-sm outline-none"
+        class="h-9 rounded-md border-0 bg-transparent pr-2.5 ps-2.5 text-base outline-none md:text-sm"
         id="global-search-page-input"
         oncompositionend={handleCompositionEnd}
         oninput={handleQueryInput}
         onkeydown={(event) => handleInputKeydown(event, inputElement)}
-        placeholder={data.copy.placeholderSignedIn}
+        placeholder={requestContext.includeWorkspace ? data.copy.placeholderSignedIn : data.copy.placeholder}
         maxlength={GLOBAL_SEARCH_MAX_QUERY_LENGTH}
         role="combobox"
         type="search"

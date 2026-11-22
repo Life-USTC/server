@@ -1,12 +1,11 @@
 <script lang="ts">
 import Search from "@lucide/svelte/icons/search";
-import SearchX from "@lucide/svelte/icons/search-x";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Checkbox } from "#lib/components/ui/checkbox/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import * as InputGroup from "#lib/components/ui/input-group/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
@@ -276,17 +275,7 @@ async function subscribeSelectedSections() {
                   </Item.Group>
                 </Field.Set>
               {:else}
-                <Empty.Root class="min-h-32 p-4">
-                  <Empty.Header>
-                    <Empty.Media variant="icon">
-                      <SearchX />
-                    </Empty.Media>
-                    <Empty.Title>{subscriptionsCopy.quickAdd.emptyTitle}</Empty.Title>
-                    <Empty.Description>
-                      {subscriptionsCopy.quickAdd.emptyDescription}
-                    </Empty.Description>
-                  </Empty.Header>
-                </Empty.Root>
+                <CollectionEmpty variant="compact" description={subscriptionsCopy.quickAdd.emptyDescription} title={subscriptionsCopy.quickAdd.emptyTitle} />
               {/if}
             </div>
           {/if}

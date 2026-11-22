@@ -262,7 +262,7 @@ const signupLabel = $derived(
             <Alert.Action>
               <Button
                 size="sm"
-                variant="ghost"
+                variant="outline"
                 onclick={() => void loadDetailModules()}
               >
                 {copy.comments.retry}

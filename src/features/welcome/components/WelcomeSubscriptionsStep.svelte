@@ -1,10 +1,10 @@
 <script lang="ts">
 import ArrowLeft from "@lucide/svelte/icons/arrow-left";
 import ArrowRight from "@lucide/svelte/icons/arrow-right";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Checkbox } from "#lib/components/ui/checkbox/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import * as NativeSelect from "#lib/components/ui/native-select/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
@@ -181,11 +181,7 @@ export let welcomeCopy: WelcomeCopy;
               : formatCopy(welcomeCopy.subscribeSelected, { count: selectedCount })}
           </Button>
         {:else}
-          <Empty.Root class="min-h-20 p-4">
-            <Empty.Header>
-              <Empty.Description>{welcomeCopy.noMatchingSections}</Empty.Description>
-            </Empty.Header>
-          </Empty.Root>
+          <CollectionEmpty variant="compact" description={welcomeCopy.noMatchingSections} />
         {/if}
         {#if unmatchedCodes.length > 0}
           <Alert.Root>
