@@ -27,7 +27,7 @@ export const usageMarketingBlurbClass =
 
 export const usageMarketingCtaRowClass = "flex flex-wrap items-center gap-3";
 
-export const usageMarketingPrimaryCtaClass = "h-10 w-fit no-underline";
+export const usageMarketingPrimaryCtaClass = "w-fit no-underline";
 
 export const usageMarketingSectionTitleClass =
   "font-semibold text-2xl tracking-tight sm:text-3xl";

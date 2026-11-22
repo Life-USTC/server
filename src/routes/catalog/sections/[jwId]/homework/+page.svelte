@@ -20,7 +20,7 @@ const SectionHomeworkTab = $derived(module.component);
       <div class="mb-3 flex flex-wrap items-center justify-end gap-3">
         <div class="flex flex-wrap items-center gap-2">
         {#if !data.demo && !viewer.loading && !viewer.failed && (viewer.isAuthenticated ?? viewer.signedIn === true)}
-          <Button type="button" variant="outline" class="min-h-11 sm:min-h-9 md:min-h-9" onclick={openHomeworkAuditDialog}>{homeworkCopy.auditTitle}</Button>
+          <Button type="button" variant="outline" onclick={openHomeworkAuditDialog}>{homeworkCopy.auditTitle}</Button>
         {/if}
         {#if data.demo}
           <Button type="button" disabled title={data.demo.readOnlyReason}>{homeworkCopy.showCreate}</Button>

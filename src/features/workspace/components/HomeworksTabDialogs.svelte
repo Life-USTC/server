@@ -129,7 +129,7 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
 >
   {#snippet contextActions()}
     {#if selectedHomeworkPermalinkBaseHref}
-      <Button href={selectedHomeworkPermalinkBaseHref} variant="outline" class="min-h-11 w-full whitespace-normal text-center sm:min-h-9 sm:w-auto md:min-h-9">
+      <Button href={selectedHomeworkPermalinkBaseHref} variant="outline" class="w-full whitespace-normal text-center sm:w-auto">
         {homeworksCopy.openFullDetails}
       </Button>
     {/if}

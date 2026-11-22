@@ -214,7 +214,7 @@ async function copyInstallCommand() {
                   <Button
                     {...props}
                     aria-label={data.copy.primaryQrAlt}
-                    size="icon-sm"
+                    class="icon-action" size="icon"
                     type="button"
                     variant="outline"
                   >

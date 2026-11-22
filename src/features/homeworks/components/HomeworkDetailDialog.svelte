@@ -136,7 +136,7 @@ onMount(() => {
           <div class="flex w-full flex-col items-stretch justify-end gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             {#if showCompletion && homework.completionRequired && onToggleCompletion}
               <Button
-                class="order-1 min-h-11 min-w-0 w-full flex-1 whitespace-normal text-center sm:order-2 sm:min-h-9 sm:w-auto sm:flex-none md:min-h-9"
+                class="order-1 min-w-0 w-full flex-1 whitespace-normal text-center sm:order-2 sm:w-auto sm:flex-none"
                 disabled={completionSaving || Boolean(readOnlyReason)}
                 title={readOnlyReason ?? undefined}
                 type="button"

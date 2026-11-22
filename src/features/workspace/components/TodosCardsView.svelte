@@ -72,7 +72,7 @@ export let readOnlyReason: string | undefined = undefined;
               <Badge variant="ghost">{todoStatus(todo)}</Badge>
             </Item.Description>
           </Item.Content>
-          <Item.Actions class="compact-toolbar icon-action-row shrink-0 self-start">
+          <Item.Actions class="shrink-0 self-start">
             <TableIconButton
               disabled={Boolean(readOnlyReason) || todoSavingById[todo.id]}
               label={todoSavingById[todo.id]
@@ -97,7 +97,7 @@ export let readOnlyReason: string | undefined = undefined;
                     aria-label={todosCopy.editAriaLabel}
                     disabled={Boolean(readOnlyReason)}
                     title={readOnlyReason}
-                    size="icon"
+                    class="icon-action" size="icon"
                     type="button"
                     variant="outline"
                   >

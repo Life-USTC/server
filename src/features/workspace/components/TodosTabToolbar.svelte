@@ -14,8 +14,9 @@ onMount(() => {
 });
 </script>
 
-<div class="compact-toolbar max-md:icon-action-row flex justify-end">
+<div class="compact-toolbar flex justify-end">
   <Button
+    class="max-md:icon-action"
     aria-label={String(todosCopy.addButton)}
     data-testid="workspace-todos-add"
     type="button"

@@ -12,7 +12,7 @@ import {
 it("usage.marketing-composition exports shared recipe classes", () => {
   expect(usageMarketingIconClass).toContain("size-14");
   expect(usageMarketingTitleClass).toContain("text-4xl");
-  expect(usageMarketingPrimaryCtaClass).toContain("h-10");
+  expect(usageMarketingPrimaryCtaClass).toContain("w-fit");
   expect(usageMarketingExampleGridClass).toContain("min-w-0");
   expect(usageMarketingExampleCardClass).toContain("min-w-0");
   expect(usageMarketingStepGridClass).toContain("min-w-0");

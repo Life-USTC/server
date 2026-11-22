@@ -44,18 +44,16 @@ export let subscriptionsCopy: WorkspaceSubscriptionsCopy;
           <Badge variant="outline">{section.credits ?? workspaceCopy.notAvailable} {subscriptionsCopy.credits}</Badge>
         </Item.Footer>
         <Item.Actions class="shrink-0 self-start">
-          <TableIconButton className="size-11" label={subscriptionsCopy.kindEditor.title} disabled={Boolean(readOnlyReason)} onclick={() => requestEditKind(section)}>
+          <TableIconButton label={subscriptionsCopy.kindEditor.title} disabled={Boolean(readOnlyReason)} onclick={() => requestEditKind(section)}>
             <Pencil data-icon="inline-start" />
           </TableIconButton>
           <TableIconButton
-            className="size-11"
             href={`/catalog/sections/${section.jwId}`}
             label={sectionCopy.moreDetails}
           >
             <ArrowUpRight data-icon="inline-start" />
           </TableIconButton>
           <TableIconButton
-            className="size-11"
             disabled={Boolean(readOnlyReason) || removingSectionId === section.id}
             label={subscriptionsCopy.unsubscribe}
             variant="destructive"

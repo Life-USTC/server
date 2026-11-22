@@ -15,9 +15,9 @@
 				link: "text-primary-text underline-offset-4 hover:underline",
 			},
 			size: {
-				default: "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-				xs: "h-6 gap-1 px-2 text-xs has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-				sm: "h-7 gap-1 px-2.5 text-[0.8rem] has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
+				default: "h-8 gap-1 px-1.5",
+				xs: "h-6 gap-1 px-1 text-xs [&_svg:not([class*='size-'])]:size-3",
+				sm: "h-7 gap-1 px-1.5 text-[0.8rem] [&_svg:not([class*='size-'])]:size-3.5",
 				icon: "size-8",
 				"icon-xs": "size-6 [&_svg:not([class*='size-'])]:size-3",
 				"icon-sm": "size-7",

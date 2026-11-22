@@ -169,7 +169,7 @@ const mobile = new IsMobile();
           {demo}
         />
       {:else if !hideSignIn}
-        <SignInButton class="size-11" size="icon" aria-label={copy.menu.signIn} title={copy.menu.signIn} data-shell-sign-in>
+        <SignInButton class="icon-action" size="icon" aria-label={copy.menu.signIn} title={copy.menu.signIn} data-shell-sign-in>
           <LogInIcon aria-hidden="true" />
         </SignInButton>
       {/if}

@@ -34,7 +34,7 @@ afterNavigate(({ shallow, type }) => {
   <Popover.Root bind:open>
     <Popover.Trigger>
       {#snippet child({ props })}
-        <Button {...props} {disabled} variant="ghost" class="-mx-[11px]" data-active={active || sort ? "true" : undefined}>
+        <Button {...props} {disabled} variant="ghost" class="justify-start border-x-0 px-0" data-active={active || sort ? "true" : undefined}>
           <span>{label}</span>
           {#if sort === "asc"}
             <ArrowUpIcon data-icon="inline-end" aria-hidden="true" />

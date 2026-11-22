@@ -158,7 +158,7 @@ $: if (open) {
         </Field.Field>
         <Button
           aria-label={copy.close}
-          class="shrink-0"
+          class="icon-action"
           onclick={() => handleOpenChange(false)}
           size="icon-sm"
           type="button"

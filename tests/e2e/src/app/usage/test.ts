@@ -49,6 +49,17 @@ test("usage pages expose their primary handoff", { tag: "@Site/Web" }, async ({
       name: /Presto QQ (?:二维码|QR code)/i,
     });
     await expect(qrTrigger).toBeVisible();
+    for (const width of [390, 700, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      const edge = width < 768 ? "44px" : "32px";
+      await expect(qrTrigger).toHaveCSS("width", edge);
+      await expect(qrTrigger).toHaveCSS("height", edge);
+      await expect(qrTrigger).toHaveCSS("padding-left", "0px");
+      await expect(qrTrigger).toHaveCSS("padding-right", "0px");
+      await expect(prestoPrimaryAction).toHaveCSS("padding-left", "6px");
+      await expect(prestoPrimaryAction).toHaveCSS("padding-right", "6px");
+      await expect(prestoPrimaryAction).toHaveCSS("height", edge);
+    }
     await qrTrigger.focus();
     await qrTrigger.press("Enter");
     await expect(prestoQrCode).toBeVisible();
