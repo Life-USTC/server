@@ -118,7 +118,7 @@ async function assertTaskSemesterLabels(
                     ? { hasText: item.title }
                     : {
                         has: page.locator(
-                          `a[href="/catalog/sections/${item.section.jwId}"]`,
+                          `a[href="/catalog/sections/${item.section.jwId}/schedule#exams"]`,
                         ),
                       },
                 )
@@ -127,7 +127,7 @@ async function assertTaskSemesterLabels(
                     ? { hasText: item.title }
                     : {
                         has: page.locator(
-                          `a[href="/catalog/sections/${item.section.jwId}"]`,
+                          `a[href="/catalog/sections/${item.section.jwId}/schedule#exams"]`,
                         ),
                       },
                 );

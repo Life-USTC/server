@@ -133,13 +133,14 @@ function floorLabel(floor: string) {
   {#if pageDemo}<DemoNotice demo={pageDemo} locale={locale === "en-us" ? "en-us" : "zh-cn"} />{/if}
 
   {#if selectedRoom}
-    {#key `${rawRoom}:${searchRevision}`}
+    {#key rawRoom}
       <RoomMapPreview
         {pageDemo}
         {locale}
         code={rawRoom}
         {copy}
         className="w-full"
+        refreshRevision={searchRevision}
         loadOnMount={true}
         inline={true}
       />

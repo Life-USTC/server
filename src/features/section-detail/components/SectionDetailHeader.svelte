@@ -61,7 +61,7 @@ $: subscriptionsCopy = getWorkspacePageCopy(locale).subscriptions;
     <div class="mt-1 flex flex-wrap items-baseline gap-x-3 text-sm text-muted-foreground">
       {#if section.semester?.nameCn}<span>{formatSemesterName(locale, section.semester.nameCn)}</span>{/if}
       {#each section.teachers ?? [] as teacher (teacher.id)}
-        <a href={`/catalog/teachers/${teacher.id}`}><TeacherIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" />{catalogLocalizedDisplayName(teacher, locale)}</a>
+        <a class="inline-flex min-h-6 min-w-6 items-center" href={`/catalog/teachers/${teacher.id}`}><TeacherIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" />{catalogLocalizedDisplayName(teacher, locale)}</a>
       {/each}
       {#if hasCourseName}<span class="font-mono" data-slot="catalog-code">{section.code}</span>{/if}
     </div>

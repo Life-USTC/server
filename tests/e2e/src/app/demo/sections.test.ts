@@ -6,6 +6,7 @@ import {
   openCatalogColumnFilter,
   setCatalogFilterValue,
 } from "../../../utils/catalog-table-filters";
+import { selectDetailTab } from "../../../utils/locators";
 import { test } from "../../../utils/owned-worker";
 import {
   expectNoPageHorizontalOverflow,
@@ -46,7 +47,9 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                     "data-shell-navigation-view",
                     "root",
                   );
-                  await page.getByTestId("workspace-sidebar-back").click();
+                  await expect(
+                    page.getByTestId("workspace-sidebar-back"),
+                  ).toHaveCount(0);
                   await expect(workspace).toHaveAttribute(
                     "data-shell-navigation-view",
                     "root",
@@ -55,10 +58,10 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                     .locator('[data-slot="sidebar-content"] a[href="/campus"]')
                     .click();
                   await expect(page).toHaveURL(/\/campus$/);
-                  const campus = page.getByTestId("campus-sidebar");
+                  const campus = page.locator("nav[data-shell-navigation]");
                   await expect(campus).toHaveAttribute(
                     "data-shell-navigation-view",
-                    "campus",
+                    "root",
                   );
                   await campus.locator('a[href="/catalog/sections"]').click();
                   await waitForUiSettled(page);
@@ -233,6 +236,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
                 await expect(
                   page.locator('a[href$=".ics"]:visible'),
                 ).toHaveCount(0);
+                await selectDetailTab(page, "introduction");
                 await page
                   .locator(
                     '#main-content a[href="/catalog/courses/920001"]:visible',

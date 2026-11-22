@@ -32,6 +32,7 @@ export let loadOnMount = false;
 export let inline = false;
 export let className = "";
 export let tableCell = false;
+export let refreshRevision = 0;
 
 const shellViewer = getShellViewer();
 let mounted = false;
@@ -53,7 +54,7 @@ let requestController: AbortController | null = null;
 
 $: normalizedCode = code.trim().normalize("NFKC").toUpperCase();
 $: readEpoch = homePublicReadEpoch($shellViewer, pageDemo);
-$: ownerEpoch = readEpoch ? `${readEpoch}:${locale}` : "";
+$: ownerEpoch = readEpoch ? `${readEpoch}:${locale}:${refreshRevision}` : "";
 $: visibleMap =
   ownerEpoch && mapEpoch === ownerEpoch && map?.code === normalizedCode
     ? map

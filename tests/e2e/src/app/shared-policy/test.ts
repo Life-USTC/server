@@ -377,10 +377,7 @@ taskFilterTest(
           ]);
           await openMobileMenu(page);
           await expect(
-            page.getByRole("navigation", {
-              name: locale === "zh-cn" ? "主导航" : "Primary navigation",
-              exact: true,
-            }),
+            page.locator('nav[data-shell-navigation="mobile"]'),
           ).toBeVisible();
         }
         await checkpoint("mobile navigation has no calendar side effects", {

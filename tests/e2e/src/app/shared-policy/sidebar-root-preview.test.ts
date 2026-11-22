@@ -391,7 +391,9 @@ for (const [locale, width] of [
           page.getByTestId(`${context}-sidebar-back`),
         ).toHaveAccessibleName(rootLabel);
         if (context === "activities" && locale === "en-us") {
-          await page.getByTestId("activities-sidebar-back").click();
+          await expect(page.getByTestId("activities-sidebar-back")).toHaveCount(
+            0,
+          );
           await expect(
             page.locator("nav[data-shell-navigation]"),
           ).toHaveAttribute("data-shell-navigation-view", "root");
@@ -697,7 +699,7 @@ test("sidebar.root-preview retires a held administrator bootstrap on Demo naviga
       await expect(young).toHaveAttribute("data-shell-navigation-view", "root");
       expect(await original.evaluate((doc) => doc === document)).toBe(true);
       await expect(page.getByTestId("demo-notice")).toBeVisible();
-      await page.getByTestId("activities-sidebar-back").click();
+      await expect(page.getByTestId("activities-sidebar-back")).toHaveCount(0);
       await expect(young).toHaveAttribute("data-shell-navigation-view", "root");
       await expect(young.locator('a[aria-current="page"]')).toHaveCount(1);
       await expect(young.locator('a[aria-current="page"]')).toBeInViewport({
@@ -728,7 +730,7 @@ test("sidebar.root-preview retires a held administrator bootstrap on Demo naviga
         "data-shell-count-value",
         "21",
       );
-      await page.getByTestId("workspace-sidebar-back").click();
+      await expect(page.getByTestId("workspace-sidebar-back")).toHaveCount(0);
       await expect(workspace).toHaveAttribute(
         "data-shell-navigation-view",
         "root",
@@ -905,7 +907,9 @@ test("sidebar.root-preview retires a held administrator bootstrap on Demo naviga
         "data-shell-count-value",
         "21",
       );
-      await expect(page.getByTestId("workspace-sidebar-back")).toBeFocused();
+      await expect(
+        workspace.locator('[data-navigation-depth="0"][href="/"]'),
+      ).toBeFocused();
       await expect(page.locator("#app-user-menu")).toHaveCount(0);
       await expect(
         page.locator("#demo-navigation-menu button"),

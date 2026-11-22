@@ -136,7 +136,7 @@ const mobile = new IsMobile();
         </div>
       {/if}
 
-      {#if !mobile.current}
+      {#if focused || !mobile.current}
       <AppPreferencesMenu
         {copy}
         {locale}

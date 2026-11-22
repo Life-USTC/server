@@ -33,7 +33,7 @@ $: rows = sectionLessonRows(sectionCalendarEvents, sectionCopy.week);
 </script>
 
 {#if rows.length}
-  <Table.Root class="max-sm:[&_td]:px-1.5 max-sm:[&_th]:px-1.5 max-sm:[&_th]:whitespace-normal" containerLabel={sectionCopy.lecture} data-testid="section-calendar-table">
+  <Table.Root class="max-sm:[&_td]:px-1 max-sm:[&_th]:px-1 max-sm:[&_th]:whitespace-normal" containerLabel={sectionCopy.lecture} data-testid="section-calendar-table">
     <Table.Caption class="sr-only">{sectionCopy.lecture}</Table.Caption>
     <Table.Header>
       <Table.Row>

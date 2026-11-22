@@ -1,4 +1,5 @@
 <script lang="ts">
+import BookOpenIcon from "@lucide/svelte/icons/book-open";
 import LazyModuleStatus from "#lib/components/LazyModuleStatus.svelte";
 import SectionBasicInfoAdminClasses from "@/features/section-detail/components/SectionBasicInfoAdminClasses.svelte";
 import SectionBasicInfoDetails from "@/features/section-detail/components/SectionBasicInfoDetails.svelte";
@@ -47,6 +48,9 @@ const CommentsPanel = $derived(commentsModule.component);
         {/if}
       {/key}
       <div id="overview" class="grid gap-4">
+        <a href={`/catalog/courses/${displaySection.course.jwId}`} class="flex min-h-11 w-fit items-center gap-2 text-sm font-medium underline-offset-4 hover:underline">
+          <BookOpenIcon aria-hidden="true" class="size-4 shrink-0" />{primaryName(displaySection.course)}
+        </a>
         <SectionBasicInfoDetails {commonCopy} {notAvailable} {primaryName} section={displaySection} {sectionCopy} {periodDetailRows} {yesNo} />
         <div data-detail-identity>
           <SectionTeachersCard {primaryName} {sectionCopy} {teacherName} teachers={displaySection.teachers} />
