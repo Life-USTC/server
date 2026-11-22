@@ -38,4 +38,4 @@ const Icon = $derived(
 );
 </script>
 
-<Icon class={className} strokeWidth={1.5} aria-hidden="true" />
+<Icon class={["text-muted-foreground", className]} strokeWidth={1.5} aria-hidden="true" />

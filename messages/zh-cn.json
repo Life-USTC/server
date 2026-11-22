@@ -119,7 +119,7 @@
   "globalSearch": {
     "title": "搜索",
     "pageTitle": "搜索",
-    "pageDescription": "也可在此继续搜索；优先使用顶部栏或 Ctrl K。",
+    "pageDescription": "可在此搜索，也可使用顶部栏的搜索按钮。",
     "placeholder": "搜索班级、教师、课程…",
     "placeholderSignedIn": "搜索班级、教师、课程、作业、待办…",
     "shortcut": "Ctrl K",

@@ -72,16 +72,6 @@ const UNCONVERGED: readonly { file: string; tag: string; class: string }[] = [
     class: "py-8",
   },
   {
-    file: "src/features/subscriptions/components/BulkImportConfirmDialog.svelte",
-    tag: "Empty.Root",
-    class: "min-h-20 p-4",
-  },
-  {
-    file: "src/features/welcome/components/WelcomeSubscriptionsStep.svelte",
-    tag: "Empty.Root",
-    class: "min-h-20 p-4",
-  },
-  {
     file: "src/features/workspace/components/BusTabCompactSummary.svelte",
     tag: "Empty.Root",
     class: "p-0",
@@ -90,11 +80,6 @@ const UNCONVERGED: readonly { file: string; tag: string; class: string }[] = [
     file: "src/features/workspace/components/CalendarTab.svelte",
     tag: "Empty.Root",
     class: "items-start text-left",
-  },
-  {
-    file: "src/features/workspace/components/SubscriptionsQuickAddDialog.svelte",
-    tag: "Empty.Root",
-    class: "min-h-32 p-4",
   },
   {
     file: "src/features/workspace/components/WorkspaceNoSubscriptionsState.svelte",

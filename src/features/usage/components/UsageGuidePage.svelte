@@ -1,8 +1,6 @@
 <script lang="ts">
 import ArrowRightIcon from "@lucide/svelte/icons/arrow-right";
 import BotIcon from "@lucide/svelte/icons/bot";
-import CheckIcon from "@lucide/svelte/icons/check";
-import CopyIcon from "@lucide/svelte/icons/copy";
 import QrCodeIcon from "@lucide/svelte/icons/qr-code";
 import TerminalIcon from "@lucide/svelte/icons/terminal";
 import { writeClipboardText } from "#lib/browser/clipboard.js";
@@ -26,6 +24,7 @@ import {
   usageMarketingStepIndexClass,
   usageMarketingTitleClass,
 } from "../lib/usage-marketing-layout.js";
+import CopyFeedback from "./CopyFeedback.svelte";
 import UsageExampleImage from "./UsageExampleImage.svelte";
 
 type GuideKind = "bot" | "cli";
@@ -295,23 +294,15 @@ async function copyInstallCommand() {
       >
         <h2 class="font-semibold text-lg">{data.copy.installTitle}</h2>
         <Button
-          class="group h-auto min-w-0 w-full justify-between rounded-xl bg-muted px-4 py-3 text-left whitespace-normal hover:bg-muted/80"
+          class="group h-auto min-w-0 w-full justify-between rounded-xl p-3 text-left whitespace-normal"
           type="button"
-          variant="ghost"
+          variant="outline"
           onclick={copyInstallCommand}
         >
-          <span class="sr-only">{data.copy.copyInstallAction}</span>
           <code class="min-w-0 flex-1 overflow-x-auto font-mono text-sm"
             >{data.copy.installCommand}</code
           >
-          {#if installCopied}
-            <CheckIcon class="ms-3 shrink-0" data-icon="inline-end" />
-          {:else}
-            <CopyIcon
-              class="ms-3 shrink-0 text-muted-foreground group-hover:text-foreground"
-              data-icon="inline-end"
-            />
-          {/if}
+          <CopyFeedback copied={installCopied} label={data.copy.copyInstallAction} copiedLabel={data.copy.copiedInstallAction} />
         </Button>
       </div>
     {/if}

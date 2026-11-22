@@ -241,8 +241,8 @@ for (const [locale, width] of [
                 await page
                   .getByRole("button", {
                     name: english
-                      ? "Copy install command go install github.com/Life-USTC/CLI/cmd/life-ustc@latest"
-                      : "复制安装命令 go install github.com/Life-USTC/CLI/cmd/life-ustc@latest",
+                      ? "go install github.com/Life-USTC/CLI/cmd/life-ustc@latest Copy install command"
+                      : "go install github.com/Life-USTC/CLI/cmd/life-ustc@latest 复制安装命令",
                     exact: true,
                   })
                   .click();

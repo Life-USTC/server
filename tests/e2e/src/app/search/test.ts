@@ -109,7 +109,12 @@ test("empty search page shows type chips and example queries", {
 
     const hints = page.locator("[data-search-empty-hints]");
     await expect(hints).toBeVisible();
-    await expect(page.locator("[data-search-page-field]")).toBeVisible();
+    const field = page.locator("[data-search-page-field]");
+    await expect(field).toBeVisible();
+    await expect(field.getByRole("combobox")).toHaveAttribute(
+      "placeholder",
+      /^(搜索班级、教师、课程…|Search sections, teachers, courses…)$/,
+    );
     await expect(hints.getByText(/课程|Courses/)).toBeVisible();
     await expect(hints.getByText(/教师|Teachers/)).toBeVisible();
 

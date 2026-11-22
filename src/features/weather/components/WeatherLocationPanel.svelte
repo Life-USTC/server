@@ -61,7 +61,7 @@ function formatTemperature(value: number | null) {
     >
       <WeatherConditionIcon
         condition={snapshot.current.condition}
-        class="size-16 text-amber-500"
+        class="size-16"
       />
       <span
         class="text-6xl leading-none font-extralight tracking-tight"
@@ -148,7 +148,7 @@ function formatTemperature(value: number | null) {
               </span>
               <WeatherConditionIcon
                 condition={day.condition}
-                class="text-muted-foreground size-4 shrink-0"
+                class="size-4 shrink-0"
               />
               <span class="text-muted-foreground w-8 text-right">
                 {formatTemperature(day.temperatureLow)}

@@ -219,7 +219,7 @@ async function save(next: boolean) {
 {#if compact}
   {#if failed}
     <span class="sr-only" role="alert">{copy.failed}</span>
-    <Button variant="outline" onclick={retry}>{copy.retry}</Button>
+    <Button size="sm" variant="outline" onclick={retry}>{copy.retry}</Button>
   {:else}
     <Button
       class="shrink-0"
@@ -235,7 +235,7 @@ async function save(next: boolean) {
     <div class="flex flex-wrap items-center gap-3">
       {#if failed}
         <span role="alert">{copy.failed}</span>
-        <Button variant="outline" onclick={retry}>{copy.retry}</Button>
+        <Button size="sm" variant="outline" onclick={retry}>{copy.retry}</Button>
       {:else}
         <Button
           disabled={readOnly || !loaded || busy}

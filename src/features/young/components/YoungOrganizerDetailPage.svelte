@@ -75,7 +75,7 @@ function formatRange(event: YoungEventSummary) {
   {/snippet}
       <Panel footer={endless.hasMore ? paginationFooter : undefined}>
         {#snippet header()}
-          <h2 class="font-medium text-base">{youngCopy.organizerEvents}</h2>
+          <h2 class="text-lg font-semibold tracking-tight">{youngCopy.organizerEvents}</h2>
         {/snippet}
         <div class="grid gap-3">
         {#if events.data.length > 0}

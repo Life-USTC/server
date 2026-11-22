@@ -98,7 +98,8 @@ requirements:
 - id: search.empty-guidance
   category: presentation
   rule: An empty /search page offers type chips and example queries, and keeps the in-page search field
-    visually secondary to the top-bar global search control.
+    visually secondary to the top-bar global search control. Its placeholder describes the current
+    search scope and its keyboard focus ring follows the shared input group.
   acceptance:
     given: An anonymous browser opens /search with no query.
     when: The empty state renders and the visitor activates an example chip.

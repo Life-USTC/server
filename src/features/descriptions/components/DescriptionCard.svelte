@@ -216,7 +216,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
   {#if viewerFailed}
     <Alert.Root variant="destructive">
       <Alert.Description>{copy.loadFailed}</Alert.Description>
-      <Button variant="outline" onclick={() => void retryViewer()}>{copy.retry}</Button>
+      <Button size="sm" variant="outline" onclick={() => void retryViewer()}>{copy.retry}</Button>
     </Alert.Root>
   {/if}
   <DescriptionCardHeader

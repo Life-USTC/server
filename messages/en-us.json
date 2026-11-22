@@ -119,7 +119,7 @@
   "globalSearch": {
     "title": "Search",
     "pageTitle": "Search",
-    "pageDescription": "You can keep searching here; prefer the top bar or Ctrl K.",
+    "pageDescription": "Search here or use the search button in the top bar.",
     "placeholder": "Search sections, teachers, courses…",
     "placeholderSignedIn": "Search sections, teachers, courses, homework, todos…",
     "shortcut": "Ctrl K",
