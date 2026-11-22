@@ -391,9 +391,7 @@ for (const [locale, width] of [
           page.getByTestId(`${context}-sidebar-back`),
         ).toHaveAccessibleName(rootLabel);
         if (context === "activities" && locale === "en-us") {
-          await expect(page.getByTestId("activities-sidebar-back")).toHaveCount(
-            0,
-          );
+          await page.getByTestId("activities-sidebar-back").click();
           await expect(
             page.locator("nav[data-shell-navigation]"),
           ).toHaveAttribute("data-shell-navigation-view", "root");

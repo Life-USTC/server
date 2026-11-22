@@ -81,11 +81,7 @@ test("course.mobile-detail-hierarchy", { tag: "@Course/Web" }, async ({
           const code = page.getByTestId("course-public-code");
           await expect(code).toHaveText("MATH-MOBILE-101");
           await expect(code).toBeInViewport();
-          expect(
-            await code.evaluate(
-              (element) => getComputedStyle(element).fontFamily,
-            ),
-          ).toMatch(/mono/i);
+          await expect(code).toHaveCSS("font-family", /mono/i);
           await selectDetailTab(page, "sections");
           const offering = page.locator(
             `#sections a[href="/catalog/sections/${fixture.sections[0].jwId}"]:visible`,
@@ -204,11 +200,7 @@ test("section.mobile-detail-actions", { tag: "@Section/Web" }, async ({
             overview.locator("dd").filter({ hasText: /^32$/ }),
           ).toHaveCount(2);
           await reachable(code);
-          expect(
-            await code.evaluate(
-              (element) => getComputedStyle(element).fontFamily,
-            ),
-          ).toMatch(/mono/i);
+          await expect(code).toHaveCSS("font-family", /mono/i);
           for (const value of ["3.5", "12 / 40"])
             await reachable(overview.getByText(value, { exact: true }));
           await reachable(
