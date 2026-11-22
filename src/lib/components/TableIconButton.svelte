@@ -1,8 +1,5 @@
 <script lang="ts">
-import {
-  Button,
-  type ButtonVariant,
-} from "#lib/components/ui/button/index.js";
+import { Button, type ButtonVariant } from "#lib/components/ui/button/index.js";
 import * as Tooltip from "#lib/components/ui/tooltip/index.js";
 
 export let label: string;
