@@ -15,10 +15,10 @@ onMount(() => {
 });
 </script>
 
-<div class="flex justify-end">
+<div class="compact-toolbar flex justify-end">
   <Button
     aria-label={homeworksCopy.addButton}
-    class={cn(toolbarControlClass, "w-11 md:w-auto md:min-w-28")}
+    class={cn(toolbarControlClass, "w-11 md:w-auto")}
     data-testid="workspace-homeworks-add"
     type="button"
     disabled={!ready || !canWriteShared || Boolean(readOnlyReason)}

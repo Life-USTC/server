@@ -108,7 +108,7 @@ function propertyBadges(homework: WorkspaceHomeworkItem) {
             </div>
             {/if}
           </Item.Content>
-          <Item.Actions class="shrink-0 self-start">
+          <Item.Actions class="compact-toolbar shrink-0 self-start">
             {#if homework.completionRequired !== false}
               <TableIconButton
                 className="size-11"

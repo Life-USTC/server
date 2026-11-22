@@ -72,7 +72,7 @@ export let readOnlyReason: string | undefined = undefined;
               <Badge variant="ghost">{todoStatus(todo)}</Badge>
             </Item.Description>
           </Item.Content>
-          <Item.Actions class="shrink-0 self-start">
+          <Item.Actions class="compact-toolbar shrink-0 self-start">
             <TableIconButton
               className="size-11"
               disabled={Boolean(readOnlyReason) || todoSavingById[todo.id]}
