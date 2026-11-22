@@ -16,7 +16,7 @@ let {
 } = $props();
 </script>
 
-<div class="flex flex-wrap items-center gap-2" data-slot="filter-actions">
+<div class="compact-toolbar flex flex-wrap items-center gap-2" data-slot="filter-actions">
   <Button type="submit" {form} {disabled}>{applyLabel}</Button>
   <Button type="button" variant="outline" {disabled} onclick={onreset}>{resetLabel}</Button>
 </div>

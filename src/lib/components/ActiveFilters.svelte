@@ -32,7 +32,7 @@ let {
 </script>
 
 {#if items.length}
-  <div class="flex min-w-0 flex-wrap items-center gap-2" role="group" aria-label={ariaLabel} data-slot="active-filters">
+  <div class="compact-toolbar flex min-w-0 flex-wrap items-center gap-2" role="group" aria-label={ariaLabel} data-slot="active-filters">
     {#if showLabel}<span class="text-sm text-muted-foreground">{ariaLabel}</span>{/if}
     {#each items as item ("href" in item ? item.href : item.key)}
       <Button
@@ -42,7 +42,7 @@ let {
         onclick={(event) => "href" in item ? onremove?.(event, item.href) : item.remove()}
         variant="secondary"
         size="sm"
-        class="h-auto min-h-11 min-w-0 max-w-full py-1.5 md:min-h-8"
+        class="h-auto min-h-11 min-w-0 max-w-full py-0.5 md:min-h-8"
         aria-label={item.removeLabel ?? `${clearLabel}: ${item.label}`}
       >
         <span class="min-w-0 whitespace-normal text-left [overflow-wrap:anywhere]">{item.label}</span>

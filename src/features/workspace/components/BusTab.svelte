@@ -289,7 +289,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
           <BusTabCompactSummary {busApplicableRoutes} {busCopy} {busPlannerReady} {reverseBusStops} />
         </div>
       {/if}
-      <form id={formId} onsubmit={applyFilters} data-slot="collection-header">
+      <form class="compact-toolbar" id={formId} onsubmit={applyFilters} data-slot="collection-header">
         <Field.Group class="flex-row flex-wrap items-center gap-3">
           {@render plannerControls()}
           <TableFieldFilter label={busCopy.planner.routes} fields={[{ name: "routeId", label: busCopy.planner.routes, options: loadedBus.routes.map((route) => ({ value: String(route.id), label: route.descriptionPrimary })) }]} values={tableDraft} onchange={updateFilters} labels={busCopy.tableFilters} idPrefix="bus-routes" {formId} />

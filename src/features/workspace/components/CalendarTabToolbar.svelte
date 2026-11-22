@@ -35,7 +35,7 @@ const activitiesManageHref = "/workspace/subscriptions/activities";
 let personalCalendarLink: PersonalCalendarLinkButton | undefined;
 </script>
 
-<div class="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start" data-testid="workspace-calendar-mobile-toolbar">
+<div class="compact-toolbar grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start" data-testid="workspace-calendar-mobile-toolbar">
   <div class="grid min-w-0 gap-2">
     <ToggleGroup.Root
       aria-label={workspaceCopy.calendarViewLabel}
@@ -95,14 +95,13 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
     </div>
   </div>
   <div class="hidden flex-wrap items-center gap-2 xl:flex xl:justify-end">
-    <Button class="min-w-28 md:min-w-28" href={activitiesManageHref} variant="outline">
+    <Button href={activitiesManageHref} variant="outline">
       {activitiesManageLabel}
     </Button>
     {#if signedData.calendarLinkState || signedData.calendarSubscriptionUrl}
       <PersonalCalendarLinkButton
         bind:this={personalCalendarLink}
         buttonLabel={subscriptionsCopy.iCalLink}
-        className="min-w-28 md:min-w-28"
         failureMessage={subscriptionsCopy.optOutRetry}
         {sectionCopy}
         showSubscriptionsLink={true}

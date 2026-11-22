@@ -313,3 +313,29 @@ html {
 @utility table-cell-action {
   @apply flex h-full min-h-12 w-full min-w-0 items-center overflow-hidden px-(--table-cell-inset) text-left text-foreground no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50;
 }
+
+/* The native target fills the toolbar row. Transparent block borders inset
+   the painted face without moving the label, icon, or focus ring. */
+.compact-toolbar {
+  --toolbar-face-inset: 4px;
+
+  @media (min-width: 48rem) {
+    --toolbar-face-inset: 2px;
+  }
+
+  & [data-button-variant] {
+    position: relative;
+    border-block: var(--toolbar-face-inset) solid transparent;
+    border-inline-color: transparent;
+    background-clip: padding-box;
+  }
+
+  & [data-button-variant="outline"]::before {
+    content: "";
+    position: absolute;
+    inset: 0 -1px;
+    border: 1px solid var(--border);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+}
