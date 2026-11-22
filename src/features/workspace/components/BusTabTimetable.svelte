@@ -27,11 +27,11 @@ export let showHeader = false;
     {#if showHeader}
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 class="font-semibold text-lg tracking-normal">
+          <h2 class="section-heading">
             {busCopy.workspaceTitle}
           </h2>
         </div>
-        <Button class="h-11 md:h-8" href="/catalog/bus/map" variant="outline">
+        <Button href="/catalog/bus/map" variant="outline">
           {busCopy.transitMap}
         </Button>
       </div>
@@ -50,7 +50,7 @@ export let showHeader = false;
         <Empty.Root>
           <Empty.Header><Empty.Description>{busCopy.planner.empty}</Empty.Description></Empty.Header>
           <Empty.Content>
-            <Button class="h-11 md:h-8" disabled={!busPlannerReady} type="button" variant="outline" onclick={reverseBusStops}>
+            <Button disabled={!busPlannerReady} type="button" variant="outline" onclick={reverseBusStops}>
               {busCopy.planner.emptyReverseAction}
             </Button>
           </Empty.Content>

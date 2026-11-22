@@ -289,15 +289,15 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
           <BusTabCompactSummary {busApplicableRoutes} {busCopy} {busPlannerReady} {reverseBusStops} />
         </div>
       {/if}
-      <form id={formId} onsubmit={applyFilters} data-slot="collection-header">
+      <form class="compact-toolbar" id={formId} onsubmit={applyFilters} data-slot="collection-header">
         <Field.Group class="flex-row flex-wrap items-center gap-3">
           {@render plannerControls()}
           <TableFieldFilter label={busCopy.planner.routes} fields={[{ name: "routeId", label: busCopy.planner.routes, options: loadedBus.routes.map((route) => ({ value: String(route.id), label: route.descriptionPrimary })) }]} values={tableDraft} onchange={updateFilters} labels={busCopy.tableFilters} idPrefix="bus-routes" {formId} />
           <TableColumnHeader label={busCopy.route.stops} active={Object.entries(tableDraft).some(([key, value]) => /^(stop|time)\d+$/.test(key) && Boolean(value))}>
             <TableFilterFields fields={loadedBus.campuses.flatMap((campus) => busStopFilterFields(campus.id, campus.namePrimary, busCopy))} values={tableDraft} onchange={updateFilters} labels={busCopy.tableFilters} idPrefix="bus-stops" {formId} />
           </TableColumnHeader>
-          <Button type="submit" class="h-11 md:h-8" disabled={!busPlannerReady}>{busCopy.applyFilters}</Button>
-          <Button type="button" variant="ghost" class="h-11 md:h-8" onclick={clearFilters}>{busCopy.clear}</Button>
+          <Button type="submit" disabled={!busPlannerReady}>{busCopy.applyFilters}</Button>
+          <Button type="button" variant="outline" onclick={clearFilters}>{busCopy.clear}</Button>
         </Field.Group>
       </form>
       <Collapsible.Root bind:open={timetableOpen} class="group/full-timetable">

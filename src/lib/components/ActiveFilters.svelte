@@ -4,19 +4,51 @@ export type ActiveFilter = {
   label: string;
   removeLabel?: string;
 };
+
+type LocalFilter = {
+  key: string;
+  label: string;
+  removeLabel: string;
+  remove: () => void;
+};
 </script>
+
 <script lang="ts">
 import XIcon from "@lucide/svelte/icons/x";
 import { Button } from "#lib/components/ui/button/index.js";
-let { items, ariaLabel, clearHref, clearLabel, showClear = true, disabled = false, onremove }: { items: ActiveFilter[]; ariaLabel: string; clearHref: string; clearLabel: string; showClear?: boolean; disabled?: boolean; onremove?: (event: MouseEvent, href: string) => void } = $props();
+
+let {
+  items, ariaLabel, clearHref, clearLabel, showLabel = false,
+  disabled = false, onremove,
+}: {
+  items: (ActiveFilter | LocalFilter)[];
+  ariaLabel: string;
+  clearHref?: string;
+  clearLabel: string;
+  showLabel?: boolean;
+  disabled?: boolean;
+  onremove?: (event: MouseEvent, href: string) => void;
+} = $props();
 </script>
+
 {#if items.length}
-  <div class="flex min-w-0 flex-wrap items-center gap-2" role="group" aria-label={ariaLabel} data-slot="active-filters">
-    {#each items as item (item.href)}
-      <Button href={item.href} {disabled} onclick={(event) => onremove?.(event, item.href)} variant="secondary" size="sm" class="min-h-11 h-auto max-w-full min-w-0 py-1.5 sm:min-h-8 md:min-h-8" aria-label={item.removeLabel ?? `${clearLabel}: ${item.label}`}>
-        <span class="min-w-0 whitespace-normal text-left [overflow-wrap:anywhere]">{item.label}</span><XIcon data-icon="inline-end" aria-hidden="true" />
+  <div class="compact-toolbar flex min-w-0 flex-wrap items-center gap-2" role="group" aria-label={ariaLabel} data-slot="active-filters">
+    {#if showLabel}<span class="text-sm text-muted-foreground">{ariaLabel}</span>{/if}
+    {#each items as item ("href" in item ? item.href : item.key)}
+      <Button
+        href={"href" in item ? item.href : undefined}
+        type="button"
+        {disabled}
+        onclick={(event) => "href" in item ? onremove?.(event, item.href) : item.remove()}
+        variant="secondary"
+        size="sm"
+        class="h-auto min-h-11 min-w-0 max-w-full py-0.5 md:min-h-8"
+        aria-label={item.removeLabel ?? `${clearLabel}: ${item.label}`}
+      >
+        <span class="min-w-0 whitespace-normal text-left [overflow-wrap:anywhere]">{item.label}</span>
+        <XIcon data-icon="inline-end" aria-hidden="true" />
       </Button>
     {/each}
-    {#if showClear}<Button href={clearHref} {disabled} variant="ghost" size="sm" class="min-h-11 sm:min-h-8 md:min-h-8">{clearLabel}</Button>{/if}
+    {#if clearHref}<Button href={clearHref} {disabled} variant="ghost" class="min-h-11 md:min-h-8">{clearLabel}</Button>{/if}
   </div>
 {/if}

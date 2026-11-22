@@ -77,7 +77,7 @@ export let actions: Snippet<[WorkspaceOverviewLinkItem]> | undefined =
           {#if actions}
             <Table.Cell class="p-0">
               <div class={cn(
-                "flex h-full min-h-12 items-center justify-start px-3",
+                "flex h-full min-h-12 items-center justify-start px-(--table-cell-inset)",
                 !link.isPinned && !readOnlyReason && "md:opacity-0 md:transition-opacity md:group-focus-within:opacity-100 md:group-hover:opacity-100",
               )}>{@render actions(link)}</div>
             </Table.Cell>

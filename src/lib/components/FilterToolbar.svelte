@@ -49,7 +49,7 @@ onMount(() => {
 });
 </script>
 
-<div class="flex min-w-0 flex-wrap items-end gap-2" data-slot="filter-toolbar">
+<div class="compact-toolbar flex min-w-0 flex-wrap items-end gap-2" data-slot="filter-toolbar">
   {@render primary()}
   {#if advanced}
     <Sheet.Root bind:open>

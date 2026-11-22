@@ -10,6 +10,7 @@
     sans-serif;
 
   --radius: 0.5rem;
+  --table-cell-inset: 0.75rem;
   --background: #ffffff;
   --foreground: #27272a;
   --card: #ffffff;
@@ -199,11 +200,15 @@ html {
   }
 }
 
-@theme inline {
+@theme static {
+  --radius-xs: calc(var(--radius) - 6px);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+}
+
+@theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -300,5 +305,56 @@ html {
 
   [data-slot="truncated-text"][data-preserve-whitespace] {
     white-space: pre-wrap;
+  }
+}
+
+/* Headings for peer sections inside collection and detail pages. */
+@utility section-heading {
+  @apply text-base font-semibold tracking-tight md:text-lg;
+}
+
+/* Full-cell actions share the horizontal inset of Table.Head. */
+@utility table-cell-action {
+  @apply flex h-full min-h-12 w-full min-w-0 items-center overflow-hidden px-(--table-cell-inset) text-left text-foreground no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50;
+}
+
+/* The native target fills the toolbar row. Transparent borders inset
+   the painted face without moving the label, icon, or focus ring. */
+.compact-toolbar {
+  --toolbar-face-inset: 4px;
+
+  @media (min-width: 48rem) {
+    --toolbar-face-inset: 2px;
+  }
+
+  & [data-button-variant] {
+    --radius-lg: calc(var(--radius) + var(--toolbar-face-inset));
+    border: var(--toolbar-face-inset) solid transparent;
+    background-clip: padding-box;
+  }
+
+  & [data-button-variant="outline"] {
+    @apply inset-shadow-[0_0_0_1px_var(--border)];
+  }
+
+  &
+    [data-slot="button-group"][data-orientation="horizontal"]
+    > [data-button-variant] {
+    border-inline-width: 0;
+    & + [data-button-variant] {
+      margin-inline-start: -1px;
+    }
+  }
+}
+
+/* Standalone icon actions have a smaller painted disk inside the native target. */
+@utility icon-action-row {
+  & [data-button-variant] {
+    @apply size-11 rounded-full p-0 md:size-8;
+    --toolbar-face-inset: 6px;
+
+    @media (min-width: 48rem) {
+      --toolbar-face-inset: 2px;
+    }
   }
 }

@@ -108,10 +108,9 @@ function propertyBadges(homework: WorkspaceHomeworkItem) {
             </div>
             {/if}
           </Item.Content>
-          <Item.Actions class="shrink-0 self-start">
+          <Item.Actions class="compact-toolbar icon-action-row shrink-0 self-start">
             {#if homework.completionRequired !== false}
               <TableIconButton
-                className="size-11"
                 disabled={Boolean(readOnlyReason) || homeworkSavingById[homework.id]}
                 label={homeworkSavingById[homework.id]
                   ? homeworksCopy.saving
@@ -129,7 +128,6 @@ function propertyBadges(homework: WorkspaceHomeworkItem) {
               </TableIconButton>
             {/if}
             <TableIconButton
-              className="size-11"
               label={homeworksCopy.viewDetails}
               variant="outline"
               onclick={() => {

@@ -112,7 +112,7 @@ async function copyInstallCommand() {
   .imessage-outgoing {
     --imessage-outgoing-background: #0071e3;
 
-    border-radius: 1.15rem 1.15rem 0.35rem 1.15rem;
+    border-radius: var(--radius-xl) var(--radius-xl) var(--radius-md) var(--radius-xl);
     background: var(--imessage-outgoing-background);
     color: white;
   }
@@ -129,7 +129,7 @@ async function copyInstallCommand() {
   }
 
   .imessage-incoming {
-    border-radius: 1.15rem 1.15rem 1.15rem 0.35rem;
+    border-radius: var(--radius-xl) var(--radius-xl) var(--radius-xl) var(--radius-md);
     background: #e9e9eb;
     padding: 0.2rem;
   }
@@ -249,7 +249,7 @@ async function copyInstallCommand() {
             aria-hidden="true"
           ></div>
           <div
-            class="relative overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-foreground/10"
+            class="relative overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-foreground/10"
             aria-label={data.copy.previewAriaLabel}
           >
             <div class="flex h-11 items-center gap-2 border-border border-b px-4">
@@ -266,7 +266,7 @@ async function copyInstallCommand() {
                 {#if line.kind === "image"}
                   <div class="imessage-incoming w-full max-w-[85%] shadow-md">
                     {#if line.src && data.copy.imageFailure}
-                      <UsageExampleImage src={line.src} alt={line.text} copy={data.copy.imageFailure} loading="eager" class="h-auto w-full rounded-[1rem] bg-white" />
+                      <UsageExampleImage src={line.src} alt={line.text} copy={data.copy.imageFailure} loading="eager" class="h-auto w-full rounded-xl bg-white" />
                     {/if}
                   </div>
                 {:else}
@@ -289,10 +289,10 @@ async function copyInstallCommand() {
   <div class="content-section grid gap-12" data-usage-marketing="examples">
     {#if kind === "cli" && data.copy.installCommand}
       <div
-        class="grid gap-3 rounded-2xl border border-border bg-card p-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-5 sm:p-6"
+        class="grid gap-3 rounded-xl border border-border bg-card p-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-5 sm:p-6"
         data-usage-marketing="install"
       >
-        <h2 class="font-semibold text-lg">{data.copy.installTitle}</h2>
+        <h2 class="section-heading">{data.copy.installTitle}</h2>
         <Button
           class="group h-auto min-w-0 w-full justify-between rounded-xl p-3 text-left whitespace-normal"
           type="button"
@@ -327,7 +327,7 @@ async function copyInstallCommand() {
               {#if step.imageSrc}
                 {#if data.copy.imageFailure}
                   <div class="imessage-incoming w-[calc(100%-0.5rem)] shadow-sm">
-                    <UsageExampleImage src={step.imageSrc} alt={step.description ?? step.title} title={step.title} copy={data.copy.imageFailure} preview class="h-auto w-full rounded-[1rem] bg-white" />
+                    <UsageExampleImage src={step.imageSrc} alt={step.description ?? step.title} title={step.title} copy={data.copy.imageFailure} preview class="h-auto w-full rounded-xl bg-white" />
                   </div>
                 {/if}
               {/if}

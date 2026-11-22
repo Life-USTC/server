@@ -53,7 +53,7 @@ function activityTimeLabel(group: (typeof groupedActivity)[number]) {
 
 <section aria-labelledby="calendar-token-title" class="grid gap-3 border-y py-4">
   <div class="grid gap-1">
-    <h2 id="calendar-token-title" class="text-base font-semibold">
+    <h2 id="calendar-token-title" class="section-heading">
       {copy.settings.security.calendarTokenTitle}
     </h2>
     <p class="text-sm text-muted-foreground">
@@ -85,7 +85,7 @@ function activityTimeLabel(group: (typeof groupedActivity)[number]) {
 
 <section aria-labelledby="security-activity-title" class="grid gap-4">
   <header class="grid gap-1">
-    <h2 id="security-activity-title" class="text-base font-semibold">{copy.settings.security.title}</h2>
+    <h2 id="security-activity-title" class="section-heading">{copy.settings.security.title}</h2>
     <p class="text-sm text-muted-foreground">{copy.settings.security.description}</p>
   </header>
 

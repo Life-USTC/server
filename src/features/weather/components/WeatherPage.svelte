@@ -69,7 +69,7 @@ function formatTemplate(template: string, values: Record<string, string>) {
       <Tabs.Content value={location.locationKey} class="mt-4">
         <Panel>
           {#snippet header()}
-            <h2 class="text-lg font-semibold" data-weather-location={location.locationKey}>
+            <h2 class="section-heading" data-weather-location={location.locationKey}>
               {weatherCopy.locationNames[location.locationKey]}
             </h2>
           {/snippet}
@@ -91,7 +91,7 @@ function formatTemplate(template: string, values: Record<string, string>) {
     <Panel>
       {#snippet header()}
         <h2
-          class="text-lg font-semibold"
+          class="section-heading"
           data-weather-location={location.locationKey}
         >
           {weatherCopy.locationNames[location.locationKey]}

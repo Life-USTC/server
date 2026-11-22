@@ -1,6 +1,5 @@
 <script lang="ts">
-import { toolbarControlClass } from "#lib/components/toolbar-control.js";
-import { Button } from "#lib/components/ui/button/index.js";
+import FilterActions from "#lib/components/FilterActions.svelte";
 import { Checkbox } from "#lib/components/ui/checkbox/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import {
@@ -53,8 +52,5 @@ const availableLevels = $derived([
     <Checkbox id="publication-fold" {disabled} checked={values.fold === "1"} onCheckedChange={checked=>onchange({fold:checked?"1":""})} />
     <Field.Label for="publication-fold">{copy.foldToggle}</Field.Label>
   </Field.Field>
-  <div class="flex flex-wrap items-center gap-2">
-    <Button type="submit" form={formId} {disabled} class={toolbarControlClass}>{copy.applyFilters}</Button>
-    <Button type="button" {disabled} variant="outline" class={toolbarControlClass} onclick={onreset}>{copy.clearFilters}</Button>
-  </div>
+  <FilterActions form={formId} applyLabel={copy.applyFilters} resetLabel={copy.clearFilters} {onreset} {disabled} />
 </Field.Group>

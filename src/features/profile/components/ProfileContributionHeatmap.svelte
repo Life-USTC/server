@@ -122,7 +122,7 @@ function handleCellKeydown(event: KeyboardEvent, index: number) {
               <span
                 aria-hidden="true"
                 class={cn(
-                  "size-4 rounded-[2px]",
+                  "size-4 rounded-xs",
                   heatmapClass(day.count),
                 )}
               ></span>

@@ -1,5 +1,7 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect } from "@playwright/test";
 import { createDeferred } from "../../../../shared/deferred";
+import { expectFilterToolbarGeometry } from "../../../utils/filter-toolbar-geometry";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../../../utils/personal-preferences-fixture";
 import { absoluteTestUrl } from "../../../utils/request-url";
@@ -40,7 +42,7 @@ test("upload filter toolbar matched evidence", { tag: "@Upload/Web" }, async ({
       ],
     });
     for (const locale of ["zh-cn", "en-us"])
-      for (const width of [390, 1280]) {
+      for (const width of [390, 700, 1280]) {
         await page.context().addCookies([
           {
             name: "NEXT_LOCALE",
@@ -50,6 +52,13 @@ test("upload filter toolbar matched evidence", { tag: "@Upload/Web" }, async ({
         ]);
         await page.setViewportSize({ width, height: 900 });
         await gotoAndWaitForReady(page, "/workspace/uploads");
+        await expectFilterToolbarGeometry(
+          page
+            .locator('[data-slot="filter-toolbar"]')
+            .filter({ visible: true })
+            .first(),
+          width,
+        );
         await expect(
           page
             .getByText("lecture-notes.txt", { exact: true })
@@ -141,7 +150,7 @@ for (const width of [390, 1280])
     });
   });
 
-for (const width of [390, 1280])
+for (const width of [390, 700, 1280])
   test(`upload chip removal preserves unrelated drafts ${width}`, {
     tag: "@Upload/Web",
   }, async ({ page, account, isolatedWorker, preferenceFlow }) => {
@@ -160,6 +169,11 @@ for (const width of [390, 1280])
         page,
         "/workspace/uploads?filename=alpha&size=32&sizeOp=between&sizeMax=32&createdAt=2026-01-03",
       );
+      const chip = page
+        .locator('[data-slot="active-filters"]')
+        .getByRole("link")
+        .first();
+      await expect(chip).toHaveCSS("min-height", width < 768 ? "44px" : "32px");
       const filename = page.locator("#uploads-filename");
       await filename.fill("alpha-new");
       await page.getByRole("button", { name: /^(Uploaded|上传时间)$/ }).click();
@@ -371,3 +385,41 @@ for (const hasZeroByteFile of [false, true])
       }
     });
   });
+
+test("default filter button uses the existing readable accent pair in each theme", {
+  tag: "@Upload/Web",
+}, async ({ page, account: _account, preferenceFlow }) => {
+  await preferenceFlow.run(async () => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await gotoAndWaitForReady(page, "/workspace/uploads");
+    const apply = page.locator(
+      '[data-slot="filter-actions"] button[type="submit"]:visible',
+    );
+    for (const theme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme: theme });
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      const palette = await apply.evaluate((button) => {
+        const reference = document.createElement("span");
+        reference.style.cssText =
+          "background:var(--accent);color:var(--accent-foreground)";
+        button.append(reference);
+        const style = getComputedStyle(reference);
+        const pair = [style.backgroundColor, style.color];
+        reference.remove();
+        return pair;
+      });
+      await expect(apply).toHaveCSS("background-color", palette[0]);
+      await expect(apply).toHaveCSS("color", palette[1]);
+      const contrast = await new AxeBuilder({ page })
+        .include('[data-slot="filter-actions"]')
+        .withRules(["color-contrast"])
+        .analyze();
+      expect(contrast.violations).toEqual([]);
+      if (evidence)
+        await page.screenshot({
+          path: `${evidence}/upload-accent-${theme}.png`,
+          animations: "disabled",
+        });
+    }
+  });
+});

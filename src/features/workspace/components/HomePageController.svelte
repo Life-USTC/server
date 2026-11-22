@@ -331,7 +331,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
 
   <section aria-labelledby="home-directory-heading" class="grid min-w-0 content-start gap-3 border-t pt-6" data-testid="home-directory">
     <div class="grid min-w-0 gap-1">
-      <h2 class="font-semibold text-base tracking-tight" id="home-directory-heading">{data.copy.nav.hub.title}</h2>
+      <h2 class="section-heading" id="home-directory-heading">{data.copy.nav.hub.title}</h2>
       <p class="max-w-2xl text-pretty text-muted-foreground text-sm">{data.copy.nav.hub.description}</p>
     </div>
     <FeatureDirectory copy={data.copy} searchId="home-feature-search" />

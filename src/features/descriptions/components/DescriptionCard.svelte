@@ -187,7 +187,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
 
 {#if usePageHeading}
   <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-    <h2 class="text-lg font-semibold tracking-tight">{heading}</h2>
+    <h2 class="section-heading">{heading}</h2>
     {#if readOnlyReason}
       <Button type="button" variant="outline" disabled title={readOnlyReason}>{copy.edit}</Button>
     {:else if viewerLoading}

@@ -3,6 +3,7 @@ import ChevronDown from "@lucide/svelte/icons/chevron-down";
 import { onMount } from "svelte";
 import ActiveFilters from "#lib/components/ActiveFilters.svelte";
 import EndlessScroll from "#lib/components/EndlessScroll.svelte";
+import FilterActions from "#lib/components/FilterActions.svelte";
 import FilterToolbar from "#lib/components/FilterToolbar.svelte";
 import PageHeader from "#lib/components/PageHeader.svelte";
 import PageLayout from "#lib/components/PageLayout.svelte";
@@ -132,10 +133,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
 {/snippet}
 
 {#snippet filterActions()}
-  <div class="flex flex-wrap items-center gap-2" data-slot="upload-filter-actions">
-    <Button type="submit" form="uploads-filters" class="h-11 md:h-8" disabled={!ready}>{data.copy.common.applyFilters}</Button>
-    <Button type="button" variant="outline" class="h-11 md:h-8" disabled={!ready} onclick={reset}>{copy.reset}</Button>
-  </div>
+  <FilterActions form="uploads-filters" applyLabel={data.copy.common.applyFilters} resetLabel={copy.reset} onreset={reset} disabled={!ready} />
 {/snippet}
 
 <PageLayout>
@@ -155,7 +153,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
             <SearchField id="uploads-filename" label={copy.searchFilename} placeholder={copy.searchFilename} value={draft.values.filename ?? ""} oninput={(event) => change({filename:event.currentTarget.value})} disabled={!ready} />
           </div>
           <Popover.Root bind:open={dateOpen}>
-            <Popover.Trigger>{#snippet child({props})}<Button {...props} type="button" variant="outline" class="h-11 md:h-8" disabled={!ready}>{copy.tableUploaded}<ChevronDown data-icon="inline-end" /></Button>{/snippet}</Popover.Trigger>
+            <Popover.Trigger>{#snippet child({props})}<Button {...props} type="button" variant="outline" disabled={!ready}>{copy.tableUploaded}<ChevronDown data-icon="inline-end" /></Button>{/snippet}</Popover.Trigger>
             <Popover.Content role="dialog" aria-label={copy.tableUploaded} align="start" class="max-h-[70dvh] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto">
               <TableFilterFields fields={fields.filter((field) => field.name === "createdAt")} values={draft.values} onchange={change} labels={data.copy.common.tableFilters} idPrefix="uploads" formId="uploads-filters" />
             </Popover.Content>
@@ -168,7 +166,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
         {#snippet actions()}{#if !filtersOpen}{@render filterActions()}{/if}{/snippet}
       </FilterToolbar>
     </form>
-    <ActiveFilters items={activeFilters} ariaLabel={copy.appliedConditions} clearHref="/workspace/uploads" clearLabel={copy.reset} showClear={false} disabled={!ready} onremove={removeFilter} />
+    <ActiveFilters items={activeFilters} ariaLabel={copy.appliedConditions} clearLabel={copy.reset} disabled={!ready} onremove={removeFilter} />
     <p class="text-sm text-muted-foreground">{copy.newestFirst}</p>
       <ResponsiveCollection>
         {#snippet desktop()}

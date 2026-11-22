@@ -250,7 +250,7 @@ function selectClient(value: string) {
         class="relative mx-auto grid w-full max-w-sm gap-3 sm:max-w-xl lg:max-w-2xl lg:justify-self-end"
       >
         <div
-          class="overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-foreground/10"
+          class="overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-foreground/10"
         >
           <div class="flex h-11 items-center gap-2 border-border border-b px-4">
             <span class="size-2.5 rounded-full bg-red-400"></span>

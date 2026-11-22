@@ -13,7 +13,7 @@ let { data, form }: { data: PageData; form: ActionData } = $props();
   {#snippet content({ data, sectionCopy, fmtDate, sectionExamEvents, openCalendarDialog, roomMapCopy, sectionCalendarEvents })}
     <section id="schedule" data-detail-tab="schedule" class="min-w-0 scroll-mt-4">
       <section id="exams">
-        <h2 class="mb-3 font-semibold">{sectionCopy.tabs.exams}</h2>
+        <h2 class="mb-3 section-heading">{sectionCopy.tabs.exams}</h2>
         <SectionExamSection
           events={sectionExamEvents}
           fmtDate={fmtDate}
@@ -26,7 +26,7 @@ let { data, form }: { data: PageData; form: ActionData } = $props();
       </section>
       <section id="calendar">
         <div class="mt-5 mb-2 flex items-center justify-between gap-2">
-          <h2 class="font-semibold">{data.copy.sectionDetail.classSchedule}</h2>
+          <h2 class="section-heading">{data.copy.sectionDetail.classSchedule}</h2>
           {#if sectionCalendarEvents.length}
             <Button variant="outline" size="sm" disabled={Boolean(data.demo)} onclick={openCalendarDialog}>
               <CalendarPlusIcon data-icon="inline-start" />{sectionCopy.addToCalendar}

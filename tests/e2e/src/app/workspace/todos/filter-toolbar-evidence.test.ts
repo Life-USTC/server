@@ -1,4 +1,8 @@
 import { expect } from "@playwright/test";
+import {
+  expectFilterToolbarGeometry,
+  expectTaskCreateButton,
+} from "../../../../utils/filter-toolbar-geometry";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
 import { test } from "../../../../utils/todo-fixture";
@@ -23,7 +27,7 @@ test("todos.filter-toolbar-evidence", { tag: "@Todo/Web" }, async ({
         { title: "Completed planning", completed: true },
       ]);
       for (const locale of ["zh-cn", "en-us"])
-        for (const width of [390, 1280]) {
+        for (const width of [390, 700, 1280]) {
           await page.context().addCookies([
             {
               name: "NEXT_LOCALE",
@@ -33,8 +37,19 @@ test("todos.filter-toolbar-evidence", { tag: "@Todo/Web" }, async ({
           ]);
           await page.setViewportSize({ width, height: 900 });
           await gotoAndWaitForReady(page, "/workspace/todos");
+          await expectTaskCreateButton(
+            page.getByTestId("workspace-todos-add"),
+            width,
+          );
+          await expectFilterToolbarGeometry(
+            page
+              .locator('[data-slot="filter-toolbar"]')
+              .filter({ visible: true })
+              .first(),
+            width,
+          );
           await expect(
-            width === 390
+            width < 1280
               ? page.getByTestId("workspace-todos-cards")
               : page.getByRole("table"),
           ).toBeVisible();

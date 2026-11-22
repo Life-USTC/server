@@ -55,7 +55,7 @@ onMount(() => {
     showTitle={false}
   />
 {:else}
-  <h2 class="mb-3 text-lg font-semibold tracking-tight">{heading}</h2>
+  <h2 class="mb-3 section-heading">{heading}</h2>
   {#if initialData.description.renderedHtml}
     <div class="markdown-preview" data-slot="markdown-preview">{@html initialData.description.renderedHtml}</div>
   {/if}

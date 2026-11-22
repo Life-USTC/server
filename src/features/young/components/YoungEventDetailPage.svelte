@@ -210,7 +210,7 @@ const signupLabel = $derived(
     {#if event.description}
       <Panel>
         {#snippet header()}
-          <h2 class="text-lg font-semibold tracking-tight">
+          <h2 class="section-heading">
             {youngCopy.sectionDescription}
           </h2>
         {/snippet}
@@ -222,7 +222,7 @@ const signupLabel = $derived(
     {#if event.participationNotes}
       <Panel>
         {#snippet header()}
-          <h2 class="text-lg font-semibold tracking-tight">
+          <h2 class="section-heading">
             {youngCopy.sectionNotes}
           </h2>
         {/snippet}

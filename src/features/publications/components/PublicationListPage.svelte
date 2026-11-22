@@ -5,12 +5,12 @@ import ActiveFilters, {
 } from "#lib/components/ActiveFilters.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import EndlessScroll from "#lib/components/EndlessScroll.svelte";
+import FilterActions from "#lib/components/FilterActions.svelte";
 import FilterToolbar from "#lib/components/FilterToolbar.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
 import { toolbarControlClass } from "#lib/components/toolbar-control.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
-import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import { formatShanghaiDate } from "#lib/time/shanghai-format.js";
@@ -198,8 +198,7 @@ function removeFilter(event: MouseEvent, href: string) {
           {/snippet}
           {#snippet actions()}
             {#if !filtersOpen}
-              <Button type="submit" disabled={!ready} class={toolbarControlClass}>{copy.applyFilters}</Button>
-              <Button type="button" disabled={!ready} variant="outline" class={toolbarControlClass} onclick={reset}>{copy.clearFilters}</Button>
+              <FilterActions applyLabel={copy.applyFilters} resetLabel={copy.clearFilters} onreset={reset} disabled={!ready} />
             {/if}
           {/snippet}
         </FilterToolbar>
@@ -207,7 +206,7 @@ function removeFilter(event: MouseEvent, href: string) {
       {#if dirty}<p class="text-sm text-muted-foreground" role="status">{copy.pendingFilters}</p>{/if}
       {#if activeFilters.length}
         <div class="grid min-w-0 gap-2"><p class="text-sm font-medium">{copy.activeFilters}</p>
-          <ActiveFilters items={activeFilters.map(filter=>({...filter,removeLabel:copy.removeFilter.replace("{filter}",()=>filter.label)}))} ariaLabel={copy.activeFilters} clearHref="/news" clearLabel={copy.clearFilters} showClear={false} disabled={!ready} onremove={removeFilter} />
+          <ActiveFilters items={activeFilters.map(filter=>({...filter,removeLabel:copy.removeFilter.replace("{filter}",()=>filter.label)}))} ariaLabel={copy.activeFilters} clearLabel={copy.clearFilters} disabled={!ready} onremove={removeFilter} />
         </div>
       {/if}
       <p class="text-sm text-muted-foreground">{data.filters.fold ? copy.foldedNewestFirst : copy.newestFirst}</p>

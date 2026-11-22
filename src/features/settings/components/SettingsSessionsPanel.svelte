@@ -135,7 +135,7 @@ async function revoke(action: RevokeAction) {
 
 <section aria-labelledby="active-sessions-title" class="grid gap-4" data-session-settings>
   <header class="grid gap-1">
-    <h2 id="active-sessions-title" class="text-base font-semibold">{labels.title}</h2>
+    <h2 id="active-sessions-title" class="section-heading">{labels.title}</h2>
     <p class="text-sm text-muted-foreground">{labels.description}</p>
   </header>
 
