@@ -113,7 +113,7 @@ test("empty search page shows type chips and example queries", {
     await expect(field).toBeVisible();
     await expect(field.getByRole("combobox")).toHaveAttribute(
       "placeholder",
-      /^(搜索教学班、教师、课程…|Search sections, teachers, courses…)$/,
+      /^(搜索班级、教师、课程…|Search sections, teachers, courses…)$/,
     );
     await expect(hints.getByText(/课程|Courses/)).toBeVisible();
     await expect(hints.getByText(/教师|Teachers/)).toBeVisible();
