@@ -51,6 +51,6 @@ onMount(() => {
     {readOnlyReason}
   />
 {:else}
-  <h2 class="mb-3 text-lg font-semibold tracking-tight">{heading}</h2>
+  <h2 class="mb-3 section-heading">{heading}</h2>
   <LazyModuleStatus failed={loadError} {heading} loadFailed={copy.loadFailed} retry={copy.retry} onRetry={() => void loadPanel()} />
 {/if}

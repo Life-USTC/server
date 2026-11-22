@@ -78,7 +78,7 @@ function openComposer() {
 {#if readOnlyReason}
   <div class="grid gap-2">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      {#if heading}<h2 class="text-lg font-semibold tracking-tight">{heading}</h2>{/if}
+      {#if heading}<h2 class="section-heading">{heading}</h2>{/if}
       <Button type="button" variant="outline" disabled aria-describedby={readOnlyReasonId}>{commentCopy.postAction}</Button>
     </div>
     <p id={readOnlyReasonId} class="text-sm text-muted-foreground">{readOnlyReason}</p>
@@ -86,19 +86,19 @@ function openComposer() {
 {:else if loading && !viewerResolved}
   {#if heading}
     <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-      <h2 class="text-lg font-semibold tracking-tight">{heading}</h2>
+      <h2 class="section-heading">{heading}</h2>
     </div>
   {/if}
   <CommentsPanelLoadingComposer />
 {:else if !viewerResolved}
   <div class="flex flex-wrap items-center justify-between gap-3">
-    {#if heading}<h2 class="text-lg font-semibold tracking-tight">{heading}</h2>{/if}
+    {#if heading}<h2 class="section-heading">{heading}</h2>{/if}
     <Button type="button" variant="outline" disabled>{commentCopy.postAction}</Button>
   </div>
 {:else}
   {#if heading}
     <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-      <h2 class="text-lg font-semibold tracking-tight">{heading}</h2>
+      <h2 class="section-heading">{heading}</h2>
       {#if composerOpen}
         <Button type="button" variant="outline" onclick={closeComposer}>
           {commentCopy.cancelAction}

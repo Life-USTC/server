@@ -1137,7 +1137,7 @@ requirements:
 - id: ui.workspace-task-filter-toolbar
   category: presentation
   topic: workspace-filters-and-empty-states
-  rule: Workspace homework and todo collections share one retained draft across title search, common conditions and more conditions. Only the single Apply commits that draft. Applied chips describe committed values; removing one chip immediately clears only that field and its comparison bounds in both applied and draft state while retaining unrelated drafts. Reset clears all draft and applied values. Long applied-title labels remain complete and readable without horizontal page overflow, and no-data messages differ from no-match messages.
+  rule: Workspace homework, todo and upload filters share the toolbar, Apply/Reset actions and applied-chip presentation. Search, triggers and actions align within each row. Chips keep a 44px minimum height below md and 32px from md, and wrap long labels. Workspace homework and todo collections share one retained draft across title search, common conditions and more conditions. Only the single Apply commits that draft. Applied chips describe committed values; removing one chip immediately clears only that field and its comparison bounds in both applied and draft state while retaining unrelated drafts. Reset clears all draft and applied values. Long applied-title labels remain complete and readable without horizontal page overflow, and no-data messages differ from no-match messages.
   acceptance:
     given: Owned homework and todo records populate isolated real database and Worker runtimes at mobile and desktop widths.
     when: The user edits search and inclusive date ranges, reopens more conditions, applies them, removes only the date chip, resets, and applies a long title.

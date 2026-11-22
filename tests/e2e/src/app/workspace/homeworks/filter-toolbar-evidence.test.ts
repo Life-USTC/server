@@ -1,4 +1,5 @@
 import { expect } from "@playwright/test";
+import { expectFilterToolbarGeometry } from "../../../../utils/filter-toolbar-geometry";
 import { test } from "../../../../utils/homework-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
@@ -37,7 +38,7 @@ test("homeworks.filter-toolbar-evidence", { tag: "@Homework/Web" }, async ({
           });
       });
       for (const locale of ["zh-cn", "en-us"])
-        for (const width of [390, 1280]) {
+        for (const width of [390, 700, 1280]) {
           await page.context().addCookies([
             {
               name: "NEXT_LOCALE",
@@ -47,9 +48,16 @@ test("homeworks.filter-toolbar-evidence", { tag: "@Homework/Web" }, async ({
           ]);
           await page.setViewportSize({ width, height: 900 });
           await gotoAndWaitForReady(page, "/workspace/homeworks");
+          await expectFilterToolbarGeometry(
+            page
+              .locator('[data-slot="filter-toolbar"]')
+              .filter({ visible: true })
+              .first(),
+            width,
+          );
           await expect(
             page.getByTestId(
-              `workspace-homeworks-${width === 390 ? "cards" : "list"}`,
+              `workspace-homeworks-${width < 1280 ? "cards" : "list"}`,
             ),
           ).toBeVisible();
           expect(

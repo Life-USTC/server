@@ -296,8 +296,8 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
           <TableColumnHeader label={busCopy.route.stops} active={Object.entries(tableDraft).some(([key, value]) => /^(stop|time)\d+$/.test(key) && Boolean(value))}>
             <TableFilterFields fields={loadedBus.campuses.flatMap((campus) => busStopFilterFields(campus.id, campus.namePrimary, busCopy))} values={tableDraft} onchange={updateFilters} labels={busCopy.tableFilters} idPrefix="bus-stops" {formId} />
           </TableColumnHeader>
-          <Button type="submit" class="h-11 md:h-8" disabled={!busPlannerReady}>{busCopy.applyFilters}</Button>
-          <Button type="button" variant="ghost" class="h-11 md:h-8" onclick={clearFilters}>{busCopy.clear}</Button>
+          <Button type="submit" disabled={!busPlannerReady}>{busCopy.applyFilters}</Button>
+          <Button type="button" variant="outline" onclick={clearFilters}>{busCopy.clear}</Button>
         </Field.Group>
       </form>
       <Collapsible.Root bind:open={timetableOpen} class="group/full-timetable">

@@ -17,7 +17,6 @@ export let refreshing: boolean;
   {/snippet}
   {#snippet actions()}
     <Button
-      class="h-11 md:h-8"
       variant="outline"
       type="button"
       aria-label={copy.refresh}

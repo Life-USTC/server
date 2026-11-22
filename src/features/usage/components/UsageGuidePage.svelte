@@ -292,7 +292,7 @@ async function copyInstallCommand() {
         class="grid gap-3 rounded-2xl border border-border bg-card p-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-5 sm:p-6"
         data-usage-marketing="install"
       >
-        <h2 class="font-semibold text-lg">{data.copy.installTitle}</h2>
+        <h2 class="section-heading">{data.copy.installTitle}</h2>
         <Button
           class="group h-auto min-w-0 w-full justify-between rounded-xl p-3 text-left whitespace-normal"
           type="button"

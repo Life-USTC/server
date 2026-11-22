@@ -1,5 +1,6 @@
 <script lang="ts">
 import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
+import { toolbarFieldClass } from "#lib/components/toolbar-control.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
@@ -47,10 +48,10 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
         if (value === "semester" || value === "month" || value === "week" || value === "day") setCalendarView(value);
       }}
     >
-      <ToggleGroup.Item class="h-11 flex-1" value="day">{workspaceCopy.calendarViewDay}</ToggleGroup.Item>
-      <ToggleGroup.Item class="h-11 flex-1" value="week">{workspaceCopy.calendarViewWeek}</ToggleGroup.Item>
-      <ToggleGroup.Item class="h-11 flex-1" value="month">{workspaceCopy.calendarViewMonth}</ToggleGroup.Item>
-      <ToggleGroup.Item class="h-11 flex-1" value="semester">{workspaceCopy.calendarViewSemester}</ToggleGroup.Item>
+      <ToggleGroup.Item class={`${toolbarFieldClass} flex-1`} value="day">{workspaceCopy.calendarViewDay}</ToggleGroup.Item>
+      <ToggleGroup.Item class={`${toolbarFieldClass} flex-1`} value="week">{workspaceCopy.calendarViewWeek}</ToggleGroup.Item>
+      <ToggleGroup.Item class={`${toolbarFieldClass} flex-1`} value="month">{workspaceCopy.calendarViewMonth}</ToggleGroup.Item>
+      <ToggleGroup.Item class={`${toolbarFieldClass} flex-1`} value="semester">{workspaceCopy.calendarViewSemester}</ToggleGroup.Item>
     </ToggleGroup.Root>
     <div class="flex min-w-0 items-start justify-between gap-2">
       <CalendarTabNavigationControls
@@ -67,7 +68,6 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
             <Button
               {...props}
               aria-label={workspaceCopy.calendarMoreActions}
-              class="size-11"
               size="icon"
               type="button"
               variant="outline"

@@ -25,7 +25,7 @@ const endless = createEndlessList({
 <CourseDetailPageController {data}>
   {#snippet content({ data, copy, detailCopy, notAvailable, primaryName })}
     <section id="sections" data-detail-tab="sections" class="scroll-mt-4">
-      <h2 class="mb-3 text-lg font-semibold tracking-tight">
+      <h2 class="mb-3 section-heading">
         {copy.courseDetail.teachingSections}
       </h2>
       <p class="mb-4 text-sm text-muted-foreground">

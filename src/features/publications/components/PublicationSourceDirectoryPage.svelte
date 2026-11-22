@@ -227,7 +227,7 @@ const levelIndex = $derived(filteredGroups);
             <Table.Row>
               <Table.Head colspan={3} scope="rowgroup" class="h-auto whitespace-normal py-3">
                 <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                  <h2 class="font-semibold text-base sm:text-lg">{levelLabel(group.organizationLevel)}</h2>
+                  <h2 class="section-heading">{levelLabel(group.organizationLevel)}</h2>
                   <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
                     <span class="text-sm text-muted-foreground">{groupSummary(group.sourceCount, group.publicationCount)}</span>
                     <a class="text-sm text-primary-text underline underline-offset-4" href={levelHref(group.organizationLevel)}>{copy.viewSourceArticles}</a>

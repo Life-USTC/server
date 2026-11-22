@@ -30,7 +30,7 @@ let {
 
 <section class={cn("grid min-w-0 content-start gap-3", className)} data-testid={testId}>
   <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2">
-    <h2 class="text-base font-semibold tracking-tight">
+    <h2 class="section-heading">
       {#if href}
         <!-- WCAG 2.2 SC 2.5.8: the heading link keeps a 24px target. -->
         <a class="inline-flex min-h-6 items-center hover:underline" href={href}>{title}</a>

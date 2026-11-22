@@ -71,7 +71,7 @@ const CommentsPanel = $derived(commentsModule.component);
             readOnlyReason={data.demo?.readOnlyReason}
           />
         {:else}
-          <h2 class="mb-3 text-lg font-semibold tracking-tight">{sectionCopy.tabs.comments}</h2>
+          <h2 class="mb-3 section-heading">{sectionCopy.tabs.comments}</h2>
           <LazyModuleStatus failed={commentsModule.failed} heading={sectionCopy.tabs.comments} loadFailed={data.copy.comments.loadFailed} retry={data.copy.comments.retry} onRetry={commentsModule.retry} />
         {/if}
       {/key}

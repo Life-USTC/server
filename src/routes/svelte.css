@@ -10,6 +10,7 @@
     sans-serif;
 
   --radius: 0.5rem;
+  --table-cell-inset: 0.75rem;
   --background: #ffffff;
   --foreground: #27272a;
   --card: #ffffff;
@@ -301,4 +302,14 @@ html {
   [data-slot="truncated-text"][data-preserve-whitespace] {
     white-space: pre-wrap;
   }
+}
+
+/* Headings for peer sections inside collection and detail pages. */
+@utility section-heading {
+  @apply text-base font-semibold tracking-tight md:text-lg;
+}
+
+/* Full-cell actions share the horizontal inset of Table.Head. */
+@utility table-cell-action {
+  @apply flex h-full min-h-12 w-full min-w-0 items-center overflow-hidden px-(--table-cell-inset) text-left text-foreground no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50;
 }

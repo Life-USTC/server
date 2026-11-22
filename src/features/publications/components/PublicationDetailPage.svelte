@@ -133,7 +133,7 @@ const articleInformation = $derived(
     {#if attachments.length > 0}
       <Separator />
         <section class="grid min-w-0 gap-3" aria-label={copy.attachments}>
-        <h2 class="text-base font-semibold">{copy.attachments}</h2>
+        <h2 class="section-heading">{copy.attachments}</h2>
         <ul class="grid min-w-0 gap-3">
           {#each attachments as object, index (`${object.kind}:${object.sha256}`)}
             <li class="min-w-0">
@@ -150,7 +150,7 @@ const articleInformation = $derived(
     {#if articleInformation.length > 0}
       <Separator />
         <section class="grid min-w-0 gap-3" aria-label={copy.articleInformation}>
-        <h2 class="text-base font-semibold">{copy.articleInformation}</h2>
+        <h2 class="section-heading">{copy.articleInformation}</h2>
           <dl class="grid min-w-0 gap-2 text-sm text-muted-foreground sm:grid-cols-2">
           {#each articleInformation as [label, value] (label)}
               <div class="flex min-w-0 flex-wrap gap-x-2"><dt>{label}</dt><dd class="min-w-0 [overflow-wrap:anywhere]">{value}</dd></div>
@@ -161,7 +161,7 @@ const articleInformation = $derived(
     {#if publication.alsoPublishedIn.length > 0}
       <Separator />
         <section class="grid min-w-0 gap-3" aria-label={copy.alsoPublishedIn}>
-        <h2 class="text-base font-semibold">{copy.alsoPublishedIn}</h2>
+        <h2 class="section-heading">{copy.alsoPublishedIn}</h2>
         <ul class="grid min-w-0 gap-2">
           {#each publication.alsoPublishedIn as sibling (sibling.id)}
               <li class="min-w-0"><a class="text-sm text-primary-text hover:underline [overflow-wrap:anywhere]" href={publicationDetailHref(sibling.id, returnHref)}>{sibling.source.name}</a></li>

@@ -10,7 +10,7 @@ export let homework: HomeworkDetailModel;
 </script>
 
 <section class="grid min-w-0 gap-3" data-testid="homework-description">
-  <h2 class="text-base font-semibold">{copy.descriptionLabel}</h2>
+  <h2 class="section-heading">{copy.descriptionLabel}</h2>
   <div class="text-sm leading-6">
   {#if homework.description?.trim()}
     {#if homework.renderedDescriptionHtml}

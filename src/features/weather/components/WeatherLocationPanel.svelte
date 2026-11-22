@@ -39,7 +39,7 @@ function formatTemperature(value: number | null) {
 </script>
 
 {#if showHeading}
-  <h2 class="text-lg font-semibold" data-weather-location={locationKey}>
+  <h2 class="section-heading" data-weather-location={locationKey}>
     {weatherCopy.locationNames[locationKey]}
   </h2>
 {/if}

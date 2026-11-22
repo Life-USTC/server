@@ -1,5 +1,6 @@
 import { expect } from "@playwright/test";
 import { createDeferred } from "../../../../shared/deferred";
+import { expectFilterToolbarGeometry } from "../../../utils/filter-toolbar-geometry";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../../../utils/personal-preferences-fixture";
 import { absoluteTestUrl } from "../../../utils/request-url";
@@ -40,7 +41,7 @@ test("upload filter toolbar matched evidence", { tag: "@Upload/Web" }, async ({
       ],
     });
     for (const locale of ["zh-cn", "en-us"])
-      for (const width of [390, 1280]) {
+      for (const width of [390, 700, 1280]) {
         await page.context().addCookies([
           {
             name: "NEXT_LOCALE",
@@ -50,6 +51,13 @@ test("upload filter toolbar matched evidence", { tag: "@Upload/Web" }, async ({
         ]);
         await page.setViewportSize({ width, height: 900 });
         await gotoAndWaitForReady(page, "/workspace/uploads");
+        await expectFilterToolbarGeometry(
+          page
+            .locator('[data-slot="filter-toolbar"]')
+            .filter({ visible: true })
+            .first(),
+          width,
+        );
         await expect(
           page
             .getByText("lecture-notes.txt", { exact: true })
@@ -141,7 +149,7 @@ for (const width of [390, 1280])
     });
   });
 
-for (const width of [390, 1280])
+for (const width of [390, 700, 1280])
   test(`upload chip removal preserves unrelated drafts ${width}`, {
     tag: "@Upload/Web",
   }, async ({ page, account, isolatedWorker, preferenceFlow }) => {
@@ -160,6 +168,11 @@ for (const width of [390, 1280])
         page,
         "/workspace/uploads?filename=alpha&size=32&sizeOp=between&sizeMax=32&createdAt=2026-01-03",
       );
+      const chip = page
+        .locator('[data-slot="active-filters"]')
+        .getByRole("link")
+        .first();
+      await expect(chip).toHaveCSS("min-height", width < 768 ? "44px" : "32px");
       const filename = page.locator("#uploads-filename");
       await filename.fill("alpha-new");
       await page.getByRole("button", { name: /^(Uploaded|上传时间)$/ }).click();

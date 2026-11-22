@@ -49,7 +49,7 @@ function heatmapClass(count: number) {
 <Panel class="min-w-0">
   {#snippet header()}
     <div class="grid gap-1">
-      <h2 class="text-lg font-semibold">
+      <h2 class="section-heading">
         {copy.contribution.title.replace("{count}", String(totalContributions))}
       </h2>
       <p class="text-muted-foreground text-sm">{copy.contribution.description}</p>

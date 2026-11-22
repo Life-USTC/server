@@ -14,7 +14,7 @@ export { className as class };
 
 <a
   class={cn(
-    "flex h-full min-h-12 min-w-0 w-full items-center overflow-hidden px-3 text-foreground no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset",
+    "table-cell-action",
     nowrap && "whitespace-nowrap",
     numeric && "tabular-nums",
     mono && "font-mono",
