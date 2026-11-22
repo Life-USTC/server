@@ -91,7 +91,6 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
       </Item.Content>
       <Item.Actions class="shrink-0 self-start">
         <TableIconButton
-          className="size-11"
           href={detailHref}
           label={sectionCopy.moreDetails}
         >

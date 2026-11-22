@@ -318,6 +318,16 @@ html {
   @apply flex h-full min-h-12 w-full min-w-0 items-center overflow-hidden px-(--table-cell-inset) text-left text-foreground no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50;
 }
 
+@utility compact-button-face {
+  --radius-lg: calc(var(--radius) + var(--toolbar-face-inset));
+  border: var(--toolbar-face-inset) solid transparent;
+  background-clip: padding-box;
+
+  &[data-button-variant="outline"] {
+    @apply inset-shadow-[0_0_0_1px_var(--border)];
+  }
+}
+
 /* The native target fills the toolbar row. Transparent borders inset
    the painted face without moving the label, icon, or focus ring. */
 .compact-toolbar {
@@ -328,13 +338,7 @@ html {
   }
 
   & [data-button-variant] {
-    --radius-lg: calc(var(--radius) + var(--toolbar-face-inset));
-    border: var(--toolbar-face-inset) solid transparent;
-    background-clip: padding-box;
-  }
-
-  & [data-button-variant="outline"] {
-    @apply inset-shadow-[0_0_0_1px_var(--border)];
+    @apply compact-button-face;
   }
 
   &
@@ -348,8 +352,9 @@ html {
 }
 
 /* Standalone icon actions have a smaller painted disk inside the native target. */
-@utility icon-action-row {
-  & [data-button-variant] {
+@utility icon-action {
+  &[data-button-variant] {
+    @apply compact-button-face;
     @apply size-11 rounded-full p-0 md:size-8;
     --toolbar-face-inset: 6px;
 

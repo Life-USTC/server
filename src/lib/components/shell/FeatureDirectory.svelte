@@ -191,7 +191,7 @@ const groups = $derived(
                         : undefined}
                       variant="outline"
                       size="xs"
-                      class="min-h-11 py-2 font-normal text-muted-foreground md:min-h-11"
+                      class="font-normal text-muted-foreground"
                       >{item.label}</Button
                     >
                   {/each}

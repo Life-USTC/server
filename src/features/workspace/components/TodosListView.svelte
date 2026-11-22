@@ -73,7 +73,7 @@ export let readOnlyReason: string | undefined = undefined;
           {fmtDate(todo.dueAt)}
         </Table.Cell>
         <Table.Cell>
-          <TableRowActions class="compact-toolbar icon-action-row">
+          <TableRowActions>
             <TableIconButton
               disabled={Boolean(readOnlyReason) || todoSavingById[todo.id]}
               label={todoSavingById[todo.id]

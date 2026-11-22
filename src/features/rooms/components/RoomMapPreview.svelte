@@ -386,7 +386,7 @@ function handleWheel(event: WheelEvent) {
           <Button
             aria-label={copy.zoomOut}
             disabled={!imageUrl || zoom <= 0.75}
-            size="icon-sm"
+            class="icon-action" size="icon"
             type="button"
             variant="outline"
             onclick={() => (zoom = Math.max(0.75, zoom - 0.25))}
@@ -396,7 +396,7 @@ function handleWheel(event: WheelEvent) {
           <Button
             aria-label={copy.zoomIn}
             disabled={!imageUrl || zoom >= 3}
-            size="icon-sm"
+            class="icon-action" size="icon"
             type="button"
             variant="outline"
             onclick={() => (zoom = Math.min(3, zoom + 0.25))}
@@ -406,7 +406,7 @@ function handleWheel(event: WheelEvent) {
           <Button
             aria-label={copy.resetZoom}
             disabled={!imageUrl || zoom === 1}
-            size="icon-sm"
+            class="icon-action" size="icon"
             type="button"
             variant="ghost"
             onclick={() => (zoom = 1)}

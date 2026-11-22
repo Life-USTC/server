@@ -1,7 +1,6 @@
 <script lang="ts">
 import {
   Button,
-  type ButtonSize,
   type ButtonVariant,
 } from "#lib/components/ui/button/index.js";
 import * as Tooltip from "#lib/components/ui/tooltip/index.js";
@@ -9,8 +8,7 @@ import * as Tooltip from "#lib/components/ui/tooltip/index.js";
 export let label: string;
 export let disabled = false;
 export let href: string | undefined = undefined;
-export let className = "";
-export let size: ButtonSize = "icon-sm";
+export let title: string | null | undefined = undefined;
 export let type: "button" | "submit" | "reset" | undefined = undefined;
 export let variant: ButtonVariant = "outline";
 export let onclick: ((event: MouseEvent) => void) | undefined = undefined;
@@ -22,10 +20,11 @@ export let onclick: ((event: MouseEvent) => void) | undefined = undefined;
       <Button
         {...props}
         aria-label={label}
-        class={className}
+        class="icon-action"
+        {title}
         {disabled}
         {href}
-        {size}
+        size="icon"
         type={href ? undefined : (type ?? "button")}
         {variant}
         {onclick}

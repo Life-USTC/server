@@ -13,8 +13,9 @@ onMount(() => {
 });
 </script>
 
-<div class="compact-toolbar max-md:icon-action-row flex justify-end">
+<div class="compact-toolbar flex justify-end">
   <Button
+    class="max-md:icon-action"
     aria-label={homeworksCopy.addButton}
     data-testid="workspace-homeworks-add"
     type="button"

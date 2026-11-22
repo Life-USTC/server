@@ -30,7 +30,8 @@ $: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
 {:else}
   <Button
     aria-label={copy.openSearch}
-    class="size-11"
+    class="icon-action"
+    size="icon"
     onclick={onOpen}
     type="button"
     variant="ghost"

@@ -18,7 +18,7 @@ export let onMobileViewChange: (value: WorkspaceCardView) => void;
           <Button
             {...props}
             aria-label={workspaceCopy.nav.exams.viewMode}
-            class="size-11"
+            class="icon-action"
             data-testid="workspace-exams-view-menu"
             size="icon"
             type="button"

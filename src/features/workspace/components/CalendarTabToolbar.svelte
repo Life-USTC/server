@@ -61,14 +61,14 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
         {commonCopy} {workspaceCopy} {formatMessage} {sectionCopy}
         {setCalendarDay} {setCalendarMonth} {setCalendarSemester} {setCalendarWeek}
       />
-      <div class="icon-action-row xl:hidden">
+      <div class="xl:hidden">
       <DropdownMenu.Root>
         <DropdownMenu.Trigger>
           {#snippet child({ props })}
             <Button
               {...props}
               aria-label={workspaceCopy.calendarMoreActions}
-              size="icon"
+              class="icon-action" size="icon"
               type="button"
               variant="outline"
             >

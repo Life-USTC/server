@@ -32,7 +32,7 @@ function setThemeValue(value: string) {
         <Button
           {...props}
           aria-label={copy.language.selector}
-          class="size-11"
+          class="icon-action"
           size="icon-sm"
           variant="outline"
         >
@@ -70,7 +70,7 @@ function setThemeValue(value: string) {
         <Button
           {...props}
           aria-label={copy.theme.selector}
-          class="size-11"
+          class="icon-action"
           size="icon-sm"
           variant="outline"
         >
