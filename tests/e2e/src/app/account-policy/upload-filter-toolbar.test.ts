@@ -388,7 +388,7 @@ for (const hasZeroByteFile of [false, true])
 
 test("default filter button uses the existing readable accent pair in each theme", {
   tag: "@Upload/Web",
-}, async ({ page, preferenceFlow }) => {
+}, async ({ page, account: _account, preferenceFlow }) => {
   await preferenceFlow.run(async () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await gotoAndWaitForReady(page, "/workspace/uploads");
