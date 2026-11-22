@@ -29,6 +29,7 @@ import {
   usageMarketingStepTitleClass,
   usageMarketingTitleClass,
 } from "../lib/usage-marketing-layout.js";
+import CopyFeedback from "./CopyFeedback.svelte";
 
 type ClientCopy = {
   emptyAlt: string;
@@ -143,20 +144,6 @@ function selectClient(value: string) {
 
 <svelte:head><title>{data.metadataTitle} - Life@USTC</title></svelte:head>
 
-{#snippet copyFeedback(key: string)}
-  <span
-      class="flex shrink-0 items-center gap-1.5 text-muted-foreground text-xs group-hover:text-foreground"
-    >
-      {#if copiedKey === key}
-        <CheckIcon data-icon="inline-end" />
-        <span class="sr-only sm:not-sr-only">{data.copy.copiedValueAction}</span>
-      {:else}
-        <CopyIcon data-icon="inline-end" />
-        <span class="sr-only sm:not-sr-only">{data.copy.copyValueAction}</span>
-      {/if}
-    </span>
-{/snippet}
-
 {#snippet copyField(key: string, label: string, value: string)}
   <Button
     class="group h-auto min-w-0 justify-between rounded-xl p-3 text-left whitespace-normal"
@@ -168,7 +155,7 @@ function selectClient(value: string) {
       <span class="text-muted-foreground text-xs">{label}</span>
       <code class="whitespace-normal break-all font-mono text-sm">{value}</code>
     </span>
-    {@render copyFeedback(key)}
+    <CopyFeedback copied={copiedKey === key} label={data.copy.copyValueAction} copiedLabel={data.copy.copiedValueAction} />
   </Button>
 {/snippet}
 
@@ -183,7 +170,7 @@ function selectClient(value: string) {
     >
       <span class="sr-only">{title}</span>
       <code class="min-w-0 flex-1 whitespace-pre-wrap break-all font-mono text-sm leading-6">{value}</code>
-      {@render copyFeedback(key)}
+      <CopyFeedback copied={copiedKey === key} label={data.copy.copyValueAction} copiedLabel={data.copy.copiedValueAction} />
     </Button>
   </div>
 {/snippet}
