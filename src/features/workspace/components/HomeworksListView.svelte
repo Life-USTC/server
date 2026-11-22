@@ -112,7 +112,7 @@ function propertyBadges(homework: WorkspaceHomeworkItem) {
             </div>
           </Table.Cell>
           <Table.Cell>
-            <TableRowActions>
+            <TableRowActions class="compact-toolbar icon-action-row">
               {#if homework.completionRequired !== false}
                 <TableIconButton
                 disabled={Boolean(readOnlyReason) || homeworkSavingById[homework.id]}

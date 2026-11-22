@@ -337,10 +337,24 @@ html {
     @apply inset-shadow-[0_0_0_1px_var(--border)];
   }
 
-  & [data-slot="button-group"][data-orientation="horizontal"] > [data-button-variant] {
+  &
+    [data-slot="button-group"][data-orientation="horizontal"]
+    > [data-button-variant] {
     border-inline-width: 0;
     & + [data-button-variant] {
       margin-inline-start: -1px;
+    }
+  }
+}
+
+/* Standalone icon actions have a smaller painted disk inside the native target. */
+@utility icon-action-row {
+  & [data-button-variant] {
+    @apply size-11 rounded-full p-0 md:size-8;
+    --toolbar-face-inset: 6px;
+
+    @media (min-width: 48rem) {
+      --toolbar-face-inset: 2px;
     }
   }
 }

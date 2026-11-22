@@ -35,3 +35,20 @@ export async function expectFilterToolbarGeometry(
   );
   expect(boxes[0]?.y).toEqual(boxes[1]?.y);
 }
+
+export async function expectTaskCreateButton(button: Locator, width: number) {
+  await expect(button).toHaveAccessibleName(/.+/);
+  if (width >= 768) {
+    await expect(button).toHaveCSS("border-top-left-radius", "10px");
+    return;
+  }
+  await expect(button).toHaveCSS("width", "44px");
+  await expect(button).toHaveCSS("height", "44px");
+  await expect(button).toHaveCSS("padding-left", "0px");
+  await expect(button).toHaveCSS("padding-right", "0px");
+  await expect(button).toHaveCSS("border-top-width", "6px");
+  const radius = await button.evaluate((element) =>
+    parseFloat(getComputedStyle(element).borderTopLeftRadius),
+  );
+  expect(radius).toBeGreaterThanOrEqual(22);
+}

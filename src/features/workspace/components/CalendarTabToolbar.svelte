@@ -61,7 +61,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
         {commonCopy} {workspaceCopy} {formatMessage} {sectionCopy}
         {setCalendarDay} {setCalendarMonth} {setCalendarSemester} {setCalendarWeek}
       />
-      <div class="xl:hidden">
+      <div class="icon-action-row xl:hidden">
       <DropdownMenu.Root>
         <DropdownMenu.Trigger>
           {#snippet child({ props })}

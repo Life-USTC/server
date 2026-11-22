@@ -1,5 +1,8 @@
 import { expect } from "@playwright/test";
-import { expectFilterToolbarGeometry } from "../../../../utils/filter-toolbar-geometry";
+import {
+  expectFilterToolbarGeometry,
+  expectTaskCreateButton,
+} from "../../../../utils/filter-toolbar-geometry";
 import { test } from "../../../../utils/homework-fixture";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { absoluteTestUrl } from "../../../../utils/request-url";
@@ -48,6 +51,10 @@ test("homeworks.filter-toolbar-evidence", { tag: "@Homework/Web" }, async ({
           ]);
           await page.setViewportSize({ width, height: 900 });
           await gotoAndWaitForReady(page, "/workspace/homeworks");
+          await expectTaskCreateButton(
+            page.getByTestId("workspace-homeworks-add"),
+            width,
+          );
           await expectFilterToolbarGeometry(
             page
               .locator('[data-slot="filter-toolbar"]')
