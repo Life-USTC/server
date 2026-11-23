@@ -283,6 +283,10 @@ async function importSnapshot(
       adminClasses,
     ]),
   );
+  // Related-section previews can include classes from any semester. Include the
+  // group names so removing a semester also changes the section revision.
+  const sectionCoreGroup = "section-page-core";
+  groupDigests.set(sectionCoreGroup, importGroupDigest([[...groupDigests]]));
   const youngEvents = loadYoungEvents(snapshot);
   const youngSyncedAt = youngSnapshotSyncedAt(snapshot);
   // The write phase needs only mapped records, not the full raw history.
@@ -523,6 +527,14 @@ async function importSnapshot(
       seenSectionJwIds: [...allSectionJwIds],
       snapshotSha256: config.snapshotSha256,
     });
+    // Related-section counts and previews exclude retired sections. A change
+    // in presence must advance the revision even for identical mapped rows.
+    if (
+      sectionPresenceStats.deactivatedCount > 0 ||
+      sectionPresenceStats.reactivatedCount > 0
+    ) {
+      changed.add(sectionCoreGroup);
+    }
     for (const [id, digest] of groupDigests) {
       if (!changed.has(id)) continue;
       await recordStaticImportState(tx, {
