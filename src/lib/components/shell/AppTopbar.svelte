@@ -1,4 +1,5 @@
 <script lang="ts">
+import { onMount } from "svelte";
 import LogInIcon from "@lucide/svelte/icons/log-in";
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import SignInButton from "#lib/components/SignInButton.svelte";
@@ -72,6 +73,18 @@ let {
   homeLabel = copy.shell.discovery.home,
 }: Props = $props();
 const mobile = new IsMobile();
+const sidebar = Sidebar.useSidebar();
+let menuButton = $state<HTMLButtonElement | null>(null);
+let mounted = $state(false);
+
+onMount(() => {
+  mounted = true;
+  document.dispatchEvent(new Event("life:topbar-ready"));
+  if (menuButton?.hasAttribute("data-pending-menu-toggle")) {
+    menuButton.removeAttribute("data-pending-menu-toggle");
+    menuButton.click();
+  }
+});
 </script>
 
 <header
@@ -104,6 +117,9 @@ const mobile = new IsMobile();
            at >=1024px), while the focused onboarding shell has no sidebar to
            toggle at all. -->
       <Sidebar.Trigger
+        bind:ref={menuButton}
+        data-topbar-menu=""
+        aria-expanded={mounted && !sidebar.isMobile ? sidebar.open : sidebar.openMobile}
         aria-label={copy.shell.menu}
         class="size-11 lg:hidden"
         onclick={closeMenus}
