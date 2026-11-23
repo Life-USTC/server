@@ -116,7 +116,10 @@ async function loadSectionDetailPageData({
     name: courseName,
   });
   return {
-    section,
+    section:
+      detailSection === "introduction"
+        ? section
+        : { ...section, otherCourseSections: [] },
     locale: locals.locale,
     todayCalendarKey: requireCampusDateKeyForValue(
       locals.demo ? new Date(DEMO_REFERENCE_NOW) : new Date(),
