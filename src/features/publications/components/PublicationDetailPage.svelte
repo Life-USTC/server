@@ -12,13 +12,10 @@ import {
   publicationDetailHref,
   publicationReturnHref,
 } from "@/features/publications/lib/publication-page-navigation";
-import { publicationSummary } from "@/features/publications/lib/publication-summary";
 import { page } from "$app/state";
 import PublicationTypeBadge from "./PublicationTypeBadge.svelte";
-import type {
-  PublicationDetailPageData,
-  PublicationPageCopy,
-} from "./publication-component-types";
+import type { PageServerData } from "../../../routes/news/[id]/$types";
+import type { PublicationPageCopy } from "./publication-component-types";
 
 let {
   data,
@@ -26,23 +23,16 @@ let {
   readOnly = false,
   readOnlyReason = "",
 }: {
-  data: PublicationDetailPageData;
+  data: Pick<PageServerData, "publication">;
   copy: PublicationPageCopy;
   readOnly?: boolean;
   readOnlyReason?: string;
 } = $props();
 const publication = $derived(data.publication);
 const revision = $derived(publication.revision);
-const attachments = $derived(
-  revision.objects.filter((object) => object.kind === "asset"),
-);
 const returnHref = $derived(
   publicationReturnHref(page.url.searchParams.get("from")),
 );
-const summary = $derived(
-  publicationSummary(revision.title, revision.summary, revision.bodyMarkdown),
-);
-
 const articleInformation = $derived(
   (
     [
@@ -118,24 +108,24 @@ const articleInformation = $derived(
             </Button>
             {#if readOnly}<p class="mt-2 text-sm" id="demo-news-external-unavailable">{readOnlyReason}</p>{/if}
     {/if}
-    {#if summary.length > 160}
+    {#if revision.summary.length > 160}
       <Collapsible.Root class="mt-3 min-w-0">
               <Collapsible.Trigger class="text-sm text-muted-foreground underline underline-offset-4">{copy.showSummary}</Collapsible.Trigger>
-              <Collapsible.Content><p class="mt-3 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p></Collapsible.Content>
+              <Collapsible.Content><p class="mt-3 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{revision.summary}</p></Collapsible.Content>
       </Collapsible.Root>
-    {:else if summary}
-            <p class="mt-4 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{summary}</p>
+    {:else if revision.summary}
+            <p class="mt-4 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{revision.summary}</p>
     {/if}
   {/snippet}
 
     <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
       <RenderedMarkdown class="publication-body min-w-0 text-base" html={data.publication.renderedBodyHtml} emptyLabel={copy.noBody} />
-    {#if attachments.length > 0}
+    {#if revision.objects.length > 0}
       <Separator />
         <section class="grid min-w-0 gap-3" aria-label={copy.attachments}>
         <h2 class="section-heading">{copy.attachments}</h2>
         <ul class="grid min-w-0 gap-3">
-          {#each attachments as object, index (`${object.kind}:${object.sha256}`)}
+          {#each revision.objects as object, index (`${object.kind}:${object.sha256}`)}
             <li class="min-w-0">
                 <a class="inline-flex max-w-full min-w-0 flex-wrap items-center gap-2 text-primary-text hover:underline" href={object.url} download={object.filename ?? true}>
                 <span class="min-w-0 [overflow-wrap:anywhere]">{object.filename || object.altText || copy.attachmentNumber.replace("{number}", String(index + 1))}</span>
