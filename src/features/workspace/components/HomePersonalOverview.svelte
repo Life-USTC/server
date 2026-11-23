@@ -42,6 +42,8 @@ const owner = $derived.by(() => {
     ? { id: "", epoch: "" }
     : current;
 });
+const ownerId = $derived(owner.id);
+const ownerEpoch = $derived(owner.epoch);
 const workspacePageCopy = $derived(getWorkspacePageCopy(locale));
 let overview = $state<OverviewSignedData | null>(null);
 let overviewEpoch = $state("");
@@ -107,8 +109,6 @@ async function load(
 }
 
 $effect(() => {
-  const ownerId = owner.id;
-  const ownerEpoch = owner.epoch;
   const atTime = snapshotAt;
   const previewWeek = overviewWeek;
   const requestLocale = locale;
