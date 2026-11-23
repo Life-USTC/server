@@ -76,7 +76,7 @@ function sectionMessageSubsets(): Plugin {
       const path = id.slice(0, -suffix.length);
       this.addWatchFile(path);
       const messages = JSON.parse(readFileSync(path, "utf8"));
-      return ["comments", "subscriptions", "uploads"]
+      return ["comments", "uploads"]
         .map((key) => `export const ${key} = ${JSON.stringify(messages[key])};`)
         .join("\n");
     },

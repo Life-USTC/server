@@ -2,7 +2,7 @@
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import { onDestroy } from "svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import { getSectionFeatureCopy } from "@/i18n/section-copy";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import { enhance, type SubmitFunction } from "$app/forms";
 import { page } from "$app/state";
 import { createSubscriptionConfirmationAction } from "../lib/subscription-confirmation-action";
@@ -28,7 +28,7 @@ let form: HTMLFormElement;
 const confirmation = createSubscriptionConfirmationAction(() => action);
 onDestroy(() => confirmation.dispose());
 const copy = $derived(
-  getSectionFeatureCopy(page.data.locale === "en-us" ? "en-us" : "zh-cn")
+  getWorkspacePageCopy(page.data.locale === "en-us" ? "en-us" : "zh-cn")
     .subscriptions,
 );
 </script>

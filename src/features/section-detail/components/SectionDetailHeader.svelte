@@ -6,7 +6,7 @@ import {
   type CatalogNamed,
   catalogLocalizedDisplayName,
 } from "@/features/catalog/lib/catalog-list-display";
-import { getSectionFeatureCopy } from "@/i18n/section-copy";
+import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page } from "$app/state";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
@@ -46,7 +46,7 @@ export let viewer: SectionHeaderViewer;
 let locale: "en-us" | "zh-cn";
 $: locale = page.data.locale === "en-us" ? "en-us" : "zh-cn";
 $: hasCourseName = courseName !== section.code;
-$: subscriptionsCopy = getSectionFeatureCopy(locale).subscriptions;
+$: subscriptionsCopy = getWorkspacePageCopy(locale).subscriptions;
 </script>
 
 <PageHeader
