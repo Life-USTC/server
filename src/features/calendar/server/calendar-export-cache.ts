@@ -193,12 +193,40 @@ async function persistStoredCalendar(
 // rebuilds of unchanged data differ in their DTSTAMP lines — and therefore in
 // their etag — while describing the same calendar. Ignore those lines when
 // deciding whether a rebuild produced anything new.
-function exportContentKey(calendar: UserCalendarExport) {
-  return [
-    calendar.cacheControl,
-    calendar.filename,
-    calendar.text.replace(/^DTSTAMP:.*$/gm, "DTSTAMP:"),
-  ].join("\u0000");
+function sameCalendarContent(
+  previous: UserCalendarExport,
+  next: UserCalendarExport,
+) {
+  if (
+    previous.cacheControl !== next.cacheControl ||
+    previous.filename !== next.filename
+  )
+    return false;
+  if (previous.text === next.text) return true;
+
+  // Compare the ranges between stamps without constructing two normalized feeds.
+  const previousStamps = /^DTSTAMP:.*$/gm;
+  const nextStamps = /^DTSTAMP:.*$/gm;
+  let previousStart = 0;
+  let nextStart = 0;
+  while (true) {
+    const previousStamp = previousStamps.exec(previous.text);
+    const nextStamp = nextStamps.exec(next.text);
+    if (!previousStamp || !nextStamp) {
+      return (
+        !previousStamp &&
+        !nextStamp &&
+        previous.text.slice(previousStart) === next.text.slice(nextStart)
+      );
+    }
+    if (
+      previous.text.slice(previousStart, previousStamp.index) !==
+      next.text.slice(nextStart, nextStamp.index)
+    )
+      return false;
+    previousStart = previousStamps.lastIndex;
+    nextStart = nextStamps.lastIndex;
+  }
 }
 
 /**
@@ -216,8 +244,7 @@ export async function storeBuiltUserCalendarExport(
   // conditional requests still match. Rewrite it once it is no longer fresh:
   // that renews both the freshness window the read path uses and the KV
   // expiration, so skipping can never strand or expire a served entry.
-  const unchanged =
-    previous && exportContentKey(previous) === exportContentKey(calendar);
+  const unchanged = previous && sameCalendarContent(previous, calendar);
   if (
     unchanged &&
     Date.now() - previous.generatedAtMs <= USER_CALENDAR_EXPORT_FRESH_TTL_MS
