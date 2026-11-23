@@ -251,7 +251,7 @@ function handleWheel(event: WheelEvent) {
         </div>
 
         {#if loading}
-          <Skeleton class="aspect-video w-full rounded-md" />
+          <Skeleton class="aspect-video w-full rounded-xl" />
           <p class="text-muted-foreground text-xs">{copy.loading}</p>
         {:else if failed}
           <Alert.Root variant="destructive">
@@ -264,7 +264,7 @@ function handleWheel(event: WheelEvent) {
         {:else}
           <img
             alt={mapAlt}
-            class={cn("w-full rounded-md border border-border object-contain", !inline && "max-h-64")}
+            class={cn("w-full rounded-xl border border-border object-contain", !inline && "max-h-64")}
             decoding="async"
             loading="lazy"
             src={imageUrl}
@@ -362,7 +362,7 @@ function handleWheel(event: WheelEvent) {
         <Alert.Root variant="destructive"><Alert.Description>{copy.fetchError}</Alert.Description></Alert.Root>
       {:else if imageUrl}
         <div
-          class="max-h-[calc(100dvh-14rem)] min-h-0 w-full flex-1 overflow-auto rounded-md border border-border bg-muted/20"
+          class="max-h-[calc(100dvh-14rem)] min-h-0 w-full flex-1 overflow-auto rounded-xl border border-border bg-muted/20"
           data-testid="room-map-scroll"
           onwheel={handleWheel}
         >

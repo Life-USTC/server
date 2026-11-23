@@ -342,6 +342,37 @@ html {
   }
 
   &
+    :is(
+      [data-slot="input"],
+      [data-slot="native-select"],
+      [data-slot="input-group"]
+    ) {
+    @apply compact-button-face inset-shadow-[0_0_0_1px_var(--input)];
+    &:focus-visible,
+    &:has(:focus-visible) {
+      --tw-inset-shadow-color: var(--ring);
+    }
+    &[aria-invalid="true"],
+    &:has([aria-invalid="true"]) {
+      --tw-inset-shadow-color: var(--destructive);
+    }
+  }
+
+  & [data-slot="native-select-icon"] {
+    right: calc(0.375rem + var(--toolbar-face-inset));
+  }
+
+  &
+    [data-orientation="horizontal"][data-spacing="0"]
+    > [data-slot="toggle-group-item"][data-variant="outline"] {
+    @apply compact-button-face inset-shadow-[0_0_0_1px_var(--border)];
+    border-inline-width: 0;
+    & + [data-slot="toggle-group-item"] {
+      margin-inline-start: -1px;
+    }
+  }
+
+  &
     [data-slot="button-group"][data-orientation="horizontal"]
     > [data-button-variant] {
     border-inline-width: 0;

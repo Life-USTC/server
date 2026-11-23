@@ -1,7 +1,6 @@
 <script lang="ts">
 import ChevronLeft from "@lucide/svelte/icons/chevron-left";
 import ChevronRight from "@lucide/svelte/icons/chevron-right";
-import { toolbarFieldClass } from "#lib/components/toolbar-control.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as ButtonGroup from "#lib/components/ui/button-group/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
@@ -75,7 +74,7 @@ function today() {
       <Button aria-label={nextLabel} size="icon" type="button" variant="outline" disabled={calendarView === "semester" && semesterIndex >= calendarData.calendarSemesterNavList.length - 1} onclick={() => move(1)}><ChevronRight data-icon="inline-start" /></Button>
     </ButtonGroup.Root>
     {#if calendarView === "day"}
-      <Input aria-label={workspaceCopy.calendarDay.label} type="date" value={calendarDay} class={`${toolbarFieldClass} w-auto max-w-full`} onchange={(event) => { if (event.currentTarget.value) setCalendarDay(event.currentTarget.value); }} />
+      <Input aria-label={workspaceCopy.calendarDay.label} type="date" value={calendarDay} class="w-auto max-w-full" onchange={(event) => { if (event.currentTarget.value) setCalendarDay(event.currentTarget.value); }} />
     {:else}
       <p class="min-w-0 break-words text-sm text-muted-foreground" aria-live="polite">
         {calendarView === "month" ? calendarMonth : calendarView === "week" ? formatMessage(workspaceCopy.calendarWeek.current, { date: calendarWeekStart }) : calendarData.activeCalendarSemesterName ?? commonCopy.semesters}

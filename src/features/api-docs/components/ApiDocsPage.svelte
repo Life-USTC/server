@@ -403,7 +403,7 @@ function scheduleReferenceRouteRestore(expected: number, epoch: string) {
         {@render apiNavigation()}
       </aside>
 
-      <div id="api-reference" class="api-reference min-h-[42rem] overflow-hidden rounded-lg border border-border bg-background">
+      <div id="api-reference" class="api-reference min-h-[42rem] overflow-hidden rounded-xl border border-border bg-background">
         {#if loading}
           <div class="p-6">
             <p class="text-muted-foreground text-sm">{data.copy.common.loading}</p>

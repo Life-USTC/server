@@ -3,10 +3,7 @@ import MapPinnedIcon from "@lucide/svelte/icons/map-pinned";
 import { untrack } from "svelte";
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
-import {
-  toolbarControlClass,
-  toolbarFieldClass,
-} from "#lib/components/toolbar-control.js";
+import { toolbarControlClass } from "#lib/components/toolbar-control.js";
 import * as Accordion from "#lib/components/ui/accordion/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
@@ -111,7 +108,6 @@ function floorLabel(floor: string) {
         <Input
           id="room-map-code"
           name="room"
-          class={toolbarFieldClass}
           bind:value={input}
           placeholder={copy.placeholder}
           maxlength={64}

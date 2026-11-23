@@ -1,10 +1,7 @@
 <script lang="ts">
 import CalendarAgenda from "#lib/components/calendar/CalendarAgenda.svelte";
 import CalendarGrid from "#lib/components/calendar/CalendarGrid.svelte";
-import {
-  toolbarControlClass,
-  toolbarFieldClass,
-} from "#lib/components/toolbar-control.js";
+import { toolbarControlClass } from "#lib/components/toolbar-control.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
@@ -128,7 +125,7 @@ function move(direction: number) {
 
 <section class="grid gap-4" aria-label={text.calendar}>
   <div class="flex flex-wrap items-end gap-3">
-    <Field.Field class="w-auto"><Field.FieldLabel for="personal-activity-date">{copy.workspace.calendarDay.label}</Field.FieldLabel><Input id="personal-activity-date" class={toolbarFieldClass} type="date" value={selectedDate} onchange={(event) => { if (event.currentTarget.value) selectedDate = event.currentTarget.value; }} /></Field.Field>
+    <Field.Field class="w-auto"><Field.FieldLabel for="personal-activity-date">{copy.workspace.calendarDay.label}</Field.FieldLabel><Input id="personal-activity-date" type="date" value={selectedDate} onchange={(event) => { if (event.currentTarget.value) selectedDate = event.currentTarget.value; }} /></Field.Field>
     <ToggleGroup.Root type="single" bind:value={() => view, (value) => { if (value) view = value; }} variant="outline" aria-label={copy.workspace.calendarViewLabel}>
       <ToggleGroup.Item value="day">{text.day}</ToggleGroup.Item><ToggleGroup.Item value="week">{text.week}</ToggleGroup.Item><ToggleGroup.Item value="month">{text.month}</ToggleGroup.Item>
     </ToggleGroup.Root>

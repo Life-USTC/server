@@ -107,11 +107,8 @@ afterNavigate(({ to, shallow, type }) => {
     <Field.Label class="sr-only" for="global-search-page-input">
       {data.copy.pageTitle}
     </Field.Label>
-    <InputGroup.Root
-      class="h-9 max-h-9 md:h-9 rounded-md border-border/60 bg-muted/40 shadow-none"
-      data-search-page-field
-    >
-      <InputGroup.Addon class="px-0 ps-2.5">
+    <InputGroup.Root data-search-page-field>
+      <InputGroup.Addon>
         <SearchIcon aria-hidden="true" class="size-4 text-muted-foreground" />
       </InputGroup.Addon>
       <InputGroup.Input
@@ -123,7 +120,6 @@ afterNavigate(({ to, shallow, type }) => {
         aria-busy={$isSearching}
         aria-controls={GLOBAL_SEARCH_LISTBOX_ID}
         aria-expanded={$canNavigateResults}
-        class="h-9 rounded-md border-0 bg-transparent pr-2.5 ps-2.5 text-base outline-none md:text-sm"
         id="global-search-page-input"
         oncompositionend={handleCompositionEnd}
         oninput={handleQueryInput}

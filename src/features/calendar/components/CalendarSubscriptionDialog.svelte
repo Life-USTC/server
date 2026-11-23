@@ -75,7 +75,7 @@ const titleId = "calendar-subscription-title";
         {/each}
       </fieldset>
     {/if}
-    <section class="grid min-w-0 gap-4 rounded-lg border p-4">
+    <section class="grid min-w-0 gap-4 rounded-xl border p-4">
       {#if scope === "all" && personalScope}
         <a class="text-sm underline underline-offset-4" href="/workspace/subscriptions?calendarLink=1">{personalScope.linkLabel}</a>
       {:else}
