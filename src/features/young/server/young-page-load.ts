@@ -226,8 +226,16 @@ export async function loadYoungEventDetailPage({
     getYoungSourceFreshness(),
   ]);
 
+  const { comments, youngEvents } = getWorkspacePageCopy(locals.locale);
   return toLoadData({
-    copy: getWorkspacePageCopy(locals.locale),
+    copy: {
+      comments: {
+        title: comments.title,
+        retry: comments.retry,
+        loadFailed: comments.loadFailed,
+      },
+      youngEvents,
+    },
     locale: locals.locale,
     event: event && withoutYoungEventRawJson(event),
     commentsData: null,

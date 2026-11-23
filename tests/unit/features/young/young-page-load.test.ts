@@ -202,6 +202,10 @@ describe("public Young page loaders", () => {
       youngId: "42",
     });
     expect(result.event).toEqual({ youngId: "42" });
+    expect(Object.keys(result.copy).sort()).toEqual([
+      "comments",
+      "youngEvents",
+    ]);
     expect(result.commentsData).toBeNull();
     expect(result.source).toEqual(source);
   });

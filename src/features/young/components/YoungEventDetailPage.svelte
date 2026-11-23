@@ -37,7 +37,10 @@ type Props = {
     remindStart?: boolean;
   };
   commentsData?: CommentsInitialData | null;
-  copy: AppPageCopy;
+  copy: {
+    comments: Pick<AppPageCopy["comments"], "title" | "retry" | "loadFailed">;
+    youngEvents: AppPageCopy["youngEvents"];
+  };
   event: Omit<YoungEventDetail, "rawJson">;
   source: YoungSourceFreshness;
 };
