@@ -375,6 +375,10 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       );
     }
 
+    const deferredModules =
+      event.route.id === "/catalog/sections/[jwId]/introduction"
+        ? ([] as string[])
+        : undefined;
     appStartMs = monotonicNowMs();
     const response = await runCloudflareTraceSpan(
       "app.sveltekit.resolve",
@@ -384,9 +388,38 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       },
       () =>
         resolve(event, {
+          preload: deferredModules
+            ? ({ type, path }) => {
+                if (type !== "js") return type === "css";
+                if (path.includes("/immutable/entry/")) return true;
+                deferredModules.push(path);
+                return false;
+              }
+            : undefined,
           transformPageChunk: ({ html }) =>
             addScriptNonce(
-              html
+              (deferredModules?.length && html.includes("</head>")
+                ? html.replace("</head>", () => {
+                    const paths = JSON.stringify(deferredModules).replaceAll(
+                      "<",
+                      "\\u003c",
+                    );
+                    return `<script>
+if (window.PerformanceObserver?.supportedEntryTypes?.includes("largest-contentful-paint")) {
+  new PerformanceObserver((entries, observer) => {
+    observer.disconnect();
+    for (const path of ${paths}) {
+      const link = document.createElement("link");
+      link.rel = "modulepreload";
+      link.href = path;
+      document.head.append(link);
+    }
+  }).observe({type: "largest-contentful-paint", buffered: true});
+}
+</script></head>`;
+                  })
+                : html
+              )
                 .replace(
                   "%life.analytics%",
                   demoRequest ? "" : googleAnalyticsHead,
