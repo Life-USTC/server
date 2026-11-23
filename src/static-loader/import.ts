@@ -268,7 +268,9 @@ async function importSnapshot(
     importGroupDigest([
       semesters,
       departments,
+      departmentPlaceholders,
       courses,
+      officialOnlyCourses,
       teachers,
       ...Object.values(catalogLookups),
       teacherTitles,
