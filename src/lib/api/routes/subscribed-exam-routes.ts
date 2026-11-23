@@ -26,6 +26,7 @@ export async function getSubscribedExamsRoute(request: Request) {
     const { page, pageSize, locale, ...filters } = query;
     const result = await listSubscribedExamPage(auth.userId, {
       ...filters,
+      includeCatalogRelations: false,
       locale: locale ?? getRequestLocale(request),
       pagination: { page, pageSize },
     });
