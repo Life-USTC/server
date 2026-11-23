@@ -108,10 +108,10 @@ export function campusWeekKeys(startKey: string) {
 
 export function campusMonthGridKeys(monthKey: string) {
   const first = `${monthKey}-01`;
-  const start = campusWeekStartKey(first);
+  const start = requireCampusDateKey(campusWeekStartKey(first));
   return Array.from({ length: 6 }, (_, weekIndex) =>
     Array.from({ length: 7 }, (_, dayIndex) =>
-      addCampusDays(start, weekIndex * 7 + dayIndex),
+      start.add(weekIndex * 7 + dayIndex, "day").format(APP_DATE_ONLY_FORMAT),
     ),
   );
 }
