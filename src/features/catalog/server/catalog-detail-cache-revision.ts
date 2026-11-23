@@ -50,7 +50,8 @@ async function loadCatalogDetailCacheRevision(scope: "global" | "section") {
               sql:
                 scope === "section"
                   ? `SELECT COALESCE(core."snapshotSha256", g."snapshotSha256"),
-                          COALESCE(core."updatedAt", g."updatedAt")
+                          COALESCE(core."updatedAt", g."updatedAt"),
+                          core.id IS NOT NULL
                    FROM "StaticImportState" g
                    LEFT JOIN "StaticImportState" source
                      ON source.id = 'section-page-core-source'
@@ -64,7 +65,15 @@ async function loadCatalogDetailCacheRevision(scope: "global" | "section") {
               args: ["global"],
               argTypes: [{ scalarType: "string", arity: "scalar" }],
             });
-            const row = result.rows[0] as [string, string] | undefined;
+            const row = result.rows[0] as
+              | [string, string, boolean?]
+              | undefined;
+            if (scope === "section") {
+              span?.setAttribute(
+                "cache.revision.source",
+                row ? (row[2] ? "section" : "global") : "bootstrap",
+              );
+            }
             if (!row) return null;
             // PrismaPg normalizes PostgreSQL timestamps to UTC strings.
             const updatedAt = new Date(row[1]);
