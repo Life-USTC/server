@@ -101,6 +101,16 @@ async function loadPersonalData() {
     if (personalFailed) await shellViewer.retry();
     return;
   }
+  if (
+    !$shellViewer.viewer &&
+    !data.demo &&
+    data.detailSection === "introduction" &&
+    !data.focusedHomeworkId
+  ) {
+    personalLoading = false;
+    personalFailed = false;
+    return;
+  }
   personalAbortController?.abort();
   const controller = new AbortController();
   personalAbortController = controller;
