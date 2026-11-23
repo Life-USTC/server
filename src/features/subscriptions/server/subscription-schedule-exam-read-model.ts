@@ -9,6 +9,7 @@ import { DEFAULT_LOCALE } from "@/i18n/config";
 import { subscribedScheduleEntrySchema } from "@/lib/api/schemas/schedule-response-schema-core";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import { toLocalizedNameDto } from "@/lib/localized-name";
+import { buildPaginatedResponse, normalizePagination } from "@/lib/pagination";
 import { paginatedQuery } from "@/lib/query-pagination";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
@@ -477,6 +478,10 @@ export async function listSubscribedExamPage(
     semesterId !== undefined
       ? await getSubscribedSectionIdsForSemester(userId, semesterId)
       : await getSubscribedSectionIds(userId);
+  if (!sectionIds.length) {
+    const { page, pageSize } = normalizePagination(pagination);
+    return buildPaginatedResponse([], page, pageSize, 0);
+  }
   const localizedPrisma = getPrisma(locale);
   const where = {
     sectionId: { in: sectionIds },
