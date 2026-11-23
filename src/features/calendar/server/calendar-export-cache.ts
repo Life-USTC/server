@@ -214,10 +214,11 @@ export async function storeBuiltUserCalendarExport(
   // conditional requests still match. Rewrite it once it is no longer fresh:
   // that renews both the freshness window the read path uses and the KV
   // expiration, so skipping can never strand or expire a served entry.
+  const unchanged =
+    previous && exportContentKey(previous) === exportContentKey(calendar);
   if (
-    previous &&
-    Date.now() - previous.generatedAtMs <= USER_CALENDAR_EXPORT_FRESH_TTL_MS &&
-    exportContentKey(previous) === exportContentKey(calendar)
+    unchanged &&
+    Date.now() - previous.generatedAtMs <= USER_CALENDAR_EXPORT_FRESH_TTL_MS
   ) {
     recordCalendarFeedCacheStatus("refresh_success");
     return previous;
@@ -225,7 +226,8 @@ export async function storeBuiltUserCalendarExport(
 
   const stored: StoredUserCalendarExport = {
     ...calendar,
-    etag: await createCalendarEtag(calendar.text),
+    text: unchanged ? previous.text : calendar.text,
+    etag: unchanged ? previous.etag : await createCalendarEtag(calendar.text),
     generatedAtMs: Date.now(),
     version: USER_CALENDAR_EXPORT_CACHE_VERSION,
   };
