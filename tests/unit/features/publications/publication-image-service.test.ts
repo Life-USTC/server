@@ -138,11 +138,6 @@ describe("publication image service", () => {
     const url = "https://news.example.test/images/campus.png";
     const hash = await hashUrl(url);
     mocks.imageSourceFindUnique.mockResolvedValue(sourceRecord(url, hash));
-    mocks.bucket.head.mockResolvedValue({
-      size: 11,
-      etag: "cached-etag",
-      httpMetadata: { contentType: "image/png" },
-    });
     mocks.bucket.get.mockResolvedValue({
       size: 11,
       body: stream("cached-bytes"),
@@ -151,7 +146,12 @@ describe("publication image service", () => {
     });
 
     const response = await getPublicationImageResponse({
-      request: new Request(`https://life.test/api/publications/images/${hash}`),
+      request: new Request(
+        `https://life.test/api/publications/images/${hash}`,
+        {
+          headers: { "If-None-Match": '"old-etag"' },
+        },
+      ),
       hash,
     });
     expect(response?.status).toBe(200);
@@ -159,6 +159,11 @@ describe("publication image service", () => {
     expect(mocks.fetchMock).not.toHaveBeenCalled();
 
     expect(mocks.bucket.head).not.toHaveBeenCalled();
+    mocks.bucket.get.mockResolvedValueOnce({
+      size: 11,
+      etag: "cached-etag",
+      httpMetadata: { contentType: "image/png" },
+    });
     const notModified = await getPublicationImageResponse({
       request: new Request(
         `https://life.test/api/publications/images/${hash}`,
@@ -167,7 +172,8 @@ describe("publication image service", () => {
       hash,
     });
     expect(notModified?.status).toBe(304);
-    expect(mocks.bucket.get).toHaveBeenCalledTimes(1);
+    expect(mocks.bucket.get).toHaveBeenCalledTimes(2);
+    expect(mocks.bucket.head).not.toHaveBeenCalled();
   });
 
   it("allows an external image host registered by the trusted crawler", async () => {
