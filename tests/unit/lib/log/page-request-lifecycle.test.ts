@@ -15,6 +15,11 @@ vi.mock("@/app-env", () => ({
 }));
 
 import { handle, handleError } from "@/hooks.server";
+import {
+  PUBLIC_SSR_HEADER,
+  PUBLIC_SSR_LOCALE_HEADER,
+  PUBLIC_SSR_MODE_HEADER,
+} from "@/lib/cloudflare/public-ssr-gateway";
 import { INTERNAL_REQUEST_ID_HEADER } from "@/lib/log/worker-entrypoint-observability";
 
 function handleInput(
@@ -25,6 +30,7 @@ function handleInput(
     pathname?: string;
     routeId?: Parameters<Handle>[0]["event"]["route"]["id"];
     spanNames?: string[];
+    publicResolveFlags?: boolean[];
   } = {},
 ) {
   const url = new URL(
@@ -71,15 +77,26 @@ function handleInput(
     platform: {
       context: {
         waitUntil: backgroundTasks.waitUntil,
-        ...(input.spanNames
+        ...(input.spanNames || input.publicResolveFlags
           ? {
               tracing: {
                 enterSpan: (
                   name: string,
-                  callback: (span: { setAttribute: () => void }) => unknown,
+                  callback: (span: {
+                    setAttribute: (key: string, value: unknown) => void;
+                  }) => unknown,
                 ) => {
                   input.spanNames?.push(name);
-                  return callback({ setAttribute: () => {} });
+                  return callback({
+                    setAttribute(key, value) {
+                      if (
+                        name === "app.sveltekit.resolve" &&
+                        key === "app.ssr.first_public_resolve" &&
+                        typeof value === "boolean"
+                      )
+                        input.publicResolveFlags?.push(value);
+                    },
+                  });
                 },
               },
             }
@@ -137,6 +154,25 @@ describe("SvelteKit page request lifecycle", () => {
     } finally {
       vi.restoreAllMocks();
     }
+  });
+
+  it("marks only the first public resolve even after an ordinary request", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    const publicResolveFlags: boolean[] = [];
+    const headers = {
+      [PUBLIC_SSR_HEADER]: "1",
+      [PUBLIC_SSR_MODE_HEADER]: "page",
+      [PUBLIC_SSR_LOCALE_HEADER]: "zh-cn",
+    };
+    for (const requestHeaders of [undefined, headers, headers]) {
+      await handle(
+        handleInput(async () => new Response("ok"), {
+          headers: requestHeaders,
+          publicResolveFlags,
+        }),
+      );
+    }
+    expect(publicResolveFlags).toEqual([true, false]);
   });
 
   it("records JSON responses and propagates the server request id", async () => {

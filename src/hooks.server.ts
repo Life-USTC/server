@@ -196,6 +196,8 @@ function oauthAuthorizeFormActionSources(url: URL) {
   return source ? [source] : [];
 }
 
+let hasResolvedPublicPage = false;
+
 const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
   const publicSsrLocale = event.request.headers.get(PUBLIC_SSR_LOCALE_HEADER);
   const publicSsr =
@@ -375,10 +377,15 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       );
     }
 
+    const firstPublicResolve = !hasResolvedPublicPage;
+    if (event.locals.publicSsr) hasResolvedPublicPage = true;
     appStartMs = monotonicNowMs();
     const response = await runCloudflareTraceSpan(
       "app.sveltekit.resolve",
       {
+        ...(event.locals.publicSsr && {
+          "app.ssr.first_public_resolve": firstPublicResolve,
+        }),
         "http.request.method": event.request.method,
         "http.route": observedRoute(event.url.pathname, event.route.id),
       },
