@@ -126,10 +126,12 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
       - name: Install Chromium
-        # Browser download no-ops on a cache hit; system dependencies are not
-        # cached and still install.
         if: ${{ matrix.browser }}
-        run: bunx playwright install --with-deps --only-shell chromium
+        run: |
+          bunx playwright install --only-shell chromium
+          if ! node --input-type=module -e 'import { chromium } from "playwright"; const browser = await chromium.launch(); await browser.close();'; then
+            bunx playwright install-deps chromium
+          fi
       - name: Download application and Worker build
         if: ${{ matrix.http || matrix.browser }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
