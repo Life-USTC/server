@@ -183,10 +183,10 @@ async function readKvCache<T>(
 
   const start = monotonicNowMs();
   let failureOutcome: "error" | "invalid" = "error";
+  const cacheTtlSeconds = Math.ceil(ttlMs / 1_000);
   try {
     const parsed = await kv.get<Partial<RuntimeCacheEnvelope>>(cacheKey, {
-      // KV also caches misses. Recheck those while L1 and colo retain hits.
-      cacheTtl: 60,
+      cacheTtl: cacheTtlSeconds,
       type: "json",
     });
     const now = Date.now();
