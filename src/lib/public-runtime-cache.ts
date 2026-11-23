@@ -237,7 +237,6 @@ function scheduleKvCacheWrite<T>(
   ttlMs: number,
   namespace: PublicRuntimeCacheAnalyticsNamespace,
   storeSize: number,
-  validateColoCacheResult?: (result: unknown) => boolean,
 ) {
   const start = monotonicNowMs();
   const kv = getCloudflareCatalogDetailCoreNamespace();
@@ -255,18 +254,6 @@ function scheduleKvCacheWrite<T>(
         "scheduler_unavailable",
       );
     }
-    return;
-  }
-
-  if (!validRuntimeCacheResult(value, validateColoCacheResult)) {
-    writeRuntimeCacheEvent(
-      "kv_write_skip",
-      namespace,
-      start,
-      storeSize,
-      ttlMs,
-      "result_invalid",
-    );
     return;
   }
 
@@ -730,7 +717,6 @@ export function cachedPublicRuntimeData<T>(
             kvTtlMs,
             analyticsNamespace,
             initialStoreSize,
-            options.validateColoCacheResult,
           );
         }
         if (coloRead?.cache && coloRead.request) {
