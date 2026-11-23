@@ -9,7 +9,6 @@ import * as Table from "#lib/components/ui/table/index.js";
 import {
   type CatalogNamed,
   catalogLocalizedNames,
-  sectionSummary,
 } from "@/features/catalog/lib/catalog-list-display";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page as routePage } from "$app/state";
@@ -21,7 +20,6 @@ import type {
   SectionListLabels,
   SectionListResultData,
 } from "./catalog-section-list-types";
-import SectionCardIdentity from "./SectionCardIdentity.svelte";
 
 interface Props {
   columnFilters: Record<string, CatalogColumnFilterProps>;
@@ -42,7 +40,6 @@ let {
 let filters = $derived(data.filters as SectionListFilters);
 let locale = $derived(routePage.data.locale ?? "zh-cn");
 </script>
-
 
 {#snippet empty()}
     <div class="py-10">
@@ -72,7 +69,12 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
                 <MobileListCard size="sm">
                   {#snippet child({ props })}
                     <a href={sectionHref} {...props}>
-                      <SectionCardIdentity course={section.course} teachers={section.teachers} code={section.code} semester={section.semester} {locale} />
+                      <Item.Content>
+                        <Item.Title class="block w-full line-clamp-none break-words text-base">{primaryName(section.course) || section.code}</Item.Title>
+                        <Item.Description class="line-clamp-none">{catalogLocalizedNames(section.teachers, locale)}</Item.Description>
+                        <span class="text-xs text-muted-foreground">{section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}</span>
+                        <span class="font-mono text-xs text-muted-foreground" data-slot="catalog-code">{section.code}</span>
+                      </Item.Content>
                       <Item.Footer class="flex-wrap justify-start">
                         <span>{sectionLabels.credits}: {section.credits ?? "-"}</span>
                         <span>{sectionLabels.capacity}: {section.stdCount ?? (routePage.data.demo ? "-" : 0)} / {section.limitCount ?? "-"}</span>
@@ -126,7 +128,7 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
                   </Table.Cell>
                   <Table.Cell class="p-0 whitespace-normal">
                     <CatalogTableLink class="font-medium" href={sectionHref}>
-                  <span class="break-words">{sectionSummary(section, locale)}</span>
+                      <span class="break-words text-base">{primaryName(section.course) || section.code}</span>
                     </CatalogTableLink>
                   </Table.Cell>
               <Table.Cell >
