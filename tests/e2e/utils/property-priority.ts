@@ -40,8 +40,11 @@ async function assertVisibleField(
   field: VisiblePriorityField,
   options: { timeout?: number },
 ) {
-  // Scroll readiness uses the action timeout, independently of assertion timeouts.
-  await field.locator.scrollIntoViewIfNeeded();
+  // Navigation can replace the matched node while Playwright waits for it to settle.
+  await expect(async () => {
+    await field.locator.scrollIntoViewIfNeeded();
+    await expect(field.locator).toBeInViewport();
+  }).toPass({ timeout: 5_000 });
   await expect(field.locator).toBeVisible(options);
   await expect
     .poll(
