@@ -7,9 +7,14 @@ import { subscribedSchedulesResponseSchema } from "@/lib/api/schemas/schedule-re
 import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function getMySubscribedSchedulesRoute(request: Request) {
-  const auth = await requireAuth(request, {
-    bearerScope: { feature: "workspace.schedule", action: "read" },
-  });
+  const auth = await runCloudflareTraceSpan(
+    "workspace.schedules.auth",
+    {},
+    () =>
+      requireAuth(request, {
+        bearerScope: { feature: "workspace.schedule", action: "read" },
+      }),
+  );
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 
