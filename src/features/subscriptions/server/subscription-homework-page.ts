@@ -5,6 +5,7 @@ import {
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma, withUserDbContext } from "@/lib/db/prisma";
 import { buildPaginatedResponse, normalizePagination } from "@/lib/pagination";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { buildSubscribedHomeworkPageQuery } from "./subscription-homework-query";
 import { buildSubscribedHomeworkInclude } from "./subscription-homework-selects";
 
@@ -66,7 +67,9 @@ export async function listSubscribedHomeworkPage(
     const total =
       rows.length < pageSize && (skip === 0 || rows.length > 0)
         ? skip + rows.length
-        : await tx.homework.count({ where: query.where });
+        : await runCloudflareTraceSpan("workspace.homeworks.count", {}, () =>
+            tx.homework.count({ where: query.where }),
+          );
     const page = buildPaginatedResponse(rows, pageNumber, pageSize, total);
     if (page.data.length === 0) return { ...page, data: [] };
 
