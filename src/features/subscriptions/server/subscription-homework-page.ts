@@ -4,7 +4,7 @@ import {
 } from "@/features/homeworks/server/homework-read-model";
 import { type AppLocale, DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma, withUserDbContext } from "@/lib/db/prisma";
-import { paginatedQuery } from "@/lib/query-pagination";
+import { buildPaginatedResponse, normalizePagination } from "@/lib/pagination";
 import { buildSubscribedHomeworkPageQuery } from "./subscription-homework-query";
 import { buildSubscribedHomeworkInclude } from "./subscription-homework-selects";
 
@@ -42,26 +42,32 @@ export async function listSubscribedHomeworkPage(
     userId,
   });
   const page = await withUserDbContext(userId, async (tx) => {
-    const page = await paginatedQuery(
-      (skip, take) =>
-        tx.homework.findMany({
-          ...query,
-          include: {
-            homeworkCompletions: {
-              where: { userId },
-              select: { completedAt: true },
-            },
-            _count: {
-              select: { comments: { where: { status: { not: "deleted" } } } },
-            },
-          },
-          skip,
-          take,
-        }),
-      () => tx.homework.count({ where: query.where }),
-      pagination.page,
-      pagination.pageSize,
-    );
+    const {
+      skip,
+      page: pageNumber,
+      pageSize,
+    } = normalizePagination(pagination);
+    const rows = await tx.homework.findMany({
+      ...query,
+      include: {
+        homeworkCompletions: {
+          where: { userId },
+          select: { completedAt: true },
+        },
+        _count: {
+          select: { comments: { where: { status: { not: "deleted" } } } },
+        },
+      },
+      skip,
+      take: pageSize,
+    });
+    // A short nonempty page ends at the exact total. An empty page beyond
+    // the first can be arbitrarily far past the end, so it still needs COUNT.
+    const total =
+      rows.length < pageSize && (skip === 0 || rows.length > 0)
+        ? skip + rows.length
+        : await tx.homework.count({ where: query.where });
+    const page = buildPaginatedResponse(rows, pageNumber, pageSize, total);
     if (page.data.length === 0) return { ...page, data: [] };
 
     // Nested subscription reads reuse this RLS transaction. Comment

@@ -25,8 +25,6 @@ type UserCalendarExport = {
 
 export type UserCalendarExportWithEtag = UserCalendarExport & {
   etag: string;
-  // Entries written before this field was introduced carry only generatedAtMs.
-  contentModifiedAtMs?: number | null;
 };
 
 type StoredUserCalendarExport = UserCalendarExportWithEtag & {
@@ -271,28 +269,11 @@ export async function storeBuiltUserCalendarExport(
     return previous;
   }
 
-  const generatedAtMs = Date.now();
-  let contentModifiedAtMs: number | null = generatedAtMs;
-  if (previous) {
-    if (unchanged) {
-      contentModifiedAtMs =
-        previous.contentModifiedAtMs === undefined
-          ? previous.generatedAtMs
-          : previous.contentModifiedAtMs;
-    } else if (
-      Math.floor(previous.generatedAtMs / 1000) >=
-      Math.floor(generatedAtMs / 1000)
-    ) {
-      // HTTP dates cannot distinguish two versions built in the same second.
-      contentModifiedAtMs = null;
-    }
-  }
   const stored: StoredUserCalendarExport = {
     ...calendar,
     text: unchanged ? previous.text : calendar.text,
     etag: unchanged ? previous.etag : await createCalendarEtag(calendar.text),
-    generatedAtMs,
-    contentModifiedAtMs,
+    generatedAtMs: Date.now(),
     version: USER_CALENDAR_EXPORT_CACHE_VERSION,
   };
   userCalendarExportCache.set(userId, {
