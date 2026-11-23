@@ -210,7 +210,8 @@ export function observedEdgeResponse(input: {
 
   // Scrapes must not record themselves as page traffic or recursively persist
   // exporter failures as application issues. Prometheus tracks scrape health.
-  if (new URL(input.request.url).pathname === "/metrics") return response;
+  const pathname = new URL(input.request.url).pathname;
+  if (pathname === "/metrics") return response;
 
   let ioObservedDurationMs = 0;
   try {
@@ -221,6 +222,10 @@ export function observedEdgeResponse(input: {
 
   try {
     writeWorkerRequestAnalytics({
+      sectionDetailPage:
+        /^\/catalog\/sections\/\d+(?:\/(?:overview|introduction|schedule|calendar|comments|exams|homework|teachers))?\/?$/.test(
+          pathname,
+        ),
       cacheOutcome: input.cacheOutcome,
       durationMs: ioObservedDurationMs,
       method: input.request.method,

@@ -57,6 +57,7 @@ type McpTransportAnalyticsInput = {
 };
 
 export type WorkerRequestAnalyticsInput = {
+  sectionDetailPage?: boolean;
   cacheOutcome: string;
   durationMs: number;
   method: string;
@@ -951,6 +952,7 @@ export function writeWorkerRequestAnalytics(
       safeHttpMethod(input.method),
       statusClass(input.status),
       cacheOutcome,
+      ...(input.sectionDetailPage ? ["section-detail"] : []),
     ],
     doubles: [finiteNumber(input.durationMs), input.status],
   });
