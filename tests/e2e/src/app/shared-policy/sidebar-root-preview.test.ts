@@ -890,13 +890,13 @@ test("sidebar.root-preview retires a held administrator bootstrap on Demo naviga
         return { leaked: state.leaked, reasons: state.reasons };
       });
       expect(initial.leaked, JSON.stringify(initial)).toBe(false);
+      const workspaceLink = workspace.locator(
+        '[data-navigation-depth="0"][href="/"]',
+      );
+      await workspaceLink.focus();
+      await expect(workspaceLink).toBeFocused();
       release.resolve();
       await Promise.all([terminal.promise, handlerCompleted.promise]);
-      await expect(workspace).toHaveAttribute(
-        "data-shell-navigation-view",
-        "root",
-      );
-      await workspace.locator('[data-navigation-depth="0"][href="/"]').click();
       await expect(workspace).toHaveAttribute(
         "data-shell-navigation-view",
         "root",
@@ -905,9 +905,7 @@ test("sidebar.root-preview retires a held administrator bootstrap on Demo naviga
         "data-shell-count-value",
         "21",
       );
-      await expect(
-        workspace.locator('[data-navigation-depth="0"][href="/"]'),
-      ).toBeFocused();
+      await expect(workspaceLink).toBeFocused();
       await expect(page.locator("#app-user-menu")).toHaveCount(0);
       await expect(
         page.locator("#demo-navigation-menu button"),
