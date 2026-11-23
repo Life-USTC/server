@@ -24,7 +24,7 @@ $: identities = account.ustcIdentities?.records ?? [];
       {:else}
         <div class="grid gap-3">
           {#each identities as identity}
-            <div class="rounded-md border bg-background p-3 text-sm">
+            <div class="rounded-xl border bg-background p-3 text-sm">
               <dl class="grid gap-2">
                 <div class="grid gap-1">
                   <dt class="text-muted-foreground text-xs">

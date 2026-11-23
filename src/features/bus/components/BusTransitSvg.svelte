@@ -33,7 +33,7 @@ $: mapSizeStyle = [
 
 <svg
   viewBox={`${viewBox.minX} ${viewBox.minY} ${viewBox.width} ${viewBox.height}`}
-  class="mx-auto block h-auto max-w-full rounded-md border border-border bg-card"
+  class="mx-auto block h-auto max-w-full rounded-xl border border-border bg-card"
   style={mapSizeStyle}
   preserveAspectRatio="xMidYMid meet"
   role="img"

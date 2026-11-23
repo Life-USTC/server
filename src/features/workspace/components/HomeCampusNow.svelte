@@ -216,7 +216,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
     board beside it had more rows than the weather had readings.
   -->
   <div class="grid min-w-0 items-start gap-3 sm:grid-cols-2">
-    <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4" data-testid="home-weather" aria-busy={weather === undefined}>
+    <div class="grid min-w-0 content-start gap-2 rounded-xl border p-4" data-testid="home-weather" aria-busy={weather === undefined}>
       {@render heading(weatherTitle, CloudSunIcon, "/catalog/weather", campusNow.weatherViewAll)}
       {#if weather === null || weather?.length === 0}
         {@render note(campusNow.weatherUnavailable)}
@@ -266,7 +266,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
       {/if}
     </div>
 
-    <div class="grid min-w-0 content-start gap-2 rounded-lg border p-4" data-testid="home-bus" aria-busy={bus === undefined}>
+    <div class="grid min-w-0 content-start gap-2 rounded-xl border p-4" data-testid="home-bus" aria-busy={bus === undefined}>
       {@render heading(busTitle, BusFrontIcon, "/catalog/bus", campusNow.busViewAll)}
       {#if bus === null}
         {@render note(campusNow.busUnavailable)}

@@ -180,6 +180,20 @@ for (const width of [390, 700, 1280])
       const date = page.locator(
         '[data-filter-field="createdAt"]:visible input',
       );
+      const operator = page.locator(
+        '[data-filter-field="createdAt"]:visible select',
+      );
+      for (const control of [operator, date]) {
+        await expect(control).toHaveCSS(
+          "height",
+          width < 768 ? "44px" : "32px",
+        );
+        await expect(control).toHaveCSS("padding-left", "6px");
+        await expect(control).toHaveCSS("border-top-left-radius", "8px");
+      }
+      await expect(
+        page.getByRole("dialog").filter({ has: operator }),
+      ).toHaveCSS("border-top-left-radius", "12px");
       await date.fill("2026-01-04");
       await page.keyboard.press("Escape");
       await page

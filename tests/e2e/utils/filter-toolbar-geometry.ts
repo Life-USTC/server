@@ -9,7 +9,18 @@ export async function expectFilterToolbarGeometry(
   const search = toolbar.locator('[data-slot="input-group"]');
   const actions = toolbar.locator('[data-slot="filter-actions"] button');
   await expect(search).toHaveCSS("height", height);
-  await expect(search).toHaveCSS("border-top-left-radius", "8px");
+  await expect(search).toHaveCSS(
+    "border-top-left-radius",
+    width < 768 ? "12px" : "10px",
+  );
+  await expect(search).toHaveCSS(
+    "border-top-width",
+    width < 768 ? "4px" : "2px",
+  );
+  await expect(search.locator("input")).toHaveCSS(
+    "border-top-left-radius",
+    "0px",
+  );
   await expect(actions).toHaveCount(2);
   for (const button of await actions.all()) {
     await expect(button).toHaveCSS("height", height);

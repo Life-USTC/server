@@ -131,8 +131,8 @@ $: if (open) {
           <Field.Label class="sr-only" for="global-search-dialog-input">
             {copy.title}
           </Field.Label>
-          <InputGroup.Root class="h-9 min-w-0 rounded-none border-0 md:h-9">
-            <InputGroup.Addon class="px-0">
+          <InputGroup.Root class="min-w-0">
+            <InputGroup.Addon>
               <SearchIcon aria-hidden="true" class="shrink-0 text-muted-foreground" />
             </InputGroup.Addon>
             <InputGroup.Input
@@ -144,7 +144,6 @@ $: if (open) {
               aria-busy={$isSearching}
               aria-controls={`${scopeId}-listbox`}
               aria-expanded={$canNavigateResults}
-              class="h-9 min-w-0 rounded-none border-0 bg-transparent px-0 text-base outline-none md:text-sm"
               id="global-search-dialog-input"
               oncompositionend={handleCompositionEnd}
               oninput={handleQueryInput}
