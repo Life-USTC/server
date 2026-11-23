@@ -182,16 +182,19 @@ function preloadScheduleOnHover(event: PointerEvent & { currentTarget: HTMLAncho
   if (connection?.saveData) return;
   const anchor = event.currentTarget;
   const href = anchor.href;
+  const listeners = new AbortController();
   const timer = window.setTimeout(() => {
-    anchor.removeEventListener("pointerleave", cancel);
+    listeners.abort();
     if (anchor.isConnected && anchor.href === href && anchor.matches(":hover") && location.href !== href) {
       void preloadData(href).catch(() => {});
     }
   }, 150);
   function cancel() {
     window.clearTimeout(timer);
+    listeners.abort();
   }
-  anchor.addEventListener("pointerleave", cancel, { once: true });
+  anchor.addEventListener("pointerleave", cancel, { signal: listeners.signal });
+  anchor.addEventListener("pointerdown", cancel, { signal: listeners.signal });
 }
 </script>
 
