@@ -31,6 +31,7 @@ function handleInput(
     routeId?: Parameters<Handle>[0]["event"]["route"]["id"];
     spanNames?: string[];
     publicResolveFlags?: boolean[];
+    publicHookDurations?: number[];
   } = {},
 ) {
   const url = new URL(
@@ -77,7 +78,9 @@ function handleInput(
     platform: {
       context: {
         waitUntil: backgroundTasks.waitUntil,
-        ...(input.spanNames || input.publicResolveFlags
+        ...(input.spanNames ||
+        input.publicResolveFlags ||
+        input.publicHookDurations
           ? {
               tracing: {
                 enterSpan: (
@@ -95,6 +98,12 @@ function handleInput(
                         typeof value === "boolean"
                       )
                         input.publicResolveFlags?.push(value);
+                      if (
+                        name === "app.sveltekit.resolve" &&
+                        key === "app.ssr.hook_before_resolve_ms" &&
+                        typeof value === "number"
+                      )
+                        input.publicHookDurations?.push(value);
                     },
                   });
                 },
@@ -159,6 +168,7 @@ describe("SvelteKit page request lifecycle", () => {
   it("marks only the first public resolve even after an ordinary request", async () => {
     vi.spyOn(console, "info").mockImplementation(() => {});
     const publicResolveFlags: boolean[] = [];
+    const publicHookDurations: number[] = [];
     const headers = {
       [PUBLIC_SSR_HEADER]: "1",
       [PUBLIC_SSR_MODE_HEADER]: "page",
@@ -169,8 +179,16 @@ describe("SvelteKit page request lifecycle", () => {
         handleInput(async () => new Response("ok"), {
           headers: requestHeaders,
           publicResolveFlags,
+          publicHookDurations,
         }),
       );
+      expect(publicHookDurations.length).toBe(publicResolveFlags.length);
+      if (!requestHeaders) expect(publicHookDurations).toEqual([]);
+    }
+    expect(publicHookDurations).toHaveLength(2);
+    for (const duration of publicHookDurations) {
+      expect(Number.isFinite(duration)).toBe(true);
+      expect(duration).toBeGreaterThanOrEqual(0);
     }
     expect(publicResolveFlags).toEqual([true, false]);
   });
