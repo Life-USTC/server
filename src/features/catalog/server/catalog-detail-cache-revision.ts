@@ -9,16 +9,22 @@ import {
 const CATALOG_PAYLOAD_SCHEMA_REVISION = "schema2";
 const BOOTSTRAP_REVISION = "bootstrap";
 
-const revisionRequestCacheKey = Symbol("catalog-detail-revision");
+const revisionRequestCacheKeys = {
+  global: Symbol("catalog-detail-revision"),
+  section: Symbol("section-page-revision"),
+};
 
 /** Memoize only within this request; a new render must see committed imports. */
-export function getCatalogDetailCacheRevision(): Promise<string> {
+export function getCatalogDetailCacheRevision(
+  scope: "global" | "section" = "global",
+): Promise<string> {
+  const revisionRequestCacheKey = revisionRequestCacheKeys[scope];
   const cache = getCloudflareRuntimeContext()?.cache;
   const existing = cache?.get(revisionRequestCacheKey) as
     | Promise<string>
     | undefined;
   if (existing) return existing;
-  const revision = loadCatalogDetailCacheRevision().catch((error) => {
+  const revision = loadCatalogDetailCacheRevision(scope).catch((error) => {
     cache?.delete(revisionRequestCacheKey);
     throw error;
   });
@@ -26,7 +32,7 @@ export function getCatalogDetailCacheRevision(): Promise<string> {
   return revision;
 }
 
-async function loadCatalogDetailCacheRevision() {
+async function loadCatalogDetailCacheRevision(scope: "global" | "section") {
   const state = await runCloudflareTraceSpan(
     "cache.catalog_revision.read",
     {
@@ -41,7 +47,20 @@ async function loadCatalogDetailCacheRevision() {
           "app",
           async (adapter) => {
             const result = await adapter.queryRaw({
-              sql: 'SELECT "snapshotSha256", "updatedAt" FROM "StaticImportState" WHERE "id" = $1',
+              sql:
+                scope === "section"
+                  ? `SELECT COALESCE(core."snapshotSha256", g."snapshotSha256"),
+                          COALESCE(core."updatedAt", g."updatedAt")
+                   FROM "StaticImportState" g
+                   LEFT JOIN "StaticImportState" source
+                     ON source.id = 'section-page-core-source'
+                    AND source."snapshotSha256" = g."snapshotSha256"
+                    AND source."transformRevision" = g."transformRevision"
+                   LEFT JOIN "StaticImportState" core
+                     ON core.id = 'section-page-core'
+                    AND core."transformRevision" = source."transformRevision"
+                   WHERE g.id = $1`
+                  : 'SELECT "snapshotSha256", "updatedAt" FROM "StaticImportState" WHERE "id" = $1',
               args: ["global"],
               argTypes: [{ scalarType: "string", arity: "scalar" }],
             });
