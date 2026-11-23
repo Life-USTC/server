@@ -65,6 +65,7 @@ const DIRECT_REQUEST_PATHS = new Set([
   "/error",
   "/llms.txt",
   "/metrics",
+  "/favicon.ico",
   "/open-graph.png",
   "/robots.txt",
   "/sitemap.xml",
