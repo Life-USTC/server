@@ -184,8 +184,8 @@ function revealCurrent(node: HTMLElement, active: boolean) {
       isActive={active}
       tooltipContent={compactTooltips ? link.label : undefined}
       class={cn(
-        "h-auto min-h-11 py-1 [&>span]:whitespace-normal! [&>span]:[overflow-wrap:anywhere]",
-        ancestor && "bg-sidebar-accent/50",
+        "h-auto min-h-11 rounded-lg py-1 lg:min-h-9 [&>span]:whitespace-normal! [&>span]:[overflow-wrap:anywhere]",
+        ancestor && "font-medium text-sidebar-foreground",
         link.badge != null && link.badge > 0 && "pe-14!",
       )}
       data-shell-ancestor={ancestor ? "true" : undefined}

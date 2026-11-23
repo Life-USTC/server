@@ -185,7 +185,6 @@ export async function checkWorkspaceCalendarPriorityViews(
       },
       secondary: {
         "semester.nameCn": text(semesterScope, semester),
-        "section.code": text(subscriptionRow, section.code),
         "section.credits": text(subscriptionRow, "3.5"),
         "subscription.kind": text(
           subscriptionRow,

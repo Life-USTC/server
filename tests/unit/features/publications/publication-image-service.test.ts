@@ -81,6 +81,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.bucketAvailable = true;
   mocks.bucket.head.mockResolvedValue(null);
+  mocks.bucket.get.mockResolvedValue(null);
   mocks.bucket.put.mockResolvedValue(undefined);
   mocks.fetchMock.mockReset();
   vi.stubGlobal("fetch", mocks.fetchMock);
@@ -145,6 +146,8 @@ describe("publication image service", () => {
     mocks.bucket.get.mockResolvedValue({
       size: 11,
       body: stream("cached-bytes"),
+      etag: "cached-etag",
+      httpMetadata: { contentType: "image/png" },
     });
 
     const response = await getPublicationImageResponse({
@@ -155,6 +158,7 @@ describe("publication image service", () => {
     await expect(response?.text()).resolves.toBe("cached-bytes");
     expect(mocks.fetchMock).not.toHaveBeenCalled();
 
+    expect(mocks.bucket.head).not.toHaveBeenCalled();
     const notModified = await getPublicationImageResponse({
       request: new Request(
         `https://life.test/api/publications/images/${hash}`,
