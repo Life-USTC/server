@@ -33,7 +33,7 @@ export function formatShanghaiTimestamp(input: ConfigType): string {
   }
   // KV returns JSON timestamps for dates that Prisma returns as Date objects.
   if (
-    import.meta.env.SSR &&
+    import.meta.env?.SSR &&
     typeof input === "string" &&
     input.length === 24 &&
     input.endsWith("Z")
@@ -53,7 +53,7 @@ export function formatShanghaiTimestamp(input: ConfigType): string {
 }
 
 export function formatShanghaiDate(input: ConfigType): string {
-  if (import.meta.env.SSR && input instanceof Date) {
+  if (import.meta.env?.SSR && input instanceof Date) {
     const iso = modernShanghaiIso(input);
     if (iso) return iso.slice(0, 10);
   }
