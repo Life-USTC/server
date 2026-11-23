@@ -292,11 +292,14 @@ $: _canManageSelectedHomework = canManageSectionHomework(
   _homeworkViewer,
   _selectedHomework,
 );
-$: sectionCalendarEvents = buildSectionDetailCalendarEvents({
-  notAvailable: _notAvailable,
-  section: displaySection,
-  sectionCopy: _sectionCopy,
-});
+$: sectionCalendarEvents =
+  data.detailSection === "schedule"
+    ? buildSectionDetailCalendarEvents({
+        notAvailable: _notAvailable,
+        section: displaySection,
+        sectionCopy: _sectionCopy,
+      })
+    : [];
 
 const {
   cancelEditHomework: _cancelEditHomework,
@@ -600,8 +603,8 @@ onMount(() => {
   editingHomework={_editingHomework}
   fmtDateTime={_fmtDateTime}
   formatMessage={_formatMessage}
-  hasSemesterEnd={homeworkSemesterShortcutCapabilities({ semesterEnd: _semesterDate("end") }).hasSemesterEnd}
-  hasSemesterStart={Boolean(_semesterDate("start"))}
+  hasSemesterEnd={_showCreateHomework && homeworkSemesterShortcutCapabilities({ semesterEnd: _semesterDate("end") }).hasSemesterEnd}
+  hasSemesterStart={_showCreateHomework && Boolean(_semesterDate("start"))}
   homeworkAuditActionLabel={_homeworkAuditActionLabel}
   homeworkAuditActorName={_homeworkAuditActorName}
   homeworkAuditLogs={_homeworkAuditLogs}
