@@ -13,7 +13,6 @@ import {
   listYoungEventCategories,
   listYoungEvents,
   listYoungOrganizers,
-  type YoungEventDetail,
   type YoungEventTimeBasis,
 } from "@/features/young/server/young-event-service";
 import {
@@ -210,19 +209,12 @@ export async function loadYoungOrganizerDetailPage({
   });
 }
 
-function withoutYoungEventRawJson({
-  rawJson: _rawJson,
-  ...detail
-}: YoungEventDetail) {
-  return detail;
-}
-
 export async function loadYoungEventDetailPage({
   locals,
   youngId,
 }: AppPageLoadEvent & { youngId: string }) {
   const [event, source] = await Promise.all([
-    getYoungEvent(youngId),
+    getYoungEvent(youngId, "page"),
     getYoungSourceFreshness(),
   ]);
 
@@ -237,7 +229,7 @@ export async function loadYoungEventDetailPage({
       youngEvents,
     },
     locale: locals.locale,
-    event: event && withoutYoungEventRawJson(event),
+    event,
     commentsData: null,
     source,
   });

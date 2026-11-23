@@ -412,19 +412,28 @@ export async function listYoungCalendarEvents(
   return { ...result, source };
 }
 
-export async function getYoungEvent(
+export function getYoungEvent(
   youngId: string,
-): Promise<YoungEventDetail | null> {
+): Promise<YoungEventDetail | null>;
+export function getYoungEvent(
+  youngId: string,
+  projection: "page",
+): Promise<Omit<YoungEventDetail, "rawJson"> | null>;
+export async function getYoungEvent(youngId: string, projection?: "page") {
+  const includeRawJson = projection !== "page";
   return cachedCatalogRuntimeData(
     "catalog:young-event-detail",
-    JSON.stringify({ shape: "summary-v2", youngId }),
+    JSON.stringify({
+      shape: includeRawJson ? "summary-v2" : "page-v1",
+      youngId,
+    }),
     getCanonicalOrigin(),
     async () => {
       const record = await prisma.youngEvent.findUnique({
         where: { youngId },
         select: {
           ...YOUNG_EVENT_SELECT,
-          rawJson: true,
+          rawJson: includeRawJson,
           description: true,
           participationNotes: true,
         },
@@ -442,7 +451,7 @@ export async function getYoungEvent(
           participationNotes == null
             ? null
             : renderYoungEventHtml(participationNotes),
-        rawJson,
+        ...(includeRawJson ? { rawJson } : {}),
       };
     },
     { shouldCacheResult: (result) => result != null },
