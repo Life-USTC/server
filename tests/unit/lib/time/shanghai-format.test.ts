@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatShanghaiDate,
+  formatShanghaiTimestamp,
   parseShanghaiDateTimeLocalInput,
   toShanghaiDateTimeLocalValue,
 } from "@/lib/time/shanghai-format";
@@ -23,5 +25,17 @@ describe("上海日期时间表单辅助函数", () => {
   it("将空白表单输入解析为已清除，无效输入解析为 undefined", () => {
     expect(parseShanghaiDateTimeLocalInput(" ")).toBeNull();
     expect(parseShanghaiDateTimeLocalInput("not-a-date")).toBeUndefined();
+  });
+});
+
+describe("Shanghai cache timestamp formatting", () => {
+  it.each([
+    ["2026-11-23T16:01:02.000Z", "2026-11-24T00:01:02+08:00"],
+    ["2026-11-23T16:01:02.123Z", "2026-11-24T00:01:02.123+08:00"],
+    ["1991-07-01T15:30:00.000Z", "1991-07-02T00:30:00+09:00"],
+  ])("formats both representations of %s", (utc, expected) => {
+    expect(formatShanghaiTimestamp(utc)).toBe(expected);
+    expect(formatShanghaiTimestamp(new Date(utc))).toBe(expected);
+    expect(formatShanghaiDate(new Date(utc))).toBe(expected.slice(0, 10));
   });
 });
