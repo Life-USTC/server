@@ -716,7 +716,10 @@ export async function getPublicPublicationById(id: string) {
 
   const revision = record.currentRevision;
   if (!revision) return null;
-  const bodyMarkdown = await readBodyMarkdown(revision);
+  const [bodyMarkdown, alsoPublishedIn] = await Promise.all([
+    readBodyMarkdown(revision),
+    findAlsoPublishedIn(record),
+  ]);
   const images = revision.imageSourceRefs.map((ref) => ({
     id: ref.imageSourceId,
     url: `/api/publications/images/${ref.imageSourceId}`,
@@ -741,7 +744,7 @@ export async function getPublicPublicationById(id: string) {
       classifierVersion: revision.classifierVersion,
       objects: publication.objects,
     },
-    alsoPublishedIn: await findAlsoPublishedIn(record),
+    alsoPublishedIn,
   } satisfies PublicPublicationDetail;
 }
 
