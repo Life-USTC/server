@@ -13,7 +13,6 @@ import { Button } from "#lib/components/ui/button/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
-import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
 import SubscriptionCancelDialog from "@/features/subscriptions/components/SubscriptionCancelDialog.svelte";
 import { groupSubscribedSectionsBySemester } from "@/features/workspace/lib/subscriptions";
 import type {
@@ -225,7 +224,8 @@ function handleRemoveDialogOpenChange(open: boolean) {
         <WorkspaceCollection>
           {#snippet mobile()}
             <SubscriptionsCardsView
-              {locale}
+              {courseName}
+              {teacherNames}
               {readOnlyReason}
               workspaceCopy={workspaceCopy}
               requestRemoveSection={requestRemoveSection}
@@ -238,9 +238,15 @@ function handleRemoveDialogOpenChange(open: boolean) {
           {/snippet}
           {#snippet desktop()}
           <Table.Root
-            class="min-w-0 w-full"
+            class="w-full table-fixed"
             data-testid="subscription-semester-table"
           >
+            <colgroup>
+              <col />
+              <col class="w-1/4" />
+              <col class="w-20" />
+              <col class="w-32" />
+            </colgroup>
             <Table.Header>
               <Table.Row>
                 <Table.Head>{subscriptionsCopy.courseName}</Table.Head>
@@ -259,22 +265,19 @@ function handleRemoveDialogOpenChange(open: boolean) {
                   <Table.Cell>
                     <div class="flex min-w-0 flex-wrap items-center gap-1.5">
                         <a
-                          class="block min-w-0 max-w-full overflow-hidden py-0.5 font-medium"
+                          class="inline-flex min-w-0 max-w-full items-center gap-1.5 py-0.5 text-base font-medium"
                           href={`/catalog/sections/${section.jwId}`}
                           data-testid="subscription-course-link"
                         >
-                          <ClassIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" /><TruncatedText text={sectionSummary(section, locale)} />
+                          <ClassIcon aria-hidden="true" class="size-4 shrink-0" /><TruncatedText text={courseName(section)} />
                         </a>
                       {#if section.kind !== "regular"}
                         <Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>
                       {/if}
                     </div>
-                    <p class="text-muted-foreground font-mono text-xs break-words">
-                      {section.code}
-                    </p>
                   </Table.Cell>
 
-                  <Table.Cell>{teacherNames(section)}</Table.Cell>
+                  <Table.Cell><TruncatedText text={teacherNames(section)} /></Table.Cell>
                   <Table.Cell class="text-left">{section.credits ?? workspaceCopy.notAvailable}</Table.Cell>
 
                   <Table.Cell>

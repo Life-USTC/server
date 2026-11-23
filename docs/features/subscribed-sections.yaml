@@ -28,19 +28,18 @@ requirements:
     test:
       file: tests/e2e/src/app/workspace/subscriptions/presentation-contract.test.ts
       name: subscribed-sections.grouped-by-semester
-- id: subscribed-sections.section-codes-promoted
+- id: subscribed-sections.course-name-rows
   category: presentation
-  rule: Subscribed-section management shows the section code alongside course name and teachers so multiple
-    offerings of the same course can be distinguished.
+  rule: Subscribed-section rows show the course name as the title, with teachers separate and semester on the group. Each offering links to its own section.
   acceptance:
     given: An isolated owner subscribes to distinct offerings of the same course with the same teachers.
     when: The actual subscriptions table and mobile cards render.
     then:
-    - Every offering shows its distinct section code alongside the course name and teachers.
+    - Each title contains only the course name. Section codes remain available in filters and details. Semester tables share column widths and overflowing teacher lists reveal their full text.
     - Both widths fit the viewport without horizontal page overflow.
     test:
       file: tests/e2e/src/app/workspace/subscriptions/presentation-contract.test.ts
-      name: subscribed-sections.section-codes-promoted
+      name: subscribed-sections.course-name-rows
 - id: subscribed-sections.sidebar-summary-only
   category: presentation
   rule: The shell exposes one Section Subscriptions destination and an optional count badge; it must not
@@ -106,7 +105,6 @@ capabilities:
           - section.teachers.namePrimary
           secondary:
           - semester.nameCn
-          - section.code
           - section.credits
           - subscription.kind
           tertiary:

@@ -893,7 +893,7 @@ test("subscribed-sections.grouped-by-semester", {
   );
 });
 
-test("subscribed-sections.section-codes-promoted", {
+test("subscribed-sections.course-name-rows", {
   tag: "@Subscription/Web",
 }, async ({ page, presentation, isolatedWorker, catalogSubscriptionRun }) => {
   const { user, sections, course, teacher } = presentation;
@@ -918,16 +918,27 @@ test("subscribed-sections.section-codes-promoted", {
           const item = link.locator(
             'xpath=ancestor::*[self::tr or @data-slot="item"][1]',
           );
-          await expect(link).toContainText(course.nameCn);
+          await expect(link).toHaveText(course.nameCn);
           await expect(item).toContainText(teacher.nameCn);
           await expect(
             item.getByText(section.code, { exact: true }),
-          ).toBeVisible();
-          expect(
-            await item
-              .getByText(section.code, { exact: true })
-              .evaluate((code) => getComputedStyle(code).fontFamily),
-          ).toContain("monospace");
+          ).toHaveCount(0);
+        }
+        const tables = page
+          .getByTestId("subscription-semester-table")
+          .filter({ visible: true });
+        if (await tables.count()) {
+          const columns = await tables.evaluateAll((elements) =>
+            elements.map((table) =>
+              Array.from(
+                table.querySelectorAll("th"),
+                (cell) => cell.getBoundingClientRect().width,
+              ),
+            ),
+          );
+          expect(columns.length).toBeGreaterThan(1);
+          for (const widths of columns.slice(1))
+            expect(widths).toEqual(columns[0]);
         }
         expect(
           await page.evaluate(
