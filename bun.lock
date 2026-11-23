@@ -92,6 +92,7 @@
     },
   },
   "patchedDependencies": {
+    "@prisma/client@7.10.1": "patches/prisma-client-edge-7.10.1.patch",
     "pg-cloudflare@1.4.1": "patches/pg-cloudflare@1.4.1.patch",
   },
   "overrides": {
