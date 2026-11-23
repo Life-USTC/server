@@ -6,6 +6,7 @@ import SectionBasicInfoDetails from "@/features/section-detail/components/Sectio
 import SectionBasicInfoRelatedSections from "@/features/section-detail/components/SectionBasicInfoRelatedSections.svelte";
 import SectionTeachersCard from "@/features/section-detail/components/SectionTeachersCard.svelte";
 import { detailPageModule } from "@/features/section-detail/lib/detail-page-module.svelte";
+import { legacyDetailDestination } from "@/lib/components/shell/detail-navigation";
 import SectionDetailRoute from "../SectionDetailRoute.svelte";
 import type { ActionData, PageData } from "./$types";
 
@@ -26,6 +27,9 @@ function observeComments(sectionId: number) {
   return (node: HTMLElement) => {
     const hasCommentTarget = () =>
       location.hash === "#comments" || location.hash.startsWith("#comment-");
+    // The shell navigates legacy fragments to their canonical tab. That page
+    // owns the read, including comment links that resolve to the homework tab.
+    if (hasCommentTarget() && legacyDetailDestination("section", new URL(location.href))) return;
     if (hasCommentTarget() || typeof IntersectionObserver === "undefined") {
       visibleCommentsSection = sectionId;
       return;
