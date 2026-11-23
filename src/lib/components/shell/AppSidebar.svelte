@@ -197,6 +197,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
           </button>
         {:else}
           <a {...props} href={link.href} data-detail-page={link.detail?.tab}
+            data-sveltekit-preload-data={!active && link.detail?.kind === "section" && link.detail.tab === "schedule" ? "hover" : undefined}
             data-navigation-depth={depth}
             aria-label={link.ariaLabel ?? link.labelLines?.join("") ?? link.label}
             aria-current={active ? "page" : ancestor ? "location" : undefined}
