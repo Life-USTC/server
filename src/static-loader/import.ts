@@ -260,6 +260,27 @@ async function importSnapshot(
       ],
     ]),
   );
+  // Section pages join these shared records across semesters. Track their
+  // mapped content independently of Young and Blackboard snapshot updates.
+  const sectionReferenceGroup = "section-reference-data";
+  groupDigests.set(
+    sectionReferenceGroup,
+    importGroupDigest([
+      semesters,
+      departments,
+      courses,
+      teachers,
+      ...Object.values(catalogLookups),
+      teacherTitles,
+      teacherLessonTypes,
+      examBatches,
+      campuses,
+      roomTypes,
+      buildings,
+      rooms,
+      adminClasses,
+    ]),
+  );
   const youngEvents = loadYoungEvents(snapshot);
   const youngSyncedAt = youngSnapshotSyncedAt(snapshot);
   // The write phase needs only mapped records, not the full raw history.
@@ -315,6 +336,9 @@ async function importSnapshot(
       return null;
     }
     const changed = await changedImportGroups(tx, groupDigests);
+    console.log(
+      `Section reference data: ${changed.has(sectionReferenceGroup) ? "changed" : "unchanged"}`,
+    );
     const sections = plan.sections.filter((row) =>
       changed.has(`semester:${row.semesterCode}`),
     );
