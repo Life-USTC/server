@@ -371,7 +371,7 @@ async function queryFoldedPublicationPage(
 ) {
   const whereSql = foldPublicationWhereSql(filters);
   const rows = await prisma.$queryRaw<
-    { id: string; groupSize: bigint }[]
+    { id: string; groupSize: bigint; total: bigint }[]
   >(Prisma.sql`
     WITH filtered AS (
       SELECT
@@ -398,7 +398,7 @@ async function queryFoldedPublicationPage(
         ) AS "groupSize"
       FROM filtered
     )
-    SELECT id, "groupSize"
+    SELECT id, "groupSize", count(*) OVER () AS total
     FROM ranked
     WHERE "rowNumber" = 1
     ORDER BY "publishedAt" DESC NULLS LAST, "lastSeenAt" DESC, id ASC
@@ -406,20 +406,21 @@ async function queryFoldedPublicationPage(
     OFFSET ${pagination.skip}
   `);
 
-  const [{ total }] = await prisma.$queryRaw<{ total: bigint }[]>(Prisma.sql`
-    WITH filtered AS (
-      SELECT
-        p.id,
-        p."normalizedTitle",
-        p."publishedDateShanghai"
-      FROM "Publication" p
-      JOIN "PublicationSource" s ON s.id = p."sourceId"
-      JOIN "PublicationRevision" cr ON cr.id = p."currentRevisionId"
-      WHERE ${whereSql}
-    )
-    SELECT count(*)::bigint AS total
-    FROM (SELECT DISTINCT "normalizedTitle", "publishedDateShanghai" FROM filtered) groups
-  `);
+  let total = rows[0]?.total ?? 0n;
+  // An offset beyond the last group leaves no row carrying the window count.
+  if (rows.length === 0 && pagination.skip > 0) {
+    const [count] = await prisma.$queryRaw<{ total: bigint }[]>(Prisma.sql`
+      SELECT count(*) AS total
+      FROM (
+        SELECT DISTINCT p."normalizedTitle", p."publishedDateShanghai"
+        FROM "Publication" p
+        JOIN "PublicationSource" s ON s.id = p."sourceId"
+        JOIN "PublicationRevision" cr ON cr.id = p."currentRevisionId"
+        WHERE ${whereSql}
+      ) groups
+    `);
+    total = count.total;
+  }
 
   return {
     ids: rows.map((row) => row.id),
