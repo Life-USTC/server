@@ -9,6 +9,7 @@ import {
   type PaginatedResponse,
   type PaginationInput,
 } from "@/lib/pagination";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { getCanonicalOrigin } from "@/lib/site-url";
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
 import { youngEventConflictIntervals } from "../lib/young-event-conflict-intervals";
@@ -420,15 +421,20 @@ export async function getYoungEvent(
     JSON.stringify({ shape: "summary-v2", youngId }),
     getCanonicalOrigin(),
     async () => {
-      const record = await prisma.youngEvent.findUnique({
-        where: { youngId },
-        select: {
-          ...YOUNG_EVENT_SELECT,
-          rawJson: true,
-          description: true,
-          participationNotes: true,
-        },
-      });
+      const record = await runCloudflareTraceSpan(
+        "catalog.detail.young_event.query",
+        {},
+        async () =>
+          await prisma.youngEvent.findUnique({
+            where: { youngId },
+            select: {
+              ...YOUNG_EVENT_SELECT,
+              rawJson: true,
+              description: true,
+              participationNotes: true,
+            },
+          }),
+      );
       if (record == null) return null;
       const { rawJson, description, participationNotes, ...summaryRecord } =
         record;
