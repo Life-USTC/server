@@ -199,6 +199,7 @@ function oauthAuthorizeFormActionSources(url: URL) {
 let hasResolvedPublicPage = false;
 
 const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
+  const startMs = monotonicNowMs();
   const publicSsrLocale = event.request.headers.get(PUBLIC_SSR_LOCALE_HEADER);
   const publicSsr =
     event.request.headers.get(PUBLIC_SSR_HEADER) === "1" &&
@@ -223,7 +224,6 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
     requestId,
     route: observedRoute(event.url.pathname, event.route.id),
   });
-  const startMs = monotonicNowMs();
   const isMetricsRequest = event.url.pathname === "/metrics";
   const demoRequest = isDemoRequest(event.request);
   const hasAuthSignal =
@@ -385,6 +385,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       {
         ...(event.locals.publicSsr && {
           "app.ssr.first_public_resolve": firstPublicResolve,
+          "app.ssr.hook_before_resolve_ms": Math.max(0, appStartMs - startMs),
         }),
         "http.request.method": event.request.method,
         "http.route": observedRoute(event.url.pathname, event.route.id),
