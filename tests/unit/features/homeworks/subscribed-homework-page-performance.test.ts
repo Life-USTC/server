@@ -78,7 +78,7 @@ describe("subscribed homework page read", () => {
         }),
       }),
     );
-    expect(count).toHaveBeenCalledOnce();
+    expect(count).not.toHaveBeenCalled();
     expect(findMany.mock.calls[0][0].include).not.toHaveProperty("section");
     expect(displayFindMany).toHaveBeenCalledExactlyOnceWith({
       where: { id: { in: ["homework-page"] } },
@@ -100,8 +100,22 @@ describe("subscribed homework page read", () => {
           completion: { completedAt: new Date("2026-08-01T00:00:00.000Z") },
         },
       ],
-      pagination: { page: 2, pageSize: 10, total: 200, totalPages: 20 },
+      pagination: { page: 2, pageSize: 10, total: 11, totalPages: 2 },
     });
+  });
+
+  it("counts full pages and infers zero for an empty first page", async () => {
+    const { listSubscribedHomeworkPage } = await import(
+      "@/features/subscriptions/server/subscription-homework-page"
+    );
+    const read = () =>
+      listSubscribedHomeworkPage("user-1", {
+        pagination: { page: 1, pageSize: 1 },
+      });
+    expect((await read()).pagination.total).toBe(200);
+    findMany.mockResolvedValueOnce([]);
+    expect((await read()).pagination.total).toBe(0);
+    expect(count).toHaveBeenCalledOnce();
   });
 
   it("keeps the total but skips subscription decoration for an empty page", async () => {
