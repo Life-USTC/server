@@ -477,7 +477,11 @@ export async function getPublicationImageResponse(input: {
   hash: string;
   defer?: (promise: Promise<unknown>) => void;
 }) {
-  const record = await findImageSource(input.hash);
+  const record = await runCloudflareTraceSpan(
+    "publication.image.find_source",
+    {},
+    () => findImageSource(input.hash),
+  );
   if (!record) return null;
   const originalUrl = record.originalUrl;
   const source = record.publication.source;
