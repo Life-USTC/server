@@ -3,6 +3,7 @@ import type { DemoView } from "@/features/demo/lib/demo-types";
 import type { DescriptionPayload } from "@/features/descriptions/lib/description-card-actions";
 import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
+import type { SectionSubscriptionCopy } from "@/features/section-detail/server/section-detail-page-copy";
 import type { AppLocale } from "@/i18n/config";
 
 type SectionDetailHomeworkMessages = Record<string, string> &
@@ -234,6 +235,7 @@ export type SectionDetailCopy = {
     titlePlaceholder: string;
   };
   sectionDetail: {
+    subscriptions: SectionSubscriptionCopy;
     timesPerWeek: string;
     totalPeriods: string;
     actualPeriods: string;

@@ -16,6 +16,26 @@ export function getSectionDetailPageCopy(locale: AppLocale) {
     homeworks: copy.homeworks,
     metadata: copy.metadata,
     roomMap: copy.roomMap,
-    sectionDetail: copy.sectionDetail,
+    sectionDetail: {
+      ...copy.sectionDetail,
+      subscriptions: {
+        mySubscription: copy.subscriptions.mySubscription,
+        manageSubscription: copy.subscriptions.manageSubscription,
+        kindEditor: {
+          regular: copy.subscriptions.kindEditor.regular,
+          auditor: copy.subscriptions.kindEditor.auditor,
+          teaching_assistant: copy.subscriptions.kindEditor.teaching_assistant,
+        },
+        unsubscribeTitle: copy.subscriptions.unsubscribeTitle,
+        unsubscribeDescription: copy.subscriptions.unsubscribeDescription,
+        cancelUnsubscribe: copy.subscriptions.cancelUnsubscribe,
+        confirmUnsubscribe: copy.subscriptions.confirmUnsubscribe,
+        optOutError: copy.subscriptions.optOutError,
+      },
+    },
   };
 }
+
+export type SectionSubscriptionCopy = ReturnType<
+  typeof getSectionDetailPageCopy
+>["sectionDetail"]["subscriptions"];
