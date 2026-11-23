@@ -62,6 +62,23 @@ describe("catalog detail cache revision", () => {
     expect(queryRawMock).toHaveBeenCalledOnce();
   });
 
+  it("memoizes the section page revision separately from the global revision", async () => {
+    const updatedAt = new Date("2026-08-16T03:00:00.000Z");
+    queryRawMock
+      .mockResolvedValueOnce(
+        revisionRows({ snapshotSha256: "section", updatedAt }),
+      )
+      .mockResolvedValueOnce(
+        revisionRows({ snapshotSha256: "global", updatedAt }),
+      );
+    await runWithCloudflareRuntimeEnv({}, async () => {
+      const section = await getCatalogDetailCacheRevision("section");
+      expect(await getCatalogDetailCacheRevision()).not.toBe(section);
+      expect(await getCatalogDetailCacheRevision("section")).toBe(section);
+    });
+    expect(queryRawMock).toHaveBeenCalledTimes(2);
+  });
+
   it("changes revision when the same snapshot is rematerialized", async () => {
     queryRawMock.mockResolvedValue(
       revisionRows({

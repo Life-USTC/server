@@ -3,7 +3,6 @@ import { expect, type Page } from "@playwright/test";
 import {
   expectNoPageHorizontalOverflow,
   gotoAndWaitForReady,
-  waitForUiSettled,
 } from "../../../../utils/page-ready";
 import { expectRenderedUiQuality } from "../../../../utils/ui-quality";
 import { test } from "./presentation-fixture";
@@ -752,13 +751,8 @@ test("subscription.kind-web-editor-location", {
         const db = isolatedWorker.database.owner;
         for (const locale of ["zh-cn", "en-us"]) {
           await setLocale(page, locale, effects.headers);
-          for (const [widthIndex, width] of widths.entries()) {
-            if (widthIndex === 0) await open(page, width);
-            else {
-              // Exercise the second responsive layout without repeating document bootstrap.
-              await page.setViewportSize({ width, height: 844 });
-              await waitForUiSettled(page);
-            }
+          for (const width of widths) {
+            await open(page, width);
             for (const [kind, label] of [
               ["teaching_assistant", /^(助教|Teaching assistant)$/],
               ["auditor", /^(旁听|Auditor)$/],
