@@ -75,12 +75,21 @@ const subscribedSchedulePageInclude = {
   section: { include: sectionCatalogInclude },
 } satisfies Prisma.ScheduleInclude;
 
+const restScheduleInclude = {
+  ...subscribedScheduleInclude,
+  section: { include: { course: true, semester: true } },
+} satisfies Prisma.ScheduleInclude;
+
+type RestScheduleRecord = Prisma.ScheduleGetPayload<{
+  include: typeof restScheduleInclude;
+}>;
+
 export type SubscribedScheduleRecord = Prisma.ScheduleGetPayload<{
   include: typeof subscribedScheduleInclude;
 }>;
 
 export function buildSubscribedScheduleEntryDto(
-  input: SubscribedScheduleRecord,
+  input: RestScheduleRecord,
   locale: AppLocale,
 ) {
   const schedule = buildScheduleEntryDto(input, locale);
@@ -208,6 +217,24 @@ function upcomingKnownExamWhere(input: {
   };
 }
 
+type ScheduleListOptions = {
+  locale?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  weekday?: number;
+  limit?: number;
+  sectionIds?: readonly number[];
+  semesterId?: number;
+};
+
+export function listSubscribedSchedules(
+  userId: string,
+  options: ScheduleListOptions & { sectionContext: "rest" },
+): Promise<RestScheduleRecord[]>;
+export function listSubscribedSchedules(
+  userId: string,
+  options?: ScheduleListOptions & { sectionContext?: SubscribedSectionContext },
+): Promise<SubscribedScheduleRecord[]>;
 export async function listSubscribedSchedules(
   userId: string,
   {
@@ -219,17 +246,10 @@ export async function listSubscribedSchedules(
     sectionIds,
     semesterId,
     sectionContext = "compact",
-  }: {
-    locale?: string;
-    dateFrom?: Date;
-    dateTo?: Date;
-    weekday?: number;
-    limit?: number;
-    sectionIds?: readonly number[];
-    semesterId?: number;
-    sectionContext?: SubscribedSectionContext;
+  }: ScheduleListOptions & {
+    sectionContext?: SubscribedSectionContext | "rest";
   } = {},
-) {
+): Promise<RestScheduleRecord[] | SubscribedScheduleRecord[]> {
   const resolvedSectionIds =
     semesterId !== undefined
       ? await getSubscribedSectionIdsForSemester(userId, semesterId)
@@ -251,6 +271,12 @@ export async function listSubscribedSchedules(
         ...(limit ? { take: limit } : {}),
       } satisfies Prisma.ScheduleFindManyArgs;
 
+      if (sectionContext === "rest") {
+        return localizedPrisma.schedule.findMany({
+          ...query,
+          include: restScheduleInclude,
+        });
+      }
       return localizedPrisma.schedule.findMany({
         ...query,
         include:

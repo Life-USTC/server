@@ -30,6 +30,7 @@ export async function getMySubscribedSchedulesRoute(request: Request) {
       limit: parsedQuery.limit ?? 150,
       locale,
       weekday: parsedQuery.weekday,
+      sectionContext: "rest",
     });
 
     return schemaJsonResponse(subscribedSchedulesResponseSchema, {
