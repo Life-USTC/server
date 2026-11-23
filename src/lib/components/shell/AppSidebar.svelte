@@ -3,6 +3,7 @@ import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import PanelLeftCloseIcon from "@lucide/svelte/icons/panel-left-close";
 import PanelLeftOpenIcon from "@lucide/svelte/icons/panel-left-open";
+import { preloadData } from "$app/navigation";
 import { type Snippet, tick } from "svelte";
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import * as Sidebar from "#lib/components/ui/sidebar/index.js";
@@ -174,6 +175,24 @@ function revealCurrent(node: HTMLElement, active: boolean) {
   reveal(active);
   return { update: reveal, destroy: () => cancel() };
 }
+
+function preloadScheduleOnHover(event: PointerEvent & { currentTarget: HTMLAnchorElement }) {
+  if (event.pointerType !== "mouse") return;
+  const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  if (connection?.saveData) return;
+  const anchor = event.currentTarget;
+  const href = anchor.href;
+  const timer = window.setTimeout(() => {
+    anchor.removeEventListener("pointerleave", cancel);
+    if (anchor.isConnected && anchor.href === href && anchor.matches(":hover") && location.href !== href) {
+      void preloadData(href).catch(() => {});
+    }
+  }, 150);
+  function cancel() {
+    window.clearTimeout(timer);
+  }
+  anchor.addEventListener("pointerleave", cancel, { once: true });
+}
 </script>
 
 {#snippet entry(link: ShellLink, depth: number, hasChildren: boolean)}
@@ -197,7 +216,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
           </button>
         {:else}
           <a {...props} href={link.href} data-detail-page={link.detail?.tab}
-            data-sveltekit-preload-data={!active && link.detail?.kind === "section" && link.detail.tab === "schedule" ? "hover" : undefined}
+            onpointerenter={!active && link.detail?.kind === "section" && link.detail.tab === "schedule" ? preloadScheduleOnHover : undefined}
             data-navigation-depth={depth}
             aria-label={link.ariaLabel ?? link.labelLines?.join("") ?? link.label}
             aria-current={active ? "page" : ancestor ? "location" : undefined}
