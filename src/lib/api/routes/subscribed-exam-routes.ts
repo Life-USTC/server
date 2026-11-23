@@ -8,12 +8,15 @@ import {
   subscribedExamsResponseSchema,
 } from "@/lib/api/schemas/subscribed-exams-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
 
 export async function getSubscribedExamsRoute(request: Request) {
-  const auth = await requireAuth(request, {
-    bearerScope: { feature: "workspace.exam", action: "read" },
-  });
+  const auth = await runCloudflareTraceSpan("workspace.exams.auth", {}, () =>
+    requireAuth(request, {
+      bearerScope: { feature: "workspace.exam", action: "read" },
+    }),
+  );
   if (auth instanceof Response) return auth;
   const query = parseRouteSearchParams(
     new URL(request.url).searchParams,
@@ -24,11 +27,13 @@ export async function getSubscribedExamsRoute(request: Request) {
 
   try {
     const { page, pageSize, locale, ...filters } = query;
-    const result = await listSubscribedExamPage(auth.userId, {
-      ...filters,
-      locale: locale ?? getRequestLocale(request),
-      pagination: { page, pageSize },
-    });
+    const result = await runCloudflareTraceSpan("workspace.exams.read", {}, () =>
+      listSubscribedExamPage(auth.userId, {
+        ...filters,
+        locale: locale ?? getRequestLocale(request),
+        pagination: { page, pageSize },
+      }),
+    );
     return schemaJsonResponse(subscribedExamsResponseSchema, {
       ...result,
       data: result.data.map((exam) =>
