@@ -912,7 +912,7 @@ describe("section detail loader critical path", () => {
     const [first, second] = await Promise.all([load(), load()]);
 
     expect(getSectionPageMock).toHaveBeenCalledTimes(2);
-    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us");
+    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us", true);
     expect(withSectionPageRelatedDataMock).not.toHaveBeenCalled();
     expect(first.section).toBe(relatedSection);
     expect(second.section).toBe(relatedSection);
@@ -937,7 +937,7 @@ describe("section detail loader critical path", () => {
     });
 
     expect(getSectionPageMock).toHaveBeenCalledTimes(2);
-    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us");
+    expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us", true);
   });
 });
 
