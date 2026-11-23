@@ -384,6 +384,12 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       },
       () =>
         resolve(event, {
+          preload:
+            event.route.id === "/catalog/sections/[jwId]/introduction"
+              ? ({ type, path }) =>
+                  type === "css" ||
+                  (type === "js" && path.includes("/immutable/entry/"))
+              : undefined,
           transformPageChunk: ({ html }) =>
             addScriptNonce(
               html
