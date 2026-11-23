@@ -62,6 +62,36 @@ describe("personal calendar route cache ordering", () => {
     expect(buildUserCalendarExportMock).not.toHaveBeenCalled();
   });
 
+  it("honors the feed modification date only without a stronger validator", async () => {
+    const date = "Sun, 07 Jun 2026 00:00:00 GMT";
+    getCachedExportMock.mockResolvedValue({
+      calendar: {
+        cacheControl: "private, no-store",
+        etag: '"feed"',
+        filename: "feed.ics",
+        text: "calendar",
+        contentModifiedAtMs: Date.parse(date),
+      },
+    });
+    const { generateUserCalendarAction } = await import(
+      "@/lib/api/routes/calendar-route-actions"
+    );
+    const read = (headers: Record<string, string>) =>
+      generateUserCalendarAction(
+        "user-1",
+        new Request("https://example.test", { headers }),
+      );
+    const hit = await read({ "If-Modified-Since": date });
+    expect(hit.status).toBe(304);
+    expect(await hit.text()).toBe("");
+    expect(hit.headers.get("Last-Modified")).toBe(date);
+    expect(
+      (await read({ "If-None-Match": '"old"', "If-Modified-Since": date }))
+        .status,
+    ).toBe(200);
+    expect((await read({ "If-Modified-Since": "invalid" })).status).toBe(200);
+  });
+
   it("loads heavy calendar data only through the cache miss builder", async () => {
     const user = { id: "user-1", sectionSubscriptions: [], todos: [] };
     getUserRecordMock.mockResolvedValue(user);

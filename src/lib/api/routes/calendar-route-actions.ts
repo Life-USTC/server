@@ -60,8 +60,22 @@ export async function generateUserCalendarAction(
     return notFound("No calendar items found");
   }
 
-  const etagHeaders = { ETag: calendar.etag };
-  if (requestMatchesEtag(request, calendar.etag)) {
+  const etagHeaders = new Headers({ ETag: calendar.etag });
+  const modified = calendar.contentModifiedAtMs;
+  if (
+    typeof modified === "number" &&
+    Number.isFinite(modified) &&
+    modified <= Date.now()
+  ) {
+    etagHeaders.set("Last-Modified", new Date(modified).toUTCString());
+  }
+  const lastModified = etagHeaders.get("Last-Modified");
+  const matchesDate =
+    lastModified !== null &&
+    !request.headers.has("If-None-Match") &&
+    (request.method === "GET" || request.method === "HEAD") &&
+    request.headers.get("If-Modified-Since") === lastModified;
+  if (matchesDate || requestMatchesEtag(request, calendar.etag)) {
     return calendarNotModifiedResponse(calendar.cacheControl, etagHeaders);
   }
 

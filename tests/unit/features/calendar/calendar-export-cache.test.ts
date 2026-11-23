@@ -248,6 +248,10 @@ describe("用户 iCal 导出缓存", () => {
       { expirationTtl: 86_400 },
     );
     expect(renewed.generatedAtMs).toBe(Date.now());
+    expect(changed.contentModifiedAtMs).toBeGreaterThan(
+      first.contentModifiedAtMs ?? 0,
+    );
+    expect(renewed.contentModifiedAtMs).toBe(changed.contentModifiedAtMs);
     expect(renewed.text).toBe(changed.text);
     expect(renewed.etag).toBe(changed.etag);
   });

@@ -25,6 +25,8 @@ type UserCalendarExport = {
 
 export type UserCalendarExportWithEtag = UserCalendarExport & {
   etag: string;
+  // Entries written before this field was introduced carry only generatedAtMs.
+  contentModifiedAtMs?: number;
 };
 
 type StoredUserCalendarExport = UserCalendarExportWithEtag & {
@@ -224,11 +226,15 @@ export async function storeBuiltUserCalendarExport(
     return previous;
   }
 
+  const generatedAtMs = Date.now();
   const stored: StoredUserCalendarExport = {
     ...calendar,
     text: unchanged ? previous.text : calendar.text,
     etag: unchanged ? previous.etag : await createCalendarEtag(calendar.text),
-    generatedAtMs: Date.now(),
+    generatedAtMs,
+    contentModifiedAtMs: unchanged
+      ? (previous.contentModifiedAtMs ?? previous.generatedAtMs)
+      : generatedAtMs,
     version: USER_CALENDAR_EXPORT_CACHE_VERSION,
   };
   userCalendarExportCache.set(userId, {
