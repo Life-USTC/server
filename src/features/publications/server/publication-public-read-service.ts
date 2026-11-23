@@ -458,10 +458,12 @@ function mapObjectLink(link: PublicPublicationObjectLink) {
 }
 
 function mapObjects(revision: PublicPublicationRevision) {
-  return revision.objectLinks.flatMap((link) => {
+  const objects: PublicPublicationObject[] = [];
+  for (const link of revision.objectLinks) {
     const object = mapObjectLink(link);
-    return object ? [object] : [];
-  });
+    if (object) objects.push(object);
+  }
+  return objects;
 }
 
 async function readBodyMarkdown(revision: PublicPublicationRevision) {
