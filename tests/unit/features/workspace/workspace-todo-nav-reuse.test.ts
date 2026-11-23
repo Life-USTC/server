@@ -117,6 +117,10 @@ describe("workspace todo count reuse and RLS fan-out", () => {
 
       await vi.waitFor(() => {
         expect(getTodosTabDataMock).toHaveBeenCalledOnce();
+        expect(getTodosTabDataMock).toHaveBeenCalledWith(
+          expect.any(String),
+          tab === "overview" ? "pending" : "all",
+        );
         expect(getWorkspaceNavStatsMock).toHaveBeenCalledOnce();
       });
       expect(getWorkspaceOverviewDataMock).not.toHaveBeenCalled();
