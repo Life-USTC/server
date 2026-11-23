@@ -185,13 +185,29 @@ async function readKvCache<T>(
   let failureOutcome: "error" | "invalid" = "error";
   const cacheTtlSeconds = Math.ceil(ttlMs / 1_000);
   try {
-    const parsed = await kv.get<RuntimeCacheEnvelope>(cacheKey, {
+    const parsed = await kv.get<Partial<RuntimeCacheEnvelope>>(cacheKey, {
       cacheTtl: cacheTtlSeconds,
       type: "json",
     });
     const now = Date.now();
     if (!parsed || !validRuntimeCacheEnvelope(parsed, now, ttlMs)) {
-      writeRuntimeCacheEvent("kv_miss", namespace, start, storeSize, ttlMs);
+      const reason =
+        parsed === null
+          ? "key_missing"
+          : parsed?.schema === PUBLIC_DETAIL_COLO_CACHE_SCHEMA &&
+              typeof parsed.expiresAt === "number" &&
+              Number.isSafeInteger(parsed.expiresAt) &&
+              parsed.expiresAt <= now
+            ? "entry_expired"
+            : "envelope_invalid";
+      writeRuntimeCacheEvent(
+        "kv_miss",
+        namespace,
+        start,
+        storeSize,
+        ttlMs,
+        reason,
+      );
       return { hit: false, outcome: "miss" };
     }
     if (!validRuntimeCacheResult(parsed.value, validateColoCacheResult)) {
@@ -202,7 +218,14 @@ async function readKvCache<T>(
     writeRuntimeCacheEvent("kv_hit", namespace, start, storeSize, ttlMs);
     return { expiresAt: parsed.expiresAt, hit: true, outcome: "hit", value };
   } catch {
-    writeRuntimeCacheEvent("kv_read_error", namespace, start, storeSize, ttlMs);
+    writeRuntimeCacheEvent(
+      "kv_read_error",
+      namespace,
+      start,
+      storeSize,
+      ttlMs,
+      failureOutcome === "invalid" ? "result_invalid" : "none",
+    );
     return { hit: false, outcome: failureOutcome };
   }
 }
