@@ -8,6 +8,7 @@ import SectionTeachersCard from "@/features/section-detail/components/SectionTea
 import { detailPageModule } from "@/features/section-detail/lib/detail-page-module.svelte";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
 import SectionDetailRoute from "../SectionDetailRoute.svelte";
+import { page } from "$app/state";
 import type { ActionData, PageData } from "./$types";
 
 let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -62,7 +63,7 @@ const CommentsPanel = $derived(commentsModule.component);
       </div>
     <section id="comments" class="scroll-mt-4 min-w-0">
       {#key `comments:section:${data.section.id}`}
-        {#if CommentsPanel && $shellViewer.status !== "loading"}
+        {#if CommentsPanel && ($shellViewer.status !== "loading" || page.url.hash === "#comments")}
           <CommentsPanel
             initialData={data.commentsData}
             targetType="section"
