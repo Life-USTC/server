@@ -197,6 +197,38 @@ async function expectKnownThread(
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
   test.describe.configure({ mode: "parallel" });
 
+  test("bare section comment link loads its list once and reveals the target", {
+    tag: "@Comment/Web",
+  }, async ({ commentRun, page, account, community, isolatedWorker }) => {
+    await commentRun({ writes: [], auditActions: {} }, async () => {
+      const { comment } = await seedSectionComments({
+        account,
+        community,
+        isolatedWorker,
+      });
+      const sectionPath = `/catalog/sections/${community.section.jwId}`;
+      const fragment = `#comment-${comment.id}`;
+      let listReads = 0;
+      page.on("request", (request) => {
+        const url = new URL(request.url());
+        if (
+          url.pathname === "/api/community/comments" &&
+          url.searchParams.get("targetId") === String(community.section.id) &&
+          url.searchParams.get("page") === "1"
+        )
+          listReads++;
+      });
+      await gotoAndWaitForReady(page, sectionPath + fragment);
+      await expect(page).toHaveURL(
+        isolatedWorker.origin + sectionPath + "/introduction" + fragment,
+      );
+      const target = page.locator(fragment);
+      await expect(target).toContainText(comment.body);
+      await expect(target).toBeInViewport();
+      expect(listReads).toBe(1);
+    });
+  });
+
   test("已登录用户可发布评论并立即看到自己的评论卡片", {
     tag: "@Comment/Web",
   }, async ({ commentRun, page, account, community, isolatedWorker }) => {
