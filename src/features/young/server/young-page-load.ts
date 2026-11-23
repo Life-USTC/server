@@ -13,6 +13,7 @@ import {
   listYoungEventCategories,
   listYoungEvents,
   listYoungOrganizers,
+  type YoungEventDetail,
   type YoungEventTimeBasis,
 } from "@/features/young/server/young-event-service";
 import {
@@ -209,6 +210,13 @@ export async function loadYoungOrganizerDetailPage({
   });
 }
 
+function withoutYoungEventRawJson({
+  rawJson: _rawJson,
+  ...detail
+}: YoungEventDetail) {
+  return detail;
+}
+
 export async function loadYoungEventDetailPage({
   locals,
   youngId,
@@ -221,7 +229,7 @@ export async function loadYoungEventDetailPage({
   return toLoadData({
     copy: getWorkspacePageCopy(locals.locale),
     locale: locals.locale,
-    event,
+    event: event && withoutYoungEventRawJson(event),
     commentsData: null,
     source,
   });

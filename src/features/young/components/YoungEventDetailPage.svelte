@@ -38,7 +38,7 @@ type Props = {
   };
   commentsData?: CommentsInitialData | null;
   copy: AppPageCopy;
-  event: YoungEventDetail;
+  event: Omit<YoungEventDetail, "rawJson">;
   source: YoungSourceFreshness;
 };
 
