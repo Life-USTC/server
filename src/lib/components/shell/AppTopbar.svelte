@@ -112,7 +112,7 @@ const mobile = new IsMobile();
 
 
     {#if !focused}
-      <div class="hidden min-w-0 flex-1 justify-center md:flex">
+      <div class="compact-toolbar hidden min-w-0 flex-1 justify-center md:flex">
         <GlobalSearchTrigger
           copy={copy.globalSearch}
           onOpen={onOpenGlobalSearch}
