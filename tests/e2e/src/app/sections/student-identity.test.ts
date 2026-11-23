@@ -92,10 +92,21 @@ test("section.student-identity-teachers", { tag: "@Section/Web" }, async ({
         page,
         `/catalog/sections?search=${encodeURIComponent(fixture.course.nameCn)}`,
       );
+      const globalSearch = page.locator(
+        "[data-shell-topbar] button:has(kbd):visible",
+      );
+      const catalogSearch = page.locator(
+        '[data-slot="table-filter-toolbar"] [data-slot="input-group"]',
+      );
+      for (const control of [globalSearch, catalogSearch]) {
+        await expect(control).toHaveCSS("height", "32px");
+        await expect(control).toHaveCSS("border-top-width", "2px");
+        await expect(control).toHaveCSS("border-bottom-width", "2px");
+      }
       const row = page
         .locator("table:visible tbody tr")
         .filter({ hasText: fixture.section.code });
-      await expect(row).toContainText(fixture.course.nameCn);
+      await expect(row.getByRole("link")).toHaveText(fixture.course.nameCn);
       await expect(row).toContainText(fixture.teacher.nameCn);
       await expectMonospace(row.locator('[data-slot="catalog-code"]'));
 
@@ -137,7 +148,9 @@ test("section.student-identity-teachers", { tag: "@Section/Web" }, async ({
       const card = page
         .locator('[data-testid="catalog-results-cards"] a')
         .filter({ hasText: fixture.section.code });
-      await expect(card).toContainText(fixture.course.nameCn);
+      await expect(card.locator('[data-slot="item-title"]')).toHaveText(
+        fixture.course.nameCn,
+      );
       await expect(card).toContainText(fixture.teacher.nameCn);
       await expectMonospace(card.locator('[data-slot="catalog-code"]'));
     });

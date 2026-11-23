@@ -2,7 +2,7 @@
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import * as Table from "#lib/components/ui/table/index.js";
-import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
+import { catalogPrimaryName } from "@/features/catalog/lib/catalog-list-display";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type {
@@ -38,7 +38,7 @@ export let teacher: TeacherDetailTeacher;
             <Table.Cell>{section.credits ?? notAvailable}</Table.Cell>
             <Table.Cell class="p-0">
               <CatalogTableLink class="font-medium" href={sectionHref}>
-                <span class="break-words">{sectionSummary({ ...section, teachers: section.teachers ?? [teacher] }, locale)}</span>
+                <span class="break-words">{catalogPrimaryName(section.course) || notAvailable}</span>
               </CatalogTableLink>
             </Table.Cell>
           </Table.Row>

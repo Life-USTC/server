@@ -459,22 +459,37 @@ export async function getPublicationImageResponse(input: {
 
   const bucket = requirePublicationsBucket();
   const key = publicationImageR2Key(input.hash);
-  const head = await bucket.head(key);
-  const cachedContentType = normalizeRasterContentType(
-    head?.httpMetadata?.contentType,
-  );
-  if (head && head.size <= PUBLICATION_IMAGE_MAX_BYTES && cachedContentType) {
-    const etag = head.etag ? normalizeEtag(head.etag) : undefined;
-    const headers = imageResponseHeaders(etag);
-    if (etag && requestMatchesEtag(input.request, etag)) {
-      return new Response(null, { status: 304, headers });
+  if (input.request.headers.has("If-None-Match")) {
+    const head = await bucket.head(key);
+    if (
+      head?.etag &&
+      head.size <= PUBLICATION_IMAGE_MAX_BYTES &&
+      normalizeRasterContentType(head.httpMetadata?.contentType)
+    ) {
+      const etag = normalizeEtag(head.etag);
+      if (requestMatchesEtag(input.request, etag)) {
+        return new Response(null, {
+          status: 304,
+          headers: imageResponseHeaders(etag),
+        });
+      }
     }
-    const object = await bucket.get(key);
-    if (object?.body && object.size === head.size) {
-      headers.set("Content-Type", cachedContentType);
+  }
+
+  const object = await bucket.get(key);
+  if (object) {
+    const contentType = normalizeRasterContentType(
+      object.httpMetadata?.contentType,
+    );
+    if (contentType && object.size <= PUBLICATION_IMAGE_MAX_BYTES) {
+      const headers = imageResponseHeaders(
+        object.etag ? normalizeEtag(object.etag) : undefined,
+      );
+      headers.set("Content-Type", contentType);
       headers.set("Content-Length", String(object.size));
       return new Response(object.body, { headers });
     }
+    await object.body.cancel();
   }
 
   const { bytes, contentType } = await fetchPublicationImage(

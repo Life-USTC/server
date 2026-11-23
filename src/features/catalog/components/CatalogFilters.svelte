@@ -34,7 +34,7 @@ let {
 </script>
 
 <div class="grid w-full min-w-0 gap-3" data-slot="table-filter-toolbar">
-  <form id={formId} action={clearHref} method="get" {onsubmit} class="flex min-w-0 flex-wrap items-center gap-2">
+  <form id={formId} action={clearHref} method="get" {onsubmit} class="compact-toolbar flex min-w-0 flex-wrap items-center gap-2">
     <SearchField id={formId + "-search"} name="search" label={searchLabel} placeholder={searchPlaceholder} bind:value={() => values.search ?? "", (value) => onchange({ search: value })} />
     {#each Object.entries(values) as [name, value]}
       {#if name !== "search" && name !== "page" && value}<input type="hidden" {name} {value} />{/if}
