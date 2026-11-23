@@ -394,6 +394,35 @@ describe("public runtime cache", () => {
     });
   });
 
+  it.each([
+    ["key_missing", null],
+    [
+      "entry_expired",
+      { schema: "catalog-detail-core-v2", expiresAt: 1, value: {} },
+    ],
+    ["envelope_invalid", { schema: "old-version" }],
+  ])("attributes a KV miss to %s", async (reason, envelope) => {
+    const writeDataPoint = vi.fn();
+    const namespace = {
+      get: vi.fn(async () => envelope),
+      put: vi.fn(async () => undefined),
+    };
+    await runWithCloudflareRuntimeEnv(
+      { ANALYTICS: { writeDataPoint }, CATALOG_DETAIL_CORE: namespace },
+      async () => {
+        const value = await cachedPublicRuntimeData(
+          "page:course-detail:en-us",
+          "kv-miss-reason",
+          60_000,
+          async () => ({ source: "database" }),
+          { kvCacheKey: "test:reason" },
+        );
+        expect(value).toEqual({ source: "database" });
+      },
+    );
+    expectCacheEvent(writeDataPoint, "kv_miss", reason as string);
+  });
+
   it("reports KV read errors without failing the request path", async () => {
     const namespace = {
       get: vi.fn(async () => {
