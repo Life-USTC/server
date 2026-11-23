@@ -292,11 +292,14 @@ $: _canManageSelectedHomework = canManageSectionHomework(
   _homeworkViewer,
   _selectedHomework,
 );
-$: sectionCalendarEvents = buildSectionDetailCalendarEvents({
-  notAvailable: _notAvailable,
-  section: displaySection,
-  sectionCopy: _sectionCopy,
-});
+$: sectionCalendarEvents =
+  data.detailSection === "schedule"
+    ? buildSectionDetailCalendarEvents({
+        notAvailable: _notAvailable,
+        section: displaySection,
+        sectionCopy: _sectionCopy,
+      })
+    : [];
 
 const {
   cancelEditHomework: _cancelEditHomework,
