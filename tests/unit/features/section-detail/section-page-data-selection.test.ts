@@ -256,6 +256,26 @@ describe("section page data selection", () => {
     `);
   });
 
+  it("reuses each preview shape independently across tab visits", async () => {
+    mutableQuery.mockResolvedValue({ description: null, retiredAt: null });
+    sectionFindUnique.mockImplementation(async ({ select }) => {
+      const record = sectionCoreRecord();
+      if (select.course.select.sections) return record;
+      const { sections: _sections, ...course } = record.course;
+      return { ...record, course };
+    });
+    const { getSectionPage } = await import(
+      "@/features/section-detail/server/section-page-data"
+    );
+
+    for (const preview of [false, true, false, true]) {
+      const page = await getSectionPage(30, "zh-cn", preview);
+      expect(page?.section.otherCourseSections).toHaveLength(preview ? 1 : 0);
+      expect(page?.section.otherCourseSectionCount).toBe(42);
+    }
+    expect(sectionFindUnique).toHaveBeenCalledTimes(2);
+  });
+
   it("returns JSON-clean page data", async () => {
     const localizedNameSymbol = Symbol("localizedName");
     sectionFindUnique.mockResolvedValue({
