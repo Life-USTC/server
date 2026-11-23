@@ -223,6 +223,7 @@ export function observedEdgeResponse(input: {
   try {
     writeWorkerRequestAnalytics({
       sectionDetailPage:
+        input.request.method === "GET" &&
         /^\/catalog\/sections\/\d+(?:\/(?:overview|introduction|schedule|calendar|comments|exams|homework|teachers))?\/?$/.test(
           pathname,
         ),
