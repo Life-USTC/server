@@ -3413,6 +3413,24 @@
         "parameters": [
           {
             "in": "query",
+            "name": "dueAtFrom",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "YYYY-MM-DD or ISO date/time accepted by parseDateInput"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dueAtTo",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "YYYY-MM-DD or ISO date/time accepted by parseDateInput"
+            }
+          },
+          {
+            "in": "query",
             "name": "page",
             "schema": {
               "type": "integer",
