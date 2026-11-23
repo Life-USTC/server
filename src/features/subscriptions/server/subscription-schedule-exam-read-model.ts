@@ -496,5 +496,6 @@ export async function listSubscribedExamPage(
     () => localizedPrisma.exam.count({ where }),
     pagination.page,
     pagination.pageSize,
+    { inferShortFirstPageTotal: true },
   );
 }
