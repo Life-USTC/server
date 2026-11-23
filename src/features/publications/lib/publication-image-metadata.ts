@@ -10,7 +10,12 @@ export function annotatePublicationImages(
   html: string,
   images: PublicPublicationImage[],
 ): string {
-  if (!html || images.length === 0) return html;
+  if (
+    images.length === 0 ||
+    !html.includes("<img") ||
+    !images.some(({ altText, title, caption }) => altText || title || caption)
+  )
+    return html;
   const byUrl = new Map(images.map((image) => [image.url, image]));
   return String(
     unified()

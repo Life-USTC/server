@@ -9,6 +9,16 @@ const image = {
   caption: '<script>alert("x")</script>',
 };
 describe("publication image annotations", () => {
+  it("preserves the rendered HTML when there is nothing to annotate", () => {
+    const html = "<p><img src='/api/publications/images/hash'></p>";
+    expect(
+      annotatePublicationImages(html, [
+        { ...image, altText: null, title: null, caption: null },
+      ]),
+    ).toBe(html);
+    const text = "<p>Fish &amp; chips</p>";
+    expect(annotatePublicationImages(text, [image])).toBe(text);
+  });
   it("adds escaped text captions and accessible image metadata", () => {
     const html = annotatePublicationImages(
       '<p><img src="/api/publications/images/hash" alt="old"></p>',
