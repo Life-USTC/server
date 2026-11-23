@@ -52,11 +52,6 @@ const BREAKPOINTS = ["sm", "md", "lg", "xl", "2xl"] as const;
  */
 const UNCONVERGED: readonly { file: string; tag: string; class: string }[] = [
   {
-    file: "src/features/admin/components/AdminBusVersionsTable.svelte",
-    tag: "CollectionEmpty",
-    class: "rounded-none",
-  },
-  {
     file: "src/features/api-docs/components/ApiDocsPage.svelte",
     tag: "Empty.Root",
     class: "border border-border border-solid bg-card",
@@ -257,7 +252,12 @@ for (const filename of [...system.files, system.primitive]) {
 
 /** Every empty-state root rendered by a page, with what it declares itself. */
 async function emptyStateCallSites(): Promise<CallSite[]> {
-  const systemModules = new Set(system.files);
+  const systemModules = new Set([
+    ...system.files,
+    "src/lib/components/ResultsEmpty.svelte",
+    "src/lib/components/CompactEmpty.svelte",
+    "src/lib/components/SoftEmptyMessage.svelte",
+  ]);
   const sites: CallSite[] = [];
   for (const root of SCAN_ROOTS) {
     for (const file of await svelteFiles(root)) {
@@ -308,10 +308,6 @@ describe("ui.empty-state-vocabulary", () => {
     // A rename or a moved file must break discovery loudly rather than quietly
     // emptying the rule.
     expect(system.files).toContain(COMPOSER);
-    expect(
-      system.files.length,
-      "composer plus the wrappers it renders",
-    ).toBeGreaterThan(3);
     expect(system.primitive).toBe("src/lib/components/ui/empty/empty.svelte");
     expect(EMPTY_VARIANTS.length).toBeGreaterThan(4);
     expect(

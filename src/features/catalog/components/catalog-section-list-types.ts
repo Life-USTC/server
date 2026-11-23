@@ -3,6 +3,7 @@ import type { EndlessScrollLabels } from "@/lib/navigation/endless-list.svelte";
 import type { TableFilterLabels } from "@/lib/table-filters";
 
 export type SectionListCommonLabels = {
+  noMatchingOptions: string;
   tableFilters: TableFilterLabels;
   endlessScroll: EndlessScrollLabels;
   applyFilters: string;
@@ -116,9 +117,4 @@ export type SectionListRow = {
   semester?: SectionListSemester | null;
   stdCount?: number | null;
   teachers: CatalogNamed[];
-};
-
-export type SectionListResultData = {
-  data: SectionListRow[];
-  filters: SectionListFilters;
 };

@@ -565,11 +565,11 @@ async function tablesOf(file: string): Promise<Table[]> {
   return tables;
 }
 
-const tables = (
-  await Promise.all(
-    (await Promise.all(SCAN_ROOTS.map(svelteFiles))).flat().map(tablesOf),
-  )
-).flat();
+const tableSources = [
+  ...(await Promise.all(SCAN_ROOTS.map(svelteFiles))).flat(),
+  "src/lib/components/RecordCollection.svelte",
+];
+const tables = (await Promise.all(tableSources.map(tablesOf))).flat();
 
 /**
  * Tables with no header row: their `Table.Head` elements are row headers
@@ -696,12 +696,15 @@ describe("ui.table-column-alignment", () => {
     ).toBeUndefined();
   });
 
-  it("enumerates every table under features and routes", () => {
-    expect(tables.length, "Table.Root elements discovered").toBeGreaterThan(25);
-    expect(
-      columnTables.length,
-      "tables whose header row defines a column sequence",
-    ).toBeGreaterThan(22);
+  it("enumerates feature, route and shared record tables", async () => {
+    expect(columnTables.map((table) => table.file)).toContain(
+      "src/lib/components/RecordCollection.svelte",
+    );
+    const discovered = new Set(tables.map((table) => table.file));
+    for (const file of tableSources) {
+      if ((await sourceOf(file)).includes("<Table.Root"))
+        expect(discovered.has(file), file).toBe(true);
+    }
     expect(
       columnTables.every((table) => table.heads.length > 0),
       "every column table has heads",

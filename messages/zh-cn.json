@@ -38,6 +38,7 @@
     }
   },
   "common": {
+    "noMatchingOptions": "没有匹配的选项",
     "home": "首页",
     "courses": "课程",
     "sections": "教学班",

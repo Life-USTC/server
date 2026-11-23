@@ -3,6 +3,7 @@ import type { EndlessScrollLabels } from "@/lib/navigation/endless-list.svelte";
 import type { TableFilterLabels } from "@/lib/table-filters";
 
 export type TeacherListCommonLabels = {
+  noMatchingOptions: string;
   tableFilters: TableFilterLabels;
   endlessScroll: EndlessScrollLabels;
 

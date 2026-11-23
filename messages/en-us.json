@@ -38,6 +38,7 @@
     }
   },
   "common": {
+    "noMatchingOptions": "No matching options",
     "home": "Home",
     "courses": "Courses",
     "sections": "Sections",

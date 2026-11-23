@@ -161,5 +161,5 @@ export type AdminModerationFilterKind =
   | "reason"
   | "expiresAt";
 export type AdminModerationFilterControls = Snippet<
-  [AdminModerationFilterKind, "mobile" | "desktop"]
+  [AdminModerationFilterKind]
 >;

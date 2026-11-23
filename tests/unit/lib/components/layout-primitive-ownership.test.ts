@@ -45,6 +45,8 @@ async function renderedPrimitives(root: string) {
       !filename.endsWith(".svelte") ||
       (filename.startsWith("src/lib/") &&
         filename !== "src/lib/components/CollectionPage.svelte" &&
+        filename !== "src/lib/components/RecordCollection.svelte" &&
+        filename !== "src/lib/components/SearchFilterBar.svelte" &&
         filename !== "src/lib/components/TableFilterFields.svelte")
     )
       continue;
@@ -196,6 +198,9 @@ it("ui.feature-interaction-ownership", async () => {
     "PageSectionNav",
     "SearchField",
     "FilterToolbar",
+    "SearchFilterBar",
+    "FacetFilter",
+    "RecordCollection",
     "ResponsiveCollection",
     "WorkspaceCollection",
     "ResultsSummary",
@@ -245,15 +250,29 @@ it("ui.feature-interaction-ownership", async () => {
 
 it("ui.collection-primitive-ownership", async () => {
   for (const root of [
-    "admin/components/AdminUsersTableCard",
-    "admin/components/AdminModerationComments",
-    "admin/components/AdminModerationDescriptions",
-    "admin/components/AdminModerationHomeworks",
-    "admin/components/AdminModerationSuspensions",
+    "AdminUsersTableCard",
+    "AdminBusVersions",
+    "AdminModerationComments",
+    "AdminModerationDescriptions",
+    "AdminModerationHomeworks",
+    "AdminModerationSuspensions",
+  ]) {
+    const filename = `src/features/admin/components/${root}.svelte`;
+    const graph = await renderedPrimitives(filename);
+    const source = await readFile(filename, "utf8");
+    expect(source, root).toMatch(/<CollectionTableShell\b[^>]*\bcards\b/);
+    expect(graph, root).toContain(
+      "src/lib/components/CollectionTableShell.svelte",
+    );
+    expect(graph, root).not.toContain(
+      "src/lib/components/ResponsiveCollection.svelte",
+    );
+    expect(graph, root).not.toContain(
+      "src/lib/components/MobileListCard.svelte",
+    );
+  }
+  for (const root of [
     "admin/components/AdminOAuthClients",
-    "admin/components/AdminBusVersions",
-    "catalog/components/CourseDetailSections",
-    "catalog/components/TeacherDetailSections",
     "section-detail/components/SectionHomeworkListView",
   ]) {
     const graph = await renderedPrimitives(`src/features/${root}.svelte`);
@@ -264,11 +283,27 @@ it("ui.collection-primitive-ownership", async () => {
         expect(graph, root).toContain(`src/lib/components/${name}.svelte`);
   }
   for (const root of [
-    "catalog/components/CoursesResults",
-    "catalog/components/TeachersResults",
-    "catalog/components/SectionsResults",
+    "catalog/components/SectionsPageController",
+    "catalog/components/TeachersPageController",
+    "catalog/components/CourseDetailSections",
+    "catalog/components/TeacherDetailSections",
     "young/components/YoungEventsPage",
     "young/components/YoungOrganizersPage",
+  ]) {
+    const graph = await renderedPrimitives(`src/features/${root}.svelte`);
+    for (const name of [
+      "RecordCollection",
+      "MobileListCard",
+      "CollectionEmpty",
+    ])
+      expect(graph, root).toContain(`src/lib/components/${name}.svelte`);
+    if (root.endsWith("PageController"))
+      expect(graph, root).toContain(
+        "src/lib/components/SearchFilterBar.svelte",
+      );
+  }
+  for (const root of [
+    "catalog/components/CoursesResults",
     "workspace/components/HomeworksCardsView",
     "workspace/components/TodosCardsView",
     "workspace/components/ExamsCardsView",

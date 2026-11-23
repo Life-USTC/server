@@ -4,7 +4,6 @@ import Trash2 from "@lucide/svelte/icons/trash-2";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
-import { Button } from "#lib/components/ui/button/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { enhance } from "$app/forms";
 import type {
@@ -15,7 +14,6 @@ import type {
 
 interface Props {
   copy: AdminBusCopy;
-  compact?: boolean;
   enhancedAction: AdminBusEnhancedAction;
   isPending: (actionKey: string) => boolean;
   onDelete: (version: AdminBusVersion) => void;
@@ -25,7 +23,6 @@ interface Props {
 
 let {
   copy,
-  compact = false,
   enhancedAction,
   isPending,
   onDelete,
@@ -37,48 +34,23 @@ let activateDialogOpen = $state(false);
 </script>
 
 {#if !version.isEnabled}
-  {#if compact}
-    <div class="flex flex-wrap justify-end gap-2">
-      <Button
-        disabled={Boolean(pendingAction)}
-        onclick={() => (activateDialogOpen = true)}
-        size="sm"
-        type="button"
-        variant="outline"
-      >
-        {#if isPending(`activate-${version.id}`)}<Spinner data-icon="inline-start" />{:else}<CheckCircle data-icon="inline-start" />{/if}
-        {copy.activateAction}
-      </Button>
-      <Button
-        disabled={Boolean(pendingAction)}
-        onclick={() => onDelete(version)}
-        size="sm"
-        type="button"
-        variant="destructive"
-      >
-        <Trash2 data-icon="inline-start" />
-        {copy.deleteAction}
-      </Button>
-    </div>
-  {:else}
-    <TableRowActions>
-      <TableIconButton
-        disabled={Boolean(pendingAction)}
-        label={copy.activateAction}
-        onclick={() => (activateDialogOpen = true)}
-      >
-        {#if isPending(`activate-${version.id}`)}<Spinner />{:else}<CheckCircle />{/if}
-      </TableIconButton>
-      <TableIconButton
-        disabled={Boolean(pendingAction)}
-        label={copy.deleteAction}
-        variant="destructive"
-        onclick={() => onDelete(version)}
-      >
-        <Trash2 />
-      </TableIconButton>
-    </TableRowActions>
-  {/if}
+  <TableRowActions>
+    <TableIconButton
+      disabled={Boolean(pendingAction)}
+      label={copy.activateAction}
+      onclick={() => (activateDialogOpen = true)}
+    >
+      {#if isPending(`activate-${version.id}`)}<Spinner />{:else}<CheckCircle />{/if}
+    </TableIconButton>
+    <TableIconButton
+      disabled={Boolean(pendingAction)}
+      label={copy.deleteAction}
+      variant="destructive"
+      onclick={() => onDelete(version)}
+    >
+      <Trash2 />
+    </TableIconButton>
+  </TableRowActions>
 
   <AlertDialog.Root
     open={activateDialogOpen}

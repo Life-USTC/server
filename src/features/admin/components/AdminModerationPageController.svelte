@@ -211,7 +211,7 @@ function _enhanceAdminAction(action: Parameters<typeof enhanceAdminAction>[0]) {
 
 <svelte:head><title>{_copy.title} - Life@USTC</title></svelte:head>
 
-{#snippet filterControls(kind: AdminModerationFilterKind, viewport: "mobile" | "desktop")}
+{#snippet filterControls(kind: AdminModerationFilterKind)}
   <AdminModerationFilters
     fields={filterFields.fields[kind] ?? []}
     filters={draft}
@@ -219,7 +219,6 @@ function _enhanceAdminAction(action: Parameters<typeof enhanceAdminAction>[0]) {
     labels={common.tableFilters}
     searchPlaceholder={data.tab === "comments" ? _copy.searchPlaceholder : _copy.searchAllPlaceholder}
     {kind}
-    {viewport}
   />
 {/snippet}
 

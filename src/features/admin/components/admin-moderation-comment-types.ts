@@ -23,11 +23,6 @@ export type AdminModerationCommentsCopy = {
   status: string;
 };
 
-export type AdminModerationCommentRowCopy = Pick<
-  AdminModerationCommentsCopy,
-  "manageComment" | "moderationNote"
->;
-
 export type AdminModerationCommentFormatter = (
   comment: AdminModerationComment,
 ) => string;

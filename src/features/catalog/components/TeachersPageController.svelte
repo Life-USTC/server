@@ -1,7 +1,7 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import EndlessScroll from "#lib/components/EndlessScroll.svelte";
-import { createCatalogFilterDraft } from "@/features/catalog/lib/catalog-filter-draft.svelte";
+import SearchFilterBar from "#lib/components/SearchFilterBar.svelte";
 import { catalogActiveFilters } from "@/features/catalog/lib/catalog-filter-view";
 import {
   type CatalogNamed,
@@ -9,9 +9,6 @@ import {
 } from "@/features/catalog/lib/catalog-list-display";
 import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import type { TableFilterField } from "@/lib/table-filters";
-import CatalogColumnFilter from "./CatalogColumnFilter.svelte";
-import CatalogFilters from "./CatalogFilters.svelte";
-import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
 import type {
   TeacherListCommonLabels,
   TeacherListFilters,
@@ -34,18 +31,10 @@ type PageData = {
 };
 let { data, endless }: { data: PageData; endless: EndlessScrollState } =
   $props();
-const formId = "teacher-filters";
-const draft = createCatalogFilterDraft(() => data.filters);
 const commonLabels = $derived(data.labels.common);
 const teacherLabels = $derived(data.labels.teachers);
 const options = (items: Option[]) =>
   items.map((item) => ({ value: String(item.id), label: primaryName(item) }));
-const showTitleColumn = $derived(
-  data.data.some((teacher) => Boolean(teacher.teacherTitle)),
-);
-const showEmailColumn = $derived(
-  data.data.some((teacher) => Boolean(teacher.email)),
-);
 const fields = $derived<Record<string, TableFilterField>>({
   name: { name: "name", label: teacherLabels.name },
   code: { name: "code", label: teacherLabels.code },
@@ -68,38 +57,6 @@ const fields = $derived<Record<string, TableFilterField>>({
     step: 1,
   },
 });
-const allFilters = $derived<Record<string, CatalogColumnFilterProps>>(
-  Object.fromEntries(
-    Object.entries(fields).map(([key, field]) => [
-      key,
-      {
-        label: field.label,
-        fields: [field],
-        values: draft.values,
-        onchange: draft.update,
-        labels: commonLabels.tableFilters,
-        formId,
-      },
-    ]),
-  ),
-);
-const columnFilters = $derived(
-  Object.fromEntries(
-    Object.entries(allFilters).filter(
-      ([key]) =>
-        (key !== "title" && key !== "email") ||
-        (key === "title" && showTitleColumn) ||
-        (key === "email" && showEmailColumn),
-    ),
-  ),
-);
-const extraFilters = $derived(
-  Object.entries(allFilters).filter(
-    ([key]) =>
-      (key === "title" && !showTitleColumn) ||
-      (key === "email" && !showEmailColumn),
-  ),
-);
 const activeFilters = $derived(
   catalogActiveFilters(
     "/catalog/teachers",
@@ -117,10 +74,20 @@ const activeFilters = $derived(
   <EndlessScroll state={endless} labels={commonLabels.endlessScroll} />
 {/snippet}
 {#snippet controls()}
-  <CatalogFilters {activeFilters} clearHref="/catalog/teachers" clearLabel={commonLabels.clear} filterTitle={teacherLabels.filterTitle} searchLabel={teacherLabels.searchLabel} searchPlaceholder={teacherLabels.searchNameOrCode} values={draft.values} onchange={draft.update} onsubmit={draft.submit} applyLabel={commonLabels.applyFilters} {formId}>
-    {#each extraFilters as [key, filter] (key)}<CatalogColumnFilter {...filter} idPrefix={"teacher-extra-" + key} />{/each}
-  </CatalogFilters>
+  <SearchFilterBar
+    action="/catalog/teachers"
+    filters={data.filters}
+    fields={Object.values(fields)}
+    active={activeFilters}
+    groupLabel={teacherLabels.filterTitle}
+    searchLabel={commonLabels.search}
+    placeholder={teacherLabels.searchNameOrCode}
+    clearLabel={commonLabels.clear}
+    applyLabel={commonLabels.applyFilters}
+    filterLabels={commonLabels.tableFilters}
+    noResults={commonLabels.noMatchingOptions}
+  />
 {/snippet}
 <CollectionPage description={teacherLabels.subtitle} footer={endless.hasMore ? paginationFooter : undefined} title={teacherLabels.title} toolbar={controls}>
-  <TeachersResults {commonLabels} {columnFilters} primaryName={primaryName} {teacherLabels} teachers={data.data} />
+  <TeachersResults {commonLabels} filtered={activeFilters.length > 0} clearLabel={commonLabels.clear} primaryName={primaryName} {teacherLabels} teachers={data.data} />
 </CollectionPage>

@@ -10,8 +10,7 @@ export let onchange: (patch: Record<string, string>) => void;
 export let labels: TableFilterLabels;
 export let searchPlaceholder: string;
 export let kind: AdminModerationFilterKind;
-export let viewport: "mobile" | "desktop";
-$: id = `admin-moderation-${viewport}-${kind}`;
+$: id = `admin-moderation-${kind}`;
 </script>
 
 {#if kind === "search"}

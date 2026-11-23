@@ -1,13 +1,16 @@
 <script lang="ts">
-import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
+import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import AdminBusVersionsMobileList from "@/features/admin/components/AdminBusVersionsMobileList.svelte";
-import AdminBusVersionsTable from "@/features/admin/components/AdminBusVersionsTable.svelte";
+import * as Table from "#lib/components/ui/table/index.js";
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import { matchTableFilter, type TableFilterField } from "@/lib/table-filters";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 import { page } from "$app/state";
+import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
+import AdminBusVersionStatusBadge from "./AdminBusVersionStatusBadge.svelte";
 import type {
   AdminBusCopy,
   AdminBusEnhancedAction,
@@ -99,39 +102,77 @@ function apply(event: SubmitEvent) {
 }
 </script>
 
+{#snippet column(index: number)}
+  <TableFieldFilter label={index === 3 ? copy.colEffective : columns[index][0].label} fields={columns[index]} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`admin-bus-${index}`} formId="admin-bus-filters" />
+{/snippet}
+
 <section class="grid min-w-0 gap-3">
   <form id="admin-bus-filters" onsubmit={apply} class="flex flex-wrap items-center gap-3">
     <Button type="submit">{common.applyFilters}</Button>
   </form>
-  <ResponsiveCollection>
-    {#snippet mobile()}
-      <div class="flex flex-wrap gap-3" data-slot="collection-header">{#each columns as fields, index}<TableFieldFilter label={index === 3 ? copy.colEffective : fields[0].label} {fields} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`admin-bus-mobile-${index}`} formId="admin-bus-filters" />{/each}</div>
-      <AdminBusVersionsMobileList
-        {copy}
-        {enhancedAction}
-        {formatEffectiveRange}
-        {formatImportedAt}
-        {isPending}
-        {onDelete}
-        {pendingAction}
-        versions={visibleVersions}
-      />
-    {/snippet}
-    {#snippet desktop()}
-      <AdminBusVersionsTable
-        {copy}
-        {enhancedAction}
-        {formatEffectiveRange}
-        {formatImportedAt}
-        {isPending}
-        {onDelete}
-        {pendingAction}
-        versions={visibleVersions}
-        {columns}
-        values={draft}
-        onchange={change}
-        filterLabels={common.tableFilters}
-      />
-    {/snippet}
-  </ResponsiveCollection>
+  <CollectionTableShell cards label={copy.colTitle}>
+    <Table.Root class="w-full min-w-[68rem]">
+      <Table.Header>
+        <Table.Row>
+          <Table.Head class="w-[25%]">{@render column(0)}</Table.Head>
+          <Table.Head class="w-[17%]">{@render column(1)}</Table.Head>
+          <Table.Head class="w-[9%]">{@render column(2)}</Table.Head>
+          <Table.Head class="w-[18%]">{@render column(3)}</Table.Head>
+          <Table.Head class="w-[14%]">{@render column(4)}</Table.Head>
+          <Table.Head class="w-[10%]">{@render column(5)}</Table.Head>
+          <Table.Head class="w-20 min-w-20">
+            <span class="sr-only">{copy.colActions}</span>
+          </Table.Head>
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {#each visibleVersions as version (version.id)}
+          <Table.Row class="group">
+            <Table.Cell data-label={copy.colTitle} class="max-w-0">
+              <span class="block max-w-full" title={version.title}>
+                <TruncatedText class="font-medium" text={version.title} />
+              </span>
+              <span class="block max-w-full" title={version.sourceMessage}>
+                <TruncatedText
+                  class="text-muted-foreground text-xs"
+                  text={version.sourceMessage}
+                />
+              </span>
+            </Table.Cell>
+            <Table.Cell data-label={copy.colKey} class="max-w-0">
+              <span class="block max-w-full truncate font-mono text-sm" title={version.key}>
+                {version.key}
+              </span>
+            </Table.Cell>
+            <Table.Cell data-label={copy.colTrips} class="text-left tabular-nums">{version.tripCount}</Table.Cell>
+            <Table.Cell data-label={copy.colEffective} class="text-muted-foreground">
+              {formatEffectiveRange(version)}
+            </Table.Cell>
+            <Table.Cell data-label={copy.colImported} class="whitespace-nowrap tabular-nums text-muted-foreground">
+              {formatImportedAt(version.importedAt)}
+            </Table.Cell>
+            <Table.Cell data-label={copy.colStatus}>
+              <AdminBusVersionStatusBadge {copy} {version} />
+            </Table.Cell>
+            <Table.Cell class="w-20 min-w-20 text-left">
+              <AdminBusVersionActions
+                {copy}
+                {enhancedAction}
+                {isPending}
+                {onDelete}
+                {pendingAction}
+                {version}
+              />
+            </Table.Cell>
+          </Table.Row>
+        {:else}
+          <Table.Row>
+            <Table.Cell class="p-0" colspan={7}>
+              <CollectionEmpty variant="compact" description={copy.noVersions} />
+            </Table.Cell>
+          </Table.Row>
+        {/each}
+      </Table.Body>
+    </Table.Root>
+  </CollectionTableShell>
 </section>
