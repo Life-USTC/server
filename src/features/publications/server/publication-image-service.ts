@@ -2,7 +2,6 @@ import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { getCloudflareR2PublicationsBucket } from "@/lib/ports/runtime";
 
-const PUBLIC_PUBLICATION_TYPES = ["news", "notice"] as const;
 const PUBLICATION_IMAGE_ORIGIN = "ustc.edu.cn";
 const PUBLICATION_IMAGE_MAX_REDIRECTS = 5;
 const PUBLICATION_IMAGE_FETCH_TIMEOUT_MS = 10_000;
@@ -179,46 +178,27 @@ function imageUrlHash(value: string) {
 }
 
 async function findImageSource(hash: string) {
-  const source = await prisma.publicationImageSource.findUnique({
-    where: { id: hash },
-    select: {
-      id: true,
-      url: true,
-      revisions: {
-        where: {
-          revision: {
-            isTombstone: false,
-            publicationType: { in: [...PUBLIC_PUBLICATION_TYPES] },
-            currentFor: { isNot: null },
-            publication: {
-              is: {
-                deletedAt: null,
-                publicationType: { in: [...PUBLIC_PUBLICATION_TYPES] },
-              },
-            },
-          },
-        },
-        select: {
-          revision: {
-            select: {
-              currentFor: { select: { id: true } },
-              publication: {
-                select: {
-                  id: true,
-                  source: {
-                    select: {
-                      allowedHosts: true,
-                      blockedHosts: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+  const sources = await prisma.$queryRaw<
+    Array<{
+      url: string;
+      allowedHosts: string[];
+      blockedHosts: string[];
+    }>
+  >`
+    SELECT image.url, source."allowedHosts", source."blockedHosts"
+    FROM "PublicationImageSource" image
+    JOIN "PublicationRevisionImageSource" ref ON ref."imageSourceId" = image.id
+    JOIN "PublicationRevision" revision ON revision.id = ref."revisionId"
+    JOIN "Publication" publication ON publication.id = revision."publicationId"
+      AND publication."currentRevisionId" = revision.id
+    JOIN "PublicationSource" source ON source.id = publication."sourceId"
+    WHERE image.id = ${hash}
+      AND NOT revision."isTombstone"
+      AND publication."deletedAt" IS NULL
+      AND revision."publicationType" IN ('news', 'notice')
+      AND publication."publicationType" IN ('news', 'notice')
+  `;
+  const source = sources[0];
   if (!source) return null;
   let registeredHost: string | null;
   try {
@@ -227,13 +207,11 @@ async function findImageSource(hash: string) {
     registeredHost = null;
   }
   if (!registeredHost) return null;
-  for (const candidate of source.revisions) {
-    const revision = candidate.revision;
-    if (revision.currentFor?.id !== revision.publication.id) continue;
+  for (const { allowedHosts, blockedHosts } of sources) {
     const owner = {
       originalUrl: source.url,
       registeredHost,
-      publication: revision.publication,
+      publication: { source: { allowedHosts, blockedHosts } },
     } satisfies PublicationImageSourceOwner;
     if (
       parsePublicationImageOrigin(
