@@ -45,6 +45,44 @@ describe("用户 iCal 导出缓存", () => {
     vi.restoreAllMocks();
   });
 
+  it("revalidates equal calendar text without consuming the KV body", async () => {
+    vi.useFakeTimers();
+    const namespace = kvNamespace();
+    const cancel = vi.fn();
+    const getWithMetadata = vi.fn();
+    setCloudflareRuntimeEnv({
+      CALENDAR_EXPORTS: { ...namespace, getWithMetadata },
+    });
+    const stored = await storeBuiltUserCalendarExport("user-1", calendarExport);
+    const { text: _text, ...metadata } = stored;
+    vi.advanceTimersByTime(61_000);
+    getWithMetadata.mockResolvedValue({
+      metadata,
+      value: new ReadableStream({ cancel }),
+    });
+    const build = vi.fn();
+    const hit = await getCachedUserCalendarExport("user-1", build);
+    expect(hit.calendar).toEqual(stored);
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(namespace.get).not.toHaveBeenCalled();
+    expect(build).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(61_000);
+    const updated = {
+      ...stored,
+      text: "changed",
+      etag: '"changed"',
+      generatedAtMs: Date.now(),
+    };
+    getWithMetadata.mockResolvedValue({
+      metadata: null,
+      value: new Response(JSON.stringify(updated)).body,
+    });
+    expect(
+      (await getCachedUserCalendarExport("user-1", build)).calendar,
+    ).toEqual(updated);
+    expect(namespace.get).not.toHaveBeenCalled();
+  });
+
   it("ical.feed-telemetry-private", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
@@ -69,7 +107,10 @@ describe("用户 iCal 导出缓存", () => {
     expect(namespace.put).toHaveBeenCalledWith(
       "user-calendar:v2:user-1",
       expect.any(String),
-      { expirationTtl: 86_400 },
+      expect.objectContaining({
+        expirationTtl: 86_400,
+        metadata: expect.objectContaining({ etag: expect.any(String) }),
+      }),
     );
     expect(namespace.get).toHaveBeenLastCalledWith("user-calendar:v2:user-1", {
       cacheTtl: 60,
@@ -245,7 +286,10 @@ describe("用户 iCal 导出缓存", () => {
     expect(namespace.put).toHaveBeenLastCalledWith(
       "user-calendar:v2:user-1",
       expect.any(String),
-      { expirationTtl: 86_400 },
+      expect.objectContaining({
+        expirationTtl: 86_400,
+        metadata: expect.objectContaining({ etag: expect.any(String) }),
+      }),
     );
     expect(renewed.generatedAtMs).toBe(Date.now());
     expect(changed.contentModifiedAtMs).toBeGreaterThan(

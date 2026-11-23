@@ -117,10 +117,14 @@ export type CloudflareKVNamespace = {
     key: string,
     options: { cacheTtl?: number; type: "json" },
   ): Promise<T | null>;
+  getWithMetadata?<M>(
+    key: string,
+    options: { cacheTtl: number; type: "stream" },
+  ): Promise<{ value: ReadableStream<Uint8Array> | null; metadata: M | null }>;
   put(
     key: string,
     value: string,
-    options?: { expirationTtl?: number },
+    options?: { expirationTtl?: number; metadata?: object },
   ): Promise<void>;
 };
 

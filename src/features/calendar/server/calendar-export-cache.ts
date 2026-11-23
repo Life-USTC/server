@@ -130,13 +130,26 @@ async function readStoredCalendar(userId: string) {
   if (!namespace) return memoryEntry?.calendar ?? null;
 
   try {
-    const entry = await namespace.get<StoredUserCalendarExport>(
-      cacheKey(userId),
-      {
-        cacheTtl: USER_CALENDAR_EXPORT_KV_CACHE_TTL_SECONDS,
-        type: "json",
-      },
-    );
+    const key = cacheKey(userId);
+    const cacheTtl = USER_CALENDAR_EXPORT_KV_CACHE_TTL_SECONDS;
+    let entry: unknown;
+    if (memoryEntry && namespace.getWithMetadata) {
+      const { value, metadata } = await namespace.getWithMetadata<
+        Omit<StoredUserCalendarExport, "text">
+      >(key, { cacheTtl, type: "stream" });
+      const reused =
+        metadata?.etag === memoryEntry.calendar.etag
+          ? { ...metadata, text: memoryEntry.calendar.text }
+          : null;
+      if (value && isStoredUserCalendarExport(reused)) {
+        await value.cancel();
+        entry = reused;
+      } else {
+        entry = value ? await new Response(value).json() : null;
+      }
+    } else {
+      entry = await namespace.get(key, { cacheTtl, type: "json" });
+    }
     // Invalidation or a completed rebuild may replace this entry while KV is
     // pending. Its result must not restore deleted data or overwrite that write.
     const current = userCalendarExportCache.get(userId);
@@ -179,7 +192,12 @@ async function persistStoredCalendar(
   if (!namespace) return true;
 
   try {
+    const { text: _text, ...metadata } = entry;
     await namespace.put(cacheKey(userId), JSON.stringify(entry), {
+      // KV metadata is limited to 1024 UTF-8 bytes.
+      ...(new TextEncoder().encode(JSON.stringify(metadata)).length <= 1024
+        ? { metadata }
+        : {}),
       expirationTtl: USER_CALENDAR_EXPORT_KV_EXPIRATION_TTL_SECONDS,
     });
     return true;
