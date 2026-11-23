@@ -1,3 +1,4 @@
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { handleRouteError, parseRouteSearchParams } from "@/lib/api/helpers";
 import { schemaJsonResponse } from "@/lib/api/responses";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
@@ -24,14 +25,23 @@ export async function getMySubscribedSchedulesRoute(request: Request) {
     const { buildSubscribedScheduleEntryDto, listSubscribedSchedules } =
       await import("@/features/subscriptions/server/subscription-read-model");
     const locale = parsedQuery.locale ?? getRequestLocale(request);
-    const schedules = await listSubscribedSchedules(userId, {
-      dateFrom: parsedQuery.dateFrom,
-      dateTo: parsedQuery.dateTo,
-      limit: parsedQuery.limit ?? 150,
-      locale,
-      weekday: parsedQuery.weekday,
-      sectionContext: "rest",
-    });
+    const schedules = await runCloudflareTraceSpan(
+      "workspace.schedules.read",
+      {},
+      async (span) => {
+        const rows = await listSubscribedSchedules(userId, {
+          dateFrom: parsedQuery.dateFrom,
+          dateTo: parsedQuery.dateTo,
+          limit: parsedQuery.limit ?? 150,
+          locale,
+          weekday: parsedQuery.weekday,
+          sectionContext: "rest",
+        });
+        if (span?.isTraced)
+          span.setAttribute("workspace.schedules.count", rows.length);
+        return rows;
+      },
+    );
 
     return schemaJsonResponse(subscribedSchedulesResponseSchema, {
       schedules: schedules.map((schedule) =>
