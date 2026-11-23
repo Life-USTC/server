@@ -12,11 +12,7 @@ import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 
 import { loadSectionPageMutableData } from "./section-page-mutable-data";
 
-async function getSectionPageCore(
-  jwId: number,
-  locale: AppLocale,
-  includeRelatedPreview: boolean,
-) {
+async function getSectionPageCore(jwId: number, locale: AppLocale) {
   const relatedWhere = {
     jwId: { not: jwId },
     retiredAt: null,
@@ -25,7 +21,7 @@ async function getSectionPageCore(
     id: jwId,
     kind: "section",
     locale,
-    shape: includeRelatedPreview ? "page-core-v3" : "page-core-no-preview-v1",
+    shape: "page-core-v3",
     load: () =>
       runCloudflareTraceSpan(
         "catalog.detail.section.query",
@@ -39,7 +35,7 @@ async function getSectionPageCore(
                 select: {
                   ...sectionPageSelect.course.select,
                   _count: { select: { sections: { where: relatedWhere } } },
-                  sections: includeRelatedPreview && {
+                  sections: {
                     where: relatedWhere,
                     orderBy: [
                       { semester: { jwId: "desc" as const } },
@@ -89,7 +85,7 @@ async function getSectionPageCore(
       return {
         section: buildSectionPageLoadData(normalizedSection, {
           otherCourseSectionCount: relatedCount.sections,
-          otherCourseSections: relatedSections ?? [],
+          otherCourseSections: relatedSections,
         }),
       };
     },
@@ -99,10 +95,9 @@ async function getSectionPageCore(
 export async function getSectionPage(
   jwId: number,
   locale: AppLocale = "zh-cn",
-  includeRelatedPreview = true,
 ) {
   const [core, mutable] = await Promise.all([
-    getSectionPageCore(jwId, locale, includeRelatedPreview),
+    getSectionPageCore(jwId, locale),
     runCloudflareTraceSpan(
       "catalog.detail.section.mutable.query",
       { "catalog.detail.kind": "section" },
