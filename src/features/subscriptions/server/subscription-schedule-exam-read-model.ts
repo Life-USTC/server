@@ -79,7 +79,7 @@ export type SubscribedScheduleRecord = Prisma.ScheduleGetPayload<{
   include: typeof subscribedScheduleInclude;
 }>;
 
-export function toSubscribedScheduleEntryDto(
+export function buildSubscribedScheduleEntryDto(
   input: SubscribedScheduleRecord,
   locale: AppLocale,
 ) {
@@ -100,7 +100,7 @@ export function toSubscribedScheduleEntryDto(
       _count: { sections: source._count.sections },
     };
   });
-  return subscribedScheduleEntrySchema.parse({
+  return {
     ...schedule,
     teachers,
     teacherParticipations: schedule.teacherParticipations.map(
@@ -109,7 +109,16 @@ export function toSubscribedScheduleEntryDto(
         teacher: teachers[index],
       }),
     ),
-  });
+  };
+}
+
+export function toSubscribedScheduleEntryDto(
+  input: SubscribedScheduleRecord,
+  locale: AppLocale,
+) {
+  return subscribedScheduleEntrySchema.parse(
+    buildSubscribedScheduleEntryDto(input, locale),
+  );
 }
 
 const subscribedExamInclude = {

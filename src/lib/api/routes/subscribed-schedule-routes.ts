@@ -21,7 +21,7 @@ export async function getMySubscribedSchedulesRoute(request: Request) {
   if (parsedQuery instanceof Response) return parsedQuery;
 
   try {
-    const { listSubscribedSchedules, toSubscribedScheduleEntryDto } =
+    const { buildSubscribedScheduleEntryDto, listSubscribedSchedules } =
       await import("@/features/subscriptions/server/subscription-read-model");
     const locale = parsedQuery.locale ?? getRequestLocale(request);
     const schedules = await listSubscribedSchedules(userId, {
@@ -34,7 +34,7 @@ export async function getMySubscribedSchedulesRoute(request: Request) {
 
     return schemaJsonResponse(subscribedSchedulesResponseSchema, {
       schedules: schedules.map((schedule) =>
-        toSubscribedScheduleEntryDto(schedule, locale),
+        buildSubscribedScheduleEntryDto(schedule, locale),
       ),
     });
   } catch (error) {
