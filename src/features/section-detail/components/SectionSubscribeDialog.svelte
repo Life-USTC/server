@@ -1,11 +1,10 @@
 <script lang="ts">
-import type { SectionSubscriptionCopy } from "@/features/section-detail/server/section-detail-page-copy";
-
 import BookmarkPlusIcon from "@lucide/svelte/icons/bookmark-plus";
 import CalendarPlusIcon from "@lucide/svelte/icons/calendar-plus";
 import SignInButton from "#lib/components/SignInButton.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
+import type { SectionSubscriptionCopy } from "@/features/section-detail/server/section-detail-page-copy";
 import SectionCancelSubscription from "@/features/subscriptions/components/SectionCancelSubscription.svelte";
 import { enhance, type SubmitFunction } from "$app/forms";
 
@@ -20,7 +19,7 @@ export let homeworkCopy: {
   cancel: string;
 };
 export let sectionCopy: {
-    subscriptions: SectionSubscriptionCopy;
+  subscriptions: SectionSubscriptionCopy;
   addToCalendar: string;
   unsubscribeLabel: string;
   subscribeLabel: string;

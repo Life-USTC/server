@@ -1,6 +1,4 @@
 <script lang="ts">
-import type { SectionSubscriptionCopy } from "@/features/section-detail/server/section-detail-page-copy";
-
 import TeacherIcon from "@lucide/svelte/icons/user-round";
 import PageHeader from "#lib/components/PageHeader.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
@@ -8,12 +6,13 @@ import {
   type CatalogNamed,
   catalogLocalizedDisplayName,
 } from "@/features/catalog/lib/catalog-list-display";
+import type { SectionSubscriptionCopy } from "@/features/section-detail/server/section-detail-page-copy";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page } from "$app/state";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
 
 type SectionHeaderCopy = {
-    subscriptions: SectionSubscriptionCopy;
+  subscriptions: SectionSubscriptionCopy;
   addToCalendar: string;
   historicalSectionDescription: string;
   historicalSectionLabel: string;
