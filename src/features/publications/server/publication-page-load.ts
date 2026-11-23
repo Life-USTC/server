@@ -59,7 +59,23 @@ export async function loadPublicationListPage(url: URL, locale: AppLocale) {
     publications.data.length > 0 || (await hasPublicPublications());
   return {
     hasPublications,
-    publications,
+    publications: {
+      pagination: publications.pagination,
+      data: publications.data.map(
+        ({ id, publicationType, source, revision, foldGroup }) => ({
+          id,
+          publicationType,
+          source,
+          revision: {
+            title: revision.title,
+            summary: revision.summary,
+            publishedAt: revision.publishedAt,
+            updatedAtSource: revision.updatedAtSource,
+          },
+          ...(foldGroup && { foldGroup }),
+        }),
+      ),
+    },
     filters,
     sourceOptions,
     copy,
