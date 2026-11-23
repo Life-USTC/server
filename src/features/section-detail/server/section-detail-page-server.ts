@@ -71,7 +71,11 @@ async function loadSectionDetailPageData({
       () =>
         locals.demo
           ? getDemoCatalogSectionPage(jwId, locals.locale)
-          : getSectionPage(jwId, locals.locale),
+          : getSectionPage(
+              jwId,
+              locals.locale,
+              detailSection === "introduction",
+            ),
     ),
     runCloudflareTraceSpan(
       "catalog.detail.viewer",

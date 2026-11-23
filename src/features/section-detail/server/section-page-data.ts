@@ -12,7 +12,11 @@ import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 
 import { loadSectionPageMutableData } from "./section-page-mutable-data";
 
-async function getSectionPageCore(jwId: number, locale: AppLocale) {
+async function getSectionPageCore(
+  jwId: number,
+  locale: AppLocale,
+  includeRelatedPreview: boolean,
+) {
   const relatedWhere = {
     jwId: { not: jwId },
     retiredAt: null,
@@ -21,7 +25,7 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
     id: jwId,
     kind: "section",
     locale,
-    shape: "page-core-v3",
+    shape: includeRelatedPreview ? "page-core-v3" : "page-core-no-preview-v1",
     load: () =>
       runCloudflareTraceSpan(
         "catalog.detail.section.query",
@@ -35,7 +39,7 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
                 select: {
                   ...sectionPageSelect.course.select,
                   _count: { select: { sections: { where: relatedWhere } } },
-                  sections: {
+                  sections: includeRelatedPreview && {
                     where: relatedWhere,
                     orderBy: [
                       { semester: { jwId: "desc" as const } },
@@ -85,7 +89,7 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
       return {
         section: buildSectionPageLoadData(normalizedSection, {
           otherCourseSectionCount: relatedCount.sections,
-          otherCourseSections: relatedSections,
+          otherCourseSections: relatedSections ?? [],
         }),
       };
     },
@@ -95,9 +99,10 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
 export async function getSectionPage(
   jwId: number,
   locale: AppLocale = "zh-cn",
+  includeRelatedPreview = true,
 ) {
   const [core, mutable] = await Promise.all([
-    getSectionPageCore(jwId, locale),
+    getSectionPageCore(jwId, locale, includeRelatedPreview),
     runCloudflareTraceSpan(
       "catalog.detail.section.mutable.query",
       { "catalog.detail.kind": "section" },
