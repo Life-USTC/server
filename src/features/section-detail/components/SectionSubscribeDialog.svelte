@@ -1,4 +1,6 @@
 <script lang="ts">
+import type { SectionSubscriptionCopy } from "@/features/section-detail/server/section-detail-page-copy";
+
 import BookmarkPlusIcon from "@lucide/svelte/icons/bookmark-plus";
 import CalendarPlusIcon from "@lucide/svelte/icons/calendar-plus";
 import SignInButton from "#lib/components/SignInButton.svelte";
@@ -18,6 +20,7 @@ export let homeworkCopy: {
   cancel: string;
 };
 export let sectionCopy: {
+    subscriptions: SectionSubscriptionCopy;
   addToCalendar: string;
   unsubscribeLabel: string;
   subscribeLabel: string;
@@ -58,7 +61,7 @@ export let subscriptionPendingAction: "subscribe" | "unsubscribe" | null;
         {homeworkCopy.cancel}
       </Button>
       {#if isSubscribed}
-        <SectionCancelSubscription name={courseName} label={sectionCopy.unsubscribeLabel} pending={subscriptionPendingAction === "unsubscribe"} action={subscriptionAction("unsubscribe")} />
+        <SectionCancelSubscription copy={sectionCopy.subscriptions} name={courseName} label={sectionCopy.unsubscribeLabel} pending={subscriptionPendingAction === "unsubscribe"} action={subscriptionAction("unsubscribe")} />
       {:else if signedIn}
         <form
           method="POST"
