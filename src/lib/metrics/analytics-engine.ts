@@ -136,6 +136,9 @@ export type PublicRuntimeCacheAnalyticsNamespace =
 
 export type PublicRuntimeCacheAnalyticsReason =
   | "cache_put_rejected"
+  | "entry_expired"
+  | "envelope_invalid"
+  | "key_missing"
   | "none"
   | "response_build_failed"
   | "result_invalid"
@@ -515,6 +518,9 @@ const CACHE_EVENTS = new Set([
 ]);
 const CACHE_REASONS = new Set([
   "cache_put_rejected",
+  "entry_expired",
+  "envelope_invalid",
+  "key_missing",
   "none",
   "response_build_failed",
   "result_invalid",
