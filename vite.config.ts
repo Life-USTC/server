@@ -1,12 +1,12 @@
 import adapterCloudflare from "@sveltejs/adapter-cloudflare";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import "dotenv/config";
-import { copyFileSync, mkdirSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
 import { basename, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import { scalarEmbeddedReferencePlugin } from "./src/features/api-docs/lib/scalar-embedded-reference";
 
 const PRISMA_WASM_VIRTUAL_ID = "\0life-ustc:prisma-wasm-module";
@@ -53,6 +53,32 @@ export function prismaWasmModulePlugin(command: "build" | "serve") {
       )}`;
       mkdirSync(dirname(outputPath), { recursive: true });
       copyFileSync(resolvedWasmPath, outputPath);
+    },
+  };
+}
+
+// Isolate the section UI's named JSON imports from routes that use entire dictionaries.
+function sectionMessageSubsets(): Plugin {
+  const suffix = "?section-copy";
+  return {
+    name: "section-message-subsets",
+    enforce: "pre",
+    resolveId(source, importer) {
+      if (
+        !importer?.endsWith("/src/i18n/section-copy.ts") ||
+        !source.endsWith(".json")
+      )
+        return;
+      return fileURLToPath(new URL(source, pathToFileURL(importer))) + suffix;
+    },
+    load(id) {
+      if (!id.endsWith(suffix)) return;
+      const path = id.slice(0, -suffix.length);
+      this.addWatchFile(path);
+      const messages = JSON.parse(readFileSync(path, "utf8"));
+      return ["comments", "subscriptions", "uploads"]
+        .map((key) => `export const ${key} = ${JSON.stringify(messages[key])};`)
+        .join("\n");
     },
   };
 }
@@ -129,6 +155,7 @@ export default defineConfig(({ command }) => ({
     },
   },
   plugins: [
+    sectionMessageSubsets(),
     prismaWasmModulePlugin(command),
     katexModernFontsPlugin(),
     scalarEmbeddedReferencePlugin(),
