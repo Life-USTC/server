@@ -385,6 +385,7 @@ const handleWithRuntimeEnv: Handle = async ({ event, resolve }) => {
       () =>
         resolve(event, {
           preload:
+            event.route.id === "/catalog/sections/[jwId]" ||
             event.route.id === "/catalog/sections/[jwId]/introduction"
               ? ({ type, path }) =>
                   type === "css" ||
