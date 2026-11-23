@@ -83,41 +83,37 @@ export async function refreshYoungNotifications(
         });
       }
     }
-    const follows = await tx.userYoungOrganizerSubscription.findMany({
-      where: { userId },
-      include: { organizer: true },
-    });
     const dayEnd = startOfShanghaiDay(now);
     const dayStart = addShanghaiTime(dayEnd, -1, "day");
-    for (const follow of follows) {
-      // A completed-day digest never sends a partial day's results twice.
-      if (follow.createdAt >= dayEnd) continue;
-      const where = {
-        organizerId: follow.organizerId,
-        sourceMissing: false,
-        createdAt: {
-          gte: dayStart,
-          gt: follow.createdAt,
-          lt: dayEnd,
-        },
-        startAt: { gte: now },
-      };
-      const total = await tx.youngEvent.count({ where });
-      if (!total) continue;
-      const events = await tx.youngEvent.findMany({
-        where,
-        select: { name: true },
-        orderBy: [{ startAt: "asc" }, { youngId: "asc" }],
-        take: 10,
-      });
-      const dedupeKey = `organizer:${follow.organizerId}:${dayStart.toISOString()}`;
+    const digests = await tx.$queryRaw<
+      { organizerId: string; title: string; total: bigint; names: string[] }[]
+    >`
+      WITH ranked AS (
+        SELECT f."organizerId", e.name,
+               row_number() OVER (
+                 PARTITION BY f."organizerId" ORDER BY e."startAt", e."youngId"
+               ) AS position
+        FROM "UserYoungOrganizerSubscription" f
+        JOIN "YoungEvent" e ON e."organizerId" = f."organizerId"
+        WHERE f."userId" = ${userId}
+          AND e."createdAt" >= ${dayStart} AND e."createdAt" < ${dayEnd}
+          AND e."createdAt" > f."createdAt"
+          AND NOT e."sourceMissing" AND e."startAt" >= ${now}
+      )
+      SELECT r."organizerId", o.name AS title, count(*) AS total,
+             array_agg(r.name ORDER BY r.position) FILTER (WHERE r.position <= 10) AS names
+      FROM ranked r
+      JOIN "YoungOrganizer" o ON o.id = r."organizerId"
+      GROUP BY r."organizerId", o.name
+    `;
+    for (const { organizerId, title, total, names } of digests) {
       notifications.push({
         userId,
-        organizerId: follow.organizerId,
+        organizerId,
         kind: "organizer_digest",
-        title: follow.organizer.name,
-        body: `${total} 个新活动 / new events: ${events.map((event) => event.name).join(" · ")}${total > events.length ? " …" : ""}`,
-        dedupeKey,
+        title,
+        body: `${total} 个新活动 / new events: ${names.join(" · ")}${total > names.length ? " …" : ""}`,
+        dedupeKey: `organizer:${organizerId}:${dayStart.toISOString()}`,
         createdAt: now,
       });
     }

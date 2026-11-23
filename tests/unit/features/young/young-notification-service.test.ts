@@ -4,8 +4,6 @@ const mocks = vi.hoisted(() => ({
   tx: {
     $queryRaw: vi.fn(),
     userYoungEventSubscription: { findMany: vi.fn(), update: vi.fn() },
-    userYoungOrganizerSubscription: { findMany: vi.fn() },
-    youngEvent: { count: vi.fn(), findMany: vi.fn() },
     youngNotification: {
       deleteMany: vi.fn(),
       create: vi.fn(),
@@ -51,7 +49,7 @@ const event = {
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.tx.userYoungEventSubscription.findMany.mockResolvedValue([]);
-  mocks.tx.userYoungOrganizerSubscription.findMany.mockResolvedValue([]);
+  mocks.tx.$queryRaw.mockResolvedValue([]);
 });
 describe("Young notification refresh and inbox", () => {
   it("counts only the owner's unread, unexpired reminders without refreshing", async () => {
@@ -133,46 +131,35 @@ describe("Young notification refresh and inbox", () => {
       }),
     });
   });
-  it("uses completed Shanghai days for organizer digests and skips brand-new follows or empty organizers", async () => {
-    mocks.tx.userYoungOrganizerSubscription.findMany.mockResolvedValue([
-      { organizerId: "new", organizer: { name: "New" }, createdAt: now },
-      {
-        organizerId: "empty",
-        organizer: { name: "Empty" },
-        createdAt: new Date("2035-09-01"),
-      },
-      {
-        organizerId: "club",
-        organizer: { name: "Club" },
-        createdAt: new Date("2035-09-14T12:00:00+08:00"),
-      },
+  it("reads digests for all followed organizers in one query after locking the user", async () => {
+    const names = Array.from({ length: 10 }, (_, index) => `Event ${index}`);
+    mocks.tx.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      { organizerId: "club", title: "Club", total: 11n, names },
+      { organizerId: "other", title: "Other", total: 1n, names: ["Workshop"] },
     ]);
-    mocks.tx.youngEvent.count
-      .mockResolvedValueOnce(0)
-      .mockResolvedValueOnce(11);
-    mocks.tx.youngEvent.findMany.mockResolvedValue([{ name: "A" }]);
     await refreshYoungNotifications("owner", now);
-    expect(mocks.tx.youngNotification.createMany).toHaveBeenCalledOnce();
+    expect(mocks.tx.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(mocks.tx.$queryRaw.mock.calls[1].slice(1)).toEqual([
+      "owner",
+      new Date("2035-09-14T00:00:00+08:00"),
+      new Date("2035-09-15T00:00:00+08:00"),
+      now,
+    ]);
     expect(mocks.tx.youngNotification.createMany).toHaveBeenCalledWith({
       data: [
         expect.objectContaining({
           organizerId: "club",
-          kind: "organizer_digest",
-          body: "11 个新活动 / new events: A …",
+          title: "Club",
+          body: `11 个新活动 / new events: ${names.join(" · ")} …`,
           dedupeKey: "organizer:club:2035-09-13T16:00:00.000Z",
+        }),
+        expect.objectContaining({
+          organizerId: "other",
+          title: "Other",
+          body: "1 个新活动 / new events: Workshop",
         }),
       ],
       skipDuplicates: true,
-    });
-    expect(mocks.tx.youngEvent.count).toHaveBeenLastCalledWith({
-      where: expect.objectContaining({
-        createdAt: {
-          gte: new Date("2035-09-14T00:00:00+08:00"),
-          gt: new Date("2035-09-14T12:00:00+08:00"),
-          lt: new Date("2035-09-15T00:00:00+08:00"),
-        },
-        sourceMissing: false,
-      }),
     });
   });
   it("paginates unexpired notifications and writes read state only for the owner", async () => {

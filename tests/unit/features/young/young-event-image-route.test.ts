@@ -89,13 +89,9 @@ async function getPosterBytes(
 
 describe("young event image route", () => {
   it("streams the cached object from R2 with immutable cache headers", async () => {
-    mocks.bucket.head.mockResolvedValue({
-      size: 5,
-      etag: "r2-etag",
-      httpMetadata: { contentType: "image/jpeg" },
-    });
     mocks.bucket.get.mockResolvedValue({
       size: 5,
+      etag: "r2-etag",
       body: stream("bytes"),
       httpMetadata: { contentType: "image/jpeg" },
     });
@@ -116,7 +112,8 @@ describe("young event image route", () => {
     expect(response.headers.get("Content-Length")).toBe("5");
     expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
     await expect(response.text()).resolves.toBe("bytes");
-    expect(mocks.bucket.head).toHaveBeenCalledWith(R2_KEY);
+    expect(mocks.bucket.head).not.toHaveBeenCalled();
+    expect(mocks.bucket.get).toHaveBeenCalledExactlyOnceWith(R2_KEY);
     expect(mocks.fetchMock).not.toHaveBeenCalled();
     expect(mocks.bucket.put).not.toHaveBeenCalled();
   });
@@ -134,8 +131,24 @@ describe("young event image route", () => {
     expect(mocks.fetchMock).not.toHaveBeenCalled();
   });
 
+  it("uses the replacement object's ETag when a conditional lookup races a write", async () => {
+    mocks.bucket.head.mockResolvedValue({ etag: "old" });
+    const cancel = vi.fn();
+    mocks.bucket.get.mockResolvedValue({
+      etag: "new",
+      size: 5,
+      body: new ReadableStream({ cancel }),
+    });
+    const response = await getPosterBytes(
+      new Request(ROUTE_URL, { headers: { "If-None-Match": '"new"' } }),
+      { youngId: "42" },
+    );
+    expect(response.status).toBe(304);
+    expect(response.headers.get("ETag")).toBe('"new"');
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
   it("fetches the origin on a cache miss, stores via defer, and serves the bytes", async () => {
-    mocks.bucket.head.mockResolvedValue(null);
     const deferred: Promise<unknown>[] = [];
     mocks.fetchMock.mockResolvedValue(
       new Response(stream("origin-bytes"), {
@@ -168,7 +181,6 @@ describe("young event image route", () => {
   });
 
   it("falls back to an extension-based content type when the origin omits it", async () => {
-    mocks.bucket.head.mockResolvedValue(null);
     mocks.fetchMock.mockResolvedValue(
       new Response(stream("png-bytes"), { status: 200 }),
     );
@@ -190,7 +202,6 @@ describe("young event image route", () => {
   });
 
   it("responds 502 and stores nothing in R2 when the origin fails", async () => {
-    mocks.bucket.head.mockResolvedValue(null);
     mocks.fetchMock.mockResolvedValue(new Response("nope", { status: 404 }));
 
     const response = await getPosterBytes(new Request(ROUTE_URL), {
@@ -212,7 +223,6 @@ describe("young event image route", () => {
   });
 
   it("rejects a non-image origin content type without caching it", async () => {
-    mocks.bucket.head.mockResolvedValue(null);
     mocks.fetchMock.mockResolvedValue(
       new Response(stream("<html>error page</html>"), {
         status: 200,
@@ -229,7 +239,6 @@ describe("young event image route", () => {
   });
 
   it("rejects an origin response whose Content-Length exceeds the cap", async () => {
-    mocks.bucket.head.mockResolvedValue(null);
     mocks.fetchMock.mockResolvedValue(
       new Response(stream("tiny"), {
         status: 200,
@@ -248,22 +257,54 @@ describe("young event image route", () => {
     expect(mocks.bucket.put).not.toHaveBeenCalled();
   });
 
-  it("rejects an origin body that exceeds the cap after reading", async () => {
-    mocks.bucket.head.mockResolvedValue(null);
-    mocks.fetchMock.mockResolvedValue(
-      new Response(stream("x".repeat(YOUNG_EVENT_IMAGE_MAX_BYTES + 1)), {
-        status: 200,
-        headers: { "Content-Type": "image/jpeg" },
-      }),
-    );
+  it("accepts exactly the cap in multiple chunks and preserves their order", async () => {
+    const origin = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(YOUNG_EVENT_IMAGE_MAX_BYTES - 1));
+        controller.enqueue(Uint8Array.of(42));
+        controller.close();
+      },
+    });
+    mocks.fetchMock.mockResolvedValue(new Response(origin));
 
     const response = await getPosterBytes(new Request(ROUTE_URL), {
       youngId: "42",
     });
 
-    expect(response.status).toBe(502);
-    expect(mocks.bucket.put).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    expect(bytes.byteLength).toBe(YOUNG_EVENT_IMAGE_MAX_BYTES);
+    expect(bytes.at(-1)).toBe(42);
+    expect(mocks.bucket.put).toHaveBeenCalledOnce();
   });
+
+  it.each([{}, { "Content-Length": "1" }] as HeadersInit[])(
+    "cancels a chunked origin body as soon as it exceeds the cap (%j)",
+    async (headers) => {
+      const cancel = vi.fn();
+      const chunk = new Uint8Array(YOUNG_EVENT_IMAGE_MAX_BYTES / 2);
+      let emitted = 0;
+      const body = new ReadableStream<Uint8Array>(
+        {
+          pull(controller) {
+            if (++emitted === 5) controller.close();
+            else controller.enqueue(chunk);
+          },
+          cancel,
+        },
+        { highWaterMark: 0 },
+      );
+      mocks.fetchMock.mockResolvedValue(new Response(body, { headers }));
+
+      const response = await getPosterBytes(new Request(ROUTE_URL), {
+        youngId: "42",
+      });
+
+      expect(response.status).toBe(502);
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(mocks.bucket.put).not.toHaveBeenCalled();
+    },
+  );
 
   it("responds 404 for an unknown youngId", async () => {
     mocks.youngEventFindUnique.mockResolvedValue(null);
@@ -276,6 +317,7 @@ describe("young event image route", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     const body = (await response.json()) as { error?: string };
     expect(typeof body.error).toBe("string");
+    expect(mocks.bucket.get).not.toHaveBeenCalled();
     expect(mocks.bucket.head).not.toHaveBeenCalled();
   });
 
@@ -287,6 +329,7 @@ describe("young event image route", () => {
     });
 
     expect(response.status).toBe(404);
+    expect(mocks.bucket.get).not.toHaveBeenCalled();
     expect(mocks.bucket.head).not.toHaveBeenCalled();
   });
 
@@ -307,11 +350,11 @@ describe("young event image route", () => {
 
     expect(response.status).toBe(404);
     expect(mocks.bucket.head).not.toHaveBeenCalled();
+    expect(mocks.bucket.get).not.toHaveBeenCalled();
     expect(mocks.fetchMock).not.toHaveBeenCalled();
   });
 
   it("logs an error when the deferred R2 cache write fails", async () => {
-    mocks.bucket.head.mockResolvedValue(null);
     mocks.fetchMock.mockResolvedValue(
       new Response(stream("origin-bytes"), {
         status: 200,
@@ -346,13 +389,9 @@ describe("young event image by-path route", () => {
   const BY_PATH_URL = `https://life.test/api/catalog/young-events/images/${PIC_PATH}`;
 
   it("serves R2-cached bytes for an arbitrary normalized image path", async () => {
-    mocks.bucket.head.mockResolvedValue({
-      size: 5,
-      etag: "r2-etag",
-      httpMetadata: { contentType: "image/jpeg" },
-    });
     mocks.bucket.get.mockResolvedValue({
       size: 5,
+      etag: "r2-etag",
       body: stream("bytes"),
       httpMetadata: { contentType: "image/jpeg" },
     });
@@ -366,13 +405,13 @@ describe("young event image by-path route", () => {
     expect(response.headers.get("Content-Type")).toBe("image/jpeg");
     expect(response.headers.get("Cache-Control")).toContain("immutable");
     await expect(response.text()).resolves.toBe("bytes");
-    expect(mocks.bucket.head).toHaveBeenCalledWith(R2_KEY);
+    expect(mocks.bucket.head).not.toHaveBeenCalled();
+    expect(mocks.bucket.get).toHaveBeenCalledExactlyOnceWith(R2_KEY);
     // Image bytes are event-independent, so no event lookup happens.
     expect(mocks.youngEventFindUnique).not.toHaveBeenCalled();
   });
 
   it("fetches and caches the origin on a miss", async () => {
-    mocks.bucket.head.mockResolvedValue(null);
     mocks.fetchMock.mockResolvedValue(
       new Response(stream("origin-bytes"), {
         status: 200,
@@ -423,7 +462,6 @@ describe("young event image by-path route", () => {
   });
 
   it("responds 502 when the origin fails", async () => {
-    mocks.bucket.head.mockResolvedValue(null);
     mocks.fetchMock.mockResolvedValue(new Response("nope", { status: 404 }));
 
     const response = await getYoungEventImageByPathRoute(
@@ -447,6 +485,7 @@ test("young-event.image-proxy-cached", async () => {
   }));
   mocks.bucket.get.mockImplementation(async (key: string) => ({
     size: 5,
+    etag: key,
     body: stream(key.endsWith("new-poster.jpg") ? "new!!" : "old!!"),
     httpMetadata: { contentType: "image/jpeg" },
   }));

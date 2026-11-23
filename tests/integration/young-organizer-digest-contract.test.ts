@@ -47,6 +47,12 @@ it("young-workspace.digest", { tags: ["@Young/Service"] }, async ({
             created: "2035-09-14T23:59:59+08:00",
             starts: "2035-09-17T10:00:00+08:00",
           },
+          ...Array.from({ length: 9 }, (_, index) => ({
+            label: `tied-${9 - index}`,
+            organizer: 0,
+            created: "2035-09-14T14:00:00+08:00",
+            starts: "2035-09-18T10:00:00+08:00",
+          })),
           {
             label: "at-day-start",
             organizer: 1,
@@ -124,7 +130,7 @@ it("young-workspace.digest", { tags: ["@Young/Service"] }, async ({
     expect(notices).toEqual([
       {
         title: "club",
-        body: "2 个新活动 / new events: eligible-A · eligible-B",
+        body: "11 个新活动 / new events: eligible-A · eligible-B · tied-1 · tied-2 · tied-3 · tied-4 · tied-5 · tied-6 · tied-7 · tied-8 …",
         kind: "organizer_digest",
       },
       {
