@@ -31,7 +31,7 @@ export let todosCopy: WorkspaceTodosCopy;
     }}
   >
     <Dialog.Content
-      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(64vh,36rem)] sm:max-h-[min(64vh,36rem)] sm:max-w-lg"
+      class="flex h-[calc(100dvh-2rem)] flex-col gap-0 overflow-clip p-0 sm:h-[min(64vh,36rem)] sm:max-w-lg"
     >
       <form
         class="flex min-h-0 flex-1 flex-col overflow-hidden"
@@ -44,20 +44,20 @@ export let todosCopy: WorkspaceTodosCopy;
           <Dialog.Description>{todosCopy.subtitle}</Dialog.Description>
         </Dialog.Header>
         <ScrollArea class="h-0 min-h-0 flex-1">
-          <Field.Group class="gap-4 px-5 py-4">
+          <Field.FieldGroup class="px-5 py-4">
             {#if createTodoError}
               <Alert.Root variant="destructive">
                 <Alert.Description>{createTodoError}</Alert.Description>
               </Alert.Root>
             {/if}
             <TodoFormFields
-              commentsCopy={commentsCopy}
+              {commentsCopy}
               disabled={isCreatingTodo}
               idPrefix="create-todo"
-              todoPriorityOptions={todoPriorityOptions}
-              todosCopy={todosCopy}
+              {todoPriorityOptions}
+              {todosCopy}
             />
-          </Field.Group>
+          </Field.FieldGroup>
         </ScrollArea>
         <Dialog.Footer class="mx-0 mb-0 shrink-0">
           <Button

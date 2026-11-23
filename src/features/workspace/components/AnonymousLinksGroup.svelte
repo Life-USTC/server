@@ -4,7 +4,6 @@ import type { AnonymousLinkGroup } from "@/features/workspace/lib/workspace-cont
 import CatalogLinkVisitAction from "./CatalogLinkVisitAction.svelte";
 
 export let entry: AnonymousLinkGroup;
-export let linkIconLabel: (icon: string) => string;
 </script>
 
 <section class={linkGroupSectionClass}>
@@ -13,7 +12,7 @@ export let linkIconLabel: (icon: string) => string;
   </h3>
       <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         {#each entry.links as link}
-          <CatalogLinkVisitAction {link} {linkIconLabel} />
+          <CatalogLinkVisitAction {link} />
         {/each}
       </div>
 </section>

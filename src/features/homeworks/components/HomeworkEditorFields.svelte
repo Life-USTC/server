@@ -87,7 +87,7 @@ $: dueShortcuts = buildHomeworkDueShortcuts({
 });
 </script>
 
-<Field.Group class="gap-4">
+<Field.FieldGroup>
   {#if sectionJwId && classStartsState === "loading"}
     <p role="status" class="text-sm text-muted-foreground">{copy.classDeadlinesLoading}</p>
   {:else if sectionJwId && classStartsState === "failed"}
@@ -128,4 +128,4 @@ $: dueShortcuts = buildHomeworkDueShortcuts({
     {/snippet}
   </HomeworkTimestampFields>
   <HomeworkStyleGuide {copy} testIdPrefix={styleGuidePrefix} />
-</Field.Group>
+</Field.FieldGroup>

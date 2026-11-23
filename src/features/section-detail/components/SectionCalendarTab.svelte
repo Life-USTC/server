@@ -84,7 +84,7 @@ $: classLectureNumberById = new Map(
       </Table.Row>
     </Table.Header>
     <Table.Body>
-      {#each datedEvents as event (event.id)}
+      {#each [...datedEvents, ...unscheduledCalendarEvents] as event (event.id)}
         <Table.Row>
           <Table.Cell>
             <div class="whitespace-nowrap">{lectureLabel(event)}</div>
@@ -97,40 +97,8 @@ $: classLectureNumberById = new Map(
             {/if}
           </Table.Cell>
           <Table.Cell class="whitespace-nowrap font-semibold">
-            {formatYyyyMmDd(event.dateKey ?? event.date) || sectionCopy.dateTBD}
+            {formatYyyyMmDd(event.dateKey) || sectionCopy.dateTBD}
           </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">
-            {calendarEventDetail(event, sectionCopy.week, "—")}
-          </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">
-            {calendarEventTime(event, "—")}
-          </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">
-            {#if event.roomCodes?.length}
-              <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                {#each event.roomCodes as room (room)}
-                  <RoomMapPreview {pageDemo} {locale} code={room} label={event.roomCodes.length === 1 ? calendarEventLocation(event, room) : room} copy={roomMapCopy} />
-                {/each}
-              </div>
-            {:else}
-              {calendarEventLocation(event, "—")}
-            {/if}
-          </Table.Cell>
-        </Table.Row>
-      {/each}
-      {#each unscheduledCalendarEvents as event (event.id)}
-        <Table.Row>
-          <Table.Cell>
-            <div class="whitespace-nowrap">{lectureLabel(event)}</div>
-            {#if event.teachers?.length}
-              <div class="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground" aria-label={sectionCopy.teacher}>
-                {#each event.teachers as teacher (teacher.id)}
-                  <a class="inline-flex min-h-6 min-w-6 items-center whitespace-nowrap underline-offset-4 hover:underline" href={`/catalog/teachers/${teacher.id}`}>{teacher.name}</a>
-                {/each}
-              </div>
-            {/if}
-          </Table.Cell>
-          <Table.Cell class="whitespace-nowrap">{sectionCopy.dateTBD}</Table.Cell>
           <Table.Cell class="whitespace-nowrap">
             {calendarEventDetail(event, sectionCopy.week, "—")}
           </Table.Cell>

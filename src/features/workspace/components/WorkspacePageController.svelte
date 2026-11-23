@@ -37,7 +37,6 @@ import {
   type WorkspaceActionData,
   type WorkspacePageData,
 } from "@/features/workspace/lib/workspace-controller-helpers";
-import { linkIconLabel } from "@/features/workspace/lib/workspace-link-icon";
 import { workspaceTabHref } from "@/features/workspace/lib/workspace-nav";
 import { createWorkspacePageControllerActions } from "@/features/workspace/lib/workspace-page-controller-actions";
 import { page as routePage } from "$app/state";
@@ -528,7 +527,6 @@ onMount(mount);
         calendarSemesterId={calendarSemesterId}
         calendarData={calendarData}
         linkActionError={linkActionError}
-        linkIconLabel={linkIconLabel}
         linkReturnTo={linkReturnTo}
         bind:linkSearchQuery
         signedLinkGroups={signedLinkGroups}

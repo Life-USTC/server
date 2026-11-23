@@ -13,7 +13,6 @@ import LinksTabGrid from "./LinksTabGrid.svelte";
 
 export let workspaceCopy: WorkspaceCopy;
 export let entry: SignedLinkGroup;
-export let linkIconLabel: (icon: string) => string;
 export let linkReturnTo: string;
 export let submitWorkspaceLinkPin: WorkspaceLinkPinSubmit;
 export let updatingCatalogLinkSlug: string | null;
@@ -37,7 +36,6 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
         visitCountLabel={readOnlyReason ? workspaceCopy.linkHub.filterVisits : undefined}
         {readOnlyReason}
         links={entry.links}
-        {linkIconLabel}
         {linkReturnTo}
         {pinAction}
         {pinLabel}

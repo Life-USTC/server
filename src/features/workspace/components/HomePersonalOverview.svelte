@@ -6,7 +6,6 @@ import { getShellViewer } from "#lib/shell/shell-viewer.js";
 import type { DemoView } from "@/features/demo/lib/demo-types";
 import { workspaceCalendarOwner } from "@/features/workspace/lib/workspace-calendar-owner";
 import { createWorkspaceCalendarDisplayActions } from "@/features/workspace/lib/workspace-controller-calendar-display-actions";
-import { linkIconLabel } from "@/features/workspace/lib/workspace-link-icon";
 import {
   applyCatalogLinkPinnedSlugs,
   currentCatalogLinkReturnTo,
@@ -192,7 +191,6 @@ async function submitWorkspaceLinkPin(slug: string, action: "pin" | "unpin") {
         {locale}
         {workspaceTabHref}
         {submitWorkspaceLinkPin}
-        {linkIconLabel}
         {calendarTimelineItemsForDay}
         {overviewLinkItems}
         {updatingCatalogLinkSlug}

@@ -14,6 +14,7 @@ type Field = {
 let {
   rows,
   href,
+  rowKey,
   title,
   titleText,
   titleLabel,
@@ -25,7 +26,8 @@ let {
   groups,
 }: {
   rows: T[];
-  href: (row: T) => string;
+  rowKey?: (row: T) => string | number;
+  href?: (row: T) => string;
   title?: Snippet<[T]>;
   titleText: (row: T) => string;
   titleLabel: string;
@@ -42,9 +44,9 @@ let {
   {#if title}{@render title(row)}{:else}{titleText(row)}{/if}
 {/snippet}
 {#snippet identity(row: T)}
-  <a href={href(row)} class="font-medium break-words hover:underline">
+  {#if href}<a href={href(row)} class="font-medium break-words hover:underline">
     {@render heading(row)}
-  </a>
+  </a>{:else}{@render heading(row)}{/if}
 {/snippet}
 {#snippet value(field: Field, row: T)}
   {#if field.content}{@render field.content(row)}{:else}{field.text?.(row)}{/if}
@@ -54,7 +56,7 @@ let {
   <Item.Content><Item.Title class="block line-clamp-none break-words">{#if secondaryLinks}{@render identity(row)}{:else}{@render heading(row)}{/if}</Item.Title></Item.Content>
   {#if code}<Item.Actions><TruncatedCode text={code(row)} /></Item.Actions>{/if}
   <Item.Footer class="flex-wrap justify-start gap-x-3 wrap-anywhere">
-    {#each fields as field}<span>{field.label} · {@render value(field, row)}</span>{/each}
+    {#each fields as field}<div>{field.label} · {@render value(field, row)}</div>{/each}
   </Item.Footer>
 {/snippet}
 
@@ -63,10 +65,10 @@ let {
     {#each groups ?? [{label: "", rows}] as group}
       {#if group.label}<h2 class="my-2 text-sm font-medium">{group.label}</h2>{/if}
       <Item.Group role="list" data-testid={cardsTestId}>
-        {#each group.rows as row (href(row))}
+        {#each group.rows as row (rowKey?.(row) ?? href?.(row) ?? row)}
           <div role="listitem"><MobileListCard size="sm">
             {#snippet child({ props })}
-              {#if secondaryLinks}<div {...props}>{@render card(row)}</div>
+              {#if secondaryLinks || !href}<div {...props}>{@render card(row)}</div>
               {:else}<a {...props} href={href(row)}>{@render card(row)}</a>{/if}
             {/snippet}
           </MobileListCard></div>
@@ -82,9 +84,9 @@ let {
         {#each fields as field}<Table.Head>{field.label}</Table.Head>{/each}
       </Table.Row></Table.Header>
       <Table.Body>
-        {#each rows as row (href(row))}
+        {#each rows as row (rowKey?.(row) ?? href?.(row) ?? row)}
           <Table.Row>
-            <Table.Cell class="whitespace-normal">{@render identity(row)}</Table.Cell>
+            <Table.Cell class="whitespace-normal wrap-anywhere">{@render identity(row)}</Table.Cell>
             {#if code}<Table.Cell><TruncatedCode text={code(row)} /></Table.Cell>{/if}
             {#each fields as field}<Table.Cell class="whitespace-normal">{@render value(field, row)}</Table.Cell>{/each}
           </Table.Row>

@@ -7,15 +7,12 @@ import FilterToolbar from "#lib/components/FilterToolbar.svelte";
 import PageHeader from "#lib/components/PageHeader.svelte";
 import PageLayout from "#lib/components/PageLayout.svelte";
 import Panel from "#lib/components/Panel.svelte";
-import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
+import RecordCollection from "#lib/components/RecordCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
 import TableFilterFields from "#lib/components/TableFilterFields.svelte";
-import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Item from "#lib/components/ui/item/index.js";
 import * as Popover from "#lib/components/ui/popover/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
 import { createShanghaiDateTimeFormatter } from "#lib/time/shanghai-format.js";
 import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import { createFilterDraft } from "@/lib/navigation/filter-draft.svelte";
@@ -123,12 +120,16 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
 
 <svelte:head><title>{copy.title} - Life@USTC</title></svelte:head>
 
+{#snippet uploadedAt(upload: Upload)}
+  <time datetime={upload.createdAt}>{formatter.format(new Date(upload.createdAt))}</time>
+{/snippet}
+
 {#snippet uploadActions(upload: Upload)}
-  <div class="flex flex-wrap gap-2">
+  <span class="inline-flex flex-wrap gap-2">
     <Button href={`/api/workspace/uploads/${encodeURIComponent(upload.id)}/download`} variant="outline" size="sm" aria-label={`${copy.downloadAction} ${upload.filename}`}>{copy.downloadAction}</Button>
     <Button variant="outline" size="sm" aria-label={`${copy.renameAction} ${upload.filename}`} onclick={() => selected = {upload, action:"rename"}}>{copy.renameAction}</Button>
     <Button variant="outline" size="sm" aria-label={`${copy.deleteAction} ${upload.filename}`} onclick={() => selected = {upload, action:"delete"}}>{copy.deleteAction}</Button>
-  </div>
+  </span>
 {/snippet}
 
 {#snippet filterActions()}
@@ -170,38 +171,18 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
     </form>
     <ActiveFilters items={activeFilters} ariaLabel={copy.appliedConditions} clearHref="/workspace/uploads" clearLabel={copy.reset} showClear={false} disabled={!ready} onremove={removeFilter} />
     <p class="text-sm text-muted-foreground">{copy.newestFirst}</p>
-      <ResponsiveCollection>
-        {#snippet desktop()}
-          <Table.Root>
-            <Table.Header><Table.Row><Table.Head>{copy.tableName}</Table.Head><Table.Head>{copy.tableSize}</Table.Head><Table.Head>{copy.tableUploaded}</Table.Head><Table.Head>{copy.tableActions}</Table.Head></Table.Row></Table.Header>
-            <Table.Body>
-              {#each data.uploads as upload (upload.id)}
-                <Table.Row>
-                  <Table.Cell class="max-w-64"><TruncatedText class="font-medium" text={upload.filename} /></Table.Cell>
-                  <Table.Cell class="text-left tabular-nums">{formatBytes(upload.size)}</Table.Cell>
-                  <Table.Cell><time datetime={upload.createdAt}>{formatter.format(new Date(upload.createdAt))}</time></Table.Cell>
-                  <Table.Cell>{@render uploadActions(upload)}</Table.Cell>
-                </Table.Row>
-              {/each}
-              {#if data.uploads.length === 0}<Table.Row><Table.Cell colspan={4}><ResultsEmpty title={data.hasUploads ? copy.noMatchTitle : copy.emptyTitle} description={data.hasUploads ? copy.noMatchDescription : copy.emptyDescription} /></Table.Cell></Table.Row>{/if}
-            </Table.Body>
-          </Table.Root>
-        {/snippet}
-        {#snippet mobile()}
-          <Item.Group role="list" class="gap-3">
-            {#each data.uploads as upload (upload.id)}
-              <Item.Root role="listitem" variant="outline">
-                <Item.Content>
-                  <p class="break-all font-medium">{upload.filename}</p>
-                  <Item.Description>{formatBytes(upload.size)} · <time datetime={upload.createdAt}>{formatter.format(new Date(upload.createdAt))}</time></Item.Description>
-                  {@render uploadActions(upload)}
-                </Item.Content>
-              </Item.Root>
-            {/each}
-          </Item.Group>
-          {#if data.uploads.length === 0}<ResultsEmpty title={data.hasUploads ? copy.noMatchTitle : copy.emptyTitle} description={data.hasUploads ? copy.noMatchDescription : copy.emptyDescription} />{/if}
-        {/snippet}
-      </ResponsiveCollection>
+    {#if data.uploads.length}
+      <RecordCollection rows={data.uploads} rowKey={(upload) => upload.id}
+        titleLabel={copy.tableName} titleText={(upload) => upload.filename}
+        fields={[
+          { label: copy.tableSize, text: (upload) => formatBytes(upload.size) },
+          { label: copy.tableUploaded, content: uploadedAt },
+          { label: copy.tableActions, content: uploadActions },
+        ]}
+      />
+    {:else}
+      <ResultsEmpty title={data.hasUploads ? copy.noMatchTitle : copy.emptyTitle} description={data.hasUploads ? copy.noMatchDescription : copy.emptyDescription} />
+    {/if}
     {#snippet footer()}
       <EndlessScroll state={endless} labels={data.copy.common.endlessScroll} />
     {/snippet}

@@ -60,7 +60,6 @@ export let locale: string;
 
 export let workspaceTabHref: WorkspaceCalendarTabHref;
 export let submitWorkspaceLinkPin: WorkspaceLinkPinSubmit;
-export let linkIconLabel: (icon: string) => string;
 export let calendarTimelineItemsForDay: OverviewCalendarTimelineItemsForDay;
 
 export let overviewLinkItems: WorkspaceOverviewLinkItem[];
@@ -344,7 +343,6 @@ function overviewStack(
         class={OVERVIEW_FULL_WIDTH_CLASS}
         workspaceCopy={workspaceCopy}
         workspaceTabHref={workspaceTabHref}
-        linkIconLabel={linkIconLabel}
         links={overviewLinkItems}
         submitWorkspaceLinkPin={submitWorkspaceLinkPin}
         updatingCatalogLinkSlug={updatingCatalogLinkSlug}

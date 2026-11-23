@@ -36,7 +36,6 @@ export let workspaceCopy: WorkspaceCalendarTabProps["workspaceCopy"];
 export let workspaceTabHref: WorkspaceCalendarTabProps["workspaceTabHref"];
 export let formatMessage: FormatMessage;
 export let linkActionError: string;
-export let linkIconLabel: (icon: string) => string;
 export let linkReturnTo: string;
 export let linkSearchQuery: string;
 export let monthWeeks: WorkspaceCalendarTabProps["monthWeeks"];
@@ -58,7 +57,6 @@ export let updatingCatalogLinkSlug: string | null;
   <SignedWorkspaceLinksBranch
     {workspaceCopy}
     {linkActionError}
-    {linkIconLabel}
     {linkReturnTo}
     bind:linkSearchQuery
     {signedLinkGroups}

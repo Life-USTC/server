@@ -1,12 +1,9 @@
 <script lang="ts">
 import { onMount } from "svelte";
+import RecordCollection from "#lib/components/RecordCollection.svelte";
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
-import MobileListCard from "#lib/components/MobileListCard.svelte";
-import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
 import HomeworkPersonalStatus from "@/features/homeworks/components/HomeworkPersonalStatus.svelte";
 import {
   formatHomeworkDueRelativeTime,
@@ -33,7 +30,7 @@ onMount(() => {
 </script>
 
 {#snippet personalStatus(homework: SectionHomework)}
-  <div class="flex min-w-0 flex-wrap items-center gap-2">
+  <div role="group" aria-label={homeworkCopy.myStatus} class="inline-flex flex-wrap items-center gap-2">
     <HomeworkPersonalStatus
       completed={Boolean(homework.completion)}
       completionRequired={homework.completionRequired !== false}
@@ -45,111 +42,32 @@ onMount(() => {
   </div>
 {/snippet}
 
+{#snippet title(homework: SectionHomework)}
+  <button class="min-h-11 min-w-11 text-left break-words hover:underline" type="button" onclick={() => selectHomework(homework)}>
+    {homework.title}
+  </button>
+{/snippet}
+
+{#snippet flags(homework: SectionHomework)}
+  <span class="inline-flex flex-wrap gap-2">
+    {#if !showPersonalStatus && homework.completionRequired === false}<Badge variant="outline">{homeworkCopy.noCompletionRequired}</Badge>{/if}
+    {#if homework.isMajor}<Badge variant="outline">{homeworkCopy.tagMajor}</Badge>{/if}
+    {#if homework.requiresTeam}<Badge variant="outline">{homeworkCopy.tagTeam}</Badge>{/if}
+  </span>
+{/snippet}
+
 <div data-testid="section-homeworks-list">
   {#if homeworks.length === 0}
     <CollectionEmpty variant="compact" description={sectionCopy.noHomework} />
   {:else}
-    <ResponsiveCollection>
-      {#snippet mobile()}
-        <div data-testid="section-homeworks-items">
-          <Item.Group class="gap-0">
-            {#each homeworks as homework, index (homework.id)}
-              <MobileListCard>
-                <Item.Content class="min-w-0 gap-1">
-                  <Item.Title class="line-clamp-none w-full min-w-0">
-                    <button
-                      class="flex min-h-11 w-full min-w-0 max-w-full items-center text-left hover:underline"
-                      type="button"
-                      onclick={() => {
-                        selectHomework(homework);
-                      }}
-                    >
-                      <span class="line-clamp-2 min-w-0 max-w-full break-words">
-                        {homework.title}
-                      </span>
-                    </button>
-                  </Item.Title>
-                  <Item.Description
-                    class="line-clamp-none flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 break-words"
-                  >
-                    <span class="max-w-full break-words">
-                      {sectionCopy.due}: {fmtDateTime(homework.submissionDueAt)}
-                    </span>
-                    {#if !showPersonalStatus && homework.completionRequired === false}
-                      <Badge variant="outline">{homeworkCopy.noCompletionRequired}</Badge>
-                    {/if}
-                    {#if homework.isMajor}
-                      <Badge variant="outline">{homeworkCopy.tagMajor}</Badge>
-                    {/if}
-                    {#if homework.requiresTeam}
-                      <Badge variant="outline">{homeworkCopy.tagTeam}</Badge>
-                    {/if}
-                  </Item.Description>
-                  {#if showPersonalStatus}
-                    <div class="grid min-w-0 gap-1" role="group" aria-label={homeworkCopy.myStatus}>
-                      <span class="text-sm text-muted-foreground">{homeworkCopy.myStatus}</span>
-                      {@render personalStatus(homework)}
-                    </div>
-                  {/if}
-                </Item.Content>
-              </MobileListCard>
-              {#if index < homeworks.length - 1}
-                <Item.Separator class="my-0" />
-              {/if}
-            {/each}
-          </Item.Group>
-        </div>
-      {/snippet}
-      {#snippet desktop()}
-        <div class="min-w-0">
-          <Table.Root>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head>{sectionCopy.title}</Table.Head>
-                <Table.Head>{sectionCopy.due}</Table.Head>
-                <Table.Head>{sectionCopy.flags}</Table.Head>
-                {#if showPersonalStatus}<Table.Head>{homeworkCopy.myStatus}</Table.Head>{/if}
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {#each homeworks as homework}
-                <Table.Row>
-                  <Table.Cell>
-                    <button
-                      class="min-h-11 max-w-full text-left break-words hover:underline"
-                      type="button"
-                      onclick={() => {
-                        selectHomework(homework);
-                      }}
-                    >
-                      {homework.title}
-                    </button>
-                  </Table.Cell>
-                  <Table.Cell
-                    >{fmtDateTime(homework.submissionDueAt)}</Table.Cell
-                  >
-                  <Table.Cell>
-                    <div class="flex min-w-0 flex-wrap gap-2">
-                      {#if !showPersonalStatus && homework.completionRequired === false}
-                        <Badge variant="outline">{homeworkCopy.noCompletionRequired}</Badge>
-                      {/if}
-                      {#if homework.isMajor}<Badge variant="outline"
-                          >{homeworkCopy.tagMajor}</Badge
-                        >{/if}
-                      {#if homework.requiresTeam}<Badge variant="outline"
-                          >{homeworkCopy.tagTeam}</Badge
-                        >{/if}
-                    </div>
-                  </Table.Cell>
-                  {#if showPersonalStatus}
-                    <Table.Cell><div role="group" aria-label={homeworkCopy.myStatus}>{@render personalStatus(homework)}</div></Table.Cell>
-                  {/if}
-                </Table.Row>
-              {/each}
-            </Table.Body>
-          </Table.Root>
-        </div>
-      {/snippet}
-    </ResponsiveCollection>
+    <RecordCollection rows={homeworks} rowKey={(homework) => homework.id}
+      {title} titleText={(homework) => homework.title} titleLabel={sectionCopy.title}
+      cardsTestId="section-homeworks-items"
+      fields={[
+        { label: sectionCopy.due, text: (homework) => fmtDateTime(homework.submissionDueAt) },
+        { label: sectionCopy.flags, content: flags },
+        ...(showPersonalStatus ? [{ label: homeworkCopy.myStatus, content: personalStatus }] : []),
+      ]}
+    />
   {/if}
 </div>

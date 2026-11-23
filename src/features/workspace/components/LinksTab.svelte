@@ -24,7 +24,6 @@ import WorkspaceEmptyState from "./WorkspaceEmptyState.svelte";
 
 export let workspaceCopy: WorkspaceCopy;
 export let submitWorkspaceLinkPin: WorkspaceLinkPinSubmit;
-export let linkIconLabel: (icon: string) => string;
 
 export let linkSearchQuery: string;
 export let linkReturnTo: string;
@@ -78,7 +77,6 @@ function apply(event: SubmitEvent) {
         {readOnlyReason}
         {workspaceCopy}
         {entry}
-        {linkIconLabel}
         {linkReturnTo}
         {submitWorkspaceLinkPin}
         {updatingCatalogLinkSlug}
@@ -105,7 +103,6 @@ function apply(event: SubmitEvent) {
         values={draft}
         onchange={change}
         filterLabels={common.tableFilters}
-        {linkIconLabel}
       >
         {#snippet searchControls()}
           <LinksTabToolbar id="catalog-link-search-desktop" {workspaceCopy} linkSearchQuery={draft.search ?? ""} onchange={(search) => change({ search })} />

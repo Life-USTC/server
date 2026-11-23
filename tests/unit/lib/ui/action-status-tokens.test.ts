@@ -59,7 +59,9 @@ describe("empty-variants", () => {
       "utf8",
     );
     expect(source).toContain("data-empty-variant={variant}");
-    expect(source).toContain('variant === "filter-clear" && onClearFilter');
+    expect(source).toContain(
+      'variant === "filter-clear" && (onClearFilter || clearHref) && clearFilterLabel',
+    );
     expect(source).toContain('variant === "quiet"');
   });
 });

@@ -16,7 +16,6 @@ import LinksTabToolbar from "./LinksTabToolbar.svelte";
 import WorkspaceEmptyState from "./WorkspaceEmptyState.svelte";
 
 export let workspaceCopy: Pick<WorkspaceCopy, "linkHub">;
-export let linkIconLabel: (icon: string) => string;
 
 export let linkSearchQuery: string;
 export let anonymousLinkGroups: AnonymousLinkGroup[];
@@ -60,7 +59,6 @@ function apply(event: SubmitEvent) {
     {#each filteredGroups as entry}
       <AnonymousLinksGroup
         {entry}
-        {linkIconLabel}
       />
     {:else}
       <WorkspaceEmptyState
@@ -82,7 +80,6 @@ function apply(event: SubmitEvent) {
         values={draft}
         onchange={change}
         filterLabels={common.tableFilters}
-        {linkIconLabel}
       >
         {#snippet searchControls()}
           <LinksTabToolbar id="catalog-link-search-desktop" {workspaceCopy} linkSearchQuery={draft.search ?? ""} onchange={(search) => change({ search })} />

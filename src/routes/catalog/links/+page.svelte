@@ -11,7 +11,6 @@ import { homePublicReadEpoch } from "@/features/demo/lib/demo-home-owner";
 import AnonymousLinksTab from "@/features/workspace/components/AnonymousLinksTab.svelte";
 import LinksTab from "@/features/workspace/components/LinksTab.svelte";
 import { workspaceCalendarOwner } from "@/features/workspace/lib/workspace-calendar-owner";
-import { linkIconLabel } from "@/features/workspace/lib/workspace-link-icon";
 import {
   applyCatalogLinkPinnedSlugs,
   currentCatalogLinkReturnTo,
@@ -209,7 +208,6 @@ afterNavigate(({ to }) => {
       readOnlyReason={data.demo?.readOnlyReason}
       {workspaceCopy}
       {linkActionError}
-      {linkIconLabel}
       {linkReturnTo}
       signedLinkGroups={linkGroups}
       submitWorkspaceLinkPin={submitWorkspaceLinkPin}
@@ -219,7 +217,6 @@ afterNavigate(({ to }) => {
   {:else}
     <AnonymousLinksTab
       {workspaceCopy}
-      {linkIconLabel}
       anonymousLinkGroups={linkGroups}
       bind:linkSearchQuery
     />

@@ -8,7 +8,6 @@ import LinksTab from "./LinksTab.svelte";
 
 export let workspaceCopy: WorkspaceCopy;
 export let linkActionError: string;
-export let linkIconLabel: (icon: string) => string;
 export let linkReturnTo: string;
 export let linkSearchQuery: string;
 export let signedLinkGroups: SignedLinkGroup[];
@@ -19,7 +18,6 @@ export let updatingCatalogLinkSlug: string | null;
 <LinksTab
   {workspaceCopy}
   {submitWorkspaceLinkPin}
-  {linkIconLabel}
   {linkReturnTo}
   {linkActionError}
   {updatingCatalogLinkSlug}

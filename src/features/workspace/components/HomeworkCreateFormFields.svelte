@@ -72,7 +72,7 @@ $: homeworkTimestampCapabilities = homeworkSemesterShortcutCapabilities({
 });
 </script>
 
-<Field.Group class="min-w-0 gap-5 px-5 py-4 sm:px-6 sm:py-5">
+<Field.FieldGroup class="px-5 py-4">
   {#if createHomeworkError}
     <Alert.Root variant="destructive">
       <Alert.Description>{createHomeworkError}</Alert.Description>
@@ -118,4 +118,4 @@ $: homeworkTimestampCapabilities = homeworkSemesterShortcutCapabilities({
     bind:submissionDueAt={createHomeworkSubmissionDueAt}
     bind:submissionStartAt={createHomeworkSubmissionStartAt}
   />
-</Field.Group>
+</Field.FieldGroup>

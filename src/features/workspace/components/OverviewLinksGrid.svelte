@@ -1,4 +1,5 @@
 <script lang="ts">
+import WorkspaceLinkIcon from "./WorkspaceLinkIcon.svelte";
 export let readOnlyReason: string | undefined = undefined;
 
 import { catalogLinkVisitHref } from "@/features/catalog-links/lib/catalog-links";
@@ -14,7 +15,6 @@ import type { WorkspaceCalendarTabHref } from "./workspace-calendar-component-ty
 
 export let workspaceCopy: WorkspaceCopy;
 export let workspaceTabHref: WorkspaceCalendarTabHref;
-export let linkIconLabel: (icon: string) => string;
 export let links: WorkspaceOverviewLinkItem[];
 export let submitWorkspaceLinkPin: (
   slug: string,
@@ -62,12 +62,7 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
             rel="noopener noreferrer"
             target="_blank"
           >
-            <span
-              aria-hidden="true"
-              class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-medium"
-            >
-              {linkIconLabel(link.icon)}
-            </span>
+            <WorkspaceLinkIcon name={link.icon} />
             <span class="grid min-w-0 gap-0.5">
               <span class="truncate font-medium text-sm">{link.title}</span>
               <span class="line-clamp-2 text-muted-foreground text-xs"
