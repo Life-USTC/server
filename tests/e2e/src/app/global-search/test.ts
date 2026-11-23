@@ -184,12 +184,17 @@ test("global search trigger opens dialog and navigates to a result", {
   await searchRun(async () => {
     await gotoAndWaitForReady(page, "/");
 
-    await page
+    const trigger = page
       .getByRole("button", { name: /打开搜索|Open search/i })
-      .first()
-      .click();
+      .first();
+    const triggerHeight = await trigger.evaluate(
+      (element) => getComputedStyle(element).height,
+    );
+    await trigger.click();
     const dialog = page.locator('[data-slot="dialog-content"]');
     await expect(dialog).toBeVisible();
+    const field = dialog.locator('[data-slot="input-group"]');
+    await expect(field).toHaveCSS("height", triggerHeight);
 
     const input = dialog.getByRole("combobox", { name: /搜索|Search/i });
     await expect(input).toBeVisible();

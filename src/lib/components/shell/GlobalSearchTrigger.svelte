@@ -1,5 +1,6 @@
 <script lang="ts">
 import SearchIcon from "@lucide/svelte/icons/search";
+import { toolbarFieldClass } from "#lib/components/toolbar-control.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Kbd from "#lib/components/ui/kbd/index.js";
 import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
@@ -15,7 +16,7 @@ $: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
 
 {#if variant === "desktop"}
   <Button
-    class="h-11 w-full max-w-sm justify-start gap-2 px-3 text-muted-foreground lg:max-w-md"
+    class="{toolbarFieldClass} w-full max-w-sm justify-start gap-2 px-3 text-muted-foreground lg:max-w-md"
     onclick={onOpen}
     type="button"
     variant="outline"

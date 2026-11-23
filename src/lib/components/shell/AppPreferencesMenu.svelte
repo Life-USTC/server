@@ -36,7 +36,7 @@ function setThemeValue(value: string) {
           size="icon-sm"
           variant="outline"
         >
-          <LanguagesIcon data-icon="inline-start" />
+          <LanguagesIcon class="size-3.5" aria-hidden="true" />
         </Button>
       {/snippet}
     </DropdownMenu.Trigger>
@@ -75,11 +75,11 @@ function setThemeValue(value: string) {
           variant="outline"
         >
           {#if themeMode === "light"}
-            <SunIcon data-icon="inline-start" />
+            <SunIcon class="size-3.5" aria-hidden="true" />
           {:else if themeMode === "dark"}
-            <MoonIcon data-icon="inline-start" />
+            <MoonIcon class="size-3.5" aria-hidden="true" />
           {:else}
-            <MonitorCogIcon data-icon="inline-start" />
+            <MonitorCogIcon class="size-3.5" aria-hidden="true" />
           {/if}
         </Button>
       {/snippet}
