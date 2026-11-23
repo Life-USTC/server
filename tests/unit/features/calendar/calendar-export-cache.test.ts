@@ -256,6 +256,22 @@ describe("用户 iCal 导出缓存", () => {
     expect(renewed.etag).toBe(changed.etag);
   });
 
+  it("keeps only the ETag validator on a second distinct feed in the same second", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.010Z"));
+    const first = await storeBuiltUserCalendarExport("user-1", calendarExport);
+    vi.advanceTimersByTime(25);
+    const update = { ...calendarExport, text: "changed event" };
+    const second = await storeBuiltUserCalendarExport("user-1", update);
+    expect(second.etag).not.toBe(first.etag);
+    expect(second.contentModifiedAtMs).toBeNull();
+    vi.advanceTimersByTime(USER_CALENDAR_EXPORT_FRESH_TTL_MS + 1);
+    expect(
+      (await storeBuiltUserCalendarExport("user-1", update))
+        .contentModifiedAtMs,
+    ).toBeNull();
+  });
+
   it("calendar.feed-refresh-coalescing", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
