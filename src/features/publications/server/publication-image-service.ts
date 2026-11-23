@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
-import { getCloudflareR2PublicationsBucket } from "@/lib/ports/runtime";
+import {
+  getCloudflareR2PublicationsBucket,
+  runCloudflareTraceSpan,
+} from "@/lib/ports/runtime";
 
 const PUBLIC_PUBLICATION_TYPES = ["news", "notice"] as const;
 const PUBLICATION_IMAGE_ORIGIN = "ustc.edu.cn";
@@ -438,7 +441,15 @@ async function fetchPublicationImage(
         );
       }
       return {
-        bytes: await readLimitedBody(response, controller.signal),
+        bytes: await runCloudflareTraceSpan(
+          "publication.image.read_body",
+          { "publication.image.redirect_count": redirect },
+          async (span) => {
+            const bytes = await readLimitedBody(response, controller.signal);
+            span?.setAttribute("publication.image.bytes", bytes.byteLength);
+            return bytes;
+          },
+        ),
         contentType,
       };
     }
