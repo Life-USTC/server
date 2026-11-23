@@ -26,6 +26,7 @@ import {
 import {
   changedImportGroups,
   importGroupDigest,
+  previousSectionRevisionTracked,
   semesterImportDigests,
 } from "./import-groups";
 import {
@@ -535,6 +536,12 @@ async function importSnapshot(
     ) {
       changed.add(sectionCoreGroup);
     }
+    if (
+      !changed.has(sectionCoreGroup) &&
+      !(await previousSectionRevisionTracked(tx))
+    ) {
+      changed.add(sectionCoreGroup);
+    }
     for (const [id, digest] of groupDigests) {
       if (!changed.has(id)) continue;
       await recordStaticImportState(tx, {
@@ -544,6 +551,12 @@ async function importSnapshot(
         transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
       });
     }
+    await recordStaticImportState(tx, {
+      id: "section-page-core-source",
+      observedAt,
+      snapshotSha256: config.snapshotSha256,
+      transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
+    });
     await step(recordStaticImportState, tx, {
       observedAt,
       youngSyncedAt: importedYoungSyncedAt,
