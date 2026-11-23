@@ -2,7 +2,7 @@ generator client {
   provider        = "prisma-client"
   runtime         = "cloudflare"
   output          = "../src/generated/prisma"
-  previewFeatures = ["partialIndexes"]
+  previewFeatures = ["partialIndexes", "relationJoins"]
 }
 
 generator toolClient {

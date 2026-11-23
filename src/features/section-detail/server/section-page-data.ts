@@ -28,6 +28,7 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
         { "catalog.detail.kind": "section" },
         async () =>
           await getPrisma(locale).section.findUnique({
+            relationLoadStrategy: "join",
             where: { jwId },
             select: {
               ...sectionPageSelect,
