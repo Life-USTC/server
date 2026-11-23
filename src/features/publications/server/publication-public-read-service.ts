@@ -30,7 +30,12 @@ function isPublicPublicationType(
   );
 }
 
-const PUBLICATION_READ_INCLUDE = {
+const PUBLICATION_DETAIL_SELECT = {
+  id: true,
+  canonicalUrl: true,
+  publicationType: true,
+  normalizedTitle: true,
+  publishedDateShanghai: true,
   source: {
     select: {
       id: true,
@@ -50,7 +55,12 @@ const PUBLICATION_READ_INCLUDE = {
         },
       },
       objectLinks: {
-        include: {
+        select: {
+          role: true,
+          sortOrder: true,
+          altText: true,
+          filename: true,
+          sourceUrl: true,
           object: {
             select: {
               kind: true,
@@ -66,7 +76,7 @@ const PUBLICATION_READ_INCLUDE = {
       },
     },
   },
-} satisfies Prisma.PublicationInclude;
+} satisfies Prisma.PublicationSelect;
 
 // Lists need revision metadata and object links, but never article bodies or
 // raw crawler metadata. Keep the wide read for the detail endpoint only.
@@ -74,7 +84,7 @@ const PUBLICATION_LIST_SELECT = {
   id: true,
   canonicalUrl: true,
   publicationType: true,
-  source: PUBLICATION_READ_INCLUDE.source,
+  source: PUBLICATION_DETAIL_SELECT.source,
   currentRevision: {
     select: {
       id: true,
@@ -92,7 +102,8 @@ const PUBLICATION_LIST_SELECT = {
       category: true,
       summary: true,
       sourcePageUrl: true,
-      objectLinks: PUBLICATION_READ_INCLUDE.currentRevision.include.objectLinks,
+      objectLinks:
+        PUBLICATION_DETAIL_SELECT.currentRevision.include.objectLinks,
     },
   },
 } satisfies Prisma.PublicationSelect;
@@ -708,7 +719,7 @@ async function findAlsoPublishedIn(record: {
 export async function getPublicPublicationById(id: string) {
   const record = await prisma.publication.findFirst({
     where: { id, ...publicPublicationWhere() },
-    include: PUBLICATION_READ_INCLUDE,
+    select: PUBLICATION_DETAIL_SELECT,
   });
   if (!record) return null;
   const publication = mapPublication(record);
