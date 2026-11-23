@@ -13,8 +13,8 @@ import {
   publicationReturnHref,
 } from "@/features/publications/lib/publication-page-navigation";
 import { page } from "$app/state";
-import PublicationTypeBadge from "./PublicationTypeBadge.svelte";
 import type { PageServerData } from "../../../routes/news/[id]/$types";
+import PublicationTypeBadge from "./PublicationTypeBadge.svelte";
 import type { PublicationPageCopy } from "./publication-component-types";
 
 let {
