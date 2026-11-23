@@ -1,7 +1,6 @@
 /** Paginated comment thread root + descendant read model. */
 import { Prisma } from "@/generated/prisma/client";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
-import { prisma } from "@/lib/db/prisma";
 import { getUserRlsTransactionClient } from "@/lib/db/rls-context";
 import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import {
@@ -35,12 +34,12 @@ import type { ResolvedCommentTarget } from "./comment-utils";
 type CommentRootPageRow = {
   id: string | null;
   total: bigint;
+  hiddenCount: bigint;
 };
 
-async function countAnonymousHiddenRoots(
+function anonymousHiddenRootCountSql(
   whereTarget: Record<string, number | string>,
-  counter?: CommentStageCounter,
-): Promise<number> {
+) {
   const sectionId =
     typeof whereTarget.sectionId === "number" ? whereTarget.sectionId : null;
   const courseId =
@@ -58,18 +57,10 @@ async function countAnonymousHiddenRoots(
       ? whereTarget.youngEventId
       : null;
 
-  countCommentStageQuery(counter);
-  const [row] = await prisma.$queryRaw<{ count: bigint }[]>`
-    SELECT public.comment_hidden_root_count(
-      ${sectionId},
-      ${courseId},
-      ${teacherId},
-      ${homeworkId},
-      ${sectionTeacherId},
-      ${youngEventId}
-    ) AS count
-  `;
-  return Number(row?.count ?? 0);
+  return Prisma.sql`public.comment_hidden_root_count(
+    ${sectionId}, ${courseId}, ${teacherId}, ${homeworkId},
+    ${sectionTeacherId}, ${youngEventId}
+  )`;
 }
 
 function commentTargetPredicate(
@@ -150,11 +141,12 @@ async function loadPaginatedCommentRoots(
       OFFSET ${pagination.skip}
       LIMIT ${pagination.pageSize}
     ),
-    root_total AS (
-      SELECT count(*)::bigint AS total
+    root_total AS MATERIALIZED (
+      SELECT count(*)::bigint AS total,
+             ${viewer.isAuthenticated ? Prisma.sql`0` : anonymousHiddenRootCountSql(target.whereTarget)} AS "hiddenCount"
       FROM eligible_roots
     )
-    SELECT page.id, total.total
+    SELECT page.id, total.total, total."hiddenCount"
     FROM root_total AS total
     LEFT JOIN paged_roots AS page ON TRUE
   `;
@@ -163,6 +155,7 @@ async function loadPaginatedCommentRoots(
   return {
     rootIds: rows.flatMap((row) => (row.id ? [row.id] : [])),
     total: Number(rows[0]?.total ?? 0),
+    hiddenCount: Number(rows[0]?.hiddenCount ?? 0),
   };
 }
 
@@ -322,7 +315,7 @@ export async function loadCommentThread(input: {
   }
   const { comments, hiddenCount, repliesNextCursorByRootId, total } =
     await withCommentDbContext(input.viewerUserId, async (client) => {
-      const rootPagePromise = runCloudflareTraceSpan(
+      const rootPage = await runCloudflareTraceSpan(
         "comments.root",
         {
           pageSize: pagination.pageSize,
@@ -346,12 +339,6 @@ export async function loadCommentThread(input: {
               ),
           }),
       );
-      const [rootPage, hiddenCount] = await Promise.all([
-        rootPagePromise,
-        viewer.isAuthenticated
-          ? Promise.resolve(0)
-          : countAnonymousHiddenRoots(input.target.whereTarget, rootCounter),
-      ]);
       const descendantsCounter = createCommentStageCounter({
         dbContext: input.viewerUserId ? "rls" : "none",
         dbLabel: "app",
@@ -388,7 +375,7 @@ export async function loadCommentThread(input: {
 
       return {
         comments: descendantResult.comments,
-        hiddenCount,
+        hiddenCount: rootPage.hiddenCount,
         repliesNextCursorByRootId: descendantResult.repliesNextCursorByRootId,
         total: rootPage.total,
       };
