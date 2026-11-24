@@ -239,12 +239,14 @@ export async function listSubscribedSchedules(
     async (ids) => {
       const localizedPrisma = getPrisma(locale);
       const dateFilter = dateRangeFilter(dateFrom, dateTo);
+      const hasStartWindow =
+        startMinuteFrom !== undefined || startMinuteTo !== undefined;
       const query = {
         where: {
           sectionId: { in: ids },
           section: { retiredAt: null },
           ...(dateFilter ? { date: dateFilter } : {}),
-          ...(startMinuteFrom !== undefined || startMinuteTo !== undefined
+          ...(hasStartWindow
             ? {
                 startTime: {
                   ...(startMinuteFrom !== undefined
@@ -261,6 +263,15 @@ export async function listSubscribedSchedules(
         orderBy: subscribedScheduleOrderBy,
         ...(limit ? { take: limit } : {}),
       } satisfies Prisma.ScheduleFindManyArgs;
+
+      if (hasStartWindow) {
+        // Prisma issues relation queries even when the schedule query returns no rows.
+        const first = await localizedPrisma.schedule.findFirst({
+          where: query.where,
+          select: { id: true },
+        });
+        if (!first) return [];
+      }
 
       return localizedPrisma.schedule.findMany({
         ...query,
