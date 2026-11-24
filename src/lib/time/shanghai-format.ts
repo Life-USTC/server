@@ -13,11 +13,26 @@ const MODERN_SHANGHAI_END_MS =
   Date.UTC(10000, 0, 1) - MODERN_SHANGHAI_OFFSET_MS;
 const formatterCache = new Map<string, Intl.DateTimeFormat>();
 
-function modernShanghaiIso(input: Date) {
+function modernShanghaiLocalTimeMs(input: Date) {
   const time = input.getTime();
   if (!(time >= MODERN_SHANGHAI_START_MS && time < MODERN_SHANGHAI_END_MS))
     return null;
-  return new Date(time + MODERN_SHANGHAI_OFFSET_MS).toISOString();
+  return time + MODERN_SHANGHAI_OFFSET_MS;
+}
+
+function modernShanghaiIso(input: Date) {
+  const time = modernShanghaiLocalTimeMs(input);
+  return time === null ? null : new Date(time).toISOString();
+}
+
+/** Expiry boundary for content scoped to a Shanghai calendar day. */
+export function nextShanghaiMidnightMs(input: Date) {
+  const localTime = modernShanghaiLocalTimeMs(input);
+  if (localTime === null) {
+    return shanghaiDayjs(input).add(1, "day").startOf("day").valueOf();
+  }
+  const dayMs = 86_400_000;
+  return input.getTime() + dayMs - (localTime % dayMs);
 }
 
 function formatModernShanghaiTimestamp(input: Date) {
