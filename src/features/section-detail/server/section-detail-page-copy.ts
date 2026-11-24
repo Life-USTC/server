@@ -11,7 +11,15 @@ export function getSectionDetailPageCopy(locale: AppLocale) {
   const copy = messages[locale];
   return {
     common: copy.common,
-    comments: copy.comments,
+    comments: {
+      loadFailed: copy.comments.loadFailed,
+      markdownGuide: copy.comments.markdownGuide,
+      previewEmpty: copy.comments.previewEmpty,
+      retry: copy.comments.retry,
+      tabPreview: copy.comments.tabPreview,
+      tabSectionTeacher: copy.comments.tabSectionTeacher,
+      tabWrite: copy.comments.tabWrite,
+    },
     descriptions: copy.descriptions,
     homeworks: copy.homeworks,
     metadata: copy.metadata,
