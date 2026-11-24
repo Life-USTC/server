@@ -10,6 +10,7 @@ import type { AppLocale } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 
+import { loadSectionPageLabels } from "./section-page-labels";
 import { loadSectionPageMutableData } from "./section-page-mutable-data";
 
 async function getSectionPageCore(jwId: number, locale: AppLocale) {
@@ -28,7 +29,7 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
         { "catalog.detail.kind": "section" },
         async () => {
           const db = getPrisma(locale);
-          const [core, sections] = await Promise.all([
+          const [core, sections, labels] = await Promise.all([
             db.section.findUnique({
               where: { jwId },
               select: {
@@ -39,6 +40,11 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
                     _count: { select: { sections: { where: relatedWhere } } },
                   },
                 },
+                campus: false,
+                roomType: false,
+                teachLanguage: false,
+                examMode: false,
+                openDepartment: false,
                 description: false,
                 teachers: sectionPageTeachersWithDepartmentSelect,
                 exams: sectionPageSelect.exams,
@@ -58,8 +64,16 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
               take: SECTION_RELATED_PREVIEW_LIMIT,
               select: sectionPageRelatedSectionSelect,
             }),
+            loadSectionPageLabels(db, jwId, locale),
           ]);
-          return core && { ...core, course: { ...core.course, sections } };
+          return (
+            core &&
+            labels && {
+              ...core,
+              ...labels,
+              course: { ...core.course, sections },
+            }
+          );
         },
       ),
   });

@@ -74,6 +74,17 @@ describe("section page data selection", () => {
     resetPublicRuntimeCacheForTest();
     sectionFindMany.mockResolvedValue(sectionRecord().course.sections);
     getPrisma.mockReturnValue({
+      $queryRaw: vi
+        .fn()
+        .mockResolvedValue([
+          {
+            campus: null,
+            roomType: null,
+            teachLanguage: null,
+            examMode: null,
+            openDepartment: null,
+          },
+        ]),
       section: { findUnique: sectionFindUnique, findMany: sectionFindMany },
     });
     mutableQuery.mockImplementation(async () => {
@@ -223,6 +234,7 @@ describe("section page data selection", () => {
           "updatedAt": "2026-03-01T08:00:00+08:00",
         },
         "section": {
+          "campus": null,
           "course": {
             "id": 10,
             "jwId": 100,
@@ -230,8 +242,10 @@ describe("section page data selection", () => {
           },
           "courseId": 10,
           "examCount": 0,
+          "examMode": null,
           "exams": [],
           "id": 20,
+          "openDepartment": null,
           "otherCourseSectionCount": 42,
           "otherCourseSections": [
             {
@@ -244,8 +258,10 @@ describe("section page data selection", () => {
             },
           ],
           "retiredAt": null,
+          "roomType": null,
           "scheduleCount": 0,
           "schedules": [],
+          "teachLanguage": null,
           "teachers": [],
         },
       }
