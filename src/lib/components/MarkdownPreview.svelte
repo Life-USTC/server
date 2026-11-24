@@ -4,7 +4,7 @@ import { renderEmbeddedMarkdown } from "#lib/components/markdown-preview-rendere
 import * as Empty from "#lib/components/ui/empty/index.js";
 import { cn } from "#lib/utils.js";
 import "#lib/components/markdown-preview.css";
-import "katex/dist/katex.min.css";
+import katexStylesheet from "katex/dist/katex.min.css?url";
 
 export let content = "";
 export let emptyLabel = "";
@@ -17,6 +17,12 @@ $: renderedHtml = content.trim()
   ? renderEmbeddedMarkdown(content, { remarkPlugins })
   : "";
 </script>
+
+<svelte:head>
+  {#if renderedHtml?.includes('class="katex')}
+    <link rel="stylesheet" href={katexStylesheet} />
+  {/if}
+</svelte:head>
 
 <div class={cn("markdown-preview text-sm", className)} data-slot="markdown-preview">
   {#if renderedHtml}
