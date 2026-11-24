@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
-import { getCloudflareR2PublicationsBucket } from "@/lib/ports/runtime";
+import {
+  getCloudflareR2PublicationsBucket,
+  runCloudflareTraceSpan,
+} from "@/lib/ports/runtime";
 
 const PUBLICATION_IMAGE_ORIGIN = "ustc.edu.cn";
 const PUBLICATION_IMAGE_MAX_REDIRECTS = 5;
@@ -416,7 +419,15 @@ async function fetchPublicationImage(
         );
       }
       return {
-        bytes: await readLimitedBody(response, controller.signal),
+        bytes: await runCloudflareTraceSpan(
+          "publication.image.read_body",
+          { "publication.image.redirect_count": redirect },
+          async (span) => {
+            const bytes = await readLimitedBody(response, controller.signal);
+            span?.setAttribute("publication.image.bytes", bytes.byteLength);
+            return bytes;
+          },
+        ),
         contentType,
       };
     }
@@ -444,7 +455,11 @@ export async function getPublicationImageResponse(input: {
   hash: string;
   defer?: (promise: Promise<unknown>) => void;
 }) {
-  const record = await findImageSource(input.hash);
+  const record = await runCloudflareTraceSpan(
+    "publication.image.find_source",
+    {},
+    () => findImageSource(input.hash),
+  );
   if (!record) return null;
   const originalUrl = record.originalUrl;
   const source = record.publication.source;
