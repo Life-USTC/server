@@ -121,7 +121,10 @@ async function loadSectionDetailPageData({
     todayCalendarKey: requireCampusDateKeyForValue(
       locals.demo ? new Date(DEMO_REFERENCE_NOW) : new Date(),
     ),
-    copy,
+    copy: {
+      ...copy,
+      metadata: { pages: { sectionDetail: copy.metadata.pages.sectionDetail } },
+    },
     descriptionData,
     commentsData: null,
     detailSection,

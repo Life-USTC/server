@@ -3,6 +3,7 @@
  * Transports map the decision to HTTP; the rules live here so they stay shared.
  */
 import { getUserCalendarAccessRecord } from "@/features/calendar/server/calendar-export-data";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 
 export type UserCalendarAccessDenial =
   | "forbidden"
@@ -44,7 +45,11 @@ export async function authorizeUserCalendarFeed(input: {
   );
   const token = tokenFromPath?.trim() || input.queryToken?.trim();
 
-  const user = await getUserCalendarAccessRecord(userId);
+  const user = await runCloudflareTraceSpan(
+    "calendar.feed.access.lookup",
+    {},
+    () => getUserCalendarAccessRecord(userId),
+  );
 
   if (token) {
     if (!user) return { ok: false, reason: "not_found" };
