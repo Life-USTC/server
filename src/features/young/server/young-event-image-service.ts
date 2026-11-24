@@ -78,6 +78,55 @@ function imageResponseHeaders(etag?: string) {
   return headers;
 }
 
+async function readImageBytes(origin: Response): Promise<ArrayBuffer> {
+  const tooLarge = () =>
+    new YoungEventImageOriginError(
+      `Young event image origin response exceeds ${YOUNG_EVENT_IMAGE_MAX_BYTES} bytes`,
+    );
+  if (
+    Number(origin.headers.get("Content-Length")) > YOUNG_EVENT_IMAGE_MAX_BYTES
+  ) {
+    await origin.body?.cancel().catch(() => undefined);
+    throw tooLarge();
+  }
+  if (!origin.body) return new ArrayBuffer(0);
+
+  const reader = origin.body.getReader();
+  let bytes = new Uint8Array(0);
+  let size = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const nextSize = size + value.byteLength;
+      if (nextSize > YOUNG_EVENT_IMAGE_MAX_BYTES) {
+        await reader.cancel().catch(() => undefined);
+        throw tooLarge();
+      }
+      if (nextSize > bytes.length) {
+        const capacity = Math.min(
+          YOUNG_EVENT_IMAGE_MAX_BYTES,
+          Math.max(nextSize, bytes.length * 2),
+        );
+        const buffer = new Uint8Array(capacity);
+        buffer.set(bytes);
+        bytes = buffer;
+      }
+      bytes.set(value, size);
+      size = nextSize;
+    }
+    return bytes.length === size ? bytes.buffer : bytes.buffer.slice(0, size);
+  } catch (error) {
+    if (error instanceof YoungEventImageOriginError) throw error;
+    throw new YoungEventImageOriginError(
+      "Failed to read young event image from origin",
+      { cause: error },
+    );
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 /**
  * Lazily cache an upstream image in R2 and serve it from our own origin.
  * Returns null when the path is not a safe relative pic path.
@@ -107,28 +156,34 @@ export async function getYoungEventImageByPathResponse(input: {
   const contentTypeFallback =
     guessImageContentType(imagePath) ?? "application/octet-stream";
 
-  const head = await bucket.head(key);
-  if (head) {
-    const etag = head.etag ? normalizeEtag(head.etag) : undefined;
-    const headers = imageResponseHeaders(etag);
+  if (input.request.headers.has("If-None-Match")) {
+    const head = await bucket.head(key);
+    const etag = head?.etag && normalizeEtag(head.etag);
     if (etag && requestMatchesEtag(input.request, etag)) {
-      return new Response(null, { status: 304, headers });
-    }
-    const object = await bucket.get(key);
-    if (object?.body) {
-      headers.set(
-        "Content-Type",
-        object.httpMetadata?.contentType ??
-          head.httpMetadata?.contentType ??
-          contentTypeFallback,
-      );
-      headers.set("Content-Length", String(object.size));
-      return new Response(object.body, { headers });
+      return new Response(null, {
+        status: 304,
+        headers: imageResponseHeaders(etag),
+      });
     }
   }
 
-  // Cache miss (or a head/get race): fetch the origin once, stream the bytes
-  // to the client, and persist the copy in R2 for subsequent requests.
+  const object = await bucket.get(key);
+  if (object) {
+    const etag = object.etag ? normalizeEtag(object.etag) : undefined;
+    const headers = imageResponseHeaders(etag);
+    if (etag && requestMatchesEtag(input.request, etag)) {
+      // A replacement may have landed since the conditional metadata check.
+      await object.body.cancel();
+      return new Response(null, { status: 304, headers });
+    }
+    headers.set(
+      "Content-Type",
+      object.httpMetadata?.contentType ?? contentTypeFallback,
+    );
+    headers.set("Content-Length", String(object.size));
+    return new Response(object.body, { headers });
+  }
+
   let origin: globalThis.Response;
   try {
     origin = await fetch(`${YOUNG_EVENT_IMAGE_ORIGIN}${imagePath}`);
@@ -163,26 +218,7 @@ export async function getYoungEventImageByPathResponse(input: {
     );
   }
 
-  const declaredLength = Number(origin.headers.get("Content-Length"));
-  if (
-    Number.isFinite(declaredLength) &&
-    declaredLength > YOUNG_EVENT_IMAGE_MAX_BYTES
-  ) {
-    throw new YoungEventImageOriginError(
-      `Young event image origin response exceeds ${YOUNG_EVENT_IMAGE_MAX_BYTES} bytes`,
-    );
-  }
-  const body = await origin.arrayBuffer().catch((error: unknown) => {
-    throw new YoungEventImageOriginError(
-      "Failed to read young event image from origin",
-      { cause: error },
-    );
-  });
-  if (body.byteLength > YOUNG_EVENT_IMAGE_MAX_BYTES) {
-    throw new YoungEventImageOriginError(
-      `Young event image origin response exceeds ${YOUNG_EVENT_IMAGE_MAX_BYTES} bytes`,
-    );
-  }
+  const body = await readImageBytes(origin);
 
   const store = bucket.put(key, body, { httpMetadata: { contentType } });
   if (input.defer) {
