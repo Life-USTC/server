@@ -10,13 +10,8 @@ import {
 export function sectionTeachersIncludeDepartments(
   teachers: SectionDetailPageData["section"]["teachers"],
 ): boolean {
-  return teachers.some(
-    (teacher) =>
-      teacher != null &&
-      typeof teacher === "object" &&
-      "department" in teacher &&
-      teacher.department != null,
-  );
+  // An expanded nullable relation can explicitly be null in the SSR payload.
+  return teachers.every((teacher) => teacher?.department !== undefined);
 }
 
 function sectionSchedulesSsrLoaded(
@@ -31,13 +26,6 @@ function sectionExamsSsrLoaded(
 ): boolean {
   if (section.examCount === 0) return true;
   return (section.exams?.length ?? 0) > 0;
-}
-
-function sectionTeachersSsrLoaded(
-  teachers: SectionDetailPageData["section"]["teachers"],
-): boolean {
-  if (teachers.length === 0) return true;
-  return sectionTeachersIncludeDepartments(teachers);
 }
 
 export function getSsrLoadedSectionDetailTabs(
@@ -67,7 +55,7 @@ export function getSsrLoadedSectionDetailTabs(
   if (loaded.includes("calendar") && loaded.includes("exams"))
     loaded.push("schedule");
 
-  if (sectionTeachersSsrLoaded(data.section.teachers)) {
+  if (sectionTeachersIncludeDepartments(data.section.teachers)) {
     loaded.push("teachers");
   }
 
