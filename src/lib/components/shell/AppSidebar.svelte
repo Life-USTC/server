@@ -8,6 +8,7 @@ import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import * as Sidebar from "#lib/components/ui/sidebar/index.js";
 import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
 import { cn } from "#lib/utils.js";
+import { preloadData } from "$app/navigation";
 import {
   displayNavigationScope,
   isCurrentScopeLink,
@@ -174,6 +175,36 @@ function revealCurrent(node: HTMLElement, active: boolean) {
   reveal(active);
   return { update: reveal, destroy: () => cancel() };
 }
+
+function preloadScheduleOnHover(
+  event: PointerEvent & { currentTarget: HTMLAnchorElement },
+) {
+  if (event.pointerType !== "mouse") return;
+  const connection = (
+    navigator as Navigator & { connection?: { saveData?: boolean } }
+  ).connection;
+  if (connection?.saveData) return;
+  const anchor = event.currentTarget;
+  const href = anchor.href;
+  const listeners = new AbortController();
+  const timer = window.setTimeout(() => {
+    listeners.abort();
+    if (
+      anchor.isConnected &&
+      anchor.href === href &&
+      anchor.matches(":hover") &&
+      location.href !== href
+    ) {
+      void preloadData(href).catch(() => {});
+    }
+  }, 150);
+  function cancel() {
+    window.clearTimeout(timer);
+    listeners.abort();
+  }
+  anchor.addEventListener("pointerleave", cancel, { signal: listeners.signal });
+  anchor.addEventListener("pointerdown", cancel, { signal: listeners.signal });
+}
 </script>
 
 {#snippet entry(link: ShellLink, depth: number, hasChildren: boolean)}
@@ -197,6 +228,7 @@ function revealCurrent(node: HTMLElement, active: boolean) {
           </button>
         {:else}
           <a {...props} href={link.href} data-detail-page={link.detail?.tab}
+            onpointerenter={!active && link.detail?.kind === "section" && link.detail.tab === "schedule" ? preloadScheduleOnHover : undefined}
             data-navigation-depth={depth}
             aria-label={link.ariaLabel ?? link.labelLines?.join("") ?? link.label}
             aria-current={active ? "page" : ancestor ? "location" : undefined}
