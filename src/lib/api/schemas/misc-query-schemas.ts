@@ -44,6 +44,12 @@ const subscribedSchedulesWeekdaySchema = integerQueryRangeSchema({
   message: "weekday must be between 1 and 7",
 });
 
+const scheduleStartMinuteSchema = integerQueryRangeSchema({
+  minimum: 0,
+  maximum: 1439,
+  message: "schedule start minute must be between 0 and 1439",
+});
+
 const subscribedSchedulesLimitSchema = integerQueryRangeSchema({
   minimum: 1,
   maximum: 300,
@@ -136,6 +142,8 @@ export const subscribedSchedulesQuerySchema = z.object({
   dateFrom: dateQuerySchema().optional(),
   dateTo: dateQuerySchema().optional(),
   weekday: subscribedSchedulesWeekdaySchema.optional(),
+  startMinuteFrom: scheduleStartMinuteSchema.optional(),
+  startMinuteTo: scheduleStartMinuteSchema.optional(),
   limit: subscribedSchedulesLimitSchema.optional(),
   locale: z.enum(APP_LOCALES).optional(),
 });

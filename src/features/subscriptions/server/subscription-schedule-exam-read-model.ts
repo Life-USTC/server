@@ -199,6 +199,10 @@ function upcomingKnownExamWhere(input: {
   };
 }
 
+function minuteToScheduleTime(minute: number) {
+  return Math.floor(minute / 60) * 100 + (minute % 60);
+}
+
 export async function listSubscribedSchedules(
   userId: string,
   {
@@ -206,6 +210,8 @@ export async function listSubscribedSchedules(
     dateFrom,
     dateTo,
     weekday,
+    startMinuteFrom,
+    startMinuteTo,
     limit,
     sectionIds,
     semesterId,
@@ -215,6 +221,8 @@ export async function listSubscribedSchedules(
     dateFrom?: Date;
     dateTo?: Date;
     weekday?: number;
+    startMinuteFrom?: number;
+    startMinuteTo?: number;
     limit?: number;
     sectionIds?: readonly number[];
     semesterId?: number;
@@ -236,6 +244,18 @@ export async function listSubscribedSchedules(
           sectionId: { in: ids },
           section: { retiredAt: null },
           ...(dateFilter ? { date: dateFilter } : {}),
+          ...(startMinuteFrom !== undefined || startMinuteTo !== undefined
+            ? {
+                startTime: {
+                  ...(startMinuteFrom !== undefined
+                    ? { gte: minuteToScheduleTime(startMinuteFrom) }
+                    : {}),
+                  ...(startMinuteTo !== undefined
+                    ? { lte: minuteToScheduleTime(startMinuteTo) }
+                    : {}),
+                },
+              }
+            : {}),
           ...(weekday ? { weekday } : {}),
         },
         orderBy: subscribedScheduleOrderBy,

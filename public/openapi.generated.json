@@ -3771,6 +3771,26 @@
           },
           {
             "in": "query",
+            "name": "startMinuteFrom",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0,
+              "maximum": 1439
+            }
+          },
+          {
+            "in": "query",
+            "name": "startMinuteTo",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0,
+              "maximum": 1439
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
