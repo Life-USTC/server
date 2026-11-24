@@ -37,7 +37,6 @@ export const sectionPageRelatedSectionSelect = {
 export const sectionPageSelect = {
   id: true,
   jwId: true,
-  retiredAt: true,
   code: true,
   credits: true,
   period: true,
