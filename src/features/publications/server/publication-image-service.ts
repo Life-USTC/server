@@ -1,6 +1,9 @@
 import { withRuntimeDatabaseAdapter } from "@/lib/db/prisma-adapter";
 import { logAppEvent } from "@/lib/log/app-logger";
-import { getCloudflareR2PublicationsBucket } from "@/lib/ports/runtime";
+import {
+  getCloudflareR2PublicationsBucket,
+  runCloudflareTraceSpan,
+} from "@/lib/ports/runtime";
 
 const PUBLICATION_IMAGE_ORIGIN = "ustc.edu.cn";
 const PUBLICATION_IMAGE_MAX_REDIRECTS = 5;
@@ -446,7 +449,11 @@ export async function getPublicationImageResponse(input: {
   hash: string;
   defer?: (promise: Promise<unknown>) => void;
 }) {
-  const record = await findImageSource(input.hash);
+  const record = await runCloudflareTraceSpan(
+    "publication.image.owner.read",
+    {},
+    () => findImageSource(input.hash),
+  );
   if (!record) return null;
   const originalUrl = record.originalUrl;
   const source = record.publication.source;
