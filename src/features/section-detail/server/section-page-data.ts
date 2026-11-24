@@ -26,33 +26,41 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
       runCloudflareTraceSpan(
         "catalog.detail.section.query",
         { "catalog.detail.kind": "section" },
-        async () =>
-          await getPrisma(locale).section.findUnique({
-            where: { jwId },
-            select: {
-              ...sectionPageSelect,
-              course: {
-                select: {
-                  ...sectionPageSelect.course.select,
-                  _count: { select: { sections: { where: relatedWhere } } },
-                  sections: {
-                    where: relatedWhere,
-                    orderBy: [
-                      { semester: { jwId: "desc" as const } },
-                      { code: "asc" as const },
-                      { jwId: "asc" as const },
-                    ],
-                    take: SECTION_RELATED_PREVIEW_LIMIT,
-                    select: sectionPageRelatedSectionSelect,
+        async () => {
+          const db = getPrisma(locale);
+          const [core, sections] = await Promise.all([
+            db.section.findUnique({
+              where: { jwId },
+              select: {
+                ...sectionPageSelect,
+                course: {
+                  select: {
+                    ...sectionPageSelect.course.select,
+                    _count: { select: { sections: { where: relatedWhere } } },
                   },
                 },
+                description: false,
+                teachers: sectionPageTeachersWithDepartmentSelect,
+                exams: sectionPageSelect.exams,
+                schedules: sectionPageSelect.schedules,
               },
-              description: false,
-              teachers: sectionPageTeachersWithDepartmentSelect,
-              exams: sectionPageSelect.exams,
-              schedules: sectionPageSelect.schedules,
-            },
-          }),
+            }),
+            db.section.findMany({
+              where: {
+                ...relatedWhere,
+                course: { sections: { some: { jwId } } },
+              },
+              orderBy: [
+                { semester: { jwId: "desc" } },
+                { code: "asc" },
+                { jwId: "asc" },
+              ],
+              take: SECTION_RELATED_PREVIEW_LIMIT,
+              select: sectionPageRelatedSectionSelect,
+            }),
+          ]);
+          return core && { ...core, course: { ...core.course, sections } };
+        },
       ),
   });
 
