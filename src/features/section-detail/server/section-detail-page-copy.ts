@@ -10,7 +10,14 @@ const messages = {
 export function getSectionDetailPageCopy(locale: AppLocale) {
   const copy = messages[locale];
   return {
-    common: copy.common,
+    common: {
+      error: copy.common.error,
+      home: copy.common.home,
+      sections: copy.common.sections,
+      signIn: copy.common.signIn,
+      undergraduateGraduate: copy.common.undergraduateGraduate,
+      unknown: copy.common.unknown,
+    },
     comments: {
       loadFailed: copy.comments.loadFailed,
       markdownGuide: copy.comments.markdownGuide,
