@@ -4,6 +4,7 @@ import CalendarPlusIcon from "@lucide/svelte/icons/calendar-plus";
 import SignInButton from "#lib/components/SignInButton.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
+import type { SectionSubscriptionCopy } from "@/features/section-detail/server/section-detail-page-copy";
 import SectionCancelSubscription from "@/features/subscriptions/components/SectionCancelSubscription.svelte";
 import { enhance, type SubmitFunction } from "$app/forms";
 
@@ -18,6 +19,7 @@ export let homeworkCopy: {
   cancel: string;
 };
 export let sectionCopy: {
+  subscriptions: SectionSubscriptionCopy;
   addToCalendar: string;
   unsubscribeLabel: string;
   subscribeLabel: string;
@@ -58,7 +60,7 @@ export let subscriptionPendingAction: "subscribe" | "unsubscribe" | null;
         {homeworkCopy.cancel}
       </Button>
       {#if isSubscribed}
-        <SectionCancelSubscription name={courseName} label={sectionCopy.unsubscribeLabel} pending={subscriptionPendingAction === "unsubscribe"} action={subscriptionAction("unsubscribe")} />
+        <SectionCancelSubscription copy={sectionCopy.subscriptions} name={courseName} label={sectionCopy.unsubscribeLabel} pending={subscriptionPendingAction === "unsubscribe"} action={subscriptionAction("unsubscribe")} />
       {:else if signedIn}
         <form
           method="POST"

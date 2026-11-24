@@ -23,11 +23,9 @@ export const sectionPageTeachersWithDepartmentSelect = {
 export const SECTION_RELATED_PREVIEW_LIMIT = 20;
 
 export const sectionPageRelatedSectionSelect = {
-  id: true,
   jwId: true,
   code: true,
-  semesterId: true,
-  semester: { select: { endDate: true, nameCn: true, startDate: true } },
+  semester: { select: { nameCn: true } },
   teachers: {
     select: {
       id: true,

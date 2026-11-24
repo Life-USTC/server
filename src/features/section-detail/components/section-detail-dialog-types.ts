@@ -1,5 +1,6 @@
 import type { CommentTargetOption } from "@/features/comments/lib/comment-ui";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
+import type { SectionSubscriptionCopy } from "@/features/section-detail/server/section-detail-page-copy";
 import type {
   SectionBasicInfoCopy,
   SectionCommonInfoCopy,
@@ -55,6 +56,7 @@ export type SectionDetailCommentsCopy = SectionCreateHomeworkCommentsCopy &
   SectionHomeworkMarkdownCopy;
 
 export type SectionDetailSectionCopy = SectionCreateHomeworkSectionCopy & {
+  subscriptions: SectionSubscriptionCopy;
   addToCalendar: string;
   calendarSheetDescription: string;
   calendarSheetTitle: string;
@@ -175,6 +177,7 @@ export type SectionDetailMainSectionCopy = SectionCalendarCopy &
   SectionHomeworkTabSectionCopy &
   SectionTeacherCopy &
   SectionBasicInfoCopy & {
+    subscriptions: SectionSubscriptionCopy;
     subscribeSuccess: string;
     scheduleDateTime: string;
     addToCalendar: string;
