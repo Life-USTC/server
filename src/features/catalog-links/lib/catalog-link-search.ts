@@ -1,5 +1,3 @@
-import { pinyin } from "pinyin-pro";
-import type { CatalogLinkItem } from "@/features/catalog-links/lib/catalog-links";
 import {
   CATALOG_LINK_GROUP_ORDER,
   type CatalogLinkGroup,
@@ -37,42 +35,6 @@ export function linkMatchesTokens(
       url.includes(token) ||
       link.titlePinyin.includes(token) ||
       link.descriptionPinyin.includes(token),
-  );
-}
-
-function toSearchPinyin(text: string) {
-  if (!text.trim()) return "";
-  return pinyin(text, { toneType: "none" }).replace(/\s+/g, "").toLowerCase();
-}
-
-function toSearchableFields(
-  title: string,
-  description: string,
-  url: string,
-): CatalogLinkSearchable {
-  return {
-    title,
-    description,
-    url,
-    titlePinyin: toSearchPinyin(title),
-    descriptionPinyin: toSearchPinyin(description),
-    group: "life",
-  };
-}
-
-export function catalogLinkItemMatchesTokens(
-  link: CatalogLinkItem,
-  tokens: string[],
-) {
-  const localizedFields = [
-    { title: link.title, description: link.description },
-    link.localizations["en-us"],
-  ];
-  return localizedFields.some((fields) =>
-    linkMatchesTokens(
-      toSearchableFields(fields.title, fields.description, link.url),
-      tokens,
-    ),
   );
 }
 
