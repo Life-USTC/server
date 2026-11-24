@@ -592,3 +592,38 @@ test("页面契约", { tag: "@Section/Web" }, async ({
     });
   });
 });
+
+test(
+  "anonymous schedule uses public data before opening homework",
+  { tag: "@Section/Web" },
+  async ({ page, preferenceFlow, detailCatalog, isolatedWorker }) => {
+    await preferenceFlow.prepare(() =>
+      isolatedWorker.database.owner.$transaction((db) =>
+        arrangeSectionDetails(db, detailCatalog),
+      ),
+    );
+    await preferenceFlow.run(async () => {
+      const viewerPath = `/_internal/catalog/sections/${DEV_SEED.section.jwId}/viewer`;
+      const requests: string[] = [];
+      page.on("request", (request) => {
+        if (new URL(request.url()).pathname === viewerPath)
+          requests.push(request.url());
+      });
+      await gotoAndWaitForReady(page, `${SECTION_URL}/schedule`);
+      await waitForUiSettled(page);
+      await expect(page.locator("#calendar")).toBeVisible();
+      expect(requests).toHaveLength(0);
+      const viewerResponse = page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === viewerPath &&
+          response.status() === 200,
+      );
+      await page
+        .locator(`a[href="${SECTION_URL}/homework"]:visible`)
+        .first()
+        .click();
+      await viewerResponse;
+      expect(requests).toHaveLength(1);
+    });
+  },
+);
