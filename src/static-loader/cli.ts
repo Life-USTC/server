@@ -3,8 +3,8 @@ import { createHash } from "node:crypto";
 import { createReadStream, existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { runImport } from "./import";
-import { runPostImportCachePurge } from "./post-import-cache-purge";
 import { createPrismaClient } from "./prisma";
+import { purgeImportGeneration } from "./purge-import-generation";
 import { Snapshot } from "./snapshot";
 import { parseBooleanSetting } from "./validation";
 
@@ -66,9 +66,7 @@ async function main() {
       await writeFile(statsFile, JSON.stringify(report, null, 2));
     }
 
-    // Applied and unchanged snapshots both invalidate, so failed purges can
-    // be retried without rematerializing the snapshot.
-    const purge = await runPostImportCachePurge(report);
+    const purge = await purgeImportGeneration(prisma, report);
     if (purge.failed) {
       // The import itself succeeded, so keep its report; but a stale edge
       // after a committed import is a correctness problem, not a warning.
