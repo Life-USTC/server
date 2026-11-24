@@ -40,15 +40,9 @@ function sectionRecord() {
       sections: [
         {
           code: "002",
-          id: 21,
           jwId: 31,
-          semester: {
-            endDate: new Date("2026-07-01T00:00:00.000Z"),
-            nameCn: "2026春",
-            startDate: new Date("2026-02-01T00:00:00.000Z"),
-          },
-          semesterId: 20261,
-          teacherParticipations: [],
+          semester: { nameCn: "2026春" },
+          teachers: [],
         },
       ],
     },
@@ -205,11 +199,7 @@ describe("section page data selection", () => {
     expect(result?.section.otherCourseSections).toEqual([
       expect.objectContaining({
         jwId: 31,
-        semester: {
-          endDate: "2026-07-01T00:00:00.000Z",
-          nameCn: "2026春",
-          startDate: "2026-02-01T00:00:00.000Z",
-        },
+        semester: { nameCn: "2026春" },
       }),
     ]);
     expect(result).toMatchInlineSnapshot(`
@@ -236,15 +226,11 @@ describe("section page data selection", () => {
           "otherCourseSections": [
             {
               "code": "002",
-              "id": 21,
               "jwId": 31,
               "semester": {
-                "endDate": "2026-07-01T00:00:00.000Z",
                 "nameCn": "2026春",
-                "startDate": "2026-02-01T00:00:00.000Z",
               },
-              "semesterId": 20261,
-              "teacherParticipations": [],
+              "teachers": [],
             },
           ],
           "retiredAt": null,
