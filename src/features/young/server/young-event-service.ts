@@ -16,7 +16,6 @@ import {
   readYoungCalendarFacts,
   readYoungSyncedAt,
 } from "./young-calendar-query";
-import { renderYoungEventHtml } from "./young-event-html";
 import { youngEventImageUrl } from "./young-event-image-service";
 import { buildYoungEventListQuery } from "./young-event-query";
 
@@ -430,6 +429,7 @@ export async function getYoungEvent(
         },
       });
       if (record == null) return null;
+      const { renderYoungEventHtml } = await import("./young-event-html");
       const { rawJson, description, participationNotes, ...summaryRecord } =
         record;
       return {
