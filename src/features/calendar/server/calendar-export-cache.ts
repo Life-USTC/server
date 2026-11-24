@@ -1,7 +1,10 @@
 import { enqueueUserCalendarExportRebuild } from "@/features/calendar/server/calendar-export-queue";
 import { sha256Base64Url } from "@/lib/crypto/web-crypto";
 import { writeCalendarFeedCacheAnalytics } from "@/lib/metrics/analytics-engine";
-import { getCloudflareCalendarExportsNamespace } from "@/lib/ports/runtime";
+import {
+  getCloudflareCalendarExportsNamespace,
+  runCloudflareTraceSpan,
+} from "@/lib/ports/runtime";
 
 const USER_CALENDAR_EXPORT_CACHE_VERSION = 2;
 // Keep feeds "fresh" longer so calendar clients that poll often do not force a
@@ -128,11 +131,39 @@ async function readStoredCalendar(userId: string) {
   if (!namespace) return memoryEntry?.calendar ?? null;
 
   try {
-    const entry = await namespace.get<StoredUserCalendarExport>(
-      cacheKey(userId),
-      {
-        cacheTtl: USER_CALENDAR_EXPORT_KV_CACHE_TTL_SECONDS,
-        type: "json",
+    const key = cacheKey(userId);
+    const cacheTtl = USER_CALENDAR_EXPORT_KV_CACHE_TTL_SECONDS;
+    const entry = await runCloudflareTraceSpan(
+      "calendar.export.kv.read",
+      { "calendar.retained": Boolean(memoryEntry) },
+      async (span) => {
+        if (!memoryEntry || !namespace.getWithMetadata) {
+          const value = await namespace.get(key, { cacheTtl, type: "json" });
+          span?.setAttribute(
+            "calendar.body.source",
+            value === null ? "missing" : "kv_json",
+          );
+          return value;
+        }
+        const { value, metadata } = await namespace.getWithMetadata<
+          Omit<StoredUserCalendarExport, "text">
+        >(key, { cacheTtl, type: "stream" });
+        if (!value) {
+          span?.setAttribute("calendar.body.source", "missing");
+          return null;
+        }
+        const reused =
+          metadata?.etag === memoryEntry.calendar.etag
+            ? { ...metadata, text: memoryEntry.calendar.text }
+            : null;
+        if (isStoredUserCalendarExport(reused)) {
+          await value.cancel();
+          span?.setAttribute("calendar.body.source", "memory");
+          return reused;
+        }
+        const parsed: unknown = await new Response(value).json();
+        span?.setAttribute("calendar.body.source", "kv_stream");
+        return parsed;
       },
     );
     // Invalidation or a completed rebuild may replace this entry while KV is
@@ -177,7 +208,12 @@ async function persistStoredCalendar(
   if (!namespace) return true;
 
   try {
+    const { text: _text, ...metadata } = entry;
     await namespace.put(cacheKey(userId), JSON.stringify(entry), {
+      // KV metadata is limited to 1024 UTF-8 bytes.
+      ...(new TextEncoder().encode(JSON.stringify(metadata)).length <= 1024
+        ? { metadata }
+        : {}),
       expirationTtl: USER_CALENDAR_EXPORT_KV_EXPIRATION_TTL_SECONDS,
     });
     return true;
