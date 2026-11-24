@@ -39,6 +39,7 @@ const PUBLICATION_READ_INCLUDE = {
     },
   },
   currentRevision: {
+    omit: { rawMetadata: true },
     include: {
       imageSourceRefs: {
         orderBy: { imageSourceId: "asc" },
