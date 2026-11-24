@@ -1,5 +1,4 @@
-import { getUserSectionSubscriptionStatusForSection } from "@/features/subscriptions/server/subscriptions";
-import { prisma } from "@/lib/db/prisma";
+import { prisma, withUserDbContext } from "@/lib/db/prisma";
 import { getSectionHomeworkData } from "./section-detail-homework-data";
 
 /** Web-only projection. Public HTML must never call this reader. */
@@ -13,19 +12,23 @@ export async function getSectionPersonalData(input: {
     select: { id: true },
   });
   if (!section) return null;
+  const { userId } = input;
   const [subscription, homeworkData] = await Promise.all([
-    input.userId
-      ? getUserSectionSubscriptionStatusForSection(input.userId, input.jwId)
+    userId
+      ? withUserDbContext(userId, (tx) =>
+          tx.userSectionSubscription.findUnique({
+            where: { userId_sectionId: { userId, sectionId: section.id } },
+            select: { kind: true },
+          }),
+        )
       : null,
     getSectionHomeworkData(section.id, input.userId, input.focusedHomeworkId),
   ]);
   return {
     viewer: {
       signedIn: homeworkData.viewer.isAuthenticated,
-      isSubscribed: subscription?.isSubscribed ?? false,
-      ...(subscription?.isSubscribed && subscription.kind
-        ? { subscriptionKind: subscription.kind }
-        : {}),
+      isSubscribed: subscription != null,
+      ...(subscription ? { subscriptionKind: subscription.kind } : {}),
     },
     homeworkData,
   };

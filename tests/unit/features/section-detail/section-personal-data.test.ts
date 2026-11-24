@@ -7,9 +7,8 @@ const { findSection, readSubscription, readHomeworks } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/db/prisma", () => ({
   prisma: { section: { findUnique: findSection } },
-}));
-vi.mock("@/features/subscriptions/server/subscriptions", () => ({
-  getUserSectionSubscriptionStatusForSection: readSubscription,
+  withUserDbContext: (_userId: string, action: (tx: unknown) => unknown) =>
+    action({ userSectionSubscription: { findUnique: readSubscription } }),
 }));
 vi.mock(
   "@/features/section-detail/server/section-detail-homework-data",
@@ -66,7 +65,10 @@ describe("section Web personal projection", () => {
         userId,
         focusedHomeworkId: "hw-1",
       });
-      expect(readSubscription).toHaveBeenLastCalledWith(userId, 301);
+      expect(readSubscription).toHaveBeenLastCalledWith({
+        where: { userId_sectionId: { userId, sectionId: 31 } },
+        select: { kind: true },
+      });
       expect(readHomeworks).toHaveBeenLastCalledWith(31, userId, "hw-1");
       expect(result?.viewer).toEqual({
         signedIn: true,
