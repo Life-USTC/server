@@ -51,18 +51,22 @@ export function requireCampusDateKeyForValue(value: CampusDateValue) {
   return key;
 }
 
-export function parseCampusDateKey(key: string) {
+function validatedCampusDate(key: string) {
   if (!DATE_KEY_PATTERN.test(key)) return null;
   const parsed = parseDateInput(key);
   if (!(parsed instanceof Date)) return null;
-  if (formatShanghaiDate(parsed) !== key) return null;
-  return shanghaiDayjs(parsed).startOf("day");
+  return formatShanghaiDate(parsed) === key ? parsed : null;
+}
+
+export function parseCampusDateKey(key: string) {
+  const date = validatedCampusDate(key);
+  return date ? shanghaiDayjs(date).startOf("day") : null;
 }
 
 export function isCampusDateKey(
   value: string | null | undefined,
 ): value is string {
-  return Boolean(value && parseCampusDateKey(value));
+  return Boolean(value && validatedCampusDate(value));
 }
 
 export function isCampusMonthKey(
