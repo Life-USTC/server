@@ -421,7 +421,15 @@ async function fetchPublicationImage(
         );
       }
       return {
-        bytes: await readLimitedBody(response, controller.signal),
+        bytes: await runCloudflareTraceSpan(
+          "publication.image.read_body",
+          { "publication.image.redirect_count": redirect },
+          async (span) => {
+            const bytes = await readLimitedBody(response, controller.signal);
+            span?.setAttribute("publication.image.bytes", bytes.byteLength);
+            return bytes;
+          },
+        ),
         contentType,
       };
     }
@@ -450,7 +458,7 @@ export async function getPublicationImageResponse(input: {
   defer?: (promise: Promise<unknown>) => void;
 }) {
   const record = await runCloudflareTraceSpan(
-    "publication.image.owner.read",
+    "publication.image.find_source",
     {},
     () => findImageSource(input.hash),
   );
