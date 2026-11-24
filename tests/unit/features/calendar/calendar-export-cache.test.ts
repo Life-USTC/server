@@ -11,7 +11,11 @@ import {
   scheduleUserCalendarExportRebuild,
   setCalendarExportRebuildSenderForTest,
 } from "@/features/calendar/server/calendar-export-queue";
-import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import {
+  type CloudflareTraceSpan,
+  runWithCloudflareRuntimeEnv,
+  setCloudflareRuntimeEnv,
+} from "@/lib/adapters/cloudflare-runtime";
 import { createDeferred } from "../../../shared/deferred";
 
 const calendarExport = {
@@ -81,6 +85,48 @@ describe("用户 iCal 导出缓存", () => {
       (await getCachedUserCalendarExport("user-1", build)).calendar,
     ).toEqual(updated);
     expect(namespace.get).not.toHaveBeenCalled();
+  });
+
+  it("reports the KV body source only for completed reads", async () => {
+    vi.useFakeTimers();
+    const namespace = kvNamespace();
+    const getWithMetadata = vi.fn();
+    const setAttribute = vi.fn();
+    const enterSpan = <T>(name: string, callback: (span: CloudflareTraceSpan) => T) => {
+      expect(name).toBe("calendar.export.kv.read");
+      return callback({ isTraced: true, setAttribute });
+    };
+    await runWithCloudflareRuntimeEnv(
+      { CALENDAR_EXPORTS: { ...namespace, getWithMetadata } },
+      async () => {
+        const build = vi.fn().mockResolvedValue(calendarExport);
+        const read = () => getCachedUserCalendarExport("user-1", build);
+        const { calendar: stored } = await read();
+        if (!stored) throw new Error("Expected initial calendar build to succeed");
+        resetUserCalendarExportCacheForTest();
+        await read();
+        await read(); // Still fresh in memory; no KV span.
+        const { text: _text, ...metadata } = stored;
+        vi.advanceTimersByTime(61_000);
+        getWithMetadata.mockResolvedValueOnce({
+          metadata, value: new Response("unused").body,
+        });
+        await read();
+        vi.advanceTimersByTime(61_000);
+        getWithMetadata.mockResolvedValueOnce({
+          metadata: null, value: new Response(JSON.stringify(stored)).body,
+        });
+        await read();
+        vi.advanceTimersByTime(61_000);
+        getWithMetadata.mockRejectedValueOnce(new Error("KV unavailable"));
+        expect((await read()).calendar).toEqual(stored);
+        getWithMetadata.mockResolvedValueOnce({ metadata: null, value: null });
+        await read();
+        expect(setAttribute.mock.calls.filter(([key]) => key === "calendar.body.source")
+          .map(([, source]) => source)).toEqual(["missing", "kv_json", "memory", "kv_stream", "missing"]);
+      },
+      { tracing: { enterSpan } },
+    );
   });
 
   it("ical.feed-telemetry-private", async () => {
