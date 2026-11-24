@@ -6,12 +6,13 @@ import {
   type CatalogNamed,
   catalogLocalizedDisplayName,
 } from "@/features/catalog/lib/catalog-list-display";
-import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
+import type { SectionSubscriptionCopy } from "@/features/section-detail/server/section-detail-page-copy";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page } from "$app/state";
 import SectionDetailPrimaryActions from "./SectionDetailPrimaryActions.svelte";
 
 type SectionHeaderCopy = {
+  subscriptions: SectionSubscriptionCopy;
   addToCalendar: string;
   historicalSectionDescription: string;
   historicalSectionLabel: string;
@@ -46,7 +47,7 @@ export let viewer: SectionHeaderViewer;
 let locale: "en-us" | "zh-cn";
 $: locale = page.data.locale === "en-us" ? "en-us" : "zh-cn";
 $: hasCourseName = courseName !== section.code;
-$: subscriptionsCopy = getWorkspacePageCopy(locale).subscriptions;
+$: subscriptionsCopy = sectionCopy.subscriptions;
 </script>
 
 <PageHeader

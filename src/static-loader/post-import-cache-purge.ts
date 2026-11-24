@@ -95,20 +95,22 @@ export async function runPostImportCachePurge(
 
   const allowSkip = allowSkippingPostImportCachePurge();
 
-  const zone = await runLayer(
-    "Cloudflare zone/CDN",
-    () => purgeCloudflareCacheByTags([CATALOG_EDGE_CACHE_TAG]),
-    "CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN not set",
-    logger,
-    allowSkip,
-  );
-  const workerEntrypoint = await runLayer(
-    "Workers entrypoint (public SSR)",
-    purgeWorkerEntrypointCache,
-    "APP_PUBLIC_ORIGIN or EDGE_CACHE_PURGE_SECRET not set",
-    logger,
-    allowSkip,
-  );
+  const [zone, workerEntrypoint] = await Promise.all([
+    runLayer(
+      "Cloudflare zone/CDN",
+      () => purgeCloudflareCacheByTags([CATALOG_EDGE_CACHE_TAG]),
+      "CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN not set",
+      logger,
+      allowSkip,
+    ),
+    runLayer(
+      "Workers entrypoint (public SSR)",
+      purgeWorkerEntrypointCache,
+      "APP_PUBLIC_ORIGIN or EDGE_CACHE_PURGE_SECRET not set",
+      logger,
+      allowSkip,
+    ),
+  ]);
 
   return {
     failed: zone === "failed" || workerEntrypoint === "failed",
