@@ -10,7 +10,6 @@ import {
   maintainObservabilityRetention,
 } from "./features/admin/server/audit-retention";
 import { cleanupExpiredAuthRecords } from "./features/auth/server/auth-record-cleanup";
-import { handleCalendarExportRebuildBatch } from "./features/calendar/server/calendar-export-rebuild";
 import {
   isCatalogListPath,
   normalizeCatalogListQuery,
@@ -554,7 +553,11 @@ export default {
                 return handleAuditLogWriteBatch(batch);
               }
               if (queue === "calendar") {
-                return handleCalendarExportRebuildBatch(batch);
+                return import(
+                  "./features/calendar/server/calendar-export-rebuild"
+                ).then(({ handleCalendarExportRebuildBatch }) =>
+                  handleCalendarExportRebuildBatch(batch),
+                );
               }
               if (
                 queue === "audit-dead-letter" ||
