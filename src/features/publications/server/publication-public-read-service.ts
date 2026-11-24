@@ -709,10 +709,19 @@ async function findAlsoPublishedIn(record: {
   );
 }
 
-export async function getPublicPublicationById(id: string) {
+export async function getPublicPublicationById(
+  id: string,
+  { includeBodyText = true } = {},
+) {
   const record = await prisma.publication.findFirst({
     where: { id, ...publicPublicationWhere() },
-    include: PUBLICATION_READ_INCLUDE,
+    include: {
+      ...PUBLICATION_READ_INCLUDE,
+      currentRevision: {
+        ...PUBLICATION_READ_INCLUDE.currentRevision,
+        omit: { bodyText: !includeBodyText, rawMetadata: true },
+      },
+    },
   });
   if (!record) return null;
   const publication = mapPublication(record);
@@ -742,7 +751,7 @@ export async function getPublicPublicationById(id: string) {
     revision: {
       ...publication.revision,
       images,
-      bodyText: revision.bodyText,
+      bodyText: revision.bodyText ?? null,
       bodyMarkdown,
       extractionMethod: revision.extractionMethod,
       classifierVersion: revision.classifierVersion,
