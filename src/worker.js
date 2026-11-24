@@ -19,7 +19,6 @@ import {
 import { setDemoPrivateHeaders } from "./features/demo/server/demo-request-boundary";
 import { cleanupStaleUploadPendingStorage } from "./features/uploads/server/upload-pending-cleanup";
 import { runWeatherCronSnapshot } from "./features/weather/server/weather-cron";
-import { runYoungNotificationCron } from "./features/young/server/young-notification-cron";
 import {
   getCloudflareRuntimeTaskScheduler,
   runWithCloudflareRuntimeEnv,
@@ -636,6 +635,9 @@ export default {
 
               if (controller.cron === YOUNG_NOTIFICATION_CRON) {
                 task = "young-notifications";
+                const { runYoungNotificationCron } = await import(
+                  "./features/young/server/young-notification-cron"
+                );
                 const report =
                   await runYoungNotificationCron(maintenancePrisma);
                 logScheduledTaskFinish(task, report, elapsedMs(startMs));
