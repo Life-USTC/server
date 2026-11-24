@@ -74,9 +74,9 @@ describe("section page data selection", () => {
     resetPublicRuntimeCacheForTest();
     sectionFindMany.mockResolvedValue(sectionRecord().course.sections);
     getPrisma.mockReturnValue({
-      $queryRaw: vi
-        .fn()
-        .mockResolvedValue([
+      $queryRaw: vi.fn(async (query: TemplateStringsArray) => {
+        if (query.join("").includes('JOIN "Exam"')) return [];
+        return [
           {
             campus: null,
             roomType: null,
@@ -84,7 +84,8 @@ describe("section page data selection", () => {
             examMode: null,
             openDepartment: null,
           },
-        ]),
+        ];
+      }),
       section: { findUnique: sectionFindUnique, findMany: sectionFindMany },
     });
     mutableQuery.mockImplementation(async () => {
