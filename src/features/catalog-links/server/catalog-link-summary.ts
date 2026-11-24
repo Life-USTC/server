@@ -8,10 +8,19 @@ import {
   type LocalizedCatalogLinkItem,
 } from "@/features/catalog-links/lib/catalog-links";
 
+// Both callers use titles and descriptions from the bundled catalog.
+const catalogTextPinyin = new Map<string, string>();
+
 /** Lowercase pinyin (no tones, no spaces) for client-side search and IME. */
 function toSearchPinyin(text: string): string {
   if (!text.trim()) return "";
-  return pinyin(text, { toneType: "none" }).replace(/\s+/g, "").toLowerCase();
+  const cached = catalogTextPinyin.get(text);
+  if (cached !== undefined) return cached;
+  const result = pinyin(text, { toneType: "none" })
+    .replace(/\s+/g, "")
+    .toLowerCase();
+  catalogTextPinyin.set(text, result);
+  return result;
 }
 
 export type CatalogLinkSummary = {
