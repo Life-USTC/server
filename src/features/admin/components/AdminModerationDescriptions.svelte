@@ -1,14 +1,10 @@
 <script lang="ts">
-import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
-import SquarePen from "@lucide/svelte/icons/square-pen";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import TableControlsRow from "#lib/components/TableControlsRow.svelte";
-import TableIconButton from "#lib/components/TableIconButton.svelte";
-import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
-import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import Table from "#lib/components/ui/table/table.svelte";
+import AdminEditAction from "./AdminEditAction.svelte";
 import {
   adminModerationDescriptionEditedAt,
   adminModerationDescriptionLastEditor,
@@ -63,16 +59,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
       </Item.Description>
     </Item.Content>
     <Item.Actions class="shrink-0 self-start">
-      <Button
-        aria-label={copy.manageDescription}
-        onclick={() => onManage(description)}
-        size="sm"
-        type="button"
-        variant="ghost"
-      >
-        {copy.manageDescription}
-        <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
-      </Button>
+      <AdminEditAction layout="card" label={copy.manageDescription} onclick={() => onManage(description)} />
     </Item.Actions>
     {/snippet}
     {#snippet desktop(emptyState)}
@@ -119,16 +106,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
                 {formatDate(adminModerationDescriptionEditedAt(description))}
               </td>
               <td class="w-14 min-w-14 text-left">
-                <TableRowActions>
-                  <TableIconButton
-                    label={copy.manageDescription}
-                    onclick={() => {
-                      onManage(description);
-                    }}
-                  >
-                    <SquarePen />
-                  </TableIconButton>
-                </TableRowActions>
+                <AdminEditAction layout="table" label={copy.manageDescription} onclick={() => onManage(description)} />
               </td>
             </tr>
           {:else}

@@ -53,10 +53,6 @@ const suspendDurationOptions = $derived(
   })),
 );
 
-function inputValue(event: Event) {
-  return (event.currentTarget as HTMLInputElement).value;
-}
-
 function formatDate(value: Date | string | null | undefined) {
   return value ? dateTimeFormatter.format(new Date(value)) : "";
 }
@@ -179,7 +175,6 @@ function apply(event: SubmitEvent) {
   bind:editIsAdmin={form.editIsAdmin}
   bind:editName={form.editName}
   bind:editUsername={form.editUsername}
-  {inputValue}
   isLiftingSuspension={form.isLiftingSuspension}
   isSaving={form.isSaving}
   isSuspending={form.isSuspending}

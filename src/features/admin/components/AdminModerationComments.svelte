@@ -1,13 +1,9 @@
 <script lang="ts">
-import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
-import SquarePen from "@lucide/svelte/icons/square-pen";
 import TableControlsRow from "#lib/components/TableControlsRow.svelte";
-import TableIconButton from "#lib/components/TableIconButton.svelte";
-import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
-import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import Table from "#lib/components/ui/table/table.svelte";
+import AdminEditAction from "./AdminEditAction.svelte";
 import type {
   AdminModerationComment,
   AdminModerationCommentFormatter,
@@ -52,16 +48,7 @@ export let targetLabel: AdminModerationCommentFormatter;
       </Item.Content>
       <Item.Actions class="shrink-0 flex-wrap self-start">
         {@render badge(comment)}
-        <Button
-          aria-label={copy.manageComment}
-          onclick={() => onManage(comment)}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
-          {copy.manageComment}
-          <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
-        </Button>
+        <AdminEditAction layout="card" label={copy.manageComment} onclick={() => onManage(comment)} />
       </Item.Actions>
     {/snippet}
     {#snippet desktop(emptyState)}
@@ -116,14 +103,7 @@ export let targetLabel: AdminModerationCommentFormatter;
                 {@render badge(comment)}
               </td>
               <td class="w-14 min-w-14 text-left">
-                <TableRowActions>
-                  <TableIconButton
-                    label={copy.manageComment}
-                    onclick={() => onManage(comment)}
-                  >
-                    <SquarePen />
-                  </TableIconButton>
-                </TableRowActions>
+                <AdminEditAction layout="table" label={copy.manageComment} onclick={() => onManage(comment)} />
               </td>
             </tr>
           {:else}

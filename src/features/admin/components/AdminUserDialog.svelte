@@ -20,7 +20,6 @@ export let copy: AdminUsersCopy;
 export let editIsAdmin: boolean;
 export let editName: string;
 export let editUsername: string;
-export let inputValue: (event: Event) => string;
 export let isLiftingSuspension: boolean;
 export let isSaving: boolean;
 export let isSuspending: boolean;
@@ -76,7 +75,6 @@ async function confirmRoleChange() {
             bind:editIsAdmin
             bind:editName
             bind:editUsername
-            {inputValue}
           />
 
           <AdminUserSuspensionSection

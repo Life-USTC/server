@@ -26,7 +26,6 @@ export let formatMessage: (
   template: string,
   values: Record<string, string>,
 ) => string;
-export let inputValue: (event: Event) => string;
 export let isSaving: boolean;
 export let targetLabel: (description: AdminModerationDescription) => string;
 </script>
@@ -75,10 +74,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
                   class="min-h-56"
                   maxlength={DESCRIPTION_CONTENT_MAX_LENGTH}
                   name="content"
-                  value={descriptionDraft}
-                  oninput={(event: Event) => {
-                    descriptionDraft = inputValue(event);
-                  }}
+                  bind:value={descriptionDraft}
                 />
               </Field.Field>
             </Field.Group>

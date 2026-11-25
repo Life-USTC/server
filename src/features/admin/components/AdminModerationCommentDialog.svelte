@@ -23,7 +23,6 @@ export let copy: AdminModerationCopy;
 export let customExpiresAt: string;
 export let dialogMessage: string;
 export let dialogMessageVariant: "destructive" | "default";
-export let inputValue: (event: Event) => string;
 export let isSavingComment: boolean;
 export let isSuspendingUser: boolean;
 export let moderationNote: string;
@@ -70,7 +69,6 @@ export let targetLabel: (comment: AdminModerationComment) => string;
             bind:commentStatus
             {commentStatusOptions}
             {copy}
-            {inputValue}
             bind:moderationNote
           />
 

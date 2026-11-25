@@ -10,7 +10,6 @@ import type {
 export let commentStatus: "active" | "softbanned" | "deleted";
 export let commentStatusOptions: AdminModerationStatusOptions;
 export let copy: AdminModerationCopy;
-export let inputValue: (event: Event) => string;
 export let moderationNote: string;
 
 function selectStatus(value: string) {
@@ -46,10 +45,7 @@ function selectStatus(value: string) {
     <Field.Label for="admin-comment-moderation-note">{copy.moderationNote}</Field.Label>
     <Input
       id="admin-comment-moderation-note"
-      value={moderationNote}
-      oninput={(event: Event) => {
-        moderationNote = inputValue(event);
-      }}
+      bind:value={moderationNote}
     />
   </Field.Field>
 </Field.Group>

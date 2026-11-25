@@ -1,6 +1,4 @@
 <script lang="ts">
-import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
-import SquarePen from "@lucide/svelte/icons/square-pen";
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionListShell from "#lib/components/CollectionListShell.svelte";
 import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
@@ -8,14 +6,12 @@ import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
-import TableIconButton from "#lib/components/TableIconButton.svelte";
-import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
-import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import Table from "#lib/components/ui/table/table.svelte";
 import { adminUserTableFields } from "../lib/admin-user-table-filters";
+import AdminEditAction from "./AdminEditAction.svelte";
 import AdminUsersSearchCard from "./AdminUsersSearchCard.svelte";
 import type {
   AdminUserFormatter,
@@ -99,16 +95,7 @@ $: fields = adminUserTableFields(copy);
                   </Item.Footer>
                 </Item.Content>
                 <Item.Actions class="shrink-0 self-start">
-                  <Button
-                    aria-label={copy.editTitle}
-                    onclick={() => onSelect(user)}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    {copy.editTitle}
-                    <ChevronRightIcon aria-hidden="true" data-icon="inline-end" />
-                  </Button>
+                  <AdminEditAction layout="card" label={copy.editTitle} onclick={() => onSelect(user)} />
                 </Item.Actions>
               </MobileListCard>
               {#if index < users.length - 1}<Item.Separator class="my-0" />{/if}
@@ -176,13 +163,7 @@ $: fields = adminUserTableFields(copy);
                       {formatDate(user.createdAt)}
                     </td>
                     <td class="w-14 min-w-14 text-left">
-                      <TableRowActions>
-                        <TableIconButton
-                          label={copy.editTitle}
-                          onclick={() => onSelect(user)}
-                          icon={SquarePen}
-                        />
-                      </TableRowActions>
+                      <AdminEditAction layout="table" label={copy.editTitle} onclick={() => onSelect(user)} />
                     </td>
                   </tr>
                 {:else}

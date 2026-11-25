@@ -8,7 +8,6 @@ export let copy: AdminUsersCopy;
 export let editIsAdmin: boolean;
 export let editName: string;
 export let editUsername: string;
-export let inputValue: (event: Event) => string;
 </script>
 
 <Field.Set class="bg-subtle p-3">
@@ -19,8 +18,7 @@ export let inputValue: (event: Event) => string;
       <Field.Label for="admin-user-name">{copy.nameLabel}</Field.Label>
       <Input
         id="admin-user-name"
-        value={editName}
-        oninput={(event: Event) => (editName = inputValue(event))}
+        bind:value={editName}
       />
     </Field.Field>
     <Field.Field>
@@ -29,8 +27,7 @@ export let inputValue: (event: Event) => string;
       </Field.Label>
       <Input
         id="admin-user-username"
-        value={editUsername}
-        oninput={(event: Event) => (editUsername = inputValue(event))}
+        bind:value={editUsername}
       />
     </Field.Field>
   </Field.Group>

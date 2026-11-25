@@ -96,10 +96,6 @@ function apply(event: SubmitEvent) {
   );
 }
 
-function inputValue(event: Event) {
-  return (event.currentTarget as HTMLInputElement | HTMLTextAreaElement).value;
-}
-
 function _formatDate(value: string | Date) {
   return _dateTimeFormatter.format(new Date(value));
 }
@@ -279,7 +275,6 @@ function _enhanceAdminAction(action: Parameters<typeof enhanceAdminAction>[0]) {
   copy={_copy}
   dialogMessage={_dialogMessage}
   dialogMessageVariant={_dialogMessageVariant}
-  inputValue={inputValue}
   isSavingComment={_isSavingComment}
   isSuspendingUser={_isSuspendingUser}
   saveCommentModeration={_saveCommentModeration}
@@ -324,7 +319,6 @@ function _enhanceAdminAction(action: Parameters<typeof enhanceAdminAction>[0]) {
   })}
   formatDate={_formatDate}
   formatMessage={moderationFormatMessage}
-  inputValue={inputValue}
   isSaving={_pendingServerAction === "description"}
   targetLabel={(item) => moderationTargetLabel(item, _copy)}
 />
