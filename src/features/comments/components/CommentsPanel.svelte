@@ -47,6 +47,7 @@ import CommentsComposerSection from "./CommentsComposerSection.svelte";
 import CommentsHiddenNotice from "./CommentsHiddenNotice.svelte";
 import CommentsPanelSuspensionAlert from "./CommentsPanelSuspensionAlert.svelte";
 import CommentsThreadSection from "./CommentsThreadSection.svelte";
+import CommentThreadItem from "./CommentThreadItem.svelte";
 
 interface Props {
   targetType: TargetType;
@@ -564,59 +565,67 @@ let _editUploading = $derived(
   />
 
   <CommentsThreadSection
-    bind:actionMenuId={_actionMenuId}
-    authorInitials={_authorInitials}
-    authorName={_authorName}
-    cancelEdit={_cancelEdit}
-    cancelReply={_cancelReply}
     commentCopy={{ ..._commentCopy, emptyDescription: readOnlyReason ? "" : (_viewer.isSuspended ? _commentCopy.suspendedMessage : _viewer.isAuthenticated ? _commentCopy.emptyAuthenticatedDescription : _commentCopy.emptyDescription) }}
-    commentTarget={_commentTarget}
     comments={_comments}
-    copyCommentLink={_copyCommentLink}
-    bind:editAttachmentIds={_editAttachmentIds}
-    editAttachmentOptions={_editAttachmentOptions}
-    bind:editDraft={_editDraft}
-    bind:editingId={_editingId}
-    bind:editIsAnonymous={_editIsAnonymous}
-    bind:editVisibility={_editVisibility}
-    formatSize={_formatSize}
-    formatTime={_formatTime}
-    highlightedId={_highlightedId}
     loading={_loading}
     loadingReplyRootId={_loadingReplyRootId}
     loadingTargetKey={_loadingTargetKey}
     loadMoreComments={_loadMoreComments}
     loadMoreReplies={_loadMoreReplies}
     loadTarget={_loadTarget}
-    openDeleteDialog={_openDeleteDialog}
-    pendingReactionKey={_pendingReactionKey}
-    react={_react}
-    reactionEntry={_reactionEntry}
-    reactionKey={_reactionKey}
-    reactionLabel={_reactionLabel}
-    bind:reactionMenuId={_reactionMenuId}
-    reactionName={_reactionName}
-    reactionOptions={reactionOptions}
-    removeReplyAttachment={_removeReplyAttachment}
-    bind:replyDraft={_replyDraft}
-    replyingId={_replyingId}
-    bind:replyIsAnonymous={_replyIsAnonymous}
-    replyUploadedFiles={_replyUploadedFiles}
-    bind:replyVisibility={_replyVisibility}
-    saveEdit={_saveEdit}
-    startEdit={_startEdit}
-    statusLabel={_statusLabel}
-    submitting={_submitting}
-    submitComment={_submitComment}
     targetLoadStates={_targetLoadStates}
-    toggleReply={_toggleReply}
-    uploadCopy={_uploadCopy}
-    uploadFile={_uploadFile}
-    editUploading={_editUploading}
-    replyUploading={_replyUploading}
-    viewer={_viewer}
-    visibilityOptions={_visibilityOptions}
-  />
+  >
+    {#snippet renderItem(comment, depth)}
+      <CommentThreadItem
+        {comment}
+        {depth}
+        commentCopy={_commentCopy}
+        bind:actionMenuId={_actionMenuId}
+        authorInitials={_authorInitials}
+        authorName={_authorName}
+        cancelEdit={_cancelEdit}
+        cancelReply={_cancelReply}
+        commentTarget={_commentTarget}
+        copyCommentLink={_copyCommentLink}
+        bind:editAttachmentIds={_editAttachmentIds}
+        editAttachmentOptions={_editAttachmentOptions}
+        bind:editDraft={_editDraft}
+        bind:editingId={_editingId}
+        bind:editIsAnonymous={_editIsAnonymous}
+        bind:editVisibility={_editVisibility}
+        formatSize={_formatSize}
+        formatTime={_formatTime}
+        highlightedId={_highlightedId}
+        openDeleteDialog={_openDeleteDialog}
+        pendingReactionKey={_pendingReactionKey}
+        react={_react}
+        reactionEntry={_reactionEntry}
+        reactionKey={_reactionKey}
+        reactionLabel={_reactionLabel}
+        bind:reactionMenuId={_reactionMenuId}
+        reactionName={_reactionName}
+        reactionOptions={reactionOptions}
+        removeReplyAttachment={_removeReplyAttachment}
+        bind:replyDraft={_replyDraft}
+        replyingId={_replyingId}
+        bind:replyIsAnonymous={_replyIsAnonymous}
+        replyUploadedFiles={_replyUploadedFiles}
+        bind:replyVisibility={_replyVisibility}
+        saveEdit={_saveEdit}
+        startEdit={_startEdit}
+        statusLabel={_statusLabel}
+        submitting={_submitting}
+        submitComment={_submitComment}
+        toggleReply={_toggleReply}
+        uploadCopy={_uploadCopy}
+        uploadFile={_uploadFile}
+        editUploading={_editUploading}
+        replyUploading={_replyUploading}
+        viewer={_viewer}
+        visibilityOptions={_visibilityOptions}
+      />
+    {/snippet}
+  </CommentsThreadSection>
 
   {#if _hiddenCount > 0 && !_viewer.isAuthenticated}
     <CommentsHiddenNotice

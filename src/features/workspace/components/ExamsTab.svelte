@@ -92,6 +92,27 @@ $: showClearExamFilter =
   </div>
 {/snippet}
 
+{#snippet examsList()}
+  <ExamsListView
+    {pageDemo}
+    filterControls={columnFilter}
+    {examMetadataLabels}
+    {locale}
+    unknownSemesterLabel={signedData.copy.common.unknown}
+    {namePrimary}
+    {workspaceCopy}
+    {workspaceTabHref}
+    {examTimeLabel}
+    exams={filteredExamRows}
+    hasExamRows={examRows.length > 0}
+    showClearFilter={showClearExamFilter}
+    onClearFilter={clearExamFilter}
+    {fmtExamDate}
+    {sectionCopy}
+    {subscriptionsCopy}
+  />
+{/snippet}
+
 <section class="grid gap-4">
   {#if !hasWorkspaceSubscriptions(signedData)}
     <WorkspaceNoSubscriptionsState
@@ -138,45 +159,11 @@ $: showClearExamFilter =
             {subscriptionsCopy}
           />
         {:else}
-          <ExamsListView
-            {pageDemo}
-        filterControls={columnFilter}
-            {examMetadataLabels}
-            {locale}
-            unknownSemesterLabel={signedData.copy.common.unknown}
-            {namePrimary}
-            {workspaceCopy}
-            {workspaceTabHref}
-            {examTimeLabel}
-            exams={filteredExamRows}
-            hasExamRows={examRows.length > 0}
-            showClearFilter={showClearExamFilter}
-            onClearFilter={clearExamFilter}
-            {fmtExamDate}
-            {sectionCopy}
-            {subscriptionsCopy}
-          />
+          {@render examsList()}
         {/if}
       {/snippet}
       {#snippet desktop()}
-        <ExamsListView
-            {pageDemo}
-        filterControls={columnFilter}
-          {examMetadataLabels}
-          {locale}
-          unknownSemesterLabel={signedData.copy.common.unknown}
-          {namePrimary}
-          {workspaceCopy}
-          {workspaceTabHref}
-          {examTimeLabel}
-          exams={filteredExamRows}
-          hasExamRows={examRows.length > 0}
-          showClearFilter={showClearExamFilter}
-          onClearFilter={clearExamFilter}
-          {fmtExamDate}
-          {sectionCopy}
-          {subscriptionsCopy}
-        />
+        {@render examsList()}
       {/snippet}
     </WorkspaceCollection>
   {/if}

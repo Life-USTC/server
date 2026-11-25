@@ -368,37 +368,27 @@ function _closeCalendarDialog() {
   _isCalendarDialogOpen = false;
 }
 
-const {
-  applyCreateDueAtSemesterEnd: _applyCreateDueAtSemesterEnd,
-  applyCreateDueInMonth: _applyCreateDueInMonth,
-  applyCreateDueInWeek: _applyCreateDueInWeek,
-  applyCreatePublishNow: _applyCreatePublishNow,
-  applyCreateStartAtSemesterStart: _applyCreateStartAtSemesterStart,
-  applyCreateStartNow: _applyCreateStartNow,
-  applyEditDueAtSemesterEnd: _applyEditDueAtSemesterEnd,
-  applyEditDueInMonth: _applyEditDueInMonth,
-  applyEditDueInWeek: _applyEditDueInWeek,
-  applyEditPublishNow: _applyEditPublishNow,
-  applyEditStartAtSemesterStart: _applyEditStartAtSemesterStart,
-  applyEditStartNow: _applyEditStartNow,
-} = createSectionHomeworkTimestampActions({
+const createShortcuts = createSectionHomeworkTimestampActions({
   getSemesterDate: _semesterDate,
-  setCreatePublishedAt: (value) => {
+  setPublishedAt: (value) => {
     _createHomeworkPublishedAt = value;
   },
-  setCreateSubmissionDueAt: (value) => {
+  setSubmissionDueAt: (value) => {
     _createHomeworkSubmissionDueAt = value;
   },
-  setCreateSubmissionStartAt: (value) => {
+  setSubmissionStartAt: (value) => {
     _createHomeworkSubmissionStartAt = value;
   },
-  setEditPublishedAt: (value) => {
+});
+const editShortcuts = createSectionHomeworkTimestampActions({
+  getSemesterDate: _semesterDate,
+  setPublishedAt: (value) => {
     _editHomeworkPublishedAt = value;
   },
-  setEditSubmissionDueAt: (value) => {
+  setSubmissionDueAt: (value) => {
     _editHomeworkSubmissionDueAt = value;
   },
-  setEditSubmissionStartAt: (value) => {
+  setSubmissionStartAt: (value) => {
     _editHomeworkSubmissionStartAt = value;
   },
 });
@@ -563,18 +553,8 @@ onMount(() => {
 </section>
 
 <SectionDetailDialogs
-  applyCreateDueAtSemesterEnd={_applyCreateDueAtSemesterEnd}
-  applyCreateDueInMonth={_applyCreateDueInMonth}
-  applyCreateDueInWeek={_applyCreateDueInWeek}
-  applyCreatePublishNow={_applyCreatePublishNow}
-  applyCreateStartAtSemesterStart={_applyCreateStartAtSemesterStart}
-  applyCreateStartNow={_applyCreateStartNow}
-  applyEditDueAtSemesterEnd={_applyEditDueAtSemesterEnd}
-  applyEditDueInMonth={_applyEditDueInMonth}
-  applyEditDueInWeek={_applyEditDueInWeek}
-  applyEditPublishNow={_applyEditPublishNow}
-  applyEditStartAtSemesterStart={_applyEditStartAtSemesterStart}
-  applyEditStartNow={_applyEditStartNow}
+  {createShortcuts}
+  {editShortcuts}
   auditLogsForHomework={_auditLogsForHomework}
   canManageSelectedHomework={_canManageSelectedHomework}
   canWriteHomework={!personalLoading && !personalFailed && _canWriteHomework}

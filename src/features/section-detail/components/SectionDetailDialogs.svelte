@@ -1,6 +1,7 @@
 <script lang="ts">
 import { nextHomeworkClassStarts } from "@/features/homeworks/lib/homework-due-shortcuts";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-helpers";
+import type { HomeworkShortcuts } from "../lib/section-detail-homework-timestamp-actions";
 import SectionSubscribeDialog from "./SectionSubscribeDialog.svelte";
 import type {
   BooleanSetter,
@@ -8,6 +9,8 @@ import type {
 } from "./section-detail-component-types";
 import type { SectionDetailDialogsProps } from "./section-detail-dialog-types";
 
+export let createShortcuts: HomeworkShortcuts;
+export let editShortcuts: HomeworkShortcuts;
 export let auditLogsForHomework: SectionDetailDialogsProps["auditLogsForHomework"];
 export let canManageSelectedHomework: boolean;
 export let canWriteHomework: boolean;
@@ -63,18 +66,6 @@ export let subscriptionPendingAction: SectionDetailDialogsProps["subscriptionPen
 export let updateHomework: SectionDetailDialogsProps["updateHomework"];
 export let toggleHomeworkCompletion: SectionDetailDialogsProps["toggleHomeworkCompletion"];
 export let data: SectionDetailPageData;
-export let applyCreateDueAtSemesterEnd: SectionDetailDialogsProps["applyCreateDueAtSemesterEnd"];
-export let applyCreateDueInMonth: SectionDetailDialogsProps["applyCreateDueInMonth"];
-export let applyCreateDueInWeek: SectionDetailDialogsProps["applyCreateDueInWeek"];
-export let applyCreatePublishNow: SectionDetailDialogsProps["applyCreatePublishNow"];
-export let applyCreateStartAtSemesterStart: SectionDetailDialogsProps["applyCreateStartAtSemesterStart"];
-export let applyCreateStartNow: SectionDetailDialogsProps["applyCreateStartNow"];
-export let applyEditDueAtSemesterEnd: SectionDetailDialogsProps["applyEditDueAtSemesterEnd"];
-export let applyEditDueInMonth: SectionDetailDialogsProps["applyEditDueInMonth"];
-export let applyEditDueInWeek: SectionDetailDialogsProps["applyEditDueInWeek"];
-export let applyEditPublishNow: SectionDetailDialogsProps["applyEditPublishNow"];
-export let applyEditStartAtSemesterStart: SectionDetailDialogsProps["applyEditStartAtSemesterStart"];
-export let applyEditStartNow: SectionDetailDialogsProps["applyEditStartNow"];
 
 let SectionHomeworkDialogs:
   | typeof import("./SectionHomeworkDialogs.svelte").default
@@ -117,18 +108,19 @@ $: if (isCalendarDialogOpen) {
     readOnlyReason={data.demo?.readOnlyReason}
     referenceDate={data.demo?.referenceNow}
     classStarts={nextHomeworkClassStarts(data.section.schedules ?? [])}
-  {applyCreateDueAtSemesterEnd}
-  {applyCreateDueInMonth}
-  {applyCreateDueInWeek}
-  {applyCreatePublishNow}
-  {applyCreateStartAtSemesterStart}
-  {applyCreateStartNow}
-  {applyEditDueAtSemesterEnd}
-  {applyEditDueInMonth}
-  {applyEditDueInWeek}
-  {applyEditPublishNow}
-  {applyEditStartAtSemesterStart}
-  {applyEditStartNow}
+  {createShortcuts}
+  {editShortcuts}
+
+
+
+
+
+
+
+
+
+
+
   {auditLogsForHomework}
   {canManageSelectedHomework}
   {canWriteHomework}

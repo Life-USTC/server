@@ -35,7 +35,6 @@ import type {
   SectionHomeworkMarkdownCopy,
   SectionHomeworkSemesterDate,
   SectionHomeworkSubmitHandler,
-  SectionHomeworkTimestampAction,
 } from "./section-homework-display-types";
 import type {
   SectionHomework,
@@ -99,18 +98,6 @@ export type SectionDetailSubscriptionPendingAction =
   | null;
 
 export type SectionDetailHomeworkDialogsProps = {
-  applyCreateDueAtSemesterEnd: SectionHomeworkTimestampAction;
-  applyCreateDueInMonth: SectionHomeworkTimestampAction;
-  applyCreateDueInWeek: SectionHomeworkTimestampAction;
-  applyCreatePublishNow: SectionHomeworkTimestampAction;
-  applyCreateStartAtSemesterStart: SectionHomeworkTimestampAction;
-  applyCreateStartNow: SectionHomeworkTimestampAction;
-  applyEditDueAtSemesterEnd: SectionHomeworkTimestampAction;
-  applyEditDueInMonth: SectionHomeworkTimestampAction;
-  applyEditDueInWeek: SectionHomeworkTimestampAction;
-  applyEditPublishNow: SectionHomeworkTimestampAction;
-  applyEditStartAtSemesterStart: SectionHomeworkTimestampAction;
-  applyEditStartNow: SectionHomeworkTimestampAction;
   auditLogsForHomework: SectionHomeworkAuditLookup;
   canManageSelectedHomework: boolean;
   canWriteHomework: boolean;

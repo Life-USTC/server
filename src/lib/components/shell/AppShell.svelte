@@ -563,35 +563,39 @@ let globalSearchShortcutLabel = $derived(
   <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
 {/if}
 
+{#snippet topbar()}
+  <AppTopbar
+    {closeMenus}
+    copy={data.copy}
+    focused={focusedShell}
+    {globalSearchShortcutLabel}
+    {homeHref}
+    {homeLabel}
+    {hideSignIn}
+    locale={data.locale}
+    {localeMenuOpen}
+    onOpenGlobalSearch={openGlobalSearch}
+    {setLocale}
+    {setLocaleMenuOpen}
+    {setThemeMenuOpen}
+    {setThemeMode}
+    {themeMenuOpen}
+    {themeMode}
+    signedIn={Boolean(viewerUser)}
+    user={viewerUser}
+    {avatarFallback}
+    {profileHref}
+    {userMenuOpen}
+    {setUserMenuOpen}
+    currentPathname={routePage.url.pathname}
+    demo={navigationDemo}
+    {viewerLoading}
+  />
+{/snippet}
+
 {#if focusedShell}
   <div class="flex min-h-screen flex-col" data-shell="focused">
-    <AppTopbar
-      {closeMenus}
-      copy={data.copy}
-      focused
-      {globalSearchShortcutLabel}
-      {homeHref}
-      {homeLabel}
-      {hideSignIn}
-      locale={data.locale}
-      {localeMenuOpen}
-      onOpenGlobalSearch={openGlobalSearch}
-      {setLocale}
-      {setLocaleMenuOpen}
-      {setThemeMenuOpen}
-      {setThemeMode}
-      {themeMenuOpen}
-      {themeMode}
-      signedIn={Boolean(viewerUser)}
-      user={viewerUser}
-      {avatarFallback}
-      {profileHref}
-      {userMenuOpen}
-      {setUserMenuOpen}
-      currentPathname={routePage.url.pathname}
-      demo={navigationDemo}
-      {viewerLoading}
-    />
+    {@render topbar()}
 
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -- skip_link target -->
     <main
@@ -646,32 +650,7 @@ let globalSearchShortcutLabel = $derived(
             : "lg:min-h-0 lg:overflow-hidden",
         )}
       >
-        <AppTopbar
-          {closeMenus}
-          copy={data.copy}
-          {globalSearchShortcutLabel}
-          {homeHref}
-          {homeLabel}
-          {hideSignIn}
-          locale={data.locale}
-          {localeMenuOpen}
-          onOpenGlobalSearch={openGlobalSearch}
-          {setLocale}
-          {setLocaleMenuOpen}
-          {setThemeMenuOpen}
-          {setThemeMode}
-          {themeMenuOpen}
-          {themeMode}
-          signedIn={Boolean(viewerUser)}
-          user={viewerUser}
-          {avatarFallback}
-          {profileHref}
-          {userMenuOpen}
-          {setUserMenuOpen}
-          currentPathname={routePage.url.pathname}
-          demo={navigationDemo}
-          {viewerLoading}
-        />
+        {@render topbar()}
 
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the desktop content region is the keyboard_scrollable viewport -->
         <div

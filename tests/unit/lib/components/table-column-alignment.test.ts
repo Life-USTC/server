@@ -184,7 +184,6 @@ function lineOf(source: string, index: number): number {
 const ROLES: Readonly<Record<string, string>> = {
   "table-body": "body",
   "table-cell": "cell",
-  "table-footer": "footer",
   "table-head": "head",
   "table-header": "header",
   "table-row": "row",
@@ -475,7 +474,7 @@ async function tablesOf(file: string): Promise<Table[]> {
   for (const root of everyElement(tree)) {
     if (roleOf(root.tag) !== "root") continue;
     const sections = [...descendants(root, roleOf)].filter((element) =>
-      ["body", "footer", "header"].includes(roleOf(element.tag) ?? ""),
+      ["body", "header"].includes(roleOf(element.tag) ?? ""),
     );
     const heads: Column[] = [];
     const rows: BodyRow[] = [];

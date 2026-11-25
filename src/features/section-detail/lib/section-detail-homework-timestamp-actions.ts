@@ -11,12 +11,9 @@ type TimestampSetter = (value: string) => void;
 
 export function createSectionHomeworkTimestampActions(input: {
   getSemesterDate: (kind: SemesterDateKind) => Date | string | null | undefined;
-  setCreatePublishedAt: TimestampSetter;
-  setCreateSubmissionDueAt: TimestampSetter;
-  setCreateSubmissionStartAt: TimestampSetter;
-  setEditPublishedAt: TimestampSetter;
-  setEditSubmissionDueAt: TimestampSetter;
-  setEditSubmissionStartAt: TimestampSetter;
+  setPublishedAt: TimestampSetter;
+  setSubmissionDueAt: TimestampSetter;
+  setSubmissionStartAt: TimestampSetter;
 }) {
   function semesterEnd() {
     return input.getSemesterDate("end");
@@ -27,49 +24,31 @@ export function createSectionHomeworkTimestampActions(input: {
   }
 
   return {
-    applyCreateDueAtSemesterEnd() {
+    dueAtSemesterEnd() {
       const end = semesterEnd();
-      if (end) input.setCreateSubmissionDueAt(homeworkDueAtSemesterEnd(end));
+      if (end) input.setSubmissionDueAt(homeworkDueAtSemesterEnd(end));
     },
-    applyCreateDueInMonth() {
-      input.setCreateSubmissionDueAt(homeworkDueInMonths(1));
+    dueInMonth() {
+      input.setSubmissionDueAt(homeworkDueInMonths(1));
     },
-    applyCreateDueInWeek() {
-      input.setCreateSubmissionDueAt(homeworkDueInDays(7));
+    dueInWeek() {
+      input.setSubmissionDueAt(homeworkDueInDays(7));
     },
-    applyCreatePublishNow() {
-      input.setCreatePublishedAt(homeworkTimestampNow());
+    publishNow() {
+      input.setPublishedAt(homeworkTimestampNow());
     },
-    applyCreateStartAtSemesterStart() {
+    startAtSemesterStart() {
       const start = semesterStart();
       if (start) {
-        input.setCreateSubmissionStartAt(homeworkStartAtSemesterStart(start));
+        input.setSubmissionStartAt(homeworkStartAtSemesterStart(start));
       }
     },
-    applyCreateStartNow() {
-      input.setCreateSubmissionStartAt(homeworkTimestampNow());
-    },
-    applyEditDueAtSemesterEnd() {
-      const end = semesterEnd();
-      if (end) input.setEditSubmissionDueAt(homeworkDueAtSemesterEnd(end));
-    },
-    applyEditDueInMonth() {
-      input.setEditSubmissionDueAt(homeworkDueInMonths(1));
-    },
-    applyEditDueInWeek() {
-      input.setEditSubmissionDueAt(homeworkDueInDays(7));
-    },
-    applyEditPublishNow() {
-      input.setEditPublishedAt(homeworkTimestampNow());
-    },
-    applyEditStartAtSemesterStart() {
-      const start = semesterStart();
-      if (start) {
-        input.setEditSubmissionStartAt(homeworkStartAtSemesterStart(start));
-      }
-    },
-    applyEditStartNow() {
-      input.setEditSubmissionStartAt(homeworkTimestampNow());
+    startNow() {
+      input.setSubmissionStartAt(homeworkTimestampNow());
     },
   };
 }
+
+export type HomeworkShortcuts = ReturnType<
+  typeof createSectionHomeworkTimestampActions
+>;

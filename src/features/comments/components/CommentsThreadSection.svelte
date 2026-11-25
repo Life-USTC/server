@@ -1,68 +1,23 @@
 <script lang="ts">
+import type { Snippet } from "svelte";
 import CompactEmpty from "#lib/components/CompactEmpty.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import type { CommentTargetLoadState } from "@/features/comments/lib/comment-panel-data";
 import type { CommentNodeWithContext } from "@/features/comments/lib/comment-ui";
-import type { ViewerContext } from "@/lib/auth/viewer-context";
-import CommentsThreadList from "./CommentsThreadList.svelte";
-import type {
-  CommentThreadProps,
-  CommentUploadOption,
-} from "./comment-component-types";
+import type { CommentThreadProps } from "./comment-component-types";
 
-export let actionMenuId: string | null;
-export let authorInitials: CommentThreadProps["authorInitials"];
-export let authorName: CommentThreadProps["authorName"];
-export let cancelEdit: CommentThreadProps["cancelEdit"];
-export let cancelReply: CommentThreadProps["cancelReply"];
 export let commentCopy: CommentThreadProps["commentCopy"];
-export let commentTarget: CommentThreadProps["commentTarget"];
 export let comments: CommentNodeWithContext[];
-export let copyCommentLink: CommentThreadProps["copyCommentLink"];
-export let editAttachmentIds: string[];
-export let editAttachmentOptions: CommentThreadProps["editAttachmentOptions"];
-export let editDraft: string;
-export let editUploading: boolean;
-export let editingId: string | null;
-export let editIsAnonymous: boolean;
-export let editVisibility: string;
-export let formatSize: CommentThreadProps["formatSize"];
-export let formatTime: CommentThreadProps["formatTime"];
-export let highlightedId: string | null;
 export let loading: boolean;
 export let loadingReplyRootId: string | null;
 export let loadingTargetKey: string | null;
 export let loadMoreComments: (targetKey: string) => void;
 export let loadMoreReplies: (rootId: string) => void;
 export let loadTarget: (targetKey: string) => void;
-export let openDeleteDialog: CommentThreadProps["openDeleteDialog"];
-export let pendingReactionKey: string | null;
-export let react: CommentThreadProps["react"];
-export let reactionEntry: CommentThreadProps["reactionEntry"];
-export let reactionKey: CommentThreadProps["reactionKey"];
-export let reactionLabel: CommentThreadProps["reactionLabel"];
-export let reactionMenuId: string | null;
-export let reactionName: CommentThreadProps["reactionName"];
-export let reactionOptions: CommentThreadProps["reactionOptions"];
-export let removeReplyAttachment: CommentThreadProps["removeReplyAttachment"];
-export let replyDraft: string;
-export let replyUploading: boolean;
-export let replyingId: string | null;
-export let replyIsAnonymous: boolean;
-export let replyUploadedFiles: CommentUploadOption[];
-export let replyVisibility: string;
-export let saveEdit: CommentThreadProps["saveEdit"];
-export let startEdit: CommentThreadProps["startEdit"];
-export let statusLabel: CommentThreadProps["statusLabel"];
-export let submitting: boolean;
-export let submitComment: CommentThreadProps["submitComment"];
 export let targetLoadStates: CommentTargetLoadState[];
-export let toggleReply: CommentThreadProps["toggleReply"];
-export let uploadCopy: CommentThreadProps["uploadCopy"];
-export let uploadFile: CommentThreadProps["uploadFile"];
-export let viewer: ViewerContext;
-export let visibilityOptions: CommentThreadProps["visibilityOptions"];
+
+export let renderItem: Snippet<[CommentNodeWithContext, number]>;
 
 function canLoadTarget(state: CommentTargetLoadState) {
   return Boolean(
@@ -78,6 +33,27 @@ function hasTargetContinuation(state: CommentTargetLoadState) {
   );
 }
 </script>
+
+{#snippet commentItem(comment: CommentNodeWithContext, depth = 0)}
+  {@render renderItem(comment, depth)}
+
+  {#each comment.replies as reply}
+    {@render commentItem(reply, depth + 1)}
+  {/each}
+
+  {#if comment.repliesNextCursor && comment.parentId === null}
+    <Button
+      class="ml-2"
+      disabled={loadingReplyRootId === comment.id}
+      size="sm"
+      type="button"
+      variant="ghost"
+      onclick={() => loadMoreReplies(comment.id)}
+    >
+      {commentCopy.loadMoreReplies}
+    </Button>
+  {/if}
+{/snippet}
 
 {#if loading}
   <div class="grid gap-3">
@@ -124,54 +100,10 @@ function hasTargetContinuation(state: CommentTargetLoadState) {
       description={commentCopy.emptyDescription}
     />
   {:else}
-    <CommentsThreadList
-      bind:actionMenuId
-      {authorInitials}
-      {authorName}
-      {cancelEdit}
-      {cancelReply}
-      {commentCopy}
-      {commentTarget}
-      {comments}
-      {copyCommentLink}
-      bind:editAttachmentIds
-      {editAttachmentOptions}
-      bind:editDraft
-      {editUploading}
-      bind:editingId
-      bind:editIsAnonymous
-      bind:editVisibility
-      {formatSize}
-      {formatTime}
-      {highlightedId}
-      {loadingReplyRootId}
-      {loadMoreReplies}
-      {openDeleteDialog}
-      {pendingReactionKey}
-      {react}
-      {reactionEntry}
-      {reactionKey}
-      {reactionLabel}
-      bind:reactionMenuId
-      {reactionName}
-      {reactionOptions}
-      {removeReplyAttachment}
-      bind:replyDraft
-      {replyUploading}
-      {replyingId}
-      bind:replyIsAnonymous
-      {replyUploadedFiles}
-      bind:replyVisibility
-      {saveEdit}
-      {startEdit}
-      {statusLabel}
-      {submitting}
-      {submitComment}
-      {toggleReply}
-      {uploadCopy}
-      {uploadFile}
-      {viewer}
-      {visibilityOptions}
-    />
+    <div class="grid min-w-0 gap-4">
+      {#each comments as comment}
+        {@render commentItem(comment)}
+      {/each}
+    </div>
   {/if}
 {/if}

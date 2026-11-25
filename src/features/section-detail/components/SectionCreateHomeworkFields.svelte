@@ -2,20 +2,16 @@
 import * as Alert from "#lib/components/ui/alert/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import HomeworkEditorFields from "@/features/homeworks/components/HomeworkEditorFields.svelte";
+import type { HomeworkShortcuts } from "../lib/section-detail-homework-timestamp-actions";
 import type {
   SectionCreateHomeworkCommentsCopy,
   SectionCreateHomeworkFieldsCopy,
 } from "./section-create-homework-types";
 
-export let applyDueAtSemesterEnd: () => void;
+export let shortcuts: HomeworkShortcuts;
 export let classSectionJwId: number | string | null | undefined = undefined;
 export let classStarts: string[] = [];
 export let locale: string;
-export let applyDueInMonth: () => void;
-export let applyDueInWeek: () => void;
-export let applyPublishNow: () => void;
-export let applyStartAtSemesterStart: () => void;
-export let applyStartNow: () => void;
 export let commentsCopy: SectionCreateHomeworkCommentsCopy;
 export let hasSemesterEnd: boolean;
 export let hasSemesterStart: boolean;
@@ -28,14 +24,6 @@ export let submissionStartAt: string;
 
 let advancedOpen = false;
 
-$: homeworkTimestampActions = {
-  dueAtSemesterEnd: applyDueAtSemesterEnd,
-  dueInMonth: applyDueInMonth,
-  dueInWeek: applyDueInWeek,
-  publishNow: applyPublishNow,
-  startAtSemesterStart: applyStartAtSemesterStart,
-  startNow: applyStartNow,
-};
 $: homeworkTimestampCapabilities = {
   hasSemesterEnd,
   hasSemesterStart,
@@ -51,7 +39,7 @@ $: homeworkTimestampCapabilities = {
     sectionJwId={classSectionJwId}
   {classStarts}
     {locale}
-    actions={homeworkTimestampActions}
+    actions={shortcuts}
     bind:advancedOpen={advancedOpen}
     capabilities={homeworkTimestampCapabilities}
     commentsCopy={commentsCopy}
