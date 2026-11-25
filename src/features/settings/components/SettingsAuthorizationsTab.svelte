@@ -26,6 +26,8 @@ export let locale: AppLocale;
 let pendingAuthorization: SettingsOAuthAuthorization | null = null;
 let revokingConsentId: string | null = null;
 
+let channelLabels: Partial<Record<string, string>>;
+$: channelLabels = copy.settings.security.channels;
 $: dateFormatter = campusTimestampFormatter(locale);
 
 function clientName(authorization: SettingsOAuthAuthorization) {
@@ -131,7 +133,7 @@ function revokeAction(consentId: string): SubmitFunction {
               </div>
               <dl class="mt-3 grid gap-1.5 text-xs text-muted-foreground sm:grid-cols-3">
                 <div><dt>{copy.settings.authorizations.lastUsedAt}</dt><dd class="text-foreground">{formatUpdatedAt(authorization.usage.lastUsedAt)}</dd></div>
-                <div><dt>{copy.settings.authorizations.lastChannel}</dt><dd class="text-foreground">{copy.settings.security.channels[authorization.usage.lastChannel] ?? authorization.usage.lastChannel}</dd></div>
+                <div><dt>{copy.settings.authorizations.lastChannel}</dt><dd class="text-foreground">{channelLabels[authorization.usage.lastChannel] ?? authorization.usage.lastChannel}</dd></div>
                 <div><dt>{copy.settings.authorizations.lastFeature}</dt><dd class="text-foreground">{oauthFeatureLabel(locale, authorization.usage.lastFeature)}</dd></div>
               </dl>
             {:else}
