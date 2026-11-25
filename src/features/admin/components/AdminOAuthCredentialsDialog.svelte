@@ -96,7 +96,7 @@ async function copyCredential(
           />
           <div>
             <Button
-              type="button"
+              icon={CopyIcon}
               variant="outline"
               onclick={() =>
                 copyCredential(
@@ -105,7 +105,6 @@ async function copyCredential(
                   Boolean(clientSecret),
                 )}
             >
-              <CopyIcon data-icon="inline-start" />
               <span>{copy.copyCredentials}</span>
             </Button>
           </div>
@@ -133,7 +132,6 @@ async function copyCredential(
       {/if}
       <div data-slot="dialog-footer">
         <Button
-          type="button"
           disabled={!canDismissCredentials}
           onclick={close}
         >

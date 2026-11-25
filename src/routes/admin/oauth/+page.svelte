@@ -130,7 +130,7 @@ onMount(() => {
         </p>
       {/snippet}
       {#snippet actions()}
-        <Button class="w-full sm:w-auto" type="button" disabled={!state.isMounted} onclick={_openCreateDialog}>
+        <Button class="w-full sm:w-auto" disabled={!state.isMounted} onclick={_openCreateDialog}>
           {_copy.createClient}
         </Button>
       {/snippet}

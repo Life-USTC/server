@@ -26,7 +26,6 @@ export let startEdit: () => void;
   {#if canWrite && editing}
     <Button
       variant="outline"
-      type="button"
       onclick={() => {
         cancelEdit();
       }}
@@ -40,14 +39,13 @@ export let startEdit: () => void;
         {#snippet render({ props })}
           <Button
             {...props}
+            icon={MoreHorizontalIcon}
             aria-label={homeworkCopy.moreDetails}
             class="icon-action"
             size="icon"
             type="button"
             variant="outline"
-          >
-            <MoreHorizontalIcon data-icon="inline-start" />
-          </Button>
+          />
         {/snippet}
       </DropdownMenu.Trigger>
       <DropdownMenu.Content align="end">

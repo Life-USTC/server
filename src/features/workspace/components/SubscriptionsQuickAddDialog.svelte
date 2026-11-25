@@ -213,7 +213,6 @@ async function subscribeSelectedSections() {
                     loading={isSearching} icon={Search}
                     disabled={!canSearch}
                     size="xs"
-                    type="button"
                     variant="ghost"
                     onclick={searchSections}
                   >
@@ -278,13 +277,12 @@ async function subscribeSelectedSections() {
       </ScrollArea>
 
       <div data-slot="dialog-footer" class="mx-0 mb-0 shrink-0">
-        <Button type="button" variant="outline" onclick={closeDialog}>
+        <Button variant="outline" onclick={closeDialog}>
           {subscriptionsCopy.quickAdd.cancel}
         </Button>
         <Button
           loading={isSubmitting}
           disabled={selectedSectionIds.length === 0 || isSubmitting}
-          type="button"
           onclick={subscribeSelectedSections}
         >
           {isSubmitting

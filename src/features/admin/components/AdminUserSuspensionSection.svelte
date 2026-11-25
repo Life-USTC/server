@@ -69,7 +69,6 @@ async function confirmSuspensionUpdate() {
     <Button
       loading={isSuspending} icon={ShieldAlertIcon}
       disabled={isSuspending}
-      type="button"
       variant="destructive"
       onclick={requestSuspension}
     >
@@ -85,7 +84,6 @@ async function confirmSuspensionUpdate() {
       <Button
         loading={isLiftingSuspension} icon={CheckCircleIcon}
         disabled={isLiftingSuspension}
-        type="button"
         variant="outline"
         onclick={liftSelectedSuspension}
       >

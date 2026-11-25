@@ -277,25 +277,24 @@ function handleWheel(event: WheelEvent) {
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex flex-wrap gap-2">
             <Button
+              icon={ZoomInIcon}
               disabled={!imageUrl}
               size="sm"
-              type="button"
               variant="outline"
               bind:ref={openButton}
               onclick={openMap}
             >
-              <ZoomInIcon data-icon="inline-start" />
               {copy.openMap}
             </Button>
             {#if sourceImageUrl}
               <Button
+                icon={ExternalLinkIcon}
                 href={sourceImageUrl}
                 rel="noopener noreferrer"
                 size="sm"
                 target="_blank"
                 variant="ghost"
               >
-                <ExternalLinkIcon data-icon="inline-start" />
                 {copy.sourceImage}
               </Button>
             {/if}
@@ -384,40 +383,34 @@ function handleWheel(event: WheelEvent) {
       <div data-slot="dialog-footer" class="flex-wrap justify-between gap-2">
         <div class="flex gap-2">
           <Button
+            icon={ZoomOutIcon}
             aria-label={copy.zoomOut}
             disabled={!imageUrl || zoom <= 0.75}
             class="icon-action" size="icon"
-            type="button"
             variant="outline"
             onclick={() => (zoom = Math.max(0.75, zoom - 0.25))}
-          >
-            <ZoomOutIcon data-icon="inline-start" />
-          </Button>
+          />
           <Button
+            icon={ZoomInIcon}
             aria-label={copy.zoomIn}
             disabled={!imageUrl || zoom >= 3}
             class="icon-action" size="icon"
-            type="button"
             variant="outline"
             onclick={() => (zoom = Math.min(3, zoom + 0.25))}
-          >
-            <ZoomInIcon data-icon="inline-start" />
-          </Button>
+          />
           <Button
+            icon={RotateCcwIcon}
             aria-label={copy.resetZoom}
             disabled={!imageUrl || zoom === 1}
             class="icon-action" size="icon"
-            type="button"
             variant="ghost"
             onclick={() => (zoom = 1)}
-          >
-            <RotateCcwIcon data-icon="inline-start" />
-          </Button>
+          />
         </div>
         {#if imageUrl}
-          <Button href={imageUrl} target="_blank" rel="noopener noreferrer" variant="outline"><ExternalLinkIcon data-icon="inline-start" />{copy.openMap}</Button>
+          <Button icon={ExternalLinkIcon} href={imageUrl} target="_blank" rel="noopener noreferrer" variant="outline">{copy.openMap}</Button>
         {/if}
-        <Button type="button" variant="outline" onclick={closeDialog}>{copy.close}</Button>
+        <Button variant="outline" onclick={closeDialog}>{copy.close}</Button>
       </div>
     </Dialog.Content>
   </Dialog.Root>

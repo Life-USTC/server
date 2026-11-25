@@ -61,7 +61,6 @@ function enhanceSubmission(form: HTMLFormElement) {
         <div data-slot="dialog-footer" class="mx-0 mb-0 shrink-0 border-t-0 sm:px-6">
           <Button
             disabled={saving}
-            type="button"
             variant="outline"
             onclick={onClose}
           >

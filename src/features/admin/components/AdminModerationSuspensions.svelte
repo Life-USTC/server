@@ -116,7 +116,6 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
             aria-label={liftingSuspensionId === suspension.id ? copy.saving : copy.liftSuspensionAction}
             onclick={() => pendingLiftSuspension = suspension}
             size="sm"
-            type="button"
             variant="ghost"
           >
             {liftingSuspensionId === suspension.id ? copy.saving : copy.liftSuspensionAction}

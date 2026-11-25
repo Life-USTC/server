@@ -41,20 +41,18 @@ let activateDialogOpen = $state(false);
         disabled={Boolean(pendingAction)}
         onclick={() => (activateDialogOpen = true)}
         size="sm"
-        type="button"
         variant="outline"
       >
         {#if pendingAction === `activate-${version.id}`}<Spinner data-icon="inline-start" />{:else}<CheckCircle data-icon="inline-start" />{/if}
         {copy.activateAction}
       </Button>
       <Button
+        icon={Trash2}
         disabled={Boolean(pendingAction)}
         onclick={() => onDelete(version)}
         size="sm"
-        type="button"
         variant="destructive"
       >
-        <Trash2 data-icon="inline-start" />
         {copy.deleteAction}
       </Button>
     </div>

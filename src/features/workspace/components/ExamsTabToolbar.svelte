@@ -17,15 +17,14 @@ export let onMobileViewChange: (value: WorkspaceCardView) => void;
         {#snippet render({ props })}
           <Button
             {...props}
+            icon={MoreHorizontal}
             aria-label={workspaceCopy.nav.exams.viewMode}
             class="icon-action"
             data-testid="workspace-exams-view-menu"
             size="icon"
             type="button"
             variant="outline"
-          >
-            <MoreHorizontal data-icon="inline-start" />
-          </Button>
+          />
         {/snippet}
       </DropdownMenu.Trigger>
       <DropdownMenu.Content align="end">

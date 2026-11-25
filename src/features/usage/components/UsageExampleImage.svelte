@@ -36,7 +36,7 @@ function retry() {
     <Alert.Title>{copy.title}</Alert.Title>
     <Alert.Description>{copy.description}</Alert.Description>
     <div class="flex flex-wrap gap-2">
-      <Button type="button" variant="outline" size="sm" onclick={retry}>{copy.retry}</Button>
+      <Button variant="outline" size="sm" onclick={retry}>{copy.retry}</Button>
       <Button href={src} target="_blank" rel="noreferrer" variant="link" size="sm">{copy.original}</Button>
     </div>
   </Alert.Root>

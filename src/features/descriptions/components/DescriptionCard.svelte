@@ -156,13 +156,12 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
   <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
     <h2 class="section-heading">{heading}</h2>
     {#if readOnlyReason}
-      <Button type="button" variant="outline" disabled title={readOnlyReason}>{copy.edit}</Button>
+      <Button variant="outline" disabled title={readOnlyReason}>{copy.edit}</Button>
     {:else if viewerLoading}
       <Skeleton class="h-9 w-24" />
     {:else if !viewerFailed && viewer.isAuthenticated && !viewer.isSuspended && !isEditing}
       <Button
         data-testid="description-edit"
-        type="button"
         variant="outline"
         onclick={startEdit}
       >

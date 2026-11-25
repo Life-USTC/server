@@ -28,8 +28,7 @@ export let welcomeCopy: WelcomeCopy;
           <form method="POST" action="?/refreshOAuth">
             <input type="hidden" name="providerId" value={provider.id} />
             <input type="hidden" name="callbackUrl" value={callbackUrl} />
-            <Button class="w-full justify-start" type="submit" variant="outline">
-              <RefreshCw data-icon="inline-start" />
+            <Button icon={RefreshCw} class="w-full justify-start" type="submit" variant="outline">
               {welcomeCopy.oauthRefreshAction.replace("{provider}", provider.name)}
             </Button>
           </form>

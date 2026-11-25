@@ -185,7 +185,7 @@ function listStatus(event: YoungEventSummary) {
           <SearchField id="young-event-search" label={copy.common.search} placeholder={youngCopy.searchPlaceholder} bind:value={() => draft.search ?? "", (value) => patchDraft({ search: value })} />
         </div>
         <Button type="submit">{copy.common.applyFilters}</Button>
-        <Button type="button" variant="ghost" onclick={() => { draft = {}; }}>{copy.common.clear}</Button>
+        <Button variant="ghost" onclick={() => { draft = {}; }}>{copy.common.clear}</Button>
       </form>
       <div class="flex flex-wrap items-center gap-3">
         {#each extras as field}

@@ -31,25 +31,22 @@ onMount(async () => {
 
 <div class="grid min-w-0 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
   {#if showSubscriptionActions}
-  <Button class="w-full sm:w-auto" type="button" disabled={Boolean(readOnlyReason)} title={readOnlyReason} onclick={openQuickAddDialog}>
-    <BookPlus data-icon="inline-start" />
+  <Button icon={BookPlus} class="w-full sm:w-auto" disabled={Boolean(readOnlyReason)} title={readOnlyReason} onclick={openQuickAddDialog}>
     {subscriptionsCopy.quickAdd.title}
   </Button>
   <Button
+    icon={ClipboardList}
     class="w-full sm:w-auto"
-    type="button"
     variant="outline"
     disabled={Boolean(readOnlyReason)}
     title={readOnlyReason}
     onclick={openBulkImportDialog}
   >
-    <ClipboardList data-icon="inline-start" />
     {subscriptionsCopy.bulkImport.title}
   </Button>
   {/if}
   {#if readOnlyReason}
-    <Button class="w-full sm:w-auto" type="button" variant="outline" disabled title={readOnlyReason}>
-      <Link2 data-icon="inline-start" />
+    <Button icon={Link2} class="w-full sm:w-auto" variant="outline" disabled title={readOnlyReason}>
       {subscriptionsCopy.iCalLink}
     </Button>
   {:else}

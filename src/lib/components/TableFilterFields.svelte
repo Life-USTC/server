@@ -46,7 +46,7 @@ function toggle(name: string, value: string, checked: boolean) {
       <Field.Set class="gap-2" data-filter-field={field.name} aria-labelledby={`${id}-legend`}>
         <Field.Legend class="flex w-full items-center justify-between gap-3">
           <span id={`${id}-legend`}>{field.label}</span>
-          <Button type="button" variant="ghost" size="sm" class="min-h-11 md:min-h-11 md:pointer-fine:min-h-8" disabled={selected.length === 0} onclick={() => onchange({ [field.name]: "" })}>
+          <Button variant="ghost" size="sm" class="min-h-11 md:min-h-11 md:pointer-fine:min-h-8" disabled={selected.length === 0} onclick={() => onchange({ [field.name]: "" })}>
             {labels.clear}
           </Button>
         </Field.Legend>

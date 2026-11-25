@@ -145,7 +145,7 @@ async function revoke(action: RevokeAction) {
     <Alert.Root variant="destructive">
       <Alert.Title>{labels.loadError}</Alert.Title>
       <Alert.Description>
-        <Button type="button" variant="outline" disabled={loading} onclick={loadSessions}>{labels.retry}</Button>
+        <Button variant="outline" disabled={loading} onclick={loadSessions}>{labels.retry}</Button>
       </Alert.Description>
     </Alert.Root>
   {/if}
@@ -161,7 +161,7 @@ async function revoke(action: RevokeAction) {
     <Alert.Root variant="destructive">
       <Alert.Title>{labels.revokeError}</Alert.Title>
       <Alert.Description>
-        <Button type="button" variant="outline" disabled={!canRevoke} onclick={() => { if (failedAction) void revoke(failedAction); }}>{labels.retry}</Button>
+        <Button variant="outline" disabled={!canRevoke} onclick={() => { if (failedAction) void revoke(failedAction); }}>{labels.retry}</Button>
       </Alert.Description>
     </Alert.Root>
   {/if}
@@ -184,7 +184,7 @@ async function revoke(action: RevokeAction) {
             </Item.Description>
           </Item.Content>
           <Item.Actions class="self-end sm:self-auto">
-            <Button type="button" variant="outline" disabled={!canRevoke} onclick={() => confirm({ kind: "single", session })}>
+            <Button variant="outline" disabled={!canRevoke} onclick={() => confirm({ kind: "single", session })}>
               {labels.revokeOne}
             </Button>
           </Item.Actions>
@@ -194,10 +194,10 @@ async function revoke(action: RevokeAction) {
   {/if}
 
   <div class="flex flex-col gap-2 sm:flex-row">
-    <Button loading={revoking} type="button" variant="outline" disabled={!canRevoke || !hasOtherSessions} onclick={() => confirm({ kind: "others" })}>
+    <Button loading={revoking} variant="outline" disabled={!canRevoke || !hasOtherSessions} onclick={() => confirm({ kind: "others" })}>
       {labels.revokeOthers}
     </Button>
-    <Button type="button" variant="destructive" disabled={!canRevoke || sessions.length === 0} onclick={() => confirm({ kind: "all" })}>
+    <Button variant="destructive" disabled={!canRevoke || sessions.length === 0} onclick={() => confirm({ kind: "all" })}>
       {labels.revokeAll}
     </Button>
   </div>

@@ -103,7 +103,7 @@ $: canMatch = importText.trim().length > 0 && !state.isMatching;
           rows={5}
         />
       </Field.Field>
-      <Button loading={state.isMatching} disabled={!canMatch} type="button" onclick={actions.matchSections}>
+      <Button loading={state.isMatching} disabled={!canMatch} onclick={actions.matchSections}>
         {state.isMatching ? bulkCopy.matching : welcomeCopy.importButton}
       </Button>
     </Field.Group>
@@ -153,7 +153,6 @@ $: canMatch = importText.trim().length > 0 && !state.isMatching;
           <Button
             loading={state.isImporting}
             disabled={selectedCount === 0 || state.isImporting}
-            type="button"
             onclick={actions.confirmImport}
           >
             {state.isImporting
@@ -177,8 +176,7 @@ $: canMatch = importText.trim().length > 0 && !state.isMatching;
 
   <footer class="flex flex-wrap justify-between gap-2">
     {#if data.backUrl}
-      <Button href={data.backUrl} variant="ghost">
-        <ArrowLeft data-icon="inline-start" />
+      <Button icon={ArrowLeft} href={data.backUrl} variant="ghost">
         {welcomeCopy.back}
       </Button>
     {/if}

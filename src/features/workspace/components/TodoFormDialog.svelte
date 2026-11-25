@@ -122,7 +122,6 @@ $: contentLabelId = `${idPrefix}-content-label`;
       <div data-slot="dialog-footer" class="mx-0 mb-0 shrink-0">
         <Button
           disabled={saving}
-          type="button"
           variant="outline"
           onclick={onClose}
         >

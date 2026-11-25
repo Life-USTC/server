@@ -19,7 +19,6 @@ onMount(() => {
     class="max-md:icon-action"
     aria-label={label}
     data-testid={testId}
-    type="button"
     disabled={!ready || disabled || Boolean(readOnlyReason)}
     title={readOnlyReason ?? undefined}
     {onclick}

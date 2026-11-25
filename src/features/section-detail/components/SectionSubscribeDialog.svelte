@@ -41,11 +41,10 @@ export let subscriptionPendingAction: "subscribe" | "unsubscribe" | null;
         {sectionCopy.subscriptionDisclaimer}
       </Dialog.Description>
     </Dialog.Header>
-    <Button type="button" class="w-fit" variant="outline" onclick={openCalendar}>
-      <CalendarPlusIcon data-icon="inline-start" />{sectionCopy.addToCalendar}
+    <Button icon={CalendarPlusIcon} class="w-fit" variant="outline" onclick={openCalendar}>{sectionCopy.addToCalendar}
     </Button>
     <div data-slot="dialog-footer">
-      <Button variant="secondary" type="button" onclick={close}>
+      <Button variant="secondary" onclick={close}>
         {homeworkCopy.cancel}
       </Button>
       {#if isSubscribed}
@@ -56,8 +55,7 @@ export let subscriptionPendingAction: "subscribe" | "unsubscribe" | null;
           action="?/subscribe"
           use:enhance={subscriptionAction("subscribe")}
         >
-          <Button type="submit" disabled={subscriptionPendingAction === "subscribe"}>
-            <BookmarkPlusIcon data-icon="inline-start" />
+          <Button icon={BookmarkPlusIcon} type="submit" disabled={subscriptionPendingAction === "subscribe"}>
             {subscriptionPendingAction === "subscribe"
               ? sectionCopy.subscribing
               : sectionCopy.subscribeLabel}

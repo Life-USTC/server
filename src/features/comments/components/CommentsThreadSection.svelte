@@ -59,7 +59,6 @@ function hasTargetContinuation(state: CommentTargetLoadState) {
       class="ml-2"
       disabled={loadingReplyRootId === comment.id}
       size="sm"
-      type="button"
       variant="ghost"
       onclick={() => loadMoreReplies(comment.id)}
     >
@@ -85,7 +84,6 @@ function hasTargetContinuation(state: CommentTargetLoadState) {
             class="min-w-0 max-w-full whitespace-normal break-words"
             disabled={loadingTargetKey !== null}
             size="sm"
-            type="button"
             variant="outline"
             onclick={() => loadTarget(state.target.key)}
           >
@@ -96,7 +94,6 @@ function hasTargetContinuation(state: CommentTargetLoadState) {
             class="min-w-0 max-w-full whitespace-normal break-words"
             disabled={loadingTargetKey !== null}
             size="sm"
-            type="button"
             variant="outline"
             onclick={() => loadMoreComments(state.target.key)}
           >

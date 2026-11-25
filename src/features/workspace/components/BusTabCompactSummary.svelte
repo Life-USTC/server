@@ -85,12 +85,11 @@ $: emptyMessage =
 
   <div class="flex flex-wrap justify-end gap-2">
     <Button
+      icon={ArrowLeftRightIcon}
       disabled={!busPlannerReady}
-      type="button"
       variant="outline"
       onclick={reverseBusStops}
     >
-      <ArrowLeftRightIcon data-icon="inline-start" />
       {busCopy.planner.reverse}
     </Button>
     <Button href="/catalog/bus/map" variant="ghost">

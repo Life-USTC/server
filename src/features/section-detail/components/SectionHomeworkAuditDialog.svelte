@@ -71,7 +71,7 @@ export let setOpen: (open: boolean) => void;
       </section>
     </ScrollArea>
     <div data-slot="dialog-footer">
-      <Button type="button" onclick={() => setOpen(false)}>
+      <Button onclick={() => setOpen(false)}>
         {sectionCopy.close ?? ""}
       </Button>
     </div>

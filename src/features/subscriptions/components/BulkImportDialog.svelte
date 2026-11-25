@@ -77,8 +77,8 @@ const titleId = "bulk-import-title";
       </Field.Field>
     </Field.Group>
     <div data-slot="dialog-footer" class="shrink-0">
-      <Button type="button" variant="outline" onclick={() => onOpenChange(false)}>{copy.cancel}</Button>
-      <Button loading={isMatching} disabled={!canMatch} type="button" onclick={match}>
+      <Button variant="outline" onclick={() => onOpenChange(false)}>{copy.cancel}</Button>
+      <Button loading={isMatching} disabled={!canMatch} onclick={match}>
         {isMatching ? copy.matching : copy.matchButton}
       </Button>
     </div>

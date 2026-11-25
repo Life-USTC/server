@@ -261,7 +261,6 @@ let frontIndex = 0;
               aria-label={`${index + 1}: ${shot.copy.title}`}
               aria-pressed={frontIndex === index}
               size="icon-sm"
-              type="button"
               variant={frontIndex === index ? "secondary" : "ghost"}
               onclick={() => {
                 frontIndex = index;

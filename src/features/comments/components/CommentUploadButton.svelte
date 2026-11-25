@@ -17,7 +17,6 @@ function openFilePicker() {
 
 <Button
   {disabled}
-  type="button"
   variant="outline"
   onclick={openFilePicker}
 >

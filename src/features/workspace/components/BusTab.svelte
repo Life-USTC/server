@@ -301,7 +301,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
             <TableFilterFields fields={loadedBus.campuses.flatMap((campus) => busStopFilterFields(campus.id, campus.namePrimary, busCopy))} values={tableDraft} onchange={updateFilters} labels={busCopy.tableFilters} idPrefix="bus-stops" {formId} />
           </TableColumnHeader>
           <Button type="submit" disabled={!busPlannerReady}>{busCopy.applyFilters}</Button>
-          <Button type="button" variant="outline" onclick={clearFilters}>{busCopy.clear}</Button>
+          <Button variant="outline" onclick={clearFilters}>{busCopy.clear}</Button>
         </Field.Group>
       </form>
       <Collapsible bind:open={timetableOpen} class="group/full-timetable">
@@ -336,7 +336,7 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
     </div>
   {:else if busLoadFailed}
     <EmptyState title={busCopy.loadFailed}>
-      <Button type="button" variant="outline" onclick={() => void loadPublicBusData()}>
+      <Button variant="outline" onclick={() => void loadPublicBusData()}>
         {busCopy.retry}
       </Button>
     </EmptyState>

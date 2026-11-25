@@ -54,7 +54,7 @@ async function save() {
           {#if error}<Field.FieldError>{error}</Field.FieldError>{/if}
         </Field.Field>
         <div data-slot="dialog-footer">
-          <Button type="button" variant="outline" disabled={saving} onclick={onClose}>{copy.cancel}</Button>
+          <Button variant="outline" disabled={saving} onclick={onClose}>{copy.cancel}</Button>
           <Button loading={saving} type="submit" disabled={saving || !kind}>
             {copy.save}
           </Button>

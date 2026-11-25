@@ -106,15 +106,14 @@ export let readOnlyReason: string | undefined = undefined;
                     {#snippet render({ props })}
                       <Button
                         {...props}
+                        icon={MoreHorizontal}
                         aria-label={todosCopy.editAriaLabel}
                         disabled={Boolean(readOnlyReason)}
                         title={readOnlyReason}
                         class="icon-action" size="icon"
                         type="button"
                         variant="outline"
-                      >
-                        <MoreHorizontal data-icon="inline-start" />
-                      </Button>
+                      />
                     {/snippet}
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Content align="end">

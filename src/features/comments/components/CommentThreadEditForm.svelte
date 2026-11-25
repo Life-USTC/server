@@ -78,12 +78,11 @@ $: editEditorLabelId = `comment-edit-editor-label-${comment.id}`;
         uploadFile(file, "edit");
       }}
     />
-    <Button type="button" variant="ghost" onclick={cancelEdit}>
+    <Button variant="ghost" onclick={cancelEdit}>
       {commentCopy.cancelAction}
     </Button>
     <Button
       disabled={!editDraft.trim() || uploading}
-      type="button"
       onclick={() => saveEdit(comment)}
     >
       {commentCopy.saveAction}

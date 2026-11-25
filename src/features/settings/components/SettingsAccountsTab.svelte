@@ -46,7 +46,6 @@ $: unlinkAccount = accounts.find(
             <Button
 
               variant="outline"
-              type="button"
               disabled={!isMounted || !account.canUnlink || hasPendingAccountAction}
               onclick={() => {
                 unlinkAccountId = account.id;

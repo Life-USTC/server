@@ -176,15 +176,14 @@ async function confirmDelete(event: MouseEvent) {
             onclick={() => void toggleTodoCompletion(todo)}
           />
           <Button
+            icon={Pencil}
             class="w-full sm:ml-auto sm:w-auto"
             disabled={Boolean(readOnlyReason) || todoSavingById[todo.id]}
-            type="button"
             variant="outline"
             onclick={() => {
               openTodoEditor(todo);
             }}
           >
-            <Pencil data-icon="inline-start" />
             {todosCopy.editTitle}
           </Button>
         </div>

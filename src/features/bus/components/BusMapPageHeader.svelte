@@ -18,7 +18,6 @@ export let refreshing: boolean;
     <Button
       loading={refreshing} icon={RefreshCw}
       variant="outline"
-      type="button"
       aria-label={copy.refresh}
       onclick={refreshMap}
     >

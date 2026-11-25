@@ -324,7 +324,7 @@ let _editUploading = $derived(
     <Alert.Root variant={panel.messageVariant}>
       <Alert.Description>{panel.message}</Alert.Description>
       {#if !_viewerResolved}
-        <div><Button type="button" variant="outline" size="sm" disabled={panel.loading} onclick={_loadComments}>{_commentCopy.retry}</Button></div>
+        <div><Button variant="outline" size="sm" disabled={panel.loading} onclick={_loadComments}>{_commentCopy.retry}</Button></div>
       {/if}
     </Alert.Root>
   {/if}

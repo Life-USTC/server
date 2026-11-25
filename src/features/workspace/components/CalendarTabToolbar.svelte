@@ -66,13 +66,12 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
           {#snippet render({ props })}
             <Button
               {...props}
+              icon={MoreHorizontal}
               aria-label={workspaceCopy.calendarMoreActions}
               class="icon-action" size="icon"
               type="button"
               variant="outline"
-            >
-              <MoreHorizontal data-icon="inline-start" />
-            </Button>
+            />
           {/snippet}
         </DropdownMenu.Trigger>
         <DropdownMenu.Content align="end">

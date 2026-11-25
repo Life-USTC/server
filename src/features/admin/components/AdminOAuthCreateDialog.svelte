@@ -156,7 +156,6 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
 
       <div data-slot="dialog-footer">
           <Button
-            type="button"
             variant="outline"
             disabled={isCreatingClient}
             onclick={close}

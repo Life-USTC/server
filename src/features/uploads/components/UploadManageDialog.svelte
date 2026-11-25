@@ -77,7 +77,7 @@ async function submit(event: Event) {
         </Field.FieldGroup>
         {#if failed}<Alert.Root variant="destructive"><Alert.Description>{copy.toastRenameErrorDescription}</Alert.Description></Alert.Root>{/if}
         <div data-slot="dialog-footer">
-          <Button type="button" variant="outline" onclick={close} disabled={pending}>{copy.cancelRenameAction}</Button>
+          <Button variant="outline" onclick={close} disabled={pending}>{copy.cancelRenameAction}</Button>
           <Button loading={pending} type="submit" disabled={pending || !filename.trim()}>{copy.saveRenameAction}</Button>
         </div>
       </form>

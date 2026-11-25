@@ -81,13 +81,12 @@ function creatorLabel(homework: AdminModerationHomework) {
         {:else}
           <Badge>{copy.homeworkStatusActive}</Badge>
           <Button
+            icon={Trash2}
             aria-label={copy.deleteHomeworkAction}
             onclick={() => onDelete(homework)}
             size="sm"
-            type="button"
             variant="destructive"
           >
-            <Trash2 data-icon="inline-start" />
             {copy.deleteHomeworkAction}
           </Button>
         {/if}

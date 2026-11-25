@@ -48,7 +48,7 @@ export let showHeader = false;
     >
       {#snippet empty()}
         <EmptyState description={busCopy.planner.empty}>
-          <Button disabled={!busPlannerReady} type="button" variant="outline" onclick={reverseBusStops}>
+          <Button disabled={!busPlannerReady} variant="outline" onclick={reverseBusStops}>
             {busCopy.planner.emptyReverseAction}
           </Button>
         </EmptyState>

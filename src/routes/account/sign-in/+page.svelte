@@ -159,7 +159,6 @@ function signInAction(providerId: string): SubmitFunction {
             class="h-auto w-full justify-start p-3 text-left"
             disabled={passkeySupport !== "supported" || passkeyPending || Boolean(pendingProviderId)}
             onclick={signInWithPasskey}
-            type="button"
             variant="outline"
           >
             <span class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-primary">

@@ -95,10 +95,10 @@ async function confirmRoleChange() {
       </ScrollArea>
 
       <div data-slot="dialog-footer">
-        <Button type="button" variant="outline" onclick={close}>
+        <Button variant="outline" onclick={close}>
           {moderationCopy.cancelButton}
         </Button>
-        <Button loading={isSaving} icon={CheckCircleIcon} type="button" disabled={isSaving} onclick={requestSave}>
+        <Button loading={isSaving} icon={CheckCircleIcon} disabled={isSaving} onclick={requestSave}>
           <span>{isSaving ? copy.saving : copy.saveAction}</span>
         </Button>
       </div>

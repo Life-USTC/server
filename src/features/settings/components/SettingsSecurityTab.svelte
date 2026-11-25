@@ -58,7 +58,7 @@ function activityTimeLabel(group: (typeof groupedActivity)[number]) {
     </p>
   </div>
   <div>
-    <Button class="max-sm:w-full" type="button" variant="outline" onclick={() => (rotateDialogOpen = true)}>
+    <Button class="max-sm:w-full" variant="outline" onclick={() => (rotateDialogOpen = true)}>
       {copy.settings.security.calendarTokenRotate}
     </Button>
   </div>

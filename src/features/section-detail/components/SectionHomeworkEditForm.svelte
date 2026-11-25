@@ -57,7 +57,7 @@ let advancedOpen = false;
       </Alert.Root>
     {/if}
     <div class="flex justify-end gap-2 pt-1">
-      <Button type="button" variant="outline" onclick={cancelEdit}>{homeworkCopy.cancel}</Button>
+      <Button variant="outline" onclick={cancelEdit}>{homeworkCopy.cancel}</Button>
       <Button type="submit">{homeworkCopy.saveChanges}</Button>
     </div>
   </Field.Group>

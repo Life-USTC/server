@@ -98,7 +98,6 @@ async function changePasskey(action: "rename" | "delete") {
         deleteOpen = true;
       }}
 
-      type="button"
       variant="outline"
     >
       {copy.settings.passkeys.delete}

@@ -45,13 +45,13 @@ $: capabilities = homeworkSemesterShortcutCapabilities({
       {#snippet render({ props })}
         <Button
           {...props}
+          icon={CalendarClock}
           aria-label={fieldLabel ? `${fieldLabel} · ${label}` : undefined}
           class={fieldLabel ? undefined : "shrink-0"}
           {disabled}
           type="button"
           variant="outline"
         >
-          <CalendarClock data-icon="inline-start" />
           {label}
         </Button>
       {/snippet}

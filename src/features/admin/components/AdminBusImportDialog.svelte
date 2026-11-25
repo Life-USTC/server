@@ -44,7 +44,6 @@ let { close, copy, enhancedAction, pendingAction }: Props = $props();
       </div>
       <div data-slot="dialog-footer">
         <Button
-          type="button"
           disabled={Boolean(pendingAction)}
           variant="outline"
           onclick={close}

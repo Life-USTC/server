@@ -77,7 +77,6 @@ $: if (
     <Button
       aria-label={`${commentReactionLabel(reaction.type)} ${reaction.count}`}
       disabled={!comment.canReact || pendingReactionKey === commentReactionKey(comment.id, reaction.type)}
-      type="button"
       variant={reaction.viewerHasReacted ? "default" : "outline"}
       onclick={() => react(comment, reaction.type)}
     >

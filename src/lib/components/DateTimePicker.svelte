@@ -179,7 +179,7 @@ let rootProps = $derived.by(() => {
               disabled={disabled || !selectedDate}
             />
           </Field.Field>
-          <Button type="button" variant="outline" onclick={() => { open = false; }}>
+          <Button variant="outline" onclick={() => { open = false; }}>
             {pickerCopy.done}
           </Button>
         </Field.FieldGroup>

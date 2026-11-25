@@ -111,7 +111,7 @@ const titleId = "calendar-subscription-title";
       {/if}
     </section>
     <div data-slot="dialog-footer">
-      <Button type="button" onclick={close}>{copy.close ?? ""}</Button>
+      <Button onclick={close}>{copy.close ?? ""}</Button>
     </div>
   </Dialog.Content>
 </Dialog.Root>

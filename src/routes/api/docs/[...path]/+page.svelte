@@ -333,7 +333,7 @@ function scheduleReferenceRouteRestore(expected: number, epoch: string) {
         <Empty.Description>{data.copy.apiDocs.loadErrorDescription}</Empty.Description>
       </Empty.Header>
       <Empty.Content>
-        <Button class="w-full sm:w-auto" type="button" onclick={() => void loadSpec()}>
+        <Button class="w-full sm:w-auto" onclick={() => void loadSpec()}>
           {data.copy.common.tryAgain}
         </Button>
       </Empty.Content>

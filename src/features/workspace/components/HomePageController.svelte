@@ -243,8 +243,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
       <h1 class="text-pretty font-semibold text-xl tracking-tight sm:text-2xl">{pub.title}</h1>
       <p class="max-w-2xl text-pretty text-muted-foreground text-sm">{pub.description}</p>
     </div>
-    <Button href="/catalog/sections" variant="outline" data-testid="home-section-search">
-      <SearchIcon data-icon="inline-start" />
+    <Button icon={SearchIcon} href="/catalog/sections" variant="outline" data-testid="home-section-search">
       {pub.cards.sections.title}
     </Button>
   </header>

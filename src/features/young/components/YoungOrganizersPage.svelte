@@ -80,7 +80,7 @@ function eventsHref(id: string) {
           <SearchField id="young-organizer-search" label={copy.common.search} placeholder={youngCopy.organizerSearchPlaceholder} bind:value={() => draft.search ?? "", (value) => patchDraft({ search: value })} />
         </div>
         <Button type="submit">{copy.common.applyFilters}</Button>
-        <Button type="button" variant="ghost" onclick={() => { draft = {}; }}>{copy.common.clear}</Button>
+        <Button variant="ghost" onclick={() => { draft = {}; }}>{copy.common.clear}</Button>
       </form>
       </div>
       {#if fields.some((field) => tableFilters[field.name])}

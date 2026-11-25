@@ -83,7 +83,6 @@ export let targetLabel: (description: AdminModerationDescription) => string;
           <div data-slot="dialog-footer">
             <Button
               disabled={isSaving}
-              type="button"
               variant="ghost"
               onclick={close}
             >

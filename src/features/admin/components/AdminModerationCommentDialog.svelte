@@ -86,8 +86,8 @@ export let targetLabel: (comment: AdminModerationComment) => string;
       </ScrollArea>
 
       <div data-slot="dialog-footer">
-        <Button type="button" variant="ghost" onclick={close}>{copy.cancelButton}</Button>
-        <Button loading={isSavingComment} disabled={isSavingComment} type="button" onclick={saveCommentModeration}>
+        <Button variant="ghost" onclick={close}>{copy.cancelButton}</Button>
+        <Button loading={isSavingComment} disabled={isSavingComment} onclick={saveCommentModeration}>
           {isSavingComment ? copy.saving : copy.confirmButton}
         </Button>
       </div>

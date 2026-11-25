@@ -51,8 +51,7 @@ function enhancedAction(actionKey: string, onSuccess?: () => void) {
   {#snippet header()}
     <PageHeader title={copy.title} description={copy.subtitle} eyebrow={data.copy.admin.title}>
       {#snippet actions()}
-        <Button class="w-full sm:w-auto" type="button" disabled={Boolean(pendingAction)} onclick={() => (isImportDialogOpen = true)}>
-          <Download data-icon="inline-start" />
+        <Button icon={Download} class="w-full sm:w-auto" disabled={Boolean(pendingAction)} onclick={() => (isImportDialogOpen = true)}>
           {copy.importAction}
         </Button>
       {/snippet}

@@ -83,7 +83,6 @@ function revokeAction(consentId: string): SubmitFunction {
           <Item.Actions class="max-sm:w-full">
             <Button
               class="max-sm:w-full"
-              type="button"
               variant="outline"
               onclick={() => {
                 pendingAuthorization = authorization;

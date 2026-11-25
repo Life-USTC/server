@@ -90,7 +90,6 @@ function selectClient(value: string) {
 {#snippet copyField(key: string, label: string, value: string)}
   <Button
     class="group h-auto min-w-0 justify-between rounded-xl p-3 text-left whitespace-normal"
-    type="button"
     variant="outline"
     onclick={() => copyValue(key, value)}
   >
@@ -107,7 +106,6 @@ function selectClient(value: string) {
     <h4 class="font-medium text-sm">{title}</h4>
     <Button
       class="group h-auto min-w-0 w-full justify-between rounded-xl p-3 text-left whitespace-normal"
-      type="button"
       variant="outline"
       onclick={() => copyValue(key, value)}
     >
@@ -174,7 +172,6 @@ function selectClient(value: string) {
         <div class={usageMarketingCtaRowClass}>
           <Button
             class={usageMarketingPrimaryCtaClass}
-            type="button"
             onclick={copyEndpoint}
           >
             {#if copiedKey === "endpoint"}

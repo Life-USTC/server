@@ -150,7 +150,6 @@ async function addPasskey() {
             onclick={() => {
               void $passkeyQuery.refetch();
             }}
-            type="button"
             variant="outline"
           >
             {copy.settings.passkeys.retry}

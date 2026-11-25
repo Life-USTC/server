@@ -126,7 +126,7 @@ async function copyUrl() {
 </script>
 
 {#if renderTrigger}
-  <Button class={className} {size} type="button" {variant} onclick={open}>
+  <Button class={className} {size} {variant} onclick={open}>
     {#if showIcon}
       <Link2 data-icon="inline-start" />
     {/if}

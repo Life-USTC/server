@@ -27,12 +27,11 @@ export let saveDescription: () => void;
     />
   </Field.Field>
   <div class="flex flex-wrap justify-end gap-2">
-    <Button type="button" variant="outline" onclick={cancelEdit}>
+    <Button variant="outline" onclick={cancelEdit}>
       {copy.cancel}
     </Button>
     <Button
       disabled={isSaving || isDisabled}
-      type="button"
       onclick={saveDescription}
     >
       {isSaving ? copy.saving : copy.save}
