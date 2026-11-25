@@ -64,8 +64,7 @@ async function submit(event: Event) {
 {#if action === "rename"}
   <Dialog.Root open={true} onOpenChange={(open) => { if (!open && !pending) close(); }}>
     <Dialog.Content showCloseButton={false}>
-      <Dialog.Header>
-        <Dialog.Title>{copy.renameAction}</Dialog.Title>
+      <Dialog.Header heading={copy.renameAction}>
         <Dialog.Description class="break-all">{upload.filename}</Dialog.Description>
       </Dialog.Header>
       <form onsubmit={submit} class="grid gap-4">
@@ -76,10 +75,9 @@ async function submit(event: Event) {
           </Field.Field>
         </Field.FieldGroup>
         {#if failed}<Alert.Message variant="destructive">{copy.toastRenameErrorDescription}</Alert.Message>{/if}
-        <div data-slot="dialog-footer">
-          <Button variant="outline" onclick={close} disabled={pending}>{copy.cancelRenameAction}</Button>
+        <Dialog.Actions cancelLabel={copy.cancelRenameAction} onCancel={close} cancelDisabled={pending}>
           <Button loading={pending} type="submit" disabled={pending || !filename.trim()}>{copy.saveRenameAction}</Button>
-        </div>
+        </Dialog.Actions>
       </form>
     </Dialog.Content>
   </Dialog.Root>

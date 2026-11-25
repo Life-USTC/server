@@ -53,10 +53,11 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
       class="grid max-h-[calc(100dvh-2rem)] min-h-0 max-w-2xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden sm:max-w-2xl"
       aria-labelledby="oauth-create-title"
     >
-      <Dialog.Header class="pr-10">
-        <Dialog.Title id="oauth-create-title">{copy.createClient}</Dialog.Title>
-        <Dialog.Description>{copy.createClientDescription}</Dialog.Description>
-      </Dialog.Header>
+      <Dialog.Header
+        heading={copy.createClient}
+        titleId="oauth-create-title"
+        description={copy.createClientDescription}
+      />
       <form
         method="POST"
         action="?/createClient"
@@ -151,14 +152,7 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
           </div>
         </Field.Group>
 
-      <div data-slot="dialog-footer">
-          <Button
-            variant="outline"
-            disabled={isCreatingClient}
-            onclick={close}
-          >
-            {copy.cancel}
-          </Button>
+        <Dialog.Actions cancelLabel={copy.cancel} onCancel={close} cancelDisabled={isCreatingClient}>
           <Button
             loading={isCreatingClient}
             type="submit"
@@ -166,7 +160,7 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
           >
             {isCreatingClient ? copy.creating : copy.createClient}
           </Button>
-        </div>
+        </Dialog.Actions>
       </form>
     </Dialog.Content>
   </Dialog.Root>

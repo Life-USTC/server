@@ -28,8 +28,7 @@ const titleId = "bulk-import-title";
 
 <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
   <Dialog.Content class="flex max-w-lg flex-col overflow-hidden sm:max-w-lg" aria-labelledby={titleId}>
-    <Dialog.Header class="shrink-0">
-      <Dialog.Title id={titleId}>{copy.title}</Dialog.Title>
+    <Dialog.Header class="shrink-0" heading={copy.title} titleId={titleId}>
       <Dialog.Description>
         {copy.descriptionPrefix}{" "}<a
           href="https://jw.ustc.edu.cn"
@@ -67,11 +66,10 @@ const titleId = "bulk-import-title";
         />
       </Field.Field>
     </Field.Group>
-    <div data-slot="dialog-footer" class="shrink-0">
-      <Button variant="outline" onclick={() => onOpenChange(false)}>{copy.cancel}</Button>
+    <Dialog.Actions class="shrink-0" cancelLabel={copy.cancel} onCancel={() => onOpenChange(false)}>
       <Button loading={isMatching} disabled={!canMatch} onclick={match}>
         {isMatching ? copy.matching : copy.matchButton}
       </Button>
-    </div>
+    </Dialog.Actions>
   </Dialog.Content>
 </Dialog.Root>

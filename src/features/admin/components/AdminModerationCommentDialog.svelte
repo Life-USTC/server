@@ -47,8 +47,7 @@ export let targetLabel: (comment: AdminModerationComment) => string;
       aria-labelledby="manage-comment-title"
       showCloseButton={false}
     >
-      <Dialog.Header>
-        <Dialog.Title id="manage-comment-title">{copy.manageComment}</Dialog.Title>
+      <Dialog.Header heading={copy.manageComment} titleId="manage-comment-title">
         <Dialog.Description>
           {commentAuthorLabel(comment)} · {targetLabel(comment)}
         </Dialog.Description>

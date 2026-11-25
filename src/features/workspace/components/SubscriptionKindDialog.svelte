@@ -38,8 +38,7 @@ async function save() {
 
 <Dialog.Root open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
   <Dialog.Content>
-    <Dialog.Header>
-      <Dialog.Title>{copy.title}</Dialog.Title>
+    <Dialog.Header heading={copy.title}>
       <Dialog.Description>{section.course.namePrimary} · {section.code}</Dialog.Description>
     </Dialog.Header>
     <form onsubmit={(event) => { event.preventDefault(); void save(); }}>
@@ -53,12 +52,11 @@ async function save() {
           </ToggleGroup.Root>
           {#if error}<Field.FieldError>{error}</Field.FieldError>{/if}
         </Field.Field>
-        <div data-slot="dialog-footer">
-          <Button variant="outline" disabled={saving} onclick={onClose}>{copy.cancel}</Button>
+        <Dialog.Actions cancelLabel={copy.cancel} onCancel={onClose} cancelDisabled={saving}>
           <Button loading={saving} type="submit" disabled={saving || !kind}>
             {copy.save}
           </Button>
-        </div>
+        </Dialog.Actions>
       </Field.FieldGroup>
     </form>
   </Dialog.Content>

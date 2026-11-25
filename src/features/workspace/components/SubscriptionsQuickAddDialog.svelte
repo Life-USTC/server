@@ -159,12 +159,10 @@ async function subscribeSelectedSections() {
     <Dialog.Content
       class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(64vh,36rem)] sm:max-h-[min(64vh,36rem)] sm:max-w-lg"
     >
-      <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
-        <Dialog.Title>{subscriptionsCopy.quickAdd.title}</Dialog.Title>
-        <Dialog.Description>
-          {subscriptionsCopy.quickAdd.description}
-        </Dialog.Description>
-      </Dialog.Header>
+      <Dialog.Header class="shrink-0 px-5 pb-2 pt-4"
+        heading={subscriptionsCopy.quickAdd.title}
+        description={subscriptionsCopy.quickAdd.description}
+      />
 
       <ScrollArea class="h-0 min-h-0 flex-1">
         <div class="min-w-0">
@@ -263,10 +261,7 @@ async function subscribeSelectedSections() {
         </div>
       </ScrollArea>
 
-      <div data-slot="dialog-footer" class="mx-0 mb-0 shrink-0">
-        <Button variant="outline" onclick={closeDialog}>
-          {subscriptionsCopy.quickAdd.cancel}
-        </Button>
+      <Dialog.Actions class="mx-0 mb-0 shrink-0" cancelLabel={subscriptionsCopy.quickAdd.cancel} onCancel={closeDialog}>
         <Button
           loading={isSubmitting}
           disabled={selectedSectionIds.length === 0 || isSubmitting}
@@ -278,7 +273,7 @@ async function subscribeSelectedSections() {
                 count: selectedSectionIds.length,
               })}
         </Button>
-      </div>
+      </Dialog.Actions>
     </Dialog.Content>
   </Dialog.Root>
 {/if}

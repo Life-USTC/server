@@ -26,12 +26,7 @@ let { close, copy, enhancedAction, pendingAction }: Props = $props();
     class="max-w-lg sm:max-w-lg"
     aria-labelledby="bus-import-title"
   >
-    <Dialog.Header>
-      <Dialog.Title id="bus-import-title">{copy.importAction}</Dialog.Title>
-      <Dialog.Description>
-        {copy.importDescription}
-      </Dialog.Description>
-    </Dialog.Header>
+    <Dialog.Header heading={copy.importAction} titleId="bus-import-title" description={copy.importDescription} />
     <form
       method="POST"
       action="?/importStatic"
@@ -40,18 +35,11 @@ let { close, copy, enhancedAction, pendingAction }: Props = $props();
       <div class="px-5 py-4">
         <Alert.Message>{copy.importWarning}</Alert.Message>
       </div>
-      <div data-slot="dialog-footer">
-        <Button
-          disabled={Boolean(pendingAction)}
-          variant="outline"
-          onclick={close}
-        >
-          {copy.cancelAction}
-        </Button>
+      <Dialog.Actions cancelLabel={copy.cancelAction} onCancel={close} cancelDisabled={Boolean(pendingAction)}>
         <Button loading={pendingAction === "import"} icon={Download} type="submit" disabled={Boolean(pendingAction)}>
           {copy.importAction}
         </Button>
-      </div>
+      </Dialog.Actions>
     </form>
   </Dialog.Content>
 </Dialog.Root>

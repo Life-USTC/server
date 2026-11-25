@@ -54,10 +54,10 @@ $: contentLabelId = `${idPrefix}-content-label`;
       use:enhance={submit}
     >
       {#if todo}<input name="id" type="hidden" value={todo.id} />{/if}
-      <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
-        <Dialog.Title>{todo ? todosCopy.editTitle : todosCopy.createTitle}</Dialog.Title>
-        <Dialog.Description>{todo ? todosCopy.editDescription : todosCopy.subtitle}</Dialog.Description>
-      </Dialog.Header>
+      <Dialog.Header class="shrink-0 px-5 pb-2 pt-4"
+        heading={todo ? todosCopy.editTitle : todosCopy.createTitle}
+        description={todo ? todosCopy.editDescription : todosCopy.subtitle}
+      />
       <ScrollArea class="h-0 min-h-0 flex-1">
         <Field.Group class="gap-4 px-5 py-4">
           {#if error}
@@ -110,18 +110,11 @@ $: contentLabelId = `${idPrefix}-content-label`;
           </Field.Field>
         </Field.Group>
       </ScrollArea>
-      <div data-slot="dialog-footer" class="mx-0 mb-0 shrink-0">
-        <Button
-          disabled={saving}
-          variant="outline"
-          onclick={onClose}
-        >
-          {todosCopy.cancel}
-        </Button>
+      <Dialog.Actions class="mx-0 mb-0 shrink-0" cancelLabel={todosCopy.cancel} onCancel={onClose} cancelDisabled={saving}>
         <Button loading={saving} disabled={saving} type="submit">
           {saving ? todosCopy.saving : todo ? todosCopy.saveChanges : todosCopy.createAction}
         </Button>
-      </div>
+      </Dialog.Actions>
     </form>
   </Dialog.Content>
 </Dialog.Root>

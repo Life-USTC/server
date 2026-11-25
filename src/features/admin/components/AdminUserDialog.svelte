@@ -94,14 +94,11 @@ async function confirmRoleChange() {
         </div>
       </ScrollArea>
 
-      <div data-slot="dialog-footer">
-        <Button variant="outline" onclick={close}>
-          {moderationCopy.cancelButton}
-        </Button>
+      <Dialog.Actions cancelLabel={moderationCopy.cancelButton} onCancel={close}>
         <Button loading={isSaving} icon={CheckCircleIcon} disabled={isSaving} onclick={requestSave}>
           <span>{isSaving ? copy.saving : copy.saveAction}</span>
         </Button>
-      </div>
+      </Dialog.Actions>
     </Dialog.Content>
   </Dialog.Root>
 

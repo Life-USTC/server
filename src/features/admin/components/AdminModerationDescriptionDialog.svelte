@@ -48,8 +48,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
         use:enhance={enhanceAction}
       >
         <Field.Group class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-4 overflow-hidden">
-          <Dialog.Header>
-            <Dialog.Title id="manage-description-title">{copy.manageDescription}</Dialog.Title>
+          <Dialog.Header heading={copy.manageDescription} titleId="manage-description-title">
             <Dialog.Description>
               {targetLabel(description)} · {formatMessage(copy.editedAt, { date: formatDate(descriptionEditedAt(description)) })}
             </Dialog.Description>

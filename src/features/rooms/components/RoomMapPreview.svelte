@@ -345,10 +345,7 @@ function handleWheel(event: WheelEvent) {
       data-testid="room-map-dialog"
       finalFocus={restoreTriggerFocus}
     >
-      <Dialog.Header>
-        <Dialog.Title>{dialogTitle}</Dialog.Title>
-        <Dialog.Description>{dialogDescription}</Dialog.Description>
-      </Dialog.Header>
+      <Dialog.Header heading={dialogTitle} description={dialogDescription} />
 
       {#if loading}
         <Skeleton class="aspect-video w-full" />

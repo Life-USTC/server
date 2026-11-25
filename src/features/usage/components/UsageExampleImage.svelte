@@ -50,10 +50,7 @@ function retry() {
       <img {alt} src={imageSrc} class={className} {loading} decoding="async" onerror={() => { failed = true; }} />
     </Dialog.Trigger>
     <Dialog.Content class="sm:max-w-[calc(100%-2rem)]">
-      <Dialog.Header class="pe-8">
-        <Dialog.Title>{title ?? alt}</Dialog.Title>
-        <Dialog.Description>{alt}</Dialog.Description>
-      </Dialog.Header>
+      <Dialog.Header class="pe-8" heading={title ?? alt} description={alt} />
       {#if previewFailed}
         {@render failure()}
       {:else}

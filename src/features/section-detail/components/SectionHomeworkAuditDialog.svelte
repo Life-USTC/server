@@ -36,10 +36,7 @@ export let setOpen: (open: boolean) => void;
   <Dialog.Content
     class="!max-w-2xl sm:!max-w-2xl"
   >
-    <Dialog.Header>
-      <Dialog.Title>{homeworkCopy.auditTitle}</Dialog.Title>
-      <Dialog.Description>{sectionCopy.homeworkDescription}</Dialog.Description>
-    </Dialog.Header>
+    <Dialog.Header heading={homeworkCopy.auditTitle} description={sectionCopy.homeworkDescription} />
     <ScrollArea class="h-[min(72vh,42rem)]">
       <section class="px-5 py-4">
         {#if logs.length === 0}

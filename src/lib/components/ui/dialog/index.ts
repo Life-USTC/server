@@ -1,3 +1,4 @@
+export { default as Actions } from "./dialog-actions.svelte";
 import { Dialog as Root } from "@ui-sdk/svelte/dialog";
 import { DialogTitle as Title } from "@ui-sdk/svelte/dialog";
 import Header from "./dialog-header.svelte";

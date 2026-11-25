@@ -63,10 +63,11 @@ async function copyCredential(
       aria-labelledby="oauth-credentials-title"
       showCloseButton={canDismissCredentials}
     >
-      <Dialog.Header class="pr-10">
-        <Dialog.Title id="oauth-credentials-title">{copy.credentialsTitle}</Dialog.Title>
-        <Dialog.Description>{copy.credentialsWarning}</Dialog.Description>
-      </Dialog.Header>
+      <Dialog.Header
+        heading={copy.credentialsTitle}
+        titleId="oauth-credentials-title"
+        description={copy.credentialsWarning}
+      />
       {#if clientId}
         <ScrollArea class="min-h-0">
           <div class="grid gap-3 px-5 py-4">

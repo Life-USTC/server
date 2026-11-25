@@ -58,14 +58,7 @@ function enhanceSubmission(form: HTMLFormElement) {
             {@render children()}
           </Field.Group>
         </ScrollArea>
-        <div data-slot="dialog-footer" class="mx-0 mb-0 shrink-0 border-t-0 sm:px-6">
-          <Button
-            disabled={saving}
-            variant="outline"
-            onclick={onClose}
-          >
-            {copy.cancel}
-          </Button>
+        <Dialog.Actions class="mx-0 mb-0 shrink-0 border-t-0 sm:px-6" cancelLabel={copy.cancel} onCancel={onClose} cancelDisabled={saving}>
           <Button
             loading={saving}
             data-testid={testId}
@@ -74,7 +67,7 @@ function enhanceSubmission(form: HTMLFormElement) {
           >
             {saving ? copy.saving : copy.createAction}
           </Button>
-        </div>
+        </Dialog.Actions>
       </form>
     </Dialog.Content>
   </Dialog.Root>
