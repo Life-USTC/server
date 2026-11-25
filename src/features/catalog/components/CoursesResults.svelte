@@ -14,6 +14,7 @@ import {
 import { page as routePage } from "$app/state";
 import CatalogColumnFilter from "./CatalogColumnFilter.svelte";
 import CatalogEntityName from "./CatalogEntityName.svelte";
+import CatalogMobileResults from "./CatalogMobileResults.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type { CatalogColumnFilterProps } from "./catalog-column-filters";
 import type {
@@ -53,41 +54,21 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
 <section class="grid min-w-0 gap-3">
     <ResponsiveCollection>
       {#snippet mobile()}
-        <div class="grid gap-3" data-slot="collection-header">
-          <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-            {#each Object.entries(columnFilters) as [key, column] (key)}
-              <CatalogColumnFilter {...column} idPrefix={"mobile-course-" + key} />
-            {/each}
-          </div>
-        </div>
-        {#if data.data.length > 0}
-        <Item.Group class="gap-0" role="list">
-          {#each data.data as course, index}
+        <CatalogMobileResults rows={data.data} filters={columnFilters} prefix="mobile-course-" {empty}>
+          {#snippet card(course)}
             {@const courseHref = `/catalog/courses/${course.jwId}`}
-            <div role="listitem">
-              <MobileListCard size="sm">
-                {#snippet child({ props })}
-                  <a href={courseHref} {...props}>
-                    <Item.Content><Item.Title><CourseIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" /><CatalogEntityName item={course} locale={locale} /></Item.Title></Item.Content>
-                    <Item.Actions><TruncatedCode text={course.code} /></Item.Actions>
+            <MobileListCard href={courseHref}>
+              <Item.Content><Item.Title><CourseIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" /><CatalogEntityName item={course} locale={locale} /></Item.Title></Item.Content>
+              <Item.Actions><TruncatedCode text={course.code} /></Item.Actions>
 
-                    <Item.Footer class="flex-wrap justify-start">
-                      <span>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</span>
-                      <span>{course.category ? primaryName(course.category) : "-"}</span>
-                      <span>{course.classType ? primaryName(course.classType) : "-"}</span>
-                    </Item.Footer>
-                  </a>
-                {/snippet}
-              </MobileListCard>
-              {#if index < data.data.length - 1}
-                <Item.Separator />
-              {/if}
-            </div>
-          {/each}
-        </Item.Group>
-        {:else}
-          {@render empty()}
-        {/if}
+              <Item.Footer class="flex-wrap justify-start">
+                <span>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</span>
+                <span>{course.category ? primaryName(course.category) : "-"}</span>
+                <span>{course.classType ? primaryName(course.classType) : "-"}</span>
+              </Item.Footer>
+            </MobileListCard>
+          {/snippet}
+        </CatalogMobileResults>
       {/snippet}
       {#snippet desktop()}
         <Table.Root>

@@ -217,22 +217,18 @@ function listStatus(event: YoungEventSummary) {
                 <Item.Group class="gap-0" role="list">
                   {#each group.events as event (event.youngId)}
                     <div role="listitem">
-                      <MobileListCard size="sm">
-                        {#snippet child({ props })}
-                          <a href={youngDetailHref(event.youngId)} {...props}>
-                            <Item.Content class="min-w-0 basis-full [overflow-wrap:anywhere]">
-                              <Item.Title>{event.name}</Item.Title>
-                              <p class="text-sm leading-normal text-muted-foreground">
-                                <span>{listTime(event)}</span>
-                                {#if event.location}<span> · {event.location}</span>{/if}
-                              </p>
-                              {@render metaBadges(event)}
-                            </Item.Content>
-                            <Item.Actions>
-                              {@render statusBadge(event)}
-                            </Item.Actions>
-                          </a>
-                        {/snippet}
+                      <MobileListCard href={youngDetailHref(event.youngId)}>
+                        <Item.Content class="min-w-0 basis-full [overflow-wrap:anywhere]">
+                          <Item.Title>{event.name}</Item.Title>
+                          <p class="text-sm leading-normal text-muted-foreground">
+                            <span>{listTime(event)}</span>
+                            {#if event.location}<span> · {event.location}</span>{/if}
+                          </p>
+                          {@render metaBadges(event)}
+                        </Item.Content>
+                        <Item.Actions>
+                          {@render statusBadge(event)}
+                        </Item.Actions>
                       </MobileListCard>
                     </div>
                   {/each}

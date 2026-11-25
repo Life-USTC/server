@@ -97,22 +97,18 @@ function eventsHref(id: string) {
           <Item.Group class="gap-0" role="list">
             {#each data as organizer, index (organizer.id)}
               <div role="listitem">
-                <MobileListCard size="sm">
-                  {#snippet child({ props })}
-                    <a href={organizerHref(organizer.id)} {...props}>
-                      <Item.Content>
-                        <Item.Title>{organizer.name}</Item.Title>
-                        <Item.Description title={youngCopy.organizerCountsHint}>
-                            {youngCopy.activeEvents}: {organizer.activeCount} ·
-                            {youngCopy.upcomingEvents}: {organizer.upcomingCount} ·
-                            {youngCopy.historyEvents}: {organizer.historyCount}
-                        </Item.Description>
-                      </Item.Content>
-                        <Item.Actions>
-                          <span class="text-xs underline underline-offset-4">{youngCopy.organizerEvents}</span>
-                        </Item.Actions>
-                    </a>
-                  {/snippet}
+                <MobileListCard href={organizerHref(organizer.id)}>
+                  <Item.Content>
+                    <Item.Title>{organizer.name}</Item.Title>
+                    <Item.Description title={youngCopy.organizerCountsHint}>
+                        {youngCopy.activeEvents}: {organizer.activeCount} ·
+                        {youngCopy.upcomingEvents}: {organizer.upcomingCount} ·
+                        {youngCopy.historyEvents}: {organizer.historyCount}
+                    </Item.Description>
+                  </Item.Content>
+                    <Item.Actions>
+                      <span class="text-xs underline underline-offset-4">{youngCopy.organizerEvents}</span>
+                    </Item.Actions>
                 </MobileListCard>
                 {#if index < data.length - 1}
                   <Item.Separator />

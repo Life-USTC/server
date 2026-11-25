@@ -13,6 +13,7 @@ import {
 import { page as routePage } from "$app/state";
 import CatalogColumnFilter from "./CatalogColumnFilter.svelte";
 import CatalogEntityName from "./CatalogEntityName.svelte";
+import CatalogMobileResults from "./CatalogMobileResults.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type { CatalogColumnFilterProps } from "./catalog-column-filters";
 import type {
@@ -64,67 +65,47 @@ function teacherSectionsHref(teacher: TeacherListRow) {
 <section class="grid min-w-0 gap-3">
     <ResponsiveCollection>
       {#snippet mobile()}
-        <div class="grid gap-3" data-slot="collection-header">
-          <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-            {#each Object.entries(columnFilters) as [key, column] (key)}
-              <CatalogColumnFilter {...column} idPrefix={"mobile-teacher-" + key} />
-            {/each}
-          </div>
-        </div>
-        {#if teachers.length > 0}
-        <Item.Group class="gap-0" role="list">
-          {#each teachers as teacher, index}
+        <CatalogMobileResults rows={teachers} filters={columnFilters} prefix="mobile-teacher-" {empty}>
+          {#snippet card(teacher)}
             {@const teacherHref = `/catalog/teachers/${teacher.id}`}
             {@const sectionCount = teacher._count.sections}
-            <div role="listitem" class="relative">
-              <MobileListCard size="sm">
-                {#snippet child({ props })}
-                  <a href={teacherHref} {...props}>
-                    <Item.Content><Item.Title><TeacherIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" /><CatalogEntityName item={teacher} locale={locale} /></Item.Title></Item.Content>
-                    <Item.Actions>
-                      {#if sectionCount > 0}
-                        <span
-                          class="invisible min-w-11 tabular-nums text-sm"
-                          aria-hidden="true"
-                        >{sectionCount}</span>
-                      {:else}
-                        <span class="tabular-nums text-muted-foreground text-sm" data-testid="teacher-section-count">0</span>
-                      {/if}
-                    </Item.Actions>
+            <MobileListCard href={teacherHref}>
+              <Item.Content><Item.Title><TeacherIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" /><CatalogEntityName item={teacher} locale={locale} /></Item.Title></Item.Content>
+              <Item.Actions>
+                {#if sectionCount > 0}
+                  <span
+                    class="invisible min-w-11 tabular-nums text-sm"
+                    aria-hidden="true"
+                  >{sectionCount}</span>
+                {:else}
+                  <span class="tabular-nums text-muted-foreground text-sm" data-testid="teacher-section-count">0</span>
+                {/if}
+              </Item.Actions>
 
-                    <Item.Footer
-                      class="flex-wrap justify-start gap-x-3 gap-y-1 text-sm"
-                    >
-                      {#if teacher.code}
-                        <span class="font-mono text-muted-foreground">{teacher.code}</span>
-                      {/if}
-                    <span>{teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}</span>
-                    {#if showTitleColumn}
-                      <span>{teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}</span>
-                    {/if}
-                      {#if showEmailColumn}
-                        <span>{teacher.email ?? "-"}</span>
-                      {/if}
-                    </Item.Footer>
-                  </a>
-                {/snippet}
-              </MobileListCard>
-              {#if sectionCount > 0}
-                <a
-                  href={teacherSectionsHref(teacher)}
-                  class="absolute right-3 top-0 flex min-h-11 min-w-11 items-center justify-end text-sm tabular-nums text-muted-foreground underline-offset-2"
-                  data-testid="teacher-section-count"
-                >{sectionCount}</a>
+              <Item.Footer
+                class="flex-wrap justify-start gap-x-3 gap-y-1 text-sm"
+              >
+                {#if teacher.code}
+                  <span class="font-mono text-muted-foreground">{teacher.code}</span>
+                {/if}
+              <span>{teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}</span>
+              {#if showTitleColumn}
+                <span>{teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}</span>
               {/if}
-            </div>
-            {#if index < teachers.length - 1}
-              <Item.Separator aria-hidden="true" />
+                {#if showEmailColumn}
+                  <span>{teacher.email ?? "-"}</span>
+                {/if}
+              </Item.Footer>
+            </MobileListCard>
+            {#if sectionCount > 0}
+              <a
+                href={teacherSectionsHref(teacher)}
+                class="absolute right-3 top-0 flex min-h-11 min-w-11 items-center justify-end text-sm tabular-nums text-muted-foreground underline-offset-2"
+                data-testid="teacher-section-count"
+              >{sectionCount}</a>
             {/if}
-          {/each}
-        </Item.Group>
-        {:else}
-          {@render empty()}
-        {/if}
+          {/snippet}
+        </CatalogMobileResults>
       {/snippet}
       {#snippet desktop()}
         <Table.Root class="">

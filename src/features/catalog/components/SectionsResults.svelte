@@ -13,6 +13,7 @@ import {
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page as routePage } from "$app/state";
 import CatalogColumnFilter from "./CatalogColumnFilter.svelte";
+import CatalogMobileResults from "./CatalogMobileResults.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
 import type { CatalogColumnFilterProps } from "./catalog-column-filters";
 import type {
@@ -53,46 +54,24 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
 <section class="grid min-w-0 gap-3">
     <ResponsiveCollection>
       {#snippet mobile()}
-        <div class="grid gap-3" data-slot="collection-header">
-          <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-            {#each Object.entries(columnFilters) as [key, column] (key)}
-              <CatalogColumnFilter {...column} idPrefix={"mobile-section-" + key} />
-            {/each}
-          </div>
-        </div>
-        {#if data.data.length > 0}
-        <div data-testid="catalog-results-cards">
-          <Item.Group class="gap-0" role="list">
-            {#each data.data as section, index}
-              {@const sectionHref = `/catalog/sections/${section.jwId}`}
-              <div role="listitem">
-                <MobileListCard size="sm">
-                  {#snippet child({ props })}
-                    <a href={sectionHref} {...props}>
-                      <Item.Content>
-                        <Item.Title class="block w-full line-clamp-none break-words text-base">{primaryName(section.course) || section.code}</Item.Title>
-                        <Item.Description class="line-clamp-none">{catalogLocalizedNames(section.teachers, locale)}</Item.Description>
-                        <span class="text-xs text-muted-foreground">{section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}</span>
-                        <span class="font-mono text-xs text-muted-foreground" data-slot="catalog-code">{section.code}</span>
-                      </Item.Content>
-                      <Item.Footer class="flex-wrap justify-start">
-                        <span>{sectionLabels.credits}: {section.credits ?? "-"}</span>
-                        <span>{sectionLabels.capacity}: {section.stdCount ?? (routePage.data.demo ? "-" : 0)} / {section.limitCount ?? "-"}</span>
-                        <span>{section.campus ? primaryName(section.campus) : "-"}</span>
-                      </Item.Footer>
-                    </a>
-                  {/snippet}
-                </MobileListCard>
-              </div>
-              {#if index < data.data.length - 1}
-                <Item.Separator aria-hidden="true" />
-              {/if}
-            {/each}
-          </Item.Group>
-        </div>
-        {:else}
-          {@render empty()}
-        {/if}
+        <CatalogMobileResults rows={data.data} filters={columnFilters} prefix="mobile-section-" {empty} testId="catalog-results-cards">
+          {#snippet card(section)}
+            {@const sectionHref = `/catalog/sections/${section.jwId}`}
+            <MobileListCard href={sectionHref}>
+              <Item.Content>
+                <Item.Title class="block w-full line-clamp-none break-words text-base">{primaryName(section.course) || section.code}</Item.Title>
+                <Item.Description class="line-clamp-none">{catalogLocalizedNames(section.teachers, locale)}</Item.Description>
+                <span class="text-xs text-muted-foreground">{section.semester?.nameCn ? formatSemesterName(locale, section.semester.nameCn) : sectionLabels.noSemester}</span>
+                <span class="font-mono text-xs text-muted-foreground" data-slot="catalog-code">{section.code}</span>
+              </Item.Content>
+              <Item.Footer class="flex-wrap justify-start">
+                <span>{sectionLabels.credits}: {section.credits ?? "-"}</span>
+                <span>{sectionLabels.capacity}: {section.stdCount ?? (routePage.data.demo ? "-" : 0)} / {section.limitCount ?? "-"}</span>
+                <span>{section.campus ? primaryName(section.campus) : "-"}</span>
+              </Item.Footer>
+            </MobileListCard>
+          {/snippet}
+        </CatalogMobileResults>
       {/snippet}
       {#snippet desktop()}
         <div class="min-w-0 max-w-full">
