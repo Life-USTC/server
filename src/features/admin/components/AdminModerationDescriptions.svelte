@@ -1,9 +1,7 @@
 <script lang="ts">
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
-import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
-import Table from "#lib/components/ui/table/table.svelte";
 import AdminEditAction from "./AdminEditAction.svelte";
 import {
   adminModerationDescriptionEditedAt,
@@ -39,6 +37,14 @@ export let targetLabel: (description: AdminModerationDescription) => string;
   />
 
   <ModerationCollection
+    tableClass="w-full min-w-[54rem]"
+    actionsLabel={copy.actions}
+    columns={[
+      ["descriptionContent", 36],
+      ["author", 18],
+      ["descriptionTarget", 22],
+      ["editedAt", 14],
+    ]}
     {filterControls}
     items={descriptions}
     label={copy.descriptionPreview}
@@ -62,58 +68,36 @@ export let targetLabel: (description: AdminModerationDescription) => string;
       <AdminEditAction layout="card" label={copy.manageDescription} onclick={() => onManage(description)} />
     </Item.Actions>
     {/snippet}
-    {#snippet desktop(emptyState)}
-      <Table class="w-full min-w-[54rem]">
-        <thead>
-          <TableControlsRow colspan={5}>{@render filterControls("search", "desktop")}</TableControlsRow>
-          <tr>
-            <th class="w-[36%]">{@render filterControls("descriptionContent", "desktop")}</th>
-            <th class="w-[18%]">{@render filterControls("author", "desktop")}</th>
-            <th class="w-[22%]">{@render filterControls("descriptionTarget", "desktop")}</th>
-            <th class="w-[14%]">{@render filterControls("editedAt", "desktop")}</th>
-            <th class="w-14 min-w-14">
-              <span class="sr-only">{copy.actions}</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each descriptions as description}
-            {@const author = adminModerationDescriptionLastEditor(description, copy)}
-            <tr class="group">
-              <td class="max-w-0">
-                <TruncatedText
-                  class="text-sm font-medium"
-                  lines={2}
-                  preserveWhitespace
-                  text={description.content?.trim()
-                    ? description.content
-                    : copy.emptyDescription}
-                />
-              </td>
-              <td class="max-w-0">
-                <span class="block max-w-full truncate" title={author}>{author}</span>
-              </td>
-              <td class="max-w-0">
-                <a
-                  class="block min-w-0 max-w-full overflow-hidden hover:underline"
-                  href={descriptionTargetHref(description)}
-                  title={targetLabel(description)}
-                >
-                  <TruncatedText text={targetLabel(description)} />
-                </a>
-              </td>
-              <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
-                {formatDate(adminModerationDescriptionEditedAt(description))}
-              </td>
-              <td class="w-14 min-w-14 text-left">
-                <AdminEditAction layout="table" label={copy.manageDescription} onclick={() => onManage(description)} />
-              </td>
-            </tr>
-          {:else}
-            <tr><td colspan={5}>{@render emptyState()}</td></tr>
-          {/each}
-        </tbody>
-      </Table>
+    {#snippet cells(description: AdminModerationDescription)}
+      {@const author = adminModerationDescriptionLastEditor(description, copy)}
+      <td class="max-w-0">
+        <TruncatedText
+          class="text-sm font-medium"
+          lines={2}
+          preserveWhitespace
+          text={description.content?.trim()
+            ? description.content
+            : copy.emptyDescription}
+        />
+      </td>
+      <td class="max-w-0">
+        <span class="block max-w-full truncate" title={author}>{author}</span>
+      </td>
+      <td class="max-w-0">
+        <a
+          class="block min-w-0 max-w-full overflow-hidden hover:underline"
+          href={descriptionTargetHref(description)}
+          title={targetLabel(description)}
+        >
+          <TruncatedText text={targetLabel(description)} />
+        </a>
+      </td>
+      <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+        {formatDate(adminModerationDescriptionEditedAt(description))}
+      </td>
+      <td class="w-14 min-w-14 text-left">
+        <AdminEditAction layout="table" label={copy.manageDescription} onclick={() => onManage(description)} />
+      </td>
     {/snippet}
   </ModerationCollection>
 </section>

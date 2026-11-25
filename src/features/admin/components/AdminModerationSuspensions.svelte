@@ -1,6 +1,5 @@
 <script lang="ts">
 import Unlock from "@lucide/svelte/icons/unlock";
-import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -9,7 +8,6 @@ import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
-import Table from "#lib/components/ui/table/table.svelte";
 import { enhance, type SubmitFunction } from "$app/forms";
 import type { AdminModerationFilterControls } from "./admin-moderation-page-types";
 import ModerationCollection from "./ModerationCollection.svelte";
@@ -80,6 +78,14 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
 
 <section class="grid gap-3">
   <ModerationCollection
+    tableClass="w-full min-w-[54rem]"
+    actionsLabel={copy.actions}
+    columns={[
+      ["author", 23],
+      ["reason", 34],
+      ["expiresAt", 20],
+      ["status", 13],
+    ]}
     {filterControls}
     items={suspensions}
     label={copy.user}
@@ -118,70 +124,48 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
         {/if}
       </Item.Actions>
     {/snippet}
-    {#snippet desktop(emptyState)}
-      <Table class="w-full min-w-[54rem]">
-        <thead>
-          <TableControlsRow colspan={5}>{@render filterControls("search", "desktop")}</TableControlsRow>
-          <tr>
-            <th class="w-[23%]">{@render filterControls("author", "desktop")}</th>
-            <th class="w-[34%]">{@render filterControls("reason", "desktop")}</th>
-            <th class="w-[20%]">{@render filterControls("expiresAt", "desktop")}</th>
-            <th class="w-[13%]">{@render filterControls("status", "desktop")}</th>
-          <th class="w-14 min-w-14">
-            <span class="sr-only">{copy.actions}</span>
-          </th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each suspensions as suspension}
-            {@const currentUserLabel = userLabel(suspension)}
-            <tr class="group">
-              <td class="max-w-0">
-                <div class="grid min-w-0 gap-0.5">
-                <span class="block max-w-full" title={currentUserLabel}>
-                  <TruncatedText class="font-medium" text={currentUserLabel} />
-                </span>
-                  <TruncatedText
-                    class="font-mono text-muted-foreground text-xs"
-                    text={suspension.user.username ? `@${suspension.user.username}` : null}
-                  />
-                </div>
-              </td>
-              <td class="max-w-0">
-                <TruncatedText
-                  lines={2}
-                  text={suspension.reason ?? copy.noReason}
-                />
-              </td>
-            <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
-              {expiresLabel(suspension)}
-            </td>
-              <td class="text-left">
-                {#if suspension.liftedAt}
-                  <Badge variant="ghost">{copy.lifted}</Badge>
-          {:else}
-            <Badge variant="destructive">{copy.active}</Badge>
-          {/if}
-        </td>
-        <td class="w-14 min-w-14 text-left">
-          {#if !suspension.liftedAt}
-            <TableRowActions>
-              <TableIconButton
-                disabled={Boolean(liftingSuspensionId)}
-                label={liftingSuspensionId === suspension.id ? copy.saving : copy.liftSuspensionAction}
-                onclick={() => pendingLiftSuspension = suspension}
-              >
+    {#snippet cells(suspension: ModerationSuspension)}
+      {@const currentUserLabel = userLabel(suspension)}
+      <td class="max-w-0">
+        <div class="grid min-w-0 gap-0.5">
+          <span class="block max-w-full" title={currentUserLabel}>
+            <TruncatedText class="font-medium" text={currentUserLabel} />
+          </span>
+          <TruncatedText
+            class="font-mono text-muted-foreground text-xs"
+            text={suspension.user.username ? `@${suspension.user.username}` : null}
+          />
+        </div>
+      </td>
+      <td class="max-w-0">
+        <TruncatedText
+          lines={2}
+          text={suspension.reason ?? copy.noReason}
+        />
+      </td>
+      <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+        {expiresLabel(suspension)}
+      </td>
+      <td class="text-left">
+        {#if suspension.liftedAt}
+          <Badge variant="ghost">{copy.lifted}</Badge>
+        {:else}
+          <Badge variant="destructive">{copy.active}</Badge>
+        {/if}
+      </td>
+      <td class="w-14 min-w-14 text-left">
+        {#if !suspension.liftedAt}
+          <TableRowActions>
+            <TableIconButton
+              disabled={Boolean(liftingSuspensionId)}
+              label={liftingSuspensionId === suspension.id ? copy.saving : copy.liftSuspensionAction}
+              onclick={() => pendingLiftSuspension = suspension}
+            >
               {#if liftingSuspensionId === suspension.id}<Spinner />{:else}<Unlock />{/if}
-              </TableIconButton>
-            </TableRowActions>
-          {/if}
-        </td>
-      </tr>
-          {:else}
-            <tr><td colspan={5}>{@render emptyState()}</td></tr>
-          {/each}
-        </tbody>
-      </Table>
+            </TableIconButton>
+          </TableRowActions>
+        {/if}
+      </td>
     {/snippet}
   </ModerationCollection>
 </section>

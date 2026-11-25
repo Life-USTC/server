@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { adminWriteChecks } from "../../../../utils/admin-fixture";
 import { expectRequiresSignIn } from "../../../../utils/auth";
 import { visibleText } from "../../../../utils/locators";
@@ -10,6 +10,27 @@ function moderationTableRow(page: Page, text: string) {
   return page.locator("tbody tr:visible").filter({ hasText: text }).first();
 }
 
+async function expectAlignedColumns(row: Locator, count: number) {
+  const heads = row
+    .locator("xpath=ancestor::table[1]")
+    .locator("thead tr:last-child th");
+  const cells = row.getByRole("cell");
+  for (const columns of [heads, cells]) {
+    await expect(columns).toHaveCount(count);
+    expect(
+      await columns.evaluateAll((elements) =>
+        elements.every((element) => {
+          const { textAlign, direction } = getComputedStyle(element);
+          return (
+            textAlign === "left" ||
+            (textAlign === "start" && direction === "ltr")
+          );
+        }),
+      ),
+    ).toBe(true);
+  }
+}
+
 async function openModerationCommentDialog(
   page: Page,
   text: string,
@@ -17,6 +38,7 @@ async function openModerationCommentDialog(
 ) {
   const row = moderationTableRow(page, text);
   await expect(row).toBeVisible({ timeout: 10_000 });
+  await expectAlignedColumns(row, 6);
   const manageButton = row
     .getByRole("button", { name: /管理评论|Manage Comment/i })
     .first();
@@ -44,6 +66,7 @@ async function openModerationDescriptionDialog(
 ) {
   const row = moderationTableRow(page, text);
   await expect(row).toBeVisible({ timeout: 10_000 });
+  await expectAlignedColumns(row, 5);
   const manageButton = row
     .getByRole("button", { name: /管理课程简介|Manage Description/i })
     .first();
@@ -604,6 +627,7 @@ test("/admin/moderation 封禁列表可解除封禁", { tag: "@Admin/Web" }, asy
           .locator("tbody tr:visible")
           .filter({ hasText: reason });
         await expect(row).toBeVisible();
+        await expectAlignedColumns(row, 5);
         const liftButton = row.getByRole("button", {
           name: /解除封禁|Lift suspension/i,
         });
@@ -926,6 +950,7 @@ test("/admin/moderation 作业治理可访问", { tag: "@Homework/Web" }, async 
           page.locator('a[aria-current="page"][href*="tab=homeworks"]'),
         ).toHaveAttribute("aria-current", "page");
         const firstRow = moderationTableRow(page, moderation.homework.title);
+        await expectAlignedColumns(firstRow, 6);
         await expect(firstRow).toBeVisible();
         await expect(
           page.getByRole("button", { name: /^(删除|Delete)$/i }).first(),

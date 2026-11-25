@@ -1,8 +1,6 @@
 <script lang="ts">
-import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
-import Table from "#lib/components/ui/table/table.svelte";
 import AdminEditAction from "./AdminEditAction.svelte";
 import type {
   AdminModerationComment,
@@ -31,6 +29,15 @@ export let targetLabel: AdminModerationCommentFormatter;
 
 <section class="grid grid-cols-[minmax(0,1fr)] gap-3">
   <ModerationCollection
+    tableClass="w-full min-w-[64rem]"
+    actionsLabel={copy.actions}
+    columns={[
+      ["content", 34],
+      ["author", 16],
+      ["target", 20],
+      ["createdAt", 14],
+      ["status", 10],
+    ]}
     {filterControls}
     items={comments}
     label={copy.content}
@@ -51,66 +58,43 @@ export let targetLabel: AdminModerationCommentFormatter;
         <AdminEditAction layout="card" label={copy.manageComment} onclick={() => onManage(comment)} />
       </Item.Actions>
     {/snippet}
-    {#snippet desktop(emptyState)}
-      <Table class="w-full min-w-[64rem]">
-        <thead>
-          <TableControlsRow colspan={6}>{@render filterControls("search", "desktop")}</TableControlsRow>
-          <tr>
-            <th class="w-[34%]">{@render filterControls("content", "desktop")}</th>
-            <th class="w-[16%]">{@render filterControls("author", "desktop")}</th>
-            <th class="w-[20%]">{@render filterControls("target", "desktop")}</th>
-            <th class="w-[14%]">{@render filterControls("createdAt", "desktop")}</th>
-            <th class="w-[10%]">{@render filterControls("status", "desktop")}</th>
-            <th class="w-14 min-w-14">
-              <span class="sr-only">{copy.actions}</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each comments as comment}
-            {@const author = commentAuthorLabel(comment)}
-            <tr class="group">
-              <td>
-                <div class="grid min-w-0 gap-1">
-                  <TruncatedText
-                    class="text-sm font-medium"
-                    lines={2}
-                    preserveWhitespace
-                    text={comment.body}
-                  />
-                  <TruncatedText
-                    class="text-muted-foreground text-xs"
-                    text={comment.moderationNote ? `${copy.moderationNote}: ${comment.moderationNote}` : null}
-                  />
-                </div>
-              </td>
-              <td class="max-w-0">
-                <span class="block max-w-full truncate" title={author}>{author}</span>
-              </td>
-              <td>
-                <a
-                  class="block min-w-0 max-w-full overflow-hidden hover:underline"
-                  href={targetHref(comment)}
-                  title={targetLabel(comment)}
-                >
-                  <TruncatedText text={targetLabel(comment)} />
-                </a>
-              </td>
-              <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
-                {formatDate(comment.createdAt)}
-              </td>
-              <td class="text-left">
-                {@render badge(comment)}
-              </td>
-              <td class="w-14 min-w-14 text-left">
-                <AdminEditAction layout="table" label={copy.manageComment} onclick={() => onManage(comment)} />
-              </td>
-            </tr>
-          {:else}
-            <tr><td colspan={6}>{@render emptyState()}</td></tr>
-          {/each}
-        </tbody>
-      </Table>
+    {#snippet cells(comment: AdminModerationComment)}
+      {@const author = commentAuthorLabel(comment)}
+      <td>
+        <div class="grid min-w-0 gap-1">
+          <TruncatedText
+            class="text-sm font-medium"
+            lines={2}
+            preserveWhitespace
+            text={comment.body}
+          />
+          <TruncatedText
+            class="text-muted-foreground text-xs"
+            text={comment.moderationNote ? `${copy.moderationNote}: ${comment.moderationNote}` : null}
+          />
+        </div>
+      </td>
+      <td class="max-w-0">
+        <span class="block max-w-full truncate" title={author}>{author}</span>
+      </td>
+      <td>
+        <a
+          class="block min-w-0 max-w-full overflow-hidden hover:underline"
+          href={targetHref(comment)}
+          title={targetLabel(comment)}
+        >
+          <TruncatedText text={targetLabel(comment)} />
+        </a>
+      </td>
+      <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+        {formatDate(comment.createdAt)}
+      </td>
+      <td class="text-left">
+        {@render badge(comment)}
+      </td>
+      <td class="w-14 min-w-14 text-left">
+        <AdminEditAction layout="table" label={copy.manageComment} onclick={() => onManage(comment)} />
+      </td>
     {/snippet}
   </ModerationCollection>
 </section>

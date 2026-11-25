@@ -5,7 +5,9 @@ import CollectionListShell from "#lib/components/CollectionListShell.svelte";
 import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
+import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import type {
   AdminModerationFilterControls,
   AdminModerationFilterKind,
@@ -19,7 +21,10 @@ let {
   mobileTestId,
   emptyDescription,
   card,
-  desktop,
+  columns,
+  actionsLabel,
+  tableClass,
+  cells,
 }: {
   fields: AdminModerationFilterKind[];
   filterControls: AdminModerationFilterControls;
@@ -28,7 +33,10 @@ let {
   mobileTestId?: string;
   emptyDescription: string;
   card: Snippet<[T]>;
-  desktop: Snippet<[Snippet]>;
+  columns: [AdminModerationFilterKind, number][];
+  actionsLabel: string;
+  tableClass: string;
+  cells: Snippet<[T]>;
 } = $props();
 </script>
 
@@ -39,7 +47,26 @@ let {
 {#snippet desktopTable()}
   <div class="min-w-0">
     <CollectionTableShell {label}>
-      {@render desktop(emptyState)}
+      <Table class={tableClass}>
+        <thead>
+          <TableControlsRow colspan={columns.length + 1}>
+            {@render filterControls("search", "desktop")}
+          </TableControlsRow>
+          <tr>
+            {#each columns as [field, width] (field)}
+              <th style:width={width + "%"}>{@render filterControls(field, "desktop")}</th>
+            {/each}
+            <th class="w-14 min-w-14"><span class="sr-only">{actionsLabel}</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each items as item (item.id)}
+            <tr class="group">{@render cells(item)}</tr>
+          {:else}
+            <tr><td colspan={columns.length + 1}>{@render emptyState()}</td></tr>
+          {/each}
+        </tbody>
+      </Table>
     </CollectionTableShell>
   </div>
 {/snippet}
