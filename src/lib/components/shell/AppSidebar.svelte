@@ -239,7 +239,7 @@ function preloadScheduleOnHover(
       {/snippet}
     </Sidebar.MenuButton>
     {#if link.badge != null && link.badge > 0}
-      <Sidebar.MenuBadge class="top-1/2! -translate-y-1/2" role="img" aria-label={link.badgeLabel} data-shell-count-value={link.badge}>{link.badge}</Sidebar.MenuBadge>
+      <div data-slot="sidebar-menu-badge" data-sidebar="menu-badge" class="top-1/2! -translate-y-1/2" role="img" aria-label={link.badgeLabel} data-shell-count-value={link.badge}>{link.badge}</div>
     {/if}
   </div>
 {/snippet}
@@ -311,7 +311,7 @@ function preloadScheduleOnHover(
         {#each scope.groups as group}
           <div data-slot="sidebar-group" data-sidebar="group">
             {#if level === "courses" || level === "teachers"}
-              <Sidebar.GroupLabel class="group-data-[collapsible=icon]:hidden">{group.label}</Sidebar.GroupLabel>
+              <div data-slot="sidebar-group-label" data-sidebar="group-label" class="group-data-[collapsible=icon]:hidden">{group.label}</div>
             {/if}
             <div data-slot="sidebar-group-content" data-sidebar="group-content">
               <ul data-slot="sidebar-menu" data-sidebar="menu">

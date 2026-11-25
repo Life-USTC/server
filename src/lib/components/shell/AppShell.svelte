@@ -639,12 +639,13 @@ let globalSearchShortcutLabel = $derived(
         {/snippet}
       </AppSidebar>
 
-      <Sidebar.Inset
+      <main
+        data-slot="sidebar-inset"
         aria-label={mainContentLabel}
         id="main-content"
-        tabindex={-1}
+        tabindex="-1"
         class={cn(
-          "relative flex w-full min-w-0 flex-1 flex-col",
+          "min-w-0",
           detailWorkspace
             ? "min-h-0 overflow-hidden"
             : "lg:min-h-0 lg:overflow-hidden",
@@ -687,7 +688,7 @@ let globalSearchShortcutLabel = $derived(
             {@render children?.()}
           </div>
         </div>
-      </Sidebar.Inset>
+      </main>
     </div>
 
     {#if showFooter}
