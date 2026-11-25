@@ -1,9 +1,7 @@
 <script lang="ts">
 import BellIcon from "@lucide/svelte/icons/bell";
-import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import SearchIcon from "@lucide/svelte/icons/search";
 import SparklesIcon from "@lucide/svelte/icons/sparkles";
-import type { Component } from "svelte";
 import FeatureDirectory from "#lib/components/shell/FeatureDirectory.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Card from "#lib/components/ui/card/index.js";
@@ -28,6 +26,7 @@ import {
   HOME_ACTIVITIES_PATH,
   HOME_NOTICES_PATH,
 } from "@/lib/navigation/internal-routes";
+import HomeSection from "./HomeSection.svelte";
 
 type HomePageData = Awaited<ReturnType<typeof loadHomePage>> & {
   copy: LayoutCopy;
@@ -147,47 +146,7 @@ const destinations = $derived([
   { href: "/catalog/courses", label: pub.cards.courses.title },
   { href: "/catalog/teachers", label: pub.cards.teachers.title },
 ]);
-
-/**
- * Rows past the compact count are shipped to every viewport and revealed by the
- * breakpoint, so a phone keeps the list it had while a wide canvas fills the
- * column it already owns.
- */
-function overflowClass(index: number, shown: string, hidden: string): string {
-  return index < HOME_COMPACT_ITEM_COUNT ? shown : hidden;
-}
 </script>
-
-{#snippet heading(
-  level: "h2" | "h3",
-  icon: Component,
-  title: string,
-  viewAllHref: string,
-  viewAllLabel: string,
-)}
-  {@const Icon = icon}
-  {@const disabled = Boolean(demo && !isDemoNavigationDestination(viewAllHref))}
-  <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-    <svelte:element
-      this={level}
-      class="flex min-w-0 items-center gap-2 font-semibold text-base tracking-tight"
-    >
-      <Icon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-      <span class="min-w-0 truncate">{title}</span>
-    </svelte:element>
-    <Button
-      class="h-auto min-h-6 gap-0.5 px-0 text-muted-foreground md:min-h-6"
-      href={disabled ? undefined : viewAllHref}
-      disabled={disabled}
-      aria-describedby={disabled ? "demo-unavailable" : undefined}
-      size="sm"
-      variant="link"
-    >
-      {viewAllLabel}
-      <ChevronRightIcon class="size-4" aria-hidden="true" />
-    </Button>
-  </div>
-{/snippet}
 
 {#snippet note(message: string)}
   <p class="text-muted-foreground text-sm">{message}</p>
@@ -201,11 +160,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
       {#each items as item, index (item.key)}
         {@const disabled = Boolean(demo && !isDemoNavigationDestination(item.href))}
         <Item.Root
-          class={overflowClass(
-            index,
-            "min-h-12 min-w-0",
-            "hidden min-h-12 min-w-0 lg:flex",
-          )}
+          class={["min-h-12 min-w-0", index >= HOME_COMPACT_ITEM_COUNT && "hidden lg:flex"]}
           size="sm"
         >
           {#snippet child({ props })}
@@ -266,8 +221,9 @@ function overflowClass(index: number, shown: string, hidden: string): string {
         weatherLocationNames={data.homeCopy.weather.locationNames}
         weatherTitle={data.homeCopy.weather.title}
       />
-      <section class="grid min-w-0 content-start gap-2" data-testid="home-notices" aria-busy={!publicDataReady || noticeLoading}>
-        {@render heading("h2", BellIcon, info.notices.title, "/news", info.notices.viewAll)}
+      <HomeSection demo={Boolean(demo)} testId="home-notices" busy={!publicDataReady || noticeLoading}
+        title={info.notices.title} icon={BellIcon} href="/news" linkLabel={info.notices.viewAll}
+      >
         {#if !publicDataReady}
           <Skeleton class="h-24 w-full" aria-hidden="true" />
         {:else if notices === null}
@@ -276,9 +232,10 @@ function overflowClass(index: number, shown: string, hidden: string): string {
         {:else}
           {@render itemList(notices, info.notices.empty)}
         {/if}
-      </section>
-      <section class="grid min-w-0 content-start gap-2" data-testid="home-activities" aria-busy={!publicDataReady || activityLoading}>
-        {@render heading("h2", SparklesIcon, info.activities.title, "/catalog/young-events", info.activities.viewAll)}
+      </HomeSection>
+      <HomeSection demo={Boolean(demo)} testId="home-activities" busy={!publicDataReady || activityLoading}
+        title={info.activities.title} icon={SparklesIcon} href="/catalog/young-events" linkLabel={info.activities.viewAll}
+      >
         {#if !publicDataReady}
           <Skeleton class="h-24 w-full" aria-hidden="true" />
         {:else if activities === null}
@@ -297,7 +254,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
             {/if}
           {/each}
         {/if}
-      </section>
+      </HomeSection>
     </div>
 
     {#if !hasPersonalOverview}
