@@ -1,6 +1,4 @@
 <script lang="ts">
-import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
-import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import AdminModerationDescriptionCards from "./AdminModerationDescriptionCards.svelte";
 import AdminModerationDescriptionSummary from "./AdminModerationDescriptionSummary.svelte";
 import AdminModerationDescriptionTable from "./AdminModerationDescriptionTable.svelte";
@@ -9,6 +7,7 @@ import type {
   AdminModerationDescriptionCopy,
 } from "./admin-moderation-description-types";
 import type { AdminModerationFilterControls } from "./admin-moderation-page-types";
+import ModerationCollection from "./ModerationCollection.svelte";
 
 export let filterControls: AdminModerationFilterControls;
 export let copy: AdminModerationDescriptionCopy;
@@ -32,17 +31,13 @@ export let targetLabel: (description: AdminModerationDescription) => string;
     {formatMessage}
   />
 
-    <ResponsiveCollection>
-      {#snippet mobile()}
-        <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
-          {@render filterControls("search", "mobile")}
-          {@render filterControls("author", "mobile")}
-          {@render filterControls("editedAt", "mobile")}
-
-          {@render filterControls("descriptionContent", "mobile")}
-          {@render filterControls("descriptionTarget", "mobile")}
-        </div>
-        {#if descriptions.length === 0}<CollectionEmpty variant="compact" description={copy.noDescriptions} />{:else}
+    <ModerationCollection
+      {filterControls}
+      fields={["search", "author", "editedAt", "descriptionContent", "descriptionTarget"]}
+      empty={descriptions.length === 0}
+      emptyDescription={copy.noDescriptions}
+    >
+      {#snippet cards()}
         <AdminModerationDescriptionCards
           {copy}
           {descriptions}
@@ -52,7 +47,6 @@ export let targetLabel: (description: AdminModerationDescription) => string;
           {onManage}
           {targetLabel}
         />
-        {/if}
       {/snippet}
       {#snippet desktop()}
         <AdminModerationDescriptionTable
@@ -65,5 +59,5 @@ export let targetLabel: (description: AdminModerationDescription) => string;
           {targetLabel}
         />
       {/snippet}
-    </ResponsiveCollection>
+    </ModerationCollection>
 </section>

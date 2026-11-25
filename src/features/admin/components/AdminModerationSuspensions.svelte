@@ -4,7 +4,6 @@ import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionListShell from "#lib/components/CollectionListShell.svelte";
 import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
-import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
@@ -17,6 +16,7 @@ import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import { enhance, type SubmitFunction } from "$app/forms";
 import type { AdminModerationFilterControls } from "./admin-moderation-page-types";
+import ModerationCollection from "./ModerationCollection.svelte";
 
 type ModerationSuspension = {
   expiresAt?: string | Date | null;
@@ -83,17 +83,13 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
 </script>
 
 <section class="grid gap-3">
-    <ResponsiveCollection>
-      {#snippet mobile()}
-        <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
-          {@render filterControls("search", "mobile")}
-          {@render filterControls("author", "mobile")}
-          {@render filterControls("reason", "mobile")}
-          {@render filterControls("expiresAt", "mobile")}
-
-          {@render filterControls("status", "mobile")}
-        </div>
-        {#if suspensions.length === 0}<CollectionEmpty variant="compact" description={copy.noSuspensions} />{:else}
+    <ModerationCollection
+      {filterControls}
+      fields={["search", "author", "reason", "expiresAt", "status"]}
+      empty={suspensions.length === 0}
+      emptyDescription={copy.noSuspensions}
+    >
+      {#snippet cards()}
         <CollectionListShell>
           <Item.Group class="gap-0">
             {#each suspensions as suspension, index (suspension.id)}
@@ -133,7 +129,6 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
             {/each}
           </Item.Group>
         </CollectionListShell>
-        {/if}
       {/snippet}
       {#snippet desktop()}
 
@@ -205,7 +200,7 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
           </CollectionTableShell>
         </div>
       {/snippet}
-    </ResponsiveCollection>
+    </ModerationCollection>
 </section>
 
 {#if pendingLiftSuspension}

@@ -4,7 +4,6 @@ import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import CollectionListShell from "#lib/components/CollectionListShell.svelte";
 import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
-import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
@@ -17,6 +16,7 @@ import type {
   AdminModerationFilterControls,
   AdminModerationHomework,
 } from "./admin-moderation-page-types";
+import ModerationCollection from "./ModerationCollection.svelte";
 
 type HomeworksCopy = {
   actions: string;
@@ -49,18 +49,13 @@ function creatorLabel(homework: AdminModerationHomework) {
 </script>
 
 <section class="grid gap-3">
-    <ResponsiveCollection>
-      {#snippet mobile()}
-        <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
-          {@render filterControls("search", "mobile")}
-          {@render filterControls("content", "mobile")}
-          {@render filterControls("target", "mobile")}
-          {@render filterControls("createdAt", "mobile")}
-          {@render filterControls("dueAt", "mobile")}
-
-          {@render filterControls("status", "mobile")}
-        </div>
-        {#if homeworks.length === 0}<CollectionEmpty variant="compact" description={copy.noHomeworks} />{:else}
+    <ModerationCollection
+      {filterControls}
+      fields={["search", "content", "target", "createdAt", "dueAt", "status"]}
+      empty={homeworks.length === 0}
+      emptyDescription={copy.noHomeworks}
+    >
+      {#snippet cards()}
         <CollectionListShell>
           <Item.Group class="gap-0">
           {#each homeworks as homework, index (homework.id)}
@@ -102,7 +97,6 @@ function creatorLabel(homework: AdminModerationHomework) {
           {/each}
           </Item.Group>
         </CollectionListShell>
-        {/if}
       {/snippet}
       {#snippet desktop()}
 
@@ -174,5 +168,5 @@ function creatorLabel(homework: AdminModerationHomework) {
           </CollectionTableShell>
         </div>
       {/snippet}
-    </ResponsiveCollection>
+    </ModerationCollection>
 </section>
