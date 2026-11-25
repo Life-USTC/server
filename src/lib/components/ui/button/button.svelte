@@ -62,8 +62,7 @@
 </script>
 
 {#snippet content()}
-  {#if loading}<Spinner data-icon="inline-start" />{:else if Icon}<Icon data-icon="inline-start" />{/if}
-  {@render children?.()}
+  {#if loading}<Spinner data-icon="inline-start" />{:else if Icon}<Icon data-icon="inline-start" />{/if}{@render children?.()}
 {/snippet}
 
 {#if href}
