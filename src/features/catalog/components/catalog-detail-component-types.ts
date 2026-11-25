@@ -5,8 +5,8 @@ import type {
   loadTeacherDetailPage,
 } from "../server/catalog-detail-page-server";
 
-type CoursePage = Awaited<ReturnType<typeof loadCourseDetailPage>>;
-type TeacherPage = Awaited<ReturnType<typeof loadTeacherDetailPage>>;
+export type CoursePage = Awaited<ReturnType<typeof loadCourseDetailPage>>;
+export type TeacherPage = Awaited<ReturnType<typeof loadTeacherDetailPage>>;
 
 export type CourseDetailCopy = CoursePage["copy"];
 export type TeacherDetailCopy = TeacherPage["copy"];
