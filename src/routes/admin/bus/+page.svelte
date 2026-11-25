@@ -4,9 +4,9 @@ import { toast } from "@ui-sdk/svelte/toast";
 import PageHeader from "#lib/components/PageHeader.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import AdminBusDeleteDialog from "@/features/admin/components/AdminBusDeleteDialog.svelte";
 import AdminBusImportDialog from "@/features/admin/components/AdminBusImportDialog.svelte";
 import AdminBusVersions from "@/features/admin/components/AdminBusVersions.svelte";
+import AdminDeleteDialog from "@/features/admin/components/AdminDeleteDialog.svelte";
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import type { AdminBusVersion } from "@/features/admin/components/admin-bus-types";
 import {
@@ -85,11 +85,23 @@ function enhancedAction(actionKey: string, onSuccess?: () => void) {
 {/if}
 
 {#if pendingDeleteVersion}
-  <AdminBusDeleteDialog
-    close={() => (pendingDeleteVersion = null)}
-    {copy}
-    {enhancedAction}
-    {pendingAction}
-    version={pendingDeleteVersion}
-  />
+  {@const version = pendingDeleteVersion}
+  {@const close = () => { pendingDeleteVersion = null; }}
+  <AdminDeleteDialog
+    titleId="bus-delete-title"
+    title={copy.deleteTitle}
+    description={copy.deleteDescription.replace("{title}", version.title)}
+    cancelLabel={copy.cancelAction}
+    confirmLabel={copy.confirmDeleteAction}
+    {close}
+    action="?/deleteVersion"
+    submit={enhancedAction(`delete-${version.id}`, close)}
+    busy={Boolean(pendingAction)}
+    deleting={pendingAction === `delete-${version.id}`}
+    wide
+  >
+    <input type="hidden" name="id" value={version.id} />
+    <div class="font-medium">{version.title}</div>
+    <div class="break-all font-mono text-muted-foreground text-xs">{version.key}</div>
+  </AdminDeleteDialog>
 {/if}

@@ -4,10 +4,10 @@ import { onMount } from "svelte";
 import PageHeader from "#lib/components/PageHeader.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
+import AdminDeleteDialog from "@/features/admin/components/AdminDeleteDialog.svelte";
 import AdminOAuthClients from "@/features/admin/components/AdminOAuthClients.svelte";
 import AdminOAuthCreateDialog from "@/features/admin/components/AdminOAuthCreateDialog.svelte";
 import AdminOAuthCredentialsDialog from "@/features/admin/components/AdminOAuthCredentialsDialog.svelte";
-import AdminOAuthDeleteDialog from "@/features/admin/components/AdminOAuthDeleteDialog.svelte";
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import type { AdminOAuthClient as OAuthClient } from "@/features/admin/components/admin-oauth-client-types";
 import { createAdminOAuthControllerDefaultState } from "@/features/admin/lib/admin-oauth-controller-default-state";
@@ -198,12 +198,20 @@ onMount(() => {
   open={state.isCredentialsDialogOpen}
 />
 
-<AdminOAuthDeleteDialog
-  client={state.pendingDeleteClient}
-  close={() => {
-    state.pendingDeleteClient = null;
-  }}
-  copy={_copy}
-  {deleteClientAction}
-  deletingClientId={state.deletingClientId}
-/>
+{#if state.pendingDeleteClient}
+  {@const client = state.pendingDeleteClient}
+  <AdminDeleteDialog
+    titleId="oauth-delete-title"
+    title={_copy.deleteClient}
+    description={_copy.deleteClientDescription.replace("{name}", client.name ?? _copy.unnamedClient)}
+    cancelLabel={_copy.cancel}
+    confirmLabel={_copy.deleteClient}
+    close={() => { state.pendingDeleteClient = null; }}
+    action="?/deleteClient"
+    submit={deleteClientAction}
+    busy={Boolean(state.deletingClientId)}
+  >
+    <input type="hidden" name="clientId" value={client.clientId} />
+    <p class="break-all font-mono text-muted-foreground text-xs">{client.clientId}</p>
+  </AdminDeleteDialog>
+{/if}

@@ -2,9 +2,9 @@
 import { toast } from "@ui-sdk/svelte/toast";
 import TableFilterFields from "#lib/components/TableFilterFields.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
+import AdminDeleteDialog from "@/features/admin/components/AdminDeleteDialog.svelte";
 import AdminModerationCommentDialog from "@/features/admin/components/AdminModerationCommentDialog.svelte";
 import AdminModerationComments from "@/features/admin/components/AdminModerationComments.svelte";
-import AdminModerationDeleteHomeworkDialog from "@/features/admin/components/AdminModerationDeleteHomeworkDialog.svelte";
 import AdminModerationDescriptionDialog from "@/features/admin/components/AdminModerationDescriptionDialog.svelte";
 import AdminModerationDescriptions from "@/features/admin/components/AdminModerationDescriptions.svelte";
 import AdminModerationFilters from "@/features/admin/components/AdminModerationFilters.svelte";
@@ -289,19 +289,27 @@ function _enhanceAdminAction(action: Parameters<typeof enhanceAdminAction>[0]) {
   targetLabel={(item) => moderationTargetLabel(item, _copy)}
 />
 
-<AdminModerationDeleteHomeworkDialog
-  close={() => {
-    _pendingDeleteHomework = null;
-  }}
-  copy={_copy}
-  enhanceDeleteHomework={enhanceAdminAction("deleteHomework", () => {
-    _pendingDeleteHomework = null;
-    toast.success(_copy.deleteHomeworkSuccess);
-  })}
-  formatMessage={moderationFormatMessage}
-  homework={_pendingDeleteHomework}
-  isDeleting={_pendingServerAction === "deleteHomework"}
-/>
+{#if _pendingDeleteHomework}
+  {@const deleting = _pendingServerAction === "deleteHomework"}
+  <AdminDeleteDialog
+    titleId="moderation-delete-homework-title"
+    title={_copy.deleteHomeworkTitle}
+    description={moderationFormatMessage(_copy.deleteHomeworkDescription, { title: _pendingDeleteHomework.title })}
+    cancelLabel={_copy.cancelButton}
+    confirmLabel={deleting ? _copy.saving : _copy.deleteHomeworkAction}
+    busy={deleting}
+    trashIcon={false}
+    close={() => { _pendingDeleteHomework = null; }}
+    action="?/deleteHomework"
+    submit={enhanceAdminAction("deleteHomework", () => {
+      _pendingDeleteHomework = null;
+      toast.success(_copy.deleteHomeworkSuccess);
+    })}
+  >
+    <input type="hidden" name="id" value={_pendingDeleteHomework.id} />
+    <p class="text-muted-foreground">{_copy.deleteHomeworkAuditDescription}</p>
+  </AdminDeleteDialog>
+{/if}
 
 <AdminModerationDescriptionDialog
   bind:descriptionDraft={_descriptionDraft}

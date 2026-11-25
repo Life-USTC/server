@@ -1,7 +1,7 @@
 import { AlertDialog as Root } from "@ui-sdk/svelte/alert-dialog";
 import { AlertDialogTrigger as Trigger } from "@ui-sdk/svelte/alert-dialog";
 import { AlertDialogTitle as Title } from "@ui-sdk/svelte/alert-dialog";
-import Action from "./alert-dialog-action.svelte";
+import { Button as Action } from "#lib/components/ui/button/index.js";
 import Cancel from "./alert-dialog-cancel.svelte";
 import Content from "./alert-dialog-content.svelte";
 import { AlertDialogDescription as Description } from "@ui-sdk/svelte/alert-dialog";
