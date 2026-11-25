@@ -169,10 +169,7 @@ describe("mobile toast placement", () => {
 describe("settings redirect success feedback", () => {
   it("consumes redirect markers through SvelteKit navigation state", async () => {
     const controller = await readFile(
-      resolve(
-        process.cwd(),
-        "src/features/settings/components/SettingsPageController.svelte",
-      ),
+      resolve(process.cwd(), "src/routes/account/settings/+page.svelte"),
       "utf8",
     );
 
@@ -181,7 +178,7 @@ describe("settings redirect success feedback", () => {
       'import { page as routePage } from "$app/state";',
     );
     expect(controller).toContain('routePage.url.searchParams.get("message")');
-    expect(controller).toContain("_isMounted &&");
+    expect(controller).toContain("isMounted &&");
     expect(controller).toContain("const mountTimer = setTimeout(() => {");
     // The only mount resource is the deferred-ready timer.
     expect(controller).toMatch(/return \(\) => clearTimeout\(mountTimer\);/);

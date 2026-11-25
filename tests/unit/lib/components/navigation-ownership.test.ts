@@ -87,7 +87,7 @@ it("ui.list-table-9", async () => {
     "src/features/young/components/YoungOrganizerDetailPage.svelte",
     "src/features/young/components/YoungActivityRemindersPage.svelte",
     "src/features/admin/components/AdminModerationPageController.svelte",
-    "src/features/settings/components/SettingsPageController.svelte",
+    "src/routes/account/settings/+page.svelte",
   ];
   for (const root of sidebarRouteOwners) {
     const components = await renderedComponents(root);

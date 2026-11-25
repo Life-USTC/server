@@ -20,11 +20,6 @@ import { invalidateAll } from "$app/navigation";
 import SettingsPasskeyRow from "./SettingsPasskeyRow.svelte";
 import type { SettingsCopy } from "./settings-component-types";
 
-type Status = {
-  kind: "error";
-  message: string;
-};
-
 export let copy: SettingsCopy;
 export let locale: AppLocale;
 
@@ -32,7 +27,7 @@ const getPasskeysStore = passkeyAuthClient.useListPasskeys;
 const passkeyQuery = getPasskeysStore();
 let adding = false;
 let name = "";
-let status: Status | null = null;
+let error = "";
 let supported: boolean | null = null;
 
 $: passkeys = $passkeyQuery.data ?? [];
@@ -41,8 +36,10 @@ onMount(() => {
   supported = isPasskeySupported();
 });
 
-function errorMessage(error: unknown) {
+function errorMessage(error: unknown, editing = false) {
   const kind = passkeyClientErrorKind(error);
+  if (editing && kind === "last-method")
+    return copy.profile.cannotDisconnectLast;
   if (kind === "stale-session") return copy.settings.passkeys.staleSession;
   if (kind === "duplicate") return copy.settings.passkeys.duplicate;
   if (kind === "cancelled") return copy.settings.passkeys.cancelled;
@@ -53,26 +50,23 @@ async function addPasskey() {
   const passkeyName = name.trim();
   if (!passkeyName || adding || supported !== true) return;
 
-  status = null;
+  error = "";
   adding = true;
   try {
     const result = await passkeyAuthClient.passkey.addPasskey({
       name: passkeyName,
     });
     if (result.error) {
-      status = { kind: "error", message: errorMessage(result.error) };
+      error = errorMessage(result.error);
       return;
     }
     name = "";
-    status = null;
+    error = "";
     toast.success(copy.settings.passkeys.added);
     await $passkeyQuery.refetch();
     await invalidateAll();
   } catch {
-    status = {
-      kind: "error",
-      message: copy.settings.passkeys.genericError,
-    };
+    error = copy.settings.passkeys.genericError;
   } finally {
     adding = false;
   }
@@ -96,9 +90,9 @@ async function addPasskey() {
       </Alert.Root>
     {/if}
 
-    {#if status && status.kind === "error"}
+    {#if error}
       <Alert.Root variant="destructive">
-        <Alert.Description>{status.message}</Alert.Description>
+        <Alert.Description>{error}</Alert.Description>
       </Alert.Root>
     {/if}
 
@@ -180,9 +174,7 @@ async function addPasskey() {
             {copy}
             {locale}
             {passkey}
-            reportStatus={(nextStatus) => {
-              status = nextStatus;
-            }}
+            reportError={(cause) => { error = errorMessage(cause, true); }}
             onSuccess={(message) => toast.success(message)}
           />
         {/each}

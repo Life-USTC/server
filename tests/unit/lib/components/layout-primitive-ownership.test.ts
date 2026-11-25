@@ -160,13 +160,13 @@ it("ui.layout-principles-4", async () => {
     ),
   ).toContain("src/lib/components/PageSectionNav.svelte");
   for (const root of [
-    "young/components/YoungEventsPage",
-    "young/components/YoungCalendarPage",
-    "young/components/YoungOrganizersPage",
-    "admin/components/AdminModerationPageController",
-    "settings/components/SettingsPageController",
+    "src/features/young/components/YoungEventsPage.svelte",
+    "src/features/young/components/YoungCalendarPage.svelte",
+    "src/features/young/components/YoungOrganizersPage.svelte",
+    "src/features/admin/components/AdminModerationPageController.svelte",
+    "src/routes/account/settings/+page.svelte",
   ]) {
-    const primitives = await renderedPrimitives(`src/features/${root}.svelte`);
+    const primitives = await renderedPrimitives(root);
     expect(primitives, root).not.toContain(
       "src/lib/components/PageSectionNav.svelte",
     );
