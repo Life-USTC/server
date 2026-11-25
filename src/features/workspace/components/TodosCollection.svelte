@@ -30,7 +30,10 @@ export let onClearFilter: () => void;
 export let filteredTodos: WorkspaceTodoItem[];
 export let fmtDate: TodoDateFormatter;
 export let openTodoEditor: (todo: WorkspaceTodoItem) => void;
-export let selectedTodo: WorkspaceTodoItem | null = null;
+export let onSelect: (
+  todo: WorkspaceTodoItem,
+  trigger: HTMLButtonElement,
+) => void;
 export let todoActionLabel: TodoAction;
 export let todoSavingById: Record<string, boolean>;
 export let todosCopy: WorkspaceTodosCopy;
@@ -91,9 +94,7 @@ export let readOnlyReason: string | undefined = undefined;
                   <button
                     class="flex min-h-11 w-full min-w-0 max-w-full items-center text-left underline-offset-4 hover:underline"
                     type="button"
-                    onclick={() => {
-                      selectedTodo = todo;
-                    }}
+                    onclick={(event) => onSelect(todo, event.currentTarget)}
                   >
                     <span
                       class:line-through={todo.completed}
@@ -169,9 +170,7 @@ export let readOnlyReason: string | undefined = undefined;
                 class="block min-h-11 min-w-0 max-w-full text-left font-medium hover:underline"
                 class:line-through={todo.completed}
                 type="button"
-                onclick={() => {
-                  selectedTodo = todo;
-                }}
+                onclick={(event) => onSelect(todo, event.currentTarget)}
               >
                 <TruncatedText text={todo.title} lines={2} />
               </button>

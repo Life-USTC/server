@@ -1,4 +1,5 @@
 <script lang="ts">
+import { tick } from "svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import { createTodoTabDisplayActions } from "@/features/workspace/lib/todos-tab-display";
@@ -83,6 +84,16 @@ $: ({ fmtDate, isDueOverdue, relativeDueLabel, todoActionLabel, todoStatus } =
     sectionCopy,
     todosCopy,
   }));
+let detailTrigger: HTMLButtonElement | undefined;
+function selectTodo(todo: WorkspaceTodoItem, trigger: HTMLButtonElement) {
+  detailTrigger = trigger;
+  selectedTodo = todo;
+}
+async function closeDetail() {
+  selectedTodo = null;
+  await tick();
+  detailTrigger?.focus();
+}
 function clearTodoFilter() {
   draft = {};
   applied = {};
@@ -112,7 +123,7 @@ function clearTodoFilter() {
     onClearFilter={clearTodoFilter}
     {fmtDate}
     {openTodoEditor}
-    bind:selectedTodo
+    onSelect={selectTodo}
     {todoActionLabel}
     {todoSavingById}
     {todosCopy}
@@ -141,9 +152,7 @@ function clearTodoFilter() {
     {deleteTodo}
     {fmtDate}
     {isDueOverdue}
-    onClose={() => {
-      selectedTodo = null;
-    }}
+    onClose={closeDetail}
     {openTodoEditor}
     {relativeDueLabel}
     todo={selectedTodo}
