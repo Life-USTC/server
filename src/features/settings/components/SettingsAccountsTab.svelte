@@ -3,7 +3,6 @@ import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import type { AppLocale } from "@/i18n/config";
 import { enhance } from "$app/forms";
 import SettingsPasskeysCard from "./SettingsPasskeysCard.svelte";
@@ -99,35 +98,24 @@ $: unlinkAccount = accounts.find(
     <AlertDialog.Content
       class="max-w-md sm:max-w-md"
     >
-      <div data-slot="alert-dialog-header">
-        <AlertDialog.Title>{copy.profile.disconnectConfirmTitle}</AlertDialog.Title>
-        <AlertDialog.Description>{copy.profile.disconnectConfirmDescription.replace("{provider}", unlinkAccount.name)}</AlertDialog.Description>
-      </div>
+      <AlertDialog.Heading
+        title={copy.profile.disconnectConfirmTitle}
+        description={copy.profile.disconnectConfirmDescription.replace("{provider}", unlinkAccount.name)}
+      />
       <form
           method="POST"
           action="?/unlinkAccount"
           use:enhance={accountAction(unlinkAccount.id, "disconnect")}
         >
           <input type="hidden" name="provider" value={unlinkAccount.id} />
-        <div data-slot="alert-dialog-footer">
-          <AlertDialog.Cancel
-            variant="secondary"
-            type="button"
-            disabled={hasPendingAccountAction}
-          >
-            {copy.profile.cancel}
-          </AlertDialog.Cancel>
-          <AlertDialog.Action
-            type="submit"
-            disabled={!isMounted || hasPendingAccountAction}
-            variant="destructive"
-          >
-            {#if disconnecting}
-              <Spinner data-icon="inline-start" />
-            {/if}
-            {disconnecting ? copy.profile.disconnecting : copy.profile.disconnect}
-          </AlertDialog.Action>
-        </div>
+        <AlertDialog.Actions
+          cancelLabel={copy.profile.cancel}
+          confirmLabel={disconnecting ? copy.profile.disconnecting : copy.profile.disconnect}
+          pending={disconnecting}
+          busy={hasPendingAccountAction}
+          confirmDisabled={!isMounted}
+          secondaryCancel
+        />
       </form>
     </AlertDialog.Content>
   </AlertDialog.Root>

@@ -194,14 +194,10 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
     }}
   >
     <AlertDialog.Content class="max-w-md sm:max-w-md">
-      <div data-slot="alert-dialog-header">
-        <AlertDialog.Title>{copy.liftSuspensionConfirmTitle}</AlertDialog.Title>
-        <AlertDialog.Description>
-          {formatMessage(copy.liftSuspensionConfirmDescription, {
-            user: userLabel(pendingLiftSuspension),
-          })}
-        </AlertDialog.Description>
-      </div>
+      <AlertDialog.Heading
+        title={copy.liftSuspensionConfirmTitle}
+        description={formatMessage(copy.liftSuspensionConfirmDescription, { user: userLabel(pendingLiftSuspension) })}
+      />
       <form
         method="POST"
         action="?/liftSuspension"

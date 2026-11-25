@@ -113,34 +113,15 @@ async function changePasskey(action: "rename" | "delete") {
   }}
 >
   <AlertDialog.Content class="max-w-md sm:max-w-md">
-    <div data-slot="alert-dialog-header">
-      <AlertDialog.Title>
-        {copy.settings.passkeys.deleteConfirmTitle}
-      </AlertDialog.Title>
-      <AlertDialog.Description>
-        {copy.settings.passkeys.deleteConfirmDescription.replace(
-          "{name}",
-          displayName,
-        )}
-      </AlertDialog.Description>
-    </div>
-    <div data-slot="alert-dialog-footer">
-      <AlertDialog.Cancel disabled={pending === "delete"} type="button">
-        {copy.settings.passkeys.cancel}
-      </AlertDialog.Cancel>
-      <AlertDialog.Action
-        disabled={pending === "delete"}
-        onclick={() => changePasskey("delete")}
-        type="button"
-        variant="destructive"
-      >
-        {#if pending === "delete"}
-          <Spinner data-icon="inline-start" />
-          {copy.settings.passkeys.deleting}
-        {:else}
-          {copy.settings.passkeys.delete}
-        {/if}
-      </AlertDialog.Action>
-    </div>
+    <AlertDialog.Heading
+      title={copy.settings.passkeys.deleteConfirmTitle}
+      description={copy.settings.passkeys.deleteConfirmDescription.replace("{name}", displayName)}
+    />
+    <AlertDialog.Actions
+      cancelLabel={copy.settings.passkeys.cancel}
+      confirmLabel={pending === "delete" ? copy.settings.passkeys.deleting : copy.settings.passkeys.delete}
+      pending={pending === "delete"}
+      onclick={() => changePasskey("delete")}
+    />
   </AlertDialog.Content>
 </AlertDialog.Root>

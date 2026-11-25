@@ -154,17 +154,10 @@ function revokeAction(consentId: string): SubmitFunction {
     }}
   >
     <AlertDialog.Content class="max-w-md sm:max-w-md">
-      <div data-slot="alert-dialog-header">
-        <AlertDialog.Title>
-          {copy.settings.authorizations.revokeTitle}
-        </AlertDialog.Title>
-        <AlertDialog.Description>
-          {copy.settings.authorizations.revokeDescription.replace(
-            "{name}",
-            clientName(pendingAuthorization),
-          )}
-        </AlertDialog.Description>
-      </div>
+      <AlertDialog.Heading
+        title={copy.settings.authorizations.revokeTitle}
+        description={copy.settings.authorizations.revokeDescription.replace("{name}", clientName(pendingAuthorization))}
+      />
       <form
         method="POST"
         action="?/revokeAuthorization"

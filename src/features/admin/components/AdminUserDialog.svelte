@@ -120,23 +120,17 @@ async function confirmRoleChange() {
     }}
   >
     <AlertDialog.Content class="max-w-md sm:max-w-md">
-      <div data-slot="alert-dialog-header">
-        <AlertDialog.Title>{copy.roleChangeConfirmTitle}</AlertDialog.Title>
-        <AlertDialog.Description>
-          {editIsAdmin
-            ? copy.grantAdminConfirmDescription
-            : copy.revokeAdminConfirmDescription}
-        </AlertDialog.Description>
-      </div>
-      <div data-slot="alert-dialog-footer">
-        <AlertDialog.Cancel type="button" disabled={isSaving} variant="outline">
-          {moderationCopy.cancelButton}
-        </AlertDialog.Cancel>
-        <AlertDialog.Action type="button" disabled={isSaving} onclick={confirmRoleChange}>
-          {#if isSaving}<Spinner data-icon="inline-start" />{/if}
-          {copy.confirmRoleChange}
-        </AlertDialog.Action>
-      </div>
+      <AlertDialog.Heading
+        title={copy.roleChangeConfirmTitle}
+        description={editIsAdmin ? copy.grantAdminConfirmDescription : copy.revokeAdminConfirmDescription}
+      />
+      <AlertDialog.Actions
+        cancelLabel={moderationCopy.cancelButton}
+        confirmLabel={copy.confirmRoleChange}
+        pending={isSaving}
+        destructive={false}
+        onclick={confirmRoleChange}
+      />
     </AlertDialog.Content>
   </AlertDialog.Root>
 {/if}

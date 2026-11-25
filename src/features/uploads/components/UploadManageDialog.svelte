@@ -87,15 +87,18 @@ async function submit(event: Event) {
 {:else}
   <AlertDialog.Root open={true} onOpenChange={(open) => { if (!open && !pending) close(); }}>
     <AlertDialog.Content>
-      <div data-slot="alert-dialog-header">
-        <AlertDialog.Title>{copy.deleteAction}</AlertDialog.Title>
-        <AlertDialog.Description class="break-words">{copy.deleteConfirm.replace("{name}", upload.filename)}</AlertDialog.Description>
-      </div>
+      <AlertDialog.Heading
+        title={copy.deleteAction}
+        description={copy.deleteConfirm.replace("{name}", upload.filename)}
+        descriptionClass="break-words"
+      />
       {#if failed}<Alert.Root variant="destructive"><Alert.Description>{copy.toastDeleteErrorDescription}</Alert.Description></Alert.Root>{/if}
-      <div data-slot="alert-dialog-footer">
-        <AlertDialog.Cancel disabled={pending}>{copy.cancelRenameAction}</AlertDialog.Cancel>
-        <AlertDialog.Action variant="destructive" disabled={pending} onclick={submit}>{#if pending}<Spinner data-icon="inline-start" />{/if}{copy.deleteAction}</AlertDialog.Action>
-      </div>
+      <AlertDialog.Actions
+        cancelLabel={copy.cancelRenameAction}
+        confirmLabel={copy.deleteAction}
+        {pending}
+        onclick={submit}
+      />
     </AlertDialog.Content>
   </AlertDialog.Root>
 {/if}

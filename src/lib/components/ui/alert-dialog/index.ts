@@ -24,3 +24,6 @@ export {
 	Description as AlertDialogDescription,
 
 };
+
+export { default as Heading } from "./alert-dialog-heading.svelte";
+export { default as Actions } from "./alert-dialog-actions.svelte";

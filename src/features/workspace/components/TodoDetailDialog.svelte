@@ -9,7 +9,6 @@ import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button, buttonVariants } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import Table from "#lib/components/ui/table/table.svelte";
 import { cn } from "#lib/utils.js";
 import type {
@@ -159,27 +158,16 @@ async function confirmDelete(event: MouseEvent) {
               {todosCopy.delete}
             </AlertDialog.Trigger>
             <AlertDialog.Content class="max-w-md sm:max-w-md">
-              <div data-slot="alert-dialog-header">
-                <AlertDialog.Title>{todosCopy.deleteConfirmTitle}</AlertDialog.Title>
-                <AlertDialog.Description>{deleteDescription(todo)}</AlertDialog.Description>
-              </div>
-              <div data-slot="alert-dialog-footer">
-                <AlertDialog.Cancel disabled={deletePending || todoSavingById[todo.id]}>
-                  {todosCopy.cancel}
-                </AlertDialog.Cancel>
-                <AlertDialog.Action
-                  disabled={deletePending || todoSavingById[todo.id]}
-                  variant="destructive"
-                  onclick={confirmDelete}
-                >
-                  {#if deletePending || todoSavingById[todo.id]}
-                    <Spinner data-icon="inline-start" />
-                  {/if}
-                  {deletePending || todoSavingById[todo.id]
-                    ? todosCopy.saving
-                    : todosCopy.delete}
-                </AlertDialog.Action>
-              </div>
+              <AlertDialog.Heading
+                title={todosCopy.deleteConfirmTitle}
+                description={deleteDescription(todo)}
+              />
+              <AlertDialog.Actions
+                cancelLabel={todosCopy.cancel}
+                confirmLabel={deletePending || todoSavingById[todo.id] ? todosCopy.saving : todosCopy.delete}
+                pending={deletePending || todoSavingById[todo.id]}
+                onclick={confirmDelete}
+              />
             </AlertDialog.Content>
           </AlertDialog.Root>
           <TaskCompletionButton

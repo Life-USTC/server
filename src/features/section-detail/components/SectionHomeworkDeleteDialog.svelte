@@ -1,6 +1,5 @@
 <script lang="ts">
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 
 type HomeworkTarget = {
   title: string;
@@ -43,27 +42,16 @@ async function confirmDelete(event: MouseEvent) {
   <AlertDialog.Content
     class="max-w-md sm:max-w-md"
   >
-    <div data-slot="alert-dialog-header">
-      <AlertDialog.Title>{homeworkCopy.deleteTitle}</AlertDialog.Title>
-      <AlertDialog.Description>
-        {formatMessage(homeworkCopy.deleteDescription, { title: target.title })}
-      </AlertDialog.Description>
-    </div>
-    <div data-slot="alert-dialog-footer">
-      <AlertDialog.Cancel disabled={pending} variant="secondary" type="button">
-        {homeworkCopy.cancel}
-      </AlertDialog.Cancel>
-      <AlertDialog.Action
-        disabled={pending}
-        type="button"
-        variant="destructive"
-        onclick={confirmDelete}
-      >
-        {#if pending}
-          <Spinner data-icon="inline-start" />
-        {/if}
-        {homeworkCopy.deleteAction}
-      </AlertDialog.Action>
-    </div>
+    <AlertDialog.Heading
+      title={homeworkCopy.deleteTitle}
+      description={formatMessage(homeworkCopy.deleteDescription, { title: target.title })}
+    />
+    <AlertDialog.Actions
+      cancelLabel={homeworkCopy.cancel}
+      confirmLabel={homeworkCopy.deleteAction}
+      {pending}
+      secondaryCancel
+      onclick={confirmDelete}
+    />
   </AlertDialog.Content>
 </AlertDialog.Root>

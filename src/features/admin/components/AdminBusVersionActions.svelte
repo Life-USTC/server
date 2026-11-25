@@ -85,12 +85,10 @@ let activateDialogOpen = $state(false);
     }}
   >
     <AlertDialog.Content class="max-w-md sm:max-w-md">
-      <div data-slot="alert-dialog-header">
-        <AlertDialog.Title>{copy.activateTitle}</AlertDialog.Title>
-        <AlertDialog.Description>
-          {copy.activateDescription.replace("{title}", version.title)}
-        </AlertDialog.Description>
-      </div>
+      <AlertDialog.Heading
+        title={copy.activateTitle}
+        description={copy.activateDescription.replace("{title}", version.title)}
+      />
       <div class="grid gap-1 px-5 py-4 text-sm">
         <div class="font-medium">{version.title}</div>
         <div class="break-all font-mono text-muted-foreground text-xs">

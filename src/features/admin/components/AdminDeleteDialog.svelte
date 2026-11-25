@@ -38,10 +38,11 @@ let {
 
 <AlertDialog.Root open={true} onOpenChange={(open) => { if (!open && !busy) close(); }}>
   <AlertDialog.Content class={wide ? "max-w-lg sm:max-w-lg" : "max-w-md sm:max-w-md"} aria-labelledby={titleId}>
-    <div data-slot="alert-dialog-header">
-      <AlertDialog.Title id={titleId}>{title}</AlertDialog.Title>
-      <AlertDialog.Description>{description}</AlertDialog.Description>
-    </div>
+    <AlertDialog.Heading
+      titleId={titleId}
+      {title}
+      {description}
+    />
     <form method="POST" {action} use:enhance={submit}>
       <div class="grid gap-2 px-5 py-4 text-sm">{@render children()}</div>
       <div data-slot="alert-dialog-footer">

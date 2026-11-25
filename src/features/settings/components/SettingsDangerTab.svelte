@@ -3,7 +3,6 @@ import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { buttonVariants } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { cn } from "#lib/utils.js";
 import { enhance } from "$app/forms";
 import type {
@@ -56,12 +55,10 @@ export let isMounted: boolean;
         use:enhance={deleteAccountAction}
       >
         <Field.Group class="gap-4">
-          <div data-slot="alert-dialog-header">
-            <AlertDialog.Title>{copy.profile.deleteAccountConfirmTitle}</AlertDialog.Title>
-            <AlertDialog.Description>
-              {copy.profile.deleteAccountConfirmDescription}
-            </AlertDialog.Description>
-          </div>
+          <AlertDialog.Heading
+            title={copy.profile.deleteAccountConfirmTitle}
+            description={copy.profile.deleteAccountConfirmDescription}
+          />
 
           <Field.Field>
             <Field.Label for="delete-confirm">
@@ -78,25 +75,13 @@ export let isMounted: boolean;
             />
           </Field.Field>
 
-          <div data-slot="alert-dialog-footer">
-            <AlertDialog.Cancel
-              type="button"
-              disabled={isDeletingAccount}
-              variant="secondary"
-            >
-              {copy.profile.cancel}
-            </AlertDialog.Cancel>
-            <AlertDialog.Action
-              type="submit"
-              disabled={!isMounted || isDeletingAccount || deleteConfirmValue !== "DELETE"}
-              variant="destructive"
-            >
-              {#if isDeletingAccount}
-                <Spinner data-icon="inline-start" />
-              {/if}
-              {copy.profile.deleteAccount}
-            </AlertDialog.Action>
-          </div>
+          <AlertDialog.Actions
+            cancelLabel={copy.profile.cancel}
+            confirmLabel={copy.profile.deleteAccount}
+            pending={isDeletingAccount}
+            confirmDisabled={!isMounted || deleteConfirmValue !== "DELETE"}
+            secondaryCancel
+          />
         </Field.Group>
       </form>
     </AlertDialog.Content>

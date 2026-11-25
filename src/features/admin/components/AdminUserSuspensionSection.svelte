@@ -113,25 +113,15 @@ async function confirmSuspensionUpdate() {
   }}
 >
   <AlertDialog.Content class="max-w-md sm:max-w-md">
-    <div data-slot="alert-dialog-header">
-      <AlertDialog.Title>{copy.updateSuspensionConfirmTitle}</AlertDialog.Title>
-      <AlertDialog.Description>
-        {copy.updateSuspensionConfirmDescription}
-      </AlertDialog.Description>
-    </div>
-    <div data-slot="alert-dialog-footer">
-      <AlertDialog.Cancel type="button" disabled={isSuspending} variant="outline">
-        {moderationCopy.cancelButton}
-      </AlertDialog.Cancel>
-      <AlertDialog.Action
-        type="button"
-        disabled={isSuspending}
-        variant="destructive"
-        onclick={confirmSuspensionUpdate}
-      >
-        {#if isSuspending}<Spinner data-icon="inline-start" />{/if}
-        {copy.updateSuspensionAction}
-      </AlertDialog.Action>
-    </div>
+    <AlertDialog.Heading
+      title={copy.updateSuspensionConfirmTitle}
+      description={copy.updateSuspensionConfirmDescription}
+    />
+    <AlertDialog.Actions
+      cancelLabel={moderationCopy.cancelButton}
+      confirmLabel={copy.updateSuspensionAction}
+      pending={isSuspending}
+      onclick={confirmSuspensionUpdate}
+    />
   </AlertDialog.Content>
 </AlertDialog.Root>

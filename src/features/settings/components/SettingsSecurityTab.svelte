@@ -136,15 +136,15 @@ function activityTimeLabel(group: (typeof groupedActivity)[number]) {
 
 <AlertDialog.Root bind:open={rotateDialogOpen}>
   <AlertDialog.Content class="max-w-md sm:max-w-md">
-    <div data-slot="alert-dialog-header">
-      <AlertDialog.Title>{copy.settings.security.calendarTokenConfirmTitle}</AlertDialog.Title>
-      <AlertDialog.Description>{copy.settings.security.calendarTokenConfirmDescription}</AlertDialog.Description>
-    </div>
+    <AlertDialog.Heading
+      title={copy.settings.security.calendarTokenConfirmTitle}
+      description={copy.settings.security.calendarTokenConfirmDescription}
+    />
     <form method="POST" action="?/rotateCalendarToken">
-      <div data-slot="alert-dialog-footer">
-        <AlertDialog.Cancel type="button" variant="outline">{copy.profile.cancel}</AlertDialog.Cancel>
-        <AlertDialog.Action type="submit" variant="destructive">{copy.settings.security.calendarTokenConfirm}</AlertDialog.Action>
-      </div>
+      <AlertDialog.Actions
+        cancelLabel={copy.profile.cancel}
+        confirmLabel={copy.settings.security.calendarTokenConfirm}
+      />
     </form>
   </AlertDialog.Content>
 </AlertDialog.Root>
