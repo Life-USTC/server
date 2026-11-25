@@ -1,31 +1,7 @@
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
-import type { EndlessScrollLabels } from "@/lib/navigation/endless-list.svelte";
-import type { TableFilterLabels } from "@/lib/table-filters";
+import type messages from "../../../../messages/en-us.json";
 
-export type CourseListCommonLabels = {
-  tableFilters: TableFilterLabels;
-  endlessScroll: EndlessScrollLabels;
-
-  clear: string;
-  applyFilters: string;
-  loading: string;
-  search: string;
-};
-
-export type CourseListLabels = {
-  category: string;
-  classType: string;
-  courseCode: string;
-  courseName: string;
-  educationLevel: string;
-  noCoursesFound: string;
-  searchFor: string;
-  searchPlaceholder: string;
-  subtitle: string;
-  summary: {
-    filters: string;
-  };
-};
+export type CourseListLabels = typeof messages.courses;
 
 export type CourseListFilters = {
   name?: string | null;
@@ -54,7 +30,3 @@ export type CourseListRow = CatalogNamed & {
   educationLevel?: CatalogNamed | null;
   jwId: number | string;
 };
-
-export type CourseListFilterUpdater = (
-  patch: Partial<CourseListFilters>,
-) => void;

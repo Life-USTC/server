@@ -1,36 +1,28 @@
 <script lang="ts">
-import CollectionPage from "#lib/components/CollectionPage.svelte";
-import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import TableColumnHeader from "#lib/components/TableColumnHeader.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
 import CatalogColumnFilter from "@/features/catalog/components/CatalogColumnFilter.svelte";
-import CatalogFilters from "@/features/catalog/components/CatalogFilters.svelte";
+import CatalogListPage from "@/features/catalog/components/CatalogListPage.svelte";
 import type { CatalogColumnFilterProps } from "@/features/catalog/components/catalog-column-filters";
 import type { SectionListOptionSource } from "@/features/catalog/components/catalog-section-list-types";
 import SectionsResults from "@/features/catalog/components/SectionsResults.svelte";
-import { createCatalogFilterDraft } from "@/features/catalog/lib/catalog-filter-draft.svelte";
 import { catalogActiveFilters } from "@/features/catalog/lib/catalog-filter-view";
 import {
   catalogHref,
   catalogPrimaryName as primaryName,
 } from "@/features/catalog/lib/catalog-list-display";
-import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
-import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
-import { createEndlessList } from "@/lib/navigation/endless-list.svelte";
+import { createCatalogList } from "@/features/catalog/lib/create-catalog-list";
 import type { TableFilterField } from "@/lib/table-filters";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page } from "$app/state";
 import type { PageData } from "./$types";
 
 let { data }: { data: PageData } = $props();
-const endless = createEndlessList({
-  source: () => data,
-  select: (value) => ({ items: value.data, ...value.pagination }),
-  key: (row) => row.jwId,
-  pageHref: (next) => catalogListPageHref(new URL(page.url.href), next),
-});
+const { endless, draft } = createCatalogList(
+  () => data,
+  (row) => row.jwId,
+);
 const formId = "section-filters";
-const draft = createCatalogFilterDraft(() => data.filters);
 const locale = $derived(page.data.locale ?? "zh-cn");
 const commonLabels = $derived(data.labels.common);
 const sectionLabels = $derived(data.labels.sections);
@@ -188,15 +180,15 @@ const description = $derived(
 );
 </script>
 
-{#if data.demo}
-  <DemoNotice demo={data.demo} locale={data.locale} />
-{/if}
-
-{#snippet paginationFooter()}
-  <EndlessScroll state={endless} labels={commonLabels.endlessScroll} />
-{/snippet}
-{#snippet controls()}
-  <CatalogFilters {activeFilters} clearHref="/catalog/sections" clearLabel={commonLabels.clear} filterTitle={sectionLabels.summary.filters} searchLabel={commonLabels.search} searchPlaceholder={sectionLabels.searchPlaceholder} values={draft.values} onchange={draft.update} onsubmit={draft.submit} applyLabel={commonLabels.applyFilters} {formId}>
+<CatalogListPage
+  title={sectionLabels.title} description={sectionLabels.subtitle}
+  demo={data.demo} locale={data.locale}
+  {endless} {commonLabels} {activeFilters}
+  clearHref="/catalog/sections" filterTitle={sectionLabels.summary.filters}
+  searchLabel={commonLabels.search} searchPlaceholder={sectionLabels.searchPlaceholder}
+  {draft} {formId}
+>
+  {#snippet extraFilters()}
     {#each extraFields as field (field.name)}<CatalogColumnFilter {...defaults} label={field.label} fields={[field]} idPrefix={"section-extra-" + field.name} />{/each}
     <TableColumnHeader label={sectionLabels.searchHelpTitle}>
       <p class="mb-3 text-sm text-muted-foreground">{sectionLabels.searchHelpDescription}</p>
@@ -206,8 +198,6 @@ const description = $derived(
         {/each}
       </Item.Group>
     </TableColumnHeader>
-  </CatalogFilters>
-{/snippet}
-<CollectionPage description={sectionLabels.subtitle} footer={endless.hasMore ? paginationFooter : undefined} title={sectionLabels.title} toolbar={controls}>
+  {/snippet}
   <SectionsResults {columnFilters} rows={endless.items} filters={data.filters} {description} {sectionLabels} />
-</CollectionPage>
+</CatalogListPage>

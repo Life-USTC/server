@@ -1,33 +1,24 @@
 <script lang="ts">
-import CollectionPage from "#lib/components/CollectionPage.svelte";
-import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import CatalogColumnFilter from "@/features/catalog/components/CatalogColumnFilter.svelte";
-import CatalogFilters from "@/features/catalog/components/CatalogFilters.svelte";
+import CatalogListPage from "@/features/catalog/components/CatalogListPage.svelte";
 import { catalogColumnFilters } from "@/features/catalog/components/catalog-column-filters";
 import TeachersResults from "@/features/catalog/components/TeachersResults.svelte";
-import { createCatalogFilterDraft } from "@/features/catalog/lib/catalog-filter-draft.svelte";
 import { catalogActiveFilters } from "@/features/catalog/lib/catalog-filter-view";
 import {
   type CatalogNamed,
   catalogPrimaryName as primaryName,
 } from "@/features/catalog/lib/catalog-list-display";
-import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
-import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
-import { createEndlessList } from "@/lib/navigation/endless-list.svelte";
+import { createCatalogList } from "@/features/catalog/lib/create-catalog-list";
 import type { TableFilterField } from "@/lib/table-filters";
-import { page } from "$app/state";
 import type { PageData } from "./$types";
 
 type Option = CatalogNamed & { id: number | string };
 let { data }: { data: PageData } = $props();
-const endless = createEndlessList({
-  source: () => data,
-  select: (value) => ({ items: value.data, ...value.pagination }),
-  key: (row) => row.id,
-  pageHref: (next) => catalogListPageHref(new URL(page.url.href), next),
-});
+const { endless, draft } = createCatalogList(
+  () => data,
+  (row) => row.id,
+);
 const formId = "teacher-filters";
-const draft = createCatalogFilterDraft(() => data.filters);
 const commonLabels = $derived(data.labels.common);
 const teacherLabels = $derived(data.labels.teachers);
 const options = (items: Option[]) =>
@@ -78,7 +69,7 @@ const columnFilters = $derived(
     ),
   ),
 );
-const extraFilters = $derived(
+const hiddenColumnFilters = $derived(
   Object.entries(allFilters).filter(
     ([key]) =>
       (key === "title" && !showTitleColumn) ||
@@ -98,18 +89,16 @@ const activeFilters = $derived(
 );
 </script>
 
-{#if data.demo}
-  <DemoNotice demo={data.demo} locale={data.locale} />
-{/if}
-
-{#snippet paginationFooter()}
-  <EndlessScroll state={endless} labels={commonLabels.endlessScroll} />
-{/snippet}
-{#snippet controls()}
-  <CatalogFilters {activeFilters} clearHref="/catalog/teachers" clearLabel={commonLabels.clear} filterTitle={teacherLabels.filterTitle} searchLabel={teacherLabels.searchLabel} searchPlaceholder={teacherLabels.searchNameOrCode} values={draft.values} onchange={draft.update} onsubmit={draft.submit} applyLabel={commonLabels.applyFilters} {formId}>
-    {#each extraFilters as [key, filter] (key)}<CatalogColumnFilter {...filter} idPrefix={"teacher-extra-" + key} />{/each}
-  </CatalogFilters>
-{/snippet}
-<CollectionPage description={teacherLabels.subtitle} footer={endless.hasMore ? paginationFooter : undefined} title={teacherLabels.title} toolbar={controls}>
+<CatalogListPage
+  title={teacherLabels.title} description={teacherLabels.subtitle}
+  demo={data.demo} locale={data.locale}
+  {endless} {commonLabels} {activeFilters}
+  clearHref="/catalog/teachers" filterTitle={teacherLabels.filterTitle}
+  searchLabel={teacherLabels.searchLabel} searchPlaceholder={teacherLabels.searchNameOrCode}
+  {draft} {formId}
+>
+  {#snippet extraFilters()}
+    {#each hiddenColumnFilters as [key, filter] (key)}<CatalogColumnFilter {...filter} idPrefix={"teacher-extra-" + key} />{/each}
+  {/snippet}
   <TeachersResults {commonLabels} {columnFilters} {teacherLabels} teachers={endless.items} />
-</CollectionPage>
+</CatalogListPage>
