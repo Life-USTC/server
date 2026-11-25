@@ -3,7 +3,7 @@ import TableColumnHeader from "#lib/components/TableColumnHeader.svelte";
 import TableFilterFields from "#lib/components/TableFilterFields.svelte";
 import * as Field from "#lib/components/ui/field/index.js";
 import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
-import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
+import type { CatalogColumnFilterProps } from "./catalog-column-filters";
 
 let {
   label,

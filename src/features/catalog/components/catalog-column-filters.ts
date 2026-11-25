@@ -16,3 +16,18 @@ export type CatalogColumnFilterProps = {
     default: string;
   };
 };
+
+export function catalogColumnFilters(
+  fields: Record<string, TableFilterField>,
+  defaults: Pick<
+    CatalogColumnFilterProps,
+    "values" | "onchange" | "labels" | "formId"
+  >,
+): Record<string, CatalogColumnFilterProps> {
+  return Object.fromEntries(
+    Object.entries(fields).map(([key, field]) => [
+      key,
+      { ...defaults, label: field.label, fields: [field] },
+    ]),
+  );
+}

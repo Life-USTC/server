@@ -14,7 +14,7 @@ import { formatSemesterName } from "@/lib/text/format-semester-name";
 import { page as routePage } from "$app/state";
 import CatalogColumnFilter from "./CatalogColumnFilter.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
-import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
+import type { CatalogColumnFilterProps } from "./catalog-column-filters";
 import type {
   SectionListFilters,
   SectionListLabels,
