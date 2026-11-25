@@ -1,12 +1,7 @@
 import type { CalendarView } from "@/features/workspace/lib/calendar";
 import type {
-  CalendarData,
-  CatalogLinkItem,
-  ExamRow,
   HomeworkItem,
   MatchedSection,
-  SignedLinkGroup,
-  SignedWorkspaceData,
   TodoItem,
 } from "@/features/workspace/lib/workspace-controller-helpers";
 
@@ -16,7 +11,6 @@ export function createWorkspaceControllerDefaultState() {
     bulkImportMessage: "",
     bulkImportSemesterId: "",
     bulkImportText: "",
-    calendarData: null as CalendarData | null,
     calendarDay: "",
     calendarMonth: "",
     calendarSemesterId: null as number | null,
@@ -29,13 +23,9 @@ export function createWorkspaceControllerDefaultState() {
     createHomeworkSubmissionDueAt: "",
     createHomeworkSubmissionStartAt: "",
     createTodoError: "",
-    catalogLinkItems: [] as CatalogLinkItem[],
     editTodoError: "",
     editingTodo: null as TodoItem | null,
-    examRows: [] as ExamRow[],
     homeworkActionError: "",
-    homeworkItems: [] as HomeworkItem[],
-    homeworkReferenceDate: new Date(),
     homeworkSavingById: {} as Record<string, boolean>,
     isBulkImportOpen: false,
     isConfirmImportOpen: false,
@@ -48,15 +38,12 @@ export function createWorkspaceControllerDefaultState() {
     linkReturnTo: "/catalog/links",
     linkSearchQuery: "",
     matchedSections: [] as MatchedSection[],
-    overviewLinkItems: [] as CatalogLinkItem[],
     removingSectionId: null as number | null,
     selectedHomework: null as HomeworkItem | null,
     selectedImportSectionIds: [] as number[],
     selectedTodo: null as TodoItem | null,
     showCreateHomework: false,
     showCreateTodo: false,
-    signedData: null as SignedWorkspaceData | null,
-    signedLinkGroups: [] as SignedLinkGroup[],
     subscriptionActionError: "",
     todoActionError: "",
     todoSavingById: {} as Record<string, boolean>,
@@ -64,3 +51,7 @@ export function createWorkspaceControllerDefaultState() {
     updatingCatalogLinkSlug: null as string | null,
   };
 }
+
+export type WorkspaceControllerState = ReturnType<
+  typeof createWorkspaceControllerDefaultState
+>;

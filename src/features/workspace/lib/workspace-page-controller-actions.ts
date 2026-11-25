@@ -1,5 +1,4 @@
 import { toast } from "@ui-sdk/svelte/toast";
-import type { CalendarView } from "@/features/workspace/lib/calendar";
 import { createWorkspaceCalendarActions } from "@/features/workspace/lib/workspace-controller-calendar-actions";
 import { createWorkspaceCalendarDisplayActions } from "@/features/workspace/lib/workspace-controller-calendar-display-actions";
 import { createWorkspaceCreateHomeworkActions } from "@/features/workspace/lib/workspace-controller-create-homework-actions";
@@ -9,7 +8,6 @@ import type {
   CalendarData,
   CatalogLinkItem,
   HomeworkItem,
-  MatchedSection,
   SignedWorkspaceData,
   TodoItem,
   WorkspacePageData,
@@ -23,77 +21,29 @@ import { createWorkspaceTodoActions } from "@/features/workspace/lib/workspace-c
 import { workspaceTabHref } from "@/features/workspace/lib/workspace-nav";
 import { goto, invalidateAll } from "$app/navigation";
 
+import type { WorkspaceControllerState } from "./workspace-controller-default-state";
+
 type Setter<T> = (value: T) => void;
 
 export function createWorkspacePageControllerActions(input: {
-  getBulkImportSemesterId: () => string;
-  getBulkImportText: () => string;
+  state: WorkspaceControllerState;
   getCalendarData: () => CalendarData | null;
-  getCalendarDay: () => string;
-  getCalendarMonth: () => string;
-  getCalendarSemesterId: () => number | null;
-  getCalendarView: () => CalendarView;
-  getCalendarWeekStart: () => string;
   getCatalogLinkSourceItems: () => CatalogLinkItem[];
-  getCreateHomeworkSectionId: () => string;
   getData: () => WorkspacePageData;
-  getEditingTodo: () => TodoItem | null;
   getHomeworkItems: () => HomeworkItem[];
-  getHomeworkSavingById: () => Record<string, boolean>;
-  getLinkReturnTo: () => string;
-  getSelectedHomework: () => HomeworkItem | null;
-  getSelectedImportSectionIds: () => number[];
-  getSelectedTodo: () => TodoItem | null;
   getSignedData: () => SignedWorkspaceData | null;
-  getTodoSavingById: () => Record<string, boolean>;
   getTodoSourceItems: () => TodoItem[];
-  getUpdatingCatalogLinkSlug: () => string | null;
   getCopy: () => WorkspaceRootCopy;
-  setBulkImportError: Setter<string>;
-  setBulkImportMessage: Setter<string>;
-  setBulkImportOpen: Setter<boolean>;
-  setBulkImportSemesterId: Setter<string>;
-  setBulkImportText: Setter<string>;
-  setCalendarDay: Setter<string>;
-  setCalendarMonth: Setter<string>;
-  setCalendarSemesterId: Setter<number | null>;
-  setCalendarView: Setter<CalendarView>;
-  setCalendarWeekStart: Setter<string>;
   setCatalogLinkSourceItems: Setter<CatalogLinkItem[]>;
-  setConfirmImportOpen: Setter<boolean>;
-  setCreateHomeworkAdvancedOpen: Setter<boolean>;
-  setCreateHomeworkError: Setter<string>;
-  setCreateHomeworkPublishedAt: Setter<string>;
-  setCreateHomeworkSectionId: Setter<string>;
-  setCreateHomeworkSubmissionDueAt: Setter<string>;
-  setCreateHomeworkSubmissionStartAt: Setter<string>;
-  setCreateTodoError: Setter<string>;
-  setCreatingHomework: Setter<boolean>;
-  setCreatingTodo: Setter<boolean>;
-  setEditTodoError: Setter<string>;
-  setEditingTodo: Setter<TodoItem | null>;
-  setHomeworkActionError: Setter<string>;
   setHomeworkItems: Setter<HomeworkItem[]>;
-  setHomeworkSavingById: Setter<Record<string, boolean>>;
-  setImportingSections: Setter<boolean>;
-  setLinkActionError: Setter<string>;
-  setLinkReturnTo: Setter<string>;
-  setMatchedSections: Setter<MatchedSection[]>;
-  setMatchingSections: Setter<boolean>;
-  setRemovingSectionId: Setter<number | null>;
-  setSelectedHomework: Setter<HomeworkItem | null>;
-  setSelectedImportSectionIds: Setter<number[]>;
-  setSelectedTodo: Setter<TodoItem | null>;
-  setShowCreateHomework: Setter<boolean>;
-  setShowCreateTodo: Setter<boolean>;
-  setSubscriptionActionError: Setter<string>;
-  setTodoActionError: Setter<string>;
   setTodoSourceItems: Setter<TodoItem[]>;
-  setTodoSavingById: Setter<Record<string, boolean>>;
-  setUnmatchedSectionCodes: Setter<string[]>;
-  setUpdatingCatalogLinkSlug: Setter<string | null>;
-  setUpdatingTodo: Setter<boolean>;
 }) {
+  const { state } = input;
+  function set<K extends keyof WorkspaceControllerState>(key: K) {
+    return (value: WorkspaceControllerState[K]) => {
+      state[key] = value;
+    };
+  }
   const getTodosCopy = () => input.getCopy().todos;
   const getHomeworksCopy = () => input.getCopy().homeworks;
   const getSectionCopy = () => input.getCopy().sectionDetail;
@@ -102,29 +52,28 @@ export function createWorkspacePageControllerActions(input: {
   const getCommonCopy = () => input.getCopy().common;
 
   function openTodoEditor(todo: TodoItem) {
-    input.setSelectedTodo(null);
-    input.setEditTodoError("");
-    input.setEditingTodo(todo);
+    state.selectedTodo = null;
+    state.editTodoError = "";
+    state.editingTodo = todo;
   }
 
   const createHomework = createWorkspaceCreateHomeworkActions({
-    getCreateHomeworkSectionId: input.getCreateHomeworkSectionId,
+    getCreateHomeworkSectionId: () => state.createHomeworkSectionId,
     getSections: () => input.getSignedData()?.homeworks?.sections ?? [],
-    setCreateHomeworkAdvancedOpen: input.setCreateHomeworkAdvancedOpen,
-    setCreateHomeworkError: input.setCreateHomeworkError,
-    setCreateHomeworkPublishedAt: input.setCreateHomeworkPublishedAt,
-    setCreateHomeworkSectionId: input.setCreateHomeworkSectionId,
-    setCreateHomeworkSubmissionDueAt: input.setCreateHomeworkSubmissionDueAt,
-    setCreateHomeworkSubmissionStartAt:
-      input.setCreateHomeworkSubmissionStartAt,
-    setShowCreateHomework: input.setShowCreateHomework,
+    setCreateHomeworkAdvancedOpen: set("createHomeworkAdvancedOpen"),
+    setCreateHomeworkError: set("createHomeworkError"),
+    setCreateHomeworkPublishedAt: set("createHomeworkPublishedAt"),
+    setCreateHomeworkSectionId: set("createHomeworkSectionId"),
+    setCreateHomeworkSubmissionDueAt: set("createHomeworkSubmissionDueAt"),
+    setCreateHomeworkSubmissionStartAt: set("createHomeworkSubmissionStartAt"),
+    setShowCreateHomework: set("showCreateHomework"),
   });
 
   const todo = createWorkspaceTodoActions({
-    getEditingTodo: input.getEditingTodo,
-    getSelectedTodo: input.getSelectedTodo,
+    getEditingTodo: () => state.editingTodo,
+    getSelectedTodo: () => state.selectedTodo,
     getTodoItems: input.getTodoSourceItems,
-    getTodoSavingById: input.getTodoSavingById,
+    getTodoSavingById: () => state.todoSavingById,
     getTodosCopy,
     onSuccess: (action) => {
       const todosCopy = getTodosCopy();
@@ -136,11 +85,11 @@ export function createWorkspacePageControllerActions(input: {
             : todosCopy.uncompleteSuccess,
       );
     },
-    setEditingTodo: input.setEditingTodo,
-    setSelectedTodo: input.setSelectedTodo,
-    setTodoActionError: input.setTodoActionError,
+    setEditingTodo: set("editingTodo"),
+    setSelectedTodo: set("selectedTodo"),
+    setTodoActionError: set("todoActionError"),
     setTodoItems: input.setTodoSourceItems,
-    setTodoSavingById: input.setTodoSavingById,
+    setTodoSavingById: set("todoSavingById"),
   });
 
   const display = createWorkspaceDisplayActions({
@@ -154,7 +103,7 @@ export function createWorkspacePageControllerActions(input: {
     getHomeworksCopy,
     getTodosCopy,
     onSuccess: (action) => {
-      if (action === "createHomework") input.setShowCreateHomework(false);
+      if (action === "createHomework") state.showCreateHomework = false;
       toast.success(
         String(
           action === "createHomework"
@@ -165,47 +114,47 @@ export function createWorkspacePageControllerActions(input: {
         ),
       );
     },
-    setCreateHomeworkError: input.setCreateHomeworkError,
-    setCreateTodoError: input.setCreateTodoError,
-    setCreatingHomework: input.setCreatingHomework,
-    setCreatingTodo: input.setCreatingTodo,
-    setEditTodoError: input.setEditTodoError,
-    setEditingTodo: input.setEditingTodo as (value: null) => void,
-    setShowCreateTodo: input.setShowCreateTodo,
-    setUpdatingTodo: input.setUpdatingTodo,
+    setCreateHomeworkError: set("createHomeworkError"),
+    setCreateTodoError: set("createTodoError"),
+    setCreatingHomework: set("isCreatingHomework"),
+    setCreatingTodo: set("isCreatingTodo"),
+    setEditTodoError: set("editTodoError"),
+    setEditingTodo: set("editingTodo") as (value: null) => void,
+    setShowCreateTodo: set("showCreateTodo"),
+    setUpdatingTodo: set("isUpdatingTodo"),
   });
 
   const subscription = createWorkspaceSubscriptionActions({
-    getBulkImportSemesterId: input.getBulkImportSemesterId,
-    getBulkImportText: input.getBulkImportText,
+    getBulkImportSemesterId: () => state.bulkImportSemesterId,
+    getBulkImportText: () => state.bulkImportText,
     getCurrentSemesterId: () =>
       input.getSignedData()?.subscriptions?.currentSemesterId ?? null,
-    getSelectedImportSectionIds: input.getSelectedImportSectionIds,
+    getSelectedImportSectionIds: () => state.selectedImportSectionIds,
     getSubscriptionsCopy,
     invalidateAll,
     onSuccess: (message) => {
       toast.success(message);
     },
-    setBulkImportError: input.setBulkImportError,
-    setBulkImportMessage: input.setBulkImportMessage,
-    setBulkImportOpen: input.setBulkImportOpen,
-    setBulkImportSemesterId: input.setBulkImportSemesterId,
-    setBulkImportText: input.setBulkImportText,
-    setConfirmImportOpen: input.setConfirmImportOpen,
-    setImportingSections: input.setImportingSections,
-    setMatchedSections: input.setMatchedSections,
-    setMatchingSections: input.setMatchingSections,
-    setRemovingSectionId: input.setRemovingSectionId,
-    setSelectedImportSectionIds: input.setSelectedImportSectionIds,
-    setSubscriptionActionError: input.setSubscriptionActionError,
-    setUnmatchedSectionCodes: input.setUnmatchedSectionCodes,
+    setBulkImportError: set("bulkImportError"),
+    setBulkImportMessage: set("bulkImportMessage"),
+    setBulkImportOpen: set("isBulkImportOpen"),
+    setBulkImportSemesterId: set("bulkImportSemesterId"),
+    setBulkImportText: set("bulkImportText"),
+    setConfirmImportOpen: set("isConfirmImportOpen"),
+    setImportingSections: set("isImportingSections"),
+    setMatchedSections: set("matchedSections"),
+    setMatchingSections: set("isMatchingSections"),
+    setRemovingSectionId: set("removingSectionId"),
+    setSelectedImportSectionIds: set("selectedImportSectionIds"),
+    setSubscriptionActionError: set("subscriptionActionError"),
+    setUnmatchedSectionCodes: set("unmatchedSectionCodes"),
   });
 
   const homework = createWorkspaceHomeworkStateActions({
     getHomeworkItems: input.getHomeworkItems,
-    getHomeworkSavingById: input.getHomeworkSavingById,
+    getHomeworkSavingById: () => state.homeworkSavingById,
     getHomeworksCopy,
-    getSelectedHomework: input.getSelectedHomework,
+    getSelectedHomework: () => state.selectedHomework,
     onSuccess: (action) => {
       const homeworksCopy = getHomeworksCopy();
       toast.success(
@@ -214,17 +163,17 @@ export function createWorkspacePageControllerActions(input: {
           : homeworksCopy.markIncomplete,
       );
     },
-    setHomeworkActionError: input.setHomeworkActionError,
+    setHomeworkActionError: set("homeworkActionError"),
     setHomeworkItems: input.setHomeworkItems,
-    setHomeworkSavingById: input.setHomeworkSavingById,
-    setSelectedHomework: input.setSelectedHomework,
+    setHomeworkSavingById: set("homeworkSavingById"),
+    setSelectedHomework: set("selectedHomework"),
   });
 
   const link = createWorkspaceLinkStateActions({
     getWorkspaceCopy,
     getCatalogLinkItems: input.getCatalogLinkSourceItems,
-    getLinkReturnTo: input.getLinkReturnTo,
-    getUpdatingCatalogLinkSlug: input.getUpdatingCatalogLinkSlug,
+    getLinkReturnTo: () => state.linkReturnTo,
+    getUpdatingCatalogLinkSlug: () => state.updatingCatalogLinkSlug,
     onSuccess: (action) => {
       const workspaceCopy = getWorkspaceCopy();
       toast.success(
@@ -234,8 +183,8 @@ export function createWorkspacePageControllerActions(input: {
       );
     },
     setCatalogLinkItems: input.setCatalogLinkSourceItems,
-    setLinkActionError: input.setLinkActionError,
-    setUpdatingCatalogLinkSlug: input.setUpdatingCatalogLinkSlug,
+    setLinkActionError: set("linkActionError"),
+    setUpdatingCatalogLinkSlug: set("updatingCatalogLinkSlug"),
   });
 
   const calendarDisplay = createWorkspaceCalendarDisplayActions({
@@ -253,22 +202,22 @@ export function createWorkspacePageControllerActions(input: {
 
   const calendar = createWorkspaceCalendarActions({
     getCalendarData: input.getCalendarData,
-    getCalendarDay: input.getCalendarDay,
-    getCalendarMonth: input.getCalendarMonth,
-    getCalendarSemesterId: input.getCalendarSemesterId,
-    getCalendarView: input.getCalendarView,
-    getCalendarWeekStart: input.getCalendarWeekStart,
+    getCalendarDay: () => state.calendarDay,
+    getCalendarMonth: () => state.calendarMonth,
+    getCalendarSemesterId: () => state.calendarSemesterId,
+    getCalendarView: () => state.calendarView,
+    getCalendarWeekStart: () => state.calendarWeekStart,
     navigateUrl: (href) => {
       void goto(href, { reset: false, replaceState: true });
     },
     replaceUrl: (href) => {
       window.history.replaceState({}, "", href);
     },
-    setCalendarDay: input.setCalendarDay,
-    setCalendarMonth: input.setCalendarMonth,
-    setCalendarSemesterId: input.setCalendarSemesterId,
-    setCalendarView: input.setCalendarView,
-    setCalendarWeekStart: input.setCalendarWeekStart,
+    setCalendarDay: set("calendarDay"),
+    setCalendarMonth: set("calendarMonth"),
+    setCalendarSemesterId: set("calendarSemesterId"),
+    setCalendarView: set("calendarView"),
+    setCalendarWeekStart: set("calendarWeekStart"),
     tabHref: workspaceTabHref,
   });
 
@@ -281,8 +230,8 @@ export function createWorkspacePageControllerActions(input: {
       replaceState: (href) => {
         goto(href, { shallow: true, replace: true });
       },
-      setLinkActionError: input.setLinkActionError,
-      setLinkReturnTo: input.setLinkReturnTo,
+      setLinkActionError: set("linkActionError"),
+      setLinkReturnTo: set("linkReturnTo"),
     });
   }
 

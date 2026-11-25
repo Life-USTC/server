@@ -269,7 +269,7 @@ it("ui.collection-primitive-ownership", async () => {
     "catalog/components/SectionsResults",
     "young/components/YoungEventsPage",
     "young/components/YoungOrganizersPage",
-    "workspace/components/HomeworksCardsView",
+    "workspace/components/HomeworksCollection",
     "workspace/components/TodosCollection",
     "workspace/components/ExamsCardsView",
     "workspace/components/SubscriptionsCardsView",

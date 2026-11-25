@@ -1,6 +1,5 @@
 <script lang="ts">
 import * as Alert from "#lib/components/ui/alert/index.js";
-import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import type CommentsPanelComponent from "@/features/comments/components/CommentsPanel.svelte";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import { createHomeworkTabDisplayActions } from "@/features/workspace/lib/homeworks-tab-display";
@@ -20,8 +19,7 @@ import {
   filterHomeworkTable,
   homeworkTableFields,
 } from "../lib/workspace-task-table-filters";
-import HomeworksCardsView from "./HomeworksCardsView.svelte";
-import HomeworksListView from "./HomeworksListView.svelte";
+import HomeworksCollection from "./HomeworksCollection.svelte";
 import HomeworksTabDialogs from "./HomeworksTabDialogs.svelte";
 import HomeworksTabToolbar from "./HomeworksTabToolbar.svelte";
 import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
@@ -176,53 +174,26 @@ $: ({
     {/if}
 
     <WorkspaceTaskFilterToolbar id="homework-table-filters" {fields} commonNames={["completion", "course", "semester", "submissionDueAt"]} {draft} {applied} copy={commonCopy} sortLabel={commonCopy.taskFilters.homeworkSort} onchange={patchDraft} onapply={applyFilters} onreset={clearHomeworkFilter} onremove={removeFilter} />
-    <WorkspaceCollection>
-      {#snippet mobile()}
-
-        <HomeworksCardsView
-          showPersonalStatus={!signedData.demo}
+    <HomeworksCollection
+      showPersonalStatus={!signedData.demo}
       {readOnlyReason}
-          locale={locale}
-          unknownSemesterLabel={commonCopy.unknown}
-          filteredHomeworkItems={filteredHomeworkItems}
-          hasHomeworkItems={hasHomeworkItems}
-          showClearFilter={showClearHomeworkFilter}
-          onClearFilter={clearHomeworkFilter}
-          fmtDate={fmtDate}
-          homeworkCompletionActionLabel={homeworkCompletionActionLabel}
-          homeworkCopy={homeworkCopy}
-          homeworkEtaLabel={homeworkEtaLabel}
-          homeworkIsOverdue={homeworkIsOverdue}
-          homeworkSectionHref={homeworkSectionHref}
-          homeworksCopy={homeworksCopy}
-          homeworkSavingById={homeworkSavingById}
-          bind:selectedHomework
-          toggleHomeworkCompletion={toggleHomeworkCompletion}
-        />
-      {/snippet}
-      {#snippet desktop()}
-        <HomeworksListView
-          showPersonalStatus={!signedData.demo}
-      {readOnlyReason}
-          locale={locale}
-          unknownSemesterLabel={commonCopy.unknown}
-          filteredHomeworkItems={filteredHomeworkItems}
-          hasHomeworkItems={hasHomeworkItems}
-          showClearFilter={showClearHomeworkFilter}
-          onClearFilter={clearHomeworkFilter}
-          fmtDate={fmtDate}
-          homeworkCompletionActionLabel={homeworkCompletionActionLabel}
-          homeworkCopy={homeworkCopy}
-          homeworkEtaLabel={homeworkEtaLabel}
-          homeworkIsOverdue={homeworkIsOverdue}
-          homeworkSectionHref={homeworkSectionHref}
-          homeworksCopy={homeworksCopy}
-          homeworkSavingById={homeworkSavingById}
-          bind:selectedHomework
-          toggleHomeworkCompletion={toggleHomeworkCompletion}
-        />
-      {/snippet}
-    </WorkspaceCollection>
+      {locale}
+      unknownSemesterLabel={commonCopy.unknown}
+      {filteredHomeworkItems}
+      {hasHomeworkItems}
+      showClearFilter={showClearHomeworkFilter}
+      onClearFilter={clearHomeworkFilter}
+      {fmtDate}
+      {homeworkCompletionActionLabel}
+      {homeworkCopy}
+      {homeworkEtaLabel}
+      {homeworkIsOverdue}
+      {homeworkSectionHref}
+      {homeworksCopy}
+      {homeworkSavingById}
+      bind:selectedHomework
+      {toggleHomeworkCompletion}
+    />
 
     <HomeworksTabDialogs
       {canWriteShared}
