@@ -23,7 +23,6 @@ export async function openWorkspaceTaskFilter(
     exams: /^(日期|Date)$/i,
   };
   const dialog = page.getByRole("dialog", { name: labels[tab] });
-  if (await dialog.isVisible()) return dialog;
   const trigger = page
     .locator(
       tab === "exams"
@@ -32,7 +31,10 @@ export async function openWorkspaceTaskFilter(
     )
     .getByRole("button", { name: labels[tab] });
   await expect(trigger).toBeVisible();
-  await trigger.click();
+  if ((await trigger.getAttribute("aria-expanded")) !== "true") {
+    await expect(dialog).toBeHidden();
+    await trigger.click();
+  }
   await expect(dialog).toBeVisible();
   return dialog;
 }
