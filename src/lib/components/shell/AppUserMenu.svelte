@@ -23,13 +23,12 @@ export let user: LayoutUserSummary;
 export let userMenuOpen: boolean;
 
 export let demo: DemoView | null = null;
-function closeAccountNavigation() {
-  closeMenus();
-}
+let signOutForm: HTMLFormElement;
 </script>
 
 {#if user || demo}
   <div id={demo ? "demo-navigation-menu" : "app-user-menu"}>
+    {#if user}<form method="POST" action="/account/sign-out" bind:this={signOutForm}></form>{/if}
     <DropdownMenu.Root open={userMenuOpen} onOpenChange={setUserMenuOpen}>
       <DropdownMenu.Trigger>
         {#snippet render({ props })}
@@ -63,7 +62,7 @@ function closeAccountNavigation() {
               >{/if}</DropdownMenu.Label
           >
           {#if user}
-            <DropdownMenu.Item onSelect={closeAccountNavigation}>
+            <DropdownMenu.Item onSelect={closeMenus}>
               {#snippet render({ props })}
                 <a
                   {...props}
@@ -78,7 +77,7 @@ function closeAccountNavigation() {
               {/snippet}
             </DropdownMenu.Item>
           {/if}
-          <DropdownMenu.Item onSelect={closeAccountNavigation}>
+          <DropdownMenu.Item onSelect={closeMenus}>
             {#snippet render({ props })}
               <a
                 {...props}
@@ -98,28 +97,22 @@ function closeAccountNavigation() {
             {/snippet}
           </DropdownMenu.Item>
           {#if user}
-            <DropdownMenu.Item onSelect={closeAccountNavigation}
+            <DropdownMenu.Item onSelect={closeMenus}
               >{#snippet render({ props })}<a
                   {...props}
                   href="/workspace/uploads"><FilesIcon />{copy.nav.uploads}</a
                 >{/snippet}</DropdownMenu.Item
             >
             {#if user.isAdmin}<DropdownMenu.Item
-                onSelect={closeAccountNavigation}
+                onSelect={closeMenus}
                 >{#snippet render({ props })}<a {...props} href="/admin/users"
                     ><WrenchIcon />{copy.nav.admin.title}</a
                   >{/snippet}</DropdownMenu.Item
               >{/if}
-            <form method="POST" action="/account/sign-out">
-              <DropdownMenu.Item>
-                {#snippet render({ props })}
-                  <button {...props} type="submit">
-                    <LogOutIcon />
-                    {copy.menu.signOut}
-                  </button>
-                {/snippet}
-              </DropdownMenu.Item>
-            </form>
+            <DropdownMenu.Item onSelect={() => signOutForm.requestSubmit()}>
+              <LogOutIcon />
+              {copy.menu.signOut}
+            </DropdownMenu.Item>
           {/if}
         </DropdownMenu.Group>
       </DropdownMenu.Content>
