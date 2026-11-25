@@ -469,3 +469,38 @@ html {
     vertical-align: middle;
   }
 }
+
+@layer components {
+  [data-sidebar="header"],
+  [data-sidebar="footer"] {
+    @apply gap-2 p-2 flex flex-col;
+  }
+
+  [data-sidebar="content"] {
+    @apply no-scrollbar gap-0 flex min-h-0 flex-1 flex-col overflow-auto group-data-[collapsible=icon]:overflow-hidden;
+  }
+
+  [data-sidebar="group"] {
+    @apply p-2 relative flex w-full min-w-0 flex-col;
+  }
+
+  [data-sidebar="group-content"] {
+    @apply text-sm w-full;
+  }
+
+  [data-sidebar="menu"] {
+    @apply gap-0 flex w-full min-w-0 flex-col;
+  }
+
+  [data-sidebar="menu-item"] {
+    @apply relative;
+  }
+
+  [data-sidebar="menu-sub"] {
+    @apply border-sidebar-border mx-3.5 translate-x-px gap-1 border-l px-2.5 py-0.5 group-data-[collapsible=icon]:hidden flex min-w-0 flex-col;
+  }
+
+  [data-sidebar="menu-sub-item"] {
+    @apply relative;
+  }
+}
