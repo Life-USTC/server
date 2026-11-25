@@ -1,7 +1,16 @@
 <script lang="ts">
 import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
 import type CommentsPanelComponent from "@/features/comments/components/CommentsPanel.svelte";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
+import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
+import HomeworkDetailDialog from "@/features/homeworks/components/HomeworkDetailDialog.svelte";
+import { canCompletePersonalHomework } from "@/features/homeworks/lib/homework-capabilities";
+import {
+  formatHomeworkDetailDateTime,
+  formatHomeworkDueRelativeTime,
+  normalizeHomeworkDetail,
+} from "@/features/homeworks/lib/homework-presentation";
 import { createHomeworkTabDisplayActions } from "@/features/workspace/lib/homeworks-tab-display";
 import type {
   SignedWorkspaceData,
@@ -19,8 +28,8 @@ import {
   filterHomeworkTable,
   homeworkTableFields,
 } from "../lib/workspace-task-table-filters";
+import HomeworkCreateDialog from "./HomeworkCreateDialog.svelte";
 import HomeworksCollection from "./HomeworksCollection.svelte";
-import HomeworksTabDialogs from "./HomeworksTabDialogs.svelte";
 import HomeworksTabToolbar from "./HomeworksTabToolbar.svelte";
 import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
 import WorkspaceTaskFilterToolbar from "./WorkspaceTaskFilterToolbar.svelte";
@@ -139,6 +148,19 @@ $: ({
   referenceDate,
   sectionCopy,
 }));
+$: selectedHomeworkDetail = selectedHomework
+  ? normalizeHomeworkDetail(selectedHomework, {
+      contextHref: homeworkSectionHref(selectedHomework),
+      contextLabel: homeworkCourseLabel(selectedHomework),
+    })
+  : null;
+$: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
+  ? commentTargetPermalinkBaseHref({
+      homeworkId: selectedHomework.id,
+      sectionJwId: selectedHomework.section.jwId,
+      type: "homework",
+    })
+  : null;
 </script>
 
 
@@ -193,31 +215,66 @@ $: ({
       {toggleHomeworkCompletion}
     />
 
-    <HomeworksTabDialogs
-      {canWriteShared}
+    {#if canWriteShared && !readOnlyReason}
+      <HomeworkCreateDialog
+        {locale}
+        {commentsCopy}
+        {createHomeworkAction}
+        bind:createHomeworkAdvancedOpen
+        bind:createHomeworkPublishedAt
+        bind:createHomeworkSectionId
+        bind:createHomeworkSubmissionDueAt
+        bind:createHomeworkSubmissionStartAt
+        {homeworkSectionLabel}
+        {homeworksCopy}
+        {isCreatingHomework}
+        onClose={() => {
+          showCreateHomework = false;
+          createHomeworkError = "";
+        }}
+        open={showCreateHomework}
+        sections={signedData.homeworks.sections}
+        {createHomeworkError}
+      />
+    {/if}
+
+    <HomeworkDetailDialog
       showPersonalStatus={!signedData.demo}
       {readOnlyReason}
-      CommentsPanel={CommentsPanel}
-      commentsCopy={commentsCopy}
-      createHomeworkAction={createHomeworkAction}
-      bind:createHomeworkAdvancedOpen
-      bind:createHomeworkError
-      bind:createHomeworkPublishedAt
-      bind:createHomeworkSectionId
-      bind:createHomeworkSubmissionDueAt
-      bind:createHomeworkSubmissionStartAt
-      homeworkCourseLabel={homeworkCourseLabel}
-      homeworksCopy={homeworksCopy}
-      homeworkSavingById={homeworkSavingById}
-      homeworkSectionHref={homeworkSectionHref}
-      homeworkSectionLabel={homeworkSectionLabel}
-      isCreatingHomework={isCreatingHomework}
-      locale={locale}
-      referenceDate={referenceDate}
-      sections={signedData.homeworks.sections}
-      bind:selectedHomework
-      bind:showCreateHomework
-      toggleHomeworkCompletion={toggleHomeworkCompletion}
-    />
+      freezeReferenceTime={Boolean(readOnlyReason)}
+      {CommentsPanel}
+      completionSaving={selectedHomework ? homeworkSavingById[selectedHomework.id] : false}
+      contextHref={selectedHomeworkDetail?.contextHref}
+      contextLabel={selectedHomeworkDetail?.contextLabel}
+      copy={homeworksCopy}
+      dateFallback={homeworksCopy.dateTBD}
+      fmtDate={(value) =>
+        formatHomeworkDetailDateTime(value, locale, homeworksCopy.dateTBD)}
+      homework={selectedHomeworkDetail}
+      onClose={() => {
+        selectedHomework = null;
+      }}
+      onToggleCompletion={() => {
+        if (selectedHomework) return toggleHomeworkCompletion(selectedHomework);
+      }}
+      permalinkBaseHref={selectedHomeworkPermalinkBaseHref}
+      relativeEtaLabel={(value, liveReferenceDate) =>
+        formatHomeworkDueRelativeTime(
+          value,
+          liveReferenceDate,
+          locale,
+          homeworksCopy.dateTBD,
+        )}
+      {referenceDate}
+      showCompletion={(canCompletePersonalHomework({isAuthenticated: !signedData.demo}) && selectedHomework !== null) || Boolean(readOnlyReason)}
+    >
+      {#snippet contextActions()}
+        {#if selectedHomeworkPermalinkBaseHref}
+          <Button href={selectedHomeworkPermalinkBaseHref} variant="outline" class="w-full whitespace-normal text-center sm:w-auto">
+            {homeworksCopy.openFullDetails}
+          </Button>
+        {/if}
+      {/snippet}
+    </HomeworkDetailDialog>
   {/if}
 </section>

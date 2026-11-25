@@ -2,11 +2,16 @@
 import { toast } from "@ui-sdk/svelte/toast";
 import TableFilterFields from "#lib/components/TableFilterFields.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import AdminModerationDialogs from "@/features/admin/components/AdminModerationDialogs.svelte";
+import AdminModerationCommentDialog from "@/features/admin/components/AdminModerationCommentDialog.svelte";
+import AdminModerationComments from "@/features/admin/components/AdminModerationComments.svelte";
+import AdminModerationDeleteHomeworkDialog from "@/features/admin/components/AdminModerationDeleteHomeworkDialog.svelte";
+import AdminModerationDescriptionDialog from "@/features/admin/components/AdminModerationDescriptionDialog.svelte";
+import AdminModerationDescriptions from "@/features/admin/components/AdminModerationDescriptions.svelte";
 import AdminModerationFilters from "@/features/admin/components/AdminModerationFilters.svelte";
 import AdminModerationHeader from "@/features/admin/components/AdminModerationHeader.svelte";
+import AdminModerationHomeworks from "@/features/admin/components/AdminModerationHomeworks.svelte";
 import AdminModerationStatusAlerts from "@/features/admin/components/AdminModerationStatusAlerts.svelte";
-import AdminModerationTabContent from "@/features/admin/components/AdminModerationTabContent.svelte";
+import AdminModerationSuspensions from "@/features/admin/components/AdminModerationSuspensions.svelte";
 import AdminWorkspace from "@/features/admin/components/AdminWorkspace.svelte";
 import type { AdminModerationComment } from "@/features/admin/components/admin-moderation-comment-types";
 import type { AdminModerationDescription } from "@/features/admin/components/admin-moderation-description-types";
@@ -16,6 +21,15 @@ import type {
   AdminModerationTab,
 } from "@/features/admin/components/admin-moderation-page-types";
 import { moderationTableFields } from "@/features/admin/lib/admin-moderation-table-fields";
+import {
+  moderationCommentAuthorLabel,
+  moderationDescriptionEditedAt,
+  moderationDescriptionTargetHref,
+  moderationFormatMessage,
+  moderationStatusLabel,
+  moderationTargetHref,
+  moderationTargetLabel,
+} from "@/features/admin/lib/moderation-display";
 import { createModerationPageActions } from "@/features/admin/lib/moderation-page-actions";
 import type { PendingModerationServerAction } from "@/features/admin/lib/moderation-page-client-actions";
 import {
@@ -207,59 +221,102 @@ function _enhanceAdminAction(action: Parameters<typeof enhanceAdminAction>[0]) {
     {#if filterFields.extras.length}<TableFilterFields fields={filterFields.extras} values={draft} onchange={change} labels={common.tableFilters} idPrefix="moderation-extra" formId="moderation-filters" />{/if}
     <Button type="submit">{common.applyFilters}</Button>
   </form>
-  <AdminModerationTabContent
-    {filterControls}
-    copy={_copy}
-    {data}
-    enhanceAdminAction={_enhanceAdminAction}
-    formatDate={_formatDate}
-    liftingSuspensionId={_pendingServerAction?.startsWith("liftSuspension:")
-      ? _pendingServerAction.slice("liftSuspension:".length)
-      : null}
-    onDeleteHomework={(homework) => {
-      _pendingDeleteHomework = homework;
-    }}
-    onManageComment={(comment) => _openCommentDialog(comment as AdminModerationComment)}
-    onManageDescription={(description) =>
-      _openDescriptionDialog(description as AdminModerationDescription)}
-    visibleComments={data.comments}
-  />
+  {#if data.tab === "descriptions"}
+    <AdminModerationDescriptions
+      {filterControls}
+      copy={_copy}
+      descriptions={data.descriptions}
+      descriptionTargetHref={moderationDescriptionTargetHref}
+      formatDate={_formatDate}
+      formatMessage={moderationFormatMessage}
+      onManage={_openDescriptionDialog}
+      targetLabel={(item) => moderationTargetLabel(item, _copy)}
+    />
+  {:else if data.tab === "homeworks"}
+    <AdminModerationHomeworks
+      {filterControls}
+      copy={_copy}
+      formatDate={_formatDate}
+      homeworks={data.homeworks}
+      onDelete={(homework) => { _pendingDeleteHomework = homework; }}
+    />
+  {:else if data.tab === "suspensions"}
+    <AdminModerationSuspensions
+      {filterControls}
+      copy={_copy}
+      enhanceLiftSuspension={(id) => _enhanceAdminAction(`liftSuspension:${id}`)}
+      formatDate={_formatDate}
+      formatMessage={moderationFormatMessage}
+      liftingSuspensionId={_pendingServerAction?.startsWith("liftSuspension:") ? _pendingServerAction.slice("liftSuspension:".length) : null}
+      suspensions={data.suspensions}
+    />
+  {:else}
+    <AdminModerationComments
+      {filterControls}
+      commentAuthorLabel={(comment) =>
+        moderationCommentAuthorLabel(comment as AdminModerationComment, _copy.guestLabel)}
+      comments={data.comments}
+      copy={_copy}
+      formatDate={_formatDate}
+      onManage={_openCommentDialog}
+      statusLabel={(status) => moderationStatusLabel(status, _copy)}
+      targetHref={moderationTargetHref}
+      targetLabel={(item) => moderationTargetLabel(item, _copy)}
+    />
+  {/if}
 </AdminWorkspace>
 
-<AdminModerationDialogs
-  closeCommentDialog={_closeCommentDialog}
-  closeDescriptionDialog={_closeDescriptionDialog}
+<AdminModerationCommentDialog
   bind:commentStatus={_commentStatus}
+  bind:customExpiresAt={_customExpiresAt}
+  bind:moderationNote={_moderationNote}
+  bind:suspensionDuration={_suspensionDuration}
+  bind:suspensionReason={_suspensionReason}
+  close={_closeCommentDialog}
+  comment={_selectedComment}
+  commentAuthorLabel={(comment) => moderationCommentAuthorLabel(comment, _copy.guestLabel)}
   commentStatusOptions={_commentStatusOptions}
   copy={_copy}
-  bind:customExpiresAt={_customExpiresAt}
-  bind:descriptionDraft={_descriptionDraft}
   dialogMessage={_dialogMessage}
   dialogMessageVariant={_dialogMessageVariant}
-  deleteHomeworkAction={enhanceAdminAction("deleteHomework", () => {
+  inputValue={inputValue}
+  isSavingComment={_isSavingComment}
+  isSuspendingUser={_isSuspendingUser}
+  saveCommentModeration={_saveCommentModeration}
+  suspendCommentAuthor={_suspendCommentAuthor}
+  suspensionDurationOptions={suspensionDurationOptions}
+  targetHref={moderationTargetHref}
+  targetLabel={(item) => moderationTargetLabel(item, _copy)}
+/>
+
+<AdminModerationDeleteHomeworkDialog
+  close={() => {
+    _pendingDeleteHomework = null;
+  }}
+  copy={_copy}
+  enhanceDeleteHomework={enhanceAdminAction("deleteHomework", () => {
     _pendingDeleteHomework = null;
     toast.success(_copy.deleteHomeworkSuccess);
   })}
-  editDescriptionAction={enhanceAdminAction("description", () => {
+  formatMessage={moderationFormatMessage}
+  homework={_pendingDeleteHomework}
+  isDeleting={_pendingServerAction === "deleteHomework"}
+/>
+
+<AdminModerationDescriptionDialog
+  bind:descriptionDraft={_descriptionDraft}
+  close={_closeDescriptionDialog}
+  copy={_copy}
+  description={_selectedDescription}
+  descriptionEditedAt={moderationDescriptionEditedAt}
+  descriptionTargetHref={moderationDescriptionTargetHref}
+  enhanceAction={enhanceAdminAction("description", () => {
     _closeDescriptionDialog();
     toast.success(_copy.descriptionUpdateSuccess);
   })}
   formatDate={_formatDate}
-  {inputValue}
-  isDeletingHomework={_pendingServerAction === "deleteHomework"}
-  isSavingComment={_isSavingComment}
-  isSavingDescription={_pendingServerAction === "description"}
-  isSuspendingUser={_isSuspendingUser}
-  bind:moderationNote={_moderationNote}
-  pendingDeleteHomework={_pendingDeleteHomework}
-  saveCommentModeration={_saveCommentModeration}
-  selectedComment={_selectedComment}
-  selectedDescription={_selectedDescription}
-  setPendingDeleteHomework={(homework) => {
-    _pendingDeleteHomework = homework;
-  }}
-  bind:suspensionDuration={_suspensionDuration}
-  {suspensionDurationOptions}
-  bind:suspensionReason={_suspensionReason}
-  suspendCommentAuthor={_suspendCommentAuthor}
+  formatMessage={moderationFormatMessage}
+  inputValue={inputValue}
+  isSaving={_pendingServerAction === "description"}
+  targetLabel={(item) => moderationTargetLabel(item, _copy)}
 />
