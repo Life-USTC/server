@@ -1,9 +1,6 @@
 import type { CommentNode } from "@/features/comments/server/comment-types";
-import {
-  type CommentEditorMode,
-  commentDraftReplacingToken,
-  commentDraftWithMarkdown,
-} from "./comment-panel-controller";
+import type { createCommentPanelDefaultState } from "./comment-panel-default-state";
+import type { CommentEditorMode } from "./comment-panel-draft-state";
 import {
   type CommentReplyDraftState,
   emptyCommentReplyDraft,
@@ -11,74 +8,48 @@ import {
   toggledCommentReplyDraft,
 } from "./comment-panel-state";
 import { appendMarkdown } from "./comment-ui";
-import type { CommentUploadOption } from "./comment-upload-client";
 
 export function createCommentPanelDraftActions(input: {
   applyReplyDraftState: (state: CommentReplyDraftState) => void;
-  getBody: () => string;
-  getEditDraft: () => string;
-  getReplyDraft: () => string;
-  getReplyingId: () => string | null;
-  getReplyUploadedFiles: () => CommentUploadOption[];
-  getReplyAttachmentIds: () => string[];
-  getSelectedAttachments: () => string[];
-  getUploadedFiles: () => CommentUploadOption[];
-  setBody: (value: string) => void;
-  setEditDraft: (value: string) => void;
-  setReplyAttachmentIds: (value: string[]) => void;
-  setReplyDraft: (value: string) => void;
-  setReplyUploadedFiles: (value: CommentUploadOption[]) => void;
-  setSelectedAttachments: (value: string[]) => void;
-  setUploadedFiles: (value: CommentUploadOption[]) => void;
+  panel: ReturnType<typeof createCommentPanelDefaultState>;
 }) {
+  const { panel } = input;
+  const draftKeys = {
+    new: "body",
+    edit: "editDraft",
+    reply: "replyDraft",
+  } as const;
+
   function replaceMarkdownToken(
     token: string,
     replacement: string,
     mode: CommentEditorMode = "new",
   ) {
-    const next = commentDraftReplacingToken({
-      body: input.getBody(),
-      editDraft: input.getEditDraft(),
-      mode,
-      replyDraft: input.getReplyDraft(),
-      replacement,
-      token,
-    });
-    input.setBody(next.body);
-    input.setEditDraft(next.editDraft);
-    input.setReplyDraft(next.replyDraft);
+    const key = draftKeys[mode];
+    panel[key] = panel[key].replace(token, replacement);
   }
 
   function insertMarkdown(value: string, mode: CommentEditorMode = "new") {
-    const next = commentDraftWithMarkdown({
-      appendMarkdown,
-      body: input.getBody(),
-      editDraft: input.getEditDraft(),
-      mode,
-      replyDraft: input.getReplyDraft(),
-      value,
-    });
-    input.setBody(next.body);
-    input.setEditDraft(next.editDraft);
-    input.setReplyDraft(next.replyDraft);
+    const key = draftKeys[mode];
+    panel[key] = appendMarkdown(value, panel[key]);
   }
 
   function removeAttachment(uploadId: string) {
     const next = removeCommentUpload(uploadId, {
-      attachmentIds: input.getSelectedAttachments(),
-      uploadedFiles: input.getUploadedFiles(),
+      attachmentIds: panel.selectedAttachments,
+      uploadedFiles: panel.uploadedFiles,
     });
-    input.setSelectedAttachments(next.attachmentIds);
-    input.setUploadedFiles(next.uploadedFiles);
+    panel.selectedAttachments = next.attachmentIds;
+    panel.uploadedFiles = next.uploadedFiles;
   }
 
   function removeReplyAttachment(uploadId: string) {
     const next = removeCommentUpload(uploadId, {
-      attachmentIds: input.getReplyAttachmentIds(),
-      uploadedFiles: input.getReplyUploadedFiles(),
+      attachmentIds: panel.replyAttachmentIds,
+      uploadedFiles: panel.replyUploadedFiles,
     });
-    input.setReplyAttachmentIds(next.attachmentIds);
-    input.setReplyUploadedFiles(next.uploadedFiles);
+    panel.replyAttachmentIds = next.attachmentIds;
+    panel.replyUploadedFiles = next.uploadedFiles;
   }
 
   function cancelReply() {
@@ -87,7 +58,7 @@ export function createCommentPanelDraftActions(input: {
 
   function toggleReply(comment: CommentNode) {
     input.applyReplyDraftState(
-      toggledCommentReplyDraft(input.getReplyingId(), comment.id),
+      toggledCommentReplyDraft(panel.replyingId, comment.id),
     );
   }
 

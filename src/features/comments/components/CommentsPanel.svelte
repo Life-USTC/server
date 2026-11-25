@@ -193,21 +193,7 @@ const {
   toggleReply: _toggleReply,
 } = createCommentPanelDraftActions({
   applyReplyDraftState: _applyReplyDraftState,
-  getBody: () => panel.body,
-  getEditDraft: () => panel.editDraft,
-  getReplyAttachmentIds: () => panel.replyAttachmentIds,
-  getReplyDraft: () => panel.replyDraft,
-  getReplyingId: () => panel.replyingId,
-  getReplyUploadedFiles: () => panel.replyUploadedFiles,
-  getSelectedAttachments: () => panel.selectedAttachments,
-  getUploadedFiles: () => panel.uploadedFiles,
-  setBody: set("body"),
-  setEditDraft: set("editDraft"),
-  setReplyAttachmentIds: set("replyAttachmentIds"),
-  setReplyDraft: set("replyDraft"),
-  setReplyUploadedFiles: set("replyUploadedFiles"),
-  setSelectedAttachments: set("selectedAttachments"),
-  setUploadedFiles: set("uploadedFiles"),
+  panel,
 });
 
 const {

@@ -1,9 +1,5 @@
 export type { CommentEditorMode } from "./comment-panel-draft-state";
-export {
-  commentDraftReplacingToken,
-  commentDraftWithMarkdown,
-  commentEditAttachmentOptions,
-} from "./comment-panel-draft-state";
+export { commentEditAttachmentOptions } from "./comment-panel-draft-state";
 export {
   absoluteCommentPermalinkHref,
   commentPanelStatusLabel,

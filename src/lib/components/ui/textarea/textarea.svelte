@@ -25,6 +25,6 @@
   bind:value={() => value == null ? "" : String(value), (next) => { value = next; }}
 >
     {#snippet render({ props })}
-      <textarea {...props} data-slot={dataSlot}></textarea>
+      <textarea {...props} data-slot={dataSlot} {value}></textarea>
     {/snippet}
 </Textarea>
