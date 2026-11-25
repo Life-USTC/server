@@ -6,16 +6,22 @@ import * as Accordion from "#lib/components/ui/accordion/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
+import {
+  homeworkDueAtSemesterEnd,
+  homeworkDueInDays,
+  homeworkDueInMonths,
+  homeworkSemesterShortcutCapabilities,
+  homeworkStartAtSemesterStart,
+  homeworkTimestampNow,
+} from "../lib/homework-timestamp-defaults";
 import type {
   HomeworkDueShortcut,
-  HomeworkTimestampActions,
-  HomeworkTimestampCapabilities,
+  HomeworkSemesterDates,
   HomeworkTimestampCopy,
 } from "./homework-form-types";
 
-export let actions: HomeworkTimestampActions = {};
+export let semester: HomeworkSemesterDates;
 export let advancedOpen = false;
-export let capabilities: HomeworkTimestampCapabilities = {};
 export let copy: HomeworkTimestampCopy;
 export let disabled = false;
 export let dueShortcuts: HomeworkDueShortcut[] = [];
@@ -25,13 +31,36 @@ export let publishedAt = "";
 export let submissionDueAt = "";
 export let submissionStartAt = "";
 
-$: hasDueShortcuts = Boolean(
-  actions.dueAtSemesterEnd ||
-    actions.dueInMonth ||
-    actions.dueInWeek ||
-    dueShortcuts.length > 0,
-);
+const referenceNow = new Date();
+$: capabilities = homeworkSemesterShortcutCapabilities({
+  semesterStart: semester.start,
+  semesterEnd: semester.end,
+  now: referenceNow,
+});
 </script>
+
+{#snippet shortcutMenu(options: Snippet, label: string, fieldLabel?: string)}
+  <DropdownMenu.Root>
+    <DropdownMenu.Trigger>
+      {#snippet render({ props })}
+        <Button
+          {...props}
+          aria-label={fieldLabel ? `${fieldLabel} · ${label}` : undefined}
+          class={fieldLabel ? undefined : "shrink-0"}
+          {disabled}
+          type="button"
+          variant="outline"
+        >
+          <CalendarClock data-icon="inline-start" />
+          {label}
+        </Button>
+      {/snippet}
+    </DropdownMenu.Trigger>
+    <DropdownMenu.Content align="end" class="w-max max-w-[calc(100vw-2rem)] max-h-[var(--available-height)]">
+      <DropdownMenu.Group>{@render options()}</DropdownMenu.Group>
+    </DropdownMenu.Content>
+  </DropdownMenu.Root>
+{/snippet}
 
 <Field.Group class="gap-4">
   <Field.Field data-disabled={disabled ? "true" : undefined}>
@@ -44,62 +73,34 @@ $: hasDueShortcuts = Boolean(
         bind:value={submissionDueAt}
         calendarButtonLabel={copy.calendarButtonLabel}
         class="min-w-48 flex-1"
-        disabled={disabled}
+        {disabled}
         name="submissionDueAt"
       />
-    {#if hasDueShortcuts}
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger>
-          {#snippet render({ props })}
-            <Button
-              {...props}
-              class="shrink-0"
-              disabled={disabled}
-              type="button"
-              variant="outline"
-            >
-              <CalendarClock data-icon="inline-start" />
-              {copy.dueDateShortcuts}
-            </Button>
-          {/snippet}
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Content
-          align="end"
-          class="w-max max-w-[calc(100vw-2rem)] max-h-[var(--available-height)]"
+      {#snippet dueOptions()}
+        {#each dueShortcuts as shortcut}
+          <DropdownMenu.Item
+            {disabled}
+            onSelect={() => {
+              submissionDueAt = shortcut.value;
+            }}
+          >
+            {shortcut.label}
+          </DropdownMenu.Item>
+        {/each}
+        <DropdownMenu.Item {disabled} onSelect={() => { submissionDueAt = homeworkDueInDays(7); }}>
+          {copy.helperWeek}
+        </DropdownMenu.Item>
+        <DropdownMenu.Item {disabled} onSelect={() => { submissionDueAt = homeworkDueInMonths(1); }}>
+          {copy.helperMonth}
+        </DropdownMenu.Item>
+        <DropdownMenu.Item
+          disabled={disabled || !capabilities.hasSemesterEnd}
+          onSelect={() => { if (semester.end) submissionDueAt = homeworkDueAtSemesterEnd(semester.end); }}
         >
-          <DropdownMenu.Group>
-            {#each dueShortcuts as shortcut}
-              <DropdownMenu.Item
-                disabled={disabled}
-                onSelect={() => {
-                  submissionDueAt = shortcut.value;
-                }}
-              >
-                {shortcut.label}
-              </DropdownMenu.Item>
-            {/each}
-            {#if actions.dueInWeek}
-              <DropdownMenu.Item disabled={disabled} onSelect={actions.dueInWeek}>
-                {copy.helperWeek}
-              </DropdownMenu.Item>
-            {/if}
-            {#if actions.dueInMonth}
-              <DropdownMenu.Item disabled={disabled} onSelect={actions.dueInMonth}>
-                {copy.helperMonth}
-              </DropdownMenu.Item>
-            {/if}
-            {#if actions.dueAtSemesterEnd}
-              <DropdownMenu.Item
-                disabled={disabled || capabilities.hasSemesterEnd === false}
-                onSelect={actions.dueAtSemesterEnd}
-              >
-                {copy.helperSemesterEnd}
-              </DropdownMenu.Item>
-            {/if}
-          </DropdownMenu.Group>
-        </DropdownMenu.Content>
-      </DropdownMenu.Root>
-    {/if}
+          {copy.helperSemesterEnd}
+        </DropdownMenu.Item>
+      {/snippet}
+      {@render shortcutMenu(dueOptions, copy.dueDateShortcuts)}
     </div>
   </Field.Field>
 
@@ -131,28 +132,15 @@ $: hasDueShortcuts = Boolean(
                 {disabled}
                 name={advancedOpen ? "publishedAt" : undefined}
               />
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger>
-                  {#snippet render({ props })}
-                    <Button {...props} aria-label={`${copy.publishedAt} · ${copy.timeShortcuts}`} {disabled} type="button" variant="outline">
-                      <CalendarClock data-icon="inline-start" />
-                      {copy.timeShortcuts}
-                    </Button>
-                  {/snippet}
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content align="end" class="w-max max-w-[calc(100vw-2rem)]">
-                  <DropdownMenu.Group>
-                  {#if actions.publishNow}
-                    <DropdownMenu.Item disabled={disabled} onSelect={actions.publishNow}>
-                      {copy.helperPublishNow}
-                    </DropdownMenu.Item>
-                  {/if}
-                    <DropdownMenu.Item {disabled} onSelect={() => { publishedAt = ""; }}>
-                      {copy.helperClear}
-                    </DropdownMenu.Item>
-                  </DropdownMenu.Group>
-                </DropdownMenu.Content>
-              </DropdownMenu.Root>
+              {#snippet publishOptions()}
+                <DropdownMenu.Item {disabled} onSelect={() => { publishedAt = homeworkTimestampNow(); }}>
+                  {copy.helperPublishNow}
+                </DropdownMenu.Item>
+                  <DropdownMenu.Item {disabled} onSelect={() => { publishedAt = ""; }}>
+                    {copy.helperClear}
+                  </DropdownMenu.Item>
+              {/snippet}
+              {@render shortcutMenu(publishOptions, copy.timeShortcuts, copy.publishedAt)}
             </div>
           </Field.Field>
           <Field.Field data-disabled={disabled ? "true" : undefined}>
@@ -167,33 +155,20 @@ $: hasDueShortcuts = Boolean(
                 {disabled}
                 name={advancedOpen ? "submissionStartAt" : undefined}
               />
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger>
-                  {#snippet render({ props })}
-                    <Button {...props} aria-label={`${copy.submissionStart} · ${copy.timeShortcuts}`} {disabled} type="button" variant="outline">
-                      <CalendarClock data-icon="inline-start" />
-                      {copy.timeShortcuts}
-                    </Button>
-                  {/snippet}
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content align="end" class="w-max max-w-[calc(100vw-2rem)]">
-                  <DropdownMenu.Group>
-                  {#if actions.startNow}
-                    <DropdownMenu.Item disabled={disabled} onSelect={actions.startNow}>
-                      {copy.helperStartNow}
-                    </DropdownMenu.Item>
-                  {/if}
-                  {#if actions.startAtSemesterStart}
-                    <DropdownMenu.Item disabled={disabled || capabilities.hasSemesterStart === false} onSelect={actions.startAtSemesterStart}>
-                      {copy.helperSemesterStart}
-                    </DropdownMenu.Item>
-                  {/if}
-                    <DropdownMenu.Item {disabled} onSelect={() => { submissionStartAt = ""; }}>
-                      {copy.helperClear}
-                    </DropdownMenu.Item>
-                  </DropdownMenu.Group>
-                </DropdownMenu.Content>
-              </DropdownMenu.Root>
+              {#snippet startOptions()}
+                <DropdownMenu.Item {disabled} onSelect={() => { submissionStartAt = homeworkTimestampNow(); }}>
+                  {copy.helperStartNow}
+                </DropdownMenu.Item>
+                {#if semester.showStartShortcut !== false}
+                  <DropdownMenu.Item disabled={disabled || !capabilities.hasSemesterStart} onSelect={() => { if (semester.start) submissionStartAt = homeworkStartAtSemesterStart(semester.start); }}>
+                    {copy.helperSemesterStart}
+                  </DropdownMenu.Item>
+                {/if}
+                  <DropdownMenu.Item {disabled} onSelect={() => { submissionStartAt = ""; }}>
+                    {copy.helperClear}
+                  </DropdownMenu.Item>
+              {/snippet}
+              {@render shortcutMenu(startOptions, copy.timeShortcuts, copy.submissionStart)}
             </div>
           </Field.Field>
         </Field.Group>

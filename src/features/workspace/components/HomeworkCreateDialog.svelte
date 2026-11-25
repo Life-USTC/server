@@ -9,11 +9,8 @@ import type {
   WorkspaceHomeworkCommentsCopy,
   WorkspaceHomeworkCreateCopy,
   WorkspaceHomeworkCreateSection,
-  WorkspaceHomeworkDateShortcut,
 } from "./workspace-homework-create-types";
 
-export let applyHomeworkDueAtSemesterEnd: WorkspaceHomeworkDateShortcut;
-export let applyHomeworkStartNow: WorkspaceHomeworkDateShortcut;
 export let commentsCopy: WorkspaceHomeworkCommentsCopy;
 export let createHomeworkAction: SubmitFunction;
 export let createHomeworkAdvancedOpen: boolean;
@@ -56,8 +53,6 @@ export let sections: WorkspaceHomeworkCreateSection[];
         <ScrollArea class="h-0 min-h-0 flex-1">
           <HomeworkCreateFormFields
             locale={locale}
-            applyHomeworkDueAtSemesterEnd={applyHomeworkDueAtSemesterEnd}
-            applyHomeworkStartNow={applyHomeworkStartNow}
             commentsCopy={commentsCopy}
             bind:createHomeworkAdvancedOpen
             createHomeworkError={createHomeworkError}

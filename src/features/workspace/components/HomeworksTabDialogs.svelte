@@ -18,7 +18,6 @@ import HomeworkCreateDialog from "./HomeworkCreateDialog.svelte";
 import type {
   WorkspaceHomeworkCommentsCopy,
   WorkspaceHomeworkCreateSection,
-  WorkspaceHomeworkDateShortcut,
 } from "./workspace-homework-create-types";
 
 type HomeworkAction = (homework: WorkspaceHomeworkItem) => string;
@@ -27,8 +26,6 @@ export let showPersonalStatus = false;
 export let canWriteShared = false;
 export let readOnlyReason: string | null | undefined = null;
 export let CommentsPanel: HomeworkDetailCommentsPanel;
-export let applyHomeworkDueAtSemesterEnd: WorkspaceHomeworkDateShortcut;
-export let applyHomeworkStartNow: WorkspaceHomeworkDateShortcut;
 export let commentsCopy: WorkspaceHomeworkCommentsCopy;
 export let createHomeworkAction: SubmitFunction;
 export let createHomeworkAdvancedOpen: boolean;
@@ -72,8 +69,6 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
 {#if canWriteShared && !readOnlyReason}
 <HomeworkCreateDialog
   locale={locale}
-  applyHomeworkDueAtSemesterEnd={applyHomeworkDueAtSemesterEnd}
-  applyHomeworkStartNow={applyHomeworkStartNow}
   commentsCopy={commentsCopy}
   createHomeworkAction={createHomeworkAction}
   bind:createHomeworkAdvancedOpen

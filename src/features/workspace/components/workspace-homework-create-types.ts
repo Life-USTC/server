@@ -39,5 +39,3 @@ export type WorkspaceHomeworkCreateSection = {
   semesterName?: string | null;
   teacherName?: string | null;
 };
-
-export type WorkspaceHomeworkDateShortcut = () => void;

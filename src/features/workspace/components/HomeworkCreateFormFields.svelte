@@ -3,22 +3,12 @@ import * as Alert from "#lib/components/ui/alert/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import * as NativeSelect from "#lib/components/ui/native-select/index.js";
 import HomeworkEditorFields from "@/features/homeworks/components/HomeworkEditorFields.svelte";
-import {
-  homeworkDueInDays,
-  homeworkDueInMonths,
-  homeworkSemesterShortcutCapabilities,
-  homeworkStartAtSemesterStart,
-} from "@/features/homeworks/lib/homework-timestamp-defaults";
-import { toShanghaiDateTimeLocalValue } from "@/lib/time/shanghai-format";
 import type {
   WorkspaceHomeworkCommentsCopy,
   WorkspaceHomeworkCreateCopy,
   WorkspaceHomeworkCreateSection,
-  WorkspaceHomeworkDateShortcut,
 } from "./workspace-homework-create-types";
 
-export let applyHomeworkDueAtSemesterEnd: WorkspaceHomeworkDateShortcut;
-export let applyHomeworkStartNow: WorkspaceHomeworkDateShortcut;
 export let commentsCopy: WorkspaceHomeworkCommentsCopy;
 export let createHomeworkAdvancedOpen: boolean;
 export let createHomeworkError: string;
@@ -34,7 +24,6 @@ export let isCreatingHomework: boolean;
 export let locale: string;
 export let sections: WorkspaceHomeworkCreateSection[];
 
-const shortcutReferenceNow = new Date();
 $: selectedSection = sections.find(
   (section) => String(section.id) === createHomeworkSectionId,
 );
@@ -43,33 +32,6 @@ $: sectionOptions = sections.map((section) => ({
   value: String(section.id),
   label: homeworkSectionLabel(section),
 }));
-$: homeworkTimestampActions = {
-  dueAtSemesterEnd: applyHomeworkDueAtSemesterEnd,
-  dueInWeek: () => {
-    createHomeworkSubmissionDueAt = homeworkDueInDays(7);
-  },
-  dueInMonth: () => {
-    createHomeworkSubmissionDueAt = homeworkDueInMonths(1);
-  },
-  publishNow: () => {
-    createHomeworkPublishedAt = toShanghaiDateTimeLocalValue(new Date());
-  },
-  startNow: applyHomeworkStartNow,
-  startAtSemesterStart: selectedSection?.semesterStart
-    ? () => {
-        if (selectedSection?.semesterStart) {
-          createHomeworkSubmissionStartAt = homeworkStartAtSemesterStart(
-            selectedSection.semesterStart,
-          );
-        }
-      }
-    : undefined,
-};
-$: homeworkTimestampCapabilities = homeworkSemesterShortcutCapabilities({
-  semesterStart: selectedSection?.semesterStart,
-  semesterEnd: selectedSection?.semesterEnd,
-  now: shortcutReferenceNow,
-});
 </script>
 
 <Field.Group class="min-w-0 gap-5 px-5 py-4 sm:px-6 sm:py-5">
@@ -106,9 +68,8 @@ $: homeworkTimestampCapabilities = homeworkSemesterShortcutCapabilities({
     sectionJwId={selectedSection?.jwId}
     classStarts={selectedSection?.nextClassStarts ?? []}
     {locale}
-    actions={homeworkTimestampActions}
+    semester={{ start: selectedSection?.semesterStart, end: selectedSection?.semesterEnd, showStartShortcut: Boolean(selectedSection?.semesterStart) }}
     bind:advancedOpen={createHomeworkAdvancedOpen}
-    capabilities={homeworkTimestampCapabilities}
     {commentsCopy}
     copy={homeworksCopy}
     disabled={isCreatingHomework}

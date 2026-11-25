@@ -3,8 +3,6 @@ import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import HomeworkEditorFields from "@/features/homeworks/components/HomeworkEditorFields.svelte";
-import { homeworkSemesterShortcutCapabilities } from "@/features/homeworks/lib/homework-timestamp-defaults";
-import type { HomeworkShortcuts } from "../lib/section-detail-homework-timestamp-actions";
 import type {
   SectionHomeworkCopy,
   SectionHomeworkDisplay,
@@ -13,7 +11,6 @@ import type {
   SectionHomeworkSubmitHandler,
 } from "./section-homework-display-types";
 
-export let shortcuts: HomeworkShortcuts;
 export let classSectionJwId: number | string | null | undefined = undefined;
 export let classStarts: string[] = [];
 export let locale: string;
@@ -29,13 +26,6 @@ export let semesterDate: SectionHomeworkSemesterDate;
 export let updateHomework: SectionHomeworkSubmitHandler;
 
 let advancedOpen = false;
-const shortcutReferenceNow = new Date();
-
-$: homeworkTimestampCapabilities = homeworkSemesterShortcutCapabilities({
-  semesterEnd: semesterDate("end"),
-  semesterStart: semesterDate("start"),
-  now: shortcutReferenceNow,
-});
 </script>
 
 <form
@@ -47,9 +37,8 @@ $: homeworkTimestampCapabilities = homeworkSemesterShortcutCapabilities({
       sectionJwId={classSectionJwId}
   {classStarts}
       {locale}
-      actions={shortcuts}
       bind:advancedOpen={advancedOpen}
-      capabilities={homeworkTimestampCapabilities}
+      semester={{ start: semesterDate("start"), end: semesterDate("end") }}
       commentsCopy={commentsCopy}
       copy={homeworkCopy}
       description={homework.description?.content ?? ""}

@@ -52,8 +52,6 @@ export let homeworkActionError: string;
 export let locale: string;
 export let referenceDate: Date | string;
 export let openCreateHomeworkDialog: () => void;
-export let applyHomeworkStartNow: () => void;
-export let applyHomeworkDueAtSemesterEnd: () => void;
 export let toggleHomeworkCompletion: (
   homework: WorkspaceHomeworkItem,
 ) => void | Promise<void>;
@@ -200,8 +198,6 @@ $: ({
       showPersonalStatus={!signedData.demo}
       {readOnlyReason}
       CommentsPanel={CommentsPanel}
-      applyHomeworkDueAtSemesterEnd={applyHomeworkDueAtSemesterEnd}
-      applyHomeworkStartNow={applyHomeworkStartNow}
       commentsCopy={commentsCopy}
       createHomeworkAction={createHomeworkAction}
       bind:createHomeworkAdvancedOpen

@@ -5,8 +5,6 @@ export let content: ComponentProps<typeof SectionDetailMainContent>["content"];
 import { toast } from "@ui-sdk/svelte/toast";
 import { onMount } from "svelte";
 import { nextHomeworkClassStarts } from "@/features/homeworks/lib/homework-due-shortcuts";
-// biome-ignore assist/source/organizeImports: keep Svelte template/action imports grouped with local suppressions.
-import { homeworkSemesterShortcutCapabilities } from "@/features/homeworks/lib/homework-timestamp-defaults";
 import SectionDetailMainContent from "@/features/section-detail/components/SectionDetailMainContent.svelte";
 import SectionDetailPageHead from "@/features/section-detail/components/SectionDetailPageHead.svelte";
 import {
@@ -34,7 +32,6 @@ import {
 } from "@/features/section-detail/lib/section-detail-derived-state";
 import { createSectionDetailDisplayActions } from "@/features/section-detail/lib/section-detail-display-actions";
 import { createSectionDetailHomeworkActions } from "@/features/section-detail/lib/section-detail-homework-actions";
-import { createSectionHomeworkTimestampActions } from "@/features/section-detail/lib/section-detail-homework-timestamp-actions";
 import {
   createSectionDetailTabPanelSsrSeedFromPageData,
   createSectionDetailTabPanelStore,
@@ -323,19 +320,6 @@ function _closeCalendarDialog() {
   state.isCalendarDialogOpen = false;
 }
 
-const createShortcuts = createSectionHomeworkTimestampActions({
-  getSemesterDate: _semesterDate,
-  setPublishedAt: set("createHomeworkPublishedAt"),
-  setSubmissionDueAt: set("createHomeworkSubmissionDueAt"),
-  setSubmissionStartAt: set("createHomeworkSubmissionStartAt"),
-});
-const editShortcuts = createSectionHomeworkTimestampActions({
-  getSemesterDate: _semesterDate,
-  setPublishedAt: set("editHomeworkPublishedAt"),
-  setSubmissionDueAt: set("editHomeworkSubmissionDueAt"),
-  setSubmissionStartAt: set("editHomeworkSubmissionStartAt"),
-});
-
 const {
   clearClipboardTimer: _clearClipboardTimer,
   copyText: _copyText,
@@ -507,12 +491,10 @@ $: if (state.isCalendarDialogOpen) {
     classSectionJwId={data.demo ? undefined : data.section.jwId}
     classStarts={nextHomeworkClassStarts(data.section.schedules ?? [])}
     locale={data.locale}
-    shortcuts={createShortcuts}
+    semester={state.showCreateHomework ? { start: _semesterDate("start"), end: _semesterDate("end") } : {}}
     close={_closeCreateHomeworkDialog}
     commentsCopy={_commentsCopy}
     createHomework={_createHomework}
-    hasSemesterEnd={state.showCreateHomework && homeworkSemesterShortcutCapabilities({ semesterEnd: _semesterDate("end") }).hasSemesterEnd}
-    hasSemesterStart={state.showCreateHomework && Boolean(_semesterDate("start"))}
     homeworkCopy={_homeworkCopy}
     homeworkMessage={state.homeworkMessage}
     bind:publishedAt={state.createHomeworkPublishedAt}
@@ -530,7 +512,6 @@ $: if (state.isCalendarDialogOpen) {
     readOnlyReason={data.demo?.readOnlyReason}
     referenceDate={data.demo?.referenceNow}
     CommentsPanel={homeworkDialogs.CommentsPanel}
-    shortcuts={editShortcuts}
     {_auditLogsForHomework}
     {_canManageSelectedHomework}
     _canWriteHomework={!personalLoading && !personalFailed && _canWriteHomework}

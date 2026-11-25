@@ -101,8 +101,6 @@ let calendarWeekdayLabels = $derived(buildCalendarWeekdayLabels(sectionCopy));
 let catalogLinkGroupLabels = $derived(workspaceCopy.linkHub.groups);
 
 const {
-  applyHomeworkDueAtSemesterEnd,
-  applyHomeworkStartNow,
   calendarHomeworkHref,
   calendarTimelineItemsForDay,
   calendarTodoChipFields,
@@ -250,8 +248,6 @@ onMount(mount);
         {signedData}
         referenceDate={homeworkReferenceDate}
         {openCreateHomeworkDialog}
-        {applyHomeworkStartNow}
-        {applyHomeworkDueAtSemesterEnd}
         {toggleHomeworkCompletion}
         {createHomeworkAction}
         bind:showCreateHomework={state.showCreateHomework}

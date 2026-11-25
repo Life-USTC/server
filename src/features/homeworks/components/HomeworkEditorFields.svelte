@@ -13,17 +13,15 @@ import HomeworkTitleField from "./HomeworkTitleField.svelte";
 import type {
   HomeworkFormCommentsCopy,
   HomeworkFormCopy,
+  HomeworkSemesterDates,
   HomeworkTagCopy,
-  HomeworkTimestampActions,
-  HomeworkTimestampCapabilities,
   HomeworkTimestampCopy,
 } from "./homework-form-types";
 
 type EditorCopy = HomeworkFormCopy & HomeworkTagCopy & HomeworkTimestampCopy;
 
-export let actions: HomeworkTimestampActions = {};
+export let semester: HomeworkSemesterDates;
 export let advancedOpen = false;
-export let capabilities: HomeworkTimestampCapabilities = {};
 export let commentsCopy: HomeworkFormCommentsCopy;
 export let copy: EditorCopy;
 export let description = "";
@@ -98,10 +96,9 @@ $: dueShortcuts = buildHomeworkDueShortcuts({
   {/if}
   <HomeworkTitleField {copy} {disabled} {idPrefix} {title} />
   <HomeworkTimestampFields
-    {actions}
+    {semester}
     {dueShortcuts}
     bind:advancedOpen
-    {capabilities}
     {copy}
     {disabled}
     {idPrefix}

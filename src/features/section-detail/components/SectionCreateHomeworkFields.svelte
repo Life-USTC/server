@@ -2,19 +2,17 @@
 import * as Alert from "#lib/components/ui/alert/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import HomeworkEditorFields from "@/features/homeworks/components/HomeworkEditorFields.svelte";
-import type { HomeworkShortcuts } from "../lib/section-detail-homework-timestamp-actions";
+import type { HomeworkSemesterDates } from "@/features/homeworks/components/homework-form-types";
 import type {
   SectionCreateHomeworkCommentsCopy,
   SectionCreateHomeworkFieldsCopy,
 } from "./section-create-homework-types";
 
-export let shortcuts: HomeworkShortcuts;
+export let semester: HomeworkSemesterDates;
 export let classSectionJwId: number | string | null | undefined = undefined;
 export let classStarts: string[] = [];
 export let locale: string;
 export let commentsCopy: SectionCreateHomeworkCommentsCopy;
-export let hasSemesterEnd: boolean;
-export let hasSemesterStart: boolean;
 export let homeworkCopy: SectionCreateHomeworkFieldsCopy;
 export let homeworkMessage: string;
 export let sectionLabel: string;
@@ -23,11 +21,6 @@ export let submissionDueAt: string;
 export let submissionStartAt: string;
 
 let advancedOpen = false;
-
-$: homeworkTimestampCapabilities = {
-  hasSemesterEnd,
-  hasSemesterStart,
-};
 </script>
 
 <Field.Group class="gap-5 px-5 py-4 sm:px-6 sm:py-5">
@@ -39,9 +32,8 @@ $: homeworkTimestampCapabilities = {
     sectionJwId={classSectionJwId}
   {classStarts}
     {locale}
-    actions={shortcuts}
+    {semester}
     bind:advancedOpen={advancedOpen}
-    capabilities={homeworkTimestampCapabilities}
     commentsCopy={commentsCopy}
     copy={homeworkCopy}
     idPrefix="section-homework"

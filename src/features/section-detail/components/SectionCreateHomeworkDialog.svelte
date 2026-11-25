@@ -2,22 +2,20 @@
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
-import type { HomeworkShortcuts } from "../lib/section-detail-homework-timestamp-actions";
+import type { HomeworkSemesterDates } from "@/features/homeworks/components/homework-form-types";
 import SectionCreateHomeworkFields from "./SectionCreateHomeworkFields.svelte";
 import type {
   SectionCreateHomeworkCommentsCopy,
   SectionCreateHomeworkCopy,
 } from "./section-create-homework-types";
 
-export let shortcuts: HomeworkShortcuts;
+export let semester: HomeworkSemesterDates;
 export let classSectionJwId: number | string | null | undefined = undefined;
 export let classStarts: string[] = [];
 export let locale: string;
 export let close: () => void;
 export let commentsCopy: SectionCreateHomeworkCommentsCopy;
 export let createHomework: (event: SubmitEvent) => void;
-export let hasSemesterEnd: boolean;
-export let hasSemesterStart: boolean;
 export let homeworkCopy: SectionCreateHomeworkCopy;
 export let homeworkMessage: string;
 export let publishedAt: string;
@@ -55,15 +53,13 @@ export let submissionStartAt: string;
             {classSectionJwId}
   {classStarts}
             {locale}
-            {shortcuts}
+            {semester}
 
 
 
 
 
             {commentsCopy}
-            {hasSemesterEnd}
-            {hasSemesterStart}
             {homeworkCopy}
             {homeworkMessage}
             {sectionLabel}

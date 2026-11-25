@@ -46,16 +46,8 @@ export type HomeworkTagCopy = {
   tagTeam: string;
 };
 
-export type HomeworkTimestampActions = {
-  dueAtSemesterEnd?: () => void;
-  dueInMonth?: () => void;
-  dueInWeek?: () => void;
-  publishNow?: () => void;
-  startAtSemesterStart?: () => void;
-  startNow?: () => void;
-};
-
-export type HomeworkTimestampCapabilities = {
-  hasSemesterEnd?: boolean;
-  hasSemesterStart?: boolean;
+export type HomeworkSemesterDates = {
+  start?: Date | string | null;
+  end?: Date | string | null;
+  showStartShortcut?: boolean;
 };

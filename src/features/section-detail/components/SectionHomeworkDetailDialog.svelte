@@ -8,7 +8,6 @@ import {
   formatHomeworkDueRelativeTime,
   normalizeHomeworkDetail,
 } from "@/features/homeworks/lib/homework-presentation";
-import type { HomeworkShortcuts } from "../lib/section-detail-homework-timestamp-actions";
 import SectionHomeworkActionBar from "./SectionHomeworkActionBar.svelte";
 import SectionHomeworkAuditTrail from "./SectionHomeworkAuditTrail.svelte";
 import SectionHomeworkEditForm from "./SectionHomeworkEditForm.svelte";
@@ -26,7 +25,6 @@ import type {
   SectionHomeworkSubmitHandler,
 } from "./section-homework-display-types";
 
-export let shortcuts: HomeworkShortcuts;
 export let showPersonalStatus = false;
 export let readOnlyReason: string | null | undefined = null;
 export let referenceDate: string | undefined = undefined;
@@ -113,7 +111,6 @@ $: permalinkBaseHref = _selectedHomework
         {classSectionJwId}
   {classStarts}
         {locale}
-        {shortcuts}
 
 
 

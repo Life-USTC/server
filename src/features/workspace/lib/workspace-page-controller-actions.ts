@@ -1,7 +1,7 @@
 import { toast } from "@ui-sdk/svelte/toast";
+import { initialHomeworkTimestampDraft } from "@/features/homeworks/lib/homework-timestamp-defaults";
 import { createWorkspaceCalendarActions } from "@/features/workspace/lib/workspace-controller-calendar-actions";
 import { createWorkspaceCalendarDisplayActions } from "@/features/workspace/lib/workspace-controller-calendar-display-actions";
-import { createWorkspaceCreateHomeworkActions } from "@/features/workspace/lib/workspace-controller-create-homework-actions";
 import { createWorkspaceDisplayActions } from "@/features/workspace/lib/workspace-controller-display-actions";
 import { createWorkspaceFormSubmitActions } from "@/features/workspace/lib/workspace-controller-form-actions";
 import type {
@@ -57,17 +57,18 @@ export function createWorkspacePageControllerActions(input: {
     state.editingTodo = todo;
   }
 
-  const createHomework = createWorkspaceCreateHomeworkActions({
-    getCreateHomeworkSectionId: () => state.createHomeworkSectionId,
-    getSections: () => input.getSignedData()?.homeworks?.sections ?? [],
-    setCreateHomeworkAdvancedOpen: set("createHomeworkAdvancedOpen"),
-    setCreateHomeworkError: set("createHomeworkError"),
-    setCreateHomeworkPublishedAt: set("createHomeworkPublishedAt"),
-    setCreateHomeworkSectionId: set("createHomeworkSectionId"),
-    setCreateHomeworkSubmissionDueAt: set("createHomeworkSubmissionDueAt"),
-    setCreateHomeworkSubmissionStartAt: set("createHomeworkSubmissionStartAt"),
-    setShowCreateHomework: set("showCreateHomework"),
-  });
+  function openCreateHomeworkDialog() {
+    const draft = initialHomeworkTimestampDraft();
+    state.createHomeworkSectionId = String(
+      input.getSignedData()?.homeworks?.sections[0]?.id ?? "",
+    );
+    state.createHomeworkPublishedAt = draft.publishedAt;
+    state.createHomeworkSubmissionStartAt = draft.submissionStartAt;
+    state.createHomeworkSubmissionDueAt = draft.submissionDueAt;
+    state.createHomeworkAdvancedOpen = false;
+    state.createHomeworkError = "";
+    state.showCreateHomework = true;
+  }
 
   const todo = createWorkspaceTodoActions({
     getEditingTodo: () => state.editingTodo,
@@ -236,7 +237,7 @@ export function createWorkspacePageControllerActions(input: {
   }
 
   return {
-    ...createHomework,
+    openCreateHomeworkDialog,
     ...todo,
     ...display,
     ...form,
