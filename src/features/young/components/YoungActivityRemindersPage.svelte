@@ -110,6 +110,7 @@ async function markRead(id: string) {
     {#snippet primary()}
       {#if data.notifications}
         <ToggleGroup.Root
+          required
           variant="outline"
           bind:value={() => (data.unread ? "unread" : "all"), filterNotifications}
           aria-label={copy.notificationFilter}
