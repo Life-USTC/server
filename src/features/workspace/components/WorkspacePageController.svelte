@@ -321,7 +321,7 @@ onMount(mount);
         linkReturnTo={state.linkReturnTo}
         linkActionError={state.linkActionError}
         updatingCatalogLinkSlug={state.updatingCatalogLinkSlug}
-        {signedLinkGroups}
+        groups={signedLinkGroups}
         bind:linkSearchQuery={state.linkSearchQuery}
       />
     {:else if signedData.tab === "bus"}

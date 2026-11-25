@@ -14,7 +14,7 @@ import {
   LINK_TABLE_NAME_COL,
 } from "@/features/workspace/lib/link-table-layout";
 import type {
-  AnonymousLinkGroup,
+  CatalogLinkGroupEntry,
   WorkspaceOverviewLinkItem,
 } from "@/features/workspace/lib/workspace-controller-helpers";
 import type { TableFilterField, TableFilterLabels } from "@/lib/table-filters";
@@ -25,7 +25,7 @@ export let colActions: string = "";
 export let colDescription: string;
 export let colName: string;
 export let emptyLabel: string;
-export let groups: AnonymousLinkGroup[];
+export let groups: CatalogLinkGroupEntry[];
 export let linkIconLabel: (icon: string) => string;
 export let searchControls: Snippet;
 export let fields: TableFilterField[];

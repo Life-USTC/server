@@ -4,6 +4,7 @@ export let readOnlyReason: string | undefined = undefined;
 import Pin from "@lucide/svelte/icons/pin";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import type {
+  WorkspaceCopy,
   WorkspaceLinkPinAction,
   WorkspaceLinkPinSubmit,
   WorkspaceOverviewLinkItem,
@@ -11,12 +12,11 @@ import type {
 
 export let link: WorkspaceOverviewLinkItem;
 export let linkReturnTo: string;
-export let pinAction: (
-  link: WorkspaceOverviewLinkItem,
-) => WorkspaceLinkPinAction;
-export let pinLabel: (link: WorkspaceOverviewLinkItem) => string;
+export let workspaceCopy: Pick<WorkspaceCopy, "linkHub">;
 export let submitWorkspaceLinkPin: WorkspaceLinkPinSubmit;
 export let updatingCatalogLinkSlug: string | null;
+let action: WorkspaceLinkPinAction;
+$: action = link.isPinned ? "unpin" : "pin";
 </script>
 
 <form
@@ -25,14 +25,14 @@ export let updatingCatalogLinkSlug: string | null;
   onsubmit={(event) => {
     event.preventDefault();
     if (readOnlyReason) return;
-    void submitWorkspaceLinkPin(link.slug, pinAction(link));
+    void submitWorkspaceLinkPin(link.slug, action);
   }}
 >
   <input name="slug" type="hidden" value={link.slug} />
   <input name="returnTo" type="hidden" value={linkReturnTo} />
-  <input name="action" type="hidden" value={pinAction(link)} />
+  <input name="action" type="hidden" value={action} />
   <TableIconButton
-    label={pinLabel(link)}
+    label={workspaceCopy.linkHub[action]}
     disabled={Boolean(readOnlyReason) || updatingCatalogLinkSlug === link.slug}
     title={readOnlyReason}
     type="submit"

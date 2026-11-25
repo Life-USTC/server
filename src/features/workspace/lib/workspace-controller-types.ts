@@ -686,12 +686,11 @@ export type SubscribedSection =
   SubscriptionsData["subscriptions"][number]["sections"][number];
 export type ExamRow = WorkspaceExamRow<SubscribedSection>;
 export type MatchedSection = MatchedSubscriptionSection;
-export type SignedLinkGroup = {
+export type CatalogLinkGroupEntry = {
   group: CatalogLinkGroup;
   label: string;
   links: CatalogLinkItem[];
 };
-export type AnonymousLinkGroup = SignedLinkGroup;
 
 export type WorkspaceCalendarControllerState = {
   month: string;

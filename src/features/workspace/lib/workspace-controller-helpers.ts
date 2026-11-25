@@ -7,13 +7,12 @@ export {
 } from "@/features/homeworks/lib/homework-timestamp-defaults";
 export { isSignedWorkspaceData } from "./workspace-controller-type-guards";
 export type {
-  AnonymousLinkGroup,
   CalendarData,
+  CatalogLinkGroupEntry,
   CatalogLinkItem,
   ExamRow,
   HomeworkItem,
   MatchedSection,
-  SignedLinkGroup,
   SignedWorkspaceData,
   SubscribedSection,
   SubscriptionsData,
