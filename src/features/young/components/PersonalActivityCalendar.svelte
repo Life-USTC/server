@@ -8,6 +8,7 @@ import { Input } from "#lib/components/ui/input/index.js";
 import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import { getDefaultWeekStart } from "@/shared/lib/date-utils";
 import {
   fetchPersonalCalendar,
@@ -50,27 +51,26 @@ const range = $derived.by(() => {
         : 7,
   };
 });
-const days = $derived(
-  Array.from({ length: range.count }, (_, index) => {
+const days = $derived.by(() => {
+  const weekday = createShanghaiDateTimeFormatter(locale, { weekday: "long" });
+  const today = shanghaiDayjs().format("YYYY-MM-DD");
+  return Array.from({ length: range.count }, (_, index) => {
     const date = range.start.add(index, "day");
     const key = date.format("YYYY-MM-DD");
+    const dateLabel = date.format("MM-DD");
     return {
       key,
-      dateLabel: date.format("MM-DD"),
-      weekdayLabel: new Intl.DateTimeFormat(locale, {
-        weekday: "long",
-        timeZone: "Asia/Shanghai",
-      }).format(date.toDate()),
-      isToday: key === shanghaiDayjs().format("YYYY-MM-DD"),
+      label: dateLabel,
+      dateLabel,
+      weekdayLabel: weekday.format(date.toDate()),
+      isToday: key === today,
       events: personalItemsForDay(visibleItems, key),
     };
-  }),
-);
+  });
+});
 const weeks = $derived(
   Array.from({ length: Math.ceil(days.length / 7) }, (_, index) => ({
-    days: days
-      .slice(index * 7, index * 7 + 7)
-      .map((day) => ({ ...day, label: day.dateLabel })),
+    days: days.slice(index * 7, index * 7 + 7),
   })),
 );
 const weekdays = $derived(days.slice(0, 7).map((day) => day.weekdayLabel));
@@ -81,6 +81,10 @@ $effect(() => {
   const requestOwnerId = ownerId;
   const requestLocale = locale;
   const controller = new AbortController();
+  const isCurrent = () =>
+    !controller.signal.aborted &&
+    ownerId === requestOwnerId &&
+    locale === requestLocale;
   loading = true;
   failed = false;
   items = [];
@@ -88,28 +92,13 @@ $effect(() => {
   itemsLocale = requestLocale;
   void fetchPersonalCalendar(start, end, controller.signal)
     .then((result) => {
-      if (
-        !controller.signal.aborted &&
-        ownerId === requestOwnerId &&
-        locale === requestLocale
-      )
-        items = result;
+      if (isCurrent()) items = result;
     })
     .catch(() => {
-      if (
-        !controller.signal.aborted &&
-        ownerId === requestOwnerId &&
-        locale === requestLocale
-      )
-        failed = true;
+      if (isCurrent()) failed = true;
     })
     .finally(() => {
-      if (
-        !controller.signal.aborted &&
-        ownerId === requestOwnerId &&
-        locale === requestLocale
-      )
-        loading = false;
+      if (isCurrent()) loading = false;
     });
   return () => controller.abort();
 });

@@ -19,6 +19,7 @@ import {
   youngCalendarPreviousDate,
   youngCalendarRange,
   youngCalendarWeeks,
+  youngEventTimes,
 } from "../lib/young-calendar";
 import { youngDateRange, youngDateTime } from "../lib/young-event-display";
 import type {
@@ -68,14 +69,12 @@ $: days = youngCalendarDays(
   timeBasis,
   anchorDate,
 );
+$: dayFormatter = createShanghaiDateTimeFormatter(locale, { day: "numeric" });
 $: weeks = youngCalendarWeeks(days).map((week) => ({
   days: week.days.map((day) => ({
     key: day.key,
     moreHref: hrefFor("day", day.key),
-    label: createShanghaiDateTimeFormatter(locale, {
-      timeZone: "Asia/Shanghai",
-      day: "numeric",
-    }).format(day.date),
+    label: dayFormatter.format(day.date),
     isToday: day.isToday,
     isMuted: day.isMuted,
     events: (view === "day" ? day.events : day.startingEvents).map((event) => ({
@@ -99,8 +98,7 @@ $: heading = youngCalendarHeading(view, anchorDate, locale);
 $: agenda = youngCalendarAgenda(days, anchorDate);
 
 function formatClock(event: YoungCalendarEvent) {
-  const start =
-    timeBasis === "registration" ? event.applyStartAt : event.startAt;
+  const { startAt: start } = youngEventTimes(event, timeBasis);
   if (!start) return "";
   return createShanghaiDateTimeFormatter(locale, {
     timeZone: "Asia/Shanghai",
@@ -111,16 +109,12 @@ function formatClock(event: YoungCalendarEvent) {
 }
 
 function formatTime(event: YoungCalendarEvent) {
-  const start =
-    timeBasis === "registration" ? event.applyStartAt : event.startAt;
-  const end = timeBasis === "registration" ? event.applyEndAt : event.endAt;
+  const { startAt: start, endAt: end } = youngEventTimes(event, timeBasis);
   return youngDateRange(start, end, labels) ?? "";
 }
 
 function crossesDate(event: YoungCalendarEvent) {
-  const start =
-    timeBasis === "registration" ? event.applyStartAt : event.startAt;
-  const end = timeBasis === "registration" ? event.applyEndAt : event.endAt;
+  const { startAt: start, endAt: end } = youngEventTimes(event, timeBasis);
   return Boolean(
     start &&
       end &&
