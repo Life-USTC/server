@@ -111,5 +111,5 @@ const activeFilters = $derived(
   </CatalogFilters>
 {/snippet}
 <CollectionPage description={teacherLabels.subtitle} footer={endless.hasMore ? paginationFooter : undefined} title={teacherLabels.title} toolbar={controls}>
-  <TeachersResults {commonLabels} {columnFilters} primaryName={primaryName} {teacherLabels} teachers={endless.items} />
+  <TeachersResults {commonLabels} {columnFilters} {teacherLabels} teachers={endless.items} />
 </CollectionPage>

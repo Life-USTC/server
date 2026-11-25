@@ -24,6 +24,9 @@ let {
   class?: string;
   children?: Snippet;
 } = $props();
+const showClear = $derived(
+  variant === "filter-clear" && onClearFilter && clearFilterLabel,
+);
 </script>
 
 {#if variant === "quiet"}
@@ -32,11 +35,10 @@ let {
   <CompactEmpty class={className} {description} title={title || undefined} />
 {:else}
   <div class={cn(variant === "filter-clear" ? "py-6" : "py-10", className)} data-empty-variant={variant}>
-    <EmptyState variant="results" {description} {title}>
-      {#if variant === "filter-clear" && onClearFilter && clearFilterLabel}
-        <Button variant="outline" onclick={onClearFilter}>{clearFilterLabel}</Button>
-      {/if}
+    {#snippet actions()}
+      <Button variant="outline" onclick={onClearFilter}>{clearFilterLabel}</Button>
       {@render children?.()}
-    </EmptyState>
+    {/snippet}
+    <EmptyState variant="results" {description} {title} children={showClear ? actions : children} />
   </div>
 {/if}

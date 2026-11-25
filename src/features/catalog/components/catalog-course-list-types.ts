@@ -55,11 +55,6 @@ export type CourseListRow = CatalogNamed & {
   jwId: number | string;
 };
 
-export type CourseListResultData = {
-  data: CourseListRow[];
-  filters: Pick<CourseListFilters, "search">;
-};
-
 export type CourseListFilterUpdater = (
   patch: Partial<CourseListFilters>,
 ) => void;

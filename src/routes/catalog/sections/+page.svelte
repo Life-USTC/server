@@ -181,15 +181,11 @@ const activeFilters = $derived([
       ]
     : []),
 ]);
-const resultData = $derived({
-  data: endless.items,
-  filters: data.filters,
-});
-function emptyDescription() {
-  return data.filters.search
+const description = $derived(
+  data.filters.search
     ? sectionLabels.searchFor.replace("{query}", data.filters.search)
-    : sectionLabels.subtitle;
-}
+    : sectionLabels.subtitle,
+);
 </script>
 
 {#if data.demo}
@@ -213,5 +209,5 @@ function emptyDescription() {
   </CatalogFilters>
 {/snippet}
 <CollectionPage description={sectionLabels.subtitle} footer={endless.hasMore ? paginationFooter : undefined} title={sectionLabels.title} toolbar={controls}>
-  <SectionsResults {columnFilters} data={resultData} primaryName={primaryName} sectionEmptyDescription={emptyDescription} {sectionLabels} />
+  <SectionsResults {columnFilters} rows={endless.items} filters={data.filters} {description} {sectionLabels} />
 </CollectionPage>

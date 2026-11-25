@@ -6,7 +6,6 @@ import CoursesResults from "@/features/catalog/components/CoursesResults.svelte"
 import { catalogColumnFilters } from "@/features/catalog/components/catalog-column-filters";
 import { createCatalogFilterDraft } from "@/features/catalog/lib/catalog-filter-draft.svelte";
 import { catalogActiveFilters } from "@/features/catalog/lib/catalog-filter-view";
-import { catalogPrimaryName as primaryName } from "@/features/catalog/lib/catalog-list-display";
 import { catalogListPageHref } from "@/features/catalog/lib/catalog-list-query";
 import { buildCourseFilterOptions } from "@/features/catalog/lib/courses-page-view-model";
 import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
@@ -62,15 +61,11 @@ const activeFilters = $derived(
     commonLabels.tableFilters,
   ),
 );
-const resultData = $derived({
-  data: endless.items,
-  filters: data.filters,
-});
-function emptyDescription() {
-  return data.filters.search
+const description = $derived(
+  data.filters.search
     ? courseLabels.searchFor.replace("{query}", data.filters.search)
-    : courseLabels.subtitle;
-}
+    : courseLabels.subtitle,
+);
 </script>
 
 {#if data.demo}
@@ -84,5 +79,5 @@ function emptyDescription() {
   <CatalogFilters {activeFilters} clearHref="/catalog/courses" clearLabel={commonLabels.clear} filterTitle={courseLabels.summary.filters} searchLabel={commonLabels.search} searchPlaceholder={courseLabels.searchPlaceholder} values={draft.values} onchange={draft.update} onsubmit={draft.submit} applyLabel={commonLabels.applyFilters} {formId} />
 {/snippet}
 <CollectionPage description={courseLabels.subtitle} footer={endless.hasMore ? paginationFooter : undefined} title={courseLabels.title} toolbar={controls}>
-  <CoursesResults {columnFilters} courseEmptyDescription={emptyDescription} {courseLabels} data={resultData} primaryName={primaryName} />
+  <CoursesResults {columnFilters} {description} {courseLabels} rows={endless.items} />
 </CollectionPage>

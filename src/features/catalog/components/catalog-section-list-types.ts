@@ -117,8 +117,3 @@ export type SectionListRow = {
   stdCount?: number | null;
   teachers: CatalogNamed[];
 };
-
-export type SectionListResultData = {
-  data: SectionListRow[];
-  filters: SectionListFilters;
-};
