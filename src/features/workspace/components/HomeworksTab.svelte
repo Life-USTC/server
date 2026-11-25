@@ -4,6 +4,7 @@ import { Button } from "#lib/components/ui/button/index.js";
 import type CommentsPanelComponent from "@/features/comments/components/CommentsPanel.svelte";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
+import HomeworkCreateDialog from "@/features/homeworks/components/HomeworkCreateDialog.svelte";
 import HomeworkDetailDialog from "@/features/homeworks/components/HomeworkDetailDialog.svelte";
 import { canCompletePersonalHomework } from "@/features/homeworks/lib/homework-capabilities";
 import {
@@ -28,7 +29,7 @@ import {
   filterHomeworkTable,
   homeworkTableFields,
 } from "../lib/workspace-task-table-filters";
-import HomeworkCreateDialog from "./HomeworkCreateDialog.svelte";
+import HomeworkCreateFormFields from "./HomeworkCreateFormFields.svelte";
 import HomeworksCollection from "./HomeworksCollection.svelte";
 import HomeworksTabToolbar from "./HomeworksTabToolbar.svelte";
 import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
@@ -217,25 +218,31 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
 
     {#if canWriteShared && !readOnlyReason}
       <HomeworkCreateDialog
-        {locale}
-        {commentsCopy}
-        {createHomeworkAction}
-        bind:createHomeworkAdvancedOpen
-        bind:createHomeworkPublishedAt
-        bind:createHomeworkSectionId
-        bind:createHomeworkSubmissionDueAt
-        bind:createHomeworkSubmissionStartAt
-        {homeworkSectionLabel}
-        {homeworksCopy}
-        {isCreatingHomework}
+        open={showCreateHomework}
+        copy={homeworksCopy}
+        submitAction={createHomeworkAction}
+        saving={isCreatingHomework}
+        testId="workspace-homework-create"
         onClose={() => {
           showCreateHomework = false;
           createHomeworkError = "";
         }}
-        open={showCreateHomework}
-        sections={signedData.homeworks.sections}
-        {createHomeworkError}
-      />
+      >
+        <HomeworkCreateFormFields
+          {locale}
+          {commentsCopy}
+          {createHomeworkError}
+          bind:createHomeworkAdvancedOpen
+          bind:createHomeworkPublishedAt
+          bind:createHomeworkSectionId
+          bind:createHomeworkSubmissionDueAt
+          bind:createHomeworkSubmissionStartAt
+          {homeworkSectionLabel}
+          {homeworksCopy}
+          {isCreatingHomework}
+          sections={signedData.homeworks.sections}
+        />
+      </HomeworkCreateDialog>
     {/if}
 
     <HomeworkDetailDialog

@@ -1,29 +1,3 @@
-import type {
-  HomeworkFormCopy,
-  HomeworkTagCopy,
-  HomeworkTimestampCopy,
-} from "@/features/homeworks/components/homework-form-types";
-
-export type WorkspaceHomeworkCreateCopy = HomeworkFormCopy &
-  HomeworkTagCopy &
-  HomeworkTimestampCopy & {
-    [key: string]: string;
-    cancel: string;
-    createAction: string;
-    createTitle: string;
-    sectionLabel: string;
-    saving: string;
-    subtitle: string;
-  };
-
-export type WorkspaceHomeworkCommentsCopy = {
-  markdownGuide: string;
-  markdownModeLabel: string;
-  previewEmpty: string;
-  tabPreview: string;
-  tabWrite: string;
-};
-
 export type WorkspaceHomeworkCreateSection = {
   course?: {
     code?: string | null;

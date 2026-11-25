@@ -11,19 +11,15 @@ import HomeworkTagFields from "./HomeworkTagFields.svelte";
 import HomeworkTimestampFields from "./HomeworkTimestampFields.svelte";
 import HomeworkTitleField from "./HomeworkTitleField.svelte";
 import type {
+  HomeworkEditorCopy,
   HomeworkFormCommentsCopy,
-  HomeworkFormCopy,
   HomeworkSemesterDates,
-  HomeworkTagCopy,
-  HomeworkTimestampCopy,
 } from "./homework-form-types";
-
-type EditorCopy = HomeworkFormCopy & HomeworkTagCopy & HomeworkTimestampCopy;
 
 export let semester: HomeworkSemesterDates;
 export let advancedOpen = false;
 export let commentsCopy: HomeworkFormCommentsCopy;
-export let copy: EditorCopy;
+export let copy: HomeworkEditorCopy;
 export let description = "";
 export let disabled = false;
 export let classStarts: string[] = [];

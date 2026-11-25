@@ -46,6 +46,18 @@ export type HomeworkTagCopy = {
   tagTeam: string;
 };
 
+export type HomeworkEditorCopy = HomeworkFormCopy &
+  HomeworkTagCopy &
+  HomeworkTimestampCopy;
+
+export type HomeworkCreateCopy = HomeworkEditorCopy & {
+  sectionLabel: string;
+  createTitle: string;
+  createAction: string;
+  cancel: string;
+  saving?: string;
+};
+
 export type HomeworkSemesterDates = {
   start?: Date | string | null;
   end?: Date | string | null;
