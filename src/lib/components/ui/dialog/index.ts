@@ -1,17 +1,15 @@
 import { Dialog as Root } from "@ui-sdk/svelte/dialog";
-import Title from "./dialog-title.svelte";
-import Footer from "./dialog-footer.svelte";
+import { DialogTitle as Title } from "@ui-sdk/svelte/dialog";
 import Header from "./dialog-header.svelte";
 import Overlay from "./dialog-overlay.svelte";
 import Content from "./dialog-content.svelte";
-import Description from "./dialog-description.svelte";
+import { DialogDescription as Description } from "@ui-sdk/svelte/dialog";
 import { DialogTrigger as Trigger } from "@ui-sdk/svelte/dialog";
 import { DialogClose as Close } from "@ui-sdk/svelte/dialog";
 
 export {
 	Root,
 	Title,
-	Footer,
 	Header,
 	Trigger,
 	Overlay,
@@ -21,7 +19,6 @@ export {
 	//
 	Root as Dialog,
 	Title as DialogTitle,
-	Footer as DialogFooter,
 	Header as DialogHeader,
 	Trigger as DialogTrigger,
 	Overlay as DialogOverlay,

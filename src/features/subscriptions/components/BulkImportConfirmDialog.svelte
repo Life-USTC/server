@@ -95,7 +95,7 @@ const titleId = "bulk-import-confirm-title";
         {/if}
       </div>
     </ScrollArea>
-    <Dialog.Footer>
+    <div data-slot="dialog-footer">
       <Button type="button" variant="outline" onclick={onCancel}>{copy.cancel}</Button>
       <Button disabled={selectedSectionIdSet.size === 0 || isImporting} type="button" onclick={onConfirm}>
         {#if isImporting}
@@ -105,6 +105,6 @@ const titleId = "bulk-import-confirm-title";
           ? copy.importing
           : formatMessage(selectedSectionIdSet.size === 1 ? copy.subscribeSelectedOne : copy.subscribeSelected, { count: selectedSectionIdSet.size })}
       </Button>
-    </Dialog.Footer>
+    </div>
   </Dialog.Content>
 </Dialog.Root>

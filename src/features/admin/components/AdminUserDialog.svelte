@@ -97,7 +97,7 @@ async function confirmRoleChange() {
         </div>
       </ScrollArea>
 
-      <Dialog.Footer>
+      <div data-slot="dialog-footer">
         <Button type="button" variant="outline" onclick={close}>
           {moderationCopy.cancelButton}
         </Button>
@@ -109,7 +109,7 @@ async function confirmRoleChange() {
           {/if}
           <span>{isSaving ? copy.saving : copy.saveAction}</span>
         </Button>
-      </Dialog.Footer>
+      </div>
     </Dialog.Content>
   </Dialog.Root>
 
@@ -120,15 +120,15 @@ async function confirmRoleChange() {
     }}
   >
     <AlertDialog.Content class="max-w-md sm:max-w-md">
-      <AlertDialog.Header>
+      <div data-slot="alert-dialog-header">
         <AlertDialog.Title>{copy.roleChangeConfirmTitle}</AlertDialog.Title>
         <AlertDialog.Description>
           {editIsAdmin
             ? copy.grantAdminConfirmDescription
             : copy.revokeAdminConfirmDescription}
         </AlertDialog.Description>
-      </AlertDialog.Header>
-      <AlertDialog.Footer>
+      </div>
+      <div data-slot="alert-dialog-footer">
         <AlertDialog.Cancel type="button" disabled={isSaving} variant="outline">
           {moderationCopy.cancelButton}
         </AlertDialog.Cancel>
@@ -136,7 +136,7 @@ async function confirmRoleChange() {
           {#if isSaving}<Spinner data-icon="inline-start" />{/if}
           {copy.confirmRoleChange}
         </AlertDialog.Action>
-      </AlertDialog.Footer>
+      </div>
     </AlertDialog.Content>
   </AlertDialog.Root>
 {/if}

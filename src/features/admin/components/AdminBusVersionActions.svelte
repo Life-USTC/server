@@ -85,12 +85,12 @@ let activateDialogOpen = $state(false);
     }}
   >
     <AlertDialog.Content class="max-w-md sm:max-w-md">
-      <AlertDialog.Header>
+      <div data-slot="alert-dialog-header">
         <AlertDialog.Title>{copy.activateTitle}</AlertDialog.Title>
         <AlertDialog.Description>
           {copy.activateDescription.replace("{title}", version.title)}
         </AlertDialog.Description>
-      </AlertDialog.Header>
+      </div>
       <div class="grid gap-1 px-5 py-4 text-sm">
         <div class="font-medium">{version.title}</div>
         <div class="break-all font-mono text-muted-foreground text-xs">
@@ -106,7 +106,7 @@ let activateDialogOpen = $state(false);
         )}
       >
         <input type="hidden" name="id" value={version.id} />
-        <AlertDialog.Footer>
+        <div data-slot="alert-dialog-footer">
           <AlertDialog.Cancel
             type="button"
             disabled={Boolean(pendingAction)}
@@ -122,7 +122,7 @@ let activateDialogOpen = $state(false);
             {/if}
             {copy.confirmActivateAction}
           </AlertDialog.Action>
-        </AlertDialog.Footer>
+        </div>
       </form>
     </AlertDialog.Content>
   </AlertDialog.Root>

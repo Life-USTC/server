@@ -154,7 +154,7 @@ function revokeAction(consentId: string): SubmitFunction {
     }}
   >
     <AlertDialog.Content class="max-w-md sm:max-w-md">
-      <AlertDialog.Header>
+      <div data-slot="alert-dialog-header">
         <AlertDialog.Title>
           {copy.settings.authorizations.revokeTitle}
         </AlertDialog.Title>
@@ -164,7 +164,7 @@ function revokeAction(consentId: string): SubmitFunction {
             clientName(pendingAuthorization),
           )}
         </AlertDialog.Description>
-      </AlertDialog.Header>
+      </div>
       <form
         method="POST"
         action="?/revokeAuthorization"
@@ -175,7 +175,7 @@ function revokeAction(consentId: string): SubmitFunction {
           name="consentId"
           value={pendingAuthorization.consentId}
         />
-        <AlertDialog.Footer>
+        <div data-slot="alert-dialog-footer">
           <AlertDialog.Cancel
             disabled={Boolean(revokingConsentId)}
             type="button"
@@ -199,7 +199,7 @@ function revokeAction(consentId: string): SubmitFunction {
               {copy.settings.authorizations.revoke}
             {/if}
           </AlertDialog.Action>
-        </AlertDialog.Footer>
+        </div>
       </form>
     </AlertDialog.Content>
   </AlertDialog.Root>

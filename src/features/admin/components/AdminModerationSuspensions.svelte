@@ -194,21 +194,21 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
     }}
   >
     <AlertDialog.Content class="max-w-md sm:max-w-md">
-      <AlertDialog.Header>
+      <div data-slot="alert-dialog-header">
         <AlertDialog.Title>{copy.liftSuspensionConfirmTitle}</AlertDialog.Title>
         <AlertDialog.Description>
           {formatMessage(copy.liftSuspensionConfirmDescription, {
             user: userLabel(pendingLiftSuspension),
           })}
         </AlertDialog.Description>
-      </AlertDialog.Header>
+      </div>
       <form
         method="POST"
         action="?/liftSuspension"
         use:enhance={confirmedLiftAction(pendingLiftSuspension)}
       >
         <input type="hidden" name="id" value={pendingLiftSuspension.id} />
-        <AlertDialog.Footer>
+        <div data-slot="alert-dialog-footer">
           <AlertDialog.Cancel
             type="button"
             disabled={Boolean(liftingSuspensionId)}
@@ -228,7 +228,7 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
             {/if}
             {copy.liftSuspensionConfirmAction}
           </AlertDialog.Action>
-        </AlertDialog.Footer>
+        </div>
       </form>
     </AlertDialog.Content>
   </AlertDialog.Root>

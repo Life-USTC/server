@@ -381,7 +381,7 @@ function handleWheel(event: WheelEvent) {
         </Alert.Root>
       {/if}
 
-      <Dialog.Footer class="flex-wrap justify-between gap-2">
+      <div data-slot="dialog-footer" class="flex-wrap justify-between gap-2">
         <div class="flex gap-2">
           <Button
             aria-label={copy.zoomOut}
@@ -418,7 +418,7 @@ function handleWheel(event: WheelEvent) {
           <Button href={imageUrl} target="_blank" rel="noopener noreferrer" variant="outline"><ExternalLinkIcon data-icon="inline-start" />{copy.openMap}</Button>
         {/if}
         <Button type="button" variant="outline" onclick={closeDialog}>{copy.close}</Button>
-      </Dialog.Footer>
+      </div>
     </Dialog.Content>
   </Dialog.Root>
 </span>

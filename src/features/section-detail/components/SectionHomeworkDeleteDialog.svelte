@@ -43,13 +43,13 @@ async function confirmDelete(event: MouseEvent) {
   <AlertDialog.Content
     class="max-w-md sm:max-w-md"
   >
-    <AlertDialog.Header>
+    <div data-slot="alert-dialog-header">
       <AlertDialog.Title>{homeworkCopy.deleteTitle}</AlertDialog.Title>
       <AlertDialog.Description>
         {formatMessage(homeworkCopy.deleteDescription, { title: target.title })}
       </AlertDialog.Description>
-    </AlertDialog.Header>
-    <AlertDialog.Footer>
+    </div>
+    <div data-slot="alert-dialog-footer">
       <AlertDialog.Cancel disabled={pending} variant="secondary" type="button">
         {homeworkCopy.cancel}
       </AlertDialog.Cancel>
@@ -64,6 +64,6 @@ async function confirmDelete(event: MouseEvent) {
         {/if}
         {homeworkCopy.deleteAction}
       </AlertDialog.Action>
-    </AlertDialog.Footer>
+    </div>
   </AlertDialog.Content>
 </AlertDialog.Root>

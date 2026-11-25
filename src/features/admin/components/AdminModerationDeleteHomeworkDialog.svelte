@@ -41,19 +41,19 @@ export let isDeleting: boolean;
         action="?/deleteHomework"
         use:enhance={enhanceDeleteHomework}
       >
-        <AlertDialog.Header>
+        <div data-slot="alert-dialog-header">
           <AlertDialog.Title>{copy.deleteHomeworkTitle}</AlertDialog.Title>
           <AlertDialog.Description>
             {formatMessage(copy.deleteHomeworkDescription, { title: homework.title })}
           </AlertDialog.Description>
-        </AlertDialog.Header>
+        </div>
         <div class="px-5 py-4">
           <input type="hidden" name="id" value={homework.id} />
           <p class="text-muted-foreground text-sm">
             {copy.deleteHomeworkAuditDescription}
           </p>
         </div>
-        <AlertDialog.Footer>
+        <div data-slot="alert-dialog-footer">
           <AlertDialog.Cancel disabled={isDeleting} type="button" variant="outline">
             {copy.cancelButton}
           </AlertDialog.Cancel>
@@ -67,7 +67,7 @@ export let isDeleting: boolean;
             {/if}
             {isDeleting ? copy.saving : copy.deleteHomeworkAction}
           </AlertDialog.Action>
-        </AlertDialog.Footer>
+        </div>
       </form>
     </AlertDialog.Content>
   </AlertDialog.Root>

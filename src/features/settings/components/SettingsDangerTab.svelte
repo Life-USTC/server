@@ -56,12 +56,12 @@ export let isMounted: boolean;
         use:enhance={deleteAccountAction}
       >
         <Field.Group class="gap-4">
-          <AlertDialog.Header>
+          <div data-slot="alert-dialog-header">
             <AlertDialog.Title>{copy.profile.deleteAccountConfirmTitle}</AlertDialog.Title>
             <AlertDialog.Description>
               {copy.profile.deleteAccountConfirmDescription}
             </AlertDialog.Description>
-          </AlertDialog.Header>
+          </div>
 
           <Field.Field>
             <Field.Label for="delete-confirm">
@@ -78,7 +78,7 @@ export let isMounted: boolean;
             />
           </Field.Field>
 
-          <AlertDialog.Footer>
+          <div data-slot="alert-dialog-footer">
             <AlertDialog.Cancel
               type="button"
               disabled={isDeletingAccount}
@@ -96,7 +96,7 @@ export let isMounted: boolean;
               {/if}
               {copy.profile.deleteAccount}
             </AlertDialog.Action>
-          </AlertDialog.Footer>
+          </div>
         </Field.Group>
       </form>
     </AlertDialog.Content>

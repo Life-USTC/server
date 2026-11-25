@@ -131,7 +131,7 @@ async function copyCredential(
           </div>
         </ScrollArea>
       {/if}
-      <Dialog.Footer>
+      <div data-slot="dialog-footer">
         <Button
           type="button"
           disabled={!canDismissCredentials}
@@ -139,7 +139,7 @@ async function copyCredential(
         >
           {copy.dismissCredentials}
         </Button>
-      </Dialog.Footer>
+      </div>
     </Dialog.Content>
     </Dialog.Root>
   {/key}

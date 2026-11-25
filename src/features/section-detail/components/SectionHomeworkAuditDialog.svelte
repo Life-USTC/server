@@ -80,10 +80,10 @@ export let setOpen: (open: boolean) => void;
         {/if}
       </section>
     </ScrollArea>
-    <Dialog.Footer>
+    <div data-slot="dialog-footer">
       <Button type="button" onclick={() => setOpen(false)}>
         {sectionCopy.close ?? ""}
       </Button>
-    </Dialog.Footer>
+    </div>
   </Dialog.Content>
 </Dialog.Root>

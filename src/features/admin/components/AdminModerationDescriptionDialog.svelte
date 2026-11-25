@@ -85,7 +85,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
             </Field.Group>
           </ScrollArea>
 
-          <Dialog.Footer>
+          <div data-slot="dialog-footer">
             <Button
               disabled={isSaving}
               type="button"
@@ -100,7 +100,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
               {/if}
               {isSaving ? copy.saving : copy.confirmButton}
             </Button>
-          </Dialog.Footer>
+          </div>
         </Field.Group>
       </form>
     </Dialog.Content>

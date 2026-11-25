@@ -155,7 +155,7 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
           </div>
         </Field.Group>
 
-      <Dialog.Footer>
+      <div data-slot="dialog-footer">
           <Button
             type="button"
             variant="outline"
@@ -173,7 +173,7 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
             {/if}
             {isCreatingClient ? copy.creating : copy.createClient}
           </Button>
-        </Dialog.Footer>
+        </div>
       </form>
     </Dialog.Content>
   </Dialog.Root>

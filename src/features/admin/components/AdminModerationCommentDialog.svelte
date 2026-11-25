@@ -88,7 +88,7 @@ export let targetLabel: (comment: AdminModerationComment) => string;
         </div>
       </ScrollArea>
 
-      <Dialog.Footer>
+      <div data-slot="dialog-footer">
         <Button type="button" variant="ghost" onclick={close}>{copy.cancelButton}</Button>
         <Button disabled={isSavingComment} type="button" onclick={saveCommentModeration}>
           {#if isSavingComment}
@@ -96,7 +96,7 @@ export let targetLabel: (comment: AdminModerationComment) => string;
           {/if}
           {isSavingComment ? copy.saving : copy.confirmButton}
         </Button>
-      </Dialog.Footer>
+      </div>
     </Dialog.Content>
   </Dialog.Root>
 {/if}

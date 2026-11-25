@@ -55,7 +55,7 @@ export let subscriptionPendingAction: "subscribe" | "unsubscribe" | null;
     <Button type="button" class="w-fit" variant="outline" onclick={openCalendar}>
       <CalendarPlusIcon data-icon="inline-start" />{sectionCopy.addToCalendar}
     </Button>
-    <Dialog.Footer>
+    <div data-slot="dialog-footer">
       <Button variant="secondary" type="button" onclick={close}>
         {homeworkCopy.cancel}
       </Button>
@@ -79,6 +79,6 @@ export let subscriptionPendingAction: "subscribe" | "unsubscribe" | null;
           {commonCopy.signIn ?? ""}
         </SignInButton>
       {/if}
-    </Dialog.Footer>
+    </div>
   </Dialog.Content>
 </Dialog.Root>

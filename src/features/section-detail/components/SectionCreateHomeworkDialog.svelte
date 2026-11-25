@@ -68,12 +68,12 @@ export let submissionStartAt: string;
             bind:submissionStartAt
           />
         </ScrollArea>
-        <Dialog.Footer class="mx-0 mb-0 shrink-0 border-t-0 sm:px-6">
+        <div data-slot="dialog-footer" class="mx-0 mb-0 shrink-0 border-t-0 sm:px-6">
           <Button type="button" variant="outline" onclick={close}>
             {homeworkCopy.cancel}
           </Button>
           <Button type="submit">{homeworkCopy.createAction}</Button>
-        </Dialog.Footer>
+        </div>
       </form>
     </Dialog.Content>
   </Dialog.Root>

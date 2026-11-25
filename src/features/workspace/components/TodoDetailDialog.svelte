@@ -140,7 +140,7 @@ async function confirmDelete(event: MouseEvent) {
           {/if}
         </div>
       </ScrollArea>
-      <Dialog.Footer class="mx-0 mb-0 shrink-0 p-4">
+      <div data-slot="dialog-footer" class="mx-0 mb-0 shrink-0 p-4">
         <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
           <AlertDialog.Root
             open={deleteConfirmOpen}
@@ -159,11 +159,11 @@ async function confirmDelete(event: MouseEvent) {
               {todosCopy.delete}
             </AlertDialog.Trigger>
             <AlertDialog.Content class="max-w-md sm:max-w-md">
-              <AlertDialog.Header>
+              <div data-slot="alert-dialog-header">
                 <AlertDialog.Title>{todosCopy.deleteConfirmTitle}</AlertDialog.Title>
                 <AlertDialog.Description>{deleteDescription(todo)}</AlertDialog.Description>
-              </AlertDialog.Header>
-              <AlertDialog.Footer>
+              </div>
+              <div data-slot="alert-dialog-footer">
                 <AlertDialog.Cancel disabled={deletePending || todoSavingById[todo.id]}>
                   {todosCopy.cancel}
                 </AlertDialog.Cancel>
@@ -179,7 +179,7 @@ async function confirmDelete(event: MouseEvent) {
                     ? todosCopy.saving
                     : todosCopy.delete}
                 </AlertDialog.Action>
-              </AlertDialog.Footer>
+              </div>
             </AlertDialog.Content>
           </AlertDialog.Root>
           <TaskCompletionButton
@@ -204,7 +204,7 @@ async function confirmDelete(event: MouseEvent) {
             {todosCopy.editTitle}
           </Button>
         </div>
-      </Dialog.Footer>
+      </div>
     </Dialog.Content>
   </Dialog.Root>
 {/if}

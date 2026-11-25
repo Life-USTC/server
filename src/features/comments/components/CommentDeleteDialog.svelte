@@ -23,14 +23,14 @@ export let open: boolean;
       class="max-w-md sm:max-w-md"
       aria-labelledby="delete-comment-title"
     >
-      <AlertDialog.Header>
+      <div data-slot="alert-dialog-header">
         <AlertDialog.Title id="delete-comment-title">{commentCopy.deleteConfirmTitle}</AlertDialog.Title>
         <AlertDialog.Description>{commentCopy.deleteConfirmDescription}</AlertDialog.Description>
-      </AlertDialog.Header>
+      </div>
       {#if error}
         <Alert.Root variant="destructive"><Alert.Description>{error}</Alert.Description></Alert.Root>
       {/if}
-      <AlertDialog.Footer>
+      <div data-slot="alert-dialog-footer">
         <AlertDialog.Cancel disabled={deleting} type="button" variant="outline">
           {commentCopy.cancelAction}
         </AlertDialog.Cancel>
@@ -43,7 +43,7 @@ export let open: boolean;
           {#if deleting}<Spinner data-icon="inline-start" />{/if}
           {commentCopy.deleteAction}
         </AlertDialog.Action>
-      </AlertDialog.Footer>
+      </div>
     </AlertDialog.Content>
   </AlertDialog.Root>
 {/if}

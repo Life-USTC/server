@@ -43,7 +43,7 @@ let { close, copy, enhancedAction, pendingAction }: Props = $props();
           <Alert.Description>{copy.importWarning}</Alert.Description>
         </Alert.Root>
       </div>
-      <Dialog.Footer>
+      <div data-slot="dialog-footer">
         <Button
           type="button"
           disabled={Boolean(pendingAction)}
@@ -60,7 +60,7 @@ let { close, copy, enhancedAction, pendingAction }: Props = $props();
           {/if}
           {copy.importAction}
         </Button>
-      </Dialog.Footer>
+      </div>
     </form>
   </Dialog.Content>
 </Dialog.Root>

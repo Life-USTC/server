@@ -66,7 +66,7 @@ export let sections: WorkspaceHomeworkCreateSection[];
             sections={sections}
           />
         </ScrollArea>
-        <Dialog.Footer class="mx-0 mb-0 shrink-0 border-t-0 sm:px-6">
+        <div data-slot="dialog-footer" class="mx-0 mb-0 shrink-0 border-t-0 sm:px-6">
           <Button
             disabled={isCreatingHomework}
             type="button"
@@ -85,7 +85,7 @@ export let sections: WorkspaceHomeworkCreateSection[];
             {/if}
             {isCreatingHomework ? homeworksCopy.saving : homeworksCopy.createAction}
           </Button>
-        </Dialog.Footer>
+        </div>
       </form>
     </Dialog.Content>
   </Dialog.Root>

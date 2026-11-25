@@ -30,12 +30,12 @@ let { close, copy, enhancedAction, pendingAction, version }: Props = $props();
     class="max-w-lg sm:max-w-lg"
     aria-labelledby="bus-delete-title"
   >
-    <AlertDialog.Header>
+    <div data-slot="alert-dialog-header">
       <AlertDialog.Title id="bus-delete-title">{copy.deleteTitle}</AlertDialog.Title>
       <AlertDialog.Description>
         {copy.deleteDescription.replace("{title}", version.title)}
       </AlertDialog.Description>
-    </AlertDialog.Header>
+    </div>
     <form
       method="POST"
       action="?/deleteVersion"
@@ -48,7 +48,7 @@ let { close, copy, enhancedAction, pendingAction, version }: Props = $props();
           {version.key}
         </div>
       </div>
-      <AlertDialog.Footer>
+      <div data-slot="alert-dialog-footer">
         <AlertDialog.Cancel
           type="button"
           disabled={Boolean(pendingAction)}
@@ -68,7 +68,7 @@ let { close, copy, enhancedAction, pendingAction, version }: Props = $props();
           {/if}
           {copy.confirmDeleteAction}
         </AlertDialog.Action>
-      </AlertDialog.Footer>
+      </div>
     </form>
   </AlertDialog.Content>
 </AlertDialog.Root>

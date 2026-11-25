@@ -99,17 +99,17 @@ $: unlinkAccount = accounts.find(
     <AlertDialog.Content
       class="max-w-md sm:max-w-md"
     >
-      <AlertDialog.Header>
+      <div data-slot="alert-dialog-header">
         <AlertDialog.Title>{copy.profile.disconnectConfirmTitle}</AlertDialog.Title>
         <AlertDialog.Description>{copy.profile.disconnectConfirmDescription.replace("{provider}", unlinkAccount.name)}</AlertDialog.Description>
-      </AlertDialog.Header>
+      </div>
       <form
           method="POST"
           action="?/unlinkAccount"
           use:enhance={accountAction(unlinkAccount.id, "disconnect")}
         >
           <input type="hidden" name="provider" value={unlinkAccount.id} />
-        <AlertDialog.Footer>
+        <div data-slot="alert-dialog-footer">
           <AlertDialog.Cancel
             variant="secondary"
             type="button"
@@ -127,7 +127,7 @@ $: unlinkAccount = accounts.find(
             {/if}
             {disconnecting ? copy.profile.disconnecting : copy.profile.disconnect}
           </AlertDialog.Action>
-        </AlertDialog.Footer>
+        </div>
       </form>
     </AlertDialog.Content>
   </AlertDialog.Root>

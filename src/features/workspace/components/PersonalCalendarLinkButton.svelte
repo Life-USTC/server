@@ -167,7 +167,7 @@ async function copyUrl() {
         <Alert.Description>{recoveryCopy.unavailable}</Alert.Description>
       </Alert.Root>
     {/if}
-    <Dialog.Footer>
+    <div data-slot="dialog-footer">
       {#if calendarLinkState === "reauthenticate"}
         <Button href={buildReauthenticationPageUrl(returnTo)}>{recoveryCopy.signIn}</Button>
       {:else}
@@ -177,7 +177,7 @@ async function copyUrl() {
         </Button>
       {/if}
       <Button variant="outline" onclick={close}>{sectionCopy.close}</Button>
-    </Dialog.Footer>
+    </div>
   </Dialog.Content>
 </Dialog.Root>
 {/if}

@@ -362,12 +362,12 @@ function scheduleReferenceRouteRestore(expected: number, epoch: string) {
             data-testid="api-docs-mobile-navigation-panel"
             side="left"
           >
-            <Sheet.Header class="border-b pr-12">
+            <div data-slot="sheet-header" class="border-b pr-12">
               <Sheet.Title>{data.copy.apiDocs.navigationLabel}</Sheet.Title>
               <Sheet.Description class="sr-only">
                 {data.copy.apiDocs.browseNavigation}
               </Sheet.Description>
-            </Sheet.Header>
+            </div>
             <nav class="api-docs-navigation p-4" aria-label={data.copy.apiDocs.navigationLabel}>
               {@render apiNavigation(true)}
             </nav>

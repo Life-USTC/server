@@ -123,7 +123,7 @@ $: contentLabelId = `${idPrefix}-content-label`;
           </Field.Field>
         </Field.Group>
       </ScrollArea>
-      <Dialog.Footer class="mx-0 mb-0 shrink-0">
+      <div data-slot="dialog-footer" class="mx-0 mb-0 shrink-0">
         <Button
           disabled={saving}
           type="button"
@@ -138,7 +138,7 @@ $: contentLabelId = `${idPrefix}-content-label`;
           {/if}
           {saving ? todosCopy.saving : todo ? todosCopy.saveChanges : todosCopy.createAction}
         </Button>
-      </Dialog.Footer>
+      </div>
     </form>
   </Dialog.Content>
 </Dialog.Root>

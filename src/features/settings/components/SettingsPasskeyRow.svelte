@@ -113,7 +113,7 @@ async function changePasskey(action: "rename" | "delete") {
   }}
 >
   <AlertDialog.Content class="max-w-md sm:max-w-md">
-    <AlertDialog.Header>
+    <div data-slot="alert-dialog-header">
       <AlertDialog.Title>
         {copy.settings.passkeys.deleteConfirmTitle}
       </AlertDialog.Title>
@@ -123,8 +123,8 @@ async function changePasskey(action: "rename" | "delete") {
           displayName,
         )}
       </AlertDialog.Description>
-    </AlertDialog.Header>
-    <AlertDialog.Footer>
+    </div>
+    <div data-slot="alert-dialog-footer">
       <AlertDialog.Cancel disabled={pending === "delete"} type="button">
         {copy.settings.passkeys.cancel}
       </AlertDialog.Cancel>
@@ -141,6 +141,6 @@ async function changePasskey(action: "rename" | "delete") {
           {copy.settings.passkeys.delete}
         {/if}
       </AlertDialog.Action>
-    </AlertDialog.Footer>
+    </div>
   </AlertDialog.Content>
 </AlertDialog.Root>

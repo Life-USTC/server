@@ -130,7 +130,7 @@ onMount(() => {
       </ScrollArea>
 
       {#if showCompletion || (showContextActions && contextActions)}
-        <Dialog.Footer class="mx-0 mb-0 shrink-0 rounded-none border-t-0 p-4 sm:rounded-b-xl sm:px-10 sm:py-5">
+        <div data-slot="dialog-footer" class="mx-0 mb-0 shrink-0 rounded-none border-t-0 p-4 sm:rounded-b-xl sm:px-10 sm:py-5">
           <div class="flex w-full flex-col items-stretch justify-end gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             {#if showCompletion && homework.completionRequired && onToggleCompletion}
               <TaskCompletionButton
@@ -149,7 +149,7 @@ onMount(() => {
               </div>
             {/if}
           </div>
-        </Dialog.Footer>
+        </div>
       {/if}
     </Dialog.Content>
   </Dialog.Root>

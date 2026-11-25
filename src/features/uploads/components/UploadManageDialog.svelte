@@ -77,25 +77,25 @@ async function submit(event: Event) {
           </Field.Field>
         </Field.FieldGroup>
         {#if failed}<Alert.Root variant="destructive"><Alert.Description>{copy.toastRenameErrorDescription}</Alert.Description></Alert.Root>{/if}
-        <Dialog.Footer>
+        <div data-slot="dialog-footer">
           <Button type="button" variant="outline" onclick={close} disabled={pending}>{copy.cancelRenameAction}</Button>
           <Button type="submit" disabled={pending || !filename.trim()}>{#if pending}<Spinner data-icon="inline-start" />{/if}{copy.saveRenameAction}</Button>
-        </Dialog.Footer>
+        </div>
       </form>
     </Dialog.Content>
   </Dialog.Root>
 {:else}
   <AlertDialog.Root open={true} onOpenChange={(open) => { if (!open && !pending) close(); }}>
     <AlertDialog.Content>
-      <AlertDialog.Header>
+      <div data-slot="alert-dialog-header">
         <AlertDialog.Title>{copy.deleteAction}</AlertDialog.Title>
         <AlertDialog.Description class="break-words">{copy.deleteConfirm.replace("{name}", upload.filename)}</AlertDialog.Description>
-      </AlertDialog.Header>
+      </div>
       {#if failed}<Alert.Root variant="destructive"><Alert.Description>{copy.toastDeleteErrorDescription}</Alert.Description></Alert.Root>{/if}
-      <AlertDialog.Footer>
+      <div data-slot="alert-dialog-footer">
         <AlertDialog.Cancel disabled={pending}>{copy.cancelRenameAction}</AlertDialog.Cancel>
         <AlertDialog.Action variant="destructive" disabled={pending} onclick={submit}>{#if pending}<Spinner data-icon="inline-start" />{/if}{copy.deleteAction}</AlertDialog.Action>
-      </AlertDialog.Footer>
+      </div>
     </AlertDialog.Content>
   </AlertDialog.Root>
 {/if}

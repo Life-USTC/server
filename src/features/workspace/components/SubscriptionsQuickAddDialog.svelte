@@ -282,7 +282,7 @@ async function subscribeSelectedSections() {
         </div>
       </ScrollArea>
 
-      <Dialog.Footer class="mx-0 mb-0 shrink-0">
+      <div data-slot="dialog-footer" class="mx-0 mb-0 shrink-0">
         <Button type="button" variant="outline" onclick={closeDialog}>
           {subscriptionsCopy.quickAdd.cancel}
         </Button>
@@ -300,7 +300,7 @@ async function subscribeSelectedSections() {
                 count: selectedSectionIds.length,
               })}
         </Button>
-      </Dialog.Footer>
+      </div>
     </Dialog.Content>
   </Dialog.Root>
 {/if}

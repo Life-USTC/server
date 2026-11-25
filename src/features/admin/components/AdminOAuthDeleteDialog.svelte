@@ -26,12 +26,12 @@ export let deletingClientId: string | null;
       class="max-w-md sm:max-w-md"
       aria-labelledby="oauth-delete-title"
     >
-      <AlertDialog.Header>
+      <div data-slot="alert-dialog-header">
         <AlertDialog.Title id="oauth-delete-title">{copy.deleteClient}</AlertDialog.Title>
         <AlertDialog.Description>
           {copy.deleteClientDescription.replace("{name}", client.name ?? copy.unnamedClient)}
         </AlertDialog.Description>
-      </AlertDialog.Header>
+      </div>
       <form
         method="POST"
         action="?/deleteClient"
@@ -41,7 +41,7 @@ export let deletingClientId: string | null;
         <div class="px-5 py-4">
           <p class="break-all font-mono text-muted-foreground text-xs">{client.clientId}</p>
         </div>
-        <AlertDialog.Footer>
+        <div data-slot="alert-dialog-footer">
           <AlertDialog.Cancel
             type="button"
             variant="outline"
@@ -61,7 +61,7 @@ export let deletingClientId: string | null;
             {/if}
             <span>{copy.deleteClient}</span>
           </AlertDialog.Action>
-        </AlertDialog.Footer>
+        </div>
       </form>
     </AlertDialog.Content>
   </AlertDialog.Root>

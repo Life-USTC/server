@@ -54,13 +54,13 @@ async function save() {
           </ToggleGroup.Root>
           {#if error}<Field.FieldError>{error}</Field.FieldError>{/if}
         </Field.Field>
-        <Dialog.Footer>
+        <div data-slot="dialog-footer">
           <Button type="button" variant="outline" disabled={saving} onclick={onClose}>{copy.cancel}</Button>
           <Button type="submit" disabled={saving || !kind}>
             {#if saving}<Spinner data-icon="inline-start" />{/if}
             {copy.save}
           </Button>
-        </Dialog.Footer>
+        </div>
       </Field.FieldGroup>
     </form>
   </Dialog.Content>
