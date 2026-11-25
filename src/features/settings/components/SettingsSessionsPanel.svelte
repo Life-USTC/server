@@ -7,11 +7,11 @@ import {
   buildSignInPageUrl,
 } from "#lib/auth/auth-routing.js";
 import { passkeyAuthClient as authClient } from "#lib/auth/passkey-client.js";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
@@ -168,12 +168,7 @@ async function revoke(action: RevokeAction) {
   {/if}
 
   {#if loaded && sessions.length === 0}
-    <Empty.Root>
-      <Empty.Header>
-        <Empty.Media variant="icon"><LaptopIcon /></Empty.Media>
-        <Empty.Title>{labels.empty}</Empty.Title>
-      </Empty.Header>
-    </Empty.Root>
+    <EmptyState icon={LaptopIcon} title={labels.empty} />
   {:else if loaded && sessions.length > 0}
     <Item.Group role="list">
       {#each sessions as session (session.id)}

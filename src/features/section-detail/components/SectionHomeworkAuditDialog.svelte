@@ -1,8 +1,8 @@
 <script lang="ts">
+import EmptyState from "#lib/components/EmptyState.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 import type { SectionDetailCopy } from "@/features/section-detail/lib/section-detail-controller-types";
@@ -43,11 +43,7 @@ export let setOpen: (open: boolean) => void;
     <ScrollArea class="h-[min(72vh,42rem)]">
       <section class="px-5 py-4">
         {#if logs.length === 0}
-          <Empty.Root>
-            <Empty.Header>
-              <Empty.Description>{homeworkCopy.auditEmpty}</Empty.Description>
-            </Empty.Header>
-          </Empty.Root>
+          <EmptyState description={homeworkCopy.auditEmpty} />
         {:else}
           <Item.Group>
             {#each logs as log}

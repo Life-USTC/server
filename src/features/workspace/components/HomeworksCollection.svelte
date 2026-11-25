@@ -1,5 +1,6 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
@@ -16,7 +17,6 @@ import type {
   WorkspaceHomeworksCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
-import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 
 type HomeworkDateFormatter = (
   value: Date | string | null | undefined,
@@ -88,7 +88,7 @@ function propertyBadges(homework: WorkspaceHomeworkItem) {
 {/snippet}
 
 {#snippet emptyState()}
-  <WorkspaceTaskEmptyState
+  <CollectionEmpty variant="filter-clear"
     title={hasHomeworkItems ? homeworksCopy.filterEmptyTitle : homeworksCopy.emptyTitle}
     description={hasHomeworkItems
       ? homeworksCopy.filterEmptyDescription

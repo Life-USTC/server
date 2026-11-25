@@ -2,6 +2,7 @@
 import ChevronDown from "@lucide/svelte/icons/chevron-down";
 import { onMount } from "svelte";
 import ActiveFilters from "#lib/components/ActiveFilters.svelte";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import FilterActions from "#lib/components/FilterActions.svelte";
 import FilterToolbar from "#lib/components/FilterToolbar.svelte";
@@ -9,7 +10,6 @@ import PageHeader from "#lib/components/PageHeader.svelte";
 import PageLayout from "#lib/components/PageLayout.svelte";
 import Panel from "#lib/components/Panel.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
 import TableFilterFields from "#lib/components/TableFilterFields.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -176,7 +176,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
                   <td>{@render uploadActions(upload)}</td>
                 </tr>
               {/each}
-              {#if data.uploads.length === 0}<tr><td colspan={4}><ResultsEmpty title={data.hasUploads ? copy.noMatchTitle : copy.emptyTitle} description={data.hasUploads ? copy.noMatchDescription : copy.emptyDescription} /></td></tr>{/if}
+              {#if data.uploads.length === 0}<tr><td colspan={4}><EmptyState variant="results" title={data.hasUploads ? copy.noMatchTitle : copy.emptyTitle} description={data.hasUploads ? copy.noMatchDescription : copy.emptyDescription} /></td></tr>{/if}
             </tbody>
           </Table>
         {/snippet}
@@ -192,7 +192,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
               </Item.Root>
             {/each}
           </Item.Group>
-          {#if data.uploads.length === 0}<ResultsEmpty title={data.hasUploads ? copy.noMatchTitle : copy.emptyTitle} description={data.hasUploads ? copy.noMatchDescription : copy.emptyDescription} />{/if}
+          {#if data.uploads.length === 0}<EmptyState variant="results" title={data.hasUploads ? copy.noMatchTitle : copy.emptyTitle} description={data.hasUploads ? copy.noMatchDescription : copy.emptyDescription} />{/if}
         {/snippet}
       </ResponsiveCollection>
     {#snippet footer()}

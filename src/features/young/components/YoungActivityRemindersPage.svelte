@@ -2,9 +2,9 @@
 import { toast } from "@ui-sdk/svelte/toast";
 import { onDestroy } from "svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import FilterToolbar from "#lib/components/FilterToolbar.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import { toolbarControlClass } from "#lib/components/toolbar-control.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
@@ -201,7 +201,7 @@ async function markRead(id: string) {
       {/if}
     </Item.Group>
     {#if !result?.data.length}
-      <ResultsEmpty
+      <EmptyState variant="results"
         title={data.notifications
           ? data.unread ? copy.noUnread : copy.noNotifications
           : copy.empty}
@@ -212,7 +212,7 @@ async function markRead(id: string) {
         {:else}
           <Button href={data.organizers ? "/catalog/young-events/organizers" : "/catalog/young-events"} variant="outline">{data.organizers ? copy.browseOrganizers : copy.browseActivities}</Button>
         {/if}
-      </ResultsEmpty>
+      </EmptyState>
     {/if}
     </div>
 </CollectionPage>

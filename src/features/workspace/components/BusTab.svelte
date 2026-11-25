@@ -6,11 +6,11 @@ import {
   CollapsibleTrigger,
 } from "@ui-sdk/svelte/collapsible";
 import { onMount } from "svelte";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import TableColumnHeader from "#lib/components/TableColumnHeader.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TableFilterFields from "#lib/components/TableFilterFields.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import {
@@ -335,26 +335,17 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
       </Collapsible>
     </div>
   {:else if busLoadFailed}
-    <Empty.Root>
-      <Empty.Header>
-        <Empty.Title>{busCopy.loadFailed}</Empty.Title>
-      </Empty.Header>
-      <Empty.Content>
-        <Button type="button" variant="outline" onclick={() => void loadPublicBusData()}>
-          {busCopy.retry}
-        </Button>
-      </Empty.Content>
-    </Empty.Root>
+    <EmptyState title={busCopy.loadFailed}>
+      <Button type="button" variant="outline" onclick={() => void loadPublicBusData()}>
+        {busCopy.retry}
+      </Button>
+    </EmptyState>
   {:else if busLoading}
     <div class="grid gap-3" aria-label={busCopy.workspaceTitle} aria-busy="true">
       <Skeleton class="h-12 w-full" />
       <Skeleton class="h-48 w-full" />
     </div>
   {:else}
-    <Empty.Root>
-      <Empty.Header>
-        <Empty.Title>{busCopy.empty}</Empty.Title>
-      </Empty.Header>
-    </Empty.Root>
+    <EmptyState title={busCopy.empty} />
   {/if}
 </div>

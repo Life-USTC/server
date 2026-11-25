@@ -7,6 +7,7 @@ export let pageDemo: DemoIdentity | null | undefined = null;
 
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import type { Snippet } from "svelte";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -14,7 +15,6 @@ import Table from "#lib/components/ui/table/table.svelte";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import { splitRoomLabels } from "@/features/rooms/lib/room-map-types";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
-import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 import type {
   ExamMetadataLabels,
   ExamsCopyProps,
@@ -108,7 +108,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
       {:else}
         <tr class="hover:bg-transparent">
           <td class="p-0" colspan={6}>
-            <WorkspaceTaskEmptyState
+            <CollectionEmpty variant="filter-clear"
               title={hasExamRows ? workspaceCopy.nav.exams.filterEmpty : workspaceCopy.nav.exams.empty}
               description={hasExamRows ? workspaceCopy.nav.exams.filterEmptyDescription : workspaceCopy.nav.exams.emptyDescription}
               clearFilterLabel={workspaceCopy.nav.exams.clearFilter}

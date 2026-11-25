@@ -1,6 +1,6 @@
 <script lang="ts">
 import { diffWords } from "diff";
-import * as Empty from "#lib/components/ui/empty/index.js";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 import type {
@@ -46,11 +46,7 @@ function diffSegmentClass(segment: DiffSegment) {
 </script>
 
 {#if history.length === 0}
-  <Empty.Root>
-    <Empty.Header>
-      <Empty.Description>{copy.historyEmpty}</Empty.Description>
-    </Empty.Header>
-  </Empty.Root>
+  <EmptyState description={copy.historyEmpty} />
 {:else}
   <Item.Group>
     {#each history as item}

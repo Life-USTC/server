@@ -1,10 +1,10 @@
 <script lang="ts">
 import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import TrashIcon from "@lucide/svelte/icons/trash-2";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import {
@@ -61,15 +61,7 @@ function revokeAction(consentId: string): SubmitFunction {
   class="grid gap-4"
 >
   {#if authorizations.length === 0}
-    <Empty.Root>
-      <Empty.Header>
-        <Empty.Media variant="icon"><KeyRoundIcon /></Empty.Media>
-        <Empty.Title>{copy.settings.authorizations.emptyTitle}</Empty.Title>
-        <Empty.Description>
-          {copy.settings.authorizations.emptyDescription}
-        </Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <EmptyState icon={KeyRoundIcon} title={copy.settings.authorizations.emptyTitle} description={copy.settings.authorizations.emptyDescription} />
   {:else}
     <Item.Group role="list">
       {#each authorizations as authorization}

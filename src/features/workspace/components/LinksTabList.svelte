@@ -3,6 +3,7 @@ export let visitCountLabel: string | undefined = undefined;
 export let readOnlyReason: string | undefined = undefined;
 
 import type { Snippet } from "svelte";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -19,7 +20,6 @@ import type {
 } from "@/features/workspace/lib/workspace-controller-helpers";
 import type { TableFilterField, TableFilterLabels } from "@/lib/table-filters";
 import CatalogLinkTableCell from "./CatalogLinkTableCell.svelte";
-import WorkspaceEmptyState from "./WorkspaceEmptyState.svelte";
 
 export let colActions: string = "";
 export let colDescription: string;
@@ -87,7 +87,7 @@ export let actions: Snippet<[WorkspaceOverviewLinkItem]> | undefined =
     </tbody>
     {:else}
       <tbody><tr><td colspan={actions ? 3 : 2}>
-        <WorkspaceEmptyState title={emptyLabel} />
+        <EmptyState title={emptyLabel} />
       </td></tr></tbody>
     {/each}
   </Table>

@@ -3,6 +3,7 @@ export let readOnlyReason: string | undefined = undefined;
 export let personal = true;
 export let revealRequest = 0;
 
+import EmptyState from "#lib/components/EmptyState.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
@@ -24,7 +25,6 @@ import { filterLinkGroups, linkTableFields } from "../lib/link-table-filters";
 import CatalogLinkVisitAction from "./CatalogLinkVisitAction.svelte";
 import LinksTabList from "./LinksTabList.svelte";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
-import WorkspaceEmptyState from "./WorkspaceEmptyState.svelte";
 
 export let workspaceCopy: WorkspaceCopy;
 export let submitWorkspaceLinkPin: WorkspaceLinkPinSubmit;
@@ -118,9 +118,8 @@ function apply(event: SubmitEvent) {
             </div>
           </section>
         {:else}
-          <WorkspaceEmptyState
-            className="items-start text-left"
-            headerClassName="items-start text-left"
+          <EmptyState
+            variant="start"
             title={workspaceCopy.linkHub.empty}
           />
         {/each}

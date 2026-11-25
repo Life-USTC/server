@@ -1,10 +1,10 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import DetailDefinitionList from "#lib/components/DetailDefinitionList.svelte";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import Panel from "#lib/components/Panel.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import type {
@@ -103,7 +103,7 @@ function formatRange(event: YoungEventSummary) {
             {/each}
           </Item.Group>
         {:else}
-          <ResultsEmpty title={youngCopy.noEventsFound} description={youngCopy.organizerDetailDescription} />
+          <EmptyState variant="results" title={youngCopy.noEventsFound} description={youngCopy.organizerDetailDescription} />
         {/if}
         </div>
       </Panel>

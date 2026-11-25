@@ -1,11 +1,11 @@
 <script lang="ts">
 import ActivityIcon from "@lucide/svelte/icons/activity";
 import ShieldAlertIcon from "@lucide/svelte/icons/shield-alert";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
 import { groupSecurityActivity } from "@/features/settings/lib/security-activity-groups";
@@ -87,13 +87,7 @@ function activityTimeLabel(group: (typeof groupedActivity)[number]) {
   </header>
 
   {#if activity.items.length === 0}
-    <Empty.Root>
-      <Empty.Header>
-        <Empty.Media variant="icon"><ActivityIcon /></Empty.Media>
-        <Empty.Title>{copy.settings.security.emptyTitle}</Empty.Title>
-        <Empty.Description>{copy.settings.security.emptyDescription}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <EmptyState icon={ActivityIcon} title={copy.settings.security.emptyTitle} description={copy.settings.security.emptyDescription} />
   {:else}
     <Item.Group role="list">
       {#each groupedActivity as group (group.event.id)}

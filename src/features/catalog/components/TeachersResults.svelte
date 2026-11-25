@@ -1,8 +1,8 @@
 <script lang="ts">
 import TeacherIcon from "@lucide/svelte/icons/user-round";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
 import Table from "#lib/components/ui/table/table.svelte";
@@ -55,7 +55,7 @@ function teacherSectionsHref(teacher: TeacherListRow) {
 
 {#snippet empty()}
     <div class="py-10">
-      <ResultsEmpty
+      <EmptyState variant="results"
         description={teacherLabels.emptyDescription}
         title={teacherLabels.noTeachersFound}
       />

@@ -1,9 +1,9 @@
 <script lang="ts">
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import PageSectionNav from "#lib/components/PageSectionNav.svelte";
 import Panel from "#lib/components/Panel.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import ResultsSummary from "#lib/components/ResultsSummary.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
 import TableControlsRow from "#lib/components/TableControlsRow.svelte";
@@ -186,7 +186,7 @@ const levelIndex = $derived(filteredGroups);
   {/snippet}
 
   {#if data.directory.groups.length === 0}
-    <ResultsEmpty title={copy.sourcesEmptyTitle} description={copy.sourcesEmptyDescription} />
+    <EmptyState variant="results" title={copy.sourcesEmptyTitle} description={copy.sourcesEmptyDescription} />
   {:else}
     <form id="source-directory-filters" onsubmit={apply} class="flex flex-wrap items-end gap-3">
       <TableFieldFilter label={levelField.label} fields={[levelField]} values={draft} onchange={change} labels={data.tableFilterLabels} idPrefix="sources-level" formId="source-directory-filters" />

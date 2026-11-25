@@ -198,7 +198,7 @@ it("ui.feature-interaction-ownership", async () => {
     "FilterToolbar",
     "ResponsiveCollection",
     "ResultsSummary",
-    "ResultsEmpty",
+    "EmptyState",
     "CollectionEmpty",
     "CollectionListShell",
     "CollectionTableShell",

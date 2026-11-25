@@ -4,10 +4,10 @@ import ActiveFilters, {
   type ActiveFilter,
 } from "#lib/components/ActiveFilters.svelte";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import FilterActions from "#lib/components/FilterActions.svelte";
 import FilterToolbar from "#lib/components/FilterToolbar.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
 import { toolbarControlClass } from "#lib/components/toolbar-control.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
@@ -214,7 +214,7 @@ function removeFilter(event: MouseEvent, href: string) {
   {/snippet}
 
     {#if data.publications.data.length === 0}
-      <ResultsEmpty title={data.hasPublications ? copy.noMatchTitle : copy.emptyTitle} description={data.hasPublications ? copy.noMatchDescription : copy.emptyDescription} />
+      <EmptyState variant="results" title={data.hasPublications ? copy.noMatchTitle : copy.emptyTitle} description={data.hasPublications ? copy.noMatchDescription : copy.emptyDescription} />
     {:else}
       <ul class="grid min-w-0 divide-y" aria-label={copy.pageTitle}>
         {#each data.publications.data as item (item.id)}

@@ -1,7 +1,7 @@
 <script lang="ts">
+import EmptyState from "#lib/components/EmptyState.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
@@ -44,7 +44,7 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
 
 {#snippet empty()}
     <div class="py-10">
-      <ResultsEmpty
+      <EmptyState variant="results"
         description={sectionEmptyDescription()}
         title={sectionLabels.noSectionsFound}
       />

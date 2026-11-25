@@ -1,6 +1,7 @@
 <script lang="ts">
 import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
 import Pencil from "@lucide/svelte/icons/pencil";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
@@ -17,7 +18,6 @@ import type {
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
 import type { TodoDisplay } from "../lib/todos-tab-display";
-import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 
 type TodoCompletionToggle = (todo: WorkspaceTodoItem) => void | Promise<void>;
 
@@ -62,9 +62,9 @@ export let readOnlyReason: string | undefined = undefined;
 {/snippet}
 
 {#snippet emptyState()}
-  <WorkspaceTaskEmptyState
+  <CollectionEmpty variant="filter-clear"
     title={hasTodoItems ? todosCopy.filterEmptyTitle : emptyTitle}
-    description={hasTodoItems ? todosCopy.filterEmptyDescription : undefined}
+    description={hasTodoItems ? todosCopy.filterEmptyDescription : ""}
     clearFilterLabel={todosCopy.clearFilter}
     onClearFilter={hasTodoItems ? onClearFilter : undefined}
   />

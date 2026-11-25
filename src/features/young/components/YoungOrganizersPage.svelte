@@ -1,9 +1,9 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import SearchField from "#lib/components/SearchField.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
@@ -56,7 +56,7 @@ function eventsHref(id: string) {
 
 {#snippet empty()}
       <div class="py-10">
-        <ResultsEmpty
+        <EmptyState variant="results"
           description={youngCopy.organizersDescription}
           title={youngCopy.noOrganizersFound}
         />

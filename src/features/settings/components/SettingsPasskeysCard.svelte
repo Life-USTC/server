@@ -7,9 +7,9 @@ import {
   passkeyAuthClient,
   passkeyClientErrorKind,
 } from "#lib/auth/passkey-client.js";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import * as InputGroup from "#lib/components/ui/input-group/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
@@ -158,15 +158,7 @@ async function addPasskey() {
         </Alert.Action>
       </Alert.Root>
     {:else if passkeys.length === 0}
-      <Empty.Root>
-        <Empty.Header>
-          <Empty.Media variant="icon"><Fingerprint /></Empty.Media>
-          <Empty.Title>{copy.settings.passkeys.emptyTitle}</Empty.Title>
-          <Empty.Description>
-            {copy.settings.passkeys.emptyDescription}
-          </Empty.Description>
-        </Empty.Header>
-      </Empty.Root>
+      <EmptyState icon={Fingerprint} title={copy.settings.passkeys.emptyTitle} description={copy.settings.passkeys.emptyDescription} />
     {:else}
       <Item.Group>
         {#each passkeys as passkey (passkey.id)}

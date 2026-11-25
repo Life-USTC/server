@@ -1,6 +1,6 @@
 <script lang="ts">
+import EmptyState from "#lib/components/EmptyState.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import type { BusApplicableRoute } from "@/features/bus/lib/bus-client";
 import type {
   WorkspaceBusCopy,
@@ -47,14 +47,11 @@ export let showHeader = false;
       {busCopy}
     >
       {#snippet empty()}
-        <Empty.Root>
-          <Empty.Header><Empty.Description>{busCopy.planner.empty}</Empty.Description></Empty.Header>
-          <Empty.Content>
-            <Button disabled={!busPlannerReady} type="button" variant="outline" onclick={reverseBusStops}>
-              {busCopy.planner.emptyReverseAction}
-            </Button>
-          </Empty.Content>
-        </Empty.Root>
+        <EmptyState description={busCopy.planner.empty}>
+          <Button disabled={!busPlannerReady} type="button" variant="outline" onclick={reverseBusStops}>
+            {busCopy.planner.emptyReverseAction}
+          </Button>
+        </EmptyState>
       {/snippet}
     </BusTabRoutesTable>
 
