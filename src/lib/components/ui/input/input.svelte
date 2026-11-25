@@ -32,12 +32,15 @@
 {:else}
   <SDKInput
     {@attach (element: HTMLInputElement) => { ref = element; return () => { ref = null; }; }}
-    data-slot={dataSlot}
     class={classes}
     {type}
     {...restProps}
     disabled={restProps.disabled ?? false}
     required={restProps.required ?? false}
     bind:value={() => value == null ? "" : String(value), (next) => { value = next; }}
-  />
+  >
+    {#snippet render({ props })}
+      <input {...props} data-slot={dataSlot} />
+    {/snippet}
+  </SDKInput>
 {/if}

@@ -19,7 +19,6 @@
 </script>
 
 <Toggle
-	data-slot="toggle-group-item"
 	data-variant={ctx.variant || variant}
 	data-size={ctx.size || size}
 	data-spacing={ctx.spacing}
@@ -37,7 +36,7 @@
 >
   {#snippet render({props, state})}
     {@const { "aria-pressed": _pressed, ...radioProps } = props}
-    <button {...radioProps} bind:this={ref} role="radio" aria-checked={state.pressed}>
+    <button {...radioProps} data-slot="toggle-group-item" bind:this={ref} role="radio" aria-checked={state.pressed}>
       {@render children?.(state)}
     </button>
   {/snippet}
