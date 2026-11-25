@@ -10,7 +10,7 @@ import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Tabs from "#lib/components/ui/tabs/index.js";
 import { cn } from "#lib/utils.js";
-import { goto } from "$app/navigation";
+import CopyFeedback from "@/features/usage/components/CopyFeedback.svelte";
 import {
   usageMarketingBlurbClass,
   usageMarketingCtaRowClass,
@@ -28,70 +28,13 @@ import {
   usageMarketingStepIndexClass,
   usageMarketingStepTitleClass,
   usageMarketingTitleClass,
-} from "../lib/usage-marketing-layout.js";
-import CopyFeedback from "./CopyFeedback.svelte";
+} from "@/features/usage/lib/usage-marketing-layout.js";
+import { goto } from "$app/navigation";
 
-type ClientCopy = {
-  emptyAlt: string;
-  filledAlt: string;
-  note?: string;
-  steps: string[];
-};
-
-type McpCopy = {
-  chatgpt: ClientCopy & {
-    iconAction: string;
-    iconAlt: string;
-    iconHint: string;
-    filledSrc: string;
-    overviewAlt: string;
-    overviewSrc: string;
-  };
-  claude: ClientCopy;
-  clientTabs: {
-    chatgpt: string;
-    claude: string;
-    localLabel: string;
-    other: string;
-    webLabel: string;
-  };
-  configurationTitle: string;
-  copiedValueAction: string;
-  copiedAction: string;
-  copyValueAction: string;
-  endpointLabel: string;
-  fieldLabels: {
-    description: string;
-    name: string;
-    serverUrl: string;
-  };
-  otherClients: {
-    description: string;
-    title: string;
-  };
-  primaryAction: string;
-  subtitle: string;
-  title: string;
-  useCaseAlt: string;
-  useCaseTitle: string;
-  guideVerified: string;
-  verifyTitle: string;
-  verifyPrompt: string;
-  verifyDescription: string;
-  recoveryTitle: string;
-  recoveryDescription: string;
-  claudeCompletion: string;
-  claudeOfficial: string;
-};
-
-type PageData = {
-  copy: McpCopy;
-  metadataTitle: string;
-  client: "chatgpt" | "claude" | "other";
-};
+import type { PageData } from "./$types";
 
 export let data: PageData;
-export let readOnlyReason = "";
+$: readOnlyReason = data.demo?.readOnlyReason ?? "";
 
 const MCP_ENDPOINT = "https://life-ustc.tiankaima.dev/api/mcp";
 const CHATGPT_DOCS_URL =

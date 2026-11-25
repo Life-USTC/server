@@ -1,9 +1,216 @@
 <script lang="ts">
-import SignInPage from "@/features/auth/components/SignInPage.svelte";
+import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
+import CircleUserRound from "@lucide/svelte/icons/circle-user-round";
+import Fingerprint from "@lucide/svelte/icons/fingerprint";
+import { onMount } from "svelte";
+import { DEMO_ENTER_PATH } from "#lib/auth/demo-request-signal.js";
+import {
+  isPasskeySupported,
+  passkeyAuthClient,
+  passkeyClientErrorKind,
+} from "#lib/auth/passkey-client.js";
+import PageHeader from "#lib/components/PageHeader.svelte";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Card from "#lib/components/ui/card/index.js";
+import { Spinner } from "#lib/components/ui/spinner/index.js";
+import { redirectWithExternalFallback } from "#lib/navigation/redirect.js";
+import SignInProviderMark from "@/features/auth/components/SignInProviderMark.svelte";
+import { enhance, type SubmitFunction } from "$app/forms";
+
 import type { ActionData, PageData } from "./$types";
 
 export let data: PageData;
 export let form: ActionData;
+
+let pendingProviderId: string | null = null;
+let passkeyError: string | null = null;
+let passkeyPending = false;
+let passkeySupport: "checking" | "supported" | "unsupported" = "checking";
+
+$: primaryProviders = data.providers.filter((provider) => !provider.debug);
+$: debugProviders = data.providers.filter((provider) => provider.debug);
+
+onMount(() => {
+  passkeySupport = isPasskeySupported() ? "supported" : "unsupported";
+});
+
+async function signInWithPasskey() {
+  if (passkeySupport !== "supported" || passkeyPending) return;
+
+  passkeyError = null;
+  passkeyPending = true;
+  try {
+    const result = await passkeyAuthClient.signIn.passkey();
+    if (result.error) {
+      passkeyError =
+        passkeyClientErrorKind(result.error) === "cancelled"
+          ? data.copy.passkeyCancelled
+          : data.copy.passkeyError;
+      return;
+    }
+    await redirectWithExternalFallback(data.callbackUrl);
+  } catch {
+    passkeyError = data.copy.passkeyError;
+  } finally {
+    passkeyPending = false;
+  }
+}
+
+function signInAction(providerId: string): SubmitFunction {
+  return () => {
+    pendingProviderId = providerId;
+    return async ({ result, update }) => {
+      if (result.type === "redirect") {
+        await redirectWithExternalFallback(result.location);
+        return;
+      }
+      await update({ navigate: false, reset: false });
+      pendingProviderId = null;
+    };
+  };
+}
 </script>
 
-<SignInPage {data} {form} />
+{#snippet providerButton(provider: PageData["providers"][number])}
+  <form
+    class="min-w-0 max-w-full"
+    method="POST"
+    use:enhance={signInAction(provider.id)}
+  >
+    <input type="hidden" name="providerId" value={provider.id} />
+    <input type="hidden" name="callbackUrl" value={data.callbackUrl} />
+    <Button
+      class="h-auto min-w-0 w-full max-w-full justify-start p-3 text-left"
+      disabled={Boolean(pendingProviderId) || passkeyPending}
+      type="submit"
+      variant="outline"
+    >
+      <span class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">
+        {#if pendingProviderId === provider.id}
+          <Spinner data-icon="inline-start" />
+        {:else if provider.debug}
+          <CircleUserRound data-icon="inline-start" />
+        {:else}
+          <SignInProviderMark label={provider.name} providerId={provider.id} />
+        {/if}
+      </span>
+      <span class="min-w-0 flex-1 truncate">{provider.label}</span>
+      <ArrowUpRight data-icon="inline-end" />
+    </Button>
+  </form>
+{/snippet}
+
+<svelte:head><title>{data.copy.title} - Life@USTC</title></svelte:head>
+
+<section class="relative mx-auto grid w-full max-w-5xl flex-1 place-items-center overflow-hidden py-10 sm:py-14">
+  <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-xl">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,color-mix(in_oklch,var(--color-primary)_20%,transparent),transparent_38%),linear-gradient(135deg,color-mix(in_oklch,var(--color-primary)_10%,var(--color-card)),var(--color-background))]"></div>
+    <img
+      aria-hidden="true"
+      alt=""
+      class="absolute top-1/2 left-1/2 h-[46rem] w-[46rem] -translate-x-1/2 -translate-y-1/2 rotate-12 opacity-20 blur-[1px] saturate-125"
+      src="/images/icon.png"
+    />
+  </div>
+
+  <div class="grid min-w-0 w-full max-w-md gap-6">
+    <PageHeader title={data.copy.title} />
+
+    <Card.Root class="min-w-0">
+      <Card.Content class="grid min-w-0 gap-4">
+        {#if data.reauthentication}
+          <Alert.Root>
+            <Alert.Description>{data.copy.reauthenticationRequired}</Alert.Description>
+          </Alert.Root>
+        {/if}
+        {#if data.error}
+          <Alert.Root variant="destructive">
+            <Alert.Description>
+              {data.error === "OAuthAccountNotLinked" ? data.copy.errorAccountNotLinked : data.copy.errorGeneric}
+            </Alert.Description>
+          </Alert.Root>
+        {/if}
+        {#if form?.message}
+          <Alert.Root variant="destructive">
+            <Alert.Description>{form.message}</Alert.Description>
+          </Alert.Root>
+        {/if}
+
+        <div class="grid min-w-0 gap-2">
+          {#each primaryProviders as provider}
+            {@render providerButton(provider)}
+          {/each}
+        </div>
+
+        {#if data.showDebugProviders && debugProviders.length > 0}
+          <div class="grid min-w-0 gap-2 rounded-lg border border-dashed p-3">
+            <Alert.Root>
+              <Alert.Description>{data.copy.devDebugHint}</Alert.Description>
+            </Alert.Root>
+            {#each debugProviders as provider}
+              {@render providerButton(provider)}
+            {/each}
+          </div>
+        {/if}
+
+        <div class="grid min-w-0 gap-2">
+          <Button
+            class="h-auto w-full justify-start p-3 text-left"
+            disabled={passkeySupport !== "supported" || passkeyPending || Boolean(pendingProviderId)}
+            onclick={signInWithPasskey}
+            type="button"
+            variant="outline"
+          >
+            <span class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
+              {#if passkeyPending}
+                <Spinner data-icon="inline-start" />
+              {:else}
+                <Fingerprint data-icon="inline-start" />
+              {/if}
+            </span>
+            <span class="min-w-0 flex-1 truncate">
+              {passkeyPending
+                ? data.copy.passkeyPending
+                : passkeySupport === "checking"
+                  ? data.copy.passkeyChecking
+                  : data.copy.passkeySignIn}
+            </span>
+          </Button>
+
+          {#if passkeySupport === "unsupported"}
+            <Alert.Root>
+              <Alert.Description>{data.copy.passkeyUnsupported}</Alert.Description>
+            </Alert.Root>
+          {:else if passkeyError}
+            <Alert.Root variant="destructive">
+              <Alert.Description>{passkeyError}</Alert.Description>
+            </Alert.Root>
+          {/if}
+        </div>
+
+        <p class="min-w-0 break-words text-center text-muted-foreground text-xs leading-5">
+          {data.copy.termsNotice.beforeTerms}<a class="text-primary-text underline" href="/terms">{data.copy.termsNotice.terms}</a>{data.copy.termsNotice.between}<a class="text-primary-text underline" href="/privacy">{data.copy.termsNotice.privacy}</a>{data.copy.termsNotice.afterPrivacy}
+        </p>
+      </Card.Content>
+      {#if data.demoEnabled}
+        <Card.Footer class="flex-col items-stretch gap-2">
+          <form method="POST" action={DEMO_ENTER_PATH}>
+            <Button
+              class="w-full"
+              type="submit"
+              variant="secondary"
+              aria-describedby="demo-description"
+              disabled={Boolean(pendingProviderId) || passkeyPending}
+            >
+              {data.copy.demoEnter}
+            </Button>
+          </form>
+          <p id="demo-description" class="text-muted-foreground text-sm">
+            {data.copy.demoDescription}
+          </p>
+        </Card.Footer>
+      {/if}
+    </Card.Root>
+  </div>
+</section>

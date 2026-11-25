@@ -52,7 +52,7 @@ const BREAKPOINTS = ["sm", "md", "lg", "xl", "2xl"] as const;
  */
 const UNCONVERGED: readonly { file: string; tag: string; class: string }[] = [
   {
-    file: "src/features/api-docs/components/ApiDocsPage.svelte",
+    file: "src/routes/api/docs/[...path]/+page.svelte",
     tag: "Empty.Root",
     class: "border border-border border-solid bg-card",
   },

@@ -1,33 +1,10 @@
 <script lang="ts">
 import { Button } from "#lib/components/ui/button/index.js";
 
-type ScreenshotCopy = {
-  alt: string;
-  title: string;
-};
-
-type PageData = {
-  copy: {
-    homepage: {
-      downloadBadgeAlt: string;
-    };
-    metadata: { mobileApp: string };
-    mobileAppPage: {
-      galleryTitle: string;
-      screenshots: {
-        bus: ScreenshotCopy;
-        catalog: ScreenshotCopy;
-        schedule: ScreenshotCopy;
-        workspace: ScreenshotCopy;
-      };
-      subtitle: string;
-      title: string;
-    };
-  };
-};
+import type { PageData } from "./$types";
 
 export let data: PageData;
-export let readOnlyReason = "";
+$: readOnlyReason = data.demo?.readOnlyReason ?? "";
 
 const HERO_COUNT = 3;
 
