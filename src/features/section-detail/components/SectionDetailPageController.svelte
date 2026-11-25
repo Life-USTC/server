@@ -2,8 +2,8 @@
 import type { ComponentProps } from "svelte";
 export let content: ComponentProps<typeof SectionDetailMainContent>["content"];
 
+import { toast } from "@ui-sdk/svelte/toast";
 import { onMount } from "svelte";
-import { toast } from "svelte-sonner";
 // biome-ignore assist/source/organizeImports: keep Svelte template/action imports grouped with local suppressions.
 import { homeworkSemesterShortcutCapabilities } from "@/features/homeworks/lib/homework-timestamp-defaults";
 import SectionDetailDialogs from "@/features/section-detail/components/SectionDetailDialogs.svelte";

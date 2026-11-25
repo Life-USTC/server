@@ -1,6 +1,6 @@
 <script lang="ts">
+import { toast } from "@ui-sdk/svelte/toast";
 import { onMount, tick } from "svelte";
-import { toast } from "svelte-sonner";
 import { signInHrefForPage } from "#lib/auth/auth-routing.js";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";

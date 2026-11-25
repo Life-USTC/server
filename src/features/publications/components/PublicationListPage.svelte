@@ -182,7 +182,7 @@ function removeFilter(event: MouseEvent, href: string) {
             </div>
             <Field.Field class="w-full min-w-0 gap-1.5 sm:w-auto">
               <Field.Title>{copy.publicationType}</Field.Title>
-              <ToggleGroup.Root type="single" variant="outline" disabled={!ready} bind:value={() => draft.values.type || "all", changeType} aria-label={copy.publicationType}>
+              <ToggleGroup.Root variant="outline" disabled={!ready} bind:value={() => draft.values.type || "all", changeType} aria-label={copy.publicationType}>
                 <ToggleGroup.Item value="all" class={toolbarControlClass}>{copy.all}</ToggleGroup.Item>
                 <ToggleGroup.Item value="news" class={toolbarControlClass}>{copy.news}</ToggleGroup.Item>
                 <ToggleGroup.Item value="notice" class={toolbarControlClass}>{copy.notice}</ToggleGroup.Item>

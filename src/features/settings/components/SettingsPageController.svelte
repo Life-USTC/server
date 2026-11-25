@@ -1,6 +1,6 @@
 <script lang="ts">
+import { toast } from "@ui-sdk/svelte/toast";
 import { onMount, untrack } from "svelte";
-import { toast } from "svelte-sonner";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
 import type { DemoView } from "@/features/demo/lib/demo-types";

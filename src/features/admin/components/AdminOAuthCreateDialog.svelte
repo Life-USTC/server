@@ -77,7 +77,6 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
                     aria-labelledby="admin-oauth-auth-pattern-label"
                     class="grid w-full gap-2 sm:grid-cols-3"
                     spacing={2}
-                    type="single"
                     required
                     value={selectedAuthMethod}
                     variant="outline"

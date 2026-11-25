@@ -1,6 +1,6 @@
 <script lang="ts">
+import { toast } from "@ui-sdk/svelte/toast";
 import { untrack } from "svelte";
-import { toast } from "svelte-sonner";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Button } from "#lib/components/ui/button/index.js";

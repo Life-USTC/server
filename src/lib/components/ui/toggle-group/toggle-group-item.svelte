@@ -1,23 +1,24 @@
 <script lang="ts">
-	import { ToggleGroup as ToggleGroupPrimitive } from "bits-ui";
+	import { Toggle } from "@ui-sdk/svelte/toggle";
+	import type { ComponentProps } from "svelte";
 	import { getToggleGroupCtx } from "./toggle-group.svelte";
 	import { cn } from "#lib/utils.js";
 	import { type ToggleVariants, toggleVariants } from "#lib/components/ui/toggle/index.js";
 
 	let {
 		ref = $bindable(null),
-		value = $bindable(),
+		value,
+		children,
 		class: className,
 		size,
 		variant,
 		...restProps
-	}: ToggleGroupPrimitive.ItemProps & ToggleVariants = $props();
+	}: ComponentProps<typeof Toggle> & { ref?: HTMLButtonElement | null } & ToggleVariants = $props();
 
 	const ctx = getToggleGroupCtx();
 </script>
 
-<ToggleGroupPrimitive.Item
-	bind:ref
+<Toggle
 	data-slot="toggle-group-item"
 	data-variant={ctx.variant || variant}
 	data-size={ctx.size || size}
@@ -33,4 +34,11 @@
 	)}
 	{value}
 	{...restProps}
-/>
+>
+  {#snippet render({props, state})}
+    {@const { "aria-pressed": _pressed, ...radioProps } = props}
+    <button {...radioProps} bind:this={ref} role="radio" aria-checked={state.pressed}>
+      {@render children?.(state)}
+    </button>
+  {/snippet}
+</Toggle>

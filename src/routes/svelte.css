@@ -1,5 +1,14 @@
+@layer ui-sdk;
 @import "tailwindcss";
-@import "shadcn-svelte/tailwind.css";
+@custom-variant data-horizontal (&[data-orientation="horizontal"]);
+@custom-variant data-vertical (&[data-orientation="vertical"]);
+@custom-variant data-active (&[data-active]:not([data-active="false"]));
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 @source "../**/*.{svelte,ts}";
 
@@ -392,5 +401,71 @@ html {
     @media (min-width: 48rem) {
       --toolbar-face-inset: 2px;
     }
+  }
+}
+
+@layer components {
+  [data-slot="avatar"] {
+    @apply relative flex size-8 shrink-0 select-none rounded-full after:absolute after:inset-0 after:rounded-full after:border after:border-border after:mix-blend-darken dark:after:mix-blend-lighten;
+  }
+
+  [data-slot="avatar-image"] {
+    @apply aspect-square size-full rounded-full object-cover;
+  }
+
+  [data-slot="avatar-fallback"]:not([hidden]) {
+    @apply flex size-full items-center justify-center rounded-full bg-muted text-sm text-foreground/70;
+  }
+}
+
+@layer components {
+  [data-slot="otp-input"] {
+    @apply relative flex min-w-0 items-center justify-center gap-1 sm:gap-2;
+  }
+
+  [data-slot="otp-input-group"] {
+    @apply flex min-w-0 items-center;
+  }
+
+  [data-slot="otp-input-separator"] svg {
+    @apply size-4;
+  }
+
+  [data-slot="otp-input-slot"] {
+    @apply relative flex size-7 min-w-0 items-center justify-center border-y border-r border-input text-sm first:rounded-l-lg first:border-l last:rounded-r-lg data-active:z-10 data-active:border-ring data-active:ring-3 data-active:ring-ring/50 sm:size-8;
+  }
+
+  [data-slot="otp-input-slot"][data-fake-caret]::after {
+    @apply absolute h-4 w-px bg-foreground motion-safe:animate-pulse;
+    content: "";
+  }
+}
+
+@layer components {
+  [data-slot="calendar"] {
+    @apply bg-background p-2 text-sm;
+  }
+
+  [data-slot="calendar-day"],
+  [data-slot="calendar-previous"],
+  [data-slot="calendar-next"] {
+    @apply inline-flex size-8 items-center justify-center rounded-md hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  [data-slot="calendar-day"][data-outside],
+  [data-slot="calendar-weekday"] {
+    @apply text-muted-foreground;
+  }
+
+  [data-slot="calendar-day"][data-selected] {
+    @apply bg-primary text-primary-foreground;
+  }
+}
+
+@layer components {
+  td[data-slot="calendar-day"] {
+    display: table-cell;
+    text-align: center;
+    vertical-align: middle;
   }
 }

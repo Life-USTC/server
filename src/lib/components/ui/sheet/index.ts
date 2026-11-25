@@ -1,7 +1,6 @@
-import Root from "./sheet.svelte";
-import Portal from "./sheet-portal.svelte";
-import Trigger from "./sheet-trigger.svelte";
-import Close from "./sheet-close.svelte";
+import { Dialog as Root } from "@ui-sdk/svelte/dialog";
+import { DialogTrigger as Trigger } from "@ui-sdk/svelte/dialog";
+import { DialogClose as Close } from "@ui-sdk/svelte/dialog";
 import Overlay from "./sheet-overlay.svelte";
 import Content from "./sheet-content.svelte";
 import Header from "./sheet-header.svelte";
@@ -13,7 +12,6 @@ export {
 	Root,
 	Close,
 	Trigger,
-	Portal,
 	Overlay,
 	Content,
 	Header,
@@ -24,7 +22,6 @@ export {
 	Root as Sheet,
 	Close as SheetClose,
 	Trigger as SheetTrigger,
-	Portal as SheetPortal,
 	Overlay as SheetOverlay,
 	Content as SheetContent,
 	Header as SheetHeader,

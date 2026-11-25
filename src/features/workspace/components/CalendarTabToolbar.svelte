@@ -40,7 +40,6 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
     <ToggleGroup.Root
       aria-label={workspaceCopy.calendarViewLabel}
       class="w-full sm:w-fit"
-      type="single"
       required
       value={calendarView}
       variant="outline"
@@ -64,7 +63,7 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
       <div class="xl:hidden">
       <DropdownMenu.Root>
         <DropdownMenu.Trigger>
-          {#snippet child({ props })}
+          {#snippet render({ props })}
             <Button
               {...props}
               aria-label={workspaceCopy.calendarMoreActions}
@@ -76,10 +75,10 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
             </Button>
           {/snippet}
         </DropdownMenu.Trigger>
-        <DropdownMenu.Content align="end" preventScroll={false}>
+        <DropdownMenu.Content align="end">
           <DropdownMenu.Group>
             <DropdownMenu.Item>
-              {#snippet child({ props })}
+              {#snippet render({ props })}
                 <a {...props} href={activitiesManageHref}>{activitiesManageLabel}</a>
               {/snippet}
             </DropdownMenu.Item>

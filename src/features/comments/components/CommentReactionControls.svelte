@@ -44,7 +44,7 @@ $: if (
       }}
     >
       <DropdownMenu.Trigger>
-        {#snippet child({ props })}
+        {#snippet render({ props })}
           <Button
             {...props}
             aria-label={commentCopy.reactionMenu}
@@ -58,13 +58,13 @@ $: if (
       <DropdownMenu.Content class="w-56">
         <DropdownMenu.Group>
           {#each reactionOptions as option}
-            <DropdownMenu.CheckboxItem
+            <DropdownMenu.CheckboxItem value={option.type}
               checked={reactionEntry(comment, option.type)?.viewerHasReacted ?? false}
               class={cn(
                 pendingReactionKey && "opacity-70",
               )}
               disabled={!comment.canReact || Boolean(pendingReactionKey)}
-              onSelect={() => react(comment, option.type)}
+              onCheckedChange={() => react(comment, option.type)}
             >
               <span>{option.emoji}</span>
               <span>{reactionName(option.type)}</span>

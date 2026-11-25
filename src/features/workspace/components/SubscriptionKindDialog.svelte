@@ -47,7 +47,7 @@ async function save() {
       <Field.FieldGroup>
         <Field.Field data-invalid={Boolean(error)}>
           <Field.FieldLabel id="subscription-kind-label">{copy.title}</Field.FieldLabel>
-          <ToggleGroup.Root type="single" variant="outline" bind:value={kind} disabled={saving} aria-labelledby="subscription-kind-label" aria-invalid={Boolean(error)}>
+          <ToggleGroup.Root variant="outline" bind:value={kind} disabled={saving} aria-labelledby="subscription-kind-label" aria-invalid={Boolean(error)}>
             {#each subscriptionKindSchema.options as option}
               <ToggleGroup.Item value={option}>{copy[option]}</ToggleGroup.Item>
             {/each}

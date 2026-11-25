@@ -114,7 +114,7 @@ function commentResponse(page: Page, method: string, path: string) {
 
 async function expectToast(page: Page, text: RegExp) {
   await expect(
-    page.locator("[data-sonner-toast]").filter({ hasText: text }),
+    page.locator("[data-slot=toast]").filter({ hasText: text }),
   ).toBeVisible();
 }
 
@@ -949,7 +949,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           await expect(commentCard).toBeVisible();
           await expect(
             page
-              .locator("[data-sonner-toast]")
+              .locator("[data-slot=toast]")
               .filter({ hasText: /已可分享|is ready to share/i }),
           ).toBeVisible();
           // comment.attachments[] filename/open action (comment.yml display.fields)

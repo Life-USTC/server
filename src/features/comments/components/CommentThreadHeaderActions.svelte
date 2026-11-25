@@ -39,7 +39,7 @@ export let toggleReply: (comment: CommentNode) => void;
       }}
     >
       <DropdownMenu.Trigger>
-        {#snippet child({ props })}
+        {#snippet render({ props })}
           <Button
             {...props}
             aria-label={commentCopy.moreActions}

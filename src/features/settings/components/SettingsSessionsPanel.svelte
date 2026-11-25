@@ -1,7 +1,7 @@
 <script lang="ts">
 import LaptopIcon from "@lucide/svelte/icons/laptop";
+import { toast } from "@ui-sdk/svelte/toast";
 import { onMount } from "svelte";
-import { toast } from "svelte-sonner";
 import {
   buildReauthenticationPageUrl,
   buildSignInPageUrl,

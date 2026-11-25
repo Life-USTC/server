@@ -14,7 +14,7 @@ export let onMobileViewChange: (value: WorkspaceCardView) => void;
   <div class={collectionCompactClass}>
     <DropdownMenu.Root>
       <DropdownMenu.Trigger>
-        {#snippet child({ props })}
+        {#snippet render({ props })}
           <Button
             {...props}
             aria-label={workspaceCopy.nav.exams.viewMode}
@@ -28,7 +28,7 @@ export let onMobileViewChange: (value: WorkspaceCardView) => void;
           </Button>
         {/snippet}
       </DropdownMenu.Trigger>
-      <DropdownMenu.Content align="end" preventScroll={false}>
+      <DropdownMenu.Content align="end">
         <DropdownMenu.RadioGroup value={mobileView} onValueChange={(value) => {
           if (value === "cards" || value === "list") onMobileViewChange(value);
         }}>

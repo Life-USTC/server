@@ -152,32 +152,17 @@ describe("mobile toast placement", () => {
     },
   );
 
-  it("defers mobile bottom offset to sonner; layout only sets horizontal inset", async () => {
-    // The four-primary bar appears below lg for every shell viewer; toast
-    // placement follows its real presence rather than an authentication state.
-    const [layout, sonner] = await Promise.all([
-      readFile(resolve(process.cwd(), "src/routes/+layout.svelte"), "utf8"),
-      readFile(
-        resolve(process.cwd(), "src/lib/components/ui/sonner/sonner.svelte"),
-        "utf8",
-      ),
-    ]);
-
-    expect(layout).toContain('mobileOffset={{ left: "1rem", right: "1rem" }}');
-    expect(layout).not.toMatch(/mobileOffset=\{\{[^}]*bottom:/);
-    expect(sonner).toContain("mobileToastBottomWithoutPrimary");
-    expect(sonner).toContain("mobileToastBottomWithPrimary");
-    expect(sonner).toContain("[data-mobile-primary-navigation]");
-    expect(sonner).toContain("@media (max-width: 1023px)");
-    expect(sonner).toContain(
-      "bottom: var(--shell-toast-with-primary) !important",
+  it("places notifications above the mobile navigation", async () => {
+    const toaster = await readFile(
+      resolve(process.cwd(), "src/lib/components/ui/toast/Toaster.svelte"),
+      "utf8",
     );
-    expect(sonner).not.toContain("v-bind(");
-    expect(sonner).not.toContain('[data-shell-navigation="mobile-primary"]');
-    expect(sonner).not.toContain('[data-shell-navigation="admin-mobile"]');
-    expect(sonner).toContain("max-width: calc(100vw");
-    expect(sonner).toContain("pointer-events: none;");
-    expect(sonner).toContain("pointer-events: auto;");
+    expect(toaster).toContain("resolveMobileToastBottomOffset(false)");
+    expect(toaster).toContain("resolveMobileToastBottomOffset(true)");
+    expect(toaster).toContain("[data-mobile-primary-navigation]");
+    expect(toaster).toContain("@media (max-width: 1023px)");
+    expect(toaster).toContain("bottom: var(--shell-toast-with-primary)");
+    expect(toaster).toContain("pointer-events: none;");
   });
 });
 

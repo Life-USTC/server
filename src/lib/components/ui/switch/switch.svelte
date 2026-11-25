@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { Switch as SwitchPrimitive } from "bits-ui";
-	import { cn, type WithoutChildrenOrChild } from "#lib/utils.js";
+	import { Switch, SwitchThumb } from "@ui-sdk/svelte/switch";
+	import type { ComponentProps } from "svelte";
+	import { cn } from "#lib/utils.js";
 
 	let {
 		ref = $bindable(null),
@@ -8,13 +9,13 @@
 		checked = $bindable(false),
 		size = "default",
 		...restProps
-	}: WithoutChildrenOrChild<SwitchPrimitive.RootProps> & {
+	}: ComponentProps<typeof Switch> & { ref?: HTMLButtonElement | null } & {
 		size?: "sm" | "default";
 	} = $props();
 </script>
 
-<SwitchPrimitive.Root
-	bind:ref
+<Switch
+	{@attach (element: HTMLButtonElement) => { ref = element; return () => { ref = null; }; }}
 	bind:checked
 	data-slot="switch"
 	data-size={size}
@@ -24,8 +25,8 @@
 	)}
 	{...restProps}
 >
-	<SwitchPrimitive.Thumb
+	<SwitchThumb
 		data-slot="switch-thumb"
-		class="bg-background dark:data-unchecked:bg-foreground dark:data-checked:bg-primary-foreground rounded-full group-data-[size=default]/switch:size-4 group-data-[size=sm]/switch:size-3 group-data-[size=default]/switch:data-checked:translate-x-[calc(100%-2px)] group-data-[size=sm]/switch:data-checked:translate-x-[calc(100%-2px)] group-data-[size=default]/switch:data-unchecked:translate-x-0 group-data-[size=sm]/switch:data-unchecked:translate-x-0 pointer-events-none block ring-0 transition-transform rtl:data-[state=checked]:translate-x-[calc(-100%)]"
+		class="bg-background dark:data-unchecked:bg-foreground dark:data-checked:bg-primary-foreground rounded-full group-data-[size=default]/switch:size-4 group-data-[size=sm]/switch:size-3 group-data-[size=default]/switch:data-checked:translate-x-[calc(100%-2px)] group-data-[size=sm]/switch:data-checked:translate-x-[calc(100%-2px)] group-data-[size=default]/switch:data-unchecked:translate-x-0 group-data-[size=sm]/switch:data-unchecked:translate-x-0 pointer-events-none block ring-0 transition-transform rtl:data-checked:translate-x-[calc(-100%)]"
 	/>
-</SwitchPrimitive.Root>
+</Switch>

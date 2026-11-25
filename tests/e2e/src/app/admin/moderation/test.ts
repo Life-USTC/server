@@ -371,7 +371,7 @@ test("/admin/moderation 可更新评论状态与备注", { tag: "@Comment/Web" }
         await expect(dialog).not.toBeVisible({ timeout: 15_000 });
         await expect(
           page
-            .locator("[data-sonner-toast]")
+            .locator("[data-slot=toast]")
             .filter({ hasText: /评论已更新|Comment updated/i }),
         ).toBeVisible();
       },
@@ -650,7 +650,7 @@ test("/admin/moderation 封禁列表可解除封禁", { tag: "@Admin/Web" }, asy
         await expect(row.getByText(/已解除|Lifted/i)).toBeVisible();
         await expect(
           page
-            .locator("[data-sonner-toast]")
+            .locator("[data-slot=toast]")
             .filter({ hasText: /封禁已解除|Suspension lifted/i }),
         ).toBeVisible();
       },
@@ -711,7 +711,7 @@ test("/admin/moderation 可从评论弹窗封禁用户", { tag: "@Admin/Web" }, 
         expect(typeof suspensionId).toBe("string");
         await expect(
           page
-            .locator("[data-sonner-toast]")
+            .locator("[data-slot=toast]")
             .filter({ hasText: /封禁成功|Suspended successfully/i }),
         ).toBeVisible();
         await expect(
@@ -887,7 +887,7 @@ test("/admin/moderation 可更新课程简介内容", {
 
         await expect(
           page
-            .locator("[data-sonner-toast]")
+            .locator("[data-slot=toast]")
             .filter({ hasText: /课程简介已更新|Description updated/i }),
         ).toBeVisible();
 
@@ -1019,7 +1019,7 @@ test("admin.high-risk-feedback", { tag: "@Homework/Web" }, async ({
     await expect(confirmation).toBeHidden();
     await expect(
       page
-        .locator("[data-sonner-toast]")
+        .locator("[data-slot=toast]")
         .filter({ hasText: /作业已删除|Homework deleted/i }),
     ).toBeVisible();
     // The enhanced action reloads the queue, so the already-open row carries the

@@ -153,7 +153,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
             <SearchField id="uploads-filename" label={copy.searchFilename} placeholder={copy.searchFilename} value={draft.values.filename ?? ""} oninput={(event) => change({filename:event.currentTarget.value})} disabled={!ready} />
           </div>
           <Popover.Root bind:open={dateOpen}>
-            <Popover.Trigger>{#snippet child({props})}<Button {...props} type="button" variant="outline" disabled={!ready}>{copy.tableUploaded}<ChevronDown data-icon="inline-end" /></Button>{/snippet}</Popover.Trigger>
+            <Popover.Trigger>{#snippet render({props})}<Button {...props} type="button" variant="outline" disabled={!ready}>{copy.tableUploaded}<ChevronDown data-icon="inline-end" /></Button>{/snippet}</Popover.Trigger>
             <Popover.Content role="dialog" aria-label={copy.tableUploaded} align="start" class="max-h-[70dvh] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto">
               <TableFilterFields fields={fields.filter((field) => field.name === "createdAt")} values={draft.values} onchange={change} labels={data.copy.common.tableFilters} idPrefix="uploads" formId="uploads-filters" />
             </Popover.Content>

@@ -1,6 +1,5 @@
-import Root from "./alert-dialog.svelte";
-import Portal from "./alert-dialog-portal.svelte";
-import Trigger from "./alert-dialog-trigger.svelte";
+import { AlertDialog as Root } from "@ui-sdk/svelte/alert-dialog";
+import { AlertDialogTrigger as Trigger } from "@ui-sdk/svelte/alert-dialog";
 import Title from "./alert-dialog-title.svelte";
 import Action from "./alert-dialog-action.svelte";
 import Cancel from "./alert-dialog-cancel.svelte";
@@ -16,7 +15,6 @@ export {
 	Title,
 	Action,
 	Cancel,
-	Portal,
 	Footer,
 	Header,
 	Trigger,
@@ -29,7 +27,6 @@ export {
 	Title as AlertDialogTitle,
 	Action as AlertDialogAction,
 	Cancel as AlertDialogCancel,
-	Portal as AlertDialogPortal,
 	Footer as AlertDialogFooter,
 	Header as AlertDialogHeader,
 	Trigger as AlertDialogTrigger,

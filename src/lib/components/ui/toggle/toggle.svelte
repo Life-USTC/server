@@ -2,7 +2,7 @@
 	import { type VariantProps, tv } from "tailwind-variants";
 
 	export const toggleVariants = tv({
-		base: "hover:text-foreground aria-pressed:bg-muted focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive data-[state=on]:bg-accent data-[state=on]:text-accent-foreground gap-1 rounded-lg text-sm font-medium transition-all [&_svg:not([class*='size-'])]:size-4 group/toggle hover:bg-muted inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap outline-none focus-visible:ring-[3px] md:min-h-0 md:min-w-0 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0",
+		base: "hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive aria-pressed:bg-accent aria-pressed:text-accent-foreground aria-checked:bg-accent aria-checked:text-accent-foreground gap-1 rounded-lg text-sm font-medium transition-all [&_svg:not([class*='size-'])]:size-4 group/toggle hover:bg-muted inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap outline-none focus-visible:ring-[3px] md:min-h-0 md:min-w-0 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0",
 		variants: {
 			variant: {
 				default: "bg-transparent",
@@ -26,7 +26,8 @@
 </script>
 
 <script lang="ts">
-	import { Toggle as TogglePrimitive } from "bits-ui";
+	import { Toggle } from "@ui-sdk/svelte/toggle";
+	import type { ComponentProps } from "svelte";
 	import { cn } from "#lib/utils.js";
 
 	let {
@@ -36,14 +37,14 @@
 		size = "default",
 		variant = "default",
 		...restProps
-	}: TogglePrimitive.RootProps & {
+	}: ComponentProps<typeof Toggle> & { ref?: HTMLButtonElement | null } & {
 		variant?: ToggleVariant;
 		size?: ToggleSize;
 	} = $props();
 </script>
 
-<TogglePrimitive.Root
-	bind:ref
+<Toggle
+	{@attach (element: HTMLButtonElement) => { ref = element; return () => { ref = null; }; }}
 	bind:pressed
 	data-slot="toggle"
 	class={cn(toggleVariants({ variant, size }), className)}

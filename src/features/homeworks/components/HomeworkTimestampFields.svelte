@@ -50,7 +50,7 @@ $: hasDueShortcuts = Boolean(
     {#if hasDueShortcuts}
       <DropdownMenu.Root>
         <DropdownMenu.Trigger>
-          {#snippet child({ props })}
+          {#snippet render({ props })}
             <Button
               {...props}
               class="shrink-0"
@@ -65,7 +65,7 @@ $: hasDueShortcuts = Boolean(
         </DropdownMenu.Trigger>
         <DropdownMenu.Content
           align="end"
-          class="w-max max-w-[calc(100vw-2rem)] max-h-[var(--bits-dropdown-menu-content-available-height)]"
+          class="w-max max-w-[calc(100vw-2rem)] max-h-[var(--available-height)]"
         >
           <DropdownMenu.Group>
             {#each dueShortcuts as shortcut}
@@ -108,10 +108,9 @@ $: hasDueShortcuts = Boolean(
   {/if}
 
   <Accordion.Root
-    type="single"
-    value={advancedOpen ? "advanced" : ""}
+      value={advancedOpen ? ["advanced"] : []}
     onValueChange={(value) => {
-      advancedOpen = value === "advanced";
+      advancedOpen = value.includes("advanced");
     }}
   >
     <Accordion.Item class="rounded-lg bg-muted/40 px-3" value="advanced">
@@ -134,7 +133,7 @@ $: hasDueShortcuts = Boolean(
               />
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger>
-                  {#snippet child({ props })}
+                  {#snippet render({ props })}
                     <Button {...props} aria-label={`${copy.publishedAt} · ${copy.timeShortcuts}`} {disabled} type="button" variant="outline">
                       <CalendarClock data-icon="inline-start" />
                       {copy.timeShortcuts}
@@ -170,7 +169,7 @@ $: hasDueShortcuts = Boolean(
               />
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger>
-                  {#snippet child({ props })}
+                  {#snippet render({ props })}
                     <Button {...props} aria-label={`${copy.submissionStart} · ${copy.timeShortcuts}`} {disabled} type="button" variant="outline">
                       <CalendarClock data-icon="inline-start" />
                       {copy.timeShortcuts}

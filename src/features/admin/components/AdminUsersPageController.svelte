@@ -1,5 +1,5 @@
 <script lang="ts">
-import { toast } from "svelte-sonner";
+import { toast } from "@ui-sdk/svelte/toast";
 import { SUSPENSION_DURATION_OPTIONS } from "@/features/admin/constants";
 import { createAdminUsersControllerDefaultState } from "@/features/admin/lib/admin-users-controller-default-state";
 import {

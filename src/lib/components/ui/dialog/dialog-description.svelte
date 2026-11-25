@@ -1,16 +1,17 @@
 <script lang="ts">
-	import { Dialog as DialogPrimitive } from "bits-ui";
+	import type { ComponentProps } from "svelte";
+	import { DialogDescription } from "@ui-sdk/svelte/dialog";
 	import { cn } from "#lib/utils.js";
 
 	let {
 		ref = $bindable(null),
 		class: className,
 		...restProps
-	}: DialogPrimitive.DescriptionProps = $props();
+	}: ComponentProps<typeof DialogDescription> & { ref?: HTMLElement | null } = $props();
 </script>
 
-<DialogPrimitive.Description
-	bind:ref
+<DialogDescription
+	{@attach (element: HTMLElement) => { ref = element; return () => { ref = null; }; }}
 	data-slot="dialog-description"
 	class={cn("text-muted-foreground *:[a]:hover:text-foreground text-sm *:[a]:underline *:[a]:underline-offset-3", className)}
 	{...restProps}

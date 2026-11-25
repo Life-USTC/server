@@ -126,7 +126,7 @@ function move(direction: number) {
 <section class="grid gap-4" aria-label={text.calendar}>
   <div class="flex flex-wrap items-end gap-3">
     <Field.Field class="w-auto"><Field.FieldLabel for="personal-activity-date">{copy.workspace.calendarDay.label}</Field.FieldLabel><Input id="personal-activity-date" type="date" value={selectedDate} onchange={(event) => { if (event.currentTarget.value) selectedDate = event.currentTarget.value; }} /></Field.Field>
-    <ToggleGroup.Root type="single" bind:value={() => view, (value) => { if (value) view = value; }} variant="outline" aria-label={copy.workspace.calendarViewLabel}>
+    <ToggleGroup.Root bind:value={() => view, (value) => { if (value) view = value; }} variant="outline" aria-label={copy.workspace.calendarViewLabel}>
       <ToggleGroup.Item value="day">{text.day}</ToggleGroup.Item><ToggleGroup.Item value="week">{text.week}</ToggleGroup.Item><ToggleGroup.Item value="month">{text.month}</ToggleGroup.Item>
     </ToggleGroup.Root>
     <Button variant="outline" aria-label={view === "day" ? copy.workspace.calendarDay.prev : view === "week" ? copy.workspace.calendarWeek.prev : copy.sectionDetail.previousMonth} class={toolbarControlClass} onclick={() => move(-1)}>{copy.common.previous}</Button>

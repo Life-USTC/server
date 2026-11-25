@@ -1,6 +1,6 @@
 <script lang="ts">
+import { toast } from "@ui-sdk/svelte/toast";
 import { onDestroy } from "svelte";
-import { toast } from "svelte-sonner";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import FilterToolbar from "#lib/components/FilterToolbar.svelte";
@@ -110,7 +110,6 @@ async function markRead(id: string) {
     {#snippet primary()}
       {#if data.notifications}
         <ToggleGroup.Root
-          type="single"
           variant="outline"
           bind:value={() => (data.unread ? "unread" : "all"), filterNotifications}
           aria-label={copy.notificationFilter}

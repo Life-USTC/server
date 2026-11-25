@@ -1,7 +1,8 @@
 <script lang="ts">
+
 	import { cn, type WithElementRef } from "#lib/utils.js";
 	import type { HTMLAttributes } from "svelte/elements";
-	import { Dialog as DialogPrimitive } from "bits-ui";
+	import { DialogClose } from "@ui-sdk/svelte/dialog";
 	import { Button } from "#lib/components/ui/button/index.js";
 
 	let {
@@ -12,7 +13,7 @@
 		...restProps
 	}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
 		showCloseButton?: boolean;
-	} = $props();
+	} & { children?: import("svelte").Snippet } = $props();
 </script>
 
 <div
@@ -23,10 +24,10 @@
 >
 	{@render children?.()}
 	{#if showCloseButton}
-		<DialogPrimitive.Close>
-			{#snippet child({ props })}
+		<DialogClose>
+			{#snippet render({ props })}
 				<Button variant="outline" {...props}>Close</Button>
 			{/snippet}
-		</DialogPrimitive.Close>
+		</DialogClose>
 	{/if}
 </div>

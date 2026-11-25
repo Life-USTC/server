@@ -1,16 +1,17 @@
 <script lang="ts">
-	import { Tabs as TabsPrimitive } from "bits-ui";
+	import { TabsPanel } from "@ui-sdk/svelte/tabs";
+	import type { ComponentProps } from "svelte";
 	import { cn } from "#lib/utils.js";
 
 	let {
 		ref = $bindable(null),
 		class: className,
 		...restProps
-	}: TabsPrimitive.ContentProps = $props();
+	}: ComponentProps<typeof TabsPanel> & { ref?: HTMLDivElement | null } = $props();
 </script>
 
-<TabsPrimitive.Content
-	bind:ref
+<TabsPanel
+	{@attach (element: HTMLDivElement) => { ref = element; return () => { ref = null; }; }}
 	data-slot="tabs-content"
 	class={cn("text-sm flex-1 outline-none", className)}
 	{...restProps}

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { toast } from "svelte-sonner";
+import { toast } from "@ui-sdk/svelte/toast";
 import TableFilterFields from "#lib/components/TableFilterFields.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import AdminModerationDialogs from "@/features/admin/components/AdminModerationDialogs.svelte";

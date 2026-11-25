@@ -91,7 +91,7 @@ export let readOnlyReason: string | undefined = undefined;
             </TableIconButton>
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
-                {#snippet child({ props })}
+                {#snippet render({ props })}
                   <Button
                     {...props}
                     aria-label={todosCopy.editAriaLabel}

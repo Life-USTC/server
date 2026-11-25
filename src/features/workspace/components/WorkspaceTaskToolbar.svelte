@@ -26,7 +26,6 @@ onMount(() => {
     <ToggleGroup.Root
       aria-label={ariaLabel}
       class="w-full min-w-0 md:w-fit"
-      type="single"
       variant="outline"
       disabled={!ready}
       bind:value={

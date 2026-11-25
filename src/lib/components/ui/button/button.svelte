@@ -40,12 +40,14 @@
 </script>
 
 <script lang="ts">
+	import { Button as SDKButton } from "@ui-sdk/svelte/button";
 	let {
 		class: className,
 		variant = "default",
 		size = "default",
 		ref = $bindable(null),
 		href = undefined,
+		onclick,
 		type = "button",
 		disabled,
 		children,
@@ -59,6 +61,7 @@
 		data-slot="button"
 		data-button-variant={variant}
 		class={cn(buttonVariants({ variant, size }), className)}
+		{onclick}
 		href={disabled ? undefined : href}
 		aria-disabled={disabled}
 		role={disabled ? "link" : undefined}
@@ -68,15 +71,20 @@
 		{@render children?.()}
 	</a>
 {:else}
-	<button
-		bind:this={ref}
+	<SDKButton
+		{@attach (element: HTMLButtonElement) => { ref = element; return () => { ref = null; }; }}
 		data-slot="button"
 		data-button-variant={variant}
 		class={cn(buttonVariants({ variant, size }), className)}
-		{type}
-		{disabled}
+		type={type ?? "button"}
+    disabled={disabled ?? false}
+    onclick={(event) => {
+      if (onclick && event.currentTarget instanceof HTMLButtonElement) {
+        onclick(event as MouseEvent & { currentTarget: HTMLButtonElement });
+      }
+    }}
 		{...restProps}
 	>
 		{@render children?.()}
-	</button>
+	</SDKButton>
 {/if}

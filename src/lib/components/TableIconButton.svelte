@@ -13,7 +13,7 @@ export let onclick: ((event: MouseEvent) => void) | undefined = undefined;
 
 <Tooltip.Root>
   <Tooltip.Trigger>
-    {#snippet child({ props })}
+    {#snippet render({ props })}
       <Button
         {...props}
         aria-label={label}

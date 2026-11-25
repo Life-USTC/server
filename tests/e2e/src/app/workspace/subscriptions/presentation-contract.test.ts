@@ -796,7 +796,7 @@ test("subscription.kind-web-editor-location", {
                 .click();
               await expect(
                 dialog.getByRole("radio", { name: label }),
-              ).toHaveAttribute("data-state", "on");
+              ).toBeChecked();
               await page.keyboard.press("Escape");
             }
           }

@@ -54,7 +54,7 @@ onMount(() => {
   {#if advanced}
     <Sheet.Root bind:open>
       <Sheet.Trigger>
-        {#snippet child({ props })}
+        {#snippet render({ props })}
           <Button {...props} type="button" variant="outline" class={cn(toolbarControlClass, !advancedBeforeActions && "order-2 md:order-4")} {disabled}>
             <SlidersHorizontalIcon data-icon="inline-start" aria-hidden="true" />
             <span class={cn(!showFilterLabel && "max-md:sr-only")}>{filterTitle}</span>

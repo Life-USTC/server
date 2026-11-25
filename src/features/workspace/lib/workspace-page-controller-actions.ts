@@ -1,4 +1,4 @@
-import { toast } from "svelte-sonner";
+import { toast } from "@ui-sdk/svelte/toast";
 import type { CalendarView } from "@/features/workspace/lib/calendar";
 import { createWorkspaceCalendarActions } from "@/features/workspace/lib/workspace-controller-calendar-actions";
 import { createWorkspaceCalendarDisplayActions } from "@/features/workspace/lib/workspace-controller-calendar-display-actions";

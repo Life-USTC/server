@@ -1,5 +1,5 @@
 <script lang="ts">
-import * as Avatar from "#lib/components/ui/avatar/index.js";
+import { Avatar, AvatarFallback, AvatarImage } from "@ui-sdk/svelte/avatar";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import type { CommentNodeWithContext } from "@/features/comments/lib/comment-ui";
 import type { CommentNode } from "@/features/comments/server/comment-types";
@@ -21,12 +21,12 @@ export let toggleReply: (comment: CommentNode) => void;
 
 <div class="flex flex-wrap items-start justify-between gap-3">
   <div class="flex min-w-0 flex-1 items-start gap-3">
-    <Avatar.Root>
+    <Avatar>
       {#if !comment.authorHidden && comment.author?.image}
-        <Avatar.Image src={comment.author.image} alt={authorName(comment)} />
+        <AvatarImage src={comment.author.image} alt={authorName(comment)} />
       {/if}
-      <Avatar.Fallback>{authorInitials(comment)}</Avatar.Fallback>
-    </Avatar.Root>
+      <AvatarFallback>{authorInitials(comment)}</AvatarFallback>
+    </Avatar>
     <div class="min-w-0">
       <div class="flex flex-wrap items-center gap-2">
         <h3 class="font-semibold text-sm">{authorName(comment)}</h3>

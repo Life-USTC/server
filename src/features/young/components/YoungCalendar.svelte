@@ -1,9 +1,13 @@
 <script lang="ts">
+import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@ui-sdk/svelte/collapsible";
 import CompactEmpty from "#lib/components/CompactEmpty.svelte";
 import CalendarGrid from "#lib/components/calendar/CalendarGrid.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button, buttonVariants } from "#lib/components/ui/button/index.js";
-import * as Collapsible from "#lib/components/ui/collapsible/index.js";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import {
   normalizeYoungCalendarDate,
@@ -201,10 +205,10 @@ function crossesDate(event: YoungCalendarEvent) {
     <div aria-label={labels.agenda} class="grid gap-5" role="region">
       {@render agendaRows(agenda.current)}
       {#if agenda.earlier.length}
-        <Collapsible.Root class="grid gap-3">
-          <Collapsible.Trigger class={buttonVariants({ variant: "outline", class: "justify-self-start" })}>{labels.earlierDates}</Collapsible.Trigger>
-          <Collapsible.Content class="grid gap-5">{@render agendaRows(agenda.earlier)}</Collapsible.Content>
-        </Collapsible.Root>
+        <Collapsible class="grid gap-3">
+          <CollapsibleTrigger class={buttonVariants({ variant: "outline", class: "justify-self-start" })}>{labels.earlierDates}</CollapsibleTrigger>
+          <CollapsiblePanel class="grid gap-5">{@render agendaRows(agenda.earlier)}</CollapsiblePanel>
+        </Collapsible>
       {/if}
     </div>
   </div>

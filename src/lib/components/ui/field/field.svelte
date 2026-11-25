@@ -21,6 +21,7 @@
 </script>
 
 <script lang="ts">
+	import { Field } from "@ui-sdk/svelte/field";
 	import { cn, type WithElementRef } from "#lib/utils.js";
 	import type { HTMLAttributes } from "svelte/elements";
 
@@ -35,8 +36,8 @@
 	} = $props();
 </script>
 
-<div
-	bind:this={ref}
+<Field
+	{@attach (element: HTMLDivElement) => { ref = element; return () => { ref = null; }; }}
 	role="group"
 	data-slot="field"
 	data-orientation={orientation}
@@ -44,4 +45,4 @@
 	{...restProps}
 >
 	{@render children?.()}
-</div>
+</Field>

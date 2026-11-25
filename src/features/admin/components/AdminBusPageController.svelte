@@ -1,5 +1,5 @@
 <script lang="ts">
-import { toast } from "svelte-sonner";
+import { toast } from "@ui-sdk/svelte/toast";
 import AdminBusDialogs from "@/features/admin/components/AdminBusDialogs.svelte";
 import AdminBusHeader from "@/features/admin/components/AdminBusHeader.svelte";
 import AdminBusStatusAlerts from "@/features/admin/components/AdminBusStatusAlerts.svelte";

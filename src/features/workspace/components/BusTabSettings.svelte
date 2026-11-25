@@ -85,7 +85,6 @@ function selectDayType(value: string) {
           aria-labelledby={`${idPrefix}-day-type-label`}
           class="grid w-full grid-cols-3"
           spacing={2}
-          type="single"
           required
           value={busDayType}
           variant="outline"

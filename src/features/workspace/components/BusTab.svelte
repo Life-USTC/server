@@ -1,11 +1,15 @@
 <script lang="ts">
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
+import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@ui-sdk/svelte/collapsible";
 import { onMount } from "svelte";
 import TableColumnHeader from "#lib/components/TableColumnHeader.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TableFilterFields from "#lib/components/TableFilterFields.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Collapsible from "#lib/components/ui/collapsible/index.js";
 import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
@@ -300,18 +304,18 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
           <Button type="button" variant="outline" onclick={clearFilters}>{busCopy.clear}</Button>
         </Field.Group>
       </form>
-      <Collapsible.Root bind:open={timetableOpen} class="group/full-timetable">
+      <Collapsible bind:open={timetableOpen} class="group/full-timetable">
         {#if compact}
-          <Collapsible.Trigger>
-            {#snippet child({ props })}
+          <CollapsibleTrigger>
+            {#snippet render({ props })}
               <Button {...props} class="h-11 w-full justify-between lg:hidden" variant="outline">
                 {timetableOpen ? busCopy.hideFullTimetable : busCopy.fullTimetable}
-                <ChevronDownIcon data-icon="inline-end" class="transition-transform group-data-[state=open]/full-timetable:rotate-180" />
+                <ChevronDownIcon data-icon="inline-end" class="transition-transform group-data-open/full-timetable:rotate-180" />
               </Button>
             {/snippet}
-          </Collapsible.Trigger>
+          </CollapsibleTrigger>
         {/if}
-        <Collapsible.Content class="data-[state=closed]:hidden lg:!block" forceMount>
+        <CollapsiblePanel class="data-closed:hidden lg:!block" keepMounted>
           <div class="min-w-0 pt-3 lg:pt-0">
             <BusTabTimetable
               bus={loadedBus}
@@ -327,8 +331,8 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
               {formId}
             />
           </div>
-        </Collapsible.Content>
-      </Collapsible.Root>
+        </CollapsiblePanel>
+      </Collapsible>
     </div>
   {:else if busLoadFailed}
     <Empty.Root>

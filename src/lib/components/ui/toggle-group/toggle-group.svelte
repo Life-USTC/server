@@ -20,12 +20,14 @@
 </script>
 
 <script lang="ts">
-	import { ToggleGroup as ToggleGroupPrimitive } from "bits-ui";
+	import { ToggleGroup } from "@ui-sdk/svelte/toggle";
+	import type { HTMLAttributes } from "svelte/elements";
 	import { cn } from "#lib/utils.js";
 
 	let {
 		ref = $bindable(null),
-		value = $bindable(),
+		value = $bindable(""),
+		onValueChange,
 		required = false,
 		class: className,
 		size = "default",
@@ -33,7 +35,7 @@
 		orientation = "horizontal",
 		variant = "default",
 		...restProps
-	}: ToggleGroupPrimitive.RootProps &
+	}: HTMLAttributes<HTMLDivElement> & { ref?: HTMLDivElement | null; value?: string; onValueChange?: (value: string) => void; disabled?: boolean } &
 		ToggleVariants & {
 			spacing?: number;
 			orientation?: "horizontal" | "vertical";
@@ -44,13 +46,6 @@
 			 */
 			required?: boolean;
 		} = $props();
-
-	// `never` for the same reason as the cast below: the union is too complex to
-	// destructure and still type.
-	function accept(next: never) {
-		if (required && (next as unknown) === "") return;
-		value = next;
-	}
 
 	setToggleGroupCtx({
 		get variant() {
@@ -68,13 +63,14 @@
 	});
 </script>
 
-<!--
-Discriminated Unions + Destructing (required for bindable) do not
-get along, so we shut typescript up by casting `value` to `never`.
--->
-<ToggleGroupPrimitive.Root
-	bind:value={() => value as never, accept}
-	bind:ref
+<ToggleGroup
+	value={value ? [value] : []}
+  deselectable={!required}
+  onValueChange={(values) => {
+    value = values[0] ?? "";
+    onValueChange?.(value);
+  }}
+	{@attach (element: HTMLDivElement) => { ref = element; return () => { ref = null; }; }}
 	{orientation}
 	data-slot="toggle-group"
 	data-variant={variant}

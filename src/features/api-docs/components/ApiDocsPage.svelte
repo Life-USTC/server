@@ -364,7 +364,7 @@ function scheduleReferenceRouteRestore(expected: number, epoch: string) {
       <div class="api-docs-mobile-navigation">
         <Sheet.Root bind:open={mobileNavigationOpen}>
           <Sheet.Trigger>
-            {#snippet child({ props })}
+            {#snippet render({ props })}
               <Button
                 class="w-full justify-between"
                 data-testid="api-docs-mobile-navigation-trigger"

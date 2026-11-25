@@ -1,16 +1,17 @@
 <script lang="ts">
-	import { Accordion as AccordionPrimitive } from "bits-ui";
+	import { AccordionItem } from "@ui-sdk/svelte/accordion";
+	import type { ComponentProps } from "svelte";
 	import { cn } from "#lib/utils.js";
 
 	let {
 		ref = $bindable(null),
 		class: className,
 		...restProps
-	}: AccordionPrimitive.ItemProps = $props();
+	}: ComponentProps<typeof AccordionItem> & { ref?: HTMLDivElement | null } = $props();
 </script>
 
-<AccordionPrimitive.Item
-	bind:ref
+<AccordionItem
+	{@attach (element: HTMLDivElement) => { ref = element; return () => { ref = null; }; }}
 	data-slot="accordion-item"
 	class={cn("not-last:border-b", className)}
 	{...restProps}

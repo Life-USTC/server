@@ -28,7 +28,7 @@ function setThemeValue(value: string) {
 <div data-shell-preferences class="flex items-center gap-0.5 min-[360px]:gap-2">
   <DropdownMenu.Root open={localeMenuOpen} onOpenChange={setLocaleMenuOpen}>
     <DropdownMenu.Trigger>
-      {#snippet child({ props })}
+      {#snippet render({ props })}
         <Button
           {...props}
           aria-label={copy.language.selector}
@@ -43,18 +43,15 @@ function setThemeValue(value: string) {
     <DropdownMenu.Content
       align="end"
       class="w-40"
-      preventScroll={false}
     >
       <DropdownMenu.Group>
-        <DropdownMenu.RadioGroup value={locale}>
+        <DropdownMenu.RadioGroup value={locale} onValueChange={(next) => setLocale(next === "zh-cn" ? "zh-cn" : "en-us")}>
           <DropdownMenu.RadioItem
-            onSelect={() => setLocale("en-us")}
             value="en-us"
           >
             {copy.language.english}
           </DropdownMenu.RadioItem>
           <DropdownMenu.RadioItem
-            onSelect={() => setLocale("zh-cn")}
             value="zh-cn"
           >
             {copy.language.chinese}
@@ -66,7 +63,7 @@ function setThemeValue(value: string) {
 
   <DropdownMenu.Root open={themeMenuOpen} onOpenChange={setThemeMenuOpen}>
     <DropdownMenu.Trigger>
-      {#snippet child({ props })}
+      {#snippet render({ props })}
         <Button
           {...props}
           aria-label={copy.theme.selector}
@@ -87,7 +84,6 @@ function setThemeValue(value: string) {
     <DropdownMenu.Content
       align="end"
       class="w-44"
-      preventScroll={false}
     >
       <DropdownMenu.Group>
         <DropdownMenu.RadioGroup

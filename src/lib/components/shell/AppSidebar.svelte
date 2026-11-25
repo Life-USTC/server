@@ -135,8 +135,8 @@ function revealCurrent(node: HTMLElement, active: boolean) {
           node.closest("nav[data-shell-navigation]") !== owner ||
           node.closest('[data-slot="sidebar-content"]') !== viewport ||
           node.closest('[data-slot="sidebar-flow"]') !== flow ||
-          (sheet && sheet.getAttribute("data-state") !== "open") ||
-          node.closest('[data-slot="collapsible-content"][data-state="closed"]')
+          (sheet && !sheet.hasAttribute("data-open")) ||
+          node.closest('[data-slot="collapsible-panel"][data-closed]')
         ) {
           stop();
           return;

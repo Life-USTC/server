@@ -217,11 +217,11 @@ function openMap() {
   void loadMap();
 }
 
-function restoreTriggerFocus(event: Event) {
-  event.preventDefault();
+function restoreTriggerFocus() {
   suppressPreview = true;
   (inline ? openButton : trigger)?.focus({ preventScroll: true });
   suppressPreview = false;
+  return null;
 }
 
 function closeDialog() {
@@ -325,14 +325,14 @@ function handleWheel(event: WheelEvent) {
           <span class={tableCell ? "whitespace-normal" : "truncate"}>{label ?? normalizedCode}</span>
         </a>
     <Popover.Content
-      customAnchor={trigger}
+      anchor={trigger}
       align="start"
       class="w-[min(24rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]"
       data-testid="room-map-preview-popover"
       sideOffset={8}
       bind:ref={previewContent}
-      onOpenAutoFocus={(event) => event.preventDefault()}
-      onCloseAutoFocus={(event) => event.preventDefault()}
+      initialFocus="none"
+      finalFocus="none"
       onpointerenter={keepPreviewOpen}
       onpointerleave={dismissPreview}
       onfocusin={keepPreviewOpen}
@@ -348,7 +348,7 @@ function handleWheel(event: WheelEvent) {
     <Dialog.Content
       class="flex max-h-[calc(100dvh-2rem)] max-w-6xl flex-col gap-3 overflow-hidden sm:max-w-6xl"
       data-testid="room-map-dialog"
-      onCloseAutoFocus={restoreTriggerFocus}
+      finalFocus={restoreTriggerFocus}
     >
       <Dialog.Header>
         <Dialog.Title>{dialogTitle}</Dialog.Title>

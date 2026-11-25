@@ -487,7 +487,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                         const id = link.getAttribute("aria-describedby");
                         const content = id ? document.getElementById(id) : null;
                         const linked =
-                          content?.matches("[data-tooltip-content]") === true;
+                          content?.matches("[role=tooltip]") === true;
                         const style = content
                           ? getComputedStyle(content)
                           : null;
@@ -516,7 +516,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                     complete: true,
                   });
                 const tooltip = page.locator(
-                  `[data-tooltip-content][id="${contentId}"]`,
+                  `[role=tooltip][id="${contentId}"]`,
                 );
                 await expect(tooltip).toContainText(title);
                 await expect(tooltip).toContainText("09:00");

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { AlertDialog as AlertDialogPrimitive } from "bits-ui";
+	import type { ButtonProps } from "#lib/components/ui/button/index.js";
 	import {
 		Button,
 		type ButtonVariant,
@@ -16,28 +16,21 @@
 		disabled,
 		children,
 		...restProps
-	}: WithoutChildrenOrChild<AlertDialogPrimitive.ActionProps> & {
+	}: ButtonProps & {
 		variant?: ButtonVariant;
 		size?: ButtonSize;
 		children?: Snippet;
 	} = $props();
 </script>
 
-<AlertDialogPrimitive.Action
-	bind:ref
-	data-slot="alert-dialog-action"
-	disabled={disabled}
-	{...restProps}
+<Button
+  bind:ref
+  data-slot="alert-dialog-action"
+  {variant}
+  {size}
+  class={cn("cn-alert-dialog-action", className)}
+  {disabled}
+  {...restProps}
 >
-	{#snippet child({ props })}
-		<Button
-			{...props}
-			variant={variant}
-			size={size}
-			class={cn("cn-alert-dialog-action", className)}
-			disabled={disabled}
-		>
-			{@render children?.()}
-		</Button>
-	{/snippet}
-</AlertDialogPrimitive.Action>
+  {@render children?.()}
+</Button>

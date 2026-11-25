@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Input as SDKInput } from "@ui-sdk/svelte/input";
 	import { toolbarFieldClass } from "#lib/components/toolbar-control.js";
 	import type { HTMLInputAttributes, HTMLInputTypeAttribute } from "svelte/elements";
 	import { cn, type WithElementRef } from "#lib/utils.js";
@@ -19,32 +20,24 @@
 		"data-slot": dataSlot = "input",
 		...restProps
 	}: Props = $props();
+	const classes = $derived(cn(toolbarFieldClass,
+			"dark:bg-input/30 border-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 disabled:bg-input/50 dark:disabled:bg-input/80 rounded-lg border bg-transparent px-1.5 py-1 text-base transition-colors file:h-6 file:text-sm file:font-medium focus-visible:ring-3 aria-invalid:ring-3 md:text-sm file:text-foreground placeholder:text-muted-foreground w-full min-w-0 outline-none file:inline-flex file:border-0 file:bg-transparent disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+			className));
 </script>
 
 {#if type === "file"}
-	<input
-		bind:this={ref}
-		data-slot={dataSlot}
-		class={cn(
-			toolbarFieldClass,
-			"dark:bg-input/30 border-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 disabled:bg-input/50 dark:disabled:bg-input/80 rounded-lg border bg-transparent px-1.5 py-1 text-base transition-colors file:h-6 file:text-sm file:font-medium focus-visible:ring-3 aria-invalid:ring-3 md:text-sm file:text-foreground placeholder:text-muted-foreground w-full min-w-0 outline-none file:inline-flex file:border-0 file:bg-transparent disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
-			className
-		)}
-		type="file"
-		bind:files
-		{...restProps}
-	/>
+  <input bind:this={ref} data-slot={dataSlot} class={classes} type="file" bind:files {...restProps} />
+{:else if type === "number" || type === "range"}
+  <input bind:this={ref} data-slot={dataSlot} class={classes} {type} bind:value {...restProps} />
 {:else}
-	<input
-		bind:this={ref}
-		data-slot={dataSlot}
-		class={cn(
-			toolbarFieldClass,
-			"dark:bg-input/30 border-input focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 disabled:bg-input/50 dark:disabled:bg-input/80 rounded-lg border bg-transparent px-1.5 py-1 text-base transition-colors file:h-6 file:text-sm file:font-medium focus-visible:ring-3 aria-invalid:ring-3 md:text-sm file:text-foreground placeholder:text-muted-foreground w-full min-w-0 outline-none file:inline-flex file:border-0 file:bg-transparent disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
-			className
-		)}
-		{type}
-		bind:value
-		{...restProps}
-	/>
+  <SDKInput
+    {@attach (element: HTMLInputElement) => { ref = element; return () => { ref = null; }; }}
+    data-slot={dataSlot}
+    class={classes}
+    {type}
+    {...restProps}
+    disabled={restProps.disabled ?? false}
+    required={restProps.required ?? false}
+    bind:value={() => value == null ? "" : String(value), (next) => { value = next; }}
+  />
 {/if}

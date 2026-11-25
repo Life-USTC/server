@@ -37,7 +37,7 @@ export let startEdit: () => void;
   {#if !editing && (canWrite || canManage)}
     <DropdownMenu.Root>
       <DropdownMenu.Trigger>
-        {#snippet child({ props })}
+        {#snippet render({ props })}
           <Button
             {...props}
             aria-label={homeworkCopy.moreDetails}

@@ -75,9 +75,9 @@ const active = $derived(
           <SearchField id={`${id}-search`} label={copy.taskFilters.search} placeholder={copy.taskFilters.search} value={draft.title ?? ""} oninput={(event) => onchange({title:event.currentTarget.value})} disabled={!ready} />
         </div>
         {#each common as field (field.name)}
-          <Popover.Root>
+          <Popover.Root modal="trap-focus">
             <Popover.Trigger>
-              {#snippet child({props})}
+              {#snippet render({props})}
                 <Button {...props} type="button" variant="outline" disabled={!ready} data-filter-trigger={field.name}>
                   {field.label}<ChevronDown data-icon="inline-end" />
                 </Button>
@@ -88,9 +88,9 @@ const active = $derived(
             </Popover.Content>
           </Popover.Root>
         {/each}
-        <Popover.Root>
+        <Popover.Root modal="trap-focus">
           <Popover.Trigger>
-            {#snippet child({props})}
+            {#snippet render({props})}
               <Button {...props} type="button" variant="outline" disabled={!ready} data-filter-trigger="more">
                 <SlidersHorizontal data-icon="inline-start" />{copy.taskFilters.more}
               </Button>

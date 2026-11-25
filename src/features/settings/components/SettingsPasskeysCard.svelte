@@ -1,7 +1,7 @@
 <script lang="ts">
 import Fingerprint from "@lucide/svelte/icons/fingerprint";
+import { toast } from "@ui-sdk/svelte/toast";
 import { onMount } from "svelte";
-import { toast } from "svelte-sonner";
 import {
   isPasskeySupported,
   passkeyAuthClient,

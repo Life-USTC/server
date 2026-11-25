@@ -47,8 +47,8 @@ async function confirm(event: MouseEvent) {
   }
 }
 </script>
-<AlertDialog.Root {open} onOpenChange={change}>
-  <AlertDialog.Content escapeKeydownBehavior={pending ? "ignore" : "close"}>
+<AlertDialog.Root dismissible={!pending} {open} onOpenChange={change}>
+  <AlertDialog.Content>
     <AlertDialog.Header>
       <AlertDialog.Title>{copy.unsubscribeTitle}</AlertDialog.Title>
       <AlertDialog.Description>{copy.unsubscribeDescription.replace("{name}", name)}</AlertDialog.Description>

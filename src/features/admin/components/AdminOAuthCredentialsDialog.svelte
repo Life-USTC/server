@@ -51,6 +51,7 @@ async function copyCredential(
   {#key `${clientId ?? "public"}:${preventedDismissalCount}`}
     <Dialog.Root
       open={true}
+      dismissible={canDismissCredentials}
       onOpenChange={(nextOpen) => {
         if (nextOpen) return;
         if (canDismissCredentials) close();
@@ -60,8 +61,6 @@ async function copyCredential(
     <Dialog.Content
       class="grid max-h-[calc(100dvh-2rem)] min-h-0 max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl"
       aria-labelledby="oauth-credentials-title"
-      escapeKeydownBehavior={canDismissCredentials ? "close" : "ignore"}
-      interactOutsideBehavior={canDismissCredentials ? "close" : "ignore"}
       showCloseButton={canDismissCredentials}
     >
       <Dialog.Header class="pr-10">

@@ -1,16 +1,17 @@
 <script lang="ts">
-	import { AlertDialog as AlertDialogPrimitive } from "bits-ui";
+	import type { ComponentProps } from "svelte";
+	import { AlertDialogDescription } from "@ui-sdk/svelte/alert-dialog";
 	import { cn } from "#lib/utils.js";
 
 	let {
 		ref = $bindable(null),
 		class: className,
 		...restProps
-	}: AlertDialogPrimitive.DescriptionProps = $props();
+	}: ComponentProps<typeof AlertDialogDescription> & { ref?: HTMLElement | null } = $props();
 </script>
 
-<AlertDialogPrimitive.Description
-	bind:ref
+<AlertDialogDescription
+	{@attach (element: HTMLElement) => { ref = element; return () => { ref = null; }; }}
 	data-slot="alert-dialog-description"
 	class={cn("text-muted-foreground *:[a]:hover:text-foreground text-sm text-balance md:text-pretty *:[a]:underline *:[a]:underline-offset-3", className)}
 	{...restProps}

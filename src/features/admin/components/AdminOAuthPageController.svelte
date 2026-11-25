@@ -1,6 +1,6 @@
 <script lang="ts">
+import { toast } from "@ui-sdk/svelte/toast";
 import { onMount } from "svelte";
-import { toast } from "svelte-sonner";
 import AdminOAuthClients from "@/features/admin/components/AdminOAuthClients.svelte";
 import AdminOAuthDialogs from "@/features/admin/components/AdminOAuthDialogs.svelte";
 import AdminOAuthHeader from "@/features/admin/components/AdminOAuthHeader.svelte";
