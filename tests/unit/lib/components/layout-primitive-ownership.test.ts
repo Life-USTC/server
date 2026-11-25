@@ -163,7 +163,7 @@ it("ui.layout-principles-4", async () => {
     "src/features/young/components/YoungEventsPage.svelte",
     "src/features/young/components/YoungCalendarPage.svelte",
     "src/features/young/components/YoungOrganizersPage.svelte",
-    "src/features/admin/components/AdminModerationPageController.svelte",
+    "src/routes/admin/moderation/+page.svelte",
     "src/routes/account/settings/+page.svelte",
   ]) {
     const primitives = await renderedPrimitives(root);
