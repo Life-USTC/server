@@ -489,14 +489,8 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           '[data-slot="alert-dialog-footer"] button',
         );
         await expect(buttons).toHaveCount(2);
-        await expect(buttons.nth(0)).toHaveAttribute(
-          "data-slot",
-          "alert-dialog-cancel",
-        );
-        await expect(buttons.nth(1)).toHaveAttribute(
-          "data-slot",
-          "alert-dialog-action",
-        );
+        await expect(buttons.nth(0)).toHaveAccessibleName(/取消|Cancel/i);
+        await expect(buttons.nth(1)).toHaveAccessibleName(/删除|Delete/i);
         await page.keyboard.press("Escape");
         await expect(dialog).toBeHidden();
         expect(await commentRows(db)).toEqual(before);

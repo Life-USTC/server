@@ -73,14 +73,8 @@ test.describe("/account/settings/danger 危险区设置", () => {
         '[data-slot="alert-dialog-footer"] button',
       );
       await expect(footerButtons).toHaveCount(2);
-      await expect(footerButtons.nth(0)).toHaveAttribute(
-        "data-slot",
-        "alert-dialog-cancel",
-      );
-      await expect(footerButtons.nth(1)).toHaveAttribute(
-        "data-slot",
-        "alert-dialog-action",
-      );
+      await expect(footerButtons.nth(0)).toHaveAccessibleName(/取消|Cancel/i);
+      await expect(footerButtons.nth(1)).toHaveAccessibleName(/删除|Delete/i);
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
       ).toBeLessThanOrEqual(390);
@@ -106,14 +100,8 @@ test.describe("/account/settings/danger 危险区设置", () => {
         '[data-slot="alert-dialog-footer"] button',
       );
       await expect(narrowFooterButtons).toHaveCount(2);
-      await expect(narrowFooterButtons.nth(0)).toHaveAttribute(
-        "data-slot",
-        "alert-dialog-cancel",
-      );
-      await expect(narrowFooterButtons.nth(1)).toHaveAttribute(
-        "data-slot",
-        "alert-dialog-action",
-      );
+      await expect(narrowFooterButtons.nth(0)).toHaveAccessibleName(/取消|Cancel/i);
+      await expect(narrowFooterButtons.nth(1)).toHaveAccessibleName(/删除|Delete/i);
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
       ).toBeLessThanOrEqual(320);
