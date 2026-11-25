@@ -37,17 +37,12 @@ export let toggleReply: (comment: CommentNode) => void;
         actionMenuId = open ? comment.id : null;
       }}
     >
-      <DropdownMenu.Trigger>
-        {#snippet render({ props })}
-          <Button
-            {...props}
-            aria-label={commentCopy.moreActions}
-            variant="ghost"
-          >
-            {commentCopy.moreActions}
-          </Button>
-        {/snippet}
-      </DropdownMenu.Trigger>
+      <DropdownMenu.ButtonTrigger
+        aria-label={commentCopy.moreActions}
+        variant="ghost"
+      >
+        {commentCopy.moreActions}
+      </DropdownMenu.ButtonTrigger>
       <DropdownMenu.Content align="end">
         <DropdownMenu.Group>
           <DropdownMenu.Item onSelect={() => copyCommentLink(comment)}>

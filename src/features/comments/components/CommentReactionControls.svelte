@@ -36,18 +36,13 @@ $: if (
         reactionMenuId = open ? comment.id : null;
       }}
     >
-      <DropdownMenu.Trigger>
-        {#snippet render({ props })}
-          <Button
-            {...props}
-            aria-label={commentCopy.reactionMenu}
-            disabled={!comment.canReact}
-            variant="outline"
-          >
-            {commentCopy.reactionMenu}
-          </Button>
-        {/snippet}
-      </DropdownMenu.Trigger>
+      <DropdownMenu.ButtonTrigger
+        aria-label={commentCopy.reactionMenu}
+        disabled={!comment.canReact}
+        variant="outline"
+      >
+        {commentCopy.reactionMenu}
+      </DropdownMenu.ButtonTrigger>
       <DropdownMenu.Content class="w-56">
         <DropdownMenu.Group>
           {#each COMMENT_REACTION_OPTIONS as option}

@@ -1,3 +1,4 @@
+export { default as ButtonTrigger } from "./dropdown-menu-button-trigger.svelte";
 import { Menu as Root } from "@ui-sdk/svelte/menu";
 import CheckboxItem from "./dropdown-menu-checkbox-item.svelte";
 import Content from "./dropdown-menu-content.svelte";

@@ -5,7 +5,6 @@ import SettingsIcon from "@lucide/svelte/icons/settings";
 import UserRoundIcon from "@lucide/svelte/icons/user-round";
 import WrenchIcon from "@lucide/svelte/icons/wrench";
 import { Avatar, AvatarFallback, AvatarImage } from "@ui-sdk/svelte/avatar";
-import { Button } from "#lib/components/ui/button/index.js";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import type {
   LayoutCopy,
@@ -30,23 +29,18 @@ let signOutForm: HTMLFormElement;
   <div id={demo ? "demo-navigation-menu" : "app-user-menu"}>
     {#if user}<form method="POST" action="/account/sign-out" bind:this={signOutForm}></form>{/if}
     <DropdownMenu.Root open={userMenuOpen} onOpenChange={setUserMenuOpen}>
-      <DropdownMenu.Trigger>
-        {#snippet render({ props })}
-          <Button
-            {...props}
-            variant="ghost"
-            size="icon"
-            class="size-11 shrink-0 rounded-full"
-            aria-label={demo?.displayName ?? copy.shell.profileMenu}
-            title={user?.name ?? demo?.displayName ?? copy.shell.profileMenu}
-          >
-            <Avatar class="size-8 rounded-full">
-              {#if user?.image}<AvatarImage src={user.image} alt="" />{/if}
-              <AvatarFallback>{demo ? "D" : avatarFallback}</AvatarFallback>
-            </Avatar>
-          </Button>
-        {/snippet}
-      </DropdownMenu.Trigger>
+      <DropdownMenu.ButtonTrigger
+        variant="ghost"
+        size="icon"
+        class="size-11 shrink-0 rounded-full"
+        aria-label={demo?.displayName ?? copy.shell.profileMenu}
+        title={user?.name ?? demo?.displayName ?? copy.shell.profileMenu}
+      >
+        <Avatar class="size-8 rounded-full">
+          {#if user?.image}<AvatarImage src={user.image} alt="" />{/if}
+          <AvatarFallback>{demo ? "D" : avatarFallback}</AvatarFallback>
+        </Avatar>
+      </DropdownMenu.ButtonTrigger>
       <DropdownMenu.Content
         align="end"
         class="w-56"

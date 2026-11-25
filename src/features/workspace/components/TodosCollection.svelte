@@ -1,15 +1,14 @@
 <script lang="ts">
-import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
 import Pencil from "@lucide/svelte/icons/pencil";
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
+import MoreActionsMenu from "#lib/components/MoreActionsMenu.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TaskCompletionButton from "#lib/components/TaskCompletionButton.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
-import { Button } from "#lib/components/ui/button/index.js";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import Table from "#lib/components/ui/table/table.svelte";
@@ -101,30 +100,14 @@ export let readOnlyReason: string | undefined = undefined;
               </Item.Content>
               <Item.Actions class="shrink-0 self-start">
                 {@render completion(todo)}
-                <DropdownMenu.Root>
-                  <DropdownMenu.Trigger>
-                    {#snippet render({ props })}
-                      <Button
-                        {...props}
-                        icon={MoreHorizontal}
-                        aria-label={todosCopy.editAriaLabel}
-                        disabled={Boolean(readOnlyReason)}
-                        title={readOnlyReason}
-                        class="icon-action" size="icon"
-                        type="button"
-                        variant="outline"
-                      />
-                    {/snippet}
-                  </DropdownMenu.Trigger>
-                  <DropdownMenu.Content align="end">
-                    <DropdownMenu.Group>
-                      <DropdownMenu.Item disabled={Boolean(readOnlyReason)} onSelect={() => openTodoEditor(todo)}>
-                        <Pencil />
-                        {todosCopy.editTitle}
-                      </DropdownMenu.Item>
-                    </DropdownMenu.Group>
-                  </DropdownMenu.Content>
-                </DropdownMenu.Root>
+                <MoreActionsMenu label={todosCopy.editAriaLabel} disabled={Boolean(readOnlyReason)} title={readOnlyReason}>
+                  <DropdownMenu.Group>
+                    <DropdownMenu.Item disabled={Boolean(readOnlyReason)} onSelect={() => openTodoEditor(todo)}>
+                      <Pencil />
+                      {todosCopy.editTitle}
+                    </DropdownMenu.Item>
+                  </DropdownMenu.Group>
+                </MoreActionsMenu>
               </Item.Actions>
             </MobileListCard>
             {#if index < filteredTodos.length - 1}

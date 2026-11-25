@@ -4,7 +4,6 @@ import MonitorCogIcon from "@lucide/svelte/icons/monitor-cog";
 import MoonIcon from "@lucide/svelte/icons/moon";
 import SunIcon from "@lucide/svelte/icons/sun";
 import type { ThemeMode } from "#lib/components/shell/layout-shell.js";
-import { Button } from "#lib/components/ui/button/index.js";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import type { LayoutCopy } from "#lib/shell/layout-server-data.js";
 
@@ -27,19 +26,14 @@ function setThemeValue(value: string) {
 
 <div data-shell-preferences class="flex items-center gap-0.5 min-[360px]:gap-2">
   <DropdownMenu.Root open={localeMenuOpen} onOpenChange={setLocaleMenuOpen}>
-    <DropdownMenu.Trigger>
-      {#snippet render({ props })}
-        <Button
-          {...props}
-          aria-label={copy.language.selector}
-          class="icon-action"
-          size="icon-sm"
-          variant="outline"
-        >
-          <LanguagesIcon class="size-3.5" aria-hidden="true" />
-        </Button>
-      {/snippet}
-    </DropdownMenu.Trigger>
+    <DropdownMenu.ButtonTrigger
+      aria-label={copy.language.selector}
+      class="icon-action"
+      size="icon-sm"
+      variant="outline"
+    >
+      <LanguagesIcon class="size-3.5" aria-hidden="true" />
+    </DropdownMenu.ButtonTrigger>
     <DropdownMenu.Content
       align="end"
       class="w-40"
@@ -62,25 +56,20 @@ function setThemeValue(value: string) {
   </DropdownMenu.Root>
 
   <DropdownMenu.Root open={themeMenuOpen} onOpenChange={setThemeMenuOpen}>
-    <DropdownMenu.Trigger>
-      {#snippet render({ props })}
-        <Button
-          {...props}
-          aria-label={copy.theme.selector}
-          class="icon-action"
-          size="icon-sm"
-          variant="outline"
-        >
-          {#if themeMode === "light"}
-            <SunIcon class="size-3.5" aria-hidden="true" />
-          {:else if themeMode === "dark"}
-            <MoonIcon class="size-3.5" aria-hidden="true" />
-          {:else}
-            <MonitorCogIcon class="size-3.5" aria-hidden="true" />
-          {/if}
-        </Button>
-      {/snippet}
-    </DropdownMenu.Trigger>
+    <DropdownMenu.ButtonTrigger
+      aria-label={copy.theme.selector}
+      class="icon-action"
+      size="icon-sm"
+      variant="outline"
+    >
+      {#if themeMode === "light"}
+        <SunIcon class="size-3.5" aria-hidden="true" />
+      {:else if themeMode === "dark"}
+        <MoonIcon class="size-3.5" aria-hidden="true" />
+      {:else}
+        <MonitorCogIcon class="size-3.5" aria-hidden="true" />
+      {/if}
+    </DropdownMenu.ButtonTrigger>
     <DropdownMenu.Content
       align="end"
       class="w-44"

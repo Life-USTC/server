@@ -3,7 +3,6 @@ import CalendarClock from "@lucide/svelte/icons/calendar-clock";
 import type { Snippet } from "svelte";
 import DateTimePicker from "#lib/components/DateTimePicker.svelte";
 import * as Accordion from "#lib/components/ui/accordion/index.js";
-import { Button } from "#lib/components/ui/button/index.js";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import {
@@ -41,21 +40,16 @@ $: capabilities = homeworkSemesterShortcutCapabilities({
 
 {#snippet shortcutMenu(options: Snippet, label: string, fieldLabel?: string)}
   <DropdownMenu.Root>
-    <DropdownMenu.Trigger>
-      {#snippet render({ props })}
-        <Button
-          {...props}
-          icon={CalendarClock}
-          aria-label={fieldLabel ? `${fieldLabel} · ${label}` : undefined}
-          class={fieldLabel ? undefined : "shrink-0"}
-          {disabled}
-          type="button"
-          variant="outline"
-        >
-          {label}
-        </Button>
-      {/snippet}
-    </DropdownMenu.Trigger>
+    <DropdownMenu.ButtonTrigger
+      icon={CalendarClock}
+      aria-label={fieldLabel ? `${fieldLabel} · ${label}` : undefined}
+      class={fieldLabel ? undefined : "shrink-0"}
+      {disabled}
+      type="button"
+      variant="outline"
+    >
+      {label}
+    </DropdownMenu.ButtonTrigger>
     <DropdownMenu.Content align="end" class="w-max max-w-[calc(100vw-2rem)] max-h-[var(--available-height)]">
       <DropdownMenu.Group>{@render options()}</DropdownMenu.Group>
     </DropdownMenu.Content>
