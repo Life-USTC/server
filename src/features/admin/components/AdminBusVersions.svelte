@@ -8,7 +8,7 @@ import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import { formatBusVersionEffectiveRange } from "@/features/admin/lib/admin-bus-formatters";
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import { matchTableFilter, type TableFilterField } from "@/lib/table-filters";
@@ -164,24 +164,24 @@ function apply(event: SubmitEvent) {
     {#snippet desktop()}
       <div class="min-w-0">
         <CollectionTableShell label={copy.colTitle}>
-          <Table.Root class="w-full min-w-[68rem]">
-            <Table.Header>
-              <Table.Row>
-                <Table.Head class="w-[25%]">{@render column(0)}</Table.Head>
-                <Table.Head class="w-[17%]">{@render column(1)}</Table.Head>
-                <Table.Head class="w-[9%]">{@render column(2)}</Table.Head>
-                <Table.Head class="w-[18%]">{@render column(3)}</Table.Head>
-                <Table.Head class="w-[14%]">{@render column(4)}</Table.Head>
-                <Table.Head class="w-[10%]">{@render column(5)}</Table.Head>
-                <Table.Head class="w-20 min-w-20">
+          <Table class="w-full min-w-[68rem]">
+            <thead>
+              <tr>
+                <th class="w-[25%]">{@render column(0)}</th>
+                <th class="w-[17%]">{@render column(1)}</th>
+                <th class="w-[9%]">{@render column(2)}</th>
+                <th class="w-[18%]">{@render column(3)}</th>
+                <th class="w-[14%]">{@render column(4)}</th>
+                <th class="w-[10%]">{@render column(5)}</th>
+                <th class="w-20 min-w-20">
                   <span class="sr-only">{copy.colActions}</span>
-                </Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
               {#each visibleVersions as version}
-                <Table.Row class="group">
-                  <Table.Cell class="max-w-0">
+                <tr class="group">
+                  <td class="max-w-0">
                     <span class="block max-w-full" title={version.title}>
                       <TruncatedText class="font-medium" text={version.title} />
                     </span>
@@ -191,35 +191,35 @@ function apply(event: SubmitEvent) {
                         text={version.sourceMessage}
                       />
                     </span>
-                  </Table.Cell>
-                  <Table.Cell class="max-w-0">
+                  </td>
+                  <td class="max-w-0">
                     <span class="block max-w-full truncate font-mono text-sm" title={version.key}>
                       {version.key}
                     </span>
-                  </Table.Cell>
-                  <Table.Cell class="text-left tabular-nums">{version.tripCount}</Table.Cell>
-                  <Table.Cell class="text-muted-foreground">
+                  </td>
+                  <td class="text-left tabular-nums">{version.tripCount}</td>
+                  <td class="text-muted-foreground">
                     {formatBusVersionEffectiveRange(version)}
-                  </Table.Cell>
-                  <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+                  </td>
+                  <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
                     {dateTimeFormatter.format(new Date(version.importedAt))}
-                  </Table.Cell>
-                  <Table.Cell class="text-left">
+                  </td>
+                  <td class="text-left">
                     <AdminBusVersionStatusBadge {copy} {version} />
-                  </Table.Cell>
-                  <Table.Cell class="w-20 min-w-20 text-left">
+                  </td>
+                  <td class="w-20 min-w-20 text-left">
                     {@render actions(version)}
-                  </Table.Cell>
-                </Table.Row>
+                  </td>
+                </tr>
               {:else}
-                <Table.Row>
-                  <Table.Cell class="p-0" colspan={7}>
+                <tr>
+                  <td class="p-0" colspan={7}>
                     <CollectionEmpty variant="compact" description={copy.noVersions} />
-                  </Table.Cell>
-                </Table.Row>
+                  </td>
+                </tr>
               {/each}
-            </Table.Body>
-          </Table.Root>
+            </tbody>
+          </Table>
         </CollectionTableShell>
       </div>
     {/snippet}

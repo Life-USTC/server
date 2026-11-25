@@ -18,17 +18,6 @@ import { componentTags } from "./svelte-component-tags";
  * complement: it enumerates every table by walking `src/features` and
  * `src/routes`, so a table is covered the moment it is written.
  *
- * Everything the rule needs is DERIVED:
- *  - the table element roles come from the `ui/table` barrel's own exports, so
- *    `Table.Head` and `TableHead` resolve to the same primitive;
- *  - the default alignment comes from `table-head.svelte`'s own class, not from
- *    an assumption about `<th>`;
- *  - the prop-driven vocabulary is discovered by reading every component's
- *    class expressions for a prop that switches an alignment on;
- *  - the tables come from walking the feature and route trees, and a table whose
- *    body rows live in an extracted row component are followed through the
- *    import.
- *
  * Matching is POSITIONAL: column N of the header row is compared against
  * column N of each body row. That is only sound when the two sequences cannot
  * diverge, so the guard proves it per row rather than assuming it — a row is
@@ -40,8 +29,7 @@ import { componentTags } from "./svelte-component-tags";
  */
 
 const SCAN_ROOTS = ["src/features", "src/routes"];
-const TABLE_BARREL = "src/lib/components/ui/table/index.ts";
-const TABLE_HEAD_PRIMITIVE = "src/lib/components/ui/table/table-head.svelte";
+const TABLE_COMPONENT = "src/lib/components/ui/table/table.svelte";
 
 /**
  * CSS `text-align` keywords, normalised onto the physical directions the
@@ -63,7 +51,7 @@ const CLASS_EXPRESSION = /(?<![\w-])class=(\{(?:[^{}]|\{[^{}]*\})*\})/;
 const STYLE_LITERAL = /(?<![\w-])style="([^"]*)"/;
 const STRING_LITERAL = /"([^"]*)"|'([^']*)'/g;
 const TEXT_ALIGN_PROPERTY = /text-align:\s*([a-z]+)/;
-const CLOSING_TAG = /<\/([A-Z][\w.]*)\s*>/g;
+const CLOSING_TAG = /<\/([A-Z][\w.]*|thead|tbody|tr|th|td)\s*>/g;
 /** `{#if …}`, `{:else …}`, `{/if}` — the block boundaries, not `{@const}`. */
 const BLOCK_BOUNDARY = /\{([#:/])([a-z]+)/g;
 const SCRIPT_OR_STYLE = /(<(script|style)\b[^>]*>)([\s\S]*?)(<\/\2\s*>)/g;
@@ -174,53 +162,22 @@ function lineOf(source: string, index: number): number {
   return source.slice(0, index).split("\n").length;
 }
 
-/*
- * ---------------------------------------------------------------------------
- * The table element roles, read out of the `ui/table` barrel.
- * ---------------------------------------------------------------------------
- */
-
-/** Primitive file basename -> the role it plays in a table. */
-const ROLES: Readonly<Record<string, string>> = {
-  "table-body": "body",
-  "table-cell": "cell",
-  "table-head": "head",
-  "table-header": "header",
-  "table-row": "row",
-  table: "root",
+const nativeRoles: Readonly<Record<string, string>> = {
+  thead: "header",
+  tbody: "body",
+  th: "head",
+  td: "cell",
+  tr: "row",
 };
 
-/** Barrel export name -> role, so `Head` and `TableHead` both resolve. */
-async function tableRoles(): Promise<Map<string, string>> {
-  const barrel = await sourceOf(TABLE_BARREL);
-  const modules = new Map<string, string>();
-  for (const [, local, module] of barrel.matchAll(
-    /import\s+([\w$]+)\s+from\s+["']\.\/([\w-]+)\.svelte["']/g,
-  ))
-    modules.set(local, module);
-  const roles = new Map<string, string>();
-  const exported = /export\s*\{([\s\S]*?)\}/.exec(barrel)?.[1] ?? "";
-  for (const entry of exported.split(",")) {
-    const named = /^([\w$]+)(?:\s+as\s+([\w$]+))?$/.exec(
-      entry.replace(/\/\/.*$/gm, "").trim(),
-    );
-    if (!named) continue;
-    const role = ROLES[modules.get(named[1]) ?? ""];
-    if (role) roles.set(named[2] ?? named[1], role);
-  }
-  return roles;
+function tableRole(imports: Map<string, string>, tag: string) {
+  return imports.get(tag) === TABLE_COMPONENT ? "root" : nativeRoles[tag];
 }
 
-const ROLE_BY_EXPORT = await tableRoles();
-
-/** The alignment `table-head.svelte` gives every column that declares none. */
-const DEFAULT_ALIGNMENT = await (async () => {
-  for (const classes of stringLiterals(await sourceOf(TABLE_HEAD_PRIMITIVE))) {
-    const alignment = alignmentOfClasses(classes);
-    if (alignment) return alignment;
-  }
-  return undefined;
-})();
+const styles = await sourceOf("src/routes/svelte.css");
+const headerClasses =
+  /\[data-slot="table"\][^{]*> th\s*\{\s*@apply ([^;]+);/.exec(styles)?.[1];
+const DEFAULT_ALIGNMENT = alignmentOfClasses(headerClasses ?? "");
 
 /*
  * ---------------------------------------------------------------------------
@@ -298,7 +255,10 @@ function braceEnd(text: string, start: number): number {
 
 function boundaries(markup: string): Boundary[] {
   const found: Boundary[] = [];
-  for (const element of componentTags(markup)) {
+  for (const element of componentTags(
+    markup,
+    /(?:[A-Z][\w.]*|thead|tbody|tr|th|td)\b/y,
+  )) {
     const end =
       element.index + 1 + element.tag.length + element.attributes.length;
     found.push({
@@ -463,12 +423,7 @@ async function tablesOf(file: string): Promise<Table[]> {
   const source = await sourceOf(file);
   if (!source.includes("<Table")) return [];
   const imports = importsOf(file, source);
-  const roleOf = (tag: string) => {
-    const [namespace, member] = tag.split(".");
-    const module = imports.get(namespace);
-    if (module !== TABLE_BARREL) return undefined;
-    return ROLE_BY_EXPORT.get(member ?? namespace);
-  };
+  const roleOf = (tag: string) => tableRole(imports, tag);
   const tree = parse(source);
   const tables: Table[] = [];
   for (const root of everyElement(tree)) {
@@ -524,11 +479,7 @@ async function tablesOf(file: string): Promise<Table[]> {
           if (!module?.endsWith(".svelte")) continue;
           const rowSource = await sourceOf(module);
           const rowImports = importsOf(module, rowSource);
-          const rowRoleOf = (tag: string) => {
-            const [namespace, member] = tag.split(".");
-            if (rowImports.get(namespace) !== TABLE_BARREL) return undefined;
-            return ROLE_BY_EXPORT.get(member ?? namespace);
-          };
+          const rowRoleOf = (tag: string) => tableRole(rowImports, tag);
           for (const element of descendants(parse(rowSource), rowRoleOf)) {
             if (rowRoleOf(element.tag) !== "row") continue;
             const cells = [...descendants(element, rowRoleOf)]
@@ -571,11 +522,11 @@ const tables = (
 ).flat();
 
 /**
- * Tables with no header row: their `Table.Head` elements are row headers
+ * Tables with no header row: their `th` elements are row headers
  * inside the body, labelling a row rather than a column, so there is no column
  * header sequence to compare a body row against. Each pin records the table's
  * literal section structure, re-read every run: give one of these a
- * `Table.Header` and the pin goes stale and must be deleted, and a new
+ * `thead` and the pin goes stale and must be deleted, and a new
  * header-less table is a failure rather than a line of configuration.
  */
 const ROW_HEADER_TABLES: readonly { file: string; sections: string }[] = [
@@ -670,21 +621,8 @@ for (const table of columnTables) {
 }
 
 describe("ui.table-column-alignment", () => {
-  it("derives the table vocabulary from the primitives themselves", () => {
-    // A rename or a moved file must break discovery loudly rather than quietly
-    // emptying the rule.
-    expect(ROLE_BY_EXPORT.get("Head")).toBe("head");
-    expect(ROLE_BY_EXPORT.get("TableHead")).toBe("head");
-    expect(ROLE_BY_EXPORT.get("Cell")).toBe("cell");
-    expect(ROLE_BY_EXPORT.get("Root")).toBe("root");
-    expect(
-      new Set(ROLE_BY_EXPORT.values()),
-      "every table role resolved from the barrel",
-    ).toEqual(new Set(Object.values(ROLES)));
-    expect(
-      DEFAULT_ALIGNMENT,
-      `the alignment ${TABLE_HEAD_PRIMITIVE} gives an undeclared column`,
-    ).toBe("left");
+  it("aligns table headings to the left by default", () => {
+    expect(DEFAULT_ALIGNMENT).toBe("left");
   });
 
   it("keeps numeric link formatting from overriding left alignment", async () => {
@@ -703,7 +641,7 @@ describe("ui.table-column-alignment", () => {
   });
 
   it("enumerates every table under features and routes", () => {
-    expect(tables.length, "Table.Root elements discovered").toBeGreaterThan(25);
+    expect(tables.length, "shared tables discovered").toBeGreaterThan(25);
     expect(
       columnTables.length,
       "tables whose header row defines a column sequence",
@@ -731,7 +669,7 @@ describe("ui.table-column-alignment", () => {
         stale.push(
           `${entry.file} no longer holds exactly one table with sections ` +
             `"${entry.sections}" and no header row (found ${matching.length}). ` +
-            `If it gained a Table.Header its columns are now gated — delete ` +
+            `If it gained a thead its columns are now gated — delete ` +
             `this pin.`,
         );
     }
@@ -741,7 +679,7 @@ describe("ui.table-column-alignment", () => {
       headerless
         .filter((table) => !pinned.has(table.file))
         .map((t) => `${t.file}:${t.line}`),
-      "a table with no Table.Header has no column headers to gate; give it " +
+      "a table with no thead has no column headers to gate; give it " +
         "one rather than pinning it",
     ).toEqual([]);
   });

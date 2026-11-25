@@ -10,7 +10,7 @@ import type { Snippet } from "svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import { splitRoomLabels } from "@/features/rooms/lib/room-map-types";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
@@ -41,26 +41,26 @@ export let sectionCopy: ExamsCopyProps["sectionCopy"];
 export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
 </script>
 
-  <Table.Root class="min-w-0 w-full">
-    <Table.Header>
-      <Table.Row>
-        <Table.Head>{@render filterControls(["course"], subscriptionsCopy.courseName, "desktop")}</Table.Head>
-        <Table.Head>{@render filterControls(["section", "semester"], subscriptionsCopy.section, "desktop")}</Table.Head>
-        <Table.Head>{@render filterControls(["examDate", "completion"], sectionCopy.examDate, "desktop")}</Table.Head>
-        <Table.Head>{@render filterControls(["startTime", "endTime", "examMode"], sectionCopy.examTime, "desktop")}</Table.Head>
-        <Table.Head>{@render filterControls(["rooms"], sectionCopy.room, "desktop")}</Table.Head>
-        <Table.Head
-          ><span class="sr-only">{sectionCopy.moreDetails}</span></Table.Head
+  <Table class="min-w-0 w-full">
+    <thead>
+      <tr>
+        <th>{@render filterControls(["course"], subscriptionsCopy.courseName, "desktop")}</th>
+        <th>{@render filterControls(["section", "semester"], subscriptionsCopy.section, "desktop")}</th>
+        <th>{@render filterControls(["examDate", "completion"], sectionCopy.examDate, "desktop")}</th>
+        <th>{@render filterControls(["startTime", "endTime", "examMode"], sectionCopy.examTime, "desktop")}</th>
+        <th>{@render filterControls(["rooms"], sectionCopy.room, "desktop")}</th>
+        <th
+          ><span class="sr-only">{sectionCopy.moreDetails}</span></th
         >
-      </Table.Row>
-    </Table.Header>
-    <Table.Body>
+      </tr>
+    </thead>
+    <tbody>
       {#each exams as exam}
         {@const detailHref = exam.section.jwId
           ? `/catalog/sections/${exam.section.jwId}/schedule#exams`
           : workspaceTabHref("subscriptions")}
-        <Table.Row class="group">
-          <Table.Cell>
+        <tr class="group">
+          <td>
             <a
               class="block min-w-0 max-w-full overflow-hidden py-0.5 font-medium text-foreground"
               href={detailHref}
@@ -73,20 +73,20 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
                 {#each examMetadataLabels(exam) as label}<li>{label}</li>{/each}
               </ul>
             </details>
-          </Table.Cell>
-          <Table.Cell>
+          </td>
+          <td>
             {exam.section.code ?? subscriptionsCopy.section}
             <span class="block text-muted-foreground text-sm">{formatSemesterName(locale, namePrimary(exam.section.semester) || unknownSemesterLabel)}</span>
-          </Table.Cell>
-          <Table.Cell>
+          </td>
+          <td>
             {#if exam.examDate}{fmtExamDate(exam.examDate)}{:else}{sectionCopy.examDateTBD}{/if}
             <span class="block text-xs text-muted-foreground">{exam.completed ? workspaceCopy.nav.exams.filterCompleted : workspaceCopy.nav.exams.filterIncomplete}</span>
-          </Table.Cell>
-          <Table.Cell>
+          </td>
+          <td>
             {examTimeLabel(exam.startTime, exam.endTime) || "—"}
             {#if exam.examMode}<span class="block text-xs text-muted-foreground">{exam.examMode}</span>{/if}
-          </Table.Cell>
-          <Table.Cell>
+          </td>
+          <td>
             {#if exam.rooms}
               <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
                 {#each splitRoomLabels(exam.rooms) as room (room)}
@@ -96,26 +96,26 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
             {:else}
               {sectionCopy.roomTbd}
             {/if}
-          </Table.Cell>
-          <Table.Cell>
+          </td>
+          <td>
             <TableRowActions>
               <TableIconButton href={detailHref} label={sectionCopy.moreDetails}>
                 <ArrowUpRight data-icon="inline-start" />
               </TableIconButton>
             </TableRowActions>
-          </Table.Cell>
-        </Table.Row>
+          </td>
+        </tr>
       {:else}
-        <Table.Row class="hover:bg-transparent">
-          <Table.Cell class="p-0" colspan={6}>
+        <tr class="hover:bg-transparent">
+          <td class="p-0" colspan={6}>
             <WorkspaceTaskEmptyState
               title={hasExamRows ? workspaceCopy.nav.exams.filterEmpty : workspaceCopy.nav.exams.empty}
               description={hasExamRows ? workspaceCopy.nav.exams.filterEmptyDescription : workspaceCopy.nav.exams.emptyDescription}
               clearFilterLabel={workspaceCopy.nav.exams.clearFilter}
               onClearFilter={showClearFilter ? onClearFilter : undefined}
             />
-          </Table.Cell>
-        </Table.Row>
+          </td>
+        </tr>
       {/each}
-    </Table.Body>
-  </Table.Root>
+    </tbody>
+  </Table>

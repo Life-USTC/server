@@ -5,7 +5,7 @@ export let pageDemo: DemoIdentity | null | undefined = null;
 export let locale = "";
 
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import { formatMessage } from "@/features/section-detail/lib/display";
@@ -33,23 +33,23 @@ $: rows = sectionLessonRows(sectionCalendarEvents, sectionCopy.week);
 </script>
 
 {#if rows.length}
-  <Table.Root class="max-sm:[&_td]:px-1 max-sm:[&_th]:px-1 max-sm:[&_th]:whitespace-normal" containerLabel={sectionCopy.lecture} data-testid="section-calendar-table">
-    <Table.Caption class="sr-only">{sectionCopy.lecture}</Table.Caption>
-    <Table.Header>
-      <Table.Row>
-        <Table.Head scope="col">{sectionCopy.week}</Table.Head>
-        <Table.Head scope="col">{sectionCopy.lecture}</Table.Head>
-        <Table.Head scope="col">{sectionCopy.scheduleDateTime}</Table.Head>
-        <Table.Head scope="col">{sectionCopy.location}</Table.Head>
-      </Table.Row>
-    </Table.Header>
-    <Table.Body>
+  <Table class="max-sm:[&_td]:px-1 max-sm:[&_th]:px-1 max-sm:[&_th]:whitespace-normal" containerLabel={sectionCopy.lecture} data-testid="section-calendar-table">
+    <caption class="sr-only">{sectionCopy.lecture}</caption>
+    <thead>
+      <tr>
+        <th scope="col">{sectionCopy.week}</th>
+        <th scope="col">{sectionCopy.lecture}</th>
+        <th scope="col">{sectionCopy.scheduleDateTime}</th>
+        <th scope="col">{sectionCopy.location}</th>
+      </tr>
+    </thead>
+    <tbody>
       {#each rows as row, index (row.event.id)}
-        <Table.Row>
+        <tr>
           {#if row.weekSpan}
-            <Table.Cell rowspan={row.weekSpan} class="tabular-nums">{row.week || "—"}</Table.Cell>
+            <td rowspan={row.weekSpan} class="tabular-nums">{row.week || "—"}</td>
           {/if}
-          <Table.Cell>
+          <td>
             <div class="flex flex-col items-start sm:flex-row sm:items-baseline sm:gap-x-2">
               <span class="grid shrink-0 whitespace-nowrap tabular-nums">
                 <span class="invisible col-start-1 row-start-1 hidden sm:block" aria-hidden="true">{formatMessage(sectionCopy.lectureNumber, { num: String(rows.length) })}</span>
@@ -61,15 +61,15 @@ $: rows = sectionLessonRows(sectionCalendarEvents, sectionCopy.week);
                 {/each}
               </div>
             </div>
-          </Table.Cell>
+          </td>
           {#if row.timeSpan}
-            <Table.Cell rowspan={row.timeSpan} class="tabular-nums">
+            <td rowspan={row.timeSpan} class="tabular-nums">
               <div class="flex flex-wrap gap-x-2">
                 <span class="whitespace-nowrap">{row.event.dateKey || sectionCopy.dateTBD}</span><span class="whitespace-nowrap">{row.time}</span>
               </div>
-            </Table.Cell>
+            </td>
           {/if}
-          <Table.Cell class="text-foreground">
+          <td class="text-foreground">
             {#if row.event.roomCodes?.length}
               {#each row.event.roomCodes as room (room)}
                 <RoomMapPreview tableCell {pageDemo} {locale} code={room} label={row.event.roomCodes.length === 1 ? calendarEventLocation(row.event, room) : room} copy={roomMapCopy} />
@@ -77,11 +77,11 @@ $: rows = sectionLessonRows(sectionCalendarEvents, sectionCopy.week);
             {:else}
               {calendarEventLocation(row.event, "—")}
             {/if}
-          </Table.Cell>
-        </Table.Row>
+          </td>
+        </tr>
       {/each}
-    </Table.Body>
-  </Table.Root>
+    </tbody>
+  </Table>
 {:else}
   <CollectionEmpty variant="quiet" description={sectionCopy.calendarEmpty} />
 {/if}

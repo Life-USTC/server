@@ -322,7 +322,7 @@ html {
   @apply text-base font-semibold tracking-tight md:text-lg;
 }
 
-/* Full-cell actions share the horizontal inset of Table.Head. */
+/* Full-cell actions share the horizontal inset of table headings. */
 @utility table-cell-action {
   @apply flex h-full min-h-12 w-full min-w-0 items-center overflow-hidden px-(--table-cell-inset) text-left text-foreground no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50;
 }
@@ -514,5 +514,31 @@ html {
 
   [data-slot="sidebar-inset"] {
     @apply bg-background md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2 relative flex w-full flex-1 flex-col;
+  }
+}
+
+@layer components {
+  [data-slot="table"] > tbody {
+    @apply [&_tr:last-child]:border-0;
+  }
+
+  [data-slot="table"] > caption {
+    @apply text-muted-foreground mt-4 text-sm;
+  }
+
+  [data-slot="table"] > :is(tbody, thead, tfoot) > tr > td {
+    @apply h-12 px-(--table-cell-inset) py-2 align-middle whitespace-normal [&:has([role=checkbox])]:pr-0;
+  }
+
+  [data-slot="table"] > :is(tbody, thead, tfoot) > tr > th {
+    @apply text-foreground h-12 px-(--table-cell-inset) text-left align-middle font-normal whitespace-nowrap [&:has([role=checkbox])]:pr-0;
+  }
+
+  [data-slot="table"] > thead {
+    @apply [&_tr]:border-b;
+  }
+
+  [data-slot="table"] > :is(tbody, thead, tfoot) > tr {
+    @apply hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors;
   }
 }

@@ -7,7 +7,7 @@ import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import type {
   AdminModerationComment,
   AdminModerationCommentFormatter,
@@ -65,24 +65,25 @@ export let targetLabel: AdminModerationCommentFormatter;
       </Item.Actions>
     {/snippet}
     {#snippet desktop(emptyState)}
-      <Table.Root class="w-full min-w-[64rem]">
-        <Table.Header>
+      <Table class="w-full min-w-[64rem]">
+        <thead>
           <TableControlsRow colspan={6}>{@render filterControls("search", "desktop")}</TableControlsRow>
-          <Table.Row>
-            <Table.Head class="w-[34%]">{@render filterControls("content", "desktop")}</Table.Head>
-            <Table.Head class="w-[16%]">{@render filterControls("author", "desktop")}</Table.Head>
-            <Table.Head class="w-[20%]">{@render filterControls("target", "desktop")}</Table.Head>
-            <Table.Head class="w-[14%]">{@render filterControls("createdAt", "desktop")}</Table.Head>
-            <Table.Head class="w-[10%]">{@render filterControls("status", "desktop")}</Table.Head>
-            <Table.Head class="w-14 min-w-14">
+          <tr>
+            <th class="w-[34%]">{@render filterControls("content", "desktop")}</th>
+            <th class="w-[16%]">{@render filterControls("author", "desktop")}</th>
+            <th class="w-[20%]">{@render filterControls("target", "desktop")}</th>
+            <th class="w-[14%]">{@render filterControls("createdAt", "desktop")}</th>
+            <th class="w-[10%]">{@render filterControls("status", "desktop")}</th>
+            <th class="w-14 min-w-14">
               <span class="sr-only">{copy.actions}</span>
-            </Table.Head>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
           {#each comments as comment}
-            <Table.Row class="group">
-              <Table.Cell>
+            {@const author = commentAuthorLabel(comment)}
+            <tr class="group">
+              <td>
                 <div class="grid min-w-0 gap-1">
                   <TruncatedText
                     class="text-sm font-medium"
@@ -95,12 +96,11 @@ export let targetLabel: AdminModerationCommentFormatter;
                     text={comment.moderationNote ? `${copy.moderationNote}: ${comment.moderationNote}` : null}
                   />
                 </div>
-              </Table.Cell>
-              <Table.Cell class="max-w-0">
-                {@const author = commentAuthorLabel(comment)}
+              </td>
+              <td class="max-w-0">
                 <span class="block max-w-full truncate" title={author}>{author}</span>
-              </Table.Cell>
-              <Table.Cell>
+              </td>
+              <td>
                 <a
                   class="block min-w-0 max-w-full overflow-hidden hover:underline"
                   href={targetHref(comment)}
@@ -108,14 +108,14 @@ export let targetLabel: AdminModerationCommentFormatter;
                 >
                   <TruncatedText text={targetLabel(comment)} />
                 </a>
-              </Table.Cell>
-              <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+              </td>
+              <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
                 {formatDate(comment.createdAt)}
-              </Table.Cell>
-              <Table.Cell class="text-left">
+              </td>
+              <td class="text-left">
                 {@render badge(comment)}
-              </Table.Cell>
-              <Table.Cell class="w-14 min-w-14 text-left">
+              </td>
+              <td class="w-14 min-w-14 text-left">
                 <TableRowActions>
                   <TableIconButton
                     label={copy.manageComment}
@@ -124,13 +124,13 @@ export let targetLabel: AdminModerationCommentFormatter;
                     <SquarePen />
                   </TableIconButton>
                 </TableRowActions>
-              </Table.Cell>
-            </Table.Row>
+              </td>
+            </tr>
           {:else}
-            <Table.Row><Table.Cell colspan={6}>{@render emptyState()}</Table.Cell></Table.Row>
+            <tr><td colspan={6}>{@render emptyState()}</td></tr>
           {/each}
-        </Table.Body>
-      </Table.Root>
+        </tbody>
+      </Table>
     {/snippet}
   </ModerationCollection>
 </section>

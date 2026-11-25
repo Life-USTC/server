@@ -5,7 +5,7 @@ import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import {
   type CatalogNamed,
   catalogLocalizedDisplayName,
@@ -108,27 +108,27 @@ function teacherSectionsHref(teacher: TeacherListRow) {
         </CatalogMobileResults>
       {/snippet}
       {#snippet desktop()}
-        <Table.Root class="">
-          <Table.Header>
-            <Table.Row>
-              <Table.Head class="pl-8"><CatalogColumnFilter {...columnFilters.name} idPrefix="desktop-teacher-name" /></Table.Head>
-              <Table.Head><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-teacher-code" /></Table.Head>
-              <Table.Head><CatalogColumnFilter {...columnFilters.department} idPrefix="desktop-teacher-department" /></Table.Head>
+        <Table class="">
+          <thead>
+            <tr>
+              <th class="pl-8"><CatalogColumnFilter {...columnFilters.name} idPrefix="desktop-teacher-name" /></th>
+              <th><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-teacher-code" /></th>
+              <th><CatalogColumnFilter {...columnFilters.department} idPrefix="desktop-teacher-department" /></th>
               {#if showTitleColumn}
-                <Table.Head><CatalogColumnFilter {...columnFilters.title} idPrefix="desktop-teacher-title" /></Table.Head>
+                <th><CatalogColumnFilter {...columnFilters.title} idPrefix="desktop-teacher-title" /></th>
               {/if}
               {#if showEmailColumn}
-                <Table.Head><CatalogColumnFilter {...columnFilters.email} idPrefix="desktop-teacher-email" /></Table.Head>
+                <th><CatalogColumnFilter {...columnFilters.email} idPrefix="desktop-teacher-email" /></th>
               {/if}
-              <Table.Head class="pl-8"><CatalogColumnFilter {...columnFilters.sections} idPrefix="desktop-teacher-sections" /></Table.Head>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
+              <th class="pl-8"><CatalogColumnFilter {...columnFilters.sections} idPrefix="desktop-teacher-sections" /></th>
+            </tr>
+          </thead>
+          <tbody>
             {#each teachers as teacher}
               {@const teacherHref = `/catalog/teachers/${teacher.id}`}
               {@const sectionCount = teacher._count.sections}
-              <Table.Row>
-                <Table.Cell class="p-0">
+              <tr>
+                <td class="p-0">
                   <CatalogTableLink class="font-medium" href={teacherHref}>
                   <TruncatedText class="font-medium"
                       text={catalogLocalizedDisplayName(teacher, locale)}
@@ -138,30 +138,30 @@ function teacherSectionsHref(teacher: TeacherListRow) {
                       {/snippet}
                     </TruncatedText>
                   </CatalogTableLink>
-                </Table.Cell>
-              <Table.Cell class="whitespace-nowrap font-mono">
+                </td>
+              <td class="whitespace-nowrap font-mono">
                 {teacher.code || "-"}
-              </Table.Cell>
-                <Table.Cell>
+              </td>
+                <td>
                   <TruncatedText
                     text={teacher.department
                       ? primaryName(teacher.department)
                       : teacherLabels.noDepartment}
                   />
-                </Table.Cell>
+                </td>
                 {#if showTitleColumn}
-                  <Table.Cell>
+                  <td>
                     {teacher.teacherTitle
                       ? primaryName(teacher.teacherTitle)
                       : commonLabels.unknown}
-                  </Table.Cell>
+                  </td>
                 {/if}
               {#if showEmailColumn}
-                <Table.Cell>
+                <td>
                   <TruncatedText text={teacher.email ?? "-"} />
-                </Table.Cell>
+                </td>
               {/if}
-              <Table.Cell class="p-0 whitespace-nowrap text-left tabular-nums">
+              <td class="p-0 whitespace-nowrap text-left tabular-nums">
                 {#if sectionCount > 0}
                   <CatalogTableLink
                     class="tabular-nums"
@@ -176,14 +176,14 @@ function teacherSectionsHref(teacher: TeacherListRow) {
                     data-testid="teacher-section-count"
                   >0</span>
                 {/if}
-              </Table.Cell>
-              </Table.Row>
+              </td>
+              </tr>
             {/each}
           {#if teachers.length === 0}
-              <Table.Row><Table.Cell colspan={4 + Number(showTitleColumn) + Number(showEmailColumn)}>{@render empty()}</Table.Cell></Table.Row>
+              <tr><td colspan={4 + Number(showTitleColumn) + Number(showEmailColumn)}>{@render empty()}</td></tr>
             {/if}
-          </Table.Body>
-        </Table.Root>
+          </tbody>
+        </Table>
       {/snippet}
     </ResponsiveCollection>
 </section>

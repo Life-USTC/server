@@ -14,7 +14,7 @@ import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import { adminUserTableFields } from "../lib/admin-user-table-filters";
 import AdminUsersSearchCard from "./AdminUsersSearchCard.svelte";
 import type {
@@ -120,49 +120,49 @@ $: fields = adminUserTableFields(copy);
       {#snippet desktop()}
         <div class="min-w-0">
           <CollectionTableShell label={copy.title}>
-            <Table.Root class="w-full min-w-[56rem]">
-              <Table.Caption class="sr-only">{copy.title}</Table.Caption>
-              <Table.Header>
+            <Table class="w-full min-w-[56rem]">
+              <caption class="sr-only">{copy.title}</caption>
+              <thead>
                 <TableControlsRow colspan={7}>
                   <AdminUsersSearchCard id="admin-user-search-desktop" {commonCopy} {copy} {values} {onchange} {onapply} />
                 </TableControlsRow>
-                <Table.Row>
-                  <Table.Head class="w-[22%]">{@render column(0)}</Table.Head>
-                  <Table.Head class="w-[18%]">{@render column(1)}</Table.Head>
-                  <Table.Head class="w-[25%]">{@render column(2)}</Table.Head>
-                  <Table.Head class="w-[9%]">{@render column(3)}</Table.Head>
-                  <Table.Head class="w-[14%]">{@render column(4)}</Table.Head>
-                  <Table.Head class="w-[12%]">{@render column(5)}</Table.Head>
-                  <Table.Head class="w-14 min-w-14">
+                <tr>
+                  <th class="w-[22%]">{@render column(0)}</th>
+                  <th class="w-[18%]">{@render column(1)}</th>
+                  <th class="w-[25%]">{@render column(2)}</th>
+                  <th class="w-[9%]">{@render column(3)}</th>
+                  <th class="w-[14%]">{@render column(4)}</th>
+                  <th class="w-[12%]">{@render column(5)}</th>
+                  <th class="w-14 min-w-14">
                     <span class="sr-only">{copy.editTitle}</span>
-                  </Table.Head>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
                 {#each users as user}
-                  <Table.Row class="group">
-                    <Table.Cell class="max-w-0">
-                      {@const name = displayName(user)}
+                  {@const name = displayName(user)}
+                  {@const username = user.username ?? copy.noUsername}
+                  {@const email = user.email ?? copy.noVerifiedEmail}
+                  <tr class="group">
+                    <td class="max-w-0">
                       <span class="block max-w-full" title={name}>
                         <TruncatedText class="font-medium" text={name} />
                       </span>
-                    </Table.Cell>
-                    <Table.Cell class="max-w-0">
-                      {@const username = user.username ?? copy.noUsername}
+                    </td>
+                    <td class="max-w-0">
                       <span class="block max-w-full truncate text-sm" title={username}>
                         {username}
                       </span>
-                    </Table.Cell>
-                    <Table.Cell class="max-w-0">
-                      {@const email = user.email ?? copy.noVerifiedEmail}
+                    </td>
+                    <td class="max-w-0">
                       <span class="block max-w-full" title={email}>
                         <TruncatedText text={email} />
                       </span>
-                    </Table.Cell>
-                    <Table.Cell class="text-left">
+                    </td>
+                    <td class="text-left">
                       {@render roleBadge(user)}
-                    </Table.Cell>
-                    <Table.Cell class="text-left">
+                    </td>
+                    <td class="text-left">
                       {#if user.activeSuspension}
                         <div class="grid min-w-0 justify-items-start gap-1">
                           <Badge class="w-fit" variant="destructive">{copy.suspendedStatus}</Badge>
@@ -171,11 +171,11 @@ $: fields = adminUserTableFields(copy);
                       {:else}
                         <Badge class="w-fit" variant="ghost">{copy.clearStatus}</Badge>
                       {/if}
-                    </Table.Cell>
-                    <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+                    </td>
+                    <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
                       {formatDate(user.createdAt)}
-                    </Table.Cell>
-                    <Table.Cell class="w-14 min-w-14 text-left">
+                    </td>
+                    <td class="w-14 min-w-14 text-left">
                       <TableRowActions>
                         <TableIconButton
                           label={copy.editTitle}
@@ -184,13 +184,13 @@ $: fields = adminUserTableFields(copy);
                           <SquarePen data-icon="inline-start" />
                         </TableIconButton>
                       </TableRowActions>
-                    </Table.Cell>
-                  </Table.Row>
+                    </td>
+                  </tr>
                 {:else}
-                  <Table.Row><Table.Cell colspan={7}><CollectionEmpty variant="compact" description={copy.noResults} /></Table.Cell></Table.Row>
+                  <tr><td colspan={7}><CollectionEmpty variant="compact" description={copy.noResults} /></td></tr>
                 {/each}
-              </Table.Body>
-            </Table.Root>
+              </tbody>
+            </Table>
           </CollectionTableShell>
         </div>
       {/snippet}

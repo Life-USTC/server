@@ -8,7 +8,7 @@ import TaskCompletionButton from "#lib/components/TaskCompletionButton.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import HomeworkPersonalStatus from "@/features/homeworks/components/HomeworkPersonalStatus.svelte";
 import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
 import type {
@@ -165,22 +165,22 @@ function propertyBadges(homework: WorkspaceHomeworkItem) {
     </div>
   {/snippet}
   {#snippet desktop()}
-    <Table.Root class="min-w-0 w-full" data-testid="workspace-homeworks-list">
-      <Table.Header>
-        <Table.Row>
-          <Table.Head>{homeworksCopy.sectionLabel}</Table.Head>
-          <Table.Head>{homeworksCopy.titleLabel}</Table.Head>
-          <Table.Head>{homeworksCopy.submissionDue}</Table.Head>
-          <Table.Head>{homeworksCopy.statusLabel}</Table.Head>
-          <Table.Head>
+    <Table class="min-w-0 w-full" data-testid="workspace-homeworks-list">
+      <thead>
+        <tr>
+          <th>{homeworksCopy.sectionLabel}</th>
+          <th>{homeworksCopy.titleLabel}</th>
+          <th>{homeworksCopy.submissionDue}</th>
+          <th>{homeworksCopy.statusLabel}</th>
+          <th>
             <span class="sr-only">{homeworksCopy.markComplete}</span>
-          </Table.Head>
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
         {#each filteredHomeworkItems as homework}
-          <Table.Row class="group">
-            <Table.Cell>
+          <tr class="group">
+            <td>
               <a
                 class="hover:underline"
                 href={homeworkSectionHref(homework)}
@@ -188,8 +188,8 @@ function propertyBadges(homework: WorkspaceHomeworkItem) {
                 {homework.section?.courseName ?? homeworkCopy.section}
               </a>
               <span class="block text-muted-foreground text-sm">{formatSemesterName(locale, homework.section?.semesterName ?? unknownSemesterLabel)}</span>
-            </Table.Cell>
-            <Table.Cell>
+            </td>
+            <td>
               <button
                 class="block min-h-11 min-w-0 max-w-full text-left font-medium hover:underline"
                 type="button"
@@ -199,11 +199,11 @@ function propertyBadges(homework: WorkspaceHomeworkItem) {
               >
                 <TruncatedText text={homework.title} lines={2} />
               </button>
-            </Table.Cell>
-            <Table.Cell>
+            </td>
+            <td>
               {fmtDate(homework.submissionDueAt)}
-            </Table.Cell>
-            <Table.Cell>
+            </td>
+            <td>
               <div class="grid min-w-0 gap-1">
                 {#if showPersonalStatus}<div role="group" aria-label={homeworksCopy.myStatus}>{@render personalStatus(homework)}</div>{/if}
               {#if homework.isMajor || homework.requiresTeam}<div class="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -212,21 +212,21 @@ function propertyBadges(homework: WorkspaceHomeworkItem) {
                 {/each}
               </div>{/if}
               </div>
-            </Table.Cell>
-            <Table.Cell>
+            </td>
+            <td>
               <TableRowActions>
                 {@render actions(homework)}
               </TableRowActions>
-            </Table.Cell>
-          </Table.Row>
+            </td>
+          </tr>
         {:else}
-          <Table.Row class="hover:bg-transparent">
-            <Table.Cell class="p-0" colspan={5}>
+          <tr class="hover:bg-transparent">
+            <td class="p-0" colspan={5}>
               {@render emptyState()}
-            </Table.Cell>
-          </Table.Row>
+            </td>
+          </tr>
         {/each}
-      </Table.Body>
-    </Table.Root>
+      </tbody>
+    </Table>
   {/snippet}
 </ResponsiveCollection>

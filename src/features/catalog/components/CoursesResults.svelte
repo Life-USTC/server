@@ -6,7 +6,7 @@ import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import {
   type CatalogNamed,
   catalogLocalizedDisplayName,
@@ -71,21 +71,21 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
         </CatalogMobileResults>
       {/snippet}
       {#snippet desktop()}
-        <Table.Root>
-          <Table.Header>
-            <Table.Row>
-              <Table.Head class="pl-8"><CatalogColumnFilter {...columnFilters.name} idPrefix="desktop-course-name" /></Table.Head>
-              <Table.Head><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-course-code" /></Table.Head>
-              <Table.Head><CatalogColumnFilter {...columnFilters.educationLevel} idPrefix="desktop-course-educationLevel" /></Table.Head>
-              <Table.Head><CatalogColumnFilter {...columnFilters.category} idPrefix="desktop-course-category" /></Table.Head>
-              <Table.Head><CatalogColumnFilter {...columnFilters.classType} idPrefix="desktop-course-classType" /></Table.Head>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
+        <Table>
+          <thead>
+            <tr>
+              <th class="pl-8"><CatalogColumnFilter {...columnFilters.name} idPrefix="desktop-course-name" /></th>
+              <th><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-course-code" /></th>
+              <th><CatalogColumnFilter {...columnFilters.educationLevel} idPrefix="desktop-course-educationLevel" /></th>
+              <th><CatalogColumnFilter {...columnFilters.category} idPrefix="desktop-course-category" /></th>
+              <th><CatalogColumnFilter {...columnFilters.classType} idPrefix="desktop-course-classType" /></th>
+            </tr>
+          </thead>
+          <tbody>
             {#each data.data as course}
               {@const courseHref = `/catalog/courses/${course.jwId}`}
-              <Table.Row>
-                <Table.Cell class="p-0">
+              <tr>
+                <td class="p-0">
                   <CatalogTableLink class="font-medium" href={courseHref}>
                   <TruncatedText class="font-medium"
                       text={catalogLocalizedDisplayName(course, locale)}
@@ -95,26 +95,26 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
                       {/snippet}
                     </TruncatedText>
                   </CatalogTableLink>
-                </Table.Cell>
+                </td>
 
-                <Table.Cell><TruncatedCode text={course.code} /></Table.Cell>
-                <Table.Cell>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</Table.Cell>
+                <td><TruncatedCode text={course.code} /></td>
+                <td>{course.educationLevel ? primaryName(course.educationLevel) : "-"}</td>
 
-                <Table.Cell>
+                <td>
                   {course.category
                     ? catalogLocalizedDisplayName(course.category, locale)
                     : "-"}
-                </Table.Cell>
-              <Table.Cell>
+                </td>
+              <td>
                 {course.classType ? primaryName(course.classType) : "-"}
-              </Table.Cell>
-              </Table.Row>
+              </td>
+              </tr>
             {/each}
           {#if data.data.length === 0}
-              <Table.Row><Table.Cell colspan={5}>{@render empty()}</Table.Cell></Table.Row>
+              <tr><td colspan={5}>{@render empty()}</td></tr>
             {/if}
-          </Table.Body>
-        </Table.Root>
+          </tbody>
+        </Table>
       {/snippet}
     </ResponsiveCollection>
 </section>

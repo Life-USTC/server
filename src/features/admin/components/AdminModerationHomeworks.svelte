@@ -7,7 +7,7 @@ import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import type {
   AdminModerationFilterControls,
   AdminModerationHomework,
@@ -87,51 +87,51 @@ function creatorLabel(homework: AdminModerationHomework) {
       </Item.Actions>
     {/snippet}
     {#snippet desktop(emptyState)}
-      <Table.Root class="w-full min-w-[62rem]">
-        <Table.Header>
+      <Table class="w-full min-w-[62rem]">
+        <thead>
           <TableControlsRow colspan={6}>{@render filterControls("search", "desktop")}</TableControlsRow>
-          <Table.Row>
-            <Table.Head class="w-[28%]">{@render filterControls("content", "desktop")}</Table.Head>
-            <Table.Head class="w-[22%]">{@render filterControls("target", "desktop")}</Table.Head>
-            <Table.Head class="w-[16%]">{@render filterControls("createdAt", "desktop")}</Table.Head>
-            <Table.Head class="w-[16%]">{@render filterControls("dueAt", "desktop")}</Table.Head>
-            <Table.Head class="w-[12%]">{@render filterControls("status", "desktop")}</Table.Head>
-            <Table.Head class="w-14 min-w-14">
+          <tr>
+            <th class="w-[28%]">{@render filterControls("content", "desktop")}</th>
+            <th class="w-[22%]">{@render filterControls("target", "desktop")}</th>
+            <th class="w-[16%]">{@render filterControls("createdAt", "desktop")}</th>
+            <th class="w-[16%]">{@render filterControls("dueAt", "desktop")}</th>
+            <th class="w-[12%]">{@render filterControls("status", "desktop")}</th>
+            <th class="w-14 min-w-14">
               <span class="sr-only">{copy.actions}</span>
-            </Table.Head>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
           {#each homeworks as homework}
-            <Table.Row class="group">
-              <Table.Cell class="max-w-0">
+            <tr class="group">
+              <td class="max-w-0">
                 <TruncatedText class="font-medium" text={homework.title} />
                 <TruncatedText class="text-muted-foreground text-xs" text={`${copy.author}: ${creatorLabel(homework)}`} />
-              </Table.Cell>
-              <Table.Cell class="max-w-0">
+              </td>
+              <td class="max-w-0">
                 <div class="grid min-w-0 gap-0.5">
                   <TruncatedText text={homework.section.course.nameCn} />
                   <span class="font-mono text-muted-foreground text-xs">
                     {homework.section.code}
                   </span>
                 </div>
-              </Table.Cell>
-              <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+              </td>
+              <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
                 {formatDate(homework.createdAt)}
-              </Table.Cell>
-              <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+              </td>
+              <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
                 {homework.submissionDueAt
                   ? formatDate(homework.submissionDueAt)
                   : copy.notAvailable}
-              </Table.Cell>
-              <Table.Cell class="text-left">
+              </td>
+              <td class="text-left">
                 {#if homework.deletedAt}
                   <Badge variant="destructive">{copy.homeworkStatusDeleted}</Badge>
           {:else}
             <Badge>{copy.homeworkStatusActive}</Badge>
           {/if}
-        </Table.Cell>
-        <Table.Cell class="w-14 min-w-14 text-left">
+        </td>
+        <td class="w-14 min-w-14 text-left">
           {#if !homework.deletedAt}
             <TableRowActions>
               <TableIconButton
@@ -143,13 +143,13 @@ function creatorLabel(homework: AdminModerationHomework) {
               </TableIconButton>
             </TableRowActions>
           {/if}
-        </Table.Cell>
-      </Table.Row>
+        </td>
+      </tr>
           {:else}
-            <Table.Row><Table.Cell colspan={6}>{@render emptyState()}</Table.Cell></Table.Row>
+            <tr><td colspan={6}>{@render emptyState()}</td></tr>
           {/each}
-        </Table.Body>
-      </Table.Root>
+        </tbody>
+      </Table>
     {/snippet}
   </ModerationCollection>
 </section>

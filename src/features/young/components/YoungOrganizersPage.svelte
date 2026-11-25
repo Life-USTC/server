@@ -8,7 +8,7 @@ import SearchField from "#lib/components/SearchField.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import type {
   YoungOrganizerSummary,
   YoungSourceFreshness,
@@ -121,33 +121,33 @@ function eventsHref(id: string) {
           {/if}
         {/snippet}
         {#snippet desktop()}
-          <Table.Root>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head>{@render columnFilter(fields[0], "desktop")}</Table.Head>
-                <Table.Head>{@render columnFilter(fields[1], "desktop")}</Table.Head>
-                <Table.Head>{@render columnFilter(fields[2], "desktop")}</Table.Head>
-                <Table.Head>{@render columnFilter(fields[3], "desktop")}</Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+          <Table>
+            <thead>
+              <tr>
+                <th>{@render columnFilter(fields[0], "desktop")}</th>
+                <th>{@render columnFilter(fields[1], "desktop")}</th>
+                <th>{@render columnFilter(fields[2], "desktop")}</th>
+                <th>{@render columnFilter(fields[3], "desktop")}</th>
+              </tr>
+            </thead>
+            <tbody>
               {#each data as organizer (organizer.id)}
-                <Table.Row class="has-[a:hover]:bg-muted/50">
-                  <Table.Cell class="p-0">
+                <tr class="has-[a:hover]:bg-muted/50">
+                  <td class="p-0">
                       <a class="block px-4 py-3 font-medium underline-offset-4 hover:underline" href={organizerHref(organizer.id)}>
                         {organizer.name}
                       </a>
-                  </Table.Cell>
-                    <Table.Cell class="text-left tabular-nums">
+                  </td>
+                    <td class="text-left tabular-nums">
                       <a class="underline underline-offset-4" href={eventsHref(organizer.id)}>{organizer.activeCount}</a>
-                  </Table.Cell>
-                    <Table.Cell class="text-left tabular-nums">{organizer.upcomingCount}</Table.Cell>
-                    <Table.Cell class="text-left tabular-nums">{organizer.historyCount}</Table.Cell>
-                </Table.Row>
+                  </td>
+                    <td class="text-left tabular-nums">{organizer.upcomingCount}</td>
+                    <td class="text-left tabular-nums">{organizer.historyCount}</td>
+                </tr>
               {/each}
-            {#if data.length === 0}<Table.Row><Table.Cell colspan={4}>{@render empty()}</Table.Cell></Table.Row>{/if}
-            </Table.Body>
-          </Table.Root>
+            {#if data.length === 0}<tr><td colspan={4}>{@render empty()}</td></tr>{/if}
+            </tbody>
+          </Table>
         {/snippet}
       </ResponsiveCollection>
 

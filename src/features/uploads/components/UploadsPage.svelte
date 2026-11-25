@@ -16,7 +16,7 @@ import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Popover from "#lib/components/ui/popover/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import { campusTimestampFormatter } from "#lib/time/shanghai-format.js";
 import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import { createFilterDraft } from "@/lib/navigation/filter-draft.svelte";
@@ -165,20 +165,20 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
     <p class="text-sm text-muted-foreground">{copy.newestFirst}</p>
       <ResponsiveCollection>
         {#snippet desktop()}
-          <Table.Root>
-            <Table.Header><Table.Row><Table.Head>{copy.tableName}</Table.Head><Table.Head>{copy.tableSize}</Table.Head><Table.Head>{copy.tableUploaded}</Table.Head><Table.Head>{copy.tableActions}</Table.Head></Table.Row></Table.Header>
-            <Table.Body>
+          <Table>
+            <thead><tr><th>{copy.tableName}</th><th>{copy.tableSize}</th><th>{copy.tableUploaded}</th><th>{copy.tableActions}</th></tr></thead>
+            <tbody>
               {#each data.uploads as upload (upload.id)}
-                <Table.Row>
-                  <Table.Cell class="max-w-64"><TruncatedText class="font-medium" text={upload.filename} /></Table.Cell>
-                  <Table.Cell class="text-left tabular-nums">{formatBytes(upload.size)}</Table.Cell>
-                  <Table.Cell><time datetime={upload.createdAt}>{formatter.format(new Date(upload.createdAt))}</time></Table.Cell>
-                  <Table.Cell>{@render uploadActions(upload)}</Table.Cell>
-                </Table.Row>
+                <tr>
+                  <td class="max-w-64"><TruncatedText class="font-medium" text={upload.filename} /></td>
+                  <td class="text-left tabular-nums">{formatBytes(upload.size)}</td>
+                  <td><time datetime={upload.createdAt}>{formatter.format(new Date(upload.createdAt))}</time></td>
+                  <td>{@render uploadActions(upload)}</td>
+                </tr>
               {/each}
-              {#if data.uploads.length === 0}<Table.Row><Table.Cell colspan={4}><ResultsEmpty title={data.hasUploads ? copy.noMatchTitle : copy.emptyTitle} description={data.hasUploads ? copy.noMatchDescription : copy.emptyDescription} /></Table.Cell></Table.Row>{/if}
-            </Table.Body>
-          </Table.Root>
+              {#if data.uploads.length === 0}<tr><td colspan={4}><ResultsEmpty title={data.hasUploads ? copy.noMatchTitle : copy.emptyTitle} description={data.hasUploads ? copy.noMatchDescription : copy.emptyDescription} /></td></tr>{/if}
+            </tbody>
+          </Table>
         {/snippet}
         {#snippet mobile()}
           <Item.Group role="list" class="gap-3">

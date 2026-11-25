@@ -9,7 +9,7 @@ import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import { enhance, type SubmitFunction } from "$app/forms";
 import type { AdminModerationFilterControls } from "./admin-moderation-page-types";
 import ModerationCollection from "./ModerationCollection.svelte";
@@ -119,24 +119,24 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
       </Item.Actions>
     {/snippet}
     {#snippet desktop(emptyState)}
-      <Table.Root class="w-full min-w-[54rem]">
-        <Table.Header>
+      <Table class="w-full min-w-[54rem]">
+        <thead>
           <TableControlsRow colspan={5}>{@render filterControls("search", "desktop")}</TableControlsRow>
-          <Table.Row>
-            <Table.Head class="w-[23%]">{@render filterControls("author", "desktop")}</Table.Head>
-            <Table.Head class="w-[34%]">{@render filterControls("reason", "desktop")}</Table.Head>
-            <Table.Head class="w-[20%]">{@render filterControls("expiresAt", "desktop")}</Table.Head>
-            <Table.Head class="w-[13%]">{@render filterControls("status", "desktop")}</Table.Head>
-          <Table.Head class="w-14 min-w-14">
+          <tr>
+            <th class="w-[23%]">{@render filterControls("author", "desktop")}</th>
+            <th class="w-[34%]">{@render filterControls("reason", "desktop")}</th>
+            <th class="w-[20%]">{@render filterControls("expiresAt", "desktop")}</th>
+            <th class="w-[13%]">{@render filterControls("status", "desktop")}</th>
+          <th class="w-14 min-w-14">
             <span class="sr-only">{copy.actions}</span>
-          </Table.Head>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
+          </th>
+          </tr>
+        </thead>
+        <tbody>
           {#each suspensions as suspension}
-            <Table.Row class="group">
-              <Table.Cell class="max-w-0">
-                {@const currentUserLabel = userLabel(suspension)}
+            {@const currentUserLabel = userLabel(suspension)}
+            <tr class="group">
+              <td class="max-w-0">
                 <div class="grid min-w-0 gap-0.5">
                 <span class="block max-w-full" title={currentUserLabel}>
                   <TruncatedText class="font-medium" text={currentUserLabel} />
@@ -146,24 +146,24 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
                     text={suspension.user.username ? `@${suspension.user.username}` : null}
                   />
                 </div>
-              </Table.Cell>
-              <Table.Cell class="max-w-0">
+              </td>
+              <td class="max-w-0">
                 <TruncatedText
                   lines={2}
                   text={suspension.reason ?? copy.noReason}
                 />
-              </Table.Cell>
-            <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+              </td>
+            <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
               {expiresLabel(suspension)}
-            </Table.Cell>
-              <Table.Cell class="text-left">
+            </td>
+              <td class="text-left">
                 {#if suspension.liftedAt}
                   <Badge variant="ghost">{copy.lifted}</Badge>
           {:else}
             <Badge variant="destructive">{copy.active}</Badge>
           {/if}
-        </Table.Cell>
-        <Table.Cell class="w-14 min-w-14 text-left">
+        </td>
+        <td class="w-14 min-w-14 text-left">
           {#if !suspension.liftedAt}
             <TableRowActions>
               <TableIconButton
@@ -175,13 +175,13 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
               </TableIconButton>
             </TableRowActions>
           {/if}
-        </Table.Cell>
-      </Table.Row>
+        </td>
+      </tr>
           {:else}
-            <Table.Row><Table.Cell colspan={5}>{@render emptyState()}</Table.Cell></Table.Row>
+            <tr><td colspan={5}>{@render emptyState()}</td></tr>
           {/each}
-        </Table.Body>
-      </Table.Root>
+        </tbody>
+      </Table>
     {/snippet}
   </ModerationCollection>
 </section>

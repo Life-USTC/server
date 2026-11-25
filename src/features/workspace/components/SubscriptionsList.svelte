@@ -12,7 +12,7 @@ import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import SubscriptionCancelDialog from "@/features/subscriptions/components/SubscriptionCancelDialog.svelte";
 import { groupSubscribedSectionsBySemester } from "@/features/workspace/lib/subscriptions";
 import type {
@@ -237,7 +237,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
             />
           {/snippet}
           {#snippet desktop()}
-          <Table.Root
+          <Table
             class="w-full table-fixed"
             data-testid="subscription-semester-table"
           >
@@ -247,22 +247,22 @@ function handleRemoveDialogOpenChange(open: boolean) {
               <col class="w-20" />
               <col class="w-32" />
             </colgroup>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head>{subscriptionsCopy.courseName}</Table.Head>
-                <Table.Head>{sectionCopy.teachers}</Table.Head>
-                <Table.Head class="text-left">
+            <thead>
+              <tr>
+                <th>{subscriptionsCopy.courseName}</th>
+                <th>{sectionCopy.teachers}</th>
+                <th class="text-left">
                   {subscriptionsCopy.credits}
-                </Table.Head>
-                <Table.Head>
+                </th>
+                <th>
                   <span class="sr-only">{sectionCopy.moreDetails}</span>
-                </Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
               {#each group.sections as section}
-                <Table.Row class="group">
-                  <Table.Cell>
+                <tr class="group">
+                  <td>
                     <div class="flex min-w-0 flex-wrap items-center gap-1.5">
                         <a
                           class="inline-flex min-w-0 max-w-full items-center gap-1.5 py-0.5 text-base font-medium"
@@ -275,12 +275,12 @@ function handleRemoveDialogOpenChange(open: boolean) {
                         <Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>
                       {/if}
                     </div>
-                  </Table.Cell>
+                  </td>
 
-                  <Table.Cell><TruncatedText text={teacherNames(section)} /></Table.Cell>
-                  <Table.Cell class="text-left">{section.credits ?? workspaceCopy.notAvailable}</Table.Cell>
+                  <td><TruncatedText text={teacherNames(section)} /></td>
+                  <td class="text-left">{section.credits ?? workspaceCopy.notAvailable}</td>
 
-                  <Table.Cell>
+                  <td>
                     <TableRowActions>
                       <TableIconButton
                         label={subscriptionsCopy.kindEditor.title}
@@ -307,11 +307,11 @@ function handleRemoveDialogOpenChange(open: boolean) {
                         <ArrowUpRight data-icon="inline-start" />
                       </TableIconButton>
                     </TableRowActions>
-                  </Table.Cell>
-                </Table.Row>
+                  </td>
+                </tr>
               {/each}
-            </Table.Body>
-          </Table.Root>
+            </tbody>
+          </Table>
           {/snippet}
         </ResponsiveCollection>
       </section>

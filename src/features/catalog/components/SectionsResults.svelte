@@ -5,7 +5,7 @@ import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import {
   type CatalogNamed,
   catalogLocalizedNames,
@@ -75,7 +75,7 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
       {/snippet}
       {#snippet desktop()}
         <div class="min-w-0 max-w-full">
-          <Table.Root class="table-fixed">
+          <Table class="table-fixed">
             <colgroup>
               <col class="w-36" />
               <col />
@@ -85,55 +85,55 @@ let locale = $derived(routePage.data.locale ?? "zh-cn");
               <col class="w-24" />
               <col class="w-28" />
             </colgroup>
-            <Table.Header class="bg-muted/30">
-              <Table.Row>
-                <Table.Head class="w-36" aria-sort={filters.sort === "semester" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.semester} idPrefix="desktop-section-semester" /></Table.Head>
-                <Table.Head class="pl-8" aria-sort={filters.sort === "course" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.course} idPrefix="desktop-section-course" /></Table.Head>
-                <Table.Head class="w-36" aria-sort={filters.sort === "code" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-section-code" /></Table.Head>
-                <Table.Head class="w-36" aria-sort={filters.sort === "teacher" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.teacher} idPrefix="desktop-section-teacher" /></Table.Head>
-                <Table.Head class="w-20" aria-sort={filters.sort === "credits" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.credits} idPrefix="desktop-section-credits" /></Table.Head>
-                <Table.Head class="w-24" aria-sort={filters.sort === "capacity" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.capacity} idPrefix="desktop-section-capacity" /></Table.Head>
-                <Table.Head class="w-28" aria-sort={filters.sort === "campus" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.campus} idPrefix="desktop-section-campus" /></Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+            <thead class="bg-muted/30">
+              <tr>
+                <th class="w-36" aria-sort={filters.sort === "semester" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.semester} idPrefix="desktop-section-semester" /></th>
+                <th class="pl-8" aria-sort={filters.sort === "course" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.course} idPrefix="desktop-section-course" /></th>
+                <th class="w-36" aria-sort={filters.sort === "code" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-section-code" /></th>
+                <th class="w-36" aria-sort={filters.sort === "teacher" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.teacher} idPrefix="desktop-section-teacher" /></th>
+                <th class="w-20" aria-sort={filters.sort === "credits" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.credits} idPrefix="desktop-section-credits" /></th>
+                <th class="w-24" aria-sort={filters.sort === "capacity" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.capacity} idPrefix="desktop-section-capacity" /></th>
+                <th class="w-28" aria-sort={filters.sort === "campus" ? filters.order === "desc" ? "descending" : "ascending" : undefined}><CatalogColumnFilter {...columnFilters.campus} idPrefix="desktop-section-campus" /></th>
+              </tr>
+            </thead>
+            <tbody>
               {#each data.data as section}
                 {@const sectionHref = `/catalog/sections/${section.jwId}`}
-                <Table.Row>
-                  <Table.Cell class="whitespace-nowrap">
+                <tr>
+                  <td class="whitespace-nowrap">
                     {section.semester?.nameCn
                       ? formatSemesterName(locale, section.semester.nameCn)
                       : sectionLabels.noSemester}
-                  </Table.Cell>
-                  <Table.Cell class="p-0 whitespace-normal">
+                  </td>
+                  <td class="p-0 whitespace-normal">
                     <CatalogTableLink class="font-medium" href={sectionHref}>
                       <span class="break-words text-base">{primaryName(section.course) || section.code}</span>
                     </CatalogTableLink>
-                  </Table.Cell>
-              <Table.Cell >
+                  </td>
+              <td >
                 <TruncatedCode text={section.code} />
-              </Table.Cell>
-                  <Table.Cell class="whitespace-normal">
+              </td>
+                  <td class="whitespace-normal">
                     <TruncatedText
                       text={catalogLocalizedNames(section.teachers, locale) || "-"}
                     />
-                  </Table.Cell>
-              <Table.Cell class="text-left tabular-nums">
+                  </td>
+              <td class="text-left tabular-nums">
                 {section.credits ?? "-"}
-              </Table.Cell>
-              <Table.Cell class="text-left tabular-nums">
+              </td>
+              <td class="text-left tabular-nums">
                 {section.stdCount ?? (routePage.data.demo ? "-" : 0)} / {section.limitCount ?? "-"}
-              </Table.Cell>
-              <Table.Cell >
+              </td>
+              <td >
                 {section.campus ? primaryName(section.campus) : "-"}
-              </Table.Cell>
-                </Table.Row>
+              </td>
+                </tr>
               {/each}
             {#if data.data.length === 0}
-              <Table.Row><Table.Cell colspan={7}>{@render empty()}</Table.Cell></Table.Row>
+              <tr><td colspan={7}>{@render empty()}</td></tr>
             {/if}
-          </Table.Body>
-          </Table.Root>
+          </tbody>
+          </Table>
         </div>
       {/snippet}
     </ResponsiveCollection>

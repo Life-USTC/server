@@ -5,7 +5,7 @@ import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import TruncatedCode from "#lib/components/TruncatedCode.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import {
   catalogLocalizedNames,
   catalogPrimaryName as primaryName,
@@ -50,35 +50,35 @@ export let notAvailable: string;
       {/snippet}
       {#snippet desktop()}
         <div class="min-w-0">
-          <Table.Root>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head class="pl-8">{copy.courseDetail.teachingSections}</Table.Head>
-                <Table.Head>{copy.courseDetail.sectionCode}</Table.Head>
-                <Table.Head>{copy.courseDetail.campus}</Table.Head>
-                <Table.Head>{copy.courseDetail.capacity}</Table.Head>
-                <Table.Head>{copy.courseDetail.teachers}</Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+          <Table>
+            <thead>
+              <tr>
+                <th class="pl-8">{copy.courseDetail.teachingSections}</th>
+                <th>{copy.courseDetail.sectionCode}</th>
+                <th>{copy.courseDetail.campus}</th>
+                <th>{copy.courseDetail.capacity}</th>
+                <th>{copy.courseDetail.teachers}</th>
+              </tr>
+            </thead>
+            <tbody>
               {#each course.sections as section}
                 {@const sectionHref = `/catalog/sections/${section.jwId}`}
-                <Table.Row>
-                  <Table.Cell class="p-0">
+                <tr>
+                  <td class="p-0">
                     <CatalogTableLink class="font-medium" href={sectionHref}>
                       {sectionSummary({ ...section, course }, locale)}
                     </CatalogTableLink>
-                  </Table.Cell>
-                  <Table.Cell><TruncatedCode text={section.code} /></Table.Cell>
-                  <Table.Cell>{primaryName(section.campus) || notAvailable}</Table.Cell>
-                  <Table.Cell>{section.stdCount ?? 0} / {section.limitCount ?? notAvailable}</Table.Cell>
-                  <Table.Cell><TruncatedText
+                  </td>
+                  <td><TruncatedCode text={section.code} /></td>
+                  <td>{primaryName(section.campus) || notAvailable}</td>
+                  <td>{section.stdCount ?? 0} / {section.limitCount ?? notAvailable}</td>
+                  <td><TruncatedText
                         text={catalogLocalizedNames(section.teachers, locale) || notAvailable}
-                      /></Table.Cell>
-                </Table.Row>
+                      /></td>
+                </tr>
               {/each}
-            </Table.Body>
-          </Table.Root>
+            </tbody>
+          </Table>
         </div>
       {/snippet}
     </ResponsiveCollection>

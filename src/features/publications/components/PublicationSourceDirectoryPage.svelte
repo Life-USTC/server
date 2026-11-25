@@ -10,7 +10,7 @@ import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import { formatShanghaiDate } from "#lib/time/shanghai-format.js";
 import { publicationSourceLastPublishedLabel } from "@/features/publications/lib/publication-source-last-published";
 import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
@@ -197,35 +197,35 @@ const levelIndex = $derived(filteredGroups);
       <PageSectionNav ariaLabel={copy.organizationLevel} items={levelIndex.map((group) => ({ href: "#level-" + group.organizationLevel, label: levelLabel(group.organizationLevel), meta: group.sourceCount }))} />
     {/if}
     <Panel>
-      <Table.Root containerLabel={copy.sourcesPageTitle} class="table-fixed">
+      <Table containerLabel={copy.sourcesPageTitle} class="table-fixed">
         <colgroup>
           <col />
           <col class="xl:w-24" />
           <col class="xl:w-32" />
         </colgroup>
-        <Table.Caption class="sr-only">{copy.sourcesPageTitle}</Table.Caption>
-        <Table.Header class="bg-muted/30">
+        <caption class="sr-only">{copy.sourcesPageTitle}</caption>
+        <thead class="bg-muted/30">
           <TableControlsRow colspan={3}>
             <div class="flex w-full min-w-0 flex-wrap items-center gap-2">
               <SearchField id="publication-source-directory-query" form="source-directory-filters" label={copy.searchSources} placeholder={copy.searchSources} value={draft.query ?? ""} oninput={(event) => change({ query: event.currentTarget.value })} maxlength={200} />
               <div class="flex flex-wrap gap-2 xl:hidden">{#each columns as _, index}{@render column(index, "mobile")}{/each}</div>
             </div>
           </TableControlsRow>
-          <Table.Row class="hidden xl:table-row">
-            <Table.Head class="h-9">{@render column(0, "desktop")}</Table.Head>
-            <Table.Head class="h-9 w-24">{@render column(1, "desktop")}</Table.Head>
-            <Table.Head class="h-9 w-32">{@render column(2, "desktop")}</Table.Head>
-          </Table.Row>
-        </Table.Header>
+          <tr class="hidden xl:table-row">
+            <th class="h-9">{@render column(0, "desktop")}</th>
+            <th class="h-9 w-24">{@render column(1, "desktop")}</th>
+            <th class="h-9 w-32">{@render column(2, "desktop")}</th>
+          </tr>
+        </thead>
         {#if levelIndex.length === 0}
-          <Table.Body>
-            <Table.Row><Table.Cell colspan={3}>{copy.sourceSearchEmpty}</Table.Cell></Table.Row>
-          </Table.Body>
+          <tbody>
+            <tr><td colspan={3}>{copy.sourceSearchEmpty}</td></tr>
+          </tbody>
         {/if}
         {#each levelIndex as group (group.organizationLevel)}
-          <Table.Body id={"level-" + group.organizationLevel} class="scroll-mt-20">
-            <Table.Row>
-              <Table.Head colspan={3} scope="rowgroup" class="h-auto whitespace-normal py-3">
+          <tbody id={"level-" + group.organizationLevel} class="scroll-mt-20">
+            <tr>
+              <th colspan={3} scope="rowgroup" class="h-auto whitespace-normal py-3">
                 <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <h2 class="section-heading">{levelLabel(group.organizationLevel)}</h2>
                   <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -233,10 +233,10 @@ const levelIndex = $derived(filteredGroups);
                     <a class="text-sm text-primary-text underline underline-offset-4" href={levelHref(group.organizationLevel)}>{copy.viewSourceArticles}</a>
                   </div>
                 </div>
-              </Table.Head>
-            </Table.Row>
-            <Table.Row class="xl:hidden">
-              <Table.Cell colspan={3} class="p-0">
+              </th>
+            </tr>
+            <tr class="xl:hidden">
+              <td colspan={3} class="p-0">
                 <Item.Group class="gap-0" role="list">
                   {#each group.sources as source (source.id)}
                     {@const lastPublished = formatLastPublished(source)}
@@ -258,22 +258,22 @@ const levelIndex = $derived(filteredGroups);
                     </div>
                   {/each}
                 </Item.Group>
-              </Table.Cell>
-            </Table.Row>
+              </td>
+            </tr>
             {#each group.sources as source (source.id)}
               {@const lastPublished = formatLastPublished(source)}
-              <Table.Row class="hidden xl:table-row has-[a:hover]:bg-muted/50" data-publication-source={source.id}>
-                <Table.Cell class="py-2 align-middle">
+              <tr class="hidden xl:table-row has-[a:hover]:bg-muted/50" data-publication-source={source.id}>
+                <td class="py-2 align-middle">
                   <a class="font-medium text-sm text-foreground hover:underline [overflow-wrap:anywhere]" href={sourceHref(source.id)}>{source.name}</a>
                   <p class="text-xs text-muted-foreground [overflow-wrap:anywhere]">{source.hosts.join(" · ")}</p>
-                </Table.Cell>
-                <Table.Cell class="py-2 align-middle text-left tabular-nums text-muted-foreground">{source.publicationCount}</Table.Cell>
-                <Table.Cell class="py-2 align-middle whitespace-nowrap tabular-nums text-muted-foreground">{lastPublished ?? "—"}</Table.Cell>
-              </Table.Row>
+                </td>
+                <td class="py-2 align-middle text-left tabular-nums text-muted-foreground">{source.publicationCount}</td>
+                <td class="py-2 align-middle whitespace-nowrap tabular-nums text-muted-foreground">{lastPublished ?? "—"}</td>
+              </tr>
             {/each}
-          </Table.Body>
+          </tbody>
         {/each}
-      </Table.Root>
+      </Table>
     </Panel>
   {/if}
 </CollectionPage>

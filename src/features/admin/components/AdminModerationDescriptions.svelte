@@ -8,7 +8,7 @@ import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import {
   adminModerationDescriptionEditedAt,
   adminModerationDescriptionLastEditor,
@@ -76,23 +76,24 @@ export let targetLabel: (description: AdminModerationDescription) => string;
     </Item.Actions>
     {/snippet}
     {#snippet desktop(emptyState)}
-      <Table.Root class="w-full min-w-[54rem]">
-        <Table.Header>
+      <Table class="w-full min-w-[54rem]">
+        <thead>
           <TableControlsRow colspan={5}>{@render filterControls("search", "desktop")}</TableControlsRow>
-          <Table.Row>
-            <Table.Head class="w-[36%]">{@render filterControls("descriptionContent", "desktop")}</Table.Head>
-            <Table.Head class="w-[18%]">{@render filterControls("author", "desktop")}</Table.Head>
-            <Table.Head class="w-[22%]">{@render filterControls("descriptionTarget", "desktop")}</Table.Head>
-            <Table.Head class="w-[14%]">{@render filterControls("editedAt", "desktop")}</Table.Head>
-            <Table.Head class="w-14 min-w-14">
+          <tr>
+            <th class="w-[36%]">{@render filterControls("descriptionContent", "desktop")}</th>
+            <th class="w-[18%]">{@render filterControls("author", "desktop")}</th>
+            <th class="w-[22%]">{@render filterControls("descriptionTarget", "desktop")}</th>
+            <th class="w-[14%]">{@render filterControls("editedAt", "desktop")}</th>
+            <th class="w-14 min-w-14">
               <span class="sr-only">{copy.actions}</span>
-            </Table.Head>
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
           {#each descriptions as description}
-            <Table.Row class="group">
-              <Table.Cell class="max-w-0">
+            {@const author = adminModerationDescriptionLastEditor(description, copy)}
+            <tr class="group">
+              <td class="max-w-0">
                 <TruncatedText
                   class="text-sm font-medium"
                   lines={2}
@@ -101,12 +102,11 @@ export let targetLabel: (description: AdminModerationDescription) => string;
                     ? description.content
                     : copy.emptyDescription}
                 />
-              </Table.Cell>
-              <Table.Cell class="max-w-0">
-                {@const author = adminModerationDescriptionLastEditor(description, copy)}
+              </td>
+              <td class="max-w-0">
                 <span class="block max-w-full truncate" title={author}>{author}</span>
-              </Table.Cell>
-              <Table.Cell class="max-w-0">
+              </td>
+              <td class="max-w-0">
                 <a
                   class="block min-w-0 max-w-full overflow-hidden hover:underline"
                   href={descriptionTargetHref(description)}
@@ -114,11 +114,11 @@ export let targetLabel: (description: AdminModerationDescription) => string;
                 >
                   <TruncatedText text={targetLabel(description)} />
                 </a>
-              </Table.Cell>
-              <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+              </td>
+              <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
                 {formatDate(adminModerationDescriptionEditedAt(description))}
-              </Table.Cell>
-              <Table.Cell class="w-14 min-w-14 text-left">
+              </td>
+              <td class="w-14 min-w-14 text-left">
                 <TableRowActions>
                   <TableIconButton
                     label={copy.manageDescription}
@@ -129,13 +129,13 @@ export let targetLabel: (description: AdminModerationDescription) => string;
                     <SquarePen />
                   </TableIconButton>
                 </TableRowActions>
-              </Table.Cell>
-            </Table.Row>
+              </td>
+            </tr>
           {:else}
-            <Table.Row><Table.Cell colspan={5}>{@render emptyState()}</Table.Cell></Table.Row>
+            <tr><td colspan={5}>{@render emptyState()}</td></tr>
           {/each}
-        </Table.Body>
-      </Table.Root>
+        </tbody>
+      </Table>
     {/snippet}
   </ModerationCollection>
 </section>

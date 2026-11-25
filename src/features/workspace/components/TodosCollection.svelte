@@ -11,7 +11,7 @@ import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import type {
   WorkspaceTodoItem,
   WorkspaceTodosCopy,
@@ -139,21 +139,21 @@ export let readOnlyReason: string | undefined = undefined;
     </div>
   {/snippet}
   {#snippet desktop()}
-    <Table.Root class="min-w-0 w-full">
-      <Table.Header>
-        <Table.Row>
-          <Table.Head>{todosCopy.titleLabel}</Table.Head>
-          <Table.Head>{todosCopy.priorityLabel}</Table.Head>
-          <Table.Head>{todosCopy.dueAtLabel}</Table.Head>
-          <Table.Head>
+    <Table class="min-w-0 w-full">
+      <thead>
+        <tr>
+          <th>{todosCopy.titleLabel}</th>
+          <th>{todosCopy.priorityLabel}</th>
+          <th>{todosCopy.dueAtLabel}</th>
+          <th>
             <span class="sr-only">{todosCopy.editAriaLabel}</span>
-          </Table.Head>
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
         {#each filteredTodos as todo (todo.id)}
-          <Table.Row class="group">
-            <Table.Cell>
+          <tr class="group">
+            <td>
               <button
                 class="block min-h-11 min-w-0 max-w-full text-left font-medium hover:underline"
                 class:line-through={todo.completed}
@@ -162,14 +162,14 @@ export let readOnlyReason: string | undefined = undefined;
               >
                 <TruncatedText text={todo.title} lines={2} />
               </button>
-            </Table.Cell>
-            <Table.Cell>
+            </td>
+            <td>
               {@render priority(todo)}
-            </Table.Cell>
-            <Table.Cell>
+            </td>
+            <td>
               {display.fmtDate(todo.dueAt)}
-            </Table.Cell>
-            <Table.Cell>
+            </td>
+            <td>
               <TableRowActions>
                 {@render completion(todo)}
                 <TableIconButton
@@ -181,16 +181,16 @@ export let readOnlyReason: string | undefined = undefined;
                   <Pencil data-icon="inline-start" />
                 </TableIconButton>
               </TableRowActions>
-            </Table.Cell>
-          </Table.Row>
+            </td>
+          </tr>
         {:else}
-          <Table.Row class="hover:bg-transparent">
-            <Table.Cell class="p-0" colspan={4}>
+          <tr class="hover:bg-transparent">
+            <td class="p-0" colspan={4}>
               {@render emptyState()}
-            </Table.Cell>
-          </Table.Row>
+            </td>
+          </tr>
         {/each}
-      </Table.Body>
-    </Table.Root>
+      </tbody>
+    </Table>
   {/snippet}
 </ResponsiveCollection>

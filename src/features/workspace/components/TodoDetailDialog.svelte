@@ -10,7 +10,7 @@ import { Button, buttonVariants } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import { cn } from "#lib/utils.js";
 import type {
   WorkspaceTodoItem,
@@ -96,16 +96,16 @@ async function confirmDelete(event: MouseEvent) {
                 {display.relativeDueLabel(todo.dueAt)}
               </p>
             {/if}
-            <Table.Root class="mt-4">
-              <Table.Body>
-                <Table.Row>
-                  <Table.Head
+            <Table class="mt-4">
+              <tbody>
+                <tr>
+                  <th
                     class="text-muted-foreground h-auto w-[38%] px-0 py-2"
                     scope="row"
                   >
                     {todosCopy.priorityLabel}
-                  </Table.Head>
-                  <Table.Cell class="h-auto px-0 py-2">
+                  </th>
+                  <td class="h-auto px-0 py-2">
                     <!-- Keep #1027's severity encoding; it just lives in the
                          facts table now instead of the dialog description. -->
                     <Badge
@@ -117,21 +117,21 @@ async function confirmDelete(event: MouseEvent) {
                     >
                       {todosCopy.priority[todo.priority]}
                     </Badge>
-                  </Table.Cell>
-                </Table.Row>
-                <Table.Row>
-                  <Table.Head
+                  </td>
+                </tr>
+                <tr>
+                  <th
                     class="text-muted-foreground h-auto px-0 py-2"
                     scope="row"
                   >
                     {todosCopy.statusLabel}
-                  </Table.Head>
-                  <Table.Cell class="h-auto px-0 py-2">
+                  </th>
+                  <td class="h-auto px-0 py-2">
                     {display.todoStatus(todo)}
-                  </Table.Cell>
-                </Table.Row>
-              </Table.Body>
-            </Table.Root>
+                  </td>
+                </tr>
+              </tbody>
+            </Table>
           </div>
           {#if todo.content}
             <MarkdownPreview class="min-w-0 break-words text-sm" content={todo.content} />
