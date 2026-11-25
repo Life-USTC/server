@@ -222,7 +222,7 @@ test("/admin/users 移动端工作区可搜索并管理首条记录", {
         });
         await expect(dialog).toBeVisible();
         await expect(
-          dialog.locator('[data-slot="dialog-close"]'),
+          dialog.getByRole("button", { name: /^(关闭|Close)$/i }),
         ).toBeVisible();
         const footerButtons = dialog.locator(
           '[data-slot="dialog-footer"] button',
@@ -238,7 +238,7 @@ test("/admin/users 移动端工作区可搜索并管理首条记录", {
         await page.setViewportSize({ width: 320, height: 844 });
         await expect(dialog).toBeVisible();
         await expect(
-          dialog.locator('[data-slot="dialog-close"]'),
+          dialog.getByRole("button", { name: /^(关闭|Close)$/i }),
         ).toBeVisible();
         await expect(footerButtons.nth(0)).toBeVisible();
         await expect(footerButtons.nth(1)).toBeVisible();

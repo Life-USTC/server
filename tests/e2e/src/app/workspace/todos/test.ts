@@ -830,7 +830,9 @@ test.describe("仪表盘待办", () => {
         await expect(
           detailDialog.getByText("mobile-content-marker"),
         ).toBeVisible();
-        const closeButton = detailDialog.locator('[data-slot="dialog-close"]');
+        const closeButton = detailDialog.getByRole("button", {
+          name: /^(关闭|Close)$/i,
+        });
         await expect(closeButton).toBeVisible();
         await expect(closeButton).toBeInViewport();
         const closeBox = await closeButton.boundingBox();
