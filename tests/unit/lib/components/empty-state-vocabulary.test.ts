@@ -52,11 +52,6 @@ const BREAKPOINTS = ["sm", "md", "lg", "xl", "2xl"] as const;
  */
 const UNCONVERGED: readonly { file: string; tag: string; class: string }[] = [
   {
-    file: "src/features/admin/components/AdminBusVersionsTable.svelte",
-    tag: "CollectionEmpty",
-    class: "rounded-none",
-  },
-  {
     file: "src/features/api-docs/components/ApiDocsPage.svelte",
     tag: "Empty.Root",
     class: "border border-border border-solid bg-card",

@@ -17,7 +17,6 @@ interface Props {
   copy: AdminBusCopy;
   compact?: boolean;
   enhancedAction: AdminBusEnhancedAction;
-  isPending: (actionKey: string) => boolean;
   onDelete: (version: AdminBusVersion) => void;
   pendingAction: string | null;
   version: AdminBusVersion;
@@ -27,7 +26,6 @@ let {
   copy,
   compact = false,
   enhancedAction,
-  isPending,
   onDelete,
   pendingAction,
   version,
@@ -46,7 +44,7 @@ let activateDialogOpen = $state(false);
         type="button"
         variant="outline"
       >
-        {#if isPending(`activate-${version.id}`)}<Spinner data-icon="inline-start" />{:else}<CheckCircle data-icon="inline-start" />{/if}
+        {#if pendingAction === `activate-${version.id}`}<Spinner data-icon="inline-start" />{:else}<CheckCircle data-icon="inline-start" />{/if}
         {copy.activateAction}
       </Button>
       <Button
@@ -67,7 +65,7 @@ let activateDialogOpen = $state(false);
         label={copy.activateAction}
         onclick={() => (activateDialogOpen = true)}
       >
-        {#if isPending(`activate-${version.id}`)}<Spinner />{:else}<CheckCircle />{/if}
+        {#if pendingAction === `activate-${version.id}`}<Spinner />{:else}<CheckCircle />{/if}
       </TableIconButton>
       <TableIconButton
         disabled={Boolean(pendingAction)}
@@ -117,7 +115,7 @@ let activateDialogOpen = $state(false);
             {copy.cancelAction}
           </AlertDialog.Cancel>
           <AlertDialog.Action type="submit" disabled={Boolean(pendingAction)}>
-            {#if isPending(`activate-${version.id}`)}
+            {#if pendingAction === `activate-${version.id}`}
               <Spinner data-icon="inline-start" />
             {:else}
               <CheckCircle data-icon="inline-start" />

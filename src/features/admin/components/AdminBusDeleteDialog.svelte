@@ -13,13 +13,11 @@ interface Props {
   close: () => void;
   copy: AdminBusCopy;
   enhancedAction: AdminBusEnhancedAction;
-  isPending: (actionKey: string) => boolean;
   pendingAction: string | null;
   version: AdminBusVersion;
 }
 
-let { close, copy, enhancedAction, isPending, pendingAction, version }: Props =
-  $props();
+let { close, copy, enhancedAction, pendingAction, version }: Props = $props();
 </script>
 
 <AlertDialog.Root
@@ -63,7 +61,7 @@ let { close, copy, enhancedAction, isPending, pendingAction, version }: Props =
           type="submit"
           variant="destructive"
         >
-          {#if isPending(`delete-${version.id}`)}
+          {#if pendingAction === `delete-${version.id}`}
             <Spinner data-icon="inline-start" />
           {:else}
             <Trash2 data-icon="inline-start" />

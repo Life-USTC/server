@@ -11,11 +11,10 @@ interface Props {
   close: () => void;
   copy: AdminBusCopy;
   enhancedAction: AdminBusEnhancedAction;
-  isPending: (actionKey: string) => boolean;
   pendingAction: string | null;
 }
 
-let { close, copy, enhancedAction, isPending, pendingAction }: Props = $props();
+let { close, copy, enhancedAction, pendingAction }: Props = $props();
 </script>
 
 <Dialog.Root
@@ -54,7 +53,7 @@ let { close, copy, enhancedAction, isPending, pendingAction }: Props = $props();
           {copy.cancelAction}
         </Button>
         <Button type="submit" disabled={Boolean(pendingAction)}>
-          {#if isPending("import")}
+          {#if pendingAction === "import"}
             <Spinner data-icon="inline-start" />
           {:else}
             <Download data-icon="inline-start" />
