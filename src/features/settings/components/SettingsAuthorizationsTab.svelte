@@ -12,6 +12,7 @@ import {
   oauthScopeLabel,
 } from "@/features/oauth/lib/oauth-copy";
 import type { AppLocale } from "@/i18n/config";
+import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
 import { enhance, type SubmitFunction } from "$app/forms";
 import type {
   SettingsCopy,
@@ -25,11 +26,7 @@ export let locale: AppLocale;
 let pendingAuthorization: SettingsOAuthAuthorization | null = null;
 let revokingConsentId: string | null = null;
 
-const dateFormatter = new Intl.DateTimeFormat(locale, {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Asia/Shanghai",
-});
+$: dateFormatter = campusTimestampFormatter(locale);
 
 function clientName(authorization: SettingsOAuthAuthorization) {
   return (

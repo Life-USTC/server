@@ -13,9 +13,6 @@ import TodoEditDialog from "./TodoEditDialog.svelte";
 export let commentsCopy: CommentsCopy;
 export let createTodoAction: SubmitFunction;
 export let createTodoError: string;
-export let datetimeLocalValue: (
-  value: string | Date | null | undefined,
-) => string;
 export let deleteTodo: (todo: WorkspaceTodoItem) => void | Promise<void>;
 export let editTodoError: string;
 export let editingTodo: WorkspaceTodoItem | null;
@@ -80,7 +77,6 @@ export let readOnlyReason: string | undefined = undefined;
 {#if !readOnlyReason}
 <TodoEditDialog
   commentsCopy={commentsCopy}
-  datetimeLocalValue={datetimeLocalValue}
   editTodoError={editTodoError}
   isUpdatingTodo={isUpdatingTodo}
   onClose={() => {

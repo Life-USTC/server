@@ -10,6 +10,7 @@ import * as InputGroup from "#lib/components/ui/input-group/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import type { AppLocale } from "@/i18n/config";
+import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
 import { invalidateAll } from "$app/navigation";
 import type { SettingsCopy } from "./settings-component-types";
 
@@ -32,11 +33,7 @@ let saving = false;
 $: displayName = passkey.name?.trim() || copy.settings.passkeys.unnamed;
 $: hasNameChange = name.trim().length > 0 && name.trim() !== displayName;
 $: createdAt = new Date(passkey.createdAt);
-$: createdAtLabel = new Intl.DateTimeFormat(locale, {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Asia/Shanghai",
-}).format(createdAt);
+$: createdAtLabel = campusTimestampFormatter(locale).format(createdAt);
 
 function errorMessage(error: unknown) {
   const kind = passkeyClientErrorKind(error);

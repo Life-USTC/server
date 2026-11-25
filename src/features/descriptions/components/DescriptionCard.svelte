@@ -17,7 +17,7 @@ import {
 import { fetchDescriptionPayload } from "@/features/descriptions/lib/description-card-client";
 import type { AppLocale } from "@/i18n/config";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
-import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
+import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
 import DescriptionCardHeader from "./DescriptionCardHeader.svelte";
 import DescriptionEditPanel from "./DescriptionEditPanel.svelte";
 import DescriptionReadPanel from "./DescriptionReadPanel.svelte";
@@ -128,10 +128,7 @@ let isSaving = false;
 let message = "";
 let activePanelTab: PanelTab = "description";
 
-$: dateTimeFormatter = createShanghaiDateTimeFormatter(locale, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+$: dateTimeFormatter = campusTimestampFormatter(locale);
 
 $: softEmpty = !description.content && history.length === 0 && !message;
 

@@ -17,7 +17,7 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Popover from "#lib/components/ui/popover/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
-import { createShanghaiDateTimeFormatter } from "#lib/time/shanghai-format.js";
+import { campusTimestampFormatter } from "#lib/time/shanghai-format.js";
 import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import { createFilterDraft } from "@/lib/navigation/filter-draft.svelte";
 import { tableFilterPageHref } from "@/lib/table-filter-query";
@@ -110,12 +110,7 @@ function removeFilter(event: MouseEvent, href: string) {
   const name = activeFilters.find((item) => item.href === href)?.name;
   if (name) draft.remove(event, [name, `${name}Op`, `${name}Max`]);
 }
-const formatter = $derived(
-  createShanghaiDateTimeFormatter(data.locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }),
-);
+const formatter = $derived(campusTimestampFormatter(data.locale));
 type Upload = PageData["uploads"][number];
 let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
   null,

@@ -22,7 +22,7 @@ import {
   parseOAuthRedirectUris,
   selectedOAuthAuthPattern,
 } from "@/features/admin/lib/oauth-page-options";
-import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
+import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
 import type {
   AdminOAuthAdminCopy,
   AdminOAuthClient,
@@ -74,10 +74,7 @@ let openedCredentialsClientId: string | null = null;
 
 $: _copy = data.copy.oauth;
 $: _adminCopy = data.copy.admin;
-$: _dateTimeFormatter = createShanghaiDateTimeFormatter(data.locale, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+$: _dateTimeFormatter = campusTimestampFormatter(data.locale);
 $: availableAuthPatterns = availableOAuthAuthPatterns(data.authMethods);
 $: selectedAuthPattern = selectedOAuthAuthPattern(selectedAuthMethod);
 $: parsedRedirectUris = parseOAuthRedirectUris(redirectDraft);

@@ -26,7 +26,7 @@ import {
 } from "@/features/admin/lib/moderation-page-options";
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import { tableFilterPageHref } from "@/lib/table-filter-query";
-import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
+import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
 import { goto, invalidateAll } from "$app/navigation";
 import { moderationTableFields } from "../lib/admin-moderation-table-fields";
 
@@ -80,10 +80,7 @@ let {
 
 $: _copy = data.copy.moderation;
 $: _adminCopy = data.copy.admin;
-$: _dateTimeFormatter = createShanghaiDateTimeFormatter(data.locale, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+$: _dateTimeFormatter = campusTimestampFormatter(data.locale);
 $: _commentStatusOptions = buildCommentStatusOptions(_copy);
 $: suspensionDurationOptions = buildSuspensionDurationOptions(_copy);
 

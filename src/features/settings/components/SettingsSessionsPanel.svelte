@@ -17,6 +17,7 @@ import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { summarizeAuditUserAgent } from "@/features/settings/lib/security-device-label";
 import type { AppLocale } from "@/i18n/config";
+import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
 import type { SettingsCopy } from "./settings-component-types";
 
 type Session = NonNullable<
@@ -46,11 +47,7 @@ $: canRevoke = loaded && !loading && !revoking;
 $: hasOtherSessions = sessions.some(
   (session) => session.id !== currentSessionID,
 );
-$: dateFormatter = new Intl.DateTimeFormat(locale, {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Asia/Shanghai",
-});
+$: dateFormatter = campusTimestampFormatter(locale);
 $: confirmation =
   pending?.kind === "all"
     ? labels.confirmAll

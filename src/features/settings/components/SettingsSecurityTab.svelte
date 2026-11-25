@@ -9,6 +9,7 @@ import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
 import { groupSecurityActivity } from "@/features/settings/lib/security-activity-groups";
+import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
 import SettingsSessionsPanel from "./SettingsSessionsPanel.svelte";
 import type {
   SettingsCopy,
@@ -21,11 +22,7 @@ export let locale: "en-us" | "zh-cn";
 
 let rotateDialogOpen = false;
 
-const dateFormatter = new Intl.DateTimeFormat(locale, {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Asia/Shanghai",
-});
+$: dateFormatter = campusTimestampFormatter(locale);
 
 $: groupedActivity = groupSecurityActivity(activity.items);
 

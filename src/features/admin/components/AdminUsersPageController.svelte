@@ -8,7 +8,7 @@ import {
 } from "@/features/admin/lib/admin-users-display";
 import { createAdminUsersPageActions } from "@/features/admin/lib/admin-users-page-actions";
 import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
-import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
+import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
 import AdminUserDialog from "./AdminUserDialog.svelte";
 import AdminUsersPageContent from "./AdminUsersPageContent.svelte";
 import type {
@@ -64,10 +64,7 @@ $: _copy = data.copy.adminUsers;
 $: _commonCopy = data.copy.common;
 $: _adminCopy = data.copy.admin;
 $: _moderationCopy = data.copy.moderation;
-$: _dateTimeFormatter = createShanghaiDateTimeFormatter(data.locale, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+$: _dateTimeFormatter = campusTimestampFormatter(data.locale);
 $: suspendDurationOptions = SUSPENSION_DURATION_OPTIONS.map((option) => ({
   value: option.value,
   label: _moderationCopy[option.labelKey],

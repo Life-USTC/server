@@ -11,7 +11,7 @@ import {
   createPendingEnhancedAction,
   serverOutcomeMessage,
 } from "@/features/admin/lib/admin-enhanced-action";
-import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
+import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
 import type {
   AdminBusCopy,
   AdminBusHeaderAdminCopy,
@@ -48,12 +48,7 @@ let { isImportDialogOpen, pendingAction, pendingDeleteVersion } = $state(
 
 let copy = $derived(data.copy.adminBus);
 let adminCopy = $derived(data.copy.admin);
-let dateTimeFormatter = $derived(
-  createShanghaiDateTimeFormatter(data.locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }),
-);
+let dateTimeFormatter = $derived(campusTimestampFormatter(data.locale));
 function formatEffectiveRange(version: AdminBusVersion) {
   return formatBusVersionEffectiveRange(version);
 }

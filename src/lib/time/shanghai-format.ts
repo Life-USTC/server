@@ -117,3 +117,10 @@ export function createShanghaiDateTimeFormatter(
   formatterCache.set(key, formatter);
   return formatter;
 }
+
+export function campusTimestampFormatter(locale: string) {
+  return createShanghaiDateTimeFormatter(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}

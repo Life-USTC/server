@@ -11,13 +11,11 @@ import type {
   WorkspaceTodoPriorityOption,
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
+import { toShanghaiDateTimeLocalValue } from "@/lib/time/shanghai-format";
 import { enhance, type SubmitFunction } from "$app/forms";
 import TodoFormFields from "./TodoFormFields.svelte";
 
 export let commentsCopy: CommentsCopy;
-export let datetimeLocalValue: (
-  value: string | Date | null | undefined,
-) => string;
 export let editTodoError: string;
 export let isUpdatingTodo: boolean;
 export let onClose: () => void;
@@ -59,7 +57,7 @@ export let updateTodoAction: SubmitFunction;
               commentsCopy={commentsCopy}
               contentValue={todo.content ?? ""}
               disabled={isUpdatingTodo}
-              dueAtValue={datetimeLocalValue(todo.dueAt)}
+              dueAtValue={toShanghaiDateTimeLocalValue(todo.dueAt)}
               idPrefix="edit-todo"
               priorityValue={todo.priority ?? "medium"}
               titleValue={todo.title}

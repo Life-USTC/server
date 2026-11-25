@@ -40,7 +40,7 @@ import {
 import { getCommentsCopy } from "@/features/comments/lib/comments-copy";
 import type { CommentNode } from "@/features/comments/server/comment-types";
 import type { AppLocale } from "@/i18n/config";
-import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
+import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
 import { page as routePage } from "$app/state";
 import CommentDeleteDialog from "./CommentDeleteDialog.svelte";
 import CommentsComposerSection from "./CommentsComposerSection.svelte";
@@ -133,13 +133,7 @@ let _copy = $derived(
 let _commentCopy = $derived(_copy.comments);
 let _uploadCopy = $derived(_copy.uploads);
 let _dateTimeFormatter = $derived(
-  createShanghaiDateTimeFormatter(
-    (routePage.data.locale ?? "zh-cn") as AppLocale,
-    {
-      dateStyle: "medium",
-      timeStyle: "short",
-    },
-  ),
+  campusTimestampFormatter((routePage.data.locale ?? "zh-cn") as AppLocale),
 );
 let _signInHref = $derived(signInHrefForPage(routePage.url));
 let _resolvedTargets = $derived(

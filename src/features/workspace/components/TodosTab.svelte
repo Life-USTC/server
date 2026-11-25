@@ -71,27 +71,20 @@ export let todoActionError: string;
 export let todoSavingById: Record<string, boolean>;
 export let isCreatingTodo: boolean;
 export let isUpdatingTodo: boolean;
-let datetimeLocalValue: TodoDateFormatter;
 let fmtDate: TodoDateFormatter;
 let isDueOverdue: (value: Date | string | null | undefined) => boolean;
 let relativeDueLabel: TodoDateFormatter;
 let todoActionLabel: TodoAction;
 let todoStatus: TodoAction;
 
-$: ({
-  datetimeLocalValue,
-  fmtDate,
-  isDueOverdue,
-  relativeDueLabel,
-  todoActionLabel,
-  todoStatus,
-} = createTodoTabDisplayActions({
-  workspaceCopy,
-  locale,
-  referenceDate,
-  sectionCopy,
-  todosCopy,
-}));
+$: ({ fmtDate, isDueOverdue, relativeDueLabel, todoActionLabel, todoStatus } =
+  createTodoTabDisplayActions({
+    workspaceCopy,
+    locale,
+    referenceDate,
+    sectionCopy,
+    todosCopy,
+  }));
 function clearTodoFilter() {
   todoFilter = "all";
   draft = {};
@@ -156,7 +149,6 @@ function clearTodoFilter() {
     commentsCopy={commentsCopy}
     createTodoAction={createTodoAction}
     bind:createTodoError
-    datetimeLocalValue={datetimeLocalValue}
     deleteTodo={deleteTodo}
     bind:editTodoError
     bind:editingTodo
