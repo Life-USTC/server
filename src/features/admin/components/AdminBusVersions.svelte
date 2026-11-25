@@ -13,7 +13,7 @@ import { formatBusVersionEffectiveRange } from "@/features/admin/lib/admin-bus-f
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import { matchTableFilter, type TableFilterField } from "@/lib/table-filters";
 import {
-  campusTimestampFormatter,
+  createCampusTimestampFormatter,
   formatShanghaiDate,
 } from "@/lib/time/shanghai-format";
 import AdminBusVersionActions from "./AdminBusVersionActions.svelte";
@@ -40,7 +40,7 @@ let applied = $state<Record<string, string>>({});
 const common = $derived(
   getWorkspacePageCopy(locale === "en-us" ? "en-us" : "zh-cn").common,
 );
-const dateTimeFormatter = $derived(campusTimestampFormatter(locale));
+const formatDate = $derived(createCampusTimestampFormatter(locale));
 const columns = $derived<TableFilterField[][]>([
   [
     { name: "title", label: copy.colTitle },
@@ -139,7 +139,7 @@ function apply(event: SubmitEvent) {
                   </div>
                   <div>
                     <dt class="text-muted-foreground text-xs">{copy.colImported}</dt>
-                    <dd class="tabular-nums">{dateTimeFormatter.format(new Date(version.importedAt))}</dd>
+                    <dd class="tabular-nums">{formatDate(version.importedAt)}</dd>
                   </div>
                   <div class="col-span-2">
                     <dt class="text-muted-foreground text-xs">{copy.colEffective}</dt>
@@ -202,7 +202,7 @@ function apply(event: SubmitEvent) {
                     {formatBusVersionEffectiveRange(version)}
                   </td>
                   <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
-                    {dateTimeFormatter.format(new Date(version.importedAt))}
+                    {formatDate(version.importedAt)}
                   </td>
                   <td class="text-left">
                     <AdminBusVersionStatusBadge {copy} {version} />

@@ -16,7 +16,7 @@ import {
 import { createAdminUsersPageActions } from "@/features/admin/lib/admin-users-page-actions";
 import { createEndlessList } from "@/lib/navigation/endless-list.svelte";
 import { tableFilterPageHref } from "@/lib/table-filter-query";
-import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
+import { createCampusTimestampFormatter } from "@/lib/time/shanghai-format";
 import { goto } from "$app/navigation";
 import type { PageData } from "./$types";
 
@@ -45,17 +45,13 @@ const form = $state({
 const copy = $derived(data.copy.adminUsers);
 const commonCopy = $derived(data.copy.common);
 const moderationCopy = $derived(data.copy.moderation);
-const dateTimeFormatter = $derived(campusTimestampFormatter(data.locale));
+const formatDate = $derived(createCampusTimestampFormatter(data.locale));
 const suspendDurationOptions = $derived(
   SUSPENSION_DURATION_OPTIONS.map((option) => ({
     value: option.value,
     label: moderationCopy[option.labelKey],
   })),
 );
-
-function formatDate(value: Date | string | null | undefined) {
-  return value ? dateTimeFormatter.format(new Date(value)) : "";
-}
 
 function suspensionLabel(user: AdminUserRow) {
   return adminUserSuspensionLabel(user, copy, moderationCopy, formatDate);

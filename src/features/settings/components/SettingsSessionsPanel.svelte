@@ -16,7 +16,7 @@ import * as Item from "#lib/components/ui/item/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import { summarizeAuditUserAgent } from "@/features/settings/lib/security-device-label";
 import type { AppLocale } from "@/i18n/config";
-import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
+import { createCampusTimestampFormatter } from "@/lib/time/shanghai-format";
 import type { SettingsCopy } from "./settings-component-types";
 
 type Session = NonNullable<
@@ -46,7 +46,7 @@ $: canRevoke = loaded && !loading && !revoking;
 $: hasOtherSessions = sessions.some(
   (session) => session.id !== currentSessionID,
 );
-$: dateFormatter = campusTimestampFormatter(locale);
+$: formatDate = createCampusTimestampFormatter(locale);
 $: confirmation =
   pending?.kind === "all"
     ? labels.confirmAll
@@ -178,9 +178,9 @@ async function revoke(action: RevokeAction) {
               {#if session.id === currentSessionID}<Badge variant="secondary">{labels.current}</Badge>{/if}
             </Item.Title>
             <Item.Description class="line-clamp-none">
-              {labels.createdAt.replace("{time}", dateFormatter.format(new Date(session.createdAt)))}
+              {labels.createdAt.replace("{time}", formatDate(session.createdAt))}
               <br />
-              {labels.expiresAt.replace("{time}", dateFormatter.format(new Date(session.expiresAt)))}
+              {labels.expiresAt.replace("{time}", formatDate(session.expiresAt))}
             </Item.Description>
           </Item.Content>
           <Item.Actions class="self-end sm:self-auto">

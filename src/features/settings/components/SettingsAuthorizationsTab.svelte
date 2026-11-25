@@ -11,7 +11,7 @@ import {
   oauthScopeLabel,
 } from "@/features/oauth/lib/oauth-copy";
 import type { AppLocale } from "@/i18n/config";
-import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
+import { createCampusTimestampFormatter } from "@/lib/time/shanghai-format";
 import { enhance, type SubmitFunction } from "$app/forms";
 import type {
   SettingsCopy,
@@ -27,17 +27,13 @@ let revokingConsentId: string | null = null;
 
 let channelLabels: Partial<Record<string, string>>;
 $: channelLabels = copy.settings.security.channels;
-$: dateFormatter = campusTimestampFormatter(locale);
+$: formatUpdatedAt = createCampusTimestampFormatter(locale);
 
 function clientName(authorization: SettingsOAuthAuthorization) {
   return (
     authorization.clientName?.trim() ||
     copy.settings.authorizations.unnamedClient
   );
-}
-
-function formatUpdatedAt(value: string) {
-  return dateFormatter.format(new Date(value));
 }
 
 function revokeAction(consentId: string): SubmitFunction {

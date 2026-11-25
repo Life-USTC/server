@@ -26,7 +26,7 @@ import {
   parseOAuthRedirectUris,
   selectedOAuthAuthPattern,
 } from "@/features/admin/lib/oauth-page-options";
-import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
+import { createCampusTimestampFormatter } from "@/lib/time/shanghai-format";
 import type { ActionData, PageData } from "./$types";
 
 export let data: PageData;
@@ -42,7 +42,7 @@ function set<K extends keyof typeof state>(key: K) {
 let openedCredentialsClientId: string | null = null;
 
 $: _copy = data.copy.oauth;
-$: _dateTimeFormatter = campusTimestampFormatter(data.locale);
+$: _formatCreatedAt = createCampusTimestampFormatter(data.locale);
 $: availableAuthPatterns = availableOAuthAuthPatterns(data.authMethods);
 $: selectedAuthPattern = selectedOAuthAuthPattern(state.selectedAuthMethod);
 $: parsedRedirectUris = parseOAuthRedirectUris(state.redirectDraft);
@@ -65,10 +65,6 @@ function _redirectCountLabel(count: number) {
 
 function _scopeCountLabel(count: number) {
   return oauthScopeCountLabel(count, data.locale);
-}
-
-function _formatCreatedAt(value: string | Date) {
-  return _dateTimeFormatter.format(new Date(value));
 }
 
 const {

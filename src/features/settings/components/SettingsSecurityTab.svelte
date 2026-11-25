@@ -9,7 +9,7 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
 import { groupSecurityActivity } from "@/features/settings/lib/security-activity-groups";
-import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
+import { createCampusTimestampFormatter } from "@/lib/time/shanghai-format";
 import SettingsSessionsPanel from "./SettingsSessionsPanel.svelte";
 import type {
   SettingsCopy,
@@ -22,7 +22,7 @@ export let locale: "en-us" | "zh-cn";
 
 let rotateDialogOpen = false;
 
-$: dateFormatter = campusTimestampFormatter(locale);
+$: formatDate = createCampusTimestampFormatter(locale);
 
 $: groupedActivity = groupSecurityActivity(activity.items);
 
@@ -39,9 +39,9 @@ function repeatedLabel(count: number) {
 }
 
 function activityTimeLabel(group: (typeof groupedActivity)[number]) {
-  const newest = dateFormatter.format(new Date(group.event.createdAt));
+  const newest = formatDate(group.event.createdAt);
   if (group.count === 1) return newest;
-  const oldest = dateFormatter.format(new Date(group.oldestCreatedAt));
+  const oldest = formatDate(group.oldestCreatedAt);
   return `${oldest} – ${newest}`;
 }
 </script>

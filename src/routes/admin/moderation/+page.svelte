@@ -38,7 +38,7 @@ import {
 } from "@/features/admin/lib/moderation-page-options";
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import { tableFilterPageHref } from "@/lib/table-filter-query";
-import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
+import { createCampusTimestampFormatter } from "@/lib/time/shanghai-format";
 import { goto, invalidateAll } from "$app/navigation";
 
 import type { ActionData, PageData } from "./$types";
@@ -65,7 +65,7 @@ let _suspensionReason = "";
 
 $: _copy = data.copy.moderation;
 $: _adminCopy = data.copy.admin;
-$: _dateTimeFormatter = campusTimestampFormatter(data.locale);
+$: _formatDate = createCampusTimestampFormatter(data.locale);
 $: _commentStatusOptions = buildCommentStatusOptions(_copy);
 $: suspensionDurationOptions = buildSuspensionDurationOptions(_copy);
 
@@ -96,10 +96,6 @@ function apply(event: SubmitEvent) {
   );
 }
 
-function _formatDate(value: string | Date) {
-  return _dateTimeFormatter.format(new Date(value));
-}
-
 function _closeCommentDialog() {
   _selectedComment = null;
 }
@@ -122,7 +118,7 @@ const {
   suspendCommentAuthor: _suspendCommentAuthor,
 } = createModerationPageActions<AdminModerationComment>({
   closeCommentDialog: _closeCommentDialog,
-  formatDate: _formatDate,
+  formatDate: (value) => _formatDate(value),
   getCommentStatus: () => _commentStatus,
   getCopy: () => _copy,
   getCustomExpiresAt: () => _customExpiresAt,

@@ -2,6 +2,7 @@
 import { toast } from "@ui-sdk/svelte/toast";
 import { onMount, tick } from "svelte";
 import { signInHrefForPage } from "#lib/auth/auth-routing.js";
+import SuspensionAlert from "#lib/components/SuspensionAlert.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { commentEditAttachmentOptions } from "@/features/comments/lib/comment-panel-controller";
@@ -32,14 +33,13 @@ import {
 } from "@/features/comments/lib/comment-ui";
 import { getCommentsCopy } from "@/features/comments/lib/comments-copy";
 import type { AppLocale } from "@/i18n/config";
-import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
+import { createCampusTimestampFormatter } from "@/lib/time/shanghai-format";
 import { page as routePage } from "$app/state";
 import CommentDeleteDialog from "./CommentDeleteDialog.svelte";
 import CommentReactionControls from "./CommentReactionControls.svelte";
 import CommentReplyEditor from "./CommentReplyEditor.svelte";
 import CommentsComposerSection from "./CommentsComposerSection.svelte";
 import CommentsHiddenNotice from "./CommentsHiddenNotice.svelte";
-import CommentsPanelSuspensionAlert from "./CommentsPanelSuspensionAlert.svelte";
 import CommentsThreadSection from "./CommentsThreadSection.svelte";
 import CommentThreadBody from "./CommentThreadBody.svelte";
 import CommentThreadEditForm from "./CommentThreadEditForm.svelte";
@@ -95,8 +95,10 @@ let _copy = $derived(
 );
 let _commentCopy = $derived(_copy.comments);
 let _uploadCopy = $derived(_copy.uploads);
-let _dateTimeFormatter = $derived(
-  campusTimestampFormatter((routePage.data.locale ?? "zh-cn") as AppLocale),
+let formatTime = $derived(
+  createCampusTimestampFormatter(
+    (routePage.data.locale ?? "zh-cn") as AppLocale,
+  ),
 );
 let _signInHref = $derived(signInHrefForPage(routePage.url));
 let _resolvedTargets = $derived(
@@ -166,10 +168,6 @@ const {
   getPostTargetKey: () => panel.postTargetKey,
   getResolvedTargets: () => _resolvedTargets,
 });
-
-function formatTime(value: Date | string | null | undefined) {
-  return value ? _dateTimeFormatter.format(new Date(value)) : "";
-}
 
 const {
   cancelReply: _cancelReply,
@@ -329,11 +327,7 @@ let _editUploading = $derived(
     </Alert.Root>
   {/if}
   {#if panel.viewer.isSuspended}
-    <CommentsPanelSuspensionAlert
-      commentCopy={_commentCopy}
-      {formatTime}
-      viewer={panel.viewer}
-    />
+    <SuspensionAlert copy={_commentCopy} formatDate={formatTime} viewer={panel.viewer} />
   {/if}
 
   <CommentsComposerSection

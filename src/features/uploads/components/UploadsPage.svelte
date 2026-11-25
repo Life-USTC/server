@@ -17,7 +17,7 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Popover from "#lib/components/ui/popover/index.js";
 import Table from "#lib/components/ui/table/table.svelte";
-import { campusTimestampFormatter } from "#lib/time/shanghai-format.js";
+import { createCampusTimestampFormatter } from "#lib/time/shanghai-format.js";
 import type { EndlessScrollState } from "@/lib/navigation/endless-list.svelte";
 import { createFilterDraft } from "@/lib/navigation/filter-draft.svelte";
 import { tableFilterPageHref } from "@/lib/table-filter-query";
@@ -110,7 +110,7 @@ function removeFilter(event: MouseEvent, href: string) {
   const name = activeFilters.find((item) => item.href === href)?.name;
   if (name) draft.remove(event, [name, `${name}Op`, `${name}Max`]);
 }
-const formatter = $derived(campusTimestampFormatter(data.locale));
+const formatDate = $derived(createCampusTimestampFormatter(data.locale));
 type Upload = PageData["uploads"][number];
 let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
   null,
@@ -172,7 +172,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
                 <tr>
                   <td class="max-w-64"><TruncatedText class="font-medium" text={upload.filename} /></td>
                   <td class="text-left tabular-nums">{formatBytes(upload.size)}</td>
-                  <td><time datetime={upload.createdAt}>{formatter.format(new Date(upload.createdAt))}</time></td>
+                  <td><time datetime={upload.createdAt}>{formatDate(upload.createdAt)}</time></td>
                   <td>{@render uploadActions(upload)}</td>
                 </tr>
               {/each}
@@ -186,7 +186,7 @@ let selected = $state<{ upload: Upload; action: "rename" | "delete" } | null>(
               <Item.Root role="listitem" variant="outline">
                 <Item.Content>
                   <p class="break-all font-medium">{upload.filename}</p>
-                  <Item.Description>{formatBytes(upload.size)} · <time datetime={upload.createdAt}>{formatter.format(new Date(upload.createdAt))}</time></Item.Description>
+                  <Item.Description>{formatBytes(upload.size)} · <time datetime={upload.createdAt}>{formatDate(upload.createdAt)}</time></Item.Description>
                   {@render uploadActions(upload)}
                 </Item.Content>
               </Item.Root>

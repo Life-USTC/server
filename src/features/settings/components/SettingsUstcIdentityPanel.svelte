@@ -1,13 +1,13 @@
 <script lang="ts">
 import * as Item from "#lib/components/ui/item/index.js";
 import type { AppLocale } from "@/i18n/config";
-import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
+import { createCampusTimestampFormatter } from "@/lib/time/shanghai-format";
 import type { SettingsAccount, SettingsCopy } from "./settings-component-types";
 
 export let account: SettingsAccount;
 export let copy: SettingsCopy;
 export let locale: AppLocale;
-$: dateFormatter = campusTimestampFormatter(locale);
+$: formatDate = createCampusTimestampFormatter(locale);
 
 $: identityCopy = copy.profile;
 $: identities = account.ustcIdentities?.records ?? [];
@@ -45,7 +45,7 @@ $: identities = account.ustcIdentities?.records ?? [];
                     {identityCopy.ustcIdentityLastSyncedAt}
                   </dt>
                   <dd>
-                    {dateFormatter.format(new Date(identity.lastSyncedAt))}
+                    {formatDate(identity.lastSyncedAt)}
                   </dd>
                 </div>
               </dl>
