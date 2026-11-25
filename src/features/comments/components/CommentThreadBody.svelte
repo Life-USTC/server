@@ -22,7 +22,6 @@ export let editDraft: string;
 export let editingId: string | null;
 export let editIsAnonymous: boolean;
 export let editVisibility: string;
-export let formatSize: (value: number | undefined) => string;
 export let saveEdit: (comment: CommentNode) => void;
 export let uploadCopy: UploadsCopy;
 export let uploading: boolean;
@@ -59,7 +58,6 @@ export let visibilityOptions: CommentSelectOption[];
 {#if editingId !== comment.id}
   <CommentAttachmentCards
     attachments={comment.attachments}
-    formatSize={formatSize}
     openLabel={commentCopy.openAttachment}
   />
 {/if}

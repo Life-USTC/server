@@ -1,6 +1,5 @@
 export type { CommentEditorMode } from "./comment-panel-draft-state";
 export {
-  commentAttachmentStateWithUpload,
   commentDraftReplacingToken,
   commentDraftWithMarkdown,
   commentEditAttachmentOptions,

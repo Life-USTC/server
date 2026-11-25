@@ -14,8 +14,8 @@ import CommentUploadButton from "./CommentUploadButton.svelte";
 import type {
   CommentSelectOption,
   CommentsCopy,
-  CommentThreadProps,
   CommentUploadOption,
+  SubmitComment,
   UploadsCopy,
 } from "./comment-component-types";
 
@@ -31,7 +31,7 @@ export let replyIsAnonymous: boolean;
 export let replyUploadedFiles: CommentUploadOption[];
 export let replyVisibility: string;
 export let submitting: boolean;
-export let submitComment: CommentThreadProps["submitComment"];
+export let submitComment: SubmitComment;
 export let uploadCopy: UploadsCopy;
 export let uploading: boolean;
 export let uploadFile: (file: File, mode?: "edit" | "new" | "reply") => void;

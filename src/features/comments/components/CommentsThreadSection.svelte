@@ -5,10 +5,11 @@ import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import type { CommentTargetLoadState } from "@/features/comments/lib/comment-panel-data";
 import type { CommentNodeWithContext } from "@/features/comments/lib/comment-ui";
-import type { CommentThreadProps } from "./comment-component-types";
+import type { CommentsCopy } from "./comment-component-types";
 
-export let commentCopy: CommentThreadProps["commentCopy"];
+export let commentCopy: CommentsCopy;
 export let comments: CommentNodeWithContext[];
+export let highlightedId: string | null;
 export let loading: boolean;
 export let loadingReplyRootId: string | null;
 export let loadingTargetKey: string | null;
@@ -17,7 +18,7 @@ export let loadMoreReplies: (rootId: string) => void;
 export let loadTarget: (targetKey: string) => void;
 export let targetLoadStates: CommentTargetLoadState[];
 
-export let renderItem: Snippet<[CommentNodeWithContext, number]>;
+export let renderItem: Snippet<[CommentNodeWithContext]>;
 
 function canLoadTarget(state: CommentTargetLoadState) {
   return Boolean(
@@ -35,7 +36,19 @@ function hasTargetContinuation(state: CommentTargetLoadState) {
 </script>
 
 {#snippet commentItem(comment: CommentNodeWithContext, depth = 0)}
-  {@render renderItem(comment, depth)}
+  <article
+    class={`grid min-w-0 gap-3 border-b border-border/70 py-4 last:border-b-0 ${
+      highlightedId === comment.id ? "rounded-lg ring-2 ring-primary/40" : ""
+    }`}
+    id={`comment-${comment.id}`}
+    style={`padding-left: ${Math.min(depth, 3) * 1.25}rem`}
+  >
+    {#if comment.isAncestryPlaceholder}
+      <p class="text-muted-foreground text-sm">{commentCopy.ancestryPlaceholder}</p>
+    {:else}
+      {@render renderItem(comment)}
+    {/if}
+  </article>
 
   {#each comment.replies as reply}
     {@render commentItem(reply, depth + 1)}

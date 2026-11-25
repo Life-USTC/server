@@ -58,46 +58,6 @@ export function commentDraftReplacingToken(input: {
   );
 }
 
-export function commentAttachmentStateWithUpload(input: {
-  editAttachmentIds: string[];
-  editUploadedFiles: CommentUploadOption[];
-  mode: CommentEditorMode;
-  replyAttachmentIds: string[];
-  replyUploadedFiles: CommentUploadOption[];
-  selectedAttachments: string[];
-  upload: CommentUploadOption;
-  uploadedFiles: CommentUploadOption[];
-}) {
-  if (input.mode === "edit") {
-    return {
-      editAttachmentIds: [...input.editAttachmentIds, input.upload.id],
-      editUploadedFiles: [...input.editUploadedFiles, input.upload],
-      replyAttachmentIds: input.replyAttachmentIds,
-      replyUploadedFiles: input.replyUploadedFiles,
-      selectedAttachments: input.selectedAttachments,
-      uploadedFiles: input.uploadedFiles,
-    };
-  }
-  if (input.mode === "reply") {
-    return {
-      editAttachmentIds: input.editAttachmentIds,
-      editUploadedFiles: input.editUploadedFiles,
-      replyAttachmentIds: [...input.replyAttachmentIds, input.upload.id],
-      replyUploadedFiles: [...input.replyUploadedFiles, input.upload],
-      selectedAttachments: input.selectedAttachments,
-      uploadedFiles: input.uploadedFiles,
-    };
-  }
-  return {
-    editAttachmentIds: input.editAttachmentIds,
-    editUploadedFiles: input.editUploadedFiles,
-    replyAttachmentIds: input.replyAttachmentIds,
-    replyUploadedFiles: input.replyUploadedFiles,
-    selectedAttachments: [...input.selectedAttachments, input.upload.id],
-    uploadedFiles: [...input.uploadedFiles, input.upload],
-  };
-}
-
 function updateDraftForMode(
   mode: CommentEditorMode,
   drafts: {
