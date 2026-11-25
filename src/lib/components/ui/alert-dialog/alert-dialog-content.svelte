@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { AlertDialogContent } from "@ui-sdk/svelte/alert-dialog";
-	import AlertDialogOverlay from "./alert-dialog-overlay.svelte";
+	import { AlertDialogBackdrop, AlertDialogContent } from "@ui-sdk/svelte/alert-dialog";
+
 	import { cn } from "#lib/utils.js";
 	import type { ComponentProps } from "svelte";
 
@@ -14,7 +14,7 @@
 	} = $props();
 </script>
 
-<AlertDialogOverlay />
+<AlertDialogBackdrop class="data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 duration-100" />
 <AlertDialogContent
 	container={typeof document === "undefined" ? undefined : document.body}
 	{@attach (element: HTMLElement) => { ref = element; return () => { ref = null; }; }}

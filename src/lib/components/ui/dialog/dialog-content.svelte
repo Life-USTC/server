@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { DialogClose, DialogContent } from "@ui-sdk/svelte/dialog";
+	import { DialogBackdrop, DialogClose, DialogContent } from "@ui-sdk/svelte/dialog";
 	import type { Snippet } from "svelte";
-	import * as Dialog from "./index.js";
+
 	import { cn } from "#lib/utils.js";
 	import type { ComponentProps } from "svelte";
 	import { Button } from "#lib/components/ui/button/index.js";
@@ -19,7 +19,7 @@
 	} = $props();
 </script>
 
-<Dialog.Overlay />
+<DialogBackdrop class="data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 duration-100 isolate" />
 <DialogContent
 	container={typeof document === "undefined" ? undefined : document.body}
 	{@attach (element: HTMLElement) => { ref = element; return () => { ref = null; }; }}

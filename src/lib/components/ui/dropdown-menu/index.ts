@@ -6,7 +6,7 @@ import Item from "./dropdown-menu-item.svelte";
 import Label from "./dropdown-menu-label.svelte";
 import { MenuRadioGroup as RadioGroup } from "@ui-sdk/svelte/menu";
 import RadioItem from "./dropdown-menu-radio-item.svelte";
-import Separator from "./dropdown-menu-separator.svelte";
+import { MenuSeparator as Separator } from "@ui-sdk/svelte/menu";
 import Shortcut from "./dropdown-menu-shortcut.svelte";
 import { MenuTrigger as Trigger } from "@ui-sdk/svelte/menu";
 

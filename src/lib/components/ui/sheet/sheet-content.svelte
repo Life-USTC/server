@@ -3,9 +3,9 @@
 </script>
 
 <script lang="ts">
-	import { DialogClose, DialogContent } from "@ui-sdk/svelte/dialog";
+	import { DialogBackdrop, DialogClose, DialogContent } from "@ui-sdk/svelte/dialog";
 	import type { Snippet } from "svelte";
-	import SheetOverlay from "./sheet-overlay.svelte";
+
 	import { Button } from "#lib/components/ui/button/index.js";
 	import XIcon from '@lucide/svelte/icons/x';
 	import { cn } from "#lib/utils.js";
@@ -25,7 +25,7 @@
 	} = $props();
 </script>
 
-<SheetOverlay />
+<DialogBackdrop />
 <DialogContent
 	container={typeof document === "undefined" ? undefined : document.body}
 	{@attach (element: HTMLElement) => { ref = element; return () => { ref = null; }; }}

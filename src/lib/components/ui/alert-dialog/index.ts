@@ -3,7 +3,6 @@ import { AlertDialogTrigger as Trigger } from "@ui-sdk/svelte/alert-dialog";
 import { AlertDialogTitle as Title } from "@ui-sdk/svelte/alert-dialog";
 import Action from "./alert-dialog-action.svelte";
 import Cancel from "./alert-dialog-cancel.svelte";
-import Overlay from "./alert-dialog-overlay.svelte";
 import Content from "./alert-dialog-content.svelte";
 import { AlertDialogDescription as Description } from "@ui-sdk/svelte/alert-dialog";
 
@@ -12,9 +11,7 @@ export {
 	Title,
 	Action,
 	Cancel,
-
 	Trigger,
-	Overlay,
 	Content,
 	Description,
 	//
@@ -22,9 +19,7 @@ export {
 	Title as AlertDialogTitle,
 	Action as AlertDialogAction,
 	Cancel as AlertDialogCancel,
-
 	Trigger as AlertDialogTrigger,
-	Overlay as AlertDialogOverlay,
 	Content as AlertDialogContent,
 	Description as AlertDialogDescription,
 
