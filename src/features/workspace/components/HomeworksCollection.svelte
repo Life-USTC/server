@@ -1,15 +1,13 @@
 <script lang="ts">
 import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
-import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
-import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
+import TaskCompletionButton from "#lib/components/TaskCompletionButton.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import HomeworkPersonalStatus from "@/features/homeworks/components/HomeworkPersonalStatus.svelte";
 import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
@@ -68,22 +66,15 @@ function propertyBadges(homework: WorkspaceHomeworkItem) {
 
 {#snippet actions(homework: WorkspaceHomeworkItem)}
   {#if homework.completionRequired !== false}
-    <TableIconButton
-      disabled={Boolean(readOnlyReason) || homeworkSavingById[homework.id]}
-      label={homeworkSavingById[homework.id]
-        ? homeworksCopy.saving
-        : homeworkCompletionActionLabel(homework)}
-      variant={homework.completion ? "secondary" : "default"}
-      onclick={() => toggleHomeworkCompletion(homework)}
-    >
-      {#if homeworkSavingById[homework.id]}
-        <Spinner data-icon="inline-start" />
-      {:else if homework.completion}
-        <RefreshCw data-icon="inline-start" />
-      {:else}
-        <CheckCircleIcon data-icon="inline-start" />
-      {/if}
-    </TableIconButton>
+    <TaskCompletionButton
+      iconOnly
+      {readOnlyReason}
+      completed={Boolean(homework.completion)}
+      saving={homeworkSavingById[homework.id]}
+      savingLabel={homeworksCopy.saving}
+      label={homeworkCompletionActionLabel(homework)}
+      onclick={() => void toggleHomeworkCompletion(homework)}
+    />
   {/if}
   <TableIconButton
     label={homeworksCopy.viewDetails}

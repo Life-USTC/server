@@ -17,15 +17,12 @@ import {
   filterTodoTable,
   todoTableFields,
 } from "../lib/workspace-task-table-filters";
-import TodoCreateDialog from "./TodoCreateDialog.svelte";
 import TodoDetailDialog from "./TodoDetailDialog.svelte";
-import TodoEditDialog from "./TodoEditDialog.svelte";
+import TodoFormDialog from "./TodoFormDialog.svelte";
 import TodosCollection from "./TodosCollection.svelte";
 import TodosTabToolbar from "./TodosTabToolbar.svelte";
 import WorkspaceTaskFilterToolbar from "./WorkspaceTaskFilterToolbar.svelte";
 
-type TodoDateFormatter = (value: Date | string | null | undefined) => string;
-type TodoAction = (todo: WorkspaceTodoItem) => string;
 type TodoCompletionToggle = (todo: WorkspaceTodoItem) => void | Promise<void>;
 
 export let commonCopy: WorkspaceCommonCopy;
@@ -70,20 +67,13 @@ export let todoActionError: string;
 export let todoSavingById: Record<string, boolean>;
 export let isCreatingTodo: boolean;
 export let isUpdatingTodo: boolean;
-let fmtDate: TodoDateFormatter;
-let isDueOverdue: (value: Date | string | null | undefined) => boolean;
-let relativeDueLabel: TodoDateFormatter;
-let todoActionLabel: TodoAction;
-let todoStatus: TodoAction;
-
-$: ({ fmtDate, isDueOverdue, relativeDueLabel, todoActionLabel, todoStatus } =
-  createTodoTabDisplayActions({
-    workspaceCopy,
-    locale,
-    referenceDate,
-    sectionCopy,
-    todosCopy,
-  }));
+$: display = createTodoTabDisplayActions({
+  workspaceCopy,
+  locale,
+  referenceDate,
+  sectionCopy,
+  todosCopy,
+});
 let detailTrigger: HTMLButtonElement | undefined;
 function selectTodo(todo: WorkspaceTodoItem, trigger: HTMLButtonElement) {
   detailTrigger = trigger;
@@ -121,27 +111,24 @@ function clearTodoFilter() {
     {filteredTodos}
     {hasTodoItems}
     onClearFilter={clearTodoFilter}
-    {fmtDate}
+    {display}
     {openTodoEditor}
     onSelect={selectTodo}
-    {todoActionLabel}
     {todoSavingById}
     {todosCopy}
-    {todoStatus}
     {toggleTodoCompletion}
   />
 
-  {#if !readOnlyReason}
-    <TodoCreateDialog
+  {#if !readOnlyReason && showCreateTodo}
+    <TodoFormDialog
       {commentsCopy}
-      {createTodoAction}
-      {createTodoError}
-      {isCreatingTodo}
+      submit={createTodoAction}
+      error={createTodoError}
+      saving={isCreatingTodo}
       onClose={() => {
         showCreateTodo = false;
         createTodoError = "";
       }}
-      open={showCreateTodo}
       {todoPriorityOptions}
       {todosCopy}
     />
@@ -150,24 +137,20 @@ function clearTodoFilter() {
   <TodoDetailDialog
     {readOnlyReason}
     {deleteTodo}
-    {fmtDate}
-    {isDueOverdue}
+    {display}
     onClose={closeDetail}
     {openTodoEditor}
-    {relativeDueLabel}
     todo={selectedTodo}
-    {todoActionLabel}
     {todoSavingById}
     {todosCopy}
-    {todoStatus}
     {toggleTodoCompletion}
   />
 
-  {#if !readOnlyReason}
-    <TodoEditDialog
+  {#if !readOnlyReason && editingTodo}
+    <TodoFormDialog
       {commentsCopy}
-      {editTodoError}
-      {isUpdatingTodo}
+      error={editTodoError}
+      saving={isUpdatingTodo}
       onClose={() => {
         editingTodo = null;
         editTodoError = "";
@@ -175,7 +158,7 @@ function clearTodoFilter() {
       todo={editingTodo}
       {todoPriorityOptions}
       {todosCopy}
-      {updateTodoAction}
+      submit={updateTodoAction}
     />
   {/if}
 </section>

@@ -177,7 +177,7 @@ it("ui.layout-principles-4", async () => {
   for (const root of [
     "catalog/components/CatalogColumnFilter",
     "young/components/YoungEventFilters",
-    "workspace/components/TodoFormFields",
+    "workspace/components/TodoFormDialog",
     "workspace/components/HomeworkCreateFormFields",
     "profile/components/ProfileIdentityFields",
   ])

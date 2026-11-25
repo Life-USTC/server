@@ -1,64 +1,52 @@
 <script lang="ts">
-import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
 import Pencil from "@lucide/svelte/icons/pencil";
-import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
+import TaskCompletionButton from "#lib/components/TaskCompletionButton.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import type {
   WorkspaceTodoItem,
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
+import type { TodoDisplay } from "../lib/todos-tab-display";
 import WorkspaceTaskEmptyState from "./WorkspaceTaskEmptyState.svelte";
 
-type TodoDateFormatter = (value: Date | string | null | undefined) => string;
-type TodoAction = (todo: WorkspaceTodoItem) => string;
 type TodoCompletionToggle = (todo: WorkspaceTodoItem) => void | Promise<void>;
 
+export let display: TodoDisplay;
 export let hasTodoItems: boolean;
 export let emptyTitle: string;
 export let onClearFilter: () => void;
 export let filteredTodos: WorkspaceTodoItem[];
-export let fmtDate: TodoDateFormatter;
 export let openTodoEditor: (todo: WorkspaceTodoItem) => void;
 export let onSelect: (
   todo: WorkspaceTodoItem,
   trigger: HTMLButtonElement,
 ) => void;
-export let todoActionLabel: TodoAction;
 export let todoSavingById: Record<string, boolean>;
 export let todosCopy: WorkspaceTodosCopy;
-export let todoStatus: TodoAction;
 export let toggleTodoCompletion: TodoCompletionToggle;
 export let readOnlyReason: string | undefined = undefined;
 </script>
 
 {#snippet completion(todo: WorkspaceTodoItem)}
-  <TableIconButton
-    disabled={Boolean(readOnlyReason) || todoSavingById[todo.id]}
-    label={todoSavingById[todo.id]
-      ? todosCopy.saving
-      : todoActionLabel(todo)}
-    variant={todo.completed ? "secondary" : "default"}
+  <TaskCompletionButton
+    iconOnly
+    {readOnlyReason}
+    completed={todo.completed}
+    saving={todoSavingById[todo.id]}
+    savingLabel={todosCopy.saving}
+    label={display.todoActionLabel(todo)}
     onclick={() => void toggleTodoCompletion(todo)}
-  >
-    {#if todoSavingById[todo.id]}
-      <Spinner data-icon="inline-start" />
-    {:else if todo.completed}
-      <RefreshCw data-icon="inline-start" />
-    {:else}
-      <CheckCircleIcon data-icon="inline-start" />
-    {/if}
-  </TableIconButton>
+  />
 {/snippet}
 
 {#snippet priority(todo: WorkspaceTodoItem)}
@@ -105,10 +93,10 @@ export let readOnlyReason: string | undefined = undefined;
                 <Item.Description
                   class="line-clamp-none flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 break-words"
                 >
-                  <span class="max-w-full break-words">{fmtDate(todo.dueAt)}</span>
+                  <span class="max-w-full break-words">{display.fmtDate(todo.dueAt)}</span>
                   <span aria-hidden="true">·</span>
                   {@render priority(todo)}
-                  <Badge variant="ghost">{todoStatus(todo)}</Badge>
+                  <Badge variant="ghost">{display.todoStatus(todo)}</Badge>
                 </Item.Description>
               </Item.Content>
               <Item.Actions class="shrink-0 self-start">
@@ -179,7 +167,7 @@ export let readOnlyReason: string | undefined = undefined;
               {@render priority(todo)}
             </Table.Cell>
             <Table.Cell>
-              {fmtDate(todo.dueAt)}
+              {display.fmtDate(todo.dueAt)}
             </Table.Cell>
             <Table.Cell>
               <TableRowActions>

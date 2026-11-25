@@ -37,3 +37,5 @@ export function createTodoTabDisplayActions({
       }),
   };
 }
+
+export type TodoDisplay = ReturnType<typeof createTodoTabDisplayActions>;

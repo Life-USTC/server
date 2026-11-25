@@ -1,9 +1,8 @@
 <script lang="ts">
-import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import Pencil from "@lucide/svelte/icons/pencil";
-import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import Trash2 from "@lucide/svelte/icons/trash-2";
 import MarkdownPreview from "#lib/components/MarkdownPreview.svelte";
+import TaskCompletionButton from "#lib/components/TaskCompletionButton.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
@@ -17,20 +16,15 @@ import type {
   WorkspaceTodoItem,
   WorkspaceTodosCopy,
 } from "@/features/workspace/lib/workspace-controller-helpers";
+import type { TodoDisplay } from "../lib/todos-tab-display";
 
+export let display: TodoDisplay;
 export let deleteTodo: (todo: WorkspaceTodoItem) => void | Promise<void>;
-export let fmtDate: (value: string | Date | null | undefined) => string;
-export let isDueOverdue: (value: string | Date | null | undefined) => boolean;
 export let onClose: () => void;
 export let openTodoEditor: (todo: WorkspaceTodoItem) => void;
-export let relativeDueLabel: (
-  value: string | Date | null | undefined,
-) => string;
 export let todo: WorkspaceTodoItem | null;
-export let todoActionLabel: (todo: WorkspaceTodoItem) => string;
 export let todoSavingById: Record<string, boolean>;
 export let todosCopy: WorkspaceTodosCopy;
-export let todoStatus: (todo: WorkspaceTodoItem) => string;
 export let toggleTodoCompletion: (todo: WorkspaceTodoItem) => void;
 export let readOnlyReason: string | undefined = undefined;
 
@@ -75,7 +69,7 @@ async function confirmDelete(event: MouseEvent) {
           >{todo.title}</Dialog.Title
         >
         <Dialog.Description class="sr-only">
-          {todosCopy.priority[todo.priority]} · {fmtDate(todo.dueAt)}
+          {todosCopy.priority[todo.priority]} · {display.fmtDate(todo.dueAt)}
         </Dialog.Description>
       </Dialog.Header>
       <ScrollArea class="h-0 min-h-0 flex-1">
@@ -88,18 +82,18 @@ async function confirmDelete(event: MouseEvent) {
           <div class="min-w-0" data-testid="todo-detail-summary">
             <p class="text-muted-foreground text-sm">{todosCopy.dueAtLabel}</p>
             <p class="mt-1 text-xl font-semibold tracking-tight">
-              {fmtDate(todo.dueAt)}
+              {display.fmtDate(todo.dueAt)}
             </p>
             {#if todo.dueAt}
               <p
                 class={cn(
                   "mt-1 text-sm",
-                  isDueOverdue(todo.dueAt)
+                  display.isDueOverdue(todo.dueAt)
                     ? "text-destructive font-medium"
                     : "text-muted-foreground",
                 )}
               >
-                {relativeDueLabel(todo.dueAt)}
+                {display.relativeDueLabel(todo.dueAt)}
               </p>
             {/if}
             <Table.Root class="mt-4">
@@ -133,7 +127,7 @@ async function confirmDelete(event: MouseEvent) {
                     {todosCopy.statusLabel}
                   </Table.Head>
                   <Table.Cell class="h-auto px-0 py-2">
-                    {todoStatus(todo)}
+                    {display.todoStatus(todo)}
                   </Table.Cell>
                 </Table.Row>
               </Table.Body>
@@ -188,21 +182,15 @@ async function confirmDelete(event: MouseEvent) {
               </AlertDialog.Footer>
             </AlertDialog.Content>
           </AlertDialog.Root>
-          <Button
+          <TaskCompletionButton
             class="w-full sm:w-auto"
-            disabled={Boolean(readOnlyReason) || todoSavingById[todo.id]}
-            type="button"
-            onclick={() => {
-              toggleTodoCompletion(todo);
-            }}
-          >
-            {#if todo.completed}
-              <RefreshCw data-icon="inline-start" />
-            {:else}
-              <CheckCircleIcon data-icon="inline-start" />
-            {/if}
-            {todoSavingById[todo.id] ? todosCopy.saving : todoActionLabel(todo)}
-          </Button>
+            {readOnlyReason}
+            completed={todo.completed}
+            saving={todoSavingById[todo.id]}
+            savingLabel={todosCopy.saving}
+            label={display.todoActionLabel(todo)}
+            onclick={() => void toggleTodoCompletion(todo)}
+          />
           <Button
             class="w-full sm:ml-auto sm:w-auto"
             disabled={Boolean(readOnlyReason) || todoSavingById[todo.id]}
