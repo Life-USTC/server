@@ -58,7 +58,7 @@
     "@modelcontextprotocol/server": "2.3.1",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
-    "@scalar/api-reference": "^1.76.4",
+    "@scalar/api-reference": "^1.82.1",
     "@ui-sdk/core": "^0.1.0-beta.17",
     "@ui-sdk/svelte": "^0.1.0-beta.17",
     "better-auth": "1.7.18",
