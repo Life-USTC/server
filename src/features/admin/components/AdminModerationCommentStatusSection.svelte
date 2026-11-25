@@ -41,8 +41,7 @@ function selectStatus(value: string) {
       {/each}
     </ToggleGroup.Root>
   </Field.Set>
-  <Field.Field>
-    <Field.Label for="admin-comment-moderation-note">{copy.moderationNote}</Field.Label>
+  <Field.Field for="admin-comment-moderation-note" label={copy.moderationNote}>
     <Input
       id="admin-comment-moderation-note"
       bind:value={moderationNote}

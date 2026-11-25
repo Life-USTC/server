@@ -65,10 +65,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
                 formatMessage={formatMessage}
               />
 
-              <Field.Field>
-                <Field.Label for="admin-description-content">
-                  {copy.descriptionContent}
-                </Field.Label>
+              <Field.Field for="admin-description-content" label={copy.descriptionContent}>
                 <Textarea
                   id="admin-description-content"
                   class="min-h-56"

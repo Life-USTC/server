@@ -65,8 +65,7 @@ $: contentLabelId = `${idPrefix}-content-label`;
               <Alert.Description>{error}</Alert.Description>
             </Alert.Root>
           {/if}
-          <Field.Field data-disabled={saving ? "true" : undefined}>
-            <Field.Label for={titleId}>{todosCopy.titleLabel}</Field.Label>
+          <Field.Field data-disabled={saving ? "true" : undefined} for={titleId} label={todosCopy.titleLabel}>
             <Input
               id={titleId}
               disabled={saving}
@@ -77,21 +76,15 @@ $: contentLabelId = `${idPrefix}-content-label`;
               value={todo?.title ?? ""}
             />
           </Field.Field>
-          <Field.Field data-disabled={saving ? "true" : undefined}>
-            <Field.Label for={priorityId}>{todosCopy.priorityLabel}</Field.Label>
+          <Field.Field data-disabled={saving ? "true" : undefined} for={priorityId} label={todosCopy.priorityLabel}>
             <NativeSelect.Root
               bind:value={priorityValue}
               disabled={saving}
               class="w-full"
               id={priorityId}
               name="priority"
-            >
-              {#each todoPriorityOptions as option}
-                <option value={option.value}>
-                  {option.label}
-                </option>
-              {/each}
-            </NativeSelect.Root>
+              options={todoPriorityOptions}
+            />
           </Field.Field>
           <Field.Field data-disabled={saving ? "true" : undefined}>
             <Field.Title id={dueAtLabelId}>{todosCopy.dueAtLabel}</Field.Title>

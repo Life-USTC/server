@@ -21,6 +21,7 @@
 </script>
 
 <script lang="ts">
+	import FieldLabel from "./field-label.svelte";
 	import { Field } from "@ui-sdk/svelte/field";
 	import { cn, type WithElementRef } from "#lib/utils.js";
 	import type { HTMLAttributes } from "svelte/elements";
@@ -29,10 +30,14 @@
 		ref = $bindable(null),
 		class: className,
 		orientation = "vertical",
+		label,
+		for: controlId,
 		children,
 		...restProps
 	}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
 		orientation?: FieldOrientation;
+		label?: string;
+		for?: string;
 	} = $props();
 </script>
 
@@ -44,5 +49,6 @@
 	class={cn(fieldVariants({ orientation }), className)}
 	{...restProps}
 >
+	{#if label !== undefined}<FieldLabel for={controlId}>{label}</FieldLabel>{/if}
 	{@render children?.()}
 </Field>

@@ -66,8 +66,7 @@ onDestroy(() => {
         emptyDescription={welcomeCopy.avatarLater}
         selectorTestId="avatar-selector"
       >
-        <Field.Field>
-          <Field.Label for="avatar">{profileCopy.avatarUpload}</Field.Label>
+        <Field.Field for="avatar" label={profileCopy.avatarUpload}>
           <Input
             id="avatar"
             name="avatar"

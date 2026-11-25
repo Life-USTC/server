@@ -14,17 +14,13 @@ export let editUsername: string;
   <Field.Legend>{copy.profileRoleTitle}</Field.Legend>
   <Field.Description>{copy.profileRoleDescription}</Field.Description>
   <Field.Group class="grid gap-3 sm:grid-cols-2">
-    <Field.Field>
-      <Field.Label for="admin-user-name">{copy.nameLabel}</Field.Label>
+    <Field.Field for="admin-user-name" label={copy.nameLabel}>
       <Input
         id="admin-user-name"
         bind:value={editName}
       />
     </Field.Field>
-    <Field.Field>
-      <Field.Label for="admin-user-username">
-        {copy.usernameLabel}
-      </Field.Label>
+    <Field.Field for="admin-user-username" label={copy.usernameLabel}>
       <Input
         id="admin-user-username"
         bind:value={editUsername}

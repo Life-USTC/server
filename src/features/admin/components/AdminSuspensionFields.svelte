@@ -43,11 +43,8 @@ let {
       bind:value={duration}
       class="w-full"
       id={`${idPrefix}-duration`}
-    >
-      {#each options as option}
-        <option value={option.value}>{option.label}</option>
-      {/each}
-    </NativeSelect.Root>
+      {options}
+    />
   </Field.Field>
   {#if duration === "custom"}
     <Field.Field>
@@ -62,8 +59,7 @@ let {
 {/snippet}
 
 {#snippet reasonField()}
-  <Field.Field class={cn(compact && "md:col-span-2")}>
-    <Field.Label for={`${idPrefix}-reason`}>{copy.reasonLabel}</Field.Label>
+  <Field.Field class={cn(compact && "md:col-span-2")} for={`${idPrefix}-reason`} label={copy.reasonLabel}>
     <Input id={`${idPrefix}-reason`} bind:value={reason} />
   </Field.Field>
 {/snippet}

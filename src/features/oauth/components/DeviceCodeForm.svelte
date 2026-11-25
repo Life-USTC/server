@@ -28,8 +28,7 @@ function sanitizeDeviceCode(value: string) {
 <form class="min-w-0" method="GET" action="/oauth/device">
   <input type="hidden" name="step" value="approve" />
   <Field.Group class="min-w-0">
-    <Field.Field class="min-w-0">
-      <Field.Label for="code">{copy.deviceCodeLabel}</Field.Label>
+    <Field.Field class="min-w-0" for="code" label={copy.deviceCodeLabel}>
       <OTPInput
         id="code"
         name="code"

@@ -104,10 +104,7 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
                 </Field.Description>
                 </Field.Field>
 
-                <Field.Field>
-                <Field.Label for="admin-oauth-client-name">
-                  {copy.clientName}
-                </Field.Label>
+                <Field.Field for="admin-oauth-client-name" label={copy.clientName}>
                   <Input
                     id="admin-oauth-client-name"
                     name="name"

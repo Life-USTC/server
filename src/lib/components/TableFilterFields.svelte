@@ -61,8 +61,7 @@ function toggle(name: string, value: string, checked: boolean) {
         {#if field.description}<Field.Description>{field.description}</Field.Description>{/if}
       </Field.Set>
     {:else}
-      <Field.Field data-filter-field={field.name}>
-        <Field.Label for={id}>{field.label}</Field.Label>
+      <Field.Field data-filter-field={field.name} for={id} label={field.label}>
         {#if field.type && field.type !== "text"}
           <NativeSelect.Root aria-label={`${field.label} · ${labels.operator}`} value={values[`${field.name}Op`] || "eq"} onchange={(event) => onchange({ [`${field.name}Op`]: event.currentTarget.value })} class="w-full">
             {#each Object.entries(labels.operators) as [operator, label]}

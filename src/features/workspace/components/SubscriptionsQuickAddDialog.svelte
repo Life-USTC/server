@@ -175,27 +175,16 @@ async function subscribeSelectedSections() {
               </Alert.Root>
             {/if}
 
-            <Field.Field>
-              <Field.Label for="subscriptions-quick-add-semester">
-                {subscriptionsCopy.bulkImport.semesterLabel}
-              </Field.Label>
+            <Field.Field for="subscriptions-quick-add-semester" label={subscriptionsCopy.bulkImport.semesterLabel}>
               <NativeSelect.Root
                 bind:value={semesterId}
                 class="w-full"
                 id="subscriptions-quick-add-semester"
-              >
-                {#each semesterOptions as option}
-                  <option value={option.value}>
-                    {option.label}
-                  </option>
-                {/each}
-              </NativeSelect.Root>
+                options={semesterOptions}
+              />
             </Field.Field>
 
-            <Field.Field>
-              <Field.Label for="subscriptions-quick-add-code">
-                {subscriptionsCopy.quickAdd.codeLabel}
-              </Field.Label>
+            <Field.Field for="subscriptions-quick-add-code" label={subscriptionsCopy.quickAdd.codeLabel}>
               <InputGroup.Root>
                 <InputGroup.Input
                   id="subscriptions-quick-add-code"

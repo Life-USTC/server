@@ -75,27 +75,16 @@ $: canMatch = importText.trim().length > 0 && !state.isMatching;
     {/if}
 
     <Field.Group class="gap-4">
-      <Field.Field>
-        <Field.Label for="welcome-bulk-import-semester">{bulkCopy.semesterLabel}</Field.Label>
+      <Field.Field for="welcome-bulk-import-semester" label={bulkCopy.semesterLabel}>
         <NativeSelect.Root
           bind:value={selectedSemesterId}
           class="w-full"
           id="welcome-bulk-import-semester"
-        >
-          {#if !selectedSemesterId}
-            <option disabled value="">
-              {bulkCopy.semesterPlaceholder}
-            </option>
-          {/if}
-          {#each semesterOptions as option (option.value)}
-            <option value={option.value}>{option.label}</option>
-          {/each}
-        </NativeSelect.Root>
+          options={semesterOptions}
+          emptyLabel={bulkCopy.semesterPlaceholder}
+        />
       </Field.Field>
-      <Field.Field>
-        <Field.Label for="welcome-bulk-import-section-codes">
-          {welcomeCopy.sectionCodesLabel}
-        </Field.Label>
+      <Field.Field for="welcome-bulk-import-section-codes" label={welcomeCopy.sectionCodesLabel}>
         <Textarea
           id="welcome-bulk-import-section-codes"
           bind:value={importText}

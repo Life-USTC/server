@@ -53,21 +53,16 @@ const titleId = "bulk-import-title";
           <Alert.Description>{importMessage}</Alert.Description>
         </Alert.Root>
       {/if}
-      <Field.Field>
-        <Field.Label for="bulk-import-semester">{copy.semesterLabel}</Field.Label>
-        <NativeSelect.Root bind:value={semesterId} class="w-full" id="bulk-import-semester">
-          {#if !semesterId}
-            <option disabled value="">
-              {copy.semesterPlaceholder}
-            </option>
-          {/if}
-          {#each semesterOptions as option}
-            <option value={option.value}>{option.label}</option>
-          {/each}
-        </NativeSelect.Root>
+      <Field.Field for="bulk-import-semester" label={copy.semesterLabel}>
+        <NativeSelect.Root
+          bind:value={semesterId}
+          class="w-full"
+          id="bulk-import-semester"
+          options={semesterOptions}
+          emptyLabel={copy.semesterPlaceholder}
+        />
       </Field.Field>
-      <Field.Field>
-        <Field.Label for="bulk-import-section-codes">{copy.sectionCodesLabel}</Field.Label>
+      <Field.Field for="bulk-import-section-codes" label={copy.sectionCodesLabel}>
         <Textarea
           id="bulk-import-section-codes"
           bind:value={importText}
