@@ -100,8 +100,12 @@ test.describe("/account/settings/danger 危险区设置", () => {
         '[data-slot="alert-dialog-footer"] button',
       );
       await expect(narrowFooterButtons).toHaveCount(2);
-      await expect(narrowFooterButtons.nth(0)).toHaveAccessibleName(/取消|Cancel/i);
-      await expect(narrowFooterButtons.nth(1)).toHaveAccessibleName(/删除|Delete/i);
+      await expect(narrowFooterButtons.nth(0)).toHaveAccessibleName(
+        /取消|Cancel/i,
+      );
+      await expect(narrowFooterButtons.nth(1)).toHaveAccessibleName(
+        /删除|Delete/i,
+      );
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
       ).toBeLessThanOrEqual(320);

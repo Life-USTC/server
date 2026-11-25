@@ -15,26 +15,8 @@ import type {
 } from "./section-calendar-tab-types";
 
 import type {
-  SectionCreateHomeworkCommentsCopy,
-  SectionCreateHomeworkCopy,
-  SectionCreateHomeworkSectionCopy,
-} from "./section-create-homework-types";
-
-import type {
-  BooleanSetter,
-  FormatMessage,
-} from "./section-detail-component-types";
-
-import type {
-  SectionHomeworkAuditLog,
-  SectionHomeworkAuditLookup,
   SectionHomeworkCommonCopy,
-  SectionHomeworkCopy,
   SectionHomeworkDateValue,
-  SectionHomeworkFormatter,
-  SectionHomeworkMarkdownCopy,
-  SectionHomeworkSemesterDate,
-  SectionHomeworkSubmitHandler,
 } from "./section-homework-display-types";
 import type {
   SectionHomework,
@@ -47,114 +29,6 @@ export type SectionDetailCommonCopy = SectionHomeworkCommonCopy & {
   sections: string;
   signIn?: string;
 } & SectionCommonInfoCopy;
-
-export type SectionDetailHomeworkCopy = SectionCreateHomeworkCopy &
-  SectionHomeworkCopy;
-
-export type SectionDetailCommentsCopy = SectionCreateHomeworkCommentsCopy &
-  SectionHomeworkMarkdownCopy;
-
-export type SectionDetailSectionCopy = SectionCreateHomeworkSectionCopy & {
-  subscriptions: SectionSubscriptionCopy;
-  addToCalendar: string;
-  calendarSheetDescription: string;
-  calendarSheetTitle: string;
-  calendarUrlDescription: string;
-  calendarUrlLabel: string;
-  copied: string;
-  copyToClipboard: string;
-  due: string;
-  notAvailable: string;
-  historicalSectionDescription: string;
-  historicalSectionLabel: string;
-  homeworkDescription: string;
-  learnMoreAboutICalendar: string;
-  loginRequired: string;
-  subscribeLabel: string;
-  subscribing: string;
-  subscriptionDisclaimer: string;
-  subscriptionMissing: string;
-  subscriptionPrivacyNote: string;
-  subscriptionUrlDescription: string;
-  subscriptionUrlLabel: string;
-  unsubscribeLabel: string;
-  unsubscribing: string;
-  viewAllSubscriptions: string;
-};
-
-export type SectionDetailClipboardTarget = "single" | "subscription" | null;
-
-export type SectionDetailCopyText = (
-  value: string,
-  target: Exclude<SectionDetailClipboardTarget, null>,
-) => void | Promise<void>;
-
-export type SectionDetailSubscriptionAction = (
-  action: "subscribe" | "unsubscribe",
-) => import("$app/forms").SubmitFunction;
-export type SectionDetailSubscriptionPendingAction =
-  | "subscribe"
-  | "unsubscribe"
-  | null;
-
-export type SectionDetailHomeworkDialogsProps = {
-  auditLogsForHomework: SectionHomeworkAuditLookup;
-  canManageSelectedHomework: boolean;
-  canWriteHomework: boolean;
-  completionSaving: boolean;
-  cancelEditHomework: () => void;
-  closeCreateHomeworkDialog: () => void;
-  commentsCopy: SectionDetailCommentsCopy;
-  commonCopy: SectionDetailCommonCopy;
-  createHomework: SectionHomeworkSubmitHandler;
-  createHomeworkPublishedAt: string;
-  createHomeworkSubmissionDueAt: string;
-  createHomeworkSubmissionStartAt: string;
-  deleteHomework: () => void | Promise<void>;
-  deleteHomeworkTarget: SectionHomework | null;
-  editHomeworkMessage: string;
-  editHomeworkPublishedAt: string;
-  editHomeworkSubmissionDueAt: string;
-  editHomeworkSubmissionStartAt: string;
-  editingHomework: boolean;
-  fmtDateTime: SectionHomeworkFormatter;
-  formatMessage: FormatMessage;
-  hasSemesterEnd: boolean;
-  hasSemesterStart: boolean;
-  homeworkAuditActionLabel: (action: string) => string;
-  homeworkAuditActorName: (log: SectionHomeworkAuditLog) => string;
-  homeworkAuditLogs: SectionHomeworkAuditLog[];
-  homeworkCopy: SectionDetailHomeworkCopy;
-  homeworkMessage: string;
-  isHomeworkAuditDialogOpen: boolean;
-  locale: string;
-  sectionCopy: SectionDetailSectionCopy;
-  sectionLabel: string;
-  selectedHomework: SectionHomework | null;
-  semesterDate: SectionHomeworkSemesterDate;
-  setDeleteHomeworkTarget: (homework: SectionHomework | null) => void;
-  setHomeworkAuditDialogOpen: BooleanSetter;
-  setSelectedHomework: (homework: SectionHomework | null) => void;
-  showCreateHomework: boolean;
-  startEditHomework: () => void;
-  toggleHomeworkCompletion: (homework: SectionHomework) => void | Promise<void>;
-  updateHomework: SectionHomeworkSubmitHandler;
-};
-
-export type SectionDetailDialogsProps = SectionDetailHomeworkDialogsProps & {
-  clipboardError: string;
-  clipboardMessage: string;
-  closeCalendarDialog: () => void;
-  closeSubscribeDialog: () => void;
-  copiedCalendarTarget: SectionDetailClipboardTarget;
-  copyText: SectionDetailCopyText;
-  isCalendarDialogOpen: boolean;
-  setCalendarDialogOpen: BooleanSetter;
-  showSubscribeDialog: boolean;
-  singleCalendarUrl: string;
-  subscriptionAction: SectionDetailSubscriptionAction;
-  subscriptionPendingAction: SectionDetailSubscriptionPendingAction;
-};
 
 export type SectionDetailDateFormatter = (
   value: SectionHomeworkDateValue,
