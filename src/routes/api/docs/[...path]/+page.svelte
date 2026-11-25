@@ -350,6 +350,7 @@ function scheduleReferenceRouteRestore(expected: number, epoch: string) {
                 type="button"
                 variant="outline"
                 {...props}
+                aria-expanded={mobileNavigationOpen}
               >
                 <span>{data.copy.apiDocs.browseNavigation}</span>
                 <MenuIcon data-icon="inline-end" aria-hidden="true" />
