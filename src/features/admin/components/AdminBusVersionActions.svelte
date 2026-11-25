@@ -104,23 +104,14 @@ let activateDialogOpen = $state(false);
         )}
       >
         <input type="hidden" name="id" value={version.id} />
-        <div data-slot="alert-dialog-footer">
-          <AlertDialog.Cancel
-            type="button"
-            disabled={Boolean(pendingAction)}
-            variant="outline"
-          >
-            {copy.cancelAction}
-          </AlertDialog.Cancel>
-          <AlertDialog.Action type="submit" disabled={Boolean(pendingAction)}>
-            {#if pendingAction === `activate-${version.id}`}
-              <Spinner data-icon="inline-start" />
-            {:else}
-              <CheckCircle data-icon="inline-start" />
-            {/if}
-            {copy.confirmActivateAction}
-          </AlertDialog.Action>
-        </div>
+        <AlertDialog.Actions
+          cancelLabel={copy.cancelAction}
+          confirmLabel={copy.confirmActivateAction}
+          pending={pendingAction === `activate-${version.id}`}
+          busy={Boolean(pendingAction)}
+          destructive={false}
+          icon={CheckCircle}
+        />
       </form>
     </AlertDialog.Content>
   </AlertDialog.Root>

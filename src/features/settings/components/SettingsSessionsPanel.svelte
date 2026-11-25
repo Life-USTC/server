@@ -206,15 +206,12 @@ async function revoke(action: RevokeAction) {
 </section>
 
 <AlertDialog.Root bind:open={dialogOpen}>
-  <AlertDialog.Content>
-    <AlertDialog.Heading
-      title={labels.confirmTitle}
-      description={confirmation}
-    />
-    <AlertDialog.Actions
-      cancelLabel={copy.profile.cancel}
-      confirmLabel={labels.confirm}
-      onclick={() => { if (pending) void revoke(pending); }}
-    />
-  </AlertDialog.Content>
+  <AlertDialog.Confirmation
+    title={labels.confirmTitle}
+    description={confirmation}
+    cancelLabel={copy.profile.cancel}
+    confirmLabel={labels.confirm}
+    onclick={() => { if (pending) void revoke(pending); }}
+    compact
+  />
 </AlertDialog.Root>

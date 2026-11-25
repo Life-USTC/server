@@ -1,5 +1,4 @@
 <script lang="ts">
-import * as Alert from "#lib/components/ui/alert/index.js";
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import type { CommentsCopy } from "./comment-component-types";
 
@@ -18,24 +17,15 @@ export let open: boolean;
       if (!nextOpen && !deleting) close();
     }}
   >
-    <AlertDialog.Content
-      class="max-w-md sm:max-w-md"
-      aria-labelledby="delete-comment-title"
-    >
-      <AlertDialog.Heading
-        titleId="delete-comment-title"
-        title={commentCopy.deleteConfirmTitle}
-        description={commentCopy.deleteConfirmDescription}
-      />
-      {#if error}
-        <Alert.Root variant="destructive"><Alert.Description>{error}</Alert.Description></Alert.Root>
-      {/if}
-      <AlertDialog.Actions
-        cancelLabel={commentCopy.cancelAction}
-        confirmLabel={commentCopy.deleteAction}
-        pending={deleting}
-        onclick={deleteComment}
-      />
-    </AlertDialog.Content>
+    <AlertDialog.Confirmation
+      titleId="delete-comment-title"
+      title={commentCopy.deleteConfirmTitle}
+      description={commentCopy.deleteConfirmDescription}
+      {error}
+      cancelLabel={commentCopy.cancelAction}
+      confirmLabel={commentCopy.deleteAction}
+      pending={deleting}
+      onclick={deleteComment}
+    />
   </AlertDialog.Root>
 {/if}

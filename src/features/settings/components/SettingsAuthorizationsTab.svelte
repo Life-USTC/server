@@ -6,7 +6,6 @@ import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import {
   oauthFeatureLabel,
   oauthScopeLabel,
@@ -160,31 +159,13 @@ function revokeAction(consentId: string): SubmitFunction {
           name="consentId"
           value={pendingAuthorization.consentId}
         />
-        <div data-slot="alert-dialog-footer">
-          <AlertDialog.Cancel
-            disabled={Boolean(revokingConsentId)}
-            type="button"
-            variant="outline"
-          >
-            {copy.profile.cancel}
-          </AlertDialog.Cancel>
-          <AlertDialog.Action
-            disabled={Boolean(revokingConsentId)}
-            type="submit"
-            variant="destructive"
-          >
-            {#if revokingConsentId}
-              <Spinner
-                aria-label={copy.settings.authorizations.revoking}
-                data-icon="inline-start"
-              />
-              {copy.settings.authorizations.revoking}
-            {:else}
-              <TrashIcon data-icon="inline-start" />
-              {copy.settings.authorizations.revoke}
-            {/if}
-          </AlertDialog.Action>
-        </div>
+        <AlertDialog.Actions
+          cancelLabel={copy.profile.cancel}
+          confirmLabel={copy.settings.authorizations.revoke}
+          pendingLabel={copy.settings.authorizations.revoking}
+          pending={Boolean(revokingConsentId)}
+          icon={TrashIcon}
+        />
       </form>
     </AlertDialog.Content>
   </AlertDialog.Root>

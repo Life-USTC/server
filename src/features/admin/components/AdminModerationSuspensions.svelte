@@ -204,27 +204,13 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
         use:enhance={confirmedLiftAction(pendingLiftSuspension)}
       >
         <input type="hidden" name="id" value={pendingLiftSuspension.id} />
-        <div data-slot="alert-dialog-footer">
-          <AlertDialog.Cancel
-            type="button"
-            disabled={Boolean(liftingSuspensionId)}
-            variant="outline"
-          >
-            {copy.cancelButton}
-          </AlertDialog.Cancel>
-          <AlertDialog.Action
-            type="submit"
-            disabled={Boolean(liftingSuspensionId)}
-            variant="destructive"
-          >
-            {#if liftingSuspensionId === pendingLiftSuspension.id}
-              <Spinner data-icon="inline-start" />
-            {:else}
-              <Unlock data-icon="inline-start" />
-            {/if}
-            {copy.liftSuspensionConfirmAction}
-          </AlertDialog.Action>
-        </div>
+        <AlertDialog.Actions
+          cancelLabel={copy.cancelButton}
+          confirmLabel={copy.liftSuspensionConfirmAction}
+          pending={liftingSuspensionId === pendingLiftSuspension.id}
+          busy={Boolean(liftingSuspensionId)}
+          icon={Unlock}
+        />
       </form>
     </AlertDialog.Content>
   </AlertDialog.Root>

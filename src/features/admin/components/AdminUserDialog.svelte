@@ -119,18 +119,14 @@ async function confirmRoleChange() {
       if (!isSaving) roleChangeDialogOpen = open;
     }}
   >
-    <AlertDialog.Content class="max-w-md sm:max-w-md">
-      <AlertDialog.Heading
-        title={copy.roleChangeConfirmTitle}
-        description={editIsAdmin ? copy.grantAdminConfirmDescription : copy.revokeAdminConfirmDescription}
-      />
-      <AlertDialog.Actions
-        cancelLabel={moderationCopy.cancelButton}
-        confirmLabel={copy.confirmRoleChange}
-        pending={isSaving}
-        destructive={false}
-        onclick={confirmRoleChange}
-      />
-    </AlertDialog.Content>
+    <AlertDialog.Confirmation
+      title={copy.roleChangeConfirmTitle}
+      description={editIsAdmin ? copy.grantAdminConfirmDescription : copy.revokeAdminConfirmDescription}
+      cancelLabel={moderationCopy.cancelButton}
+      confirmLabel={copy.confirmRoleChange}
+      pending={isSaving}
+      destructive={false}
+      onclick={confirmRoleChange}
+    />
   </AlertDialog.Root>
 {/if}

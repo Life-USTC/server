@@ -35,19 +35,13 @@ async function confirmDelete(event: MouseEvent) {
     if (!open) onCancel();
   }}
 >
-  <AlertDialog.Content
-    class="max-w-md sm:max-w-md"
-  >
-    <AlertDialog.Heading
-      title={homeworkCopy.deleteTitle}
-      description={formatMessage(homeworkCopy.deleteDescription, { title: target.title })}
-    />
-    <AlertDialog.Actions
-      cancelLabel={homeworkCopy.cancel}
-      confirmLabel={homeworkCopy.deleteAction}
-      {pending}
-      secondaryCancel
-      onclick={confirmDelete}
-    />
-  </AlertDialog.Content>
+  <AlertDialog.Confirmation
+    title={homeworkCopy.deleteTitle}
+    description={formatMessage(homeworkCopy.deleteDescription, { title: target.title })}
+    cancelLabel={homeworkCopy.cancel}
+    confirmLabel={homeworkCopy.deleteAction}
+    {pending}
+    secondaryCancel
+    onclick={confirmDelete}
+  />
 </AlertDialog.Root>

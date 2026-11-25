@@ -157,18 +157,14 @@ async function confirmDelete(event: MouseEvent) {
               <Trash2 data-icon="inline-start" />
               {todosCopy.delete}
             </AlertDialog.Trigger>
-            <AlertDialog.Content class="max-w-md sm:max-w-md">
-              <AlertDialog.Heading
-                title={todosCopy.deleteConfirmTitle}
-                description={deleteDescription(todo)}
-              />
-              <AlertDialog.Actions
-                cancelLabel={todosCopy.cancel}
-                confirmLabel={deletePending || todoSavingById[todo.id] ? todosCopy.saving : todosCopy.delete}
-                pending={deletePending || todoSavingById[todo.id]}
-                onclick={confirmDelete}
-              />
-            </AlertDialog.Content>
+            <AlertDialog.Confirmation
+              title={todosCopy.deleteConfirmTitle}
+              description={deleteDescription(todo)}
+              cancelLabel={todosCopy.cancel}
+              confirmLabel={deletePending || todoSavingById[todo.id] ? todosCopy.saving : todosCopy.delete}
+              pending={deletePending || todoSavingById[todo.id]}
+              onclick={confirmDelete}
+            />
           </AlertDialog.Root>
           <TaskCompletionButton
             class="w-full sm:w-auto"

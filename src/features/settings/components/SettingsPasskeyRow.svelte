@@ -112,16 +112,12 @@ async function changePasskey(action: "rename" | "delete") {
     if (open || pending !== "delete") deleteOpen = open;
   }}
 >
-  <AlertDialog.Content class="max-w-md sm:max-w-md">
-    <AlertDialog.Heading
-      title={copy.settings.passkeys.deleteConfirmTitle}
-      description={copy.settings.passkeys.deleteConfirmDescription.replace("{name}", displayName)}
-    />
-    <AlertDialog.Actions
-      cancelLabel={copy.settings.passkeys.cancel}
-      confirmLabel={pending === "delete" ? copy.settings.passkeys.deleting : copy.settings.passkeys.delete}
-      pending={pending === "delete"}
-      onclick={() => changePasskey("delete")}
-    />
-  </AlertDialog.Content>
+  <AlertDialog.Confirmation
+    title={copy.settings.passkeys.deleteConfirmTitle}
+    description={copy.settings.passkeys.deleteConfirmDescription.replace("{name}", displayName)}
+    cancelLabel={copy.settings.passkeys.cancel}
+    confirmLabel={pending === "delete" ? copy.settings.passkeys.deleting : copy.settings.passkeys.delete}
+    pending={pending === "delete"}
+    onclick={() => changePasskey("delete")}
+  />
 </AlertDialog.Root>
