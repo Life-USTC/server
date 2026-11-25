@@ -110,14 +110,11 @@ $: contentLabelId = `${idPrefix}-content-label`;
             <MarkdownEditor
               aria-labelledby={contentLabelId}
               disabled={saving}
-              guideLabel={commentsCopy.markdownGuide}
+              copy={commentsCopy}
               maxlength={TODO_CONTENT_MAX_LENGTH}
               modeLabel={commentsCopy.markdownModeLabel}
               name="content"
               placeholder={todosCopy.contentPlaceholder}
-              previewEmptyLabel={commentsCopy.previewEmpty}
-              tabPreviewLabel={commentsCopy.tabPreview}
-              tabWriteLabel={commentsCopy.tabWrite}
               value={todo?.content ?? ""}
             />
           </Field.Field>

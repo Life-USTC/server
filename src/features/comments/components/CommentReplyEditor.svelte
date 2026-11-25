@@ -55,16 +55,12 @@ $: replyEditorLabelId = `comment-reply-editor-label-${comment.id}`;
     <MarkdownEditor
       bind:value={replyDraft}
       aria-labelledby={replyEditorLabelId}
-      compact
       disabled={replyDisabled}
-      guideLabel={commentCopy.markdownGuide}
+      copy={commentCopy}
       modeLabel={commentCopy.markdownModeLabel}
       placeholder={commentCopy.replyPlaceholder}
-      previewEmptyLabel={commentCopy.previewEmpty}
       remarkPlugins={campusReferenceMarkdownPlugins}
       rows={3}
-      tabPreviewLabel={commentCopy.tabPreview}
-      tabWriteLabel={commentCopy.tabWrite}
     />
   </Field.Field>
   <CommentAttachmentPills

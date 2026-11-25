@@ -4,6 +4,10 @@ import type { CommentUploadOption as UploadOption } from "@/features/comments/li
 import type { CommentNode } from "@/features/comments/server/comment-types";
 import type { ViewerContext } from "@/lib/auth/viewer-context";
 import type { CommentTargetLoadState } from "./comment-panel-load-data";
+import {
+  createCommentEditDraft,
+  createCommentReplyDraft,
+} from "./comment-panel-state";
 import { createCommentUploadPendingState } from "./comment-panel-upload-state";
 
 export function createCommentPanelDefaultState() {
@@ -14,12 +18,7 @@ export function createCommentPanelDefaultState() {
     comments: [] as CommentNodeWithContext[],
     deleteTarget: null as CommentNode | null,
     deleting: false,
-    editAttachmentIds: [] as string[],
-    editDraft: "",
-    editIsAnonymous: false,
-    editingId: null as string | null,
-    editUploadedFiles: [] as UploadOption[],
-    editVisibility: "public",
+    ...createCommentEditDraft(),
     hiddenCount: 0,
     highlightedId: null as string | null,
     isAnonymous: false,
@@ -32,12 +31,7 @@ export function createCommentPanelDefaultState() {
     pendingReactionKey: null as string | null,
     postTargetKey: "",
     reactionMenuId: null as string | null,
-    replyAttachmentIds: [] as string[],
-    replyDraft: "",
-    replyingId: null as string | null,
-    replyIsAnonymous: false,
-    replyUploadedFiles: [] as UploadOption[],
-    replyVisibility: "public",
+    ...createCommentReplyDraft(),
     selectedAttachments: [] as string[],
     submitting: false,
     targetLoadStates: [] as CommentTargetLoadState[],

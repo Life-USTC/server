@@ -29,13 +29,10 @@ export let saveDescription: () => void;
       bind:value={draft}
       aria-labelledby="description-edit-title"
       disabled={isDisabled}
-      guideLabel={copy.markdownGuide}
+      {copy}
       modeLabel={copy.title}
       placeholder={copy.editorPlaceholder}
-      previewEmptyLabel={copy.previewEmpty}
       remarkPlugins={campusReferenceMarkdownPlugins}
-      tabPreviewLabel={copy.tabPreview}
-      tabWriteLabel={copy.tabWrite}
     />
   </Field.Field>
   <div class="flex flex-wrap justify-end gap-2">

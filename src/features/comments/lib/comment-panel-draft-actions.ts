@@ -2,18 +2,14 @@ import type { CommentNode } from "@/features/comments/server/comment-types";
 import type { createCommentPanelDefaultState } from "./comment-panel-default-state";
 import type { CommentEditorMode } from "./comment-panel-draft-state";
 import {
-  type CommentReplyDraftState,
-  emptyCommentReplyDraft,
+  createCommentReplyDraft,
   removeCommentUpload,
-  toggledCommentReplyDraft,
 } from "./comment-panel-state";
 import { appendMarkdown } from "./comment-ui";
 
-export function createCommentPanelDraftActions(input: {
-  applyReplyDraftState: (state: CommentReplyDraftState) => void;
-  panel: ReturnType<typeof createCommentPanelDefaultState>;
-}) {
-  const { panel } = input;
+export function createCommentPanelDraftActions(
+  panel: ReturnType<typeof createCommentPanelDefaultState>,
+) {
   const draftKeys = {
     new: "body",
     edit: "editDraft",
@@ -53,12 +49,15 @@ export function createCommentPanelDraftActions(input: {
   }
 
   function cancelReply() {
-    input.applyReplyDraftState(emptyCommentReplyDraft());
+    Object.assign(panel, createCommentReplyDraft());
   }
 
   function toggleReply(comment: CommentNode) {
-    input.applyReplyDraftState(
-      toggledCommentReplyDraft(panel.replyingId, comment.id),
+    Object.assign(
+      panel,
+      createCommentReplyDraft(
+        panel.replyingId === comment.id ? null : comment.id,
+      ),
     );
   }
 

@@ -21,10 +21,6 @@ import { createCommentPanelInitialDataActions } from "@/features/comments/lib/co
 import { createCommentPanelInteractions } from "@/features/comments/lib/comment-panel-interactions";
 import { createCommentPanelLoadSubmitActions } from "@/features/comments/lib/comment-panel-load-submit-actions";
 import { mountCommentPanel } from "@/features/comments/lib/comment-panel-mount";
-import {
-  type CommentEditDraftState,
-  type CommentReplyDraftState,
-} from "@/features/comments/lib/comment-panel-state";
 import { createCommentPanelTargetActions } from "@/features/comments/lib/comment-panel-target-actions";
 import { createCommentPanelUploadActions } from "@/features/comments/lib/comment-panel-upload-actions";
 import { commentUploadPendingForMode } from "@/features/comments/lib/comment-panel-upload-state";
@@ -35,7 +31,6 @@ import {
   updateCommentTree,
 } from "@/features/comments/lib/comment-ui";
 import { getCommentsCopy } from "@/features/comments/lib/comments-copy";
-import type { CommentNode } from "@/features/comments/server/comment-types";
 import type { AppLocale } from "@/i18n/config";
 import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
 import { page as routePage } from "$app/state";
@@ -47,6 +42,7 @@ import CommentsHiddenNotice from "./CommentsHiddenNotice.svelte";
 import CommentsPanelSuspensionAlert from "./CommentsPanelSuspensionAlert.svelte";
 import CommentsThreadSection from "./CommentsThreadSection.svelte";
 import CommentThreadBody from "./CommentThreadBody.svelte";
+import CommentThreadEditForm from "./CommentThreadEditForm.svelte";
 import CommentThreadHeader from "./CommentThreadHeader.svelte";
 
 interface Props {
@@ -175,15 +171,6 @@ function formatTime(value: Date | string | null | undefined) {
   return value ? _dateTimeFormatter.format(new Date(value)) : "";
 }
 
-function _applyReplyDraftState(next: CommentReplyDraftState) {
-  panel.replyDraft = next.draft;
-  panel.replyingId = next.replyingId;
-  panel.replyVisibility = next.visibility;
-  panel.replyIsAnonymous = next.isAnonymous;
-  panel.replyAttachmentIds = next.attachmentIds;
-  panel.replyUploadedFiles = next.uploadedFiles;
-}
-
 const {
   cancelReply: _cancelReply,
   insertMarkdown: _insertMarkdown,
@@ -191,10 +178,7 @@ const {
   removeReplyAttachment: _removeReplyAttachment,
   replaceMarkdownToken: _replaceMarkdownToken,
   toggleReply: _toggleReply,
-} = createCommentPanelDraftActions({
-  applyReplyDraftState: _applyReplyDraftState,
-  panel,
-});
+} = createCommentPanelDraftActions(panel);
 
 const {
   loadComments: _loadComments,
@@ -268,43 +252,17 @@ const {
   uploadFile: _uploadFile,
 });
 
-function _applyEditDraftState(next: CommentEditDraftState) {
-  panel.editingId = next.editingId;
-  panel.editDraft = next.draft;
-  panel.editVisibility = next.visibility;
-  panel.editIsAnonymous = next.isAnonymous;
-  panel.editAttachmentIds = next.attachmentIds;
-  panel.editUploadedFiles = next.uploadedFiles;
-}
-
-function _editAttachmentOptions(comment: CommentNode) {
-  return commentEditAttachmentOptions(
-    comment,
-    panel.editUploadedFiles,
-    panel.editAttachmentIds,
-  );
-}
-
 const {
   cancelEdit: _cancelEdit,
   saveEdit: _saveEdit,
   startEdit: _startEdit,
 } = createCommentPanelEditActions({
-  applyEditDraftState: _applyEditDraftState,
+  panel,
   getCommentCopy: () => _commentCopy,
-  getEditAttachmentIds: () => panel.editAttachmentIds,
-  getEditDraft: () => panel.editDraft,
-  getEditIsAnonymous: () => panel.editIsAnonymous,
-  getEditVisibility: () => panel.editVisibility,
-  hasPendingUploads: (mode) =>
-    commentUploadPendingForMode(panel.uploadPending, mode),
   loadComments: _loadComments,
   onSuccess: () => {
     toast.success(_commentCopy.editSuccess);
   },
-  setActionMenuId: set("actionMenuId"),
-  setMessage: set("message"),
-  setMessageVariant: set("messageVariant"),
 });
 
 const {
@@ -419,35 +377,34 @@ let _editUploading = $derived(
     {#snippet renderItem(comment)}
       <CommentThreadHeader
         bind:actionMenuId={panel.actionMenuId}
-
-
         {comment}
         commentCopy={_commentCopy}
         copyCommentLink={_copyCommentLink}
         {formatTime}
         openDeleteDialog={_openDeleteDialog}
         startEdit={_startEdit}
-
         toggleReply={_toggleReply}
       />
 
-      <CommentThreadBody
-        cancelEdit={_cancelEdit}
-        {comment}
-        commentCopy={_commentCopy}
-        bind:editAttachmentIds={panel.editAttachmentIds}
-        editAttachmentOptions={_editAttachmentOptions}
-        bind:editDraft={panel.editDraft}
-        editingId={panel.editingId}
-        bind:editIsAnonymous={panel.editIsAnonymous}
-        bind:editVisibility={panel.editVisibility}
-
-        saveEdit={_saveEdit}
-        uploadCopy={_uploadCopy}
-        uploading={_editUploading}
-        uploadFile={_uploadFile}
-        visibilityOptions={_visibilityOptions}
-      />
+      {#if panel.editingId === comment.id}
+        <CommentThreadEditForm
+          cancelEdit={_cancelEdit}
+          {comment}
+          commentCopy={_commentCopy}
+          bind:editAttachmentIds={panel.editAttachmentIds}
+          files={commentEditAttachmentOptions(comment, panel.editUploadedFiles, panel.editAttachmentIds)}
+          bind:editDraft={panel.editDraft}
+          bind:editIsAnonymous={panel.editIsAnonymous}
+          bind:editVisibility={panel.editVisibility}
+          saveEdit={_saveEdit}
+          uploadCopy={_uploadCopy}
+          uploading={_editUploading}
+          uploadFile={_uploadFile}
+          visibilityOptions={_visibilityOptions}
+        />
+      {:else}
+        <CommentThreadBody {comment} commentCopy={_commentCopy} />
+      {/if}
 
       <div class="grid gap-4">
         <CommentReactionControls
@@ -455,11 +412,7 @@ let _editUploading = $derived(
           commentCopy={_commentCopy}
           pendingReactionKey={panel.pendingReactionKey}
           react={_react}
-
-
-
           bind:reactionMenuId={panel.reactionMenuId}
-
           viewer={panel.viewer}
         />
 
