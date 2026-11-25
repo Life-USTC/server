@@ -186,6 +186,29 @@ function handleRemoveDialogOpenChange(open: boolean) {
 }
 </script>
 
+{#snippet sectionActions(section: SubscriptionSection)}
+  <TableIconButton
+    label={subscriptionsCopy.kindEditor.title}
+    disabled={Boolean(readOnlyReason)}
+    onclick={() => requestEditKind(section)}
+    icon={Pencil}
+  />
+
+  <TableIconButton
+    href={`/catalog/sections/${section.jwId}`}
+    label={sectionCopy.moreDetails}
+    icon={ArrowUpRight}
+  />
+  <TableIconButton
+    disabled={Boolean(readOnlyReason) || removingSectionId === section.id}
+    label={subscriptionsCopy.unsubscribe}
+    variant="destructive"
+    onclick={() => requestRemoveSection(section)}
+    icon={UserMinus}
+    loading={removingSectionId === section.id}
+  />
+{/snippet}
+
 {#if subscriptions.length > 0}
   <form id="subscriptions-filters" onsubmit={apply} class="flex flex-wrap items-end gap-3 [&_[data-slot=table-column-header]_button]:mx-0">
     <TableFieldFilter label={semesterField.label} fields={[semesterField]} values={draft} onchange={change} labels={common.tableFilters} idPrefix="subscriptions-extra" formId="subscriptions-filters" />
@@ -223,12 +246,8 @@ function handleRemoveDialogOpenChange(open: boolean) {
             <SubscriptionsCardsView
               {courseName}
               {teacherNames}
-              {readOnlyReason}
-              workspaceCopy={workspaceCopy}
-              requestRemoveSection={requestRemoveSection}
-              requestEditKind={requestEditKind}
-              removingSectionId={removingSectionId}
-              sectionCopy={sectionCopy}
+              {workspaceCopy}
+              {sectionActions}
               sections={group.sections}
               subscriptionsCopy={subscriptionsCopy}
             />
@@ -279,26 +298,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
 
                   <td>
                     <TableRowActions>
-                      <TableIconButton
-                        label={subscriptionsCopy.kindEditor.title}
-                        disabled={Boolean(readOnlyReason)}
-                        onclick={() => requestEditKind(section)}
-                        icon={Pencil}
-                      />
-
-                      <TableIconButton
-                        disabled={Boolean(readOnlyReason) || removingSectionId === section.id}
-                        label={subscriptionsCopy.unsubscribe}
-                        variant="destructive"
-                        onclick={() => requestRemoveSection(section)}
-                        icon={UserMinus}
-                        loading={removingSectionId === section.id}
-                      />
-                      <TableIconButton
-                        href={`/catalog/sections/${section.jwId}`}
-                        label={sectionCopy.moreDetails}
-                        icon={ArrowUpRight}
-                      />
+                      {@render sectionActions(section)}
                     </TableRowActions>
                   </td>
                 </tr>
