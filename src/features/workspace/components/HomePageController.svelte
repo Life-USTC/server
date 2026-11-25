@@ -19,7 +19,6 @@ import { HOME_COMPACT_ITEM_COUNT } from "@/features/workspace/lib/anonymous-home
 import type { loadHomePage } from "@/features/workspace/server/anonymous-home-page-load";
 import type {
   AnonymousHomeInformation,
-  HomeActivityItem,
   HomeListItem,
 } from "@/features/workspace/server/anonymous-home-sections";
 import {
@@ -64,79 +63,73 @@ const home = $derived(data.homeCopy.homepage);
 const info = $derived(home.information);
 const campusNow = $derived(info.campusNow);
 const pub = $derived(home.publicWorkspace);
-let recoveredNotices = $state<HomeListItem[] | undefined>();
-let recoveredActivities = $state<HomeActivityItem[] | undefined>();
-let recoveredEpoch = $state("");
-let noticeLoading = $state(false);
-let activityLoading = $state(false);
-let noticeRequest: AbortController | undefined;
-let activityRequest: AbortController | undefined;
-const notices = $derived(
-  publicDataReady
-    ? ((recoveredEpoch === publicReadEpoch ? recoveredNotices : undefined) ??
-        data.information.notices)
-    : null,
-);
-const activities = $derived(
-  publicDataReady
-    ? ((recoveredEpoch === publicReadEpoch ? recoveredActivities : undefined) ??
-        data.information.activities)
-    : null,
-);
-$effect(() => {
-  void data.information.notices;
-  void data.information.activities;
-  void data.locale;
-  void pageDemo?.expiresAt;
-  void publicReadEpoch;
-  recoveredNotices = undefined;
-  recoveredActivities = undefined;
-  recoveredEpoch = "";
-  noticeLoading = false;
-  activityLoading = false;
-  return () => {
-    noticeRequest?.abort();
-    activityRequest?.abort();
-  };
-});
-async function retryPublicList(section: "notices" | "activities") {
-  const epoch = publicReadEpoch;
-  if (!epoch) return;
-  if (section === "notices" ? noticeLoading : activityLoading) return;
-  const controller = new AbortController();
-  if (section === "notices") {
-    noticeLoading = true;
-    noticeRequest = controller;
-  } else {
-    activityLoading = true;
-    activityRequest = controller;
-  }
-  try {
-    const response = await fetch(
-      section === "notices" ? HOME_NOTICES_PATH : HOME_ACTIVITIES_PATH,
-      {
+function publicList<K extends "notices" | "activities">(
+  section: K,
+  path: string,
+) {
+  let recovered = $state<{
+    epoch: string;
+    items: AnonymousHomeInformation[K];
+  }>();
+  let request = $state.raw<AbortController>();
+
+  $effect(() => {
+    void data.information[section];
+    void data.locale;
+    void pageDemo?.expiresAt;
+    void publicReadEpoch;
+    recovered = undefined;
+    return () => {
+      request?.abort();
+      request = undefined;
+    };
+  });
+
+  async function retry() {
+    const epoch = publicReadEpoch;
+    if (!epoch || request) return;
+    const controller = new AbortController();
+    request = controller;
+    try {
+      const response = await fetch(path, {
         cache: "no-store",
         headers: { accept: "application/json" },
         signal: controller.signal,
-      },
-    );
-    if (!response.ok) throw new Error("Home summary unavailable");
-    const body: Partial<AnonymousHomeInformation> = await response.json();
-    if (controller.signal.aborted || publicReadEpoch !== epoch) return;
-    recoveredEpoch = epoch;
-    if (section === "notices" && body.notices != null)
-      recoveredNotices = body.notices;
-    if (section === "activities" && body.activities != null)
-      recoveredActivities = body.activities;
-  } catch {
-    // Keep this module unavailable and its full-list link usable for another retry.
-  } finally {
-    if (!controller.signal.aborted && publicReadEpoch === epoch) {
-      if (section === "notices") noticeLoading = false;
-      else activityLoading = false;
+      });
+      if (!response.ok) return;
+      const body: Partial<AnonymousHomeInformation> = await response.json();
+      const items = body[section];
+      if (
+        items != null &&
+        !controller.signal.aborted &&
+        epoch === publicReadEpoch
+      )
+        recovered = { epoch, items };
+    } catch {
+      // Leave the retry action available after a network failure.
+    } finally {
+      if (request === controller) request = undefined;
     }
   }
+
+  return {
+    get items() {
+      if (!publicDataReady) return null;
+      return recovered?.epoch === publicReadEpoch
+        ? recovered.items
+        : data.information[section];
+    },
+    get loading() {
+      return Boolean(request);
+    },
+    retry,
+  };
 }
+
+const noticeList = publicList("notices", HOME_NOTICES_PATH);
+const activityList = publicList("activities", HOME_ACTIVITIES_PATH);
+const notices = $derived(noticeList.items);
+const activities = $derived(activityList.items);
 
 const destinations = $derived([
   { href: "/catalog/sections", label: pub.cards.sections.title },
@@ -221,26 +214,26 @@ const destinations = $derived([
         weatherLocationNames={data.homeCopy.weather.locationNames}
         weatherTitle={data.homeCopy.weather.title}
       />
-      <HomeSection demo={Boolean(demo)} testId="home-notices" busy={!publicDataReady || noticeLoading}
+      <HomeSection demo={Boolean(demo)} testId="home-notices" busy={!publicDataReady || noticeList.loading}
         title={info.notices.title} icon={BellIcon} href="/news" linkLabel={info.notices.viewAll}
       >
         {#if !publicDataReady}
           <Skeleton class="h-24 w-full" aria-hidden="true" />
         {:else if notices === null}
           {@render note(info.notices.unavailable)}
-          <Button class="justify-self-start" variant="outline" size="sm" disabled={noticeLoading} onclick={() => retryPublicList("notices")}>{info.notices.retry}</Button>
+          <Button class="justify-self-start" variant="outline" size="sm" disabled={noticeList.loading} onclick={noticeList.retry}>{info.notices.retry}</Button>
         {:else}
           {@render itemList(notices, info.notices.empty)}
         {/if}
       </HomeSection>
-      <HomeSection demo={Boolean(demo)} testId="home-activities" busy={!publicDataReady || activityLoading}
+      <HomeSection demo={Boolean(demo)} testId="home-activities" busy={!publicDataReady || activityList.loading}
         title={info.activities.title} icon={SparklesIcon} href="/catalog/young-events" linkLabel={info.activities.viewAll}
       >
         {#if !publicDataReady}
           <Skeleton class="h-24 w-full" aria-hidden="true" />
         {:else if activities === null}
           {@render note(info.activities.unavailable)}
-          <Button class="justify-self-start" variant="outline" size="sm" disabled={activityLoading} onclick={() => retryPublicList("activities")}>{info.activities.retry}</Button>
+          <Button class="justify-self-start" variant="outline" size="sm" disabled={activityList.loading} onclick={activityList.retry}>{info.activities.retry}</Button>
         {:else if activities.length === 0}
           {@render note(info.activities.empty)}
         {:else}
