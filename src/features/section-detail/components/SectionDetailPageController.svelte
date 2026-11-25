@@ -22,7 +22,7 @@ import {
   type SectionDetailPageData,
   type SectionHomework,
 } from "@/features/section-detail/lib/section-detail-controller-helpers";
-import { mountSectionDetailController } from "@/features/section-detail/lib/section-detail-controller-mount";
+import { initialSectionHomeworkViewFromBrowser } from "@/features/section-detail/lib/section-detail-controller-navigation";
 import {
   buildSectionDetailCommentTargets,
   buildSectionPeriodDetailRows,
@@ -222,7 +222,6 @@ function scrollToFocusedHomework() {
 const {
   auditActionLabel: _homeworkAuditActionLabel,
   auditActorName: _homeworkAuditActorName,
-  dateTimeInputValue: _dateTimeInputValue,
   formatMessage: _formatMessage,
   primaryName: _primaryName,
   secondaryName: _secondaryName,
@@ -286,7 +285,6 @@ const {
   openCreateHomeworkDialog: _openCreateHomeworkDialog,
   openSubscribeDialog: _openSubscribeDialog,
   semesterDate: _semesterDate,
-  setHomeworkView: _setHomeworkView,
   startEditHomework: _startEditHomework,
   subscriptionAction: _subscriptionAction,
 } = createSectionDetailUiActions({
@@ -301,7 +299,6 @@ const {
   setEditHomeworkSubmissionStartAt: set("editHomeworkSubmissionStartAt"),
   setEditingHomework: set("editingHomework"),
   setHomeworkMessage: set("homeworkMessage"),
-  setHomeworkView: set("homeworkView"),
   setShowCreateHomework: set("showCreateHomework"),
   setShowSubscribeDialog: set("showSubscribeDialog"),
   onSuccess: (action) => {
@@ -336,7 +333,6 @@ const {
 const {
   createHomework: _createHomework,
   deleteHomework: _deleteHomework,
-  loadHomeworks: _loadHomeworks,
   toggleHomeworkCompletion: _toggleHomeworkCompletion,
   updateHomework: _updateHomework,
 } = createSectionDetailHomeworkActions({
@@ -388,14 +384,10 @@ function _auditLogsForHomework(homeworkId: string) {
 }
 
 onMount(() => {
-  const cleanup = mountSectionDetailController({
-    clearClipboardTimer: _clearClipboardTimer,
-    getHomeworkView: () => state.homeworkView,
-    loadHomeworks: _loadHomeworks,
-    setHomeworkView: set("homeworkView"),
-    setOrigin: set("origin"),
-    shouldLoadHomeworks: false,
-  });
+  state.origin = window.location.origin;
+  state.homeworkView = initialSectionHomeworkViewFromBrowser(
+    state.homeworkView,
+  );
   if ($shellViewer.status === "ready") void loadPersonalData();
   else {
     personalFailed = $shellViewer.status === "error";
@@ -409,7 +401,7 @@ onMount(() => {
     personalAbortController?.abort();
     homeworkDetailRequest += 1;
     homeworkAuditRequest += 1;
-    cleanup();
+    _clearClipboardTimer();
   };
 });
 let homeworkDialogs: typeof import("./section-homework-dialogs") | null = null;

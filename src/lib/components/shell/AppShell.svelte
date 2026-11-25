@@ -115,10 +115,12 @@ let globalSearchOpen = $state(false);
 let GlobalSearchDialog:
   | typeof import("@/features/search/components/GlobalSearchDialog.svelte").default
   | null = $state(null);
-let userMenuOpen = $state(false);
+type ShellMenu = "user" | "locale" | "theme";
+let activeMenu = $state<ShellMenu | null>(null);
+let userMenuOpen = $derived(activeMenu === "user");
 let completedNavigationGeneration = $state(0);
-let localeMenuOpen = $state(false);
-let themeMenuOpen = $state(false);
+let localeMenuOpen = $derived(activeMenu === "locale");
+let themeMenuOpen = $derived(activeMenu === "theme");
 let contentScrollContainer: HTMLElement | undefined = $state();
 let viewerLoading = $state(
   untrack(() => data.resolveViewerOnClient && !data.user && !data.demo),
@@ -214,37 +216,22 @@ function isAncestorLink(link: ShellLink) {
 
 function setThemeMode(nextThemeMode: ThemeMode) {
   themeMode = setStoredThemeMode(nextThemeMode);
-  themeMenuOpen = false;
+  setThemeMenuOpen(false);
 }
 
-function setUserMenuOpen(open: boolean) {
-  userMenuOpen = open;
-  if (open) {
-    localeMenuOpen = false;
-    themeMenuOpen = false;
-  }
+function menuToggle(menu: ShellMenu) {
+  return (open: boolean) => {
+    if (open) activeMenu = menu;
+    else if (activeMenu === menu) activeMenu = null;
+  };
 }
 
-function setLocaleMenuOpen(open: boolean) {
-  localeMenuOpen = open;
-  if (open) {
-    userMenuOpen = false;
-    themeMenuOpen = false;
-  }
-}
-
-function setThemeMenuOpen(open: boolean) {
-  themeMenuOpen = open;
-  if (open) {
-    userMenuOpen = false;
-    localeMenuOpen = false;
-  }
-}
+const setUserMenuOpen = menuToggle("user");
+const setLocaleMenuOpen = menuToggle("locale");
+const setThemeMenuOpen = menuToggle("theme");
 
 function closeMenus() {
-  userMenuOpen = false;
-  localeMenuOpen = false;
-  themeMenuOpen = false;
+  activeMenu = null;
 }
 
 function resetContentScroll() {

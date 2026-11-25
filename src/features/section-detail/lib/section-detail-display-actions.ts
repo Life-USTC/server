@@ -5,7 +5,6 @@ import {
   secondaryName as sectionSecondaryName,
 } from "./display";
 import {
-  dateTimeInputValue,
   type HomeworkAuditLog,
   type SectionDetailPageData,
   sectionSemesterWeekLabel,
@@ -65,9 +64,6 @@ export function createSectionDetailDisplayActions(input: {
     },
     auditActorName(log: HomeworkAuditLog) {
       return sectionHomeworkAuditActorName(log, input.getCommonCopy().unknown);
-    },
-    dateTimeInputValue(value: string | Date | null | undefined) {
-      return dateTimeInputValue(value);
     },
     formatMessage,
     primaryName: sectionPrimaryName,
