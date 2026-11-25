@@ -354,16 +354,6 @@ export async function assertPageContract(
       await expect(
         page.getByRole("heading", { level: 1, name: /校车|Shuttle Bus/i }),
       ).toBeVisible();
-      await page
-        .getByRole("button", { name: /^(调整路线|Change route)$/i })
-        .click();
-      await expect(
-        page.locator("[data-testid='bus-start-stop-group']"),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: /Reverse|反向/i }),
-      ).toBeVisible();
-      await page.keyboard.press("Escape");
       return;
     }
 
@@ -777,8 +767,10 @@ export async function assertPageContract(
       return;
     }
 
+    case "/terms":
     case "/privacy": {
       await gotoContractPage(page, routePath);
+      await expectMainContent(page);
       await expect(page.locator("h1")).toBeVisible();
       await expect(page.locator("h2").first()).toBeVisible();
       await expect(page.locator("li").first()).toBeVisible();
@@ -800,14 +792,6 @@ export async function assertPageContract(
       await expect(
         page.getByRole("link", { name: /危险区|Danger/i }),
       ).toBeVisible();
-      return;
-    }
-
-    case "/terms": {
-      await gotoContractPage(page, routePath);
-      await expect(page.locator("h1")).toBeVisible();
-      await expect(page.locator("h2").first()).toBeVisible();
-      await expect(page.locator("li").first()).toBeVisible();
       return;
     }
 

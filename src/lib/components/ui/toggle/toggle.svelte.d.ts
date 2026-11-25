@@ -1,5 +1,5 @@
-import type { Component } from "svelte";
-import type { Toggle as TogglePrimitive } from "bits-ui";
+import type { Component, ComponentProps } from "svelte";
+import type { Toggle as SDKComponent } from "@ui-sdk/svelte/toggle";
 
 export type ToggleVariant = "default" | "outline";
 export type ToggleSize = "default" | "sm" | "lg";
@@ -13,7 +13,7 @@ export declare const toggleVariants: (props?: ToggleVariants & {
 	className?: string;
 }) => string;
 
-export type ToggleProps = TogglePrimitive.RootProps & {
+export type ToggleProps = ComponentProps<typeof SDKComponent> & { ref?: HTMLButtonElement | null } & {
 	variant?: ToggleVariant;
 	size?: ToggleSize;
 };

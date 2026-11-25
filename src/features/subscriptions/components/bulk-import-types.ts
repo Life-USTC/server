@@ -1,27 +1,6 @@
-export type BulkImportCopy = {
-  cancel: string;
-  confirmTitle: string;
-  confirmTitleOne: string;
-  descriptionPrefix: string;
-  undergraduateSystem: string;
-  descriptionConjunction: string;
-  graduateSystem: string;
-  description: string;
-  importing: string;
-  matchButton: string;
-  matchedSummary: string;
-  matching: string;
-  noMatches: string;
-  placeholder: string;
-  sectionCodesLabel: string;
-  selectSection: string;
-  semesterLabel: string;
-  semesterPlaceholder: string;
-  subscribeSelected: string;
-  subscribeSelectedOne: string;
-  title: string;
-  unmatchedCodes: string;
-};
+import type { AppPageCopy } from "@/lib/shell/page-copy";
+
+export type BulkImportCopy = AppPageCopy["subscriptions"]["bulkImport"];
 
 export type BulkImportSemesterOption = {
   label: string;

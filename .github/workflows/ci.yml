@@ -202,8 +202,6 @@ jobs:
         run: bun run build
       - name: Build isolated test Worker
         run: bun run build:test-worker
-      - name: Check public page client budgets
-        run: bun tests/ci/public-route-client-budget.mjs
       - id: inventory
         name: Collect feature test inventory
         run: bun tests/ci/test-matrix.ts

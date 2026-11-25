@@ -135,8 +135,8 @@ function revealCurrent(node: HTMLElement, active: boolean) {
           node.closest("nav[data-shell-navigation]") !== owner ||
           node.closest('[data-slot="sidebar-content"]') !== viewport ||
           node.closest('[data-slot="sidebar-flow"]') !== flow ||
-          (sheet && sheet.getAttribute("data-state") !== "open") ||
-          node.closest('[data-slot="collapsible-content"][data-state="closed"]')
+          (sheet && !sheet.hasAttribute("data-open")) ||
+          node.closest('[data-slot="collapsible-panel"][data-closed]')
         ) {
           stop();
           return;
@@ -239,7 +239,7 @@ function preloadScheduleOnHover(
       {/snippet}
     </Sidebar.MenuButton>
     {#if link.badge != null && link.badge > 0}
-      <Sidebar.MenuBadge class="top-1/2! -translate-y-1/2" role="img" aria-label={link.badgeLabel} data-shell-count-value={link.badge}>{link.badge}</Sidebar.MenuBadge>
+      <div data-slot="sidebar-menu-badge" data-sidebar="menu-badge" class="top-1/2! -translate-y-1/2" role="img" aria-label={link.badgeLabel} data-shell-count-value={link.badge}>{link.badge}</div>
     {/if}
   </div>
 {/snippet}
@@ -269,10 +269,10 @@ function preloadScheduleOnHover(
     data-testid={`${currentScope}-sidebar`}
     class="flex min-h-0 flex-1 flex-col"
   >
-    <Sidebar.Header class={cn("gap-0 pb-0", sidebar.isMobile && "pr-12")}>
+    <div data-slot="sidebar-header" data-sidebar="header" class={cn("gap-0 pb-0", sidebar.isMobile && "pr-12")}>
       <div class="flex items-center gap-2 group-data-[collapsible=icon]:flex-col">
-        <Sidebar.Menu class="min-w-0 flex-1">
-          <Sidebar.MenuItem>
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="min-w-0 flex-1">
+          <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item">
             <Sidebar.MenuButton class="h-11 group-data-[collapsible=icon]:p-1!" tooltipContent={compactTooltips ? "Life@USTC" : undefined}>
               {#snippet child({ props })}
                 <a {...props} href={homeHref} id="app-logo" aria-label="Life@USTC" onclick={() => sidebar.setOpenMobile(false)}>
@@ -281,8 +281,8 @@ function preloadScheduleOnHover(
                 </a>
               {/snippet}
             </Sidebar.MenuButton>
-          </Sidebar.MenuItem>
-        </Sidebar.Menu>
+          </li>
+        </ul>
         {#if !sidebar.isMobile}
           <Sidebar.Trigger
             aria-label={copy.shell.toggleSidebar}
@@ -294,7 +294,7 @@ function preloadScheduleOnHover(
         {/if}
       </div>
       {#if scope.parent}
-        <Sidebar.Menu><Sidebar.MenuItem>
+        <ul data-slot="sidebar-menu" data-sidebar="menu"><li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item">
           <Sidebar.MenuButton class="h-11 py-1" tooltipContent={compactTooltips ? copy.shell.primaryDestinations.back : undefined}>
             {#snippet child({ props })}
               <button {...props} type="button" data-local-navigation-back data-testid={`${currentScope}-sidebar-back`} onclick={() => changeLevel(scope.parent === "admin" ? "admin" : "root")}>
@@ -302,43 +302,43 @@ function preloadScheduleOnHover(
               </button>
             {/snippet}
           </Sidebar.MenuButton>
-        </Sidebar.MenuItem></Sidebar.Menu>
+        </li></ul>
       {/if}
-    </Sidebar.Header>
-    <Sidebar.Content>
+    </div>
+    <div data-slot="sidebar-content" data-sidebar="content">
       {#key level}
       <div class="flex min-w-0 shrink-0 flex-col" data-slot="sidebar-flow" class:sidebar-level-enter={true}>
         {#each scope.groups as group}
-          <Sidebar.Group>
+          <div data-slot="sidebar-group" data-sidebar="group">
             {#if level === "courses" || level === "teachers"}
-              <Sidebar.GroupLabel class="group-data-[collapsible=icon]:hidden">{group.label}</Sidebar.GroupLabel>
+              <div data-slot="sidebar-group-label" data-sidebar="group-label" class="group-data-[collapsible=icon]:hidden">{group.label}</div>
             {/if}
-            <Sidebar.GroupContent>
-              <Sidebar.Menu>
+            <div data-slot="sidebar-group-content" data-sidebar="group-content">
+              <ul data-slot="sidebar-menu" data-sidebar="menu">
                 {#each group.links as link}
                   {@const children = navigationScopeChildren(scopes, level, link)}
-                  <Sidebar.MenuItem>
+                  <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item">
                     {@render entry(link, 0, children.length > 0)}
                     {#if children.length}
-                      <Sidebar.MenuSub>
+                      <ul data-slot="sidebar-menu-sub" data-sidebar="menu-sub">
                         {#each children as child}
-                          <Sidebar.MenuSubItem>{@render entry(child, 1, false)}</Sidebar.MenuSubItem>
+                          <li data-slot="sidebar-menu-sub-item" data-sidebar="menu-sub-item" class="group/menu-sub-item">{@render entry(child, 1, false)}</li>
                         {/each}
-                      </Sidebar.MenuSub>
+                      </ul>
                     {/if}
-                  </Sidebar.MenuItem>
+                  </li>
                 {/each}
-              </Sidebar.Menu>
-            </Sidebar.GroupContent>
-          </Sidebar.Group>
+              </ul>
+            </div>
+          </div>
         {/each}
       </div>
       {/key}
-    </Sidebar.Content>
+    </div>
   </nav>
   {#if !sidebar.isMobile}<Sidebar.Rail label={copy.shell.toggleSidebar} />{/if}
-  {#if sidebar.isMobile && mobilePreferences}<Sidebar.Footer class="border-t">{@render mobilePreferences()}</Sidebar.Footer>{/if}
-  {#if footerLinks.length}<Sidebar.Footer class="border-t p-2"
+  {#if sidebar.isMobile && mobilePreferences}<div data-slot="sidebar-footer" data-sidebar="footer" class="border-t">{@render mobilePreferences()}</div>{/if}
+  {#if footerLinks.length}<div data-slot="sidebar-footer" data-sidebar="footer" class="border-t p-2"
       ><nav
         aria-label={copy.shell.footerNavigation}
         class="flex flex-wrap gap-x-3 gap-y-1 text-xs group-data-[collapsible=icon]:hidden"
@@ -351,8 +351,7 @@ function preloadScheduleOnHover(
             onclick={() => sidebar.setOpenMobile(false)}
             class="py-1.5">{link.label}</a
           >{/each}
-      </nav></Sidebar.Footer
-    >{/if}
+      </nav></div>{/if}
 </Sidebar.Root>
 
 

@@ -21,7 +21,7 @@ function dateKeyParts(key: string) {
   return { day, month, year };
 }
 
-function resolveCampusDate(value: CampusDateValue) {
+export function resolveCampusDate(value: CampusDateValue) {
   if (value === null || value === undefined) return null;
   if (value instanceof Date) {
     return Number.isNaN(value.getTime()) ? null : value;

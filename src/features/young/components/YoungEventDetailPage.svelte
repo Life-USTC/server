@@ -235,10 +235,7 @@ const signupLabel = $derived(
       </Panel>
     {/if}
     {#if event.sourceMissing}
-      <Alert.Root
-        ><Alert.Description>{youngCopy.sourceMissing}</Alert.Description
-        ></Alert.Root
-      >
+      <Alert.Message>{youngCopy.sourceMissing}</Alert.Message>
     {/if}
     <YoungSourceNote
       labels={youngCopy}

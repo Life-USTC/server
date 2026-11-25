@@ -1,5 +1,5 @@
 <script lang="ts">
-import * as Empty from "#lib/components/ui/empty/index.js";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import { cn } from "#lib/utils.js";
 import "#lib/components/markdown-preview.css";
 import katexStylesheet from "katex/dist/katex.min.css?url";
@@ -21,10 +21,6 @@ export { className as class };
   {#if html}
     {@html html}
   {:else if emptyLabel}
-    <Empty.Root class="min-h-24">
-      <Empty.Header>
-        <Empty.Description>{emptyLabel}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <EmptyState class="min-h-24" description={emptyLabel} />
   {/if}
 </div>

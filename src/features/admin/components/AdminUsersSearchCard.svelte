@@ -16,8 +16,7 @@ export let id: string;
     <form id={`${id}-form`} onsubmit={onapply} class="flex min-w-0 basis-full flex-wrap items-center gap-2">
       <SearchField {id} name="search" label={commonCopy.search} placeholder={copy.searchPlaceholder} value={values.search ?? ""} oninput={(event) => onchange({ search: event.currentTarget.value })} />
       {#if Object.values(values).some(Boolean)}
-        <Button href="/admin/users" variant="outline" class={toolbarControlClass}>
-          <XIcon data-icon="inline-start" />
+        <Button icon={XIcon} href="/admin/users" variant="outline" class={toolbarControlClass}>
           {commonCopy.clear}
         </Button>
       {/if}
