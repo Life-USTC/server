@@ -45,7 +45,7 @@ let {
       id={`${idPrefix}-duration`}
     >
       {#each options as option}
-        <NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
+        <option value={option.value}>{option.label}</option>
       {/each}
     </NativeSelect.Root>
   </Field.Field>

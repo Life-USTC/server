@@ -59,12 +59,12 @@ const titleId = "bulk-import-title";
         <Field.Label for="bulk-import-semester">{copy.semesterLabel}</Field.Label>
         <NativeSelect.Root bind:value={semesterId} class="w-full" id="bulk-import-semester">
           {#if !semesterId}
-            <NativeSelect.Option disabled value="">
+            <option disabled value="">
               {copy.semesterPlaceholder}
-            </NativeSelect.Option>
+            </option>
           {/if}
           {#each semesterOptions as option}
-            <NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
+            <option value={option.value}>{option.label}</option>
           {/each}
         </NativeSelect.Root>
       </Field.Field>

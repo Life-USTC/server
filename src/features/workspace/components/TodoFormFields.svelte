@@ -52,9 +52,9 @@ $: contentLabelId = `${idPrefix}-content-label`;
     name="priority"
   >
     {#each todoPriorityOptions as option}
-      <NativeSelect.Option value={option.value}>
+      <option value={option.value}>
         {option.label}
-      </NativeSelect.Option>
+      </option>
     {/each}
   </NativeSelect.Root>
 </Field.Field>

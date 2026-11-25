@@ -186,9 +186,9 @@ async function subscribeSelectedSections() {
                 id="subscriptions-quick-add-semester"
               >
                 {#each semesterOptions as option}
-                  <NativeSelect.Option value={option.value}>
+                  <option value={option.value}>
                     {option.label}
-                  </NativeSelect.Option>
+                  </option>
                 {/each}
               </NativeSelect.Root>
             </Field.Field>

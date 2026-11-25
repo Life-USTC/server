@@ -93,9 +93,9 @@ $: homeworkTimestampCapabilities = homeworkSemesterShortcutCapabilities({
       required
     >
       {#each sectionOptions as option}
-        <NativeSelect.Option value={option.value}>
+        <option value={option.value}>
           {option.label}
-        </NativeSelect.Option>
+        </option>
       {/each}
     </NativeSelect.Root>
     {#if selectedSection}

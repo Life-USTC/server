@@ -98,12 +98,12 @@ export let welcomeCopy: WelcomeCopy;
           id="welcome-bulk-import-semester"
         >
           {#if !selectedSemesterId}
-            <NativeSelect.Option disabled value="">
+            <option disabled value="">
               {bulkCopy.semesterPlaceholder}
-            </NativeSelect.Option>
+            </option>
           {/if}
           {#each semesterOptions as option (option.value)}
-            <NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
+            <option value={option.value}>{option.label}</option>
           {/each}
         </NativeSelect.Root>
       </Field.Field>

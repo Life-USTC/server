@@ -29,9 +29,9 @@ export let viewer: ViewerContext;
       id="comment-composer-target"
     >
       {#each postTargetOptions as option}
-        <NativeSelect.Option value={option.value}>
+        <option value={option.value}>
           {option.label}
-        </NativeSelect.Option>
+        </option>
       {/each}
     </NativeSelect.Root>
     <Field.Description>
