@@ -1,7 +1,11 @@
-<script lang="ts">
+<script lang="ts" generics="T extends { id: string | number }">
 import type { Snippet } from "svelte";
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import CollectionListShell from "#lib/components/CollectionListShell.svelte";
+import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
+import MobileListCard from "#lib/components/MobileListCard.svelte";
 import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
+import * as Item from "#lib/components/ui/item/index.js";
 import type {
   AdminModerationFilterControls,
   AdminModerationFilterKind,
@@ -10,31 +14,54 @@ import type {
 let {
   fields,
   filterControls,
-  empty,
+  items,
+  label,
+  mobileTestId,
   emptyDescription,
-  cards,
+  card,
   desktop,
 }: {
   fields: AdminModerationFilterKind[];
   filterControls: AdminModerationFilterControls;
-  empty: boolean;
+  items: T[];
+  label: string;
+  mobileTestId?: string;
   emptyDescription: string;
-  cards: Snippet;
-  desktop: Snippet;
+  card: Snippet<[T]>;
+  desktop: Snippet<[Snippet]>;
 } = $props();
 </script>
 
-<ResponsiveCollection {desktop}>
+{#snippet emptyState()}
+  <CollectionEmpty variant="compact" description={emptyDescription} />
+{/snippet}
+
+{#snippet desktopTable()}
+  <div class="min-w-0">
+    <CollectionTableShell {label}>
+      {@render desktop(emptyState)}
+    </CollectionTableShell>
+  </div>
+{/snippet}
+
+<ResponsiveCollection desktop={desktopTable}>
   {#snippet mobile()}
     <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
       {#each fields as field (field)}
         {@render filterControls(field, "mobile")}
       {/each}
     </div>
-    {#if empty}
-      <CollectionEmpty variant="compact" description={emptyDescription} />
+    {#if items.length === 0}
+      {@render emptyState()}
     {:else}
-      {@render cards()}
+      <CollectionListShell>
+        <Item.Group class="gap-0" data-testid={mobileTestId}>
+          {#each items as item, index (item.id)}
+            <MobileListCard>{@render card(item)}</MobileListCard>
+            {#if index < items.length - 1}<Item.Separator class="my-0" />{/if}
+          {/each}
+        </Item.Group>
+      </CollectionListShell>
     {/if}
   {/snippet}
 </ResponsiveCollection>

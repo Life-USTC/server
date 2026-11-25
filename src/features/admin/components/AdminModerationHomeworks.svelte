@@ -1,9 +1,5 @@
 <script lang="ts">
 import Trash2 from "@lucide/svelte/icons/trash-2";
-import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
-import CollectionListShell from "#lib/components/CollectionListShell.svelte";
-import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
-import MobileListCard from "#lib/components/MobileListCard.svelte";
 import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
@@ -49,124 +45,111 @@ function creatorLabel(homework: AdminModerationHomework) {
 </script>
 
 <section class="grid gap-3">
-    <ModerationCollection
-      {filterControls}
-      fields={["search", "content", "target", "createdAt", "dueAt", "status"]}
-      empty={homeworks.length === 0}
-      emptyDescription={copy.noHomeworks}
-    >
-      {#snippet cards()}
-        <CollectionListShell>
-          <Item.Group class="gap-0">
-          {#each homeworks as homework, index (homework.id)}
-            <MobileListCard>
-              <Item.Content class="min-w-0 gap-2">
-                <Item.Title class="line-clamp-none" title={homework.title}>{homework.title}</Item.Title>
-                <Item.Description>
-                  {homework.section.course.nameCn} ·
-                  <span class="font-mono">{homework.section.code}</span>
-                </Item.Description>
-                <Item.Description>{copy.author}: {creatorLabel(homework)}</Item.Description>
-                <Item.Description class="tabular-nums">
-                  {copy.createdAt}
-                  {formatDate(homework.createdAt)} · {copy.homeworkDue}
-                  {homework.submissionDueAt
-                    ? formatDate(homework.submissionDueAt)
-                    : copy.notAvailable}
-                </Item.Description>
-              </Item.Content>
-              <Item.Actions class="flex-wrap items-center gap-2">
+  <ModerationCollection
+    {filterControls}
+    items={homeworks}
+    label={copy.homeworkTitle}
+    emptyDescription={copy.noHomeworks}
+    fields={["search", "content", "target", "createdAt", "dueAt", "status"]}
+  >
+    {#snippet card(homework: AdminModerationHomework)}
+      <Item.Content class="min-w-0 gap-2">
+        <Item.Title class="line-clamp-none" title={homework.title}>{homework.title}</Item.Title>
+        <Item.Description>
+          {homework.section.course.nameCn} ·
+          <span class="font-mono">{homework.section.code}</span>
+        </Item.Description>
+        <Item.Description>{copy.author}: {creatorLabel(homework)}</Item.Description>
+        <Item.Description class="tabular-nums">
+          {copy.createdAt}
+          {formatDate(homework.createdAt)} · {copy.homeworkDue}
+          {homework.submissionDueAt
+            ? formatDate(homework.submissionDueAt)
+            : copy.notAvailable}
+        </Item.Description>
+      </Item.Content>
+      <Item.Actions class="flex-wrap items-center gap-2">
+        {#if homework.deletedAt}
+          <Badge variant="destructive">{copy.homeworkStatusDeleted}</Badge>
+        {:else}
+          <Badge>{copy.homeworkStatusActive}</Badge>
+          <Button
+            aria-label={copy.deleteHomeworkAction}
+            onclick={() => onDelete(homework)}
+            size="sm"
+            type="button"
+            variant="destructive"
+          >
+            <Trash2 data-icon="inline-start" />
+            {copy.deleteHomeworkAction}
+          </Button>
+        {/if}
+      </Item.Actions>
+    {/snippet}
+    {#snippet desktop(emptyState)}
+      <Table.Root class="w-full min-w-[62rem]">
+        <Table.Header>
+          <TableControlsRow colspan={6}>{@render filterControls("search", "desktop")}</TableControlsRow>
+          <Table.Row>
+            <Table.Head class="w-[28%]">{@render filterControls("content", "desktop")}</Table.Head>
+            <Table.Head class="w-[22%]">{@render filterControls("target", "desktop")}</Table.Head>
+            <Table.Head class="w-[16%]">{@render filterControls("createdAt", "desktop")}</Table.Head>
+            <Table.Head class="w-[16%]">{@render filterControls("dueAt", "desktop")}</Table.Head>
+            <Table.Head class="w-[12%]">{@render filterControls("status", "desktop")}</Table.Head>
+            <Table.Head class="w-14 min-w-14">
+              <span class="sr-only">{copy.actions}</span>
+            </Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {#each homeworks as homework}
+            <Table.Row class="group">
+              <Table.Cell class="max-w-0">
+                <TruncatedText class="font-medium" text={homework.title} />
+                <TruncatedText class="text-muted-foreground text-xs" text={`${copy.author}: ${creatorLabel(homework)}`} />
+              </Table.Cell>
+              <Table.Cell class="max-w-0">
+                <div class="grid min-w-0 gap-0.5">
+                  <TruncatedText text={homework.section.course.nameCn} />
+                  <span class="font-mono text-muted-foreground text-xs">
+                    {homework.section.code}
+                  </span>
+                </div>
+              </Table.Cell>
+              <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+                {formatDate(homework.createdAt)}
+              </Table.Cell>
+              <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+                {homework.submissionDueAt
+                  ? formatDate(homework.submissionDueAt)
+                  : copy.notAvailable}
+              </Table.Cell>
+              <Table.Cell class="text-left">
                 {#if homework.deletedAt}
                   <Badge variant="destructive">{copy.homeworkStatusDeleted}</Badge>
-                {:else}
-                  <Badge>{copy.homeworkStatusActive}</Badge>
-                  <Button
-                    aria-label={copy.deleteHomeworkAction}
-                    onclick={() => onDelete(homework)}
-                    size="sm"
-                    type="button"
-                    variant="destructive"
-                  >
-                    <Trash2 data-icon="inline-start" />
-                    {copy.deleteHomeworkAction}
-                  </Button>
-                {/if}
-              </Item.Actions>
-            </MobileListCard>
-            {#if index < homeworks.length - 1}<Item.Separator class="my-0" />{/if}
+          {:else}
+            <Badge>{copy.homeworkStatusActive}</Badge>
+          {/if}
+        </Table.Cell>
+        <Table.Cell class="w-14 min-w-14 text-left">
+          {#if !homework.deletedAt}
+            <TableRowActions>
+              <TableIconButton
+                label={copy.deleteHomeworkAction}
+                variant="destructive"
+                onclick={() => onDelete(homework)}
+              >
+                <Trash2 />
+              </TableIconButton>
+            </TableRowActions>
+          {/if}
+        </Table.Cell>
+      </Table.Row>
+          {:else}
+            <Table.Row><Table.Cell colspan={6}>{@render emptyState()}</Table.Cell></Table.Row>
           {/each}
-          </Item.Group>
-        </CollectionListShell>
-      {/snippet}
-      {#snippet desktop()}
-
-        <div class="min-w-0">
-          <CollectionTableShell label={copy.homeworkTitle}>
-            <Table.Root class="w-full min-w-[62rem]">
-            <Table.Header>
-        <TableControlsRow colspan={6}>{@render filterControls("search", "desktop")}</TableControlsRow>
-              <Table.Row>
-                <Table.Head class="w-[28%]">{@render filterControls("content", "desktop")}</Table.Head>
-                <Table.Head class="w-[22%]">{@render filterControls("target", "desktop")}</Table.Head>
-                <Table.Head class="w-[16%]">{@render filterControls("createdAt", "desktop")}</Table.Head>
-                <Table.Head class="w-[16%]">{@render filterControls("dueAt", "desktop")}</Table.Head>
-                <Table.Head class="w-[12%]">{@render filterControls("status", "desktop")}</Table.Head>
-                <Table.Head class="w-14 min-w-14">
-                  <span class="sr-only">{copy.actions}</span>
-                </Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {#each homeworks as homework}
-                <Table.Row class="group">
-                  <Table.Cell class="max-w-0">
-                    <TruncatedText class="font-medium" text={homework.title} />
-                    <TruncatedText class="text-muted-foreground text-xs" text={`${copy.author}: ${creatorLabel(homework)}`} />
-                  </Table.Cell>
-                  <Table.Cell class="max-w-0">
-                    <div class="grid min-w-0 gap-0.5">
-                      <TruncatedText text={homework.section.course.nameCn} />
-                      <span class="font-mono text-muted-foreground text-xs">
-                        {homework.section.code}
-                      </span>
-                    </div>
-                  </Table.Cell>
-                  <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
-                    {formatDate(homework.createdAt)}
-                  </Table.Cell>
-                  <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
-                    {homework.submissionDueAt
-                      ? formatDate(homework.submissionDueAt)
-                      : copy.notAvailable}
-                  </Table.Cell>
-                  <Table.Cell class="text-left">
-                    {#if homework.deletedAt}
-                      <Badge variant="destructive">{copy.homeworkStatusDeleted}</Badge>
-                    {:else}
-                      <Badge>{copy.homeworkStatusActive}</Badge>
-                    {/if}
-                  </Table.Cell>
-                  <Table.Cell class="w-14 min-w-14 text-left">
-                    {#if !homework.deletedAt}
-                      <TableRowActions>
-                        <TableIconButton
-                          label={copy.deleteHomeworkAction}
-                          variant="destructive"
-                          onclick={() => onDelete(homework)}
-                        >
-                          <Trash2 />
-                        </TableIconButton>
-                      </TableRowActions>
-                    {/if}
-                  </Table.Cell>
-                </Table.Row>
-              {:else}
-          <Table.Row><Table.Cell colspan={6}><CollectionEmpty variant="compact" description={copy.noHomeworks} /></Table.Cell></Table.Row>
-        {/each}
-            </Table.Body>
-            </Table.Root>
-          </CollectionTableShell>
-        </div>
-      {/snippet}
-    </ModerationCollection>
+        </Table.Body>
+      </Table.Root>
+    {/snippet}
+  </ModerationCollection>
 </section>

@@ -81,7 +81,7 @@ $: unlinkAccount = accounts.find(
         {/if}
       </Item.Root>
 
-      <SettingsUstcIdentityPanel {account} {copy} />
+      <SettingsUstcIdentityPanel {account} {copy} {locale} />
     {/each}
   </Item.Group>
 </section>
