@@ -117,7 +117,7 @@
     "semantic-release": "25.0.9",
     "socks": "2.8.10",
     "svelte": "^5.57.3",
-    "svelte-check": "^4.7.7",
+    "svelte-check": "^4.7.8",
     "tailwindcss": "^4.3.5",
     "ts-morph": "^28.0.0",
     "typescript": "^6.0.3",
