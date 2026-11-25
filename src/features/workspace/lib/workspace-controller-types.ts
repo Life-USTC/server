@@ -677,13 +677,7 @@ export type SignedWorkspaceData = WorkspacePageData & {
 export type HomeworkItem = NonNullable<
   SignedWorkspaceData["homeworks"]
 >["homeworkSummaries"][number];
-export type HomeworkFilter = "incomplete" | "completed" | "all";
-export type HomeworkView = "cards" | "list";
 export type TodoItem = NonNullable<SignedWorkspaceData["todos"]>[number];
-export type TodoFilter = "incomplete" | "completed" | "all";
-export type TodoView = "cards" | "list";
-export type ExamView = "cards" | "list";
-export type LinkView = "grid" | "list";
 export type CalendarData = WorkspaceCalendarData;
 export type SubscriptionsData = NonNullable<
   SignedWorkspaceData["subscriptions"]
@@ -698,12 +692,6 @@ export type SignedLinkGroup = {
   links: CatalogLinkItem[];
 };
 export type AnonymousLinkGroup = SignedLinkGroup;
-export type WorkspaceViewState = {
-  homeworkView: HomeworkView;
-  todoView: TodoView;
-  examView: ExamView;
-  linkView: LinkView;
-};
 
 export type WorkspaceCalendarControllerState = {
   month: string;

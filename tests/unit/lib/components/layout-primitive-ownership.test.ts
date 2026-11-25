@@ -270,7 +270,7 @@ it("ui.collection-primitive-ownership", async () => {
     "young/components/YoungEventsPage",
     "young/components/YoungOrganizersPage",
     "workspace/components/HomeworksCardsView",
-    "workspace/components/TodosCardsView",
+    "workspace/components/TodosCollection",
     "workspace/components/ExamsCardsView",
     "workspace/components/SubscriptionsCardsView",
   ])

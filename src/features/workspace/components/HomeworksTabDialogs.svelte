@@ -13,7 +13,6 @@ import type {
   WorkspaceHomeworkItem,
   WorkspaceHomeworksCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
-import { toShanghaiDateTimeLocalValue } from "@/lib/time/shanghai-format";
 import type { SubmitFunction } from "$app/forms";
 import HomeworkCreateDialog from "./HomeworkCreateDialog.svelte";
 import type {
@@ -91,7 +90,6 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
   }}
   open={showCreateHomework}
   sections={sections}
-  toShanghaiDateTimeLocalValue={toShanghaiDateTimeLocalValue}
   createHomeworkError={createHomeworkError}
 />
 

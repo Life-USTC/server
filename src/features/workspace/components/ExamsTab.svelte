@@ -5,7 +5,6 @@ export let pageDemo: DemoIdentity | null | undefined = null;
 import { Button } from "#lib/components/ui/button/index.js";
 import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import { createExamTabDisplayActions } from "@/features/workspace/lib/exams-tab-display";
-import type { WorkspaceCardView } from "@/features/workspace/lib/view-preferences";
 import type {
   SignedWorkspaceData,
   WorkspaceCopy,
@@ -26,7 +25,7 @@ import type {
   ExamMetadataLabels,
   ExamTimeLabel,
   NamePrimary,
-  WorkspaceExamFilter,
+  WorkspaceCardView,
   WorkspaceExamRow,
   WorkspaceTabHref,
 } from "./workspace-exam-component-types";
@@ -45,7 +44,6 @@ export let examTimeLabel: ExamTimeLabel;
 export let examMetadataLabels: ExamMetadataLabels;
 export let namePrimary: NamePrimary;
 
-export let examFilter: WorkspaceExamFilter;
 export let examRows: WorkspaceExamRow[];
 let applied: Record<string, string> = { completion: "incomplete" };
 let draft = { ...applied };
@@ -68,7 +66,6 @@ $: ({ fmtExamDate } = createExamTabDisplayActions({
   sectionCopy,
 }));
 function clearExamFilter() {
-  examFilter = "all";
   draft = {};
   applied = {};
 }

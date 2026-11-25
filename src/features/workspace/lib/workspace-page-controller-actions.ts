@@ -8,17 +8,12 @@ import { createWorkspaceFormSubmitActions } from "@/features/workspace/lib/works
 import type {
   CalendarData,
   CatalogLinkItem,
-  ExamView,
   HomeworkItem,
-  HomeworkView,
-  LinkView,
   MatchedSection,
   SignedWorkspaceData,
   TodoItem,
-  TodoView,
   WorkspacePageData,
   WorkspaceRootCopy,
-  WorkspaceViewState,
 } from "@/features/workspace/lib/workspace-controller-helpers";
 import { createWorkspaceHomeworkStateActions } from "@/features/workspace/lib/workspace-controller-homework-state-actions";
 import { createWorkspaceLinkStateActions } from "@/features/workspace/lib/workspace-controller-link-state-actions";
@@ -77,15 +72,12 @@ export function createWorkspacePageControllerActions(input: {
   setCreatingTodo: Setter<boolean>;
   setEditTodoError: Setter<string>;
   setEditingTodo: Setter<TodoItem | null>;
-  setExamView: Setter<ExamView>;
   setHomeworkActionError: Setter<string>;
   setHomeworkItems: Setter<HomeworkItem[]>;
   setHomeworkSavingById: Setter<Record<string, boolean>>;
-  setHomeworkView: Setter<HomeworkView>;
   setImportingSections: Setter<boolean>;
   setLinkActionError: Setter<string>;
   setLinkReturnTo: Setter<string>;
-  setLinkView: Setter<LinkView>;
   setMatchedSections: Setter<MatchedSection[]>;
   setMatchingSections: Setter<boolean>;
   setRemovingSectionId: Setter<number | null>;
@@ -98,7 +90,6 @@ export function createWorkspacePageControllerActions(input: {
   setTodoActionError: Setter<string>;
   setTodoSourceItems: Setter<TodoItem[]>;
   setTodoSavingById: Setter<Record<string, boolean>>;
-  setTodoView: Setter<TodoView>;
   setUnmatchedSectionCodes: Setter<string[]>;
   setUpdatingCatalogLinkSlug: Setter<string | null>;
   setUpdatingTodo: Setter<boolean>;
@@ -114,13 +105,6 @@ export function createWorkspacePageControllerActions(input: {
     input.setSelectedTodo(null);
     input.setEditTodoError("");
     input.setEditingTodo(todo);
-  }
-
-  function applyWorkspaceViewState(state: WorkspaceViewState) {
-    input.setHomeworkView(state.homeworkView);
-    input.setTodoView(state.todoView);
-    input.setExamView(state.examView);
-    input.setLinkView(state.linkView);
   }
 
   const createHomework = createWorkspaceCreateHomeworkActions({
@@ -237,7 +221,6 @@ export function createWorkspacePageControllerActions(input: {
   });
 
   const link = createWorkspaceLinkStateActions({
-    applyWorkspaceViewState,
     getWorkspaceCopy,
     getCatalogLinkItems: input.getCatalogLinkSourceItems,
     getLinkReturnTo: input.getLinkReturnTo,
@@ -250,12 +233,8 @@ export function createWorkspacePageControllerActions(input: {
           : workspaceCopy.linkHub.unpin,
       );
     },
-    replaceState: (href) => {
-      goto(href, { shallow: true, replace: true });
-    },
     setCatalogLinkItems: input.setCatalogLinkSourceItems,
     setLinkActionError: input.setLinkActionError,
-    setLinkReturnTo: input.setLinkReturnTo,
     setUpdatingCatalogLinkSlug: input.setUpdatingCatalogLinkSlug,
   });
 
@@ -295,7 +274,6 @@ export function createWorkspacePageControllerActions(input: {
 
   function mount() {
     return mountWorkspaceController({
-      applyViewState: applyWorkspaceViewState,
       clearPendingRemoveSection: subscription.clearPendingRemoveSection,
       copy: {
         workspace: getWorkspaceCopy(),
@@ -318,7 +296,6 @@ export function createWorkspacePageControllerActions(input: {
     ...link,
     ...calendarDisplay,
     ...calendar,
-    applyWorkspaceViewState,
     mount,
     openTodoEditor,
   };

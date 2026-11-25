@@ -1,20 +1,13 @@
 import type { CalendarView } from "@/features/workspace/lib/calendar";
-import type { ExamFilter } from "@/features/workspace/lib/exams";
 import type {
   CalendarData,
   CatalogLinkItem,
   ExamRow,
-  ExamView,
-  HomeworkFilter,
   HomeworkItem,
-  HomeworkView,
-  LinkView,
   MatchedSection,
   SignedLinkGroup,
   SignedWorkspaceData,
-  TodoFilter,
   TodoItem,
-  TodoView,
 } from "@/features/workspace/lib/workspace-controller-helpers";
 
 export function createWorkspaceControllerDefaultState() {
@@ -39,17 +32,11 @@ export function createWorkspaceControllerDefaultState() {
     catalogLinkItems: [] as CatalogLinkItem[],
     editTodoError: "",
     editingTodo: null as TodoItem | null,
-    examFilter: "incomplete" as ExamFilter,
     examRows: [] as ExamRow[],
-    examView: "cards" as ExamView,
-    filteredExamRows: [] as ExamRow[],
-    filteredTodos: [] as TodoItem[],
     homeworkActionError: "",
-    homeworkFilter: "incomplete" as HomeworkFilter,
     homeworkItems: [] as HomeworkItem[],
     homeworkReferenceDate: new Date(),
     homeworkSavingById: {} as Record<string, boolean>,
-    homeworkView: "cards" as HomeworkView,
     isBulkImportOpen: false,
     isConfirmImportOpen: false,
     isCreatingHomework: false,
@@ -60,7 +47,6 @@ export function createWorkspaceControllerDefaultState() {
     linkActionError: "",
     linkReturnTo: "/catalog/links",
     linkSearchQuery: "",
-    linkView: "grid" as LinkView,
     matchedSections: [] as MatchedSection[],
     overviewLinkItems: [] as CatalogLinkItem[],
     removingSectionId: null as number | null,
@@ -73,9 +59,7 @@ export function createWorkspaceControllerDefaultState() {
     signedLinkGroups: [] as SignedLinkGroup[],
     subscriptionActionError: "",
     todoActionError: "",
-    todoFilter: "incomplete" as TodoFilter,
     todoSavingById: {} as Record<string, boolean>,
-    todoView: "cards" as TodoView,
     unmatchedSectionCodes: [] as string[],
     updatingCatalogLinkSlug: null as string | null,
   };

@@ -9,6 +9,7 @@ import {
   homeworkSemesterShortcutCapabilities,
   homeworkStartAtSemesterStart,
 } from "@/features/homeworks/lib/homework-timestamp-defaults";
+import { toShanghaiDateTimeLocalValue } from "@/lib/time/shanghai-format";
 import type {
   WorkspaceHomeworkCommentsCopy,
   WorkspaceHomeworkCreateCopy,
@@ -32,7 +33,6 @@ export let homeworksCopy: WorkspaceHomeworkCreateCopy;
 export let isCreatingHomework: boolean;
 export let locale: string;
 export let sections: WorkspaceHomeworkCreateSection[];
-export let toShanghaiDateTimeLocalValue: (value: Date) => string;
 
 const shortcutReferenceNow = new Date();
 $: selectedSection = sections.find(

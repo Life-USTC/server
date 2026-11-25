@@ -1,10 +1,6 @@
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type {
-  ExamView,
-  HomeworkFilter,
-  HomeworkView,
   SignedWorkspaceData,
-  TodoFilter,
   WorkspaceCommonCopy,
   WorkspaceCopy,
   WorkspaceHomeworkItem,
@@ -23,7 +19,6 @@ import type {
   ExamMetadataLabels,
   ExamTimeLabel,
   NamePrimary,
-  WorkspaceExamFilter,
   WorkspaceExamRow,
   WorkspaceTabHref,
 } from "./workspace-exam-component-types";
@@ -72,15 +67,12 @@ export type WorkspaceHomeworksTaskProps = WorkspaceTaskBaseProps & {
   createHomeworkSubmissionStartAt: WorkspaceTaskStringDraft;
   homeworkActionError: string;
   homeworkCopy: WorkspaceTaskHomeworkCopy;
-  homeworkFilter: HomeworkFilter;
   homeworkItems: WorkspaceHomeworkItem[];
   homeworkSavingById: WorkspaceTaskSavingById;
-  homeworkView: HomeworkView;
   homeworksCopy: WorkspaceTaskHomeworksCopy;
   isCreatingHomework: boolean;
   openCreateHomeworkDialog: () => void;
   selectedHomework: WorkspaceHomeworkItem | null;
-  setHomeworkView: (view: HomeworkView) => void;
   showCreateHomework: boolean;
   signedData: SignedWorkspaceData;
   toggleHomeworkCompletion: WorkspaceHomeworkToggle;
@@ -92,14 +84,12 @@ export type WorkspaceTodosTaskProps = WorkspaceTaskBaseProps & {
   deleteTodo: WorkspaceTodoAction;
   editTodoError: string;
   editingTodo: WorkspaceTodoItem | null;
-  filteredTodos: WorkspaceTodoItem[];
   isCreatingTodo: boolean;
   isUpdatingTodo: boolean;
   openTodoEditor: WorkspaceTodoEditor;
   selectedTodo: WorkspaceTodoItem | null;
   showCreateTodo: boolean;
   todoActionError: string;
-  todoFilter: TodoFilter;
   todoPriorityOptions: WorkspaceTodoPriorityOption[];
   todoSavingById: WorkspaceTaskSavingById;
   todosCopy: WorkspaceTodosCopy;
@@ -110,15 +100,11 @@ export type WorkspaceTodosTaskProps = WorkspaceTaskBaseProps & {
 export type WorkspaceExamsTaskProps = {
   workspaceCopy: WorkspaceCopy;
   workspaceTabHref: WorkspaceTabHref;
-  examFilter: WorkspaceExamFilter;
   examMetadataLabels: ExamMetadataLabels;
   examRows: WorkspaceExamRow[];
   examTimeLabel: ExamTimeLabel;
-  examView: ExamView;
-  filteredExamRows: WorkspaceExamRow[];
   namePrimary: NamePrimary;
   sectionCopy: WorkspaceSectionCopy;
-  setExamView: (view: ExamView) => void;
   signedData: SignedWorkspaceData;
   subscriptionsCopy: WorkspaceSubscriptionsCopy;
 };

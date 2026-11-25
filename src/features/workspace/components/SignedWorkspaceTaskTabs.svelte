@@ -30,13 +30,11 @@ export let data: WorkspaceTaskTabsProps["data"];
 export let deleteTodo: WorkspaceTaskTabsProps["deleteTodo"];
 export let editTodoError: string;
 export let editingTodo: WorkspaceTaskTabsProps["editingTodo"];
-export let examFilter: WorkspaceTaskTabsProps["examFilter"];
 export let examMetadataLabels: WorkspaceTaskTabsProps["examMetadataLabels"];
 export let examRows: WorkspaceTaskTabsProps["examRows"];
 export let examTimeLabel: WorkspaceTaskTabsProps["examTimeLabel"];
 export let homeworkActionError: string;
 export let homeworkCopy: WorkspaceTaskTabsProps["homeworkCopy"];
-export let homeworkFilter: WorkspaceTaskTabsProps["homeworkFilter"];
 export let homeworkItems: WorkspaceTaskTabsProps["homeworkItems"];
 export let homeworkReferenceDate: WorkspaceTaskTabsProps["homeworkReferenceDate"];
 export let homeworkSavingById: WorkspaceTaskTabsProps["homeworkSavingById"];
@@ -55,7 +53,6 @@ export let showCreateTodo: boolean;
 export let signedData: WorkspaceTaskTabsProps["signedData"];
 export let subscriptionsCopy: WorkspaceTaskTabsProps["subscriptionsCopy"];
 export let todoActionError: string;
-export let todoFilter: WorkspaceTaskTabsProps["todoFilter"];
 export let todoPriorityOptions: WorkspaceTaskTabsProps["todoPriorityOptions"];
 export let todoSavingById: WorkspaceTaskTabsProps["todoSavingById"];
 export let todosCopy: WorkspaceTaskTabsProps["todosCopy"];
@@ -86,7 +83,6 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
     {todoSavingById}
     {isCreatingTodo}
     {isUpdatingTodo}
-    bind:todoFilter
     bind:showCreateTodo
     bind:selectedTodo
     bind:editingTodo
@@ -113,7 +109,6 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
     {applyHomeworkDueAtSemesterEnd}
     {toggleHomeworkCompletion}
     {createHomeworkAction}
-    bind:homeworkFilter
     bind:showCreateHomework
     bind:createHomeworkAdvancedOpen
     bind:createHomeworkPublishedAt
@@ -140,6 +135,5 @@ export let updateTodoAction: WorkspaceTaskTabsProps["updateTodoAction"];
     {namePrimary}
     {examRows}
     locale={data.locale}
-    bind:examFilter
   />
 {/if}

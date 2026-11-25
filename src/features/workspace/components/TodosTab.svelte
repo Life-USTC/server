@@ -1,10 +1,8 @@
 <script lang="ts">
 import * as Alert from "#lib/components/ui/alert/index.js";
-import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import { createTodoTabDisplayActions } from "@/features/workspace/lib/todos-tab-display";
 import type {
-  TodoFilter,
   WorkspaceCopy,
   WorkspaceSectionCopy,
   WorkspaceTodoItem,
@@ -18,9 +16,10 @@ import {
   filterTodoTable,
   todoTableFields,
 } from "../lib/workspace-task-table-filters";
-import TodosCardsView from "./TodosCardsView.svelte";
-import TodosListView from "./TodosListView.svelte";
-import TodosTabDialogs from "./TodosTabDialogs.svelte";
+import TodoCreateDialog from "./TodoCreateDialog.svelte";
+import TodoDetailDialog from "./TodoDetailDialog.svelte";
+import TodoEditDialog from "./TodoEditDialog.svelte";
+import TodosCollection from "./TodosCollection.svelte";
 import TodosTabToolbar from "./TodosTabToolbar.svelte";
 import WorkspaceTaskFilterToolbar from "./WorkspaceTaskFilterToolbar.svelte";
 
@@ -44,7 +43,6 @@ export let deleteTodo: (todo: WorkspaceTodoItem) => void | Promise<void>;
 export let createTodoAction: SubmitFunction;
 export let updateTodoAction: SubmitFunction;
 
-export let todoFilter: TodoFilter;
 export let showCreateTodo: boolean;
 export let selectedTodo: WorkspaceTodoItem | null;
 export let editingTodo: WorkspaceTodoItem | null;
@@ -86,20 +84,17 @@ $: ({ fmtDate, isDueOverdue, relativeDueLabel, todoActionLabel, todoStatus } =
     todosCopy,
   }));
 function clearTodoFilter() {
-  todoFilter = "all";
   draft = {};
   applied = {};
 }
 </script>
-
-
 
 <section class="grid gap-4">
   <TodosTabToolbar
     {readOnlyReason}
     bind:createTodoError
     bind:showCreateTodo
-    todosCopy={todosCopy}
+    {todosCopy}
   />
 
   {#if todoActionError}
@@ -109,63 +104,69 @@ function clearTodoFilter() {
   {/if}
 
   <WorkspaceTaskFilterToolbar id="todo-table-filters" {fields} commonNames={["completion", "priority", "dueAt"]} {draft} {applied} copy={commonCopy} sortLabel={commonCopy.taskFilters.todoSort} onchange={patchDraft} onapply={applyFilters} onreset={clearTodoFilter} onremove={removeFilter} />
-  <WorkspaceCollection>
-    {#snippet mobile()}
-
-      <TodosCardsView emptyTitle={commonCopy.taskFilters.emptyTodos}
-        {readOnlyReason}
-        filteredTodos={filteredTodos}
-        hasTodoItems={hasTodoItems}
-        onClearFilter={clearTodoFilter}
-        fmtDate={fmtDate}
-        openTodoEditor={openTodoEditor}
-        bind:selectedTodo
-        todoActionLabel={todoActionLabel}
-        todoSavingById={todoSavingById}
-        todosCopy={todosCopy}
-        todoStatus={todoStatus}
-        toggleTodoCompletion={toggleTodoCompletion}
-      />
-    {/snippet}
-    {#snippet desktop()}
-      <TodosListView emptyTitle={commonCopy.taskFilters.emptyTodos}
-        {readOnlyReason}
-        filteredTodos={filteredTodos}
-        hasTodoItems={hasTodoItems}
-        onClearFilter={clearTodoFilter}
-        fmtDate={fmtDate}
-        openTodoEditor={openTodoEditor}
-        bind:selectedTodo
-        todoActionLabel={todoActionLabel}
-        todoSavingById={todoSavingById}
-        todosCopy={todosCopy}
-        toggleTodoCompletion={toggleTodoCompletion}
-      />
-    {/snippet}
-  </WorkspaceCollection>
-
-  <TodosTabDialogs
+  <TodosCollection
+    emptyTitle={commonCopy.taskFilters.emptyTodos}
     {readOnlyReason}
-    commentsCopy={commentsCopy}
-    createTodoAction={createTodoAction}
-    bind:createTodoError
-    deleteTodo={deleteTodo}
-    bind:editTodoError
-    bind:editingTodo
-    fmtDate={fmtDate}
-    isCreatingTodo={isCreatingTodo}
-    isUpdatingTodo={isUpdatingTodo}
-    isDueOverdue={isDueOverdue}
-    openTodoEditor={openTodoEditor}
-    relativeDueLabel={relativeDueLabel}
+    {filteredTodos}
+    {hasTodoItems}
+    onClearFilter={clearTodoFilter}
+    {fmtDate}
+    {openTodoEditor}
     bind:selectedTodo
-    bind:showCreateTodo
-    todoActionLabel={todoActionLabel}
-    todoPriorityOptions={todoPriorityOptions}
-    todoSavingById={todoSavingById}
-    todosCopy={todosCopy}
-    todoStatus={todoStatus}
-    toggleTodoCompletion={toggleTodoCompletion}
-    updateTodoAction={updateTodoAction}
+    {todoActionLabel}
+    {todoSavingById}
+    {todosCopy}
+    {todoStatus}
+    {toggleTodoCompletion}
   />
+
+  {#if !readOnlyReason}
+    <TodoCreateDialog
+      {commentsCopy}
+      {createTodoAction}
+      {createTodoError}
+      {isCreatingTodo}
+      onClose={() => {
+        showCreateTodo = false;
+        createTodoError = "";
+      }}
+      open={showCreateTodo}
+      {todoPriorityOptions}
+      {todosCopy}
+    />
+  {/if}
+
+  <TodoDetailDialog
+    {readOnlyReason}
+    {deleteTodo}
+    {fmtDate}
+    {isDueOverdue}
+    onClose={() => {
+      selectedTodo = null;
+    }}
+    {openTodoEditor}
+    {relativeDueLabel}
+    todo={selectedTodo}
+    {todoActionLabel}
+    {todoSavingById}
+    {todosCopy}
+    {todoStatus}
+    {toggleTodoCompletion}
+  />
+
+  {#if !readOnlyReason}
+    <TodoEditDialog
+      {commentsCopy}
+      {editTodoError}
+      {isUpdatingTodo}
+      onClose={() => {
+        editingTodo = null;
+        editTodoError = "";
+      }}
+      todo={editingTodo}
+      {todoPriorityOptions}
+      {todosCopy}
+      {updateTodoAction}
+    />
+  {/if}
 </section>

@@ -31,7 +31,6 @@ export let locale: string;
 export let onClose: () => void;
 export let open: boolean;
 export let sections: WorkspaceHomeworkCreateSection[];
-export let toShanghaiDateTimeLocalValue: (value: Date) => string;
 </script>
 
 {#if open}
@@ -70,7 +69,6 @@ export let toShanghaiDateTimeLocalValue: (value: Date) => string;
             homeworksCopy={homeworksCopy}
             isCreatingHomework={isCreatingHomework}
             sections={sections}
-            toShanghaiDateTimeLocalValue={toShanghaiDateTimeLocalValue}
           />
         </ScrollArea>
         <Dialog.Footer class="mx-0 mb-0 shrink-0 border-t-0 sm:px-6">

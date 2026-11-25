@@ -5,7 +5,6 @@ import type CommentsPanelComponent from "@/features/comments/components/Comments
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import { createHomeworkTabDisplayActions } from "@/features/workspace/lib/homeworks-tab-display";
 import type {
-  HomeworkFilter,
   SignedWorkspaceData,
   WorkspaceCommonCopy,
   WorkspaceCopy,
@@ -62,7 +61,6 @@ export let toggleHomeworkCompletion: (
 ) => void | Promise<void>;
 export let createHomeworkAction: SubmitFunction;
 
-export let homeworkFilter: HomeworkFilter;
 export let showCreateHomework: boolean;
 export let createHomeworkAdvancedOpen: boolean;
 export let createHomeworkPublishedAt: string;
@@ -117,7 +115,6 @@ function applyFilters(event: SubmitEvent) {
 $: hasHomeworkItems = homeworkItems.length > 0;
 
 function clearHomeworkFilter() {
-  homeworkFilter = "all";
   draft = {};
   applied = {};
 }

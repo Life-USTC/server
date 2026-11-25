@@ -7,8 +7,6 @@ import type {
 import type { workspaceTabHref } from "@/features/workspace/lib/workspace-nav";
 import type { WorkspaceNamed } from "./workspace-component-types";
 
-export type WorkspaceExamFilter = "incomplete" | "completed" | "all";
-
 export type WorkspaceExamRow = ExamRow;
 
 export type WorkspaceTabHref = typeof workspaceTabHref;
@@ -27,3 +25,5 @@ export type ExamsCopyProps = {
   sectionCopy: WorkspaceSectionCopy;
   subscriptionsCopy: WorkspaceSubscriptionsCopy;
 };
+
+export type WorkspaceCardView = "cards" | "list";

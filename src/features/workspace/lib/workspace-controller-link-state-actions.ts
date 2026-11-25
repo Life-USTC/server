@@ -1,10 +1,5 @@
-import type {
-  CatalogLinkItem,
-  LinkView,
-  WorkspaceViewState,
-} from "./workspace-controller-helpers";
+import type { CatalogLinkItem } from "./workspace-controller-helpers";
 import { submitWorkspaceLinkPinChange } from "./workspace-controller-link-actions";
-import { catalogLinkViewChange } from "./workspace-controller-view-actions";
 
 type LinkActionsCopy = {
   linkHub: {
@@ -15,16 +10,13 @@ type LinkActionsCopy = {
 };
 
 export function createWorkspaceLinkStateActions(input: {
-  applyWorkspaceViewState: (state: WorkspaceViewState) => void;
   getWorkspaceCopy: () => LinkActionsCopy;
   getCatalogLinkItems: () => CatalogLinkItem[];
   getLinkReturnTo: () => string;
   getUpdatingCatalogLinkSlug: () => string | null;
   onSuccess?: (action: "pin" | "unpin") => void;
-  replaceState: (href: string) => void;
   setCatalogLinkItems: (value: CatalogLinkItem[]) => void;
   setLinkActionError: (value: string) => void;
-  setLinkReturnTo: (value: string) => void;
   setUpdatingCatalogLinkSlug: (value: string | null) => void;
 }) {
   async function submitWorkspaceLinkPin(slug: string, action: "pin" | "unpin") {
@@ -50,15 +42,7 @@ export function createWorkspaceLinkStateActions(input: {
     }
   }
 
-  function setLinkView(mode: LinkView) {
-    const next = catalogLinkViewChange(mode);
-    input.applyWorkspaceViewState(next.state);
-    input.replaceState(next.href);
-    input.setLinkReturnTo(next.href);
-  }
-
   return {
-    setLinkView,
     submitWorkspaceLinkPin,
   };
 }

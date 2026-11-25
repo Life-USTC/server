@@ -3,8 +3,8 @@ import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
 import { collectionCompactClass } from "#lib/components/collection-responsive-breakpoint.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
-import type { WorkspaceCardView } from "@/features/workspace/lib/view-preferences";
 import type { WorkspaceCopy } from "@/features/workspace/lib/workspace-controller-types";
+import type { WorkspaceCardView } from "./workspace-exam-component-types";
 
 export let workspaceCopy: WorkspaceCopy;
 export let mobileView: WorkspaceCardView;

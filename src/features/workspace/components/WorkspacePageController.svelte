@@ -76,12 +76,8 @@ let {
   createTodoError,
   editTodoError,
   editingTodo,
-  examFilter,
-  examView,
   homeworkActionError,
-  homeworkFilter,
   homeworkSavingById,
-  homeworkView,
   isBulkImportOpen,
   isConfirmImportOpen,
   isCreatingHomework,
@@ -92,7 +88,6 @@ let {
   linkActionError,
   linkReturnTo,
   linkSearchQuery,
-  linkView,
   matchedSections,
   removingSectionId,
   selectedHomework,
@@ -102,9 +97,7 @@ let {
   showCreateTodo,
   subscriptionActionError,
   todoActionError,
-  todoFilter,
   todoSavingById,
-  todoView,
   unmatchedSectionCodes,
   updatingCatalogLinkSlug,
 } = $state(createWorkspaceControllerDefaultState());
@@ -272,9 +265,6 @@ const {
   setEditingTodo: (v) => {
     editingTodo = v;
   },
-  setExamView: (v) => {
-    examView = v;
-  },
   setHomeworkActionError: (v) => {
     homeworkActionError = v;
   },
@@ -284,9 +274,6 @@ const {
   setHomeworkSavingById: (v) => {
     homeworkSavingById = v;
   },
-  setHomeworkView: (v) => {
-    homeworkView = v;
-  },
   setImportingSections: (v) => {
     isImportingSections = v;
   },
@@ -295,9 +282,6 @@ const {
   },
   setLinkReturnTo: (v) => {
     linkReturnTo = v;
-  },
-  setLinkView: (v) => {
-    linkView = v;
   },
   setMatchedSections: (v) => {
     matchedSections = v;
@@ -335,9 +319,6 @@ const {
   setTodoSourceItems: (v) => {
     todoSourceItems = v;
   },
-  setTodoView: (v) => {
-    todoView = v;
-  },
   setUnmatchedSectionCodes: (v) => {
     unmatchedSectionCodes = v;
   },
@@ -354,12 +335,10 @@ let derivedState = $derived(
     catalogLinkGroupLabels,
     data,
     dateFallback: sectionCopy.dateTBD,
-    examFilter,
     linkSearchQuery,
     notAvailable: workspaceCopy.notAvailable,
     currentCatalogLinkItems: catalogLinkSourceItems,
     currentTodoItems: todoSourceItems,
-    todoFilter,
   }),
 );
 let homeworkItems = $derived(derivedState.homeworkItems);
@@ -445,8 +424,6 @@ onMount(mount);
         bind:createTodoError
         bind:editTodoError
         bind:editingTodo
-        bind:examFilter
-        bind:homeworkFilter
         bind:homeworkItems
         bind:homeworkSavingById
         bind:isCreatingHomework
@@ -454,7 +431,6 @@ onMount(mount);
         bind:selectedTodo
         bind:showCreateHomework
         bind:showCreateTodo
-        bind:todoFilter
       />
     {:else if signedData.tab === "subscriptions" && signedData.subscriptions}
       {@const subscriptionsSignedData = signedData as WorkspaceSubscriptionsTabProps["signedData"]}

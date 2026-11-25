@@ -90,9 +90,6 @@ test.describe("仪表盘待办", () => {
   }) => {
     await todoRun(
       async () => {
-        await page.addInitScript(() => {
-          localStorage.removeItem("life-ustc-workspace-view-mode");
-        });
         await page.setViewportSize({ width: 390, height: 844 });
         await gotoAndWaitForReady(page, "/workspace/todos");
 
