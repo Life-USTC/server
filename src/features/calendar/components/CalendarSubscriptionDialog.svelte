@@ -85,9 +85,7 @@ const titleId = "calendar-subscription-title";
           <Alert.Description>{clipboardMessage}</Alert.Description>
         </Alert.Root>
       {:else if clipboardError}
-        <Alert.Root variant="destructive">
-          <Alert.Description>{clipboardError}</Alert.Description>
-        </Alert.Root>
+        <Alert.Message variant="destructive">{clipboardError}</Alert.Message>
       {/if}
       {#each urls as url}
         <CalendarSubscriptionUrlRow

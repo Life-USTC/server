@@ -170,9 +170,7 @@ async function subscribeSelectedSections() {
         <div class="min-w-0">
           <Field.Group class="gap-4 px-5 pb-2 pt-2">
             {#if error}
-              <Alert.Root variant="destructive">
-                <Alert.Description>{error}</Alert.Description>
-              </Alert.Root>
+              <Alert.Message variant="destructive">{error}</Alert.Message>
             {/if}
 
             <Field.Field for="subscriptions-quick-add-semester" label={subscriptionsCopy.bulkImport.semesterLabel}>

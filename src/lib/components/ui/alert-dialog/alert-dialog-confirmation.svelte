@@ -15,6 +15,6 @@ let {
 
 <Content {...(titleId ? { "aria-labelledby": titleId } : {})} class={compact ? undefined : "max-w-md sm:max-w-md"}>
   <Heading {title} {description} {titleId} {descriptionClass} />
-  {#if error}<Alert.Root variant="destructive"><Alert.Description>{error}</Alert.Description></Alert.Root>{/if}
+  {#if error}<Alert.Message variant="destructive">{error}</Alert.Message>{/if}
   <Actions {...actions} />
 </Content>

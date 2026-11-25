@@ -44,9 +44,9 @@ $: pageDescription =
             </Item.Description>
           {/if}
           {#if data.redirectIsLoopback && data.copy?.loopbackRedirectWarning}
-            <Alert.Root class="py-2" variant="destructive">
-              <Alert.Description>{data.copy?.loopbackRedirectWarning}</Alert.Description>
-            </Alert.Root>
+            <Alert.Message class="py-2" variant="destructive">
+              {data.copy?.loopbackRedirectWarning}
+            </Alert.Message>
           {/if}
         </Item.Content>
       </Item.Root>

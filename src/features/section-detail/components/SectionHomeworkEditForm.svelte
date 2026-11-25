@@ -52,9 +52,7 @@ let advancedOpen = false;
       title={homework.title}
     />
     {#if editHomeworkMessage}
-      <Alert.Root variant="destructive">
-        <Alert.Description>{editHomeworkMessage}</Alert.Description>
-      </Alert.Root>
+      <Alert.Message variant="destructive">{editHomeworkMessage}</Alert.Message>
     {/if}
     <div class="flex justify-end gap-2 pt-1">
       <Button variant="outline" onclick={cancelEdit}>{homeworkCopy.cancel}</Button>

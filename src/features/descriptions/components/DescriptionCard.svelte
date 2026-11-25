@@ -198,9 +198,7 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
     {/if}
 
     {#if message}
-      <Alert.Root variant="destructive">
-        <Alert.Description>{message}</Alert.Description>
-      </Alert.Root>
+      <Alert.Message variant="destructive">{message}</Alert.Message>
     {/if}
 
     {#if isEditing}

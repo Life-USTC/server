@@ -134,15 +134,11 @@ onMount(() => {
   {/snippet}
   {#snippet feedback()}
     {#if state.copyMessage && !state.isCredentialsDialogOpen}
-      <Alert.Root variant="destructive">
-        <Alert.Description>{state.copyMessage}</Alert.Description>
-      </Alert.Root>
+      <Alert.Message variant="destructive">{state.copyMessage}</Alert.Message>
     {/if}
 
     {#if form?.message && !form?.createdClientId && form.variant === "destructive"}
-      <Alert.Root variant={form.variant ?? "default"}>
-        <Alert.Description>{form.message}</Alert.Description>
-      </Alert.Root>
+      <Alert.Message variant={form.variant ?? "default"}>{form.message}</Alert.Message>
     {/if}
   {/snippet}
   <AdminOAuthClients

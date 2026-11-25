@@ -38,9 +38,7 @@ let { close, copy, enhancedAction, pendingAction }: Props = $props();
       use:enhance={enhancedAction("import", close)}
     >
       <div class="px-5 py-4">
-        <Alert.Root>
-          <Alert.Description>{copy.importWarning}</Alert.Description>
-        </Alert.Root>
+        <Alert.Message>{copy.importWarning}</Alert.Message>
       </div>
       <div data-slot="dialog-footer">
         <Button

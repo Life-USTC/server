@@ -59,9 +59,7 @@ function enhancedAction(actionKey: string, onSuccess?: () => void) {
   {/snippet}
   {#snippet feedback()}
     {#if form?.message && form.variant === "destructive"}
-      <Alert.Root variant={form.variant ?? "default"}>
-        <Alert.Description>{form.message}</Alert.Description>
-      </Alert.Root>
+      <Alert.Message variant={form.variant ?? "default"}>{form.message}</Alert.Message>
     {/if}
   {/snippet}
   <AdminBusVersions

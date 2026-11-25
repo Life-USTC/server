@@ -57,9 +57,7 @@ $: canMatch = importText.trim().length > 0 && !state.isMatching;
 
   <div class="grid gap-5">
     {#if state.importError}
-      <Alert.Root variant="destructive">
-        <Alert.Description>{state.importError}</Alert.Description>
-      </Alert.Root>
+      <Alert.Message variant="destructive">{state.importError}</Alert.Message>
     {/if}
     {#if state.importMessage}
       <Alert.Root>
@@ -152,12 +150,9 @@ $: canMatch = importText.trim().length > 0 && !state.isMatching;
           <CollectionEmpty variant="compact" description={welcomeCopy.noMatchingSections} />
         {/if}
         {#if state.unmatchedCodes.length > 0}
-          <Alert.Root>
-            <Alert.Title>
-              {formatCopy(bulkCopy.unmatchedCodes, { count: state.unmatchedCodes.length })}
-            </Alert.Title>
-            <Alert.Description>{state.unmatchedCodes.join(", ")}</Alert.Description>
-          </Alert.Root>
+          <Alert.Message heading={formatCopy(bulkCopy.unmatchedCodes, { count: state.unmatchedCodes.length })}>
+            {state.unmatchedCodes.join(", ")}
+          </Alert.Message>
         {/if}
       </div>
     {/if}

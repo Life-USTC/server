@@ -91,9 +91,7 @@ async function addPasskey() {
     {/if}
 
     {#if error}
-      <Alert.Root variant="destructive">
-        <Alert.Description>{error}</Alert.Description>
-      </Alert.Root>
+      <Alert.Message variant="destructive">{error}</Alert.Message>
     {/if}
 
     <form

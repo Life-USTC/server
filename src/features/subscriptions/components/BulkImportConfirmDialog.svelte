@@ -46,9 +46,7 @@ const titleId = "bulk-import-confirm-title";
     <ScrollArea class="h-[min(60vh,24rem)]">
       <div class="grid gap-4 px-5 py-4">
         {#if importError}
-          <Alert.Root variant="destructive">
-            <Alert.Description>{importError}</Alert.Description>
-          </Alert.Root>
+          <Alert.Message variant="destructive">{importError}</Alert.Message>
         {/if}
         {#if matchedSections.length > 0}
           <Field.Set>
@@ -84,12 +82,9 @@ const titleId = "bulk-import-confirm-title";
         {/if}
 
         {#if unmatchedCodes.length > 0}
-          <Alert.Root>
-            <Alert.Title>
-              {formatMessage(copy.unmatchedCodes, { count: unmatchedCodes.length })}
-            </Alert.Title>
-            <Alert.Description>{unmatchedCodes.join(", ")}</Alert.Description>
-          </Alert.Root>
+          <Alert.Message heading={formatMessage(copy.unmatchedCodes, { count: unmatchedCodes.length })}>
+            {unmatchedCodes.join(", ")}
+          </Alert.Message>
         {/if}
       </div>
     </ScrollArea>

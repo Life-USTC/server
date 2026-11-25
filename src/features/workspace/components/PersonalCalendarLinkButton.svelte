@@ -163,9 +163,7 @@ async function copyUrl() {
       <Dialog.Description>{calendarLinkState === "reauthenticate" ? recoveryCopy.reauthenticate : recoveryCopy.unavailable}</Dialog.Description>
     </Dialog.Header>
     {#if retryFailed}
-      <Alert.Root variant="destructive">
-        <Alert.Description>{recoveryCopy.unavailable}</Alert.Description>
-      </Alert.Root>
+      <Alert.Message variant="destructive">{recoveryCopy.unavailable}</Alert.Message>
     {/if}
     <div data-slot="dialog-footer">
       {#if calendarLinkState === "reauthenticate"}

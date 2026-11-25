@@ -90,9 +90,7 @@ function clearTodoFilter() {
   />
 
   {#if todoActionError}
-    <Alert.Root variant="destructive">
-      <Alert.Description>{todoActionError}</Alert.Description>
-    </Alert.Root>
+    <Alert.Message variant="destructive">{todoActionError}</Alert.Message>
   {/if}
 
   <WorkspaceTaskFilterToolbar id="todo-table-filters" {fields} commonNames={["completion", "priority", "dueAt"]} bind:draft bind:applied copy={commonCopy} sortLabel={commonCopy.taskFilters.todoSort} onreset={clearTodoFilter} />

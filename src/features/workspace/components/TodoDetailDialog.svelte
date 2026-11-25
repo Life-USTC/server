@@ -74,9 +74,7 @@ async function confirmDelete(event: MouseEvent) {
       <ScrollArea class="h-0 min-h-0 flex-1">
         <div class="grid min-w-0 gap-4 px-5 py-4">
           {#if readOnlyReason}
-            <Alert.Root>
-              <Alert.Description>{readOnlyReason}</Alert.Description>
-            </Alert.Root>
+            <Alert.Message>{readOnlyReason}</Alert.Message>
           {/if}
           <div class="min-w-0" data-testid="todo-detail-summary">
             <p class="text-muted-foreground text-sm">{todosCopy.dueAtLabel}</p>

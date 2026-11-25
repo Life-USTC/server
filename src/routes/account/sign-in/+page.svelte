@@ -120,21 +120,15 @@ function signInAction(providerId: string): SubmitFunction {
     <Card.Root class="min-w-0">
       <Card.Content class="grid min-w-0 gap-4">
         {#if data.reauthentication}
-          <Alert.Root>
-            <Alert.Description>{data.copy.reauthenticationRequired}</Alert.Description>
-          </Alert.Root>
+          <Alert.Message>{data.copy.reauthenticationRequired}</Alert.Message>
         {/if}
         {#if data.error}
-          <Alert.Root variant="destructive">
-            <Alert.Description>
-              {data.error === "OAuthAccountNotLinked" ? data.copy.errorAccountNotLinked : data.copy.errorGeneric}
-            </Alert.Description>
-          </Alert.Root>
+          <Alert.Message variant="destructive">
+            {data.error === "OAuthAccountNotLinked" ? data.copy.errorAccountNotLinked : data.copy.errorGeneric}
+          </Alert.Message>
         {/if}
         {#if form?.message}
-          <Alert.Root variant="destructive">
-            <Alert.Description>{form.message}</Alert.Description>
-          </Alert.Root>
+          <Alert.Message variant="destructive">{form.message}</Alert.Message>
         {/if}
 
         <div class="grid min-w-0 gap-2">
@@ -145,9 +139,7 @@ function signInAction(providerId: string): SubmitFunction {
 
         {#if data.showDebugProviders && debugProviders.length > 0}
           <div class="grid min-w-0 gap-2 rounded-lg border border-dashed p-3">
-            <Alert.Root>
-              <Alert.Description>{data.copy.devDebugHint}</Alert.Description>
-            </Alert.Root>
+            <Alert.Message>{data.copy.devDebugHint}</Alert.Message>
             {#each debugProviders as provider}
               {@render providerButton(provider)}
             {/each}
@@ -178,13 +170,9 @@ function signInAction(providerId: string): SubmitFunction {
           </Button>
 
           {#if passkeySupport === "unsupported"}
-            <Alert.Root>
-              <Alert.Description>{data.copy.passkeyUnsupported}</Alert.Description>
-            </Alert.Root>
+            <Alert.Message>{data.copy.passkeyUnsupported}</Alert.Message>
           {:else if passkeyError}
-            <Alert.Root variant="destructive">
-              <Alert.Description>{passkeyError}</Alert.Description>
-            </Alert.Root>
+            <Alert.Message variant="destructive">{passkeyError}</Alert.Message>
           {/if}
         </div>
 

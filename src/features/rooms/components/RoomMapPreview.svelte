@@ -254,13 +254,9 @@ function handleWheel(event: WheelEvent) {
           <Skeleton class="aspect-video w-full rounded-xl" />
           <p class="text-muted-foreground text-xs">{copy.loading}</p>
         {:else if failed}
-          <Alert.Root variant="destructive">
-            <Alert.Description>{copy.fetchError}</Alert.Description>
-          </Alert.Root>
+          <Alert.Message variant="destructive">{copy.fetchError}</Alert.Message>
         {:else if visibleMap?.status === "unavailable" || !imageUrl}
-          <Alert.Root>
-            <Alert.Description>{copy.unavailableDescription}</Alert.Description>
-          </Alert.Root>
+          <Alert.Message>{copy.unavailableDescription}</Alert.Message>
         {:else}
           <img
             alt={mapAlt}
@@ -358,7 +354,7 @@ function handleWheel(event: WheelEvent) {
         <Skeleton class="aspect-video w-full" />
         <p>{copy.loading}</p>
       {:else if failed}
-        <Alert.Root variant="destructive"><Alert.Description>{copy.fetchError}</Alert.Description></Alert.Root>
+        <Alert.Message variant="destructive">{copy.fetchError}</Alert.Message>
       {:else if imageUrl}
         <div
           class="max-h-[calc(100dvh-14rem)] min-h-0 w-full flex-1 overflow-auto rounded-xl border border-border bg-muted/20"
@@ -375,9 +371,7 @@ function handleWheel(event: WheelEvent) {
           </div>
         </div>
       {:else}
-        <Alert.Root>
-          <Alert.Description>{copy.unavailableDescription}</Alert.Description>
-        </Alert.Root>
+        <Alert.Message>{copy.unavailableDescription}</Alert.Message>
       {/if}
 
       <div data-slot="dialog-footer" class="flex-wrap justify-between gap-2">

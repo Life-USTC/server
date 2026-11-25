@@ -147,7 +147,7 @@ function apply(event: SubmitEvent) {
     </PageHeader>
   {/snippet}
   {#snippet feedback()}
-    {#if form.message && form.messageVariant === "destructive"}<Alert.Root variant={form.messageVariant}><Alert.Description>{form.message}</Alert.Description></Alert.Root>{/if}
+    {#if form.message && form.messageVariant === "destructive"}<Alert.Message variant={form.messageVariant}>{form.message}</Alert.Message>{/if}
   {/snippet}
   <AdminUsersTableCard
     {commonCopy}

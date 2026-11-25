@@ -44,14 +44,10 @@ const titleId = "bulk-import-title";
     </Dialog.Header>
     <Field.Group class="min-h-0 gap-4 overflow-y-auto px-5 py-4">
       {#if error}
-        <Alert.Root variant="destructive">
-          <Alert.Description>{error}</Alert.Description>
-        </Alert.Root>
+        <Alert.Message variant="destructive">{error}</Alert.Message>
       {/if}
       {#if importMessage}
-        <Alert.Root>
-          <Alert.Description>{importMessage}</Alert.Description>
-        </Alert.Root>
+        <Alert.Message>{importMessage}</Alert.Message>
       {/if}
       <Field.Field for="bulk-import-semester" label={copy.semesterLabel}>
         <NativeSelect.Root

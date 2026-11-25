@@ -32,9 +32,7 @@ $: selectedSection = sections.find(
 </script>
 
 {#if createHomeworkError}
-  <Alert.Root variant="destructive">
-    <Alert.Description>{createHomeworkError}</Alert.Description>
-  </Alert.Root>
+  <Alert.Message variant="destructive">{createHomeworkError}</Alert.Message>
 {/if}
 <Field.Field
   data-disabled={isCreatingHomework ? "true" : undefined}

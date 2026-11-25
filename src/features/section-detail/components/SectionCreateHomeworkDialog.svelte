@@ -44,8 +44,6 @@ export let submissionStartAt: string;
     bind:submissionStartAt={submissionStartAt}
   />
   {#if homeworkMessage}
-    <Alert.Root variant="destructive">
-      <Alert.Description>{homeworkMessage}</Alert.Description>
-    </Alert.Root>
+    <Alert.Message variant="destructive">{homeworkMessage}</Alert.Message>
   {/if}
 </HomeworkCreateDialog>

@@ -19,9 +19,7 @@ export let welcomeCopy: WelcomeCopy;
     </Card.Header>
     <Card.Content class="grid gap-3">
       {#if oauthRefreshed}
-        <Alert.Root>
-          <Alert.Description>{welcomeCopy.oauthRefreshSuccess}</Alert.Description>
-        </Alert.Root>
+        <Alert.Message>{welcomeCopy.oauthRefreshSuccess}</Alert.Message>
       {/if}
       <div class="grid gap-2 sm:grid-cols-2">
         {#each oauthProviders as provider}

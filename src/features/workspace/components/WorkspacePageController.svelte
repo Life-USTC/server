@@ -198,9 +198,7 @@ onMount(mount);
 <CollectionPage density="compact" panel={false} title={data.signedIn && data.mainContentLabel ? data.mainContentLabel : undefined}>
 
   {#if actionError}
-    <Alert.Root variant="destructive">
-      <Alert.Description>{actionError}</Alert.Description>
-    </Alert.Root>
+    <Alert.Message variant="destructive">{actionError}</Alert.Message>
   {/if}
 
   {#if signedData}
@@ -365,8 +363,6 @@ onMount(mount);
       />
     {/if}
   {:else if data.signedIn && data.userMissing}
-    <Alert.Root>
-      <Alert.Description>{commonCopy.userNotFound}</Alert.Description>
-    </Alert.Root>
+    <Alert.Message>{commonCopy.userNotFound}</Alert.Message>
   {/if}
 </CollectionPage>

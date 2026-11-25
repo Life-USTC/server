@@ -50,9 +50,7 @@ onDestroy(() => {
 
     <Card.Content class="grid gap-6">
       {#if formMessage}
-        <Alert.Root variant="destructive">
-          <Alert.Description>{formMessage}</Alert.Description>
-        </Alert.Root>
+        <Alert.Message variant="destructive">{formMessage}</Alert.Message>
       {/if}
 
       <ProfileAvatarPicker

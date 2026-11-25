@@ -75,7 +75,7 @@ async function submit(event: Event) {
             <Input id="upload-filename" bind:value={filename} required maxlength={255} disabled={pending} />
           </Field.Field>
         </Field.FieldGroup>
-        {#if failed}<Alert.Root variant="destructive"><Alert.Description>{copy.toastRenameErrorDescription}</Alert.Description></Alert.Root>{/if}
+        {#if failed}<Alert.Message variant="destructive">{copy.toastRenameErrorDescription}</Alert.Message>{/if}
         <div data-slot="dialog-footer">
           <Button variant="outline" onclick={close} disabled={pending}>{copy.cancelRenameAction}</Button>
           <Button loading={pending} type="submit" disabled={pending || !filename.trim()}>{copy.saveRenameAction}</Button>

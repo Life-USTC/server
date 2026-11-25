@@ -53,7 +53,7 @@ async function confirm(event: MouseEvent) {
       title={copy.unsubscribeTitle}
       description={copy.unsubscribeDescription.replace("{name}", name)}
     />
-    {#if failed}<Alert.Root variant="destructive"><Alert.Description>{copy.optOutError}</Alert.Description></Alert.Root>{/if}
+    {#if failed}<Alert.Message variant="destructive">{copy.optOutError}</Alert.Message>{/if}
     <div data-slot="alert-dialog-footer">
       <AlertDialog.Cancel disabled={pending}>{copy.cancelUnsubscribe}</AlertDialog.Cancel>
       <AlertDialog.Action variant="destructive" disabled={pending} onclick={confirm}>

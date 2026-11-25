@@ -61,9 +61,7 @@ $: contentLabelId = `${idPrefix}-content-label`;
       <ScrollArea class="h-0 min-h-0 flex-1">
         <Field.Group class="gap-4 px-5 py-4">
           {#if error}
-            <Alert.Root variant="destructive">
-              <Alert.Description>{error}</Alert.Description>
-            </Alert.Root>
+            <Alert.Message variant="destructive">{error}</Alert.Message>
           {/if}
           <Field.Field data-disabled={saving ? "true" : undefined} for={titleId} label={todosCopy.titleLabel}>
             <Input

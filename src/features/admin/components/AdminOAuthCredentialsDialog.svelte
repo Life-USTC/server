@@ -109,9 +109,7 @@ async function copyCredential(
             </Button>
           </div>
           {#if copyMessage}
-            <Alert.Root variant={copyMessageVariant}>
-              <Alert.Description>{copyMessage}</Alert.Description>
-            </Alert.Root>
+            <Alert.Message variant={copyMessageVariant}>{copyMessage}</Alert.Message>
           {/if}
           {#if requiresSecretCopy}
             <label class="flex items-start gap-3 text-sm" for="oauth-credentials-saved">

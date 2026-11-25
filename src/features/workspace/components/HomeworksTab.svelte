@@ -174,13 +174,11 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
     />
 
     {#if signedData.homeworkCapabilities?.canComplete && !canWriteShared && !signedData.demo}
-      <Alert.Root><Alert.Description>{homeworksCopy.suspended}</Alert.Description></Alert.Root>
+      <Alert.Message>{homeworksCopy.suspended}</Alert.Message>
     {/if}
 
     {#if homeworkActionError}
-      <Alert.Root variant="destructive">
-        <Alert.Description>{homeworkActionError}</Alert.Description>
-      </Alert.Root>
+      <Alert.Message variant="destructive">{homeworkActionError}</Alert.Message>
     {/if}
 
     <WorkspaceTaskFilterToolbar id="homework-table-filters" {fields} commonNames={["completion", "course", "semester", "submissionDueAt"]} bind:draft bind:applied copy={commonCopy} sortLabel={commonCopy.taskFilters.homeworkSort} onreset={clearHomeworkFilter} />
