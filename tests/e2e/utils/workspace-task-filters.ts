@@ -81,6 +81,7 @@ export async function applyWorkspaceTaskFilter(
   // unrelated room-map hover while the offline filter scenario is running.
   await page.mouse.move(0, 0);
   await page.keyboard.press("Escape");
+  await expect(group).toBeHidden();
   await page
     .locator('[data-slot="table-filter-apply"]:visible')
     .getByRole("button", { name: /^(应用筛选|Apply filters)$/i })
