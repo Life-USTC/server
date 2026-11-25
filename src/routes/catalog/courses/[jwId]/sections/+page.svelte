@@ -1,6 +1,6 @@
 <script lang="ts">
+import CatalogDetailPage from "@/features/catalog/components/CatalogDetailPage.svelte";
 import CatalogSectionHistory from "@/features/catalog/components/CatalogSectionHistory.svelte";
-import CourseDetailPageController from "@/features/catalog/components/CourseDetailPageController.svelte";
 import CourseDetailSections from "@/features/catalog/components/CourseDetailSections.svelte";
 import { createEndlessList } from "@/lib/navigation/endless-list.svelte";
 import { page } from "$app/state";
@@ -22,24 +22,21 @@ const endless = createEndlessList({
 });
 </script>
 
-<CourseDetailPageController {data}>
-  {#snippet content({ data, copy, detailCopy, notAvailable, primaryName })}
-    <section id="sections" data-detail-tab="sections" class="scroll-mt-4">
-      <h2 class="mb-3 section-heading">
-        {copy.courseDetail.teachingSections}
-      </h2>
-      <p class="mb-4 text-sm text-muted-foreground">
-        {copy.courseDetail.teachingSectionsDescription}
-      </p>
-      <CatalogSectionHistory state={endless} labels={copy.common.endlessScroll}>
-        <CourseDetailSections
-          copy={detailCopy}
-          course={{ ...data.course, sections: endless.items }}
-          locale={data.locale}
-          {notAvailable}
-          {primaryName}
+<CatalogDetailPage {data}>
+  <section id="sections" data-detail-tab="sections" class="scroll-mt-4">
+    <h2 class="mb-3 section-heading">
+      {data.copy.courseDetail.teachingSections}
+    </h2>
+    <p class="mb-4 text-sm text-muted-foreground">
+      {data.copy.courseDetail.teachingSectionsDescription}
+    </p>
+    <CatalogSectionHistory state={endless} labels={data.copy.common.endlessScroll}>
+      <CourseDetailSections
+        copy={data.copy}
+        course={{ ...data.course, sections: endless.items }}
+        locale={data.locale}
+        notAvailable={data.copy.courseDetail.notAvailable}
         />
-      </CatalogSectionHistory>
-    </section>
-  {/snippet}
-</CourseDetailPageController>
+    </CatalogSectionHistory>
+  </section>
+</CatalogDetailPage>

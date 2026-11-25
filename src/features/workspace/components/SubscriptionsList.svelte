@@ -4,6 +4,7 @@ import ClassIcon from "@lucide/svelte/icons/graduation-cap";
 import Pencil from "@lucide/svelte/icons/pencil";
 import UserMinus from "@lucide/svelte/icons/user-minus";
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
@@ -12,7 +13,6 @@ import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
-import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import SubscriptionCancelDialog from "@/features/subscriptions/components/SubscriptionCancelDialog.svelte";
 import { groupSubscribedSectionsBySemester } from "@/features/workspace/lib/subscriptions";
 import type {
@@ -221,7 +221,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
             )}
           </span>
         </div>
-        <WorkspaceCollection>
+        <ResponsiveCollection workspace>
           {#snippet mobile()}
             <SubscriptionsCardsView
               {courseName}
@@ -313,7 +313,7 @@ function handleRemoveDialogOpenChange(open: boolean) {
             </Table.Body>
           </Table.Root>
           {/snippet}
-        </WorkspaceCollection>
+        </ResponsiveCollection>
       </section>
     {/each}
   </div>

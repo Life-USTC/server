@@ -8,7 +8,6 @@ import SearchField from "#lib/components/SearchField.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import {
   linkGroupColumnsClass,
   linkGroupSectionClass,
@@ -93,7 +92,7 @@ function apply(event: SubmitEvent) {
     {#each filterFields.extras as field}<TableFieldFilter label={field.label} fields={[field]} values={draft} onchange={change} labels={common.tableFilters} idPrefix={`links-extra-${field.name}`} formId="links-filters" />{/each}
     <Button type="submit">{common.applyFilters}</Button>
   </form>
-  <svelte:component this={personal ? WorkspaceCollection : ResponsiveCollection}>
+  <ResponsiveCollection workspace={personal}>
     {#snippet mobile()}
       <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
         {@render searchField("catalog-link-search-mobile")}
@@ -148,7 +147,7 @@ function apply(event: SubmitEvent) {
         {/snippet}
       </LinksTabList>
     {/snippet}
-  </svelte:component>
+  </ResponsiveCollection>
 
   {#if personal && linkActionError}
     <Alert.Root variant="destructive">

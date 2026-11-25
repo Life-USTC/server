@@ -4,6 +4,7 @@ import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
 import Pencil from "@lucide/svelte/icons/pencil";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -13,7 +14,6 @@ import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
-import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import type {
   WorkspaceTodoItem,
   WorkspaceTodosCopy,
@@ -82,7 +82,7 @@ export let readOnlyReason: string | undefined = undefined;
   />
 {/snippet}
 
-<WorkspaceCollection>
+<ResponsiveCollection workspace>
   {#snippet mobile()}
     <div class="min-w-0" data-testid="workspace-todos-cards">
       {#if filteredTodos.length > 0}
@@ -205,4 +205,4 @@ export let readOnlyReason: string | undefined = undefined;
       </Table.Body>
     </Table.Root>
   {/snippet}
-</WorkspaceCollection>
+</ResponsiveCollection>

@@ -2,8 +2,8 @@
 import type { DemoIdentity } from "@/features/demo/lib/demo-types";
 export let pageDemo: DemoIdentity | null | undefined = null;
 
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import { createExamTabDisplayActions } from "@/features/workspace/lib/exams-tab-display";
 import type {
   SignedWorkspaceData,
@@ -130,7 +130,7 @@ $: showClearExamFilter =
       {/each}
       <Button type="submit">{signedData.copy.common.applyFilters}</Button>
     </form>
-    <WorkspaceCollection>
+    <ResponsiveCollection workspace>
       {#snippet mobile()}
         <div class="mb-3 flex items-center justify-between gap-2" data-slot="collection-header">
           {#if mobileView === "cards"}{@render mobileColumns()}{/if}
@@ -165,6 +165,6 @@ $: showClearExamFilter =
       {#snippet desktop()}
         {@render examsList()}
       {/snippet}
-    </WorkspaceCollection>
+    </ResponsiveCollection>
   {/if}
 </section>

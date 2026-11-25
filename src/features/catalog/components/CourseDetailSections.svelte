@@ -7,8 +7,8 @@ import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
 import {
-  type CatalogNamed,
   catalogLocalizedNames,
+  catalogPrimaryName as primaryName,
   sectionSummary,
 } from "@/features/catalog/lib/catalog-list-display";
 import CatalogTableLink from "./CatalogTableLink.svelte";
@@ -22,7 +22,6 @@ export let copy: CourseDetailCopy;
 export let course: CourseDetailCourse;
 export let locale: string;
 export let notAvailable: string;
-export let primaryName: (item: CatalogNamed | null | undefined) => string;
 </script>
 
 <section class="grid gap-4">

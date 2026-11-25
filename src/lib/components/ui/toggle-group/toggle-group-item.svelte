@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { Toggle } from "@ui-sdk/svelte/toggle";
 	import type { ComponentProps } from "svelte";
-	import { getToggleGroupCtx } from "./toggle-group.svelte";
+	import { getToggleGroupCtx, type ToggleVariants, toggleVariants } from "./toggle-group.svelte";
 	import { cn } from "#lib/utils.js";
-	import { type ToggleVariants, toggleVariants } from "#lib/components/ui/toggle/index.js";
 
 	let {
 		ref = $bindable(null),

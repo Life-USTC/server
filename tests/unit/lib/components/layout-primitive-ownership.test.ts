@@ -197,7 +197,6 @@ it("ui.feature-interaction-ownership", async () => {
     "SearchField",
     "FilterToolbar",
     "ResponsiveCollection",
-    "WorkspaceCollection",
     "ResultsSummary",
     "ResultsEmpty",
     "CollectionEmpty",

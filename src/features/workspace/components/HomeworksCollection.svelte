@@ -3,6 +3,7 @@ import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import CheckCircleIcon from "@lucide/svelte/icons/check-circle";
 import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -10,7 +11,6 @@ import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as Table from "#lib/components/ui/table/index.js";
-import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
 import HomeworkPersonalStatus from "@/features/homeworks/components/HomeworkPersonalStatus.svelte";
 import { homeworkSummaryBadges } from "@/features/homeworks/lib/homework-presentation";
 import type {
@@ -111,7 +111,7 @@ function propertyBadges(homework: WorkspaceHomeworkItem) {
   <HomeworkPersonalStatus completed={Boolean(homework.completion)} completionRequired={homework.completionRequired !== false} copy={homeworksCopy} relativeLabel={homework.submissionDueAt ? homeworkEtaLabel(homework.submissionDueAt) : ""} overdue={homeworkIsOverdue(homework.submissionDueAt)} />
 {/snippet}
 
-<WorkspaceCollection>
+<ResponsiveCollection workspace>
   {#snippet mobile()}
     <div class="min-w-0" data-testid="workspace-homeworks-cards">
       {#if filteredHomeworkItems.length > 0}
@@ -238,4 +238,4 @@ function propertyBadges(homework: WorkspaceHomeworkItem) {
       </Table.Body>
     </Table.Root>
   {/snippet}
-</WorkspaceCollection>
+</ResponsiveCollection>
