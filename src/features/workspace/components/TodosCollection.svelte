@@ -177,9 +177,8 @@ export let readOnlyReason: string | undefined = undefined;
                   disabled={Boolean(readOnlyReason)}
                   variant="outline"
                   onclick={() => openTodoEditor(todo)}
-                >
-                  <Pencil data-icon="inline-start" />
-                </TableIconButton>
+                  icon={Pencil}
+                />
               </TableRowActions>
             </td>
           </tr>

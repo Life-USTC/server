@@ -2,7 +2,6 @@
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import { subscriptionKindSchema } from "@/features/subscriptions/lib/subscription-kind";
 import { saveSubscriptionKind } from "@/features/subscriptions/lib/subscription-kind-client";
@@ -56,8 +55,7 @@ async function save() {
         </Field.Field>
         <div data-slot="dialog-footer">
           <Button type="button" variant="outline" disabled={saving} onclick={onClose}>{copy.cancel}</Button>
-          <Button type="submit" disabled={saving || !kind}>
-            {#if saving}<Spinner data-icon="inline-start" />{/if}
+          <Button loading={saving} type="submit" disabled={saving || !kind}>
             {copy.save}
           </Button>
         </div>

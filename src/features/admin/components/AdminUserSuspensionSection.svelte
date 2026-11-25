@@ -5,7 +5,6 @@ import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import AdminSuspensionFields from "./AdminSuspensionFields.svelte";
 import type {
   AdminUserFormatter,
@@ -68,16 +67,12 @@ async function confirmSuspensionUpdate() {
   />
   <div class="flex flex-wrap gap-3">
     <Button
+      loading={isSuspending} icon={ShieldAlertIcon}
       disabled={isSuspending}
       type="button"
       variant="destructive"
       onclick={requestSuspension}
     >
-      {#if isSuspending}
-        <Spinner data-icon="inline-start" />
-      {:else}
-        <ShieldAlertIcon data-icon="inline-start" />
-      {/if}
       <span>
         {isSuspending
           ? copy.suspending
@@ -88,16 +83,12 @@ async function confirmSuspensionUpdate() {
     </Button>
     {#if selectedUser.activeSuspension}
       <Button
+        loading={isLiftingSuspension} icon={CheckCircleIcon}
         disabled={isLiftingSuspension}
         type="button"
         variant="outline"
         onclick={liftSelectedSuspension}
       >
-        {#if isLiftingSuspension}
-          <Spinner data-icon="inline-start" />
-        {:else}
-          <CheckCircleIcon data-icon="inline-start" />
-        {/if}
         <span>
           {isLiftingSuspension ? copy.lifting : copy.liftSuspensionAction}
         </span>

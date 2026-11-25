@@ -199,9 +199,8 @@ function apply(event: SubmitEvent) {
                         label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
                         variant="destructive"
                         onclick={() => onDelete(client)}
-                      >
-                        <TrashIcon data-icon="inline-start" />
-                      </TableIconButton>
+                        icon={TrashIcon}
+                      />
                     </TableRowActions>
                   </td>
                 </tr>
@@ -261,9 +260,8 @@ function apply(event: SubmitEvent) {
                     label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
                     variant="destructive"
                     onclick={() => onDelete(client)}
-                  >
-                    <TrashIcon data-icon="inline-start" />
-                  </TableIconButton>
+                    icon={TrashIcon}
+                  />
                 </Item.Actions>
               </MobileListCard>
             {/each}

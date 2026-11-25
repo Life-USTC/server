@@ -3,7 +3,6 @@ import Download from "@lucide/svelte/icons/download";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { enhance } from "$app/forms";
 import type { AdminBusCopy, AdminBusEnhancedAction } from "./admin-bus-types";
 
@@ -52,12 +51,7 @@ let { close, copy, enhancedAction, pendingAction }: Props = $props();
         >
           {copy.cancelAction}
         </Button>
-        <Button type="submit" disabled={Boolean(pendingAction)}>
-          {#if pendingAction === "import"}
-            <Spinner data-icon="inline-start" />
-          {:else}
-            <Download data-icon="inline-start" />
-          {/if}
+        <Button loading={pendingAction === "import"} icon={Download} type="submit" disabled={Boolean(pendingAction)}>
           {copy.importAction}
         </Button>
       </div>

@@ -93,9 +93,8 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
         <TableIconButton
           href={detailHref}
           label={sectionCopy.moreDetails}
-        >
-          <ArrowUpRight data-icon="inline-start" />
-        </TableIconButton>
+          icon={ArrowUpRight}
+        />
       </Item.Actions>
     </MobileListCard>
     {#if index < exams.length - 1}

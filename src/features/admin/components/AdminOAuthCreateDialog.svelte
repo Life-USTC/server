@@ -3,7 +3,6 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { Textarea } from "#lib/components/ui/textarea/index.js";
 import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import OAuthScopesPicker from "@/features/oauth/components/OAuthScopesPicker.svelte";
@@ -165,12 +164,10 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
             {copy.cancel}
           </Button>
           <Button
+            loading={isCreatingClient}
             type="submit"
             disabled={isCreatingClient || selectedScopes.length === 0}
           >
-            {#if isCreatingClient}
-              <Spinner data-icon="inline-start" />
-            {/if}
             {isCreatingClient ? copy.creating : copy.createClient}
           </Button>
         </div>

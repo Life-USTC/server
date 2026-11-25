@@ -6,7 +6,6 @@ import { Checkbox } from "#lib/components/ui/checkbox/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import SectionCardIdentity from "@/features/catalog/components/SectionCardIdentity.svelte";
 import { page } from "$app/state";
 import type {
@@ -96,10 +95,7 @@ const titleId = "bulk-import-confirm-title";
     </ScrollArea>
     <div data-slot="dialog-footer">
       <Button type="button" variant="outline" onclick={() => onOpenChange(false)}>{copy.cancel}</Button>
-      <Button disabled={selectedSectionIdSet.size === 0 || isImporting} type="button" onclick={onConfirm}>
-        {#if isImporting}
-          <Spinner data-icon="inline-start" />
-        {/if}
+      <Button loading={isImporting} disabled={selectedSectionIdSet.size === 0 || isImporting} type="button" onclick={onConfirm}>
         {isImporting
           ? copy.importing
           : formatMessage(selectedSectionIdSet.size === 1 ? copy.subscribeSelectedOne : copy.subscribeSelected, { count: selectedSectionIdSet.size })}

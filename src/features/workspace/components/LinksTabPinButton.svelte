@@ -37,7 +37,6 @@ $: action = link.isPinned ? "unpin" : "pin";
     title={readOnlyReason}
     type="submit"
     variant={link.isPinned ? "secondary" : "outline"}
-  >
-    <Pin data-icon="inline-start" />
-  </TableIconButton>
+    icon={Pin}
+  />
 </form>

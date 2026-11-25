@@ -8,7 +8,6 @@ import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import type {
   SubscriptionsData,
   WorkspaceCopy,
@@ -46,27 +45,20 @@ export let subscriptionsCopy: WorkspaceSubscriptionsCopy;
           <Badge variant="outline">{section.credits ?? workspaceCopy.notAvailable} {subscriptionsCopy.credits}</Badge>
         </Item.Footer>
         <Item.Actions class="shrink-0 self-start">
-          <TableIconButton label={subscriptionsCopy.kindEditor.title} disabled={Boolean(readOnlyReason)} onclick={() => requestEditKind(section)}>
-            <Pencil data-icon="inline-start" />
-          </TableIconButton>
+          <TableIconButton label={subscriptionsCopy.kindEditor.title} disabled={Boolean(readOnlyReason)} onclick={() => requestEditKind(section)} icon={Pencil} />
           <TableIconButton
             href={`/catalog/sections/${section.jwId}`}
             label={sectionCopy.moreDetails}
-          >
-            <ArrowUpRight data-icon="inline-start" />
-          </TableIconButton>
+            icon={ArrowUpRight}
+          />
           <TableIconButton
             disabled={Boolean(readOnlyReason) || removingSectionId === section.id}
             label={subscriptionsCopy.unsubscribe}
             variant="destructive"
             onclick={() => requestRemoveSection(section)}
-          >
-            {#if removingSectionId === section.id}
-              <Spinner data-icon="inline-start" />
-            {:else}
-              <UserMinus data-icon="inline-start" />
-            {/if}
-          </TableIconButton>
+            icon={UserMinus}
+            loading={removingSectionId === section.id}
+          />
         </Item.Actions>
       </MobileListCard>
       {#if index < sections.length - 1}

@@ -99,9 +99,7 @@ export let subscriptionsCopy: ExamsCopyProps["subscriptionsCopy"];
           </td>
           <td>
             <TableRowActions>
-              <TableIconButton href={detailHref} label={sectionCopy.moreDetails}>
-                <ArrowUpRight data-icon="inline-start" />
-              </TableIconButton>
+              <TableIconButton href={detailHref} label={sectionCopy.moreDetails} icon={ArrowUpRight} />
             </TableRowActions>
           </td>
         </tr>

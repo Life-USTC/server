@@ -7,7 +7,6 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { invalidateAll } from "$app/navigation";
 import type { getUploadPageCopy } from "../server/upload-page-copy";
 
@@ -79,7 +78,7 @@ async function submit(event: Event) {
         {#if failed}<Alert.Root variant="destructive"><Alert.Description>{copy.toastRenameErrorDescription}</Alert.Description></Alert.Root>{/if}
         <div data-slot="dialog-footer">
           <Button type="button" variant="outline" onclick={close} disabled={pending}>{copy.cancelRenameAction}</Button>
-          <Button type="submit" disabled={pending || !filename.trim()}>{#if pending}<Spinner data-icon="inline-start" />{/if}{copy.saveRenameAction}</Button>
+          <Button loading={pending} type="submit" disabled={pending || !filename.trim()}>{copy.saveRenameAction}</Button>
         </div>
       </form>
     </Dialog.Content>

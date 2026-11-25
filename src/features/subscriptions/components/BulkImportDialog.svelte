@@ -4,7 +4,6 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import * as NativeSelect from "#lib/components/ui/native-select/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { Textarea } from "#lib/components/ui/textarea/index.js";
 import type {
   BulkImportAction,
@@ -79,10 +78,7 @@ const titleId = "bulk-import-title";
     </Field.Group>
     <div data-slot="dialog-footer" class="shrink-0">
       <Button type="button" variant="outline" onclick={() => onOpenChange(false)}>{copy.cancel}</Button>
-      <Button disabled={!canMatch} type="button" onclick={match}>
-        {#if isMatching}
-          <Spinner data-icon="inline-start" />
-        {/if}
+      <Button loading={isMatching} disabled={!canMatch} type="button" onclick={match}>
         {isMatching ? copy.matching : copy.matchButton}
       </Button>
     </div>

@@ -82,9 +82,8 @@ function propertyBadges(homework: WorkspaceHomeworkItem) {
     onclick={() => {
       selectedHomework = homework;
     }}
-  >
-    <ArrowUpRight data-icon="inline-start" />
-  </TableIconButton>
+    icon={ArrowUpRight}
+  />
 {/snippet}
 
 {#snippet emptyState()}

@@ -4,7 +4,6 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { enhance, type SubmitFunction } from "$app/forms";
 import type { HomeworkCreateCopy } from "./homework-form-types";
 
@@ -69,13 +68,11 @@ function enhanceSubmission(form: HTMLFormElement) {
             {copy.cancel}
           </Button>
           <Button
+            loading={saving}
             data-testid={testId}
             disabled={saving}
             type="submit"
           >
-            {#if saving}
-              <Spinner data-icon="inline-start" />
-            {/if}
             {saving ? copy.saving : copy.createAction}
           </Button>
         </div>

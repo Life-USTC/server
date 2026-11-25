@@ -7,7 +7,6 @@ import { Button } from "#lib/components/ui/button/index.js";
 import { Checkbox } from "#lib/components/ui/checkbox/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import * as NativeSelect from "#lib/components/ui/native-select/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { Textarea } from "#lib/components/ui/textarea/index.js";
 import SectionCardIdentity from "@/features/catalog/components/SectionCardIdentity.svelte";
 import {
@@ -104,10 +103,7 @@ $: canMatch = importText.trim().length > 0 && !state.isMatching;
           rows={5}
         />
       </Field.Field>
-      <Button disabled={!canMatch} type="button" onclick={actions.matchSections}>
-        {#if state.isMatching}
-          <Spinner data-icon="inline-start" />
-        {/if}
+      <Button loading={state.isMatching} disabled={!canMatch} type="button" onclick={actions.matchSections}>
         {state.isMatching ? bulkCopy.matching : welcomeCopy.importButton}
       </Button>
     </Field.Group>
@@ -155,13 +151,11 @@ $: canMatch = importText.trim().length > 0 && !state.isMatching;
             </Field.Group>
           </Field.Set>
           <Button
+            loading={state.isImporting}
             disabled={selectedCount === 0 || state.isImporting}
             type="button"
             onclick={actions.confirmImport}
           >
-            {#if state.isImporting}
-              <Spinner data-icon="inline-start" />
-            {/if}
             {state.isImporting
               ? welcomeCopy.importing
               : formatCopy(welcomeCopy.subscribeSelected, { count: selectedCount })}

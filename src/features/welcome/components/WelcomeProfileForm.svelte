@@ -6,7 +6,6 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Card from "#lib/components/ui/card/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import ProfileAvatarPicker from "@/features/profile/components/ProfileAvatarPicker.svelte";
 import ProfileIdentityFields from "@/features/profile/components/ProfileIdentityFields.svelte";
 import type { SubmitFunction } from "$app/forms";
@@ -84,10 +83,7 @@ onDestroy(() => {
         <ProfileIdentityFields copy={profileCopy} {user} />
       </Field.Group>
 
-      <Button class="w-full" type="submit" disabled={isCompletingProfile}>
-        {#if isCompletingProfile}
-          <Spinner data-icon="inline-start" />
-        {/if}
+      <Button loading={isCompletingProfile} class="w-full" type="submit" disabled={isCompletingProfile}>
         {isCompletingProfile ? profileCopy.saving : welcomeCopy.continue}
       </Button>
     </Card.Content>

@@ -8,7 +8,6 @@ import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
 import * as NativeSelect from "#lib/components/ui/native-select/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import {
   TODO_CONTENT_MAX_LENGTH,
@@ -129,10 +128,7 @@ $: contentLabelId = `${idPrefix}-content-label`;
         >
           {todosCopy.cancel}
         </Button>
-        <Button disabled={saving} type="submit">
-          {#if saving}
-            <Spinner data-icon="inline-start" />
-          {/if}
+        <Button loading={saving} disabled={saving} type="submit">
           {saving ? todosCopy.saving : todo ? todosCopy.saveChanges : todosCopy.createAction}
         </Button>
       </div>

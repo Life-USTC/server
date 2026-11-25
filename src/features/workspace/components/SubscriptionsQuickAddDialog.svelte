@@ -12,7 +12,6 @@ import * as Item from "#lib/components/ui/item/index.js";
 import * as NativeSelect from "#lib/components/ui/native-select/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import SectionCardIdentity from "@/features/catalog/components/SectionCardIdentity.svelte";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import type {
@@ -211,17 +210,13 @@ async function subscribeSelectedSections() {
                 />
                 <InputGroup.Addon align="inline-end">
                   <Button
+                    loading={isSearching} icon={Search}
                     disabled={!canSearch}
                     size="xs"
                     type="button"
                     variant="ghost"
                     onclick={searchSections}
                   >
-                    {#if isSearching}
-                      <Spinner data-icon="inline-start" />
-                    {:else}
-                      <Search data-icon="inline-start" />
-                    {/if}
                     {isSearching
                       ? subscriptionsCopy.quickAdd.searching
                       : subscriptionsCopy.quickAdd.searchButton}
@@ -287,13 +282,11 @@ async function subscribeSelectedSections() {
           {subscriptionsCopy.quickAdd.cancel}
         </Button>
         <Button
+          loading={isSubmitting}
           disabled={selectedSectionIds.length === 0 || isSubmitting}
           type="button"
           onclick={subscribeSelectedSections}
         >
-          {#if isSubmitting}
-            <Spinner data-icon="inline-start" />
-          {/if}
           {isSubmitting
             ? subscriptionsCopy.quickAdd.subscribing
             : formatMessage(subscriptionsCopy.quickAdd.subscribeSelected, {

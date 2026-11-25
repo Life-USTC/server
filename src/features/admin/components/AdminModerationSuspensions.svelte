@@ -105,6 +105,7 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
         {:else}
           <Badge variant="destructive">{copy.active}</Badge>
           <Button
+            loading={liftingSuspensionId === suspension.id} icon={Unlock}
             disabled={Boolean(liftingSuspensionId)}
             aria-label={liftingSuspensionId === suspension.id ? copy.saving : copy.liftSuspensionAction}
             onclick={() => pendingLiftSuspension = suspension}
@@ -112,7 +113,6 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
             type="button"
             variant="ghost"
           >
-          {#if liftingSuspensionId === suspension.id}<Spinner data-icon="inline-start" />{:else}<Unlock data-icon="inline-start" />{/if}
             {liftingSuspensionId === suspension.id ? copy.saving : copy.liftSuspensionAction}
           </Button>
         {/if}

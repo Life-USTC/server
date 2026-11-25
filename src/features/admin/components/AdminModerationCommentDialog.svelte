@@ -4,7 +4,6 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import AdminModerationCommentPreview from "./AdminModerationCommentPreview.svelte";
 import AdminModerationCommentStatusSection from "./AdminModerationCommentStatusSection.svelte";
 import AdminModerationCommentSuspensionSection from "./AdminModerationCommentSuspensionSection.svelte";
@@ -90,10 +89,7 @@ export let targetLabel: (comment: AdminModerationComment) => string;
 
       <div data-slot="dialog-footer">
         <Button type="button" variant="ghost" onclick={close}>{copy.cancelButton}</Button>
-        <Button disabled={isSavingComment} type="button" onclick={saveCommentModeration}>
-          {#if isSavingComment}
-            <Spinner data-icon="inline-start" />
-          {/if}
+        <Button loading={isSavingComment} disabled={isSavingComment} type="button" onclick={saveCommentModeration}>
           {isSavingComment ? copy.saving : copy.confirmButton}
         </Button>
       </div>

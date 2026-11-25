@@ -180,9 +180,8 @@ $: fields = adminUserTableFields(copy);
                         <TableIconButton
                           label={copy.editTitle}
                           onclick={() => onSelect(user)}
-                        >
-                          <SquarePen data-icon="inline-start" />
-                        </TableIconButton>
+                          icon={SquarePen}
+                        />
                       </TableRowActions>
                     </td>
                   </tr>

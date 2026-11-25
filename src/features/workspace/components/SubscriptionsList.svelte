@@ -11,7 +11,6 @@ import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import Table from "#lib/components/ui/table/table.svelte";
 import SubscriptionCancelDialog from "@/features/subscriptions/components/SubscriptionCancelDialog.svelte";
 import { subscriptionKindSchema } from "@/features/subscriptions/lib/subscription-kind";
@@ -284,26 +283,22 @@ function handleRemoveDialogOpenChange(open: boolean) {
                         label={subscriptionsCopy.kindEditor.title}
                         disabled={Boolean(readOnlyReason)}
                         onclick={() => requestEditKind(section)}
-                      ><Pencil data-icon="inline-start" /></TableIconButton>
+                        icon={Pencil}
+                      />
 
                       <TableIconButton
                         disabled={Boolean(readOnlyReason) || removingSectionId === section.id}
                         label={subscriptionsCopy.unsubscribe}
                         variant="destructive"
                         onclick={() => requestRemoveSection(section)}
-                      >
-                        {#if removingSectionId === section.id}
-                          <Spinner data-icon="inline-start" />
-                        {:else}
-                          <UserMinus data-icon="inline-start" />
-                        {/if}
-                      </TableIconButton>
+                        icon={UserMinus}
+                        loading={removingSectionId === section.id}
+                      />
                       <TableIconButton
                         href={`/catalog/sections/${section.jwId}`}
                         label={sectionCopy.moreDetails}
-                      >
-                        <ArrowUpRight data-icon="inline-start" />
-                      </TableIconButton>
+                        icon={ArrowUpRight}
+                      />
                     </TableRowActions>
                   </td>
                 </tr>

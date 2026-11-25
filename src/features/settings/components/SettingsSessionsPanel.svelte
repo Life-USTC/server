@@ -14,7 +14,6 @@ import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { summarizeAuditUserAgent } from "@/features/settings/lib/security-device-label";
 import type { AppLocale } from "@/i18n/config";
 import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
@@ -195,8 +194,7 @@ async function revoke(action: RevokeAction) {
   {/if}
 
   <div class="flex flex-col gap-2 sm:flex-row">
-    <Button type="button" variant="outline" disabled={!canRevoke || !hasOtherSessions} onclick={() => confirm({ kind: "others" })}>
-      {#if revoking}<Spinner data-icon="inline-start" />{/if}
+    <Button loading={revoking} type="button" variant="outline" disabled={!canRevoke || !hasOtherSessions} onclick={() => confirm({ kind: "others" })}>
       {labels.revokeOthers}
     </Button>
     <Button type="button" variant="destructive" disabled={!canRevoke || sessions.length === 0} onclick={() => confirm({ kind: "all" })}>
