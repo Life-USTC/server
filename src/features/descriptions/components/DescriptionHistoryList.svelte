@@ -7,6 +7,7 @@ import type {
   DescriptionHistoryItem,
   EditorSummary,
 } from "@/features/descriptions/lib/description-payload-types";
+import type { DescriptionCopy } from "./description-component-types";
 
 type DiffMode = "previous" | "next";
 type DiffSegment = {
@@ -15,13 +16,7 @@ type DiffSegment = {
   value: string;
 };
 
-export let copy: {
-  editorUnknown: string;
-  emptyValue: string;
-  historyEmpty: string;
-  previousLabel: string;
-  updatedLabel: string;
-};
+export let copy: DescriptionCopy;
 export let formatDate: (value: string | null | undefined) => string;
 export let history: DescriptionHistoryItem[];
 

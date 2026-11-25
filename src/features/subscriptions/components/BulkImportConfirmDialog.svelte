@@ -22,7 +22,6 @@ export let importError = "";
 export let isImporting: boolean;
 export let isOpen: boolean;
 export let matchedSections: BulkImportSectionView[];
-export let onCancel: () => void;
 export let onConfirm: () => void | Promise<void>;
 export let onOpenChange: (open: boolean) => void;
 export let selectedSectionIdSet: Set<number>;
@@ -96,7 +95,7 @@ const titleId = "bulk-import-confirm-title";
       </div>
     </ScrollArea>
     <div data-slot="dialog-footer">
-      <Button type="button" variant="outline" onclick={onCancel}>{copy.cancel}</Button>
+      <Button type="button" variant="outline" onclick={() => onOpenChange(false)}>{copy.cancel}</Button>
       <Button disabled={selectedSectionIdSet.size === 0 || isImporting} type="button" onclick={onConfirm}>
         {#if isImporting}
           <Spinner data-icon="inline-start" />

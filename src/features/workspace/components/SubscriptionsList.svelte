@@ -14,6 +14,7 @@ import { Button } from "#lib/components/ui/button/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import Table from "#lib/components/ui/table/table.svelte";
 import SubscriptionCancelDialog from "@/features/subscriptions/components/SubscriptionCancelDialog.svelte";
+import { subscriptionKindSchema } from "@/features/subscriptions/lib/subscription-kind";
 import { groupSubscribedSectionsBySemester } from "@/features/workspace/lib/subscriptions";
 import type {
   SubscriptionsData,
@@ -85,12 +86,9 @@ const columns = $derived<TableFilterField[][]>([
     {
       name: "kind",
       label: subscriptionsCopy.kindEditor.title,
-      options: ["regular", "auditor", "teaching_assistant"].map((value) => ({
+      options: subscriptionKindSchema.options.map((value) => ({
         value,
-        label:
-          subscriptionsCopy.kindEditor[
-            value as "regular" | "auditor" | "teaching_assistant"
-          ],
+        label: subscriptionsCopy.kindEditor[value],
       })),
     },
   ],

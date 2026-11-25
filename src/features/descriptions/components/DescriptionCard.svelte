@@ -22,6 +22,7 @@ import DescriptionCardHeader from "./DescriptionCardHeader.svelte";
 import DescriptionEditPanel from "./DescriptionEditPanel.svelte";
 import DescriptionReadPanel from "./DescriptionReadPanel.svelte";
 import DescriptionSuspensionAlert from "./DescriptionSuspensionAlert.svelte";
+import type { DescriptionCopy } from "./description-component-types";
 
 type PanelTab = "description" | "history";
 
@@ -34,38 +35,7 @@ export let readOnlyReason: string | undefined = undefined;
 export let heading: string | null = null;
 export let showTitle = true;
 export let locale: AppLocale = "zh-cn";
-export let copy: {
-  cancel: string;
-  edit: string;
-  editedBy: string;
-  editorPlaceholder: string;
-  editorUnknown: string;
-  empty: string;
-  emptyTitle: string;
-  emptyValue: string;
-  historyEmpty: string;
-  historyTitle: string;
-  lastEdited: string;
-  loadFailed: string;
-  retry: string;
-  loginToEdit: string;
-  markdownGuide: string;
-  previewEmpty: string;
-  previousLabel: string;
-  save: string;
-  saving: string;
-  suspendedExpires: string;
-  suspendedMessage: string;
-  suspendedPermanent: string;
-  suspendedReason: string;
-  suspendedTitle: string;
-  tabPreview: string;
-  tabWrite: string;
-  title: string;
-  updateError: string;
-  updatedLabel: string;
-  updateSuccess?: string;
-};
+export let copy: DescriptionCopy;
 
 let description = initialData.description;
 let history = initialData.history;

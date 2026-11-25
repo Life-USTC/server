@@ -20,7 +20,6 @@ export let importText: string;
 export let isMatching: boolean;
 export let isOpen: boolean;
 export let match: BulkImportAction;
-export let onCancel: () => void;
 export let onOpenChange: (open: boolean) => void;
 export let semesterId: string;
 export let semesterOptions: BulkImportSemesterOption[];
@@ -79,7 +78,7 @@ const titleId = "bulk-import-title";
       </Field.Field>
     </Field.Group>
     <div data-slot="dialog-footer" class="shrink-0">
-      <Button type="button" variant="outline" onclick={onCancel}>{copy.cancel}</Button>
+      <Button type="button" variant="outline" onclick={() => onOpenChange(false)}>{copy.cancel}</Button>
       <Button disabled={!canMatch} type="button" onclick={match}>
         {#if isMatching}
           <Spinner data-icon="inline-start" />

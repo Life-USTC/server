@@ -1,5 +1,6 @@
 <script lang="ts">
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
+import type { SectionDetailCopy } from "@/features/section-detail/lib/section-detail-controller-types";
 
 type HomeworkTarget = {
   title: string;
@@ -9,12 +10,7 @@ export let formatMessage: (
   template: string,
   values: Record<string, string>,
 ) => string;
-export let homeworkCopy: {
-  cancel: string;
-  deleteAction: string;
-  deleteDescription: string;
-  deleteTitle: string;
-};
+export let homeworkCopy: SectionDetailCopy["homeworks"];
 export let onCancel: () => void;
 export let onConfirm: () => void | Promise<void>;
 export let target: HomeworkTarget;

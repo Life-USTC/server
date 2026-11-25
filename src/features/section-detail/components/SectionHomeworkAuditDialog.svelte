@@ -5,6 +5,7 @@ import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
+import type { SectionDetailCopy } from "@/features/section-detail/lib/section-detail-controller-types";
 
 type HomeworkAuditLog = {
   action: string;
@@ -22,16 +23,9 @@ export let formatMessage: (
   template: string,
   values: Record<string, string>,
 ) => string;
-export let homeworkCopy: {
-  auditEmpty: string;
-  auditMeta: string;
-  auditTitle: string;
-};
+export let homeworkCopy: SectionDetailCopy["homeworks"];
 export let logs: HomeworkAuditLog[];
-export let sectionCopy: {
-  close?: string;
-  homeworkDescription: string;
-};
+export let sectionCopy: SectionDetailCopy["sectionDetail"];
 export let setOpen: (open: boolean) => void;
 </script>
 

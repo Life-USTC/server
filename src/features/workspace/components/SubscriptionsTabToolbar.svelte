@@ -6,10 +6,7 @@ import { onMount, tick } from "svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import { page } from "$app/state";
 import PersonalCalendarLinkButton from "./PersonalCalendarLinkButton.svelte";
-import type {
-  WorkspaceSubscriptionsTabCopy,
-  WorkspaceSubscriptionsTabProps,
-} from "./subscription-tab-types";
+import type { WorkspaceSubscriptionsTabProps } from "./subscription-tab-types";
 
 export let calendarLinkState:
   | "ready"
@@ -21,7 +18,7 @@ export let showSubscriptionActions = true;
 export let openBulkImportDialog: () => void;
 export let openQuickAddDialog: () => void;
 export let sectionCopy: WorkspaceSubscriptionsTabProps["sectionCopy"];
-export let subscriptionsCopy: WorkspaceSubscriptionsTabCopy;
+export let subscriptionsCopy: WorkspaceSubscriptionsTabProps["subscriptionsCopy"];
 export let readOnlyReason: string | undefined = undefined;
 let calendarLink: PersonalCalendarLinkButton;
 onMount(async () => {

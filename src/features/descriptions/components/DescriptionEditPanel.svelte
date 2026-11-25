@@ -3,19 +3,10 @@ import MarkdownEditor from "#lib/components/MarkdownEditor.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
+import type { DescriptionCopy } from "./description-component-types";
 
 export let cancelEdit: () => void;
-export let copy: {
-  cancel: string;
-  editorPlaceholder: string;
-  markdownGuide: string;
-  previewEmpty: string;
-  save: string;
-  saving: string;
-  tabPreview: string;
-  tabWrite: string;
-  title: string;
-};
+export let copy: DescriptionCopy;
 export let draft: string;
 export let isDisabled: boolean;
 export let isSaving: boolean;

@@ -1,6 +1,7 @@
 <script lang="ts">
 import TeacherIcon from "@lucide/svelte/icons/user-round";
 import type { DemoIdentity } from "@/features/demo/lib/demo-types";
+import type { SectionDetailCopy } from "@/features/section-detail/lib/section-detail-controller-types";
 export let pageDemo: DemoIdentity | null | undefined = null;
 export let locale = "";
 
@@ -17,18 +18,7 @@ import type { SectionCalendarEvent } from "./section-calendar-tab-types";
 
 export let sectionCalendarEvents: SectionCalendarEvent[];
 export let roomMapCopy: RoomMapCopy;
-export let sectionCopy: {
-  calendarEmpty: string;
-  scheduleDateTime: string;
-  dateTBD: string;
-  examEvent: string;
-  lecture: string;
-  lectureNumber: string;
-  location: string;
-  time: string;
-  teacher: string;
-  week: string;
-};
+export let sectionCopy: SectionDetailCopy["sectionDetail"];
 $: rows = sectionLessonRows(sectionCalendarEvents, sectionCopy.week);
 </script>
 
