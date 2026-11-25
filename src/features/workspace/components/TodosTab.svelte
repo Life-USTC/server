@@ -12,7 +12,6 @@ import type {
 } from "@/features/workspace/lib/workspace-controller-types";
 import type { SubmitFunction } from "$app/forms";
 import type { WorkspaceCommonCopy } from "../lib/workspace-controller-types";
-import { withoutTaskFilter } from "../lib/workspace-task-filter-state";
 import {
   filterTodoTable,
   todoTableFields,
@@ -20,7 +19,7 @@ import {
 import TodoDetailDialog from "./TodoDetailDialog.svelte";
 import TodoFormDialog from "./TodoFormDialog.svelte";
 import TodosCollection from "./TodosCollection.svelte";
-import TodosTabToolbar from "./TodosTabToolbar.svelte";
+import WorkspaceTaskAddButton from "./WorkspaceTaskAddButton.svelte";
 import WorkspaceTaskFilterToolbar from "./WorkspaceTaskFilterToolbar.svelte";
 
 type TodoCompletionToggle = (todo: WorkspaceTodoItem) => void | Promise<void>;
@@ -50,17 +49,6 @@ let applied: Record<string, string> = { completion: "incomplete" };
 let draft = { ...applied };
 $: fields = todoTableFields({ todos: todosCopy });
 $: filteredTodos = filterTodoTable(todoItems, fields, applied);
-function patchDraft(patch: Record<string, string>) {
-  draft = { ...draft, ...patch };
-}
-function removeFilter(name: string) {
-  applied = withoutTaskFilter(applied, name);
-  draft = withoutTaskFilter(draft, name);
-}
-function applyFilters(event: SubmitEvent) {
-  event.preventDefault();
-  applied = { ...draft };
-}
 export let createTodoError: string;
 export let editTodoError: string;
 export let todoActionError: string;
@@ -91,11 +79,14 @@ function clearTodoFilter() {
 </script>
 
 <section class="grid gap-4">
-  <TodosTabToolbar
+  <WorkspaceTaskAddButton
     {readOnlyReason}
-    bind:createTodoError
-    bind:showCreateTodo
-    {todosCopy}
+    label={String(todosCopy.addButton)}
+    testId="workspace-todos-add"
+    onclick={() => {
+      createTodoError = "";
+      showCreateTodo = true;
+    }}
   />
 
   {#if todoActionError}
@@ -104,7 +95,7 @@ function clearTodoFilter() {
     </Alert.Root>
   {/if}
 
-  <WorkspaceTaskFilterToolbar id="todo-table-filters" {fields} commonNames={["completion", "priority", "dueAt"]} {draft} {applied} copy={commonCopy} sortLabel={commonCopy.taskFilters.todoSort} onchange={patchDraft} onapply={applyFilters} onreset={clearTodoFilter} onremove={removeFilter} />
+  <WorkspaceTaskFilterToolbar id="todo-table-filters" {fields} commonNames={["completion", "priority", "dueAt"]} bind:draft bind:applied copy={commonCopy} sortLabel={commonCopy.taskFilters.todoSort} onreset={clearTodoFilter} />
   <TodosCollection
     emptyTitle={commonCopy.taskFilters.emptyTodos}
     {readOnlyReason}

@@ -24,15 +24,14 @@ import type {
 } from "@/features/workspace/lib/workspace-controller-types";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
 import type { SubmitFunction } from "$app/forms";
-import { withoutTaskFilter } from "../lib/workspace-task-filter-state";
 import {
   filterHomeworkTable,
   homeworkTableFields,
 } from "../lib/workspace-task-table-filters";
 import HomeworkCreateFormFields from "./HomeworkCreateFormFields.svelte";
 import HomeworksCollection from "./HomeworksCollection.svelte";
-import HomeworksTabToolbar from "./HomeworksTabToolbar.svelte";
 import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
+import WorkspaceTaskAddButton from "./WorkspaceTaskAddButton.svelte";
 import WorkspaceTaskFilterToolbar from "./WorkspaceTaskFilterToolbar.svelte";
 import type { WorkspaceHomeworkCreateSection } from "./workspace-homework-create-types";
 
@@ -107,17 +106,6 @@ $: filteredHomeworkItems = filterHomeworkTable(
   applied,
   new Date(referenceDate),
 );
-function patchDraft(patch: Record<string, string>) {
-  draft = { ...draft, ...patch };
-}
-function removeFilter(name: string) {
-  applied = withoutTaskFilter(applied, name);
-  draft = withoutTaskFilter(draft, name);
-}
-function applyFilters(event: SubmitEvent) {
-  event.preventDefault();
-  applied = { ...draft };
-}
 $: hasHomeworkItems = homeworkItems.length > 0;
 
 function clearHomeworkFilter() {
@@ -177,11 +165,12 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
       ]}
     />
   {:else}
-    <HomeworksTabToolbar
-      {canWriteShared}
+    <WorkspaceTaskAddButton
       {readOnlyReason}
-      homeworksCopy={homeworksCopy}
-      openCreateHomeworkDialog={openCreateHomeworkDialog}
+      disabled={!canWriteShared}
+      label={homeworksCopy.addButton}
+      testId="workspace-homeworks-add"
+      onclick={openCreateHomeworkDialog}
     />
 
     {#if signedData.homeworkCapabilities?.canComplete && !canWriteShared && !signedData.demo}
@@ -194,7 +183,7 @@ $: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
       </Alert.Root>
     {/if}
 
-    <WorkspaceTaskFilterToolbar id="homework-table-filters" {fields} commonNames={["completion", "course", "semester", "submissionDueAt"]} {draft} {applied} copy={commonCopy} sortLabel={commonCopy.taskFilters.homeworkSort} onchange={patchDraft} onapply={applyFilters} onreset={clearHomeworkFilter} onremove={removeFilter} />
+    <WorkspaceTaskFilterToolbar id="homework-table-filters" {fields} commonNames={["completion", "course", "semester", "submissionDueAt"]} bind:draft bind:applied copy={commonCopy} sortLabel={commonCopy.taskFilters.homeworkSort} onreset={clearHomeworkFilter} />
     <HomeworksCollection
       showPersonalStatus={!signedData.demo}
       {readOnlyReason}

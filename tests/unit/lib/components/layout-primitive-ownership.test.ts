@@ -287,8 +287,7 @@ it("ui.collection-primitive-ownership", async () => {
     "young/components/PersonalActivityCalendar.svelte",
     "workspace/components/CalendarTab.svelte",
     "workspace/components/CalendarTabToolbar.svelte",
-    "workspace/components/TodosTabToolbar.svelte",
-    "workspace/components/HomeworksTabToolbar.svelte",
+    "workspace/components/WorkspaceTaskAddButton.svelte",
     "section-detail/components/SectionDetailHeader.svelte",
     "section-detail/components/SectionDetailMainContent.svelte",
   ]);

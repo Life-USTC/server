@@ -11,20 +11,20 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Popover from "#lib/components/ui/popover/index.js";
 import type { TableFilterField } from "@/lib/table-filters";
 import type { WorkspaceCommonCopy } from "../lib/workspace-controller-types";
-import { taskFilterSummary } from "../lib/workspace-task-filter-state";
+import {
+  taskFilterSummary,
+  withoutTaskFilter,
+} from "../lib/workspace-task-filter-state";
 
 let {
   id,
   fields,
   commonNames,
-  draft,
-  applied,
+  draft = $bindable(),
+  applied = $bindable(),
   copy,
   sortLabel,
-  onchange,
-  onapply,
   onreset,
-  onremove,
 }: {
   id: string;
   fields: TableFilterField[];
@@ -33,11 +33,19 @@ let {
   applied: Record<string, string>;
   copy: WorkspaceCommonCopy;
   sortLabel: string;
-  onchange: (patch: Record<string, string>) => void;
-  onapply: (event: SubmitEvent) => void;
   onreset: () => void;
-  onremove: (name: string) => void;
 } = $props();
+function onchange(patch: Record<string, string>) {
+  draft = { ...draft, ...patch };
+}
+function applyFilters(event: SubmitEvent) {
+  event.preventDefault();
+  applied = { ...draft };
+}
+function removeFilter(name: string) {
+  draft = withoutTaskFilter(draft, name);
+  applied = withoutTaskFilter(applied, name);
+}
 let ready = $state(false);
 onMount(() => {
   ready = true;
@@ -60,46 +68,41 @@ const active = $derived(
         key: field.name,
         label,
         removeLabel: `${copy.taskFilters.remove}: ${label}`,
-        remove: () => onremove(field.name),
+        remove: () => removeFilter(field.name),
       },
     ];
   }),
 );
 </script>
 
+{#snippet filterMenu(label: string, trigger: string, menuFields: TableFilterField[], isMore: boolean)}
+  <Popover.Root modal="trap-focus">
+    <Popover.Trigger>
+      {#snippet render({props})}
+        <Button {...props} type="button" variant="outline" disabled={!ready} data-filter-trigger={trigger}>
+          {#if isMore}<SlidersHorizontal data-icon="inline-start" />{/if}
+          {label}
+          {#if !isMore}<ChevronDown data-icon="inline-end" />{/if}
+        </Button>
+      {/snippet}
+    </Popover.Trigger>
+    <Popover.Content aria-label={label} role="dialog" align={isMore ? "end" : "start"} class="max-h-[70dvh] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto">
+      <TableFilterFields fields={menuFields} values={draft} {onchange} labels={copy.tableFilters} idPrefix={`${id}-${isMore ? "more" : "common"}`} formId={id} />
+    </Popover.Content>
+  </Popover.Root>
+{/snippet}
+
 <div class="flex min-w-0 flex-col gap-3" data-slot="workspace-task-filter-toolbar">
-  <form {id} onsubmit={onapply} data-slot="table-filter-apply">
+  <form {id} onsubmit={applyFilters} data-slot="table-filter-apply">
     <FilterToolbar>
       {#snippet primary()}
         <div class="w-full min-w-0 md:w-auto md:min-w-48 md:flex-1">
           <SearchField id={`${id}-search`} label={copy.taskFilters.search} placeholder={copy.taskFilters.search} value={draft.title ?? ""} oninput={(event) => onchange({title:event.currentTarget.value})} disabled={!ready} />
         </div>
         {#each common as field (field.name)}
-          <Popover.Root modal="trap-focus">
-            <Popover.Trigger>
-              {#snippet render({props})}
-                <Button {...props} type="button" variant="outline" disabled={!ready} data-filter-trigger={field.name}>
-                  {field.label}<ChevronDown data-icon="inline-end" />
-                </Button>
-              {/snippet}
-            </Popover.Trigger>
-            <Popover.Content aria-label={field.label} role="dialog" align="start" class="max-h-[70dvh] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto">
-              <TableFilterFields fields={[field]} values={draft} {onchange} labels={copy.tableFilters} idPrefix={`${id}-common`} formId={id} />
-            </Popover.Content>
-          </Popover.Root>
+          {@render filterMenu(field.label, field.name, [field], false)}
         {/each}
-        <Popover.Root modal="trap-focus">
-          <Popover.Trigger>
-            {#snippet render({props})}
-              <Button {...props} type="button" variant="outline" disabled={!ready} data-filter-trigger="more">
-                <SlidersHorizontal data-icon="inline-start" />{copy.taskFilters.more}
-              </Button>
-            {/snippet}
-          </Popover.Trigger>
-          <Popover.Content aria-label={copy.taskFilters.more} role="dialog" align="end" class="max-h-[70dvh] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto">
-            <TableFilterFields fields={more} values={draft} {onchange} labels={copy.tableFilters} idPrefix={`${id}-more`} formId={id} />
-          </Popover.Content>
-        </Popover.Root>
+        {@render filterMenu(copy.taskFilters.more, "more", more, true)}
       {/snippet}
       {#snippet actions()}
         <FilterActions applyLabel={copy.applyFilters} resetLabel={copy.taskFilters.reset} {onreset} disabled={!ready} />
