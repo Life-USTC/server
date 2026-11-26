@@ -78,7 +78,7 @@ it("keeps fixed inventory dispatch isolated from migration and rejects unknown o
     type: "choice",
     default: "deploy",
     required: true,
-    options: ["deploy", "provision-importer", "inspect-young-organizers"],
+    options: ["deploy", "inspect-young-organizers"],
   });
   expect(record(triggers.push)).toEqual({
     branches: ["main"],
@@ -87,9 +87,8 @@ it("keeps fixed inventory dispatch isolated from migration and rejects unknown o
   const jobs = record(workflow.jobs);
   const validation = record(jobs.validate);
   const migrate = record(jobs.migrate);
-  const provision = record(jobs["provision-importer"]);
   const inspect = record(jobs.inspect);
-  for (const job of [validation, inspect, provision]) {
+  for (const job of [validation, inspect]) {
     expect(job.if).toContain("github.repository == 'Life-USTC/server'");
     expect(job.if).toContain("github.ref == 'refs/heads/main'");
   }
@@ -98,43 +97,6 @@ it("keeps fixed inventory dispatch isolated from migration and rejects unknown o
     "needs.validate.outputs.operation == 'inspect-young-organizers'",
   );
   expect(migrate.if).toContain("needs.validate.outputs.operation == 'deploy'");
-  expect(provision.if).toContain("github.event_name == 'workflow_dispatch'");
-  expect(provision.if).toContain(
-    "needs.validate.outputs.operation == 'provision-importer'",
-  );
-  expect(provision.needs).toBe("validate");
-  expect(record(provision.permissions)).toEqual({ contents: "read" });
-  const provisionSteps = provision.steps as unknown[];
-  const provisionRun = provisionSteps
-    .map((step) => record(step))
-    .find((step) => step.run);
-  expect(record(provisionRun?.env).GH_TOKEN).toBe(
-    // biome-ignore lint/suspicious/noTemplateCurlyInString: Assert literal GitHub expression syntax.
-    "${{ secrets.PROVISION_GITHUB_TOKEN }}",
-  );
-  expect(
-    provisionSteps.map((step) => record(step).run).filter(Boolean),
-  ).toEqual([
-    `${[
-      "bun scripts/operations/provision-static-importer.mjs",
-      `ZONE_PURGE_API_TOKEN="$CLOUDFLARE_API_TOKEN"`,
-      `export CLOUDFLARE_API_TOKEN="$CLOUDFLARE_WORKERS_API_TOKEN"`,
-      "put_worker_secret() {",
-      `  local name="$1"`,
-      `  printf '%s' "$2" | bunx wrangler versions secret put "$name"`,
-      "  local version_id",
-      `  version_id="$(bunx wrangler versions list --name life-ustc | sed -n 's/^Version ID:[[:space:]]*//p' | tail -n 1 | awk '{print $1}')"`,
-      `  test -n "$version_id"`,
-      `  bunx wrangler versions deploy --version-id "$version_id" --name life-ustc --yes`,
-      "}",
-      `put_worker_secret CLOUDFLARE_ZONE_ID "$CLOUDFLARE_ZONE_ID"`,
-      `put_worker_secret CLOUDFLARE_API_TOKEN "$ZONE_PURGE_API_TOKEN"`,
-      `put_worker_secret EDGE_CACHE_PURGE_SECRET "$EDGE_CACHE_PURGE_SECRET"`,
-    ].join("\n")}\n`,
-  ]);
-  expect(JSON.stringify(provisionSteps)).not.toMatch(
-    /migrate:deploy|app:prepare|load-static/,
-  );
   expect(inspect.needs).toBe("validate");
   expect(migrate.needs).toBe("validate");
   const inspectSteps = inspect.steps as unknown[];
@@ -160,7 +122,6 @@ it("keeps fixed inventory dispatch isolated from migration and rejects unknown o
   onTestFinished(() => rm(directory, { recursive: true, force: true }));
   for (const operation of [
     "deploy",
-    "provision-importer",
     "inspect-young-organizers",
     "invalid\noperation=deploy",
   ]) {
