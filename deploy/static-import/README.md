@@ -11,7 +11,8 @@ same locally built image. No Bun or Python application is installed on the host.
 - `worker` consumes the persistent SQLite queue and reconciles the published
   manifest every five minutes. The existing import lock and manifest generation
   checks remain authoritative across other importers.
-- The queue is a named Docker volume. Snapshot bytes use a separate bounded
+- The queue is a named Docker volume. Worker startup requeues deliveries
+  interrupted by a container restart. Snapshot bytes use a separate bounded
   cache volume, which also holds SQLite temporary files so snapshot sorts do
   not fill the small `/tmp` tmpfs. Both containers have read-only root
   filesystems, no Linux capabilities, and independent CPU, memory, and PID

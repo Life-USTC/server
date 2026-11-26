@@ -109,6 +109,7 @@ def run_once(queue: ImportQueue, manifest: str, *, reconcile: bool = True) -> st
 
 def main() -> None:
     queue = ImportQueue(os.environ.get("STATIC_IMPORT_QUEUE_DIR", "/data"))
+    queue.recover_interrupted()
     manifest = os.environ["STATIC_SNAPSHOT_MANIFEST_URL"]
     stopped = False
 

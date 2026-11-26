@@ -7,6 +7,8 @@ import re
 import sqlite3
 import threading
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -70,10 +72,18 @@ class ImportQueue:
                 )
             """)
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
         connection = sqlite3.connect(self.path, timeout=30)
         connection.row_factory = sqlite3.Row
-        return connection
+        try:
+            yield connection
+            connection.commit()
+        except BaseException:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
 
     def enqueue(
         self,
@@ -119,6 +129,12 @@ class ImportQueue:
             if changed != 1:
                 return None
             return row
+
+    def recover_interrupted(self) -> None:
+        with self._lock, self._connect() as db:
+            db.execute(
+                "UPDATE deliveries SET status='pending', next_attempt_at=0 WHERE status='running'"
+            )
 
     def finish(
         self, delivery: str, error: str = "", report: dict | None = None
