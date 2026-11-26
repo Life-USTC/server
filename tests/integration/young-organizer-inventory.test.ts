@@ -103,11 +103,15 @@ it("keeps fixed inventory dispatch isolated from migration and rejects unknown o
     "needs.validate.outputs.operation == 'provision-importer'",
   );
   expect(provision.needs).toBe("validate");
-  expect(record(provision.permissions)).toEqual({
-    actions: "write",
-    contents: "read",
-  });
+  expect(record(provision.permissions)).toEqual({ contents: "read" });
   const provisionSteps = provision.steps as unknown[];
+  const provisionRun = provisionSteps
+    .map((step) => record(step))
+    .find((step) => step.run);
+  expect(record(provisionRun?.env).GH_TOKEN).toBe(
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: Assert literal GitHub expression syntax.
+    "${{ secrets.PROVISION_GITHUB_TOKEN }}",
+  );
   expect(
     provisionSteps.map((step) => record(step).run).filter(Boolean),
   ).toEqual([
