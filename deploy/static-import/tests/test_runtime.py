@@ -63,6 +63,22 @@ class RuntimeTests(unittest.TestCase):
             queue.finish(delivery, report={})
             self.assertEqual(queue.counts(), {"succeeded": 1})
 
+    def test_worker_recovers_interrupted_delivery(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            queue = ImportQueue(directory)
+            delivery = "delivery-123456789"
+            queue.enqueue(
+                delivery,
+                "https://static.life-ustc.tiankaima.dev/snapshot-manifest.json",
+                "a" * 64,
+                "2026-11-26T00:00:00Z",
+            )
+            self.assertEqual(queue.claim()["id"], delivery)
+            self.assertEqual(queue.counts(), {"running": 1})
+            queue.recover_interrupted()
+            self.assertEqual(queue.counts(), {"pending": 1})
+            self.assertEqual(queue.claim()["id"], delivery)
+
     def test_worker_checks_signed_identity_and_reports_success(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             queue = ImportQueue(directory)

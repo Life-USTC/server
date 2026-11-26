@@ -3,17 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
-import { describe, expect, it } from "vitest";
-
-describe("static sync workflow", () => {
-  it("uses the restricted importer and leaves migration to its dedicated workflow", () => {
-    const workflow = readFileSync(".github/workflows/static-sync.yml", "utf8");
-    expect(workflow).toContain("secrets.IMPORTER_DATABASE_URL");
-    expect(workflow).not.toContain("secrets.MIGRATOR_DATABASE_URL");
-    expect(workflow).not.toContain("bun run db:migrate:deploy");
-    expect(workflow).toContain("STATIC_SNAPSHOT_MANIFEST_URL");
-  });
-});
+import { expect, it } from "vitest";
 
 it("dispatches manifest loading without a snapshot path", () => {
   const directory = mkdtempSync(

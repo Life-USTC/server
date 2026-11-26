@@ -44,6 +44,7 @@ services:
     environment:
       STATIC_IMPORT_QUEUE_DIR: /data
       STATIC_SNAPSHOT_CACHE_DIR: /cache
+      SQLITE_TMPDIR: /cache
       STATIC_SNAPSHOT_MANIFEST_URL: https://static.life-ustc.tiankaima.dev/snapshot-manifest.json
       STATIC_LOADER_DRY_RUN: "false"
     volumes:
@@ -53,7 +54,7 @@ services:
     tmpfs:
       - /tmp:size=64m
     cpus: 1.0
-    mem_limit: 1500m
+    mem_limit: 2500m
     pids_limit: 128
     cap_drop: [ALL]
     security_opt:
