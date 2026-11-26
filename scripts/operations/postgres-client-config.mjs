@@ -1,7 +1,7 @@
 export function postgresClientConfig(connectionString) {
-  const sslmode = new URL(connectionString).searchParams.get("sslmode");
-  return {
-    connectionString,
-    ...(sslmode === "require" ? { ssl: { rejectUnauthorized: false } } : {}),
-  };
+  const url = new URL(connectionString);
+  if (url.searchParams.get("sslmode") === "require") {
+    url.searchParams.set("uselibpqcompat", "true");
+  }
+  return { connectionString: url.toString() };
 }
