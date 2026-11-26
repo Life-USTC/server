@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import pg from "pg";
+import { postgresClientConfig } from "./postgres-client-config.mjs";
 
 function required(name) {
   const value = process.env[name]?.trim();
@@ -25,7 +26,7 @@ if (secretResult.error || secretResult.status !== 0) {
   throw new Error("Unable to provision IMPORTER_DATABASE_URL");
 }
 
-const owner = new pg.Client({ connectionString: migratorUrl });
+const owner = new pg.Client(postgresClientConfig(migratorUrl));
 try {
   await owner.connect();
   await owner.query("BEGIN");
@@ -51,7 +52,7 @@ try {
   await owner.end();
 }
 
-const importer = new pg.Client({ connectionString: secret });
+const importer = new pg.Client(postgresClientConfig(secret));
 try {
   await importer.connect();
   const result = await importer.query(
