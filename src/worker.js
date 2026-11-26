@@ -31,6 +31,8 @@ import {
   handlePublicSsrCachePurgeRequest,
   isPublicSsrCachePurgeRequest,
   PUBLIC_SSR_CACHE_PURGE_PATH,
+  PUBLIC_SSR_CACHE_PURGE_TAGS,
+  purgeCloudflareZoneCacheByTags,
   purgeEntrypointCatalogCache,
   resolvePublicSsrCachePurgeSecret,
 } from "./lib/cloudflare/public-ssr-cache-purge";
@@ -322,6 +324,8 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
       purge: () => context.exports.PublicSsr({}).purgeCatalogRepresentations(),
       request,
       secret: resolvePublicSsrCachePurgeSecret(env),
+      zonePurge: () =>
+        purgeCloudflareZoneCacheByTags(env, PUBLIC_SSR_CACHE_PURGE_TAGS),
     });
     return finish(purgeResponse, "dynamic", PUBLIC_SSR_CACHE_PURGE_PATH);
   }

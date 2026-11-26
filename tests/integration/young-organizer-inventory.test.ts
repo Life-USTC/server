@@ -110,7 +110,14 @@ it("keeps fixed inventory dispatch isolated from migration and rejects unknown o
   const provisionSteps = provision.steps as unknown[];
   expect(
     provisionSteps.map((step) => record(step).run).filter(Boolean),
-  ).toEqual(["bun scripts/operations/provision-static-importer.mjs"]);
+  ).toEqual([
+    `${[
+      "bun scripts/operations/provision-static-importer.mjs",
+      `printf '%s' "$CLOUDFLARE_ZONE_ID" | bunx wrangler secret put CLOUDFLARE_ZONE_ID`,
+      `printf '%s' "$CLOUDFLARE_API_TOKEN" | bunx wrangler secret put CLOUDFLARE_API_TOKEN`,
+      `printf '%s' "$EDGE_CACHE_PURGE_SECRET" | bunx wrangler secret put EDGE_CACHE_PURGE_SECRET`,
+    ].join("\n")}\n`,
+  ]);
   expect(JSON.stringify(provisionSteps)).not.toMatch(
     /migrate:deploy|app:prepare|load-static/,
   );

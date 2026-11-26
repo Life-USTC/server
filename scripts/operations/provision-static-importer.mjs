@@ -1,5 +1,4 @@
 import { spawnSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import pg from "pg";
 
@@ -12,7 +11,7 @@ function required(name) {
 const migratorUrl = required("MIGRATOR_DATABASE_URL");
 const repository = required("GITHUB_REPOSITORY");
 required("GH_TOKEN");
-const password = randomBytes(32).toString("base64url");
+const password = required("IMPORTER_PASSWORD");
 const importerUrl = new URL(migratorUrl);
 importerUrl.username = "life_ustc_importer";
 importerUrl.password = password;

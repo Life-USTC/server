@@ -103,8 +103,16 @@ jobs:
       - name: Provision importer role and repository secret
         env:
           MIGRATOR_DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
+          IMPORTER_PASSWORD: ${{ secrets.IMPORTER_PASSWORD }}
+          CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EDGE_CACHE_PURGE_SECRET: ${{ secrets.EDGE_CACHE_PURGE_SECRET }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bun scripts/operations/provision-static-importer.mjs
+        run: |
+          bun scripts/operations/provision-static-importer.mjs
+          printf '%s' "$CLOUDFLARE_ZONE_ID" | bunx wrangler secret put CLOUDFLARE_ZONE_ID
+          printf '%s' "$CLOUDFLARE_API_TOKEN" | bunx wrangler secret put CLOUDFLARE_API_TOKEN
+          printf '%s' "$EDGE_CACHE_PURGE_SECRET" | bunx wrangler secret put EDGE_CACHE_PURGE_SECRET
 
   inspect:
     name: Inspect fixed Young organizer aggregates

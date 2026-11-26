@@ -9,22 +9,17 @@ export async function purgeImportGeneration(
   prisma: Pick<PrismaClient, "staticImportState">,
   report: Pick<ImportReport, "outcome" | "snapshot">,
 ) {
-  const zone = process.env.CLOUDFLARE_ZONE_ID?.trim();
   const origin = process.env.APP_PUBLIC_ORIGIN?.trim();
   if (
     report.outcome === "rolled-back" ||
-    !zone ||
     !origin ||
-    !process.env.CLOUDFLARE_API_TOKEN?.trim() ||
     !process.env.EDGE_CACHE_PURGE_SECRET?.trim()
   ) {
     return runPostImportCachePurge(report);
   }
 
   const target = createHash("sha256")
-    .update(
-      JSON.stringify([zone, new URL(origin).origin, CATALOG_EDGE_CACHE_TAG]),
-    )
+    .update(JSON.stringify([new URL(origin).origin, CATALOG_EDGE_CACHE_TAG]))
     .digest("hex");
   const id = `purge:catalog:${target}`;
   const state = prisma.staticImportState;

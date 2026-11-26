@@ -35,16 +35,16 @@ STATIC_IMPORT_WEBHOOK_SECRET=use-a-long-random-secret
 
 ```sh
 DATABASE_URL=postgresql://life_ustc_importer:...@127.0.0.1:5432/life_ustc
-CLOUDFLARE_ZONE_ID=...
-CLOUDFLARE_API_TOKEN=...
 APP_PUBLIC_ORIGIN=https://life-ustc.tiankaima.dev
 EDGE_CACHE_PURGE_SECRET=...
 ```
 
 Keep both files root-owned with mode `0600`. The webhook container receives only
-its HMAC secret. The worker receives only the importer and purge settings.
-Database schema deployment remains with DB Migrate Deploy; the importer has no
-migration credentials.
+its HMAC secret. The worker receives only the importer and purge settings. The
+Cloudflare zone ID and API token remain Worker secrets; the authenticated
+internal endpoint purges both the zone and Workers entrypoint caches. Database
+schema deployment remains with DB Migrate Deploy; the importer has no migration
+credentials.
 
 Publish the webhook through the host TLS reverse proxy without exposing the
 container port publicly. Configure the static repository with:
