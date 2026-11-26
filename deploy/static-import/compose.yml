@@ -58,7 +58,14 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
+    networks:
+      - database
     restart: always
+
+networks:
+  database:
+    name: ${STATIC_IMPORT_DATABASE_NETWORK:-postgres_default}
+    external: true
 
 volumes:
   queue:
