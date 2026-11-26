@@ -44,6 +44,7 @@ services:
     environment:
       STATIC_IMPORT_QUEUE_DIR: /data
       STATIC_SNAPSHOT_CACHE_DIR: /cache
+      SQLITE_TMPDIR: /cache
       STATIC_SNAPSHOT_MANIFEST_URL: https://static.life-ustc.tiankaima.dev/snapshot-manifest.json
       STATIC_LOADER_DRY_RUN: "false"
     volumes:

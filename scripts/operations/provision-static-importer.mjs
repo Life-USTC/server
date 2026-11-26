@@ -42,6 +42,10 @@ try {
       "'",
   );
   await owner.query(
+    "DO $grant$ BEGIN EXECUTE format('GRANT CONNECT ON DATABASE %I TO life_ustc_importer', current_database()); END $grant$",
+  );
+  await owner.query("GRANT USAGE ON SCHEMA public TO life_ustc_importer");
+  await owner.query(
     readFileSync("prisma/roles/importer-table-grants.sql", "utf8"),
   );
   await owner.query("COMMIT");

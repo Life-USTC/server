@@ -12,8 +12,10 @@ same locally built image. No Bun or Python application is installed on the host.
   manifest every five minutes. The existing import lock and manifest generation
   checks remain authoritative across other importers.
 - The queue is a named Docker volume. Snapshot bytes use a separate bounded
-  cache volume. Both containers have read-only root filesystems, no Linux
-  capabilities, and independent CPU, memory, and PID limits. Only the worker
+  cache volume, which also holds SQLite temporary files so snapshot sorts do
+  not fill the small `/tmp` tmpfs. Both containers have read-only root
+  filesystems, no Linux capabilities, and independent CPU, memory, and PID
+  limits. Only the worker
   joins the external `postgres_default` database network; the webhook does not.
 - `static-import-update.timer` fast-forwards the deployment checkout, builds
   `life-ustc-static-import:local` with Docker BuildKit, and recreates changed
