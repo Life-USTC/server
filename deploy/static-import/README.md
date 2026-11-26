@@ -13,7 +13,8 @@ same locally built image. No Bun or Python application is installed on the host.
   checks remain authoritative across other importers.
 - The queue is a named Docker volume. Snapshot bytes use a separate bounded
   cache volume. Both containers have read-only root filesystems, no Linux
-  capabilities, and independent CPU, memory, and PID limits.
+  capabilities, and independent CPU, memory, and PID limits. Only the worker
+  joins the external `postgres_default` database network; the webhook does not.
 - `static-import-update.timer` fast-forwards the deployment checkout, builds
   `life-ustc-static-import:local` with Docker BuildKit, and recreates changed
   containers every five minutes. It needs no registry credential and never
@@ -34,17 +35,17 @@ STATIC_IMPORT_WEBHOOK_SECRET=use-a-long-random-secret
 `/etc/life-ustc-static-import/importer.env`:
 
 ```sh
-DATABASE_URL=postgresql://life_ustc_importer:...@127.0.0.1:5432/life_ustc
-CLOUDFLARE_ZONE_ID=...
-CLOUDFLARE_API_TOKEN=...
+DATABASE_URL=postgresql://life_ustc_importer:...@postgres:5432/life-ustc
 APP_PUBLIC_ORIGIN=https://life-ustc.tiankaima.dev
 EDGE_CACHE_PURGE_SECRET=...
 ```
 
 Keep both files root-owned with mode `0600`. The webhook container receives only
-its HMAC secret. The worker receives only the importer and purge settings.
-Database schema deployment remains with DB Migrate Deploy; the importer has no
-migration credentials.
+its HMAC secret. The worker receives only the importer and purge settings. The
+Cloudflare zone ID and API token remain Worker secrets; the authenticated
+internal endpoint purges both the zone and Workers entrypoint caches. Database
+schema deployment remains with DB Migrate Deploy; the importer has no migration
+credentials.
 
 Publish the webhook through the host TLS reverse proxy without exposing the
 container port publicly. Configure the static repository with:

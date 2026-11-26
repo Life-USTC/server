@@ -40,8 +40,6 @@ it("rendering-and-cache.cache-layers-and-invalidation-6", async () => {
       STATIC_SNAPSHOT_PATH: snapshot,
       STATIC_LOADER_STATS_FILE: stats,
       STATIC_LOADER_DRY_RUN: "false",
-      CLOUDFLARE_ZONE_ID: "zone-1",
-      CLOUDFLARE_API_TOKEN: "test-token",
       APP_PUBLIC_ORIGIN: "https://life-ustc.test",
       EDGE_CACHE_PURGE_SECRET: "test-purge-secret",
     }))
@@ -70,7 +68,7 @@ it("rendering-and-cache.cache-layers-and-invalidation-6", async () => {
     await vi.waitFor(() => expect(disconnect).toHaveBeenCalledTimes(1));
     expect(process.exitCode).toBe(1);
     expect(JSON.parse(await readFile(stats, "utf8"))).toEqual(report);
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(1);
 
     vi.resetModules();
     expect(upsert).not.toHaveBeenCalled();
@@ -81,16 +79,10 @@ it("rendering-and-cache.cache-layers-and-invalidation-6", async () => {
     await import("@/static-loader/cli");
     await vi.waitFor(() => expect(disconnect).toHaveBeenCalledTimes(2));
     expect(process.exitCode).toBe(0);
-    expect(fetch).toHaveBeenCalledTimes(4);
-    for (const calls of [
-      fetch.mock.calls.slice(0, 2),
-      fetch.mock.calls.slice(2),
-    ]) {
-      expect(calls.map(([url]) => String(url))).toEqual(
-        expect.arrayContaining([
-          "https://api.cloudflare.com/client/v4/zones/zone-1/purge_cache",
-          `https://life-ustc.test${PUBLIC_SSR_CACHE_PURGE_PATH}`,
-        ]),
+    expect(fetch).toHaveBeenCalledTimes(2);
+    for (const [input] of fetch.mock.calls) {
+      expect(String(input)).toBe(
+        `https://life-ustc.test${PUBLIC_SSR_CACHE_PURGE_PATH}`,
       );
     }
     expect(upsert).toHaveBeenCalledTimes(1);
@@ -101,7 +93,7 @@ it("rendering-and-cache.cache-layers-and-invalidation-6", async () => {
     await import("@/static-loader/cli");
     await vi.waitFor(() => expect(disconnect).toHaveBeenCalledTimes(3));
     expect(process.exitCode).toBe(0);
-    expect(fetch).toHaveBeenCalledTimes(4);
+    expect(fetch).toHaveBeenCalledTimes(2);
     expect(runImport.mock.calls[0][1].snapshotSha256).toBe(
       runImport.mock.calls[1][1].snapshotSha256,
     );
