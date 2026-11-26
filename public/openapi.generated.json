@@ -34269,6 +34269,12 @@
             "type": "string",
             "minLength": 1
           },
+          "revisionPolicy": {
+            "type": "string",
+            "enum": [
+              "missingOnly"
+            ]
+          },
           "sources": {
             "minItems": 1,
             "maxItems": 500,

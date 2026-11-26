@@ -33,6 +33,7 @@
     "db:generate": "prisma generate",
     "db:migrate:deploy": "prisma migrate deploy",
     "static:load": "bun run src/static-loader/cli.ts",
+    "static:load:manifest": "bun run src/static-loader/manifest-cli.ts",
     "e2e:test": "playwright test",
     "rest:test": "playwright test --config playwright.api.config.ts",
     "hooks:install": "git config core.hooksPath .githooks",

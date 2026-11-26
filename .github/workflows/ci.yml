@@ -44,6 +44,10 @@ jobs:
         run: bash tests/ci/seed-guard.test.sh
       - name: Verify RLS metadata collector safety
         run: python3 scripts/operations/test_rls_metadata_audit.py
+      - name: Test static import webhook and worker runtime
+        run: python3 -m unittest discover -s deploy/static-import/tests -p 'test_*.py'
+      - name: Build static import image
+        run: docker build --file deploy/static-import/Dockerfile --tag life-ustc-static-import:ci .
       - name: Generate application, database, and Worker types
         run: bun run app:prepare
       - name: Check formatting and lint

@@ -10,6 +10,7 @@ on:
         default: deploy
         options:
           - deploy
+          - provision-importer
           - inspect-young-organizers
   push:
     branches:
@@ -40,7 +41,7 @@ jobs:
           OPERATION: ${{ github.event_name == 'push' && 'deploy' || inputs.operation }}
         run: |
           case "$OPERATION" in
-            deploy|inspect-young-organizers)
+            deploy|provision-importer|inspect-young-organizers)
               echo "operation=$OPERATION" >> "$GITHUB_OUTPUT"
               ;;
             *)
@@ -78,6 +79,32 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
         run: bun run db:migrate:deploy
+
+  provision-importer:
+    needs: validate
+    name: Provision restricted static importer
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: >-
+      github.repository == 'Life-USTC/server' &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      needs.validate.outputs.operation == 'provision-importer'
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+      - name: Provision importer role and repository secret
+        env:
+          MIGRATOR_DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun scripts/operations/provision-static-importer.mjs
 
   inspect:
     name: Inspect fixed Young organizer aggregates

@@ -199,6 +199,16 @@ async function importSnapshot(
     completeness.sectionJwIds,
     sections.map((section) => section.jwId),
   );
+  snapshot.clearCachedRows([
+    "catalog_teach_lesson_list_for_teach",
+    "catalog_teach_lesson_list_for_teach_course",
+    "catalog_teach_lesson_list_for_teach_openDepartment",
+    "catalog_teach_lesson_list_for_teach_examMode",
+    "catalog_teach_lesson_list_for_teach_teachLang",
+    "catalog_teach_lesson_list_for_teach_dateTimePlacePersonText",
+    "catalog_teach_lesson_list_for_teach_adminClasses",
+    "catalog_teach_lesson_list_for_teach_teacherAssignmentList",
+  ]);
   const departmentPlaceholders = collectCodeOnlyDepartmentPlaceholders(
     departments,
     sections,
@@ -212,6 +222,7 @@ async function importSnapshot(
       teacherAssignments,
       adminClassSectionPairs,
     );
+  snapshot.clearCachedRows();
 
   for (const pair of scheduleInfrastructureTeacherPairs) {
     sectionTeacherPairs.push(pair);
@@ -290,8 +301,6 @@ async function importSnapshot(
   groupDigests.set(sectionCoreGroup, importGroupDigest([[...groupDigests]]));
   const youngEvents = loadYoungEvents(snapshot);
   const youngSyncedAt = youngSnapshotSyncedAt(snapshot);
-  // The write phase needs only mapped records, not the full raw history.
-  snapshot.clearCachedRows();
   const plannedRecordCounts: ImportRecordCounts = {
     semesters: semesters.length,
     departments: departments.length + departmentPlaceholders.length,
