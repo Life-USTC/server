@@ -1,3 +1,4 @@
+import { parse } from "pg-connection-string";
 import { describe, expect, it } from "vitest";
 import { postgresClientConfig } from "../../../../scripts/operations/postgres-client-config.mjs";
 
@@ -5,10 +6,13 @@ describe("postgresClientConfig", () => {
   it("uses libpq require semantics for encrypted self-signed connections", () => {
     const connectionString =
       "postgresql://user:password@db.example.test/life-ustc?sslmode=require";
+    const config = postgresClientConfig(connectionString);
 
-    expect(postgresClientConfig(connectionString)).toEqual({
-      connectionString,
-      ssl: { rejectUnauthorized: false },
+    expect(config).toEqual({
+      connectionString: `${connectionString}&uselibpqcompat=true`,
+    });
+    expect(parse(config.connectionString).ssl).toEqual({
+      rejectUnauthorized: false,
     });
   });
 
