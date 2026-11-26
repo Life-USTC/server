@@ -35,7 +35,7 @@ STATIC_IMPORT_WEBHOOK_SECRET=use-a-long-random-secret
 `/etc/life-ustc-static-import/importer.env`:
 
 ```sh
-DATABASE_URL=postgresql://life_ustc_importer:...@postgres:5432/life_ustc
+DATABASE_URL=postgresql://life_ustc_importer:...@postgres:5432/life-ustc
 APP_PUBLIC_ORIGIN=https://life-ustc.tiankaima.dev
 EDGE_CACHE_PURGE_SECRET=...
 ```
