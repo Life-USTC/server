@@ -9,6 +9,15 @@ describe("complete subscribed exam pages", () => {
   }) => {
     await protocolRuntime.run(async () => {
       const { users, examIds, read } = exams;
+      const empty = await read(users[1], {
+        semesterId: String(exams.semesterIds[1]),
+        page: "2",
+        pageSize: "2",
+      });
+      expect(empty).toEqual({
+        data: [],
+        pagination: { page: 2, pageSize: 2, total: 0, totalPages: 1 },
+      });
       const first = await read(users[0], { pageSize: "2" });
       const second = await read(users[0], { page: "2", pageSize: "2" });
       expect(first.pagination).toEqual({

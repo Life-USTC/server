@@ -188,6 +188,18 @@ describe("buildSectionDetailTabPanelSsrState", () => {
 });
 
 describe("sectionTeachersIncludeDepartments", () => {
+  it("seeds explicit null departments and fetches incomplete mixed payloads", () => {
+    const data = basePageData();
+    const teacher = { id: 1, department: null };
+    data.section.teachers = [teacher];
+    expect(getSsrLoadedSectionDetailTabs(data)).toContain("teachers");
+    data.section.teachers = [
+      { id: 2, department: { namePrimary: "CS" } },
+      { id: 3 },
+    ];
+    expect(getSsrLoadedSectionDetailTabs(data)).not.toContain("teachers");
+  });
+
   it("detects department-expanded teacher payloads", () => {
     expect(
       sectionTeachersIncludeDepartments([

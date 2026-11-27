@@ -7,6 +7,8 @@ import SectionBasicInfoDetails from "@/features/section-detail/components/Sectio
 import SectionBasicInfoRelatedSections from "@/features/section-detail/components/SectionBasicInfoRelatedSections.svelte";
 import SectionTeachersCard from "@/features/section-detail/components/SectionTeachersCard.svelte";
 import { detailPageModule } from "@/features/section-detail/lib/detail-page-module.svelte";
+import { getShellViewer } from "@/lib/shell/shell-viewer";
+import { page } from "$app/state";
 import SectionDetailRoute from "../SectionDetailRoute.svelte";
 import type { ActionData, PageData } from "./$types";
 
@@ -15,6 +17,7 @@ const module = detailPageModule(
   () => import("@/features/descriptions/components/DescriptionCard.svelte"),
 );
 const DescriptionCard = $derived(module.component);
+const shellViewer = getShellViewer();
 const commentsModule = detailPageModule(
   () => import("@/features/comments/components/CommentsPanel.svelte"),
 );
@@ -64,7 +67,7 @@ const CommentsPanel = $derived(commentsModule.component);
       </div>
     <section id="comments" class="scroll-mt-4 min-w-0">
       {#key `comments:section:${data.section.id}`}
-        {#if CommentsPanel}
+        {#if CommentsPanel && ($shellViewer.status !== "loading" || page.url.hash === "#comments")}
           <CommentsPanel
             initialData={data.commentsData}
             targetType="section"

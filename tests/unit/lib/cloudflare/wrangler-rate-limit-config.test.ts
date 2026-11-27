@@ -42,6 +42,7 @@ describe("Wrangler mutation rate-limit bindings", () => {
         "!/images/*",
         "!/static/*",
         "!/openapi.generated.json",
+        "!/favicon.ico",
         "!/open-graph.png",
       ]);
     },

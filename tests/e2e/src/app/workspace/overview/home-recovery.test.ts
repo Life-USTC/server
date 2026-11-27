@@ -4,7 +4,10 @@ import type { HomeCampusNow } from "@/features/workspace/server/anonymous-home-s
 import { arrangeBusTimetable } from "../../../../../shared/bus-timetable";
 import { observeAction } from "../../../../utils/observed-action";
 import { test } from "../../../../utils/owned-page";
-import { expectNoPageHorizontalOverflow } from "../../../../utils/page-ready";
+import {
+  expectNoPageHorizontalOverflow,
+  waitForUiSettled,
+} from "../../../../utils/page-ready";
 
 for (const locale of ["en-us", "zh-cn"]) {
   for (const width of [1280, 390]) {
@@ -79,6 +82,7 @@ for (const locale of ["en-us", "zh-cn"]) {
                 },
               ]);
               const response = await page.goto("/");
+              await waitForUiSettled(page);
               expect(response?.status()).toBe(200);
               expect(response?.headers()["cache-control"]).toContain(
                 "no-store",
@@ -155,6 +159,7 @@ for (const locale of ["en-us", "zh-cn"]) {
               );
               publicationRevoked = true;
               await page.reload();
+              await waitForUiSettled(page);
               await expect(retry).toBeVisible();
               await expect
                 .poll(() =>
@@ -190,6 +195,7 @@ for (const locale of ["en-us", "zh-cn"]) {
               );
               expect((await failedBus.json()).bus).toBeNull();
               await page.goto("/");
+              await waitForUiSettled(page);
               const busRetry = page
                 .getByTestId("home-bus")
                 .getByRole("button", {

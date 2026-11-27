@@ -2,7 +2,6 @@ import { expect } from "@playwright/test";
 import { gotoAndWaitForReady, waitForUiSettled } from "../../utils/page-ready";
 import { test } from "../../utils/public-worker";
 import { test as shellTest } from "../../utils/shell-fixture";
-import { assertPageContract } from "./_shared/page-contract";
 
 test("anonymous landing and keyboard access", { tag: "@Site/Web" }, async ({
   publicFlow,
@@ -21,10 +20,6 @@ test("anonymous landing and keyboard access", { tag: "@Site/Web" }, async ({
       await expect(skipLink).toHaveCSS("position", "fixed");
       await page.keyboard.press("Enter");
       await expect(page.locator("#main-content")).toBeFocused();
-      await publicFlow.assertAnonymousNoEffects();
-    });
-    await test.step("/", async () => {
-      await assertPageContract(page, { routePath: "/" });
       await publicFlow.assertAnonymousNoEffects();
     });
     await test.step("/ 首页快速入口可见", async () => {

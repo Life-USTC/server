@@ -205,8 +205,12 @@ test("ui.context-tabs-3", { tag: "@Site/Web" }, async ({
       await page.keyboard.press("Enter");
       await expect(page).toHaveURL(new RegExp(`${paths[0]}$`));
       for (let index = 0; index < paths.length; index++) {
-        if (width < 768 && !(await nav.isVisible()))
+        if (width < 768) {
+          // Activating a link closes the mobile drawer. Its exit animation can
+          // leave the old links visible after the destination URL has changed.
+          await expect(nav).toBeHidden();
           await page.locator('[data-slot="sidebar-trigger"]:visible').click();
+        }
         const active = nav.locator('[aria-current="page"]');
         await expect(active).toHaveCount(1);
         await expect(active).toHaveAttribute("href", paths[index]);

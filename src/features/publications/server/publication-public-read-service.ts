@@ -5,10 +5,10 @@ import {
   type PublicationSourceOrganizationLevel,
 } from "@/features/publications/lib/publication-source-levels";
 import { Prisma } from "@/generated/prisma/client";
-import { renderEmbeddedMarkdown } from "@/lib/components/markdown-preview-renderer";
 import { prisma } from "@/lib/db/prisma";
 import { normalizePagination, type PaginationInput } from "@/lib/pagination";
 import { getCloudflareR2PublicationsBucket } from "@/lib/ports/runtime";
+import { renderPublicationBody } from "./publication-body-render";
 import { publicationObjectKey } from "./publication-ingestion-service";
 
 const PUBLIC_PUBLICATION_TYPES = ["news", "notice"] as const;
@@ -30,7 +30,12 @@ function isPublicPublicationType(
   );
 }
 
-const PUBLICATION_READ_INCLUDE = {
+const PUBLICATION_DETAIL_SELECT = {
+  id: true,
+  canonicalUrl: true,
+  publicationType: true,
+  normalizedTitle: true,
+  publishedDateShanghai: true,
   source: {
     select: {
       id: true,
@@ -51,7 +56,12 @@ const PUBLICATION_READ_INCLUDE = {
         },
       },
       objectLinks: {
-        include: {
+        select: {
+          role: true,
+          sortOrder: true,
+          altText: true,
+          filename: true,
+          sourceUrl: true,
           object: {
             select: {
               kind: true,
@@ -67,7 +77,7 @@ const PUBLICATION_READ_INCLUDE = {
       },
     },
   },
-} satisfies Prisma.PublicationInclude;
+} satisfies Prisma.PublicationSelect;
 
 // Lists need revision metadata and object links, but never article bodies or
 // raw crawler metadata. Keep the wide read for the detail endpoint only.
@@ -75,7 +85,7 @@ const PUBLICATION_LIST_SELECT = {
   id: true,
   canonicalUrl: true,
   publicationType: true,
-  source: PUBLICATION_READ_INCLUDE.source,
+  source: PUBLICATION_DETAIL_SELECT.source,
   currentRevision: {
     select: {
       id: true,
@@ -93,7 +103,8 @@ const PUBLICATION_LIST_SELECT = {
       category: true,
       summary: true,
       sourcePageUrl: true,
-      objectLinks: PUBLICATION_READ_INCLUDE.currentRevision.include.objectLinks,
+      objectLinks:
+        PUBLICATION_DETAIL_SELECT.currentRevision.include.objectLinks,
     },
   },
 } satisfies Prisma.PublicationSelect;
@@ -715,10 +726,10 @@ export async function getPublicPublicationById(
 ) {
   const record = await prisma.publication.findFirst({
     where: { id, ...publicPublicationWhere() },
-    include: {
-      ...PUBLICATION_READ_INCLUDE,
+    select: {
+      ...PUBLICATION_DETAIL_SELECT,
       currentRevision: {
-        ...PUBLICATION_READ_INCLUDE.currentRevision,
+        ...PUBLICATION_DETAIL_SELECT.currentRevision,
         omit: { bodyText: !includeBodyText, rawMetadata: true },
       },
     },
@@ -746,7 +757,7 @@ export async function getPublicPublicationById(
     publicationType: publication.publicationType,
     source: publication.source,
     renderedBodyHtml: bodyMarkdown
-      ? annotatePublicationImages(renderEmbeddedMarkdown(bodyMarkdown), images)
+      ? annotatePublicationImages(renderPublicationBody(bodyMarkdown), images)
       : "",
     revision: {
       ...publication.revision,

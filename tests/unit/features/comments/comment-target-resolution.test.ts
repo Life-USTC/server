@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  sectionQueryMock,
   courseFindUniqueMock,
   homeworkFindUniqueMock,
   youngEventFindUniqueMock,
@@ -9,6 +10,7 @@ const {
   teacherFindUniqueMock,
   writeCommentsStageAnalyticsMock,
 } = vi.hoisted(() => ({
+  sectionQueryMock: vi.fn(),
   courseFindUniqueMock: vi.fn(),
   homeworkFindUniqueMock: vi.fn(),
   youngEventFindUniqueMock: vi.fn(),
@@ -20,6 +22,7 @@ const {
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
+    $queryRaw: sectionQueryMock,
     course: { findUnique: courseFindUniqueMock },
     homework: { findUnique: homeworkFindUniqueMock },
     youngEvent: { findUnique: youngEventFindUniqueMock },
@@ -40,12 +43,14 @@ describe("comment list target resolution", () => {
   });
 
   it("selects direct section metadata as part of the existence read", async () => {
-    sectionFindUniqueMock.mockResolvedValue({
-      code: "CS101",
-      course: { jwId: 1001, nameCn: "Algorithms" },
-      id: 7,
-      jwId: 2001,
-    });
+    sectionQueryMock.mockResolvedValue([
+      {
+        code: "CS101",
+        course: { jwId: 1001, nameCn: "Algorithms" },
+        id: 7,
+        jwId: 2001,
+      },
+    ]);
 
     const { resolveCommentTargetReference } = await import(
       "@/features/comments/server/comment-target-resolution"
@@ -75,7 +80,7 @@ describe("comment list target resolution", () => {
         },
       },
     });
-    expect(sectionFindUniqueMock).toHaveBeenCalledOnce();
+    expect(sectionQueryMock).toHaveBeenCalledOnce();
     expect(writeCommentsStageAnalyticsMock).toHaveBeenCalledWith(
       expect.objectContaining({
         dbContext: "none",
@@ -89,7 +94,7 @@ describe("comment list target resolution", () => {
 
     if (!resolved.ok) throw new Error("target should resolve");
     await commentListTargetPayload("section", resolved.target);
-    expect(sectionFindUniqueMock).toHaveBeenCalledOnce();
+    expect(sectionQueryMock).toHaveBeenCalledOnce();
     expect(writeCommentsStageAnalyticsMock).toHaveBeenCalledWith(
       expect.objectContaining({
         dbContext: "none",

@@ -40,6 +40,7 @@
       "!/images/*",
       "!/static/*",
       "!/openapi.generated.json",
+      "!/favicon.ico",
       "!/open-graph.png"
     ]
   },

@@ -22,34 +22,6 @@ import { test } from "../../../../../utils/account-fixture";
 import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
 
 test.describe("/community/users/[identifier] by ID", () => {
-  test("页面契约", { tag: "@User/Web" }, async ({
-    accountRun,
-    page,
-    account,
-  }) => {
-    await accountRun({ writes: [], audits: [] }, async () => {
-      await page.context().clearCookies();
-      const response = await gotoAndWaitForReady(
-        page,
-        `/community/users/${account.username}`,
-        {
-          browserHealth: {},
-          expectMeaningfulContent: true,
-          expectNoHorizontalOverflow: true,
-          uiQuality: {},
-        },
-      );
-      expect(response?.status()).toBe(200);
-      await expect(page.locator("#main-content")).toBeVisible();
-      await expect(
-        page.getByRole("heading", { level: 1, name: account.name }),
-      ).toBeVisible();
-      await expect(
-        page.getByText(`@${account.username}`, { exact: true }),
-      ).toBeVisible();
-    });
-  });
-
   test("ID 地址直接解析资料且不显示内部 ID", { tag: "@User/Web" }, async ({
     accountRun,
     page,

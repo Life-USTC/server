@@ -173,6 +173,7 @@ export default defineConfig(({ command }) => ({
     scalarEmbeddedReferencePlugin(),
     tailwindcss(),
     sveltekit({
+      inlineStyleThreshold: 1024,
       preprocess: vitePreprocess(),
       adapter: adapterCloudflare({
         config: "wrangler.adapter.jsonc",

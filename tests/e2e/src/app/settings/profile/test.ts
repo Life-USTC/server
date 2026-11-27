@@ -261,7 +261,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
   });
 });
 
-test("页面契约", { tag: "@Account/Web" }, async ({
+test("ui.settings-navigation-2", { tag: "@Account/Web" }, async ({
   accountRun,
   page,
   account: _account,

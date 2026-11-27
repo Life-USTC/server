@@ -276,7 +276,16 @@ test.describe("/catalog/rooms 教室地图", () => {
           },
         });
       });
-      await page.goto(`/catalog/rooms?room=${ROOM_CODE}`);
+      const [failedResponse] = await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname ===
+            `/api/catalog/rooms/${ROOM_CODE}/map`,
+        ),
+        gotoAndWaitForReady(page, `/catalog/rooms?room=${ROOM_CODE}`),
+      ]);
+      expect(failedResponse.status()).toBe(503);
+      await failedResponse.finished();
       const result = page.getByTestId("room-map-preview");
       await expect(result.getByRole("alert")).toBeVisible();
       await page
