@@ -3,14 +3,11 @@ import { DEMO_EXIT_PATH } from "#lib/auth/demo-request-signal.js";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import type { DemoView } from "@/features/demo/lib/demo-types";
+import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
 
 let { demo, locale }: { demo: DemoView; locale: string } = $props();
 let referenceTime = $derived(
-  new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Shanghai",
-  }).format(new Date(demo.referenceNow)),
+  campusTimestampFormatter(locale).format(new Date(demo.referenceNow)),
 );
 </script>
 

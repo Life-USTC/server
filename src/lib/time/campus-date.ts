@@ -21,7 +21,7 @@ function dateKeyParts(key: string) {
   return { day, month, year };
 }
 
-function resolveCampusDate(value: CampusDateValue) {
+export function resolveCampusDate(value: CampusDateValue) {
   if (value === null || value === undefined) return null;
   if (value instanceof Date) {
     return Number.isNaN(value.getTime()) ? null : value;
@@ -51,18 +51,22 @@ export function requireCampusDateKeyForValue(value: CampusDateValue) {
   return key;
 }
 
-export function parseCampusDateKey(key: string) {
+function validatedCampusDate(key: string) {
   if (!DATE_KEY_PATTERN.test(key)) return null;
   const parsed = parseDateInput(key);
   if (!(parsed instanceof Date)) return null;
-  if (formatShanghaiDate(parsed) !== key) return null;
-  return shanghaiDayjs(parsed).startOf("day");
+  return formatShanghaiDate(parsed) === key ? parsed : null;
+}
+
+export function parseCampusDateKey(key: string) {
+  const date = validatedCampusDate(key);
+  return date ? shanghaiDayjs(date).startOf("day") : null;
 }
 
 export function isCampusDateKey(
   value: string | null | undefined,
 ): value is string {
-  return Boolean(value && parseCampusDateKey(value));
+  return Boolean(value && validatedCampusDate(value));
 }
 
 export function isCampusMonthKey(
@@ -108,10 +112,10 @@ export function campusWeekKeys(startKey: string) {
 
 export function campusMonthGridKeys(monthKey: string) {
   const first = `${monthKey}-01`;
-  const start = campusWeekStartKey(first);
+  const start = requireCampusDateKey(campusWeekStartKey(first));
   return Array.from({ length: 6 }, (_, weekIndex) =>
     Array.from({ length: 7 }, (_, dayIndex) =>
-      addCampusDays(start, weekIndex * 7 + dayIndex),
+      start.add(weekIndex * 7 + dayIndex, "day").format(APP_DATE_ONLY_FORMAT),
     ),
   );
 }

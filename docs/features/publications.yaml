@@ -434,6 +434,18 @@ requirements:
     test:
       file: tests/integration/publication-ingestion-contracts.test.ts
       name: publications.revision-ordering
+- id: publications.missing-only-repair
+  category: consistency
+  rule: An explicit revisionPolicy=missingOnly repair batch creates publications that are absent but never moves an existing publication's current revision or observation fields. Ordinary batches omit revisionPolicy and retain observedAt ordering. Redelivery of an already current revision still re-registers missing object claims.
+  acceptance:
+    given: An existing publication and a missing-only batch containing different stale content with a later observation timestamp, followed by a missing-only batch for a new canonical URL.
+    when: Ingest both repair batches and inspect publication and revision state.
+    then:
+    - Existing title, current revision and revision count remain unchanged and the stale item is reported unchanged.
+    - The previously missing publication is created normally.
+    test:
+      file: tests/integration/publication-ingestion-contracts.test.ts
+      name: publications.missing-only-repair
 - id: publications.tombstones
   category: consistency
   rule: 'Deletion is explicit: a tombstone item creates a tombstone revision for an existing publication

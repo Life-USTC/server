@@ -1,6 +1,5 @@
 <script lang="ts">
 import BusFrontIcon from "@lucide/svelte/icons/bus-front";
-import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import CloudSunIcon from "@lucide/svelte/icons/cloud-sun";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
@@ -12,6 +11,7 @@ import type { HomeCampusNow } from "@/features/workspace/server/anonymous-home-s
 import type { AppLocale } from "@/i18n/config";
 import { HOME_CAMPUS_NOW_PATH } from "@/lib/navigation/internal-routes";
 import { browser } from "$app/env";
+import HomeSection from "./HomeSection.svelte";
 
 /**
  * The shuttle board and weather tiles on `/`.
@@ -56,19 +56,6 @@ let {
 
 const shellViewer = getShellViewer();
 const readEpoch = $derived(homePublicReadEpoch($shellViewer, demo));
-let weatherResponse = $state<HomeCampusNow["weather"] | undefined>();
-let busResponse = $state<HomeCampusNow["bus"] | undefined>();
-let weatherEpoch = $state("");
-let busEpoch = $state("");
-const weather = $derived(
-  readEpoch && weatherEpoch === readEpoch ? weatherResponse : undefined,
-);
-const bus = $derived(
-  readEpoch && busEpoch === readEpoch ? busResponse : undefined,
-);
-let weatherRetry = $state(0);
-let busRetry = $state(0);
-
 async function readCampusNow(
   section: "weather" | "bus",
   controller: AbortController,
@@ -81,90 +68,43 @@ async function readCampusNow(
   if (!response.ok) throw new Error(`campus-now ${response.status}`);
   return (await response.json()) as HomeCampusNow;
 }
-$effect(() => {
-  void weatherRetry;
-  void locale;
-  const epoch = readEpoch;
-  if (!browser) return;
-  weatherResponse = undefined;
-  weatherEpoch = "";
-  if (!epoch) return;
-  const controller = new AbortController();
-  void readCampusNow("weather", controller).then(
-    (body) => {
-      if (!controller.signal.aborted && readEpoch === epoch) {
-        weatherResponse = body.weather;
-        weatherEpoch = epoch;
-      }
-    },
-    () => {
-      if (!controller.signal.aborted && readEpoch === epoch) {
-        weatherResponse = null;
-        weatherEpoch = epoch;
-      }
-    },
-  );
-  return () => controller.abort();
-});
-$effect(() => {
-  void busRetry;
-  void locale;
-  const epoch = readEpoch;
-  if (!browser) return;
-  busResponse = undefined;
-  busEpoch = "";
-  if (!epoch) return;
-  const controller = new AbortController();
-  void readCampusNow("bus", controller).then(
-    (body) => {
-      if (!controller.signal.aborted && readEpoch === epoch) {
-        busResponse = body.bus;
-        busEpoch = epoch;
-      }
-    },
-    () => {
-      if (!controller.signal.aborted && readEpoch === epoch) {
-        busResponse = null;
-        busEpoch = epoch;
-      }
-    },
-  );
-  return () => controller.abort();
-});
+function campusBoard<K extends "weather" | "bus">(section: K) {
+  let attempt = $state(0);
+  let result = $state<{ epoch: string; value: HomeCampusNow[K] | null }>();
 
-/**
- * Rows past the compact count are shipped to every viewport and revealed by the
- * breakpoint, so a phone keeps the list it had while a wide canvas fills the
- * column it already owns.
- */
-function overflowClass(index: number, shown: string, hidden: string): string {
-  return index < HOME_COMPACT_ITEM_COUNT ? shown : hidden;
+  $effect(() => {
+    void attempt;
+    void locale;
+    const epoch = readEpoch;
+    result = undefined;
+    if (!browser || !epoch) return;
+    const controller = new AbortController();
+    function publish(value: HomeCampusNow[K] | null) {
+      if (!controller.signal.aborted && readEpoch === epoch)
+        result = { epoch, value };
+    }
+    void readCampusNow(section, controller).then(
+      (body) => publish(body[section]),
+      () => publish(null),
+    );
+    return () => controller.abort();
+  });
+
+  return {
+    get value() {
+      return result && result.epoch === readEpoch ? result.value : undefined;
+    },
+    retry() {
+      attempt += 1;
+    },
+  };
 }
-</script>
 
-{#snippet heading(
-  title: string,
-  icon: typeof CloudSunIcon,
-  viewAllHref: string,
-  viewAllLabel: string,
-)}
-  {@const Icon = icon}
-  <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-    <h3 class="flex min-w-0 items-center gap-2 font-semibold text-base tracking-tight">
-      <Icon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-      <span class="min-w-0 truncate">{title}</span>
-    </h3>
-    <Button
-      class="h-auto min-h-6 gap-0.5 px-0 text-muted-foreground md:min-h-6"
-      href={viewAllHref}
-      size="sm"
-      variant="link"
-    >
-      {viewAllLabel}
-      <ChevronRightIcon class="size-4" aria-hidden="true" />
-    </Button>
-  </div>
-{/snippet}
+const weatherBoard = campusBoard("weather");
+const busBoard = campusBoard("bus");
+const weather = $derived(weatherBoard.value);
+const bus = $derived(busBoard.value);
+</script>
 
 {#snippet note(message: string)}
   <p class="text-muted-foreground text-sm">{message}</p>
@@ -216,11 +156,12 @@ function overflowClass(index: number, shown: string, hidden: string): string {
     board beside it had more rows than the weather had readings.
   -->
   <div class="grid min-w-0 items-start gap-3 sm:grid-cols-2">
-    <div class="grid min-w-0 content-start gap-2 rounded-xl border p-4" data-testid="home-weather" aria-busy={weather === undefined}>
-      {@render heading(weatherTitle, CloudSunIcon, "/catalog/weather", campusNow.weatherViewAll)}
+    <HomeSection nested testId="home-weather" busy={weather === undefined}
+      title={weatherTitle} icon={CloudSunIcon} href="/catalog/weather" linkLabel={campusNow.weatherViewAll}
+    >
       {#if weather === null || weather?.length === 0}
         {@render note(campusNow.weatherUnavailable)}
-        <Button class="justify-self-start" variant="outline" size="sm" onclick={() => { weatherRetry += 1; }}>{campusNow.retryWeather}</Button>
+        <Button class="justify-self-start" variant="outline" size="sm" onclick={weatherBoard.retry}>{campusNow.retryWeather}</Button>
       {:else if weather === undefined}
         {@render weatherPlaceholder()}
       {:else}
@@ -264,13 +205,14 @@ function overflowClass(index: number, shown: string, hidden: string): string {
           {/each}
         </dl>
       {/if}
-    </div>
+    </HomeSection>
 
-    <div class="grid min-w-0 content-start gap-2 rounded-xl border p-4" data-testid="home-bus" aria-busy={bus === undefined}>
-      {@render heading(busTitle, BusFrontIcon, "/catalog/bus", campusNow.busViewAll)}
+    <HomeSection nested testId="home-bus" busy={bus === undefined}
+      title={busTitle} icon={BusFrontIcon} href="/catalog/bus" linkLabel={campusNow.busViewAll}
+    >
       {#if bus === null}
         {@render note(campusNow.busUnavailable)}
-        <Button class="justify-self-start" variant="outline" size="sm" onclick={() => { busRetry += 1; }}>{campusNow.retryBus}</Button>
+        <Button class="justify-self-start" variant="outline" size="sm" onclick={busBoard.retry}>{campusNow.retryBus}</Button>
       {:else if bus === undefined}
         {@render busPlaceholder()}
       {:else if bus && bus.departures.length === 0}
@@ -280,11 +222,7 @@ function overflowClass(index: number, shown: string, hidden: string): string {
         <ul class="grid gap-1.5">
           {#each bus.departures as departure, index (departure.key)}
             <li
-              class={overflowClass(
-                index,
-                "flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5",
-                "hidden min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 lg:flex",
-              )}
+              class={["min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5", index < HOME_COMPACT_ITEM_COUNT ? "flex" : "hidden lg:flex"]}
             >
               <span class="min-w-0 truncate">{departure.destination}</span>
               <span class="flex shrink-0 items-baseline gap-2">
@@ -297,6 +235,6 @@ function overflowClass(index: number, shown: string, hidden: string): string {
           {/each}
         </ul>
       {/if}
-    </div>
+    </HomeSection>
   </div>
 </section>

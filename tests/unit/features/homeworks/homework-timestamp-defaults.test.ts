@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   dateTimeInputValue,
   homeworkDueAtSemesterEnd,
@@ -9,26 +9,16 @@ import {
   homeworkTimestampNow,
   initialHomeworkTimestampDraft,
 } from "@/features/homeworks/lib/homework-timestamp-defaults";
-import {
-  initialHomeworkDraft,
-  homeworkDueInDays as sectionHomeworkDueInDays,
-} from "@/features/section-detail/lib/section-detail-controller-helpers";
-import { initialCreateHomeworkDraft } from "@/features/workspace/lib/workspace-controller-helpers";
 
 describe("homework 时间戳默认值", () => {
   it("构建共享的初始作业时间戳草稿", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-03-17T02:30:00.000Z"));
-
-    try {
-      expect(initialHomeworkTimestampDraft()).toEqual({
-        publishedAt: "2026-03-17T00:00",
-        submissionStartAt: "2026-03-17T10:30",
-        submissionDueAt: "",
-      });
-    } finally {
-      vi.useRealTimers();
-    }
+    expect(
+      initialHomeworkTimestampDraft(new Date("2026-03-16T16:30:00Z")),
+    ).toEqual({
+      publishedAt: "2026-03-17T00:00",
+      submissionStartAt: "2026-03-17T00:30",
+      submissionDueAt: "",
+    });
   });
 
   it("构建共享的作业时间戳快捷方法", () => {
@@ -46,12 +36,6 @@ describe("homework 时间戳默认值", () => {
     expect(dateTimeInputValue("2026-03-17T10:30:00+08:00")).toBe(
       "2026-03-17T10:30",
     );
-  });
-
-  it("向 workspace 和 section detail 暴露相同的时间戳默认值", () => {
-    expect(initialCreateHomeworkDraft).toBe(initialHomeworkTimestampDraft);
-    expect(initialHomeworkDraft).toBe(initialHomeworkTimestampDraft);
-    expect(sectionHomeworkDueInDays).toBe(homeworkDueInDays);
   });
 });
 

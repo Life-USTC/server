@@ -1,6 +1,7 @@
 <script lang="ts">
 import BookOpenIcon from "@lucide/svelte/icons/book-open";
 import LazyModuleStatus from "#lib/components/LazyModuleStatus.svelte";
+import OfficialAcademicProfile from "@/features/catalog/components/OfficialAcademicProfile.svelte";
 import SectionBasicInfoAdminClasses from "@/features/section-detail/components/SectionBasicInfoAdminClasses.svelte";
 import SectionBasicInfoDetails from "@/features/section-detail/components/SectionBasicInfoDetails.svelte";
 import SectionBasicInfoRelatedSections from "@/features/section-detail/components/SectionBasicInfoRelatedSections.svelte";
@@ -26,6 +27,9 @@ const CommentsPanel = $derived(commentsModule.component);
 <SectionDetailRoute {data} {form}>
   {#snippet content({ data, descriptionData, commonCopy, notAvailable, primaryName, displaySection, sectionCopy, yesNo, teacherName, periodDetailRows, commentTargets })}
     <section id="introduction" data-detail-tab="introduction" class="grid gap-4 scroll-mt-4">
+      {#if data.officialProfile}
+        <OfficialAcademicProfile profile={data.officialProfile} locale={data.locale} kind="section" />
+      {/if}
       {#key `description:section:${data.section.id}`}
         {#if DescriptionCard}
           <DescriptionCard
@@ -36,7 +40,7 @@ const CommentsPanel = $derived(commentsModule.component);
             locale={data.locale}
             copy={data.copy.descriptions}
             heading={data.copy.descriptions.title}
-            showTitle={false}
+            showTitle={Boolean(data.officialProfile)}
             readOnlyReason={data.demo?.readOnlyReason}
           />
         {:else}

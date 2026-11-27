@@ -89,14 +89,10 @@ async function getPosterBytes(
 
 describe("young event image route", () => {
   it("streams the cached object from R2 with immutable cache headers", async () => {
-    mocks.bucket.head.mockResolvedValue({
-      size: 5,
-      etag: "r2-etag",
-      httpMetadata: { contentType: "image/jpeg" },
-    });
     mocks.bucket.get.mockResolvedValue({
       size: 5,
       body: stream("bytes"),
+      etag: "r2-etag",
       httpMetadata: { contentType: "image/jpeg" },
     });
 
@@ -116,7 +112,8 @@ describe("young event image route", () => {
     expect(response.headers.get("Content-Length")).toBe("5");
     expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
     await expect(response.text()).resolves.toBe("bytes");
-    expect(mocks.bucket.head).toHaveBeenCalledWith(R2_KEY);
+    expect(mocks.bucket.head).not.toHaveBeenCalled();
+    expect(mocks.bucket.get).toHaveBeenCalledWith(R2_KEY);
     expect(mocks.fetchMock).not.toHaveBeenCalled();
     expect(mocks.bucket.put).not.toHaveBeenCalled();
   });
@@ -346,14 +343,10 @@ describe("young event image by-path route", () => {
   const BY_PATH_URL = `https://life.test/api/catalog/young-events/images/${PIC_PATH}`;
 
   it("serves R2-cached bytes for an arbitrary normalized image path", async () => {
-    mocks.bucket.head.mockResolvedValue({
-      size: 5,
-      etag: "r2-etag",
-      httpMetadata: { contentType: "image/jpeg" },
-    });
     mocks.bucket.get.mockResolvedValue({
       size: 5,
       body: stream("bytes"),
+      etag: "r2-etag",
       httpMetadata: { contentType: "image/jpeg" },
     });
 
@@ -366,7 +359,8 @@ describe("young event image by-path route", () => {
     expect(response.headers.get("Content-Type")).toBe("image/jpeg");
     expect(response.headers.get("Cache-Control")).toContain("immutable");
     await expect(response.text()).resolves.toBe("bytes");
-    expect(mocks.bucket.head).toHaveBeenCalledWith(R2_KEY);
+    expect(mocks.bucket.head).not.toHaveBeenCalled();
+    expect(mocks.bucket.get).toHaveBeenCalledWith(R2_KEY);
     // Image bytes are event-independent, so no event lookup happens.
     expect(mocks.youngEventFindUnique).not.toHaveBeenCalled();
   });
@@ -447,6 +441,7 @@ test("young-event.image-proxy-cached", async () => {
   }));
   mocks.bucket.get.mockImplementation(async (key: string) => ({
     size: 5,
+    etag: key,
     body: stream(key.endsWith("new-poster.jpg") ? "new!!" : "old!!"),
     httpMetadata: { contentType: "image/jpeg" },
   }));

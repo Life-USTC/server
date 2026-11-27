@@ -114,7 +114,7 @@ function commentResponse(page: Page, method: string, path: string) {
 
 async function expectToast(page: Page, text: RegExp) {
   await expect(
-    page.locator("[data-sonner-toast]").filter({ hasText: text }),
+    page.locator("[data-slot=toast]").filter({ hasText: text }),
   ).toBeVisible();
 }
 
@@ -489,14 +489,8 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           '[data-slot="alert-dialog-footer"] button',
         );
         await expect(buttons).toHaveCount(2);
-        await expect(buttons.nth(0)).toHaveAttribute(
-          "data-slot",
-          "alert-dialog-cancel",
-        );
-        await expect(buttons.nth(1)).toHaveAttribute(
-          "data-slot",
-          "alert-dialog-action",
-        );
+        await expect(buttons.nth(0)).toHaveAccessibleName(/取消|Cancel/i);
+        await expect(buttons.nth(1)).toHaveAccessibleName(/删除|Delete/i);
         await page.keyboard.press("Escape");
         await expect(dialog).toBeHidden();
         expect(await commentRows(db)).toEqual(before);
@@ -949,7 +943,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
           await expect(commentCard).toBeVisible();
           await expect(
             page
-              .locator("[data-sonner-toast]")
+              .locator("[data-slot=toast]")
               .filter({ hasText: /已可分享|is ready to share/i }),
           ).toBeVisible();
           // comment.attachments[] filename/open action (comment.yml display.fields)

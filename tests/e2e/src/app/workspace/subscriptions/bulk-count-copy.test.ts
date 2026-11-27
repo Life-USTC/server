@@ -95,7 +95,7 @@ for (const count of [1, 2]) {
           .last()
           .click();
         await expect(
-          page.locator("[data-sonner-toast]").filter({
+          page.locator("[data-slot=toast]").filter({
             hasText: en
               ? `Added ${count} new ${count === 1 ? "section" : "sections"} to Life@USTC`
               : `已新增 ${count} 个班级订阅`,
