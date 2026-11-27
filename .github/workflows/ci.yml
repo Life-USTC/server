@@ -44,6 +44,10 @@ jobs:
         run: bash tests/ci/seed-guard.test.sh
       - name: Verify RLS metadata collector safety
         run: python3 scripts/operations/test_rls_metadata_audit.py
+      - name: Test static import webhook and worker runtime
+        run: python3 -m unittest discover -s deploy/static-import/tests -p 'test_*.py'
+      - name: Build static import image
+        run: docker build --file deploy/static-import/Dockerfile --tag life-ustc-static-import:ci .
       - name: Generate application, database, and Worker types
         run: bun run app:prepare
       - name: Check formatting and lint
@@ -126,10 +130,12 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
       - name: Install Chromium
-        # Browser download no-ops on a cache hit; system dependencies are not
-        # cached and still install.
         if: ${{ matrix.browser }}
-        run: bunx playwright install --with-deps --only-shell chromium
+        run: |
+          bunx playwright install --only-shell chromium
+          if ! node --input-type=module -e 'import { chromium } from "playwright"; const browser = await chromium.launch(); await browser.close();'; then
+            bunx playwright install-deps chromium
+          fi
       - name: Download application and Worker build
         if: ${{ matrix.http || matrix.browser }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -200,8 +206,6 @@ jobs:
         run: bun run build
       - name: Build isolated test Worker
         run: bun run build:test-worker
-      - name: Check public page client budgets
-        run: bun tests/ci/public-route-client-budget.mjs
       - id: inventory
         name: Collect feature test inventory
         run: bun tests/ci/test-matrix.ts

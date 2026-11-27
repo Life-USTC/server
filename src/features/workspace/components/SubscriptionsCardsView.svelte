@@ -1,18 +1,13 @@
 <script lang="ts">
-import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
 import ClassIcon from "@lucide/svelte/icons/graduation-cap";
-import Pencil from "@lucide/svelte/icons/pencil";
-import UserMinus from "@lucide/svelte/icons/user-minus";
+import type { Snippet } from "svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
-import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import type {
   SubscriptionsData,
   WorkspaceCopy,
-  WorkspaceSectionCopy,
   WorkspaceSubscriptionsCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
 
@@ -22,11 +17,7 @@ type SubscriptionSection = SubscriptionListData[number]["sections"][number];
 export let courseName: (section: SubscriptionSection) => string;
 export let teacherNames: (section: SubscriptionSection) => string;
 export let workspaceCopy: WorkspaceCopy;
-export let readOnlyReason: string | undefined = undefined;
-export let requestEditKind: (section: SubscriptionSection) => void;
-export let requestRemoveSection: (section: SubscriptionSection) => void;
-export let removingSectionId: SubscriptionSection["id"] | null;
-export let sectionCopy: WorkspaceSectionCopy;
+export let sectionActions: Snippet<[SubscriptionSection]>;
 export let sections: SubscriptionSection[];
 export let subscriptionsCopy: WorkspaceSubscriptionsCopy;
 </script>
@@ -46,27 +37,7 @@ export let subscriptionsCopy: WorkspaceSubscriptionsCopy;
           <Badge variant="outline">{section.credits ?? workspaceCopy.notAvailable} {subscriptionsCopy.credits}</Badge>
         </Item.Footer>
         <Item.Actions class="shrink-0 self-start">
-          <TableIconButton label={subscriptionsCopy.kindEditor.title} disabled={Boolean(readOnlyReason)} onclick={() => requestEditKind(section)}>
-            <Pencil data-icon="inline-start" />
-          </TableIconButton>
-          <TableIconButton
-            href={`/catalog/sections/${section.jwId}`}
-            label={sectionCopy.moreDetails}
-          >
-            <ArrowUpRight data-icon="inline-start" />
-          </TableIconButton>
-          <TableIconButton
-            disabled={Boolean(readOnlyReason) || removingSectionId === section.id}
-            label={subscriptionsCopy.unsubscribe}
-            variant="destructive"
-            onclick={() => requestRemoveSection(section)}
-          >
-            {#if removingSectionId === section.id}
-              <Spinner data-icon="inline-start" />
-            {:else}
-              <UserMinus data-icon="inline-start" />
-            {/if}
-          </TableIconButton>
+          {@render sectionActions(section)}
         </Item.Actions>
       </MobileListCard>
       {#if index < sections.length - 1}

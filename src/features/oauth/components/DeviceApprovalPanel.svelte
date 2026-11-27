@@ -4,7 +4,6 @@ import ShieldAlert from "@lucide/svelte/icons/shield-alert";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { enhance } from "$app/forms";
 import type {
   DeviceApprovalRequest,
@@ -57,19 +56,13 @@ $: clientRequestParts = copy.deviceClientRequest.split("{app}");
 <div class="grid grid-cols-2 gap-3">
   <form method="POST" action="?/deny" use:enhance={deviceDecisionAction("deny")}>
     <input type="hidden" name="userCode" value={approvalRequest.userCode} />
-    <Button class="w-full" disabled={Boolean(pendingDecision)} type="submit" variant="outline">
-      {#if pendingDecision === "deny"}<Spinner data-icon="inline-start" />{/if}
+    <Button loading={pendingDecision === "deny"} class="w-full" disabled={Boolean(pendingDecision)} type="submit" variant="outline">
       {copy.deviceDeny}
     </Button>
   </form>
   <form method="POST" action="?/approve" use:enhance={deviceDecisionAction("approve")}>
     <input type="hidden" name="userCode" value={approvalRequest.userCode} />
-    <Button class="w-full" disabled={Boolean(pendingDecision)} type="submit">
-      {#if pendingDecision === "approve"}
-        <Spinner data-icon="inline-start" />
-      {:else}
-        <CheckCircle data-icon="inline-start" />
-      {/if}
+    <Button loading={pendingDecision === "approve"} icon={CheckCircle} class="w-full" disabled={Boolean(pendingDecision)} type="submit">
       {copy.deviceApprove}
     </Button>
   </form>
