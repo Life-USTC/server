@@ -23,8 +23,7 @@ type Breakpoint = (typeof BREAKPOINTS)[number];
 /** Call-site tag -> the shared source whose base may neutralize a group. */
 const SHARED_BASES: Record<string, string> = {
   Button: "src/lib/components/ui/button/button.svelte",
-  Toggle: "src/lib/components/ui/toggle/toggle.svelte",
-  "ToggleGroup.Item": "src/lib/components/ui/toggle/toggle.svelte",
+  "ToggleGroup.Item": "src/lib/components/ui/toggle-group/toggle-group.svelte",
   "InputGroup.Root": "src/lib/components/ui/input-group/input-group.svelte",
 };
 

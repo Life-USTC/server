@@ -161,7 +161,7 @@ async function renameAccount(page: Page, newUsername: string) {
     .click();
   await expect(
     page
-      .locator("[data-sonner-toast]")
+      .locator("[data-slot=toast]")
       .filter({ hasText: /成功|Success|updated successfully/i }),
   ).toBeVisible();
 }

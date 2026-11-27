@@ -46,7 +46,6 @@ export let viewer: DescriptionViewer;
       {#if viewer.isAuthenticated && !viewer.isSuspended && !editing}
         <Button
           data-testid="description-edit"
-          type="button"
           variant="outline"
           onclick={onStartEdit}
         >

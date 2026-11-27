@@ -1,8 +1,4 @@
-import {
-  formatWorkspaceDateTime,
-  formatWorkspaceDueRelativeTime,
-  isWorkspaceDueOverdue,
-} from "./date-formatters";
+import { workspaceDeadlineLabels } from "./date-formatters";
 import {
   homeworkCompletionActionLabel as buildHomeworkCompletionActionLabel,
   homeworkCourseLabel as buildHomeworkCourseLabel,
@@ -54,14 +50,15 @@ export function createHomeworkTabDisplayActions({
   sectionCopy: WorkspaceSectionCopy;
 }) {
   const returnTo = workspaceTabHref("homeworks");
+  const { fmtDate, relativeDueLabel, isDueOverdue } = workspaceDeadlineLabels(
+    referenceDate,
+    locale,
+    sectionCopy.dateTBD,
+  );
   return {
-    fmtDate: (value: Date | string | null | undefined) =>
-      formatWorkspaceDateTime(
-        value,
-        sectionCopy.dateTBD,
-        referenceDate,
-        locale,
-      ),
+    fmtDate,
+    homeworkEtaLabel: relativeDueLabel,
+    homeworkIsOverdue: isDueOverdue,
     homeworkCompletionActionLabel: (homework: WorkspaceHomeworkItem) =>
       buildHomeworkCompletionActionLabel(homework, {
         markComplete: homeworksCopy.markComplete,
@@ -69,15 +66,6 @@ export function createHomeworkTabDisplayActions({
       }),
     homeworkCourseLabel: (homework: WorkspaceHomeworkItem) =>
       buildHomeworkCourseLabel(homework, homeworkCopy.section),
-    homeworkEtaLabel: (value: Date | string | null | undefined) =>
-      formatWorkspaceDueRelativeTime(
-        value,
-        sectionCopy.dateTBD,
-        referenceDate,
-        locale,
-      ),
-    homeworkIsOverdue: (value: Date | string | null | undefined) =>
-      isWorkspaceDueOverdue(value, referenceDate),
     homeworkSectionHref: (homework: WorkspaceHomeworkItem) =>
       buildHomeworkSectionHref(homework, returnTo),
     homeworkSectionLabel: (section: HomeworkSectionOption) =>

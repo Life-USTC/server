@@ -198,6 +198,7 @@ describe("第二课堂活动", () => {
           } | null;
         }>("catalog_young_event_get", { youngId: ACTIVE_ID });
 
+        expect(result.event).not.toHaveProperty("rawJson");
         expect(result.event?.description).toContain(
           "/api/catalog/young-events/images/group1/M00/x.jpg",
         );

@@ -83,7 +83,7 @@ for (const [locale, width] of [
           const calendar = page.getByRole("grid");
           await expect(calendar).toBeVisible();
           await calendar
-            .getByRole("button", {
+            .getByRole("gridcell", {
               name: locale === "zh-cn" ? /2026年11月6/ : /November 6, 2026/,
             })
             .click();
