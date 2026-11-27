@@ -8,8 +8,9 @@ it("reads committed catalog revisions with the app role and preserves timestamp 
   tags: ["@StaticImport/Runtime"],
 }, async () => {
   const db = createFixturePrisma();
-  const original = await db.staticImportState.findUnique({
-    where: { id: "global" },
+  const ids = ["global", "section-page-core", "section-page-core-source"];
+  const original = await db.staticImportState.findMany({
+    where: { id: { in: ids } },
   });
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error("Missing app database URL");
@@ -26,7 +27,7 @@ it("reads committed catalog revisions with the app role and preserves timestamp 
       ),
     );
     expect(role.rows).toEqual([[new URL(connectionString).username]]);
-    await db.staticImportState.deleteMany({ where: { id: "global" } });
+    await db.staticImportState.deleteMany({ where: { id: { in: ids } } });
     expect(await request(getCatalogDetailCacheRevision)).toBe(
       "schema2:bootstrap",
     );
@@ -55,16 +56,46 @@ it("reads committed catalog revisions with the app role and preserves timestamp 
     expect(await request(getCatalogDetailCacheRevision)).toBe(
       "schema2:0123456789abcdef-msv7wx23",
     );
+    const sectionRevision = () =>
+      request(() => getCatalogDetailCacheRevision("section"));
+    const globalRevision = () => request(getCatalogDetailCacheRevision);
+    const snapshot = await db.staticImportState.findUniqueOrThrow({
+      where: { id: "global" },
+    });
+    await db.staticImportState.create({
+      data: {
+        ...snapshot,
+        id: "section-page-core",
+        snapshotSha256: "a".repeat(64),
+      },
+    });
+    expect(await sectionRevision()).toBe(await globalRevision());
+    await db.staticImportState.create({
+      data: { ...snapshot, id: "section-page-core-source" },
+    });
+    const tracked = await sectionRevision();
+    expect(tracked).toMatch(/^schema2:aaaaaaaaaaaaaaaa-/);
+    const next = "b".repeat(64);
+    await db.staticImportState.updateMany({
+      where: { id: { in: ["global", "section-page-core-source"] } },
+      data: { snapshotSha256: next },
+    });
+    expect(await sectionRevision()).toBe(tracked);
+    await db.staticImportState.update({
+      where: { id: "global" },
+      data: { snapshotSha256: "c".repeat(64) },
+    });
+    expect(await sectionRevision()).toBe(await globalRevision());
+    await db.staticImportState.update({
+      where: { id: "global" },
+      data: { snapshotSha256: next, transformRevision: 2 },
+    });
+    expect(await sectionRevision()).toBe(await globalRevision());
   } finally {
-    if (original) {
-      await db.staticImportState.upsert({
-        where: { id: "global" },
-        create: original,
-        update: original,
-      });
-    } else {
-      await db.staticImportState.deleteMany({ where: { id: "global" } });
-    }
+    await db.$transaction([
+      db.staticImportState.deleteMany({ where: { id: { in: ids } } }),
+      db.staticImportState.createMany({ data: original }),
+    ]);
     await db.$disconnect();
   }
 });

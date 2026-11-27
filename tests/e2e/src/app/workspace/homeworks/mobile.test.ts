@@ -19,9 +19,6 @@ test.describe("仪表盘作业", () => {
   }) => {
     await homeworkRun(
       async () => {
-        await page.addInitScript(() => {
-          localStorage.removeItem("life-ustc-workspace-view-mode");
-        });
         await page.setViewportSize({ width: 390, height: 844 });
         await gotoAndWaitForReady(page, "/workspace/homeworks");
 
@@ -145,11 +142,6 @@ test.describe("仪表盘作业", () => {
         const scrollViewport = createDialog
           .locator('[data-slot="scroll-area-viewport"]')
           .first();
-        const metrics = await scrollViewport.evaluate((element) => ({
-          clientHeight: element.clientHeight,
-          scrollHeight: element.scrollHeight,
-        }));
-        expect(metrics.clientHeight).toBeGreaterThan(0);
         const scrollBox = await scrollViewport.boundingBox();
         expect(scrollBox).not.toBeNull();
         if (!scrollBox) {
@@ -158,17 +150,19 @@ test.describe("仪表盘作业", () => {
         expect(scrollBox.y + scrollBox.height).toBeLessThanOrEqual(
           footerBox.y + 1,
         );
-        if (metrics.scrollHeight > metrics.clientHeight) {
-          const scrollTopBefore = await scrollViewport.evaluate(
-            (element) => element.scrollTop,
-          );
+        const { clientHeight, maxScrollTop, scrollTopBefore, scrollTopAfter } =
           await scrollViewport.evaluate((element) => {
-            element.scrollTop = element.scrollHeight;
+            const { clientHeight, scrollHeight, scrollTop } = element;
+            element.scrollTop = scrollHeight;
+            return {
+              clientHeight,
+              maxScrollTop: scrollHeight - clientHeight,
+              scrollTopBefore: scrollTop,
+              scrollTopAfter: element.scrollTop,
+            };
           });
-          const scrollTopAfter = await scrollViewport.evaluate(
-            (element) => element.scrollTop,
-          );
-          const maxScrollTop = metrics.scrollHeight - metrics.clientHeight;
+        expect(clientHeight).toBeGreaterThan(0);
+        if (maxScrollTop > 0) {
           if (scrollTopBefore < maxScrollTop - 1) {
             expect(scrollTopAfter).toBeGreaterThan(scrollTopBefore);
           }
@@ -186,9 +180,6 @@ test.describe("仪表盘作业", () => {
     await homeworkRun(
       async () => {
         test.setTimeout(90_000);
-        await page.addInitScript(() => {
-          localStorage.removeItem("life-ustc-workspace-view-mode");
-        });
         await page.setViewportSize({ height: 568, width: 320 });
         await gotoAndWaitForReady(page, "/workspace/homeworks");
 

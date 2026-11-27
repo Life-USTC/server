@@ -58,10 +58,10 @@
 			style="--sidebar-width: {SIDEBAR_WIDTH_MOBILE};"
 			{side}
 		>
-			<Sheet.Header class="sr-only">
+			<div data-slot="sheet-header" class="sr-only">
 				<Sheet.Title>{mobileTitle}</Sheet.Title>
 				<Sheet.Description>{mobileDescription}</Sheet.Description>
-			</Sheet.Header>
+			</div>
 			<Sheet.Close class="absolute top-2 right-2 z-10 flex size-11 items-center justify-center rounded-md hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring" aria-label={closeLabel}>
 				<XIcon class="size-4" />
 			</Sheet.Close>

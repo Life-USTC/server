@@ -76,6 +76,7 @@ it("publications.identity", { tags: ["@Publication/Service"] }, async ({
     if (base.tombstone) throw new Error("Expected live publication");
     const item = {
       ...base,
+      bodyText: "Plain article text",
       reporter: "Reporter",
       editor: "Editor",
       originalPublisher: "Original",
@@ -217,6 +218,16 @@ it("publications.identity", { tags: ["@Publication/Service"] }, async ({
     const detail = await protocolRuntime.request(() =>
       getPublicPublicationById(initial.publicationId!),
     );
+    const page = await protocolRuntime.request(() =>
+      getPublicPublicationById(initial.publicationId!, {
+        includeBodyText: false,
+      }),
+    );
+    expect(detail?.revision.bodyText).toBe("Plain article text");
+    expect(page).toEqual({
+      ...detail,
+      revision: { ...detail?.revision, bodyText: null },
+    });
     expect(detail?.revision).toMatchObject({
       reporter: null,
       editor: "Editor 2",

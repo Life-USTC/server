@@ -46,7 +46,13 @@ export function getDemoSubscribedHomeworksRoute(
   );
   if (parsed instanceof Response) return parsed;
   const { page, pageSize } = parsed.pagination;
-  const homeworks = getDemoHomeworks(locale);
+  const { dueAtFrom, dueAtTo } = parsed.query;
+  const homeworks = getDemoHomeworks(locale).filter((homework) => {
+    if (!dueAtFrom && !dueAtTo) return true;
+    if (!homework.submissionDueAt) return false;
+    const due = new Date(homework.submissionDueAt);
+    return (!dueAtFrom || due >= dueAtFrom) && (!dueAtTo || due <= dueAtTo);
+  });
   return schemaJsonResponse(
     subscribedHomeworksResponseSchema,
     buildPaginatedResponse(

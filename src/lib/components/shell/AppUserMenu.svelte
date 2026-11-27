@@ -4,8 +4,7 @@ import LogOutIcon from "@lucide/svelte/icons/log-out";
 import SettingsIcon from "@lucide/svelte/icons/settings";
 import UserRoundIcon from "@lucide/svelte/icons/user-round";
 import WrenchIcon from "@lucide/svelte/icons/wrench";
-import * as Avatar from "#lib/components/ui/avatar/index.js";
-import { Button } from "#lib/components/ui/button/index.js";
+import { Avatar, AvatarFallback, AvatarImage } from "@ui-sdk/svelte/avatar";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import type {
   LayoutCopy,
@@ -23,35 +22,28 @@ export let user: LayoutUserSummary;
 export let userMenuOpen: boolean;
 
 export let demo: DemoView | null = null;
-function closeAccountNavigation() {
-  closeMenus();
-}
+let signOutForm: HTMLFormElement;
 </script>
 
 {#if user || demo}
   <div id={demo ? "demo-navigation-menu" : "app-user-menu"}>
+    {#if user}<form method="POST" action="/account/sign-out" bind:this={signOutForm}></form>{/if}
     <DropdownMenu.Root open={userMenuOpen} onOpenChange={setUserMenuOpen}>
-      <DropdownMenu.Trigger>
-        {#snippet child({ props })}
-          <Button
-            {...props}
-            variant="ghost"
-            size="icon"
-            class="size-11 shrink-0 rounded-full"
-            aria-label={demo?.displayName ?? copy.shell.profileMenu}
-            title={user?.name ?? demo?.displayName ?? copy.shell.profileMenu}
-          >
-            <Avatar.Root class="size-8 rounded-full">
-              {#if user?.image}<Avatar.Image src={user.image} alt="" />{/if}
-              <Avatar.Fallback>{demo ? "D" : avatarFallback}</Avatar.Fallback>
-            </Avatar.Root>
-          </Button>
-        {/snippet}
-      </DropdownMenu.Trigger>
+      <DropdownMenu.ButtonTrigger
+        variant="ghost"
+        size="icon"
+        class="size-11 shrink-0 rounded-full"
+        aria-label={demo?.displayName ?? copy.shell.profileMenu}
+        title={user?.name ?? demo?.displayName ?? copy.shell.profileMenu}
+      >
+        <Avatar class="size-8 rounded-full">
+          {#if user?.image}<AvatarImage src={user.image} alt="" />{/if}
+          <AvatarFallback>{demo ? "D" : avatarFallback}</AvatarFallback>
+        </Avatar>
+      </DropdownMenu.ButtonTrigger>
       <DropdownMenu.Content
         align="end"
         class="w-56"
-        preventScroll={false}
         side="bottom"
       >
         <DropdownMenu.Group>
@@ -64,8 +56,8 @@ function closeAccountNavigation() {
               >{/if}</DropdownMenu.Label
           >
           {#if user}
-            <DropdownMenu.Item onSelect={closeAccountNavigation}>
-              {#snippet child({ props })}
+            <DropdownMenu.Item onSelect={closeMenus}>
+              {#snippet render({ props })}
                 <a
                   {...props}
                   aria-current={currentPathname === profileHref
@@ -79,8 +71,8 @@ function closeAccountNavigation() {
               {/snippet}
             </DropdownMenu.Item>
           {/if}
-          <DropdownMenu.Item onSelect={closeAccountNavigation}>
-            {#snippet child({ props })}
+          <DropdownMenu.Item onSelect={closeMenus}>
+            {#snippet render({ props })}
               <a
                 {...props}
                 aria-current={currentPathname ===
@@ -99,28 +91,22 @@ function closeAccountNavigation() {
             {/snippet}
           </DropdownMenu.Item>
           {#if user}
-            <DropdownMenu.Item onSelect={closeAccountNavigation}
-              >{#snippet child({ props })}<a
+            <DropdownMenu.Item onSelect={closeMenus}
+              >{#snippet render({ props })}<a
                   {...props}
                   href="/workspace/uploads"><FilesIcon />{copy.nav.uploads}</a
                 >{/snippet}</DropdownMenu.Item
             >
             {#if user.isAdmin}<DropdownMenu.Item
-                onSelect={closeAccountNavigation}
-                >{#snippet child({ props })}<a {...props} href="/admin/users"
+                onSelect={closeMenus}
+                >{#snippet render({ props })}<a {...props} href="/admin/users"
                     ><WrenchIcon />{copy.nav.admin.title}</a
                   >{/snippet}</DropdownMenu.Item
               >{/if}
-            <form method="POST" action="/account/sign-out">
-              <DropdownMenu.Item>
-                {#snippet child({ props })}
-                  <button {...props} type="submit">
-                    <LogOutIcon />
-                    {copy.menu.signOut}
-                  </button>
-                {/snippet}
-              </DropdownMenu.Item>
-            </form>
+            <DropdownMenu.Item onSelect={() => signOutForm.requestSubmit()}>
+              <LogOutIcon />
+              {copy.menu.signOut}
+            </DropdownMenu.Item>
           {/if}
         </DropdownMenu.Group>
       </DropdownMenu.Content>

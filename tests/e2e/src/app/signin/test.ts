@@ -206,31 +206,6 @@ test("/account/sign-in 320px actions and legal links stay inside the Card", {
   ).toBeVisible();
 });
 
-test("/account/sign-in 显示所有必填字段", { tag: "@Account/Web" }, async ({
-  page,
-}) => {
-  await gotoAndWaitForReady(page, "/account/sign-in");
-
-  // OAuth provider buttons (user.yml sign-in.display.fields)
-  await expect(
-    page.getByRole("button", { name: /USTC/i }).first(),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: /GitHub/i }).first(),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: /Google/i }).first(),
-  ).toBeVisible();
-
-  // Terms and privacy links
-  await expect(
-    page.getByRole("link", { name: /服务条款|Terms/i }).first(),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: /隐私政策|Privacy/i }).first(),
-  ).toBeVisible();
-});
-
 test("/account/sign-in 显示账户未关联错误", { tag: "@Account/Web" }, async ({
   page,
 }) => {

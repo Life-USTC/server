@@ -7,6 +7,7 @@ import WeatherLocationPanel from "@/features/weather/components/WeatherLocationP
 import type { WeatherPageLocation } from "@/features/weather/server/weather-page-load";
 import type { AppLocale } from "@/i18n/config";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
+import { formatMessage } from "@/shared/lib/format-message";
 
 type Props = {
   locations: WeatherPageLocation[];
@@ -38,13 +39,6 @@ const latestFetchedAt = $derived(
 const allProviders = $derived([
   ...new Set(locations.flatMap(({ snapshot }) => snapshot?.providers ?? [])),
 ]);
-
-function formatTemplate(template: string, values: Record<string, string>) {
-  return Object.entries(values).reduce(
-    (text, [key, value]) => text.replace(`{${key}}`, value),
-    template,
-  );
-}
 </script>
 
 <!-- Mobile: segmented campus tabs (本部 | 高新). Desktop keeps both panels. -->
@@ -115,7 +109,7 @@ function formatTemplate(template: string, values: Record<string, string>) {
     data-testid="weather-page-meta"
   >
     <span>
-      {formatTemplate(weatherCopy.updatedAt, {
+      {formatMessage(weatherCopy.updatedAt, {
         value: formatShanghaiTime(latestFetchedAt),
       })}
     </span>

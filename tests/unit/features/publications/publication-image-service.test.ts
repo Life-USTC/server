@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  imageSourceFindUnique: vi.fn(),
+  imageSourceQuery: vi.fn(),
   bucket: {
     head: vi.fn(),
     get: vi.fn(),
@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
-    publicationImageSource: { findUnique: mocks.imageSourceFindUnique },
+    $queryRaw: mocks.imageSourceQuery,
   },
 }));
 
@@ -54,27 +54,16 @@ function stream(value: string) {
 
 function sourceRecord(
   url: string,
-  hash: string,
+  _hash: string,
   source: { allowedHosts?: string[]; blockedHosts?: string[] } = {},
 ) {
-  return {
-    id: hash,
-    url,
-    revisions: [
-      {
-        revision: {
-          currentFor: { id: "publication-1" },
-          publication: {
-            id: "publication-1",
-            source: {
-              allowedHosts: source.allowedHosts ?? ["news.example.test"],
-              blockedHosts: source.blockedHosts ?? [],
-            },
-          },
-        },
-      },
-    ],
-  };
+  return [
+    {
+      url,
+      allowedHosts: source.allowedHosts ?? ["news.example.test"],
+      blockedHosts: source.blockedHosts ?? [],
+    },
+  ];
 }
 
 beforeEach(() => {
@@ -97,7 +86,7 @@ describe("publication image service", () => {
   it("resolves a public URL hash, fetches raster bytes, and caches successful responses", async () => {
     const url = "https://news.example.test/images/campus.png";
     const hash = await hashUrl(url);
-    mocks.imageSourceFindUnique.mockResolvedValue(sourceRecord(url, hash));
+    mocks.imageSourceQuery.mockResolvedValue(sourceRecord(url, hash));
     mocks.fetchMock.mockResolvedValue(
       new Response(stream("image-bytes"), {
         status: 200,
@@ -137,7 +126,7 @@ describe("publication image service", () => {
   it("serves a verified R2 cache hit and handles conditional requests", async () => {
     const url = "https://news.example.test/images/campus.png";
     const hash = await hashUrl(url);
-    mocks.imageSourceFindUnique.mockResolvedValue(sourceRecord(url, hash));
+    mocks.imageSourceQuery.mockResolvedValue(sourceRecord(url, hash));
     mocks.bucket.head.mockResolvedValue({
       size: 11,
       etag: "cached-etag",
@@ -173,7 +162,7 @@ describe("publication image service", () => {
   it("allows an external image host registered by the trusted crawler", async () => {
     const url = "https://img-xhpfm.xinhuaxmt.com/images/campus.jpg";
     const hash = await hashUrl(url);
-    mocks.imageSourceFindUnique.mockResolvedValue(
+    mocks.imageSourceQuery.mockResolvedValue(
       sourceRecord(url, hash, { allowedHosts: ["news.ustc.edu.cn"] }),
     );
     mocks.fetchMock.mockResolvedValue(
@@ -200,7 +189,7 @@ describe("publication image service", () => {
   it("allows same-host redirects but rejects an unregistered subdomain", async () => {
     const url = "https://img-xhpfm.xinhuaxmt.com/images/campus.png";
     const hash = await hashUrl(url);
-    mocks.imageSourceFindUnique.mockResolvedValue(
+    mocks.imageSourceQuery.mockResolvedValue(
       sourceRecord(url, hash, { allowedHosts: ["news.ustc.edu.cn"] }),
     );
     mocks.fetchMock
@@ -251,7 +240,7 @@ describe("publication image service", () => {
     "file:///tmp/image.png",
   ])("rejects unsafe origin %s before fetching", async (url) => {
     const hash = await hashUrl(url);
-    mocks.imageSourceFindUnique.mockResolvedValue(sourceRecord(url, hash));
+    mocks.imageSourceQuery.mockResolvedValue(sourceRecord(url, hash));
 
     await expect(
       getPublicationImageResponse({
@@ -268,7 +257,7 @@ describe("publication image service", () => {
   it("keeps source blocked hosts authoritative over registered image hosts", async () => {
     const url = "https://img-xhpfm.xinhuaxmt.com/images/campus.png";
     const hash = await hashUrl(url);
-    mocks.imageSourceFindUnique.mockResolvedValue(
+    mocks.imageSourceQuery.mockResolvedValue(
       sourceRecord(url, hash, {
         allowedHosts: ["news.ustc.edu.cn"],
         blockedHosts: ["xinhuaxmt.com"],
@@ -290,7 +279,7 @@ describe("publication image service", () => {
   it("validates redirect targets and does not cache failed origin responses", async () => {
     const url = "https://news.example.test/images/campus.png";
     const hash = await hashUrl(url);
-    mocks.imageSourceFindUnique.mockResolvedValue(sourceRecord(url, hash));
+    mocks.imageSourceQuery.mockResolvedValue(sourceRecord(url, hash));
     mocks.fetchMock.mockResolvedValue(
       new Response(null, {
         status: 302,
@@ -311,7 +300,7 @@ describe("publication image service", () => {
   it("rejects a declared non-raster MIME even when the URL has an image extension", async () => {
     const url = "https://news.example.test/images/campus.png";
     const hash = await hashUrl(url);
-    mocks.imageSourceFindUnique.mockResolvedValue(sourceRecord(url, hash));
+    mocks.imageSourceQuery.mockResolvedValue(sourceRecord(url, hash));
     mocks.fetchMock.mockResolvedValue(
       new Response(stream("not-an-image"), {
         status: 200,
@@ -330,7 +319,7 @@ describe("publication image service", () => {
   it("rejects an empty origin body without caching it", async () => {
     const url = "https://news.example.test/images/campus.png";
     const hash = await hashUrl(url);
-    mocks.imageSourceFindUnique.mockResolvedValue(sourceRecord(url, hash));
+    mocks.imageSourceQuery.mockResolvedValue(sourceRecord(url, hash));
     mocks.fetchMock.mockResolvedValue(
       new Response(
         new ReadableStream<Uint8Array>({
@@ -354,7 +343,7 @@ describe("publication image service", () => {
   it("enforces the streaming body limit before persisting bytes", async () => {
     const url = "https://news.example.test/images/campus.png";
     const hash = await hashUrl(url);
-    mocks.imageSourceFindUnique.mockResolvedValue(sourceRecord(url, hash));
+    mocks.imageSourceQuery.mockResolvedValue(sourceRecord(url, hash));
     mocks.fetchMock.mockResolvedValue(
       new Response(
         new ReadableStream<Uint8Array>({
@@ -466,7 +455,7 @@ describe("publication image origin diagnostics", () => {
       const log = vi.spyOn(console, "error").mockImplementation(() => {});
       const url = `https://news.example.test/private.png?token=${secret}`;
       const hash = await hashUrl(url);
-      mocks.imageSourceFindUnique.mockResolvedValue(sourceRecord(url, hash));
+      mocks.imageSourceQuery.mockResolvedValue(sourceRecord(url, hash));
       mocks.fetchMock.mockImplementation(async () => response());
 
       const result = await getPublicPublicationImageRoute(
@@ -502,7 +491,7 @@ describe("publication image origin diagnostics", () => {
       const log = vi.spyOn(console, "error").mockImplementation(() => {});
       const url = "https://news.example.test/timeout.png";
       const hash = await hashUrl(url);
-      mocks.imageSourceFindUnique.mockResolvedValue(sourceRecord(url, hash));
+      mocks.imageSourceQuery.mockResolvedValue(sourceRecord(url, hash));
       const started = Promise.withResolvers<AbortSignal>();
       mocks.fetchMock.mockImplementation((_url: URL, options: RequestInit) => {
         const signal = options.signal as AbortSignal;
