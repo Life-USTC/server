@@ -8,8 +8,8 @@ import SectionBasicInfoRelatedSections from "@/features/section-detail/component
 import SectionTeachersCard from "@/features/section-detail/components/SectionTeachersCard.svelte";
 import { detailPageModule } from "@/features/section-detail/lib/detail-page-module.svelte";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
-import SectionDetailRoute from "../SectionDetailRoute.svelte";
 import { page } from "$app/state";
+import SectionDetailRoute from "../SectionDetailRoute.svelte";
 import type { ActionData, PageData } from "./$types";
 
 let { data, form }: { data: PageData; form: ActionData } = $props();
