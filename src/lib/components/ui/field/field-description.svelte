@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FieldDescription } from "@ui-sdk/svelte/field";
 	import { cn, type WithElementRef } from "#lib/utils.js";
 	import type { HTMLAttributes } from "svelte/elements";
 
@@ -10,8 +11,8 @@
 	}: WithElementRef<HTMLAttributes<HTMLParagraphElement>> = $props();
 </script>
 
-<p
-	bind:this={ref}
+<FieldDescription
+	{@attach (element: HTMLParagraphElement) => { ref = element; return () => { ref = null; }; }}
 	data-slot="field-description"
 	class={cn(
 		"text-muted-foreground text-left text-sm [[data-variant=legend]+&]:-mt-1.5 leading-normal font-normal group-has-[[data-orientation=horizontal]]/field:text-balance",
@@ -22,4 +23,4 @@
 	{...restProps}
 >
 	{@render children?.()}
-</p>
+</FieldDescription>

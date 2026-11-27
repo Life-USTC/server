@@ -58,17 +58,6 @@ export type AdminUsersCopy = {
 
 export type AdminUserFormatter = (user: AdminUserRow) => string;
 
-export type AdminUsersPagination = {
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-};
-
-export type AdminUsersAdminCopy = {
-  title: string;
-};
-
 export type AdminUsersCommonCopy = {
   endlessScroll: EndlessScrollLabels;
   applyFilters: string;
@@ -95,19 +84,4 @@ export type AdminUsersModerationCopy = {
   suspendAction: string;
   suspendExpires: string;
   suspendReason: string;
-};
-
-export type AdminUsersFilters = Record<string, string>;
-
-export type AdminUsersPageCopy = AdminUsersCopy & {
-  accountsDescription: string;
-  accountsTitle: string;
-  liftFailed: string;
-  liftSuccess: string;
-  noResults: string;
-  suspendFailed: string;
-  suspendSuccess: string;
-  until: string;
-  updateFailed: string;
-  updateSuccess: string;
 };

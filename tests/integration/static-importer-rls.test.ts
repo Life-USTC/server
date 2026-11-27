@@ -14,6 +14,8 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
       async ({ importer, expect }) => {
         const [role] = await importer.$queryRaw<Array<Record<string, unknown>>>`
       SELECT current_user AS "currentUser", session_user AS "sessionUser",
+        has_database_privilege(current_user, current_database(), 'CONNECT') AS "connects",
+        has_schema_privilege(current_user, 'public', 'USAGE') AS "usesPublic",
         rolsuper, rolbypassrls, rolinherit, rolcreatedb, rolcreaterole, rolreplication,
         EXISTS (SELECT 1 FROM pg_auth_members WHERE member = pg_roles.oid) AS membership,
         EXISTS (SELECT 1 FROM pg_class WHERE relowner = pg_roles.oid) AS "ownsRelation",
@@ -23,6 +25,8 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
         expect(role).toEqual({
           currentUser: "life_ustc_importer",
           sessionUser: "life_ustc_importer",
+          connects: true,
+          usesPublic: true,
           rolsuper: false,
           rolbypassrls: false,
           rolinherit: false,

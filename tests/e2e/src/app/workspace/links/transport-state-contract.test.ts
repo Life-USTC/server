@@ -498,7 +498,9 @@ test("catalog-link.pin-error-clear", { tag: "@CatalogLink/Web" }, async ({
           error: "Failed to update workspace link pin state",
           pinnedSlugs: [],
         });
-        await expect(page.getByRole("alert")).toContainText(
+        await expect(
+          page.locator('[data-slot="alert"][role="alert"]'),
+        ).toContainText(
           language === "zh-cn" ? "置顶更新失败" : "Pin update failed",
         );
         await expect(target.locator('input[name="action"]')).toHaveValue(
@@ -538,7 +540,9 @@ test("catalog-link.pin-error-clear", { tag: "@CatalogLink/Web" }, async ({
         error: "invalid_slug",
         pinnedSlugs: ["jw"],
       });
-      await expect(page.getByRole("alert")).toContainText(
+      await expect(
+        page.locator('[data-slot="alert"][role="alert"]'),
+      ).toContainText(
         language === "zh-cn" ? "置顶更新失败" : "Pin update failed",
       );
       await expect(
@@ -574,7 +578,9 @@ test("catalog-link.pin-error-clear", { tag: "@CatalogLink/Web" }, async ({
     await expect(
       form(page, "vlab").locator('input[name="action"]'),
     ).toHaveValue("unpin");
-    await expect(page.getByRole("alert")).toHaveCount(0);
+    await expect(page.locator('[data-slot="alert"][role="alert"]')).toHaveCount(
+      0,
+    );
   }, "pins");
 });
 

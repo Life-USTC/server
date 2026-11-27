@@ -8,10 +8,7 @@ import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import ProfileContributionCard from "./ProfileContributionCard.svelte";
 import ProfileSummaryCard from "./ProfileSummaryCard.svelte";
 
-type ContributionCell = {
-  date: string;
-  count: number;
-};
+import type { ContributionCell } from "./profile-contribution-types";
 
 type Profile = {
   user: {
