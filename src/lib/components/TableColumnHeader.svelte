@@ -33,7 +33,7 @@ afterNavigate(({ shallow, type }) => {
 <div class="flex min-w-0" data-slot="table-column-header">
   <Popover.Root bind:open>
     <Popover.Trigger>
-      {#snippet child({ props })}
+      {#snippet render({ props })}
         <Button {...props} {disabled} variant="ghost" class="justify-start border-x-0 px-0" data-active={active || sort ? "true" : undefined}>
           <span>{label}</span>
           {#if sort === "asc"}
@@ -48,7 +48,7 @@ afterNavigate(({ shallow, type }) => {
         </Button>
       {/snippet}
     </Popover.Trigger>
-    <Popover.Content align="start" role="dialog" aria-label={label} class="w-80 max-w-[calc(100vw-2rem)] overflow-y-auto" style="max-height: min(70dvh, var(--bits-popover-content-available-height))">
+    <Popover.Content align="start" role="dialog" aria-label={label} class="w-80 max-w-[calc(100vw-2rem)] overflow-y-auto" style="max-height: min(70dvh, var(--available-height))">
       {@render children()}
     </Popover.Content>
   </Popover.Root>

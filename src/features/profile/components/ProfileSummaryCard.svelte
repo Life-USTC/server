@@ -1,6 +1,6 @@
 <script lang="ts">
+import { Avatar, AvatarFallback, AvatarImage } from "@ui-sdk/svelte/avatar";
 import Panel from "#lib/components/Panel.svelte";
-import * as Avatar from "#lib/components/ui/avatar/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import type {
   ProfileSummaryCopy,
@@ -18,12 +18,12 @@ export let user: ProfileSummaryUser;
 <Panel>
   {#snippet header()}
     <div class="flex min-w-0 items-center gap-4">
-      <Avatar.Root class="size-20 shrink-0">
+      <Avatar class="size-20 shrink-0">
         {#if user.image}
-          <Avatar.Image alt={displayName} src={user.image} />
+          <AvatarImage alt={displayName} src={user.image} />
         {/if}
-        <Avatar.Fallback>{initials}</Avatar.Fallback>
-      </Avatar.Root>
+        <AvatarFallback>{initials}</AvatarFallback>
+      </Avatar>
       <div class="min-w-0">
         <h1 class="text-2xl font-semibold tracking-normal [overflow-wrap:anywhere] sm:text-3xl">{displayName}</h1>
         {#if user.username}

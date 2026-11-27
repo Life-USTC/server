@@ -47,19 +47,19 @@ async function confirm(event: MouseEvent) {
   }
 }
 </script>
-<AlertDialog.Root {open} onOpenChange={change}>
-  <AlertDialog.Content escapeKeydownBehavior={pending ? "ignore" : "close"}>
-    <AlertDialog.Header>
-      <AlertDialog.Title>{copy.unsubscribeTitle}</AlertDialog.Title>
-      <AlertDialog.Description>{copy.unsubscribeDescription.replace("{name}", name)}</AlertDialog.Description>
-    </AlertDialog.Header>
-    {#if failed}<Alert.Root variant="destructive"><Alert.Description>{copy.optOutError}</Alert.Description></Alert.Root>{/if}
-    <AlertDialog.Footer>
+<AlertDialog.Root dismissible={!pending} {open} onOpenChange={change}>
+  <AlertDialog.Content>
+    <AlertDialog.Heading
+      title={copy.unsubscribeTitle}
+      description={copy.unsubscribeDescription.replace("{name}", name)}
+    />
+    {#if failed}<Alert.Message variant="destructive">{copy.optOutError}</Alert.Message>{/if}
+    <div data-slot="alert-dialog-footer">
       <AlertDialog.Cancel disabled={pending}>{copy.cancelUnsubscribe}</AlertDialog.Cancel>
       <AlertDialog.Action variant="destructive" disabled={pending} onclick={confirm}>
         {#if pending}<Spinner data-icon="inline-start" aria-hidden="true" />{/if}
         {copy.confirmUnsubscribe}
       </AlertDialog.Action>
-    </AlertDialog.Footer>
+    </div>
   </AlertDialog.Content>
 </AlertDialog.Root>

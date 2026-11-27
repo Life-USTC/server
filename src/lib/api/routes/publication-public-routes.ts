@@ -32,6 +32,7 @@ import {
   publicPublicationsResponseSchema,
 } from "@/lib/api/schemas/response-schemas";
 import { logRouteFailure } from "@/lib/log/app-logger";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 
 const PUBLICATION_LIST_PAGINATION = {
   defaultPage: 1,
@@ -154,13 +155,29 @@ export async function getPublicPublicationImageRoute(
   if (parsed instanceof Response) return parsed;
 
   try {
-    const result = await getPublicationImageResponse({
-      request,
-      hash: parsed.hash,
-      defer: options.defer,
-    });
-    if (!result) return notFound("Publication image not found");
-    return result;
+    return await runCloudflareTraceSpan(
+      "publication.image.read",
+      {},
+      async (span) => {
+        const result = await getPublicationImageResponse({
+          request,
+          hash: parsed.hash,
+          defer: options.defer,
+        });
+        const response = result ?? notFound("Publication image not found");
+        if (span) {
+          span.setAttribute("http.response.status_code", response.status);
+          if (response.status === 304) {
+            span.setAttribute("publication.image.body_bytes", 0);
+          } else if (response.status === 200) {
+            const length = response.headers.get("Content-Length");
+            if (length !== null)
+              span.setAttribute("publication.image.body_bytes", Number(length));
+          }
+        }
+        return response;
+      },
+    );
   } catch (error) {
     if (error instanceof PublicationImageStorageUnavailableError) {
       const response = handleRouteError(

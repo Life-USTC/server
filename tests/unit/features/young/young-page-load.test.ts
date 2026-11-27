@@ -193,12 +193,19 @@ describe("public Young page loaders", () => {
     );
   });
   it("never embeds private comment state in public detail SSR", async () => {
-    service.getYoungEvent.mockResolvedValue({ youngId: "42" });
+    service.getYoungEvent.mockResolvedValue({
+      youngId: "42",
+    });
     const result = await loadYoungEventDetailPage({
       ...event("/catalog/young-events/42"),
       youngId: "42",
     });
+    expect(service.getYoungEvent).toHaveBeenCalledWith("42", "page");
     expect(result.event).toEqual({ youngId: "42" });
+    expect(Object.keys(result.copy).sort()).toEqual([
+      "comments",
+      "youngEvents",
+    ]);
     expect(result.commentsData).toBeNull();
     expect(result.source).toEqual(source);
   });

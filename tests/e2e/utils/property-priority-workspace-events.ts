@@ -102,7 +102,7 @@ async function checkEvent(
     let teachers = event;
     if (grid) {
       await event.hover();
-      teachers = page.locator('[data-slot="tooltip-content"]');
+      teachers = page.getByRole("tooltip");
       await expect(teachers).toBeVisible();
       // The hover actually reveals the full location, not only the clipped room.
       await expect(teachers).toContainText(local(data.building, locale));
