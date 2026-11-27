@@ -156,15 +156,13 @@ $: if (open) {
           </InputGroup.Root>
         </Field.Field>
         <Button
+          icon={XIcon}
           aria-label={copy.close}
           class="icon-action"
           onclick={() => handleOpenChange(false)}
           size="icon-sm"
-          type="button"
           variant="ghost"
-        >
-          <XIcon data-icon="inline-start" />
-        </Button>
+        />
       </div>
     </Dialog.Header>
 
@@ -193,7 +191,6 @@ $: if (open) {
       <Button
         class="w-full justify-center"
         onclick={openSearchPage}
-        type="button"
         variant="ghost"
       >
         {copy.viewAllResults}

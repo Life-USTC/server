@@ -1,12 +1,13 @@
 <script lang="ts">
 import { diffWords } from "diff";
-import * as Empty from "#lib/components/ui/empty/index.js";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 import type {
   DescriptionHistoryItem,
   EditorSummary,
 } from "@/features/descriptions/lib/description-payload-types";
+import type { DescriptionCopy } from "./description-component-types";
 
 type DiffMode = "previous" | "next";
 type DiffSegment = {
@@ -15,13 +16,7 @@ type DiffSegment = {
   value: string;
 };
 
-export let copy: {
-  editorUnknown: string;
-  emptyValue: string;
-  historyEmpty: string;
-  previousLabel: string;
-  updatedLabel: string;
-};
+export let copy: DescriptionCopy;
 export let formatDate: (value: string | null | undefined) => string;
 export let history: DescriptionHistoryItem[];
 
@@ -51,11 +46,7 @@ function diffSegmentClass(segment: DiffSegment) {
 </script>
 
 {#if history.length === 0}
-  <Empty.Root>
-    <Empty.Header>
-      <Empty.Description>{copy.historyEmpty}</Empty.Description>
-    </Empty.Header>
-  </Empty.Root>
+  <EmptyState description={copy.historyEmpty} />
 {:else}
   <Item.Group>
     {#each history as item}

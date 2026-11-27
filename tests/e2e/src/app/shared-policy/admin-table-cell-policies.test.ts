@@ -355,6 +355,9 @@ test("ui.data-table-cells-6", { tag: "@Admin/Web" }, async ({
             const label = await action.getAttribute("aria-label");
             if (!label) throw new Error("Expected an explicit action label");
             await action.focus();
+            await page.keyboard.press("Shift+Tab");
+            await page.keyboard.press("Tab");
+            await expect(action).toBeFocused();
             await expect(
               page.locator('[data-slot="tooltip-content"]:visible'),
             ).toHaveText(label);

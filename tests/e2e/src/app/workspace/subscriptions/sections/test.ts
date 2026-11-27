@@ -371,7 +371,7 @@ test.describe("仪表盘班级订阅", () => {
         ),
       ).toEqual(catalog.sections.slice(1).map((section) => section.id));
       await expect(
-        page.locator("[data-sonner-toast]").filter({
+        page.locator("[data-slot=toast]").filter({
           hasText:
             /该班级已从订阅列表中移除|This section has been removed from your Life@USTC subscriptions/i,
         }),
@@ -661,7 +661,7 @@ test.describe("仪表盘班级订阅", () => {
       );
       await expect(quickAddDialog).not.toBeVisible();
       await expect(
-        page.locator("[data-sonner-toast]").filter({
+        page.locator("[data-slot=toast]").filter({
           hasText:
             /已新增 \d+ 个班级订阅|Added \d+ new sections? to Life@USTC/i,
         }),
@@ -907,7 +907,7 @@ test.describe("仪表盘班级订阅", () => {
         })
         .click();
       await expect(
-        page.locator("[data-sonner-toast]").filter({
+        page.locator("[data-slot=toast]").filter({
           hasText:
             /已新增 \d+ 个班级订阅|Added \d+ new sections? to Life@USTC/i,
         }),

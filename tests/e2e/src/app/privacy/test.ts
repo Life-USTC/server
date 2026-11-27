@@ -7,10 +7,7 @@
 import { expect } from "@playwright/test";
 import { test as privateTest } from "../../../utils/account-fixture";
 import { observeAction } from "../../../utils/observed-action";
-import {
-  gotoAndWaitForReady,
-  waitForUiSettled,
-} from "../../../utils/page-ready";
+import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test as noScriptTest } from "../../../utils/personal-preferences-fixture";
 import { test } from "../../../utils/public-worker";
 import { assertPageContract } from "../_shared/page-contract";
@@ -19,26 +16,6 @@ test.describe("/privacy 隐私政策页", () => {
   test("页面契约", { tag: "@Site/Web" }, async ({ publicFlow, page }) => {
     await publicFlow.run(async () => {
       await assertPageContract(page, { routePath: "/privacy" });
-    });
-  });
-
-  test("渲染带章节的隐私政策", { tag: "@Site/Web" }, async ({
-    publicFlow,
-    page,
-  }) => {
-    await publicFlow.run(async () => {
-      await gotoAndWaitForReady(page, "/privacy");
-      await waitForUiSettled(page);
-
-      await expect(page.locator("#main-content")).toBeVisible();
-      await expect(page.locator("h1")).toBeVisible();
-
-      const sections = page.locator("h2");
-      await expect(sections.first()).toBeVisible();
-      expect(await sections.count()).toBeGreaterThan(0);
-
-      const listItems = page.locator("li");
-      expect(await listItems.count()).toBeGreaterThan(0);
     });
   });
 

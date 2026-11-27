@@ -87,16 +87,13 @@ $: subscriptionsCopy = sectionCopy.subscriptions;
     {#if section.retiredAt != null || formError}
       <div class="grid gap-4">
         {#if section.retiredAt != null}
-          <Alert.Root>
-            <Alert.Title>{sectionCopy.historicalSectionLabel}</Alert.Title>
-            <Alert.Description>{sectionCopy.historicalSectionDescription}</Alert.Description>
-          </Alert.Root>
+          <Alert.Message heading={sectionCopy.historicalSectionLabel}>
+            {sectionCopy.historicalSectionDescription}
+          </Alert.Message>
         {/if}
 
         {#if formError}
-          <Alert.Root variant="destructive">
-            <Alert.Description>{formError}</Alert.Description>
-          </Alert.Root>
+          <Alert.Message variant="destructive">{formError}</Alert.Message>
         {/if}
       </div>
     {/if}

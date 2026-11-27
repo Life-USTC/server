@@ -20,14 +20,12 @@ export let removeLabel: string;
       <Badge class="gap-1 pr-1" variant="outline">
         <span class="max-w-40 truncate">{file.filename}</span>
         <Button
+          icon={XIcon}
           aria-label={removeLabel}
           size="icon-xs"
-          type="button"
           variant="ghost"
           onclick={() => onRemove(file.id)}
-        >
-          <XIcon data-icon="inline-start" />
-        </Button>
+        />
       </Badge>
     {/each}
   </div>

@@ -1,10 +1,11 @@
 <script lang="ts">
+import EmptyState from "#lib/components/EmptyState.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
+import type { SectionDetailCopy } from "@/features/section-detail/lib/section-detail-controller-types";
 
 type HomeworkAuditLog = {
   action: string;
@@ -22,16 +23,9 @@ export let formatMessage: (
   template: string,
   values: Record<string, string>,
 ) => string;
-export let homeworkCopy: {
-  auditEmpty: string;
-  auditMeta: string;
-  auditTitle: string;
-};
+export let homeworkCopy: SectionDetailCopy["homeworks"];
 export let logs: HomeworkAuditLog[];
-export let sectionCopy: {
-  close?: string;
-  homeworkDescription: string;
-};
+export let sectionCopy: SectionDetailCopy["sectionDetail"];
 export let setOpen: (open: boolean) => void;
 </script>
 
@@ -42,18 +36,11 @@ export let setOpen: (open: boolean) => void;
   <Dialog.Content
     class="!max-w-2xl sm:!max-w-2xl"
   >
-    <Dialog.Header>
-      <Dialog.Title>{homeworkCopy.auditTitle}</Dialog.Title>
-      <Dialog.Description>{sectionCopy.homeworkDescription}</Dialog.Description>
-    </Dialog.Header>
+    <Dialog.Header heading={homeworkCopy.auditTitle} description={sectionCopy.homeworkDescription} />
     <ScrollArea class="h-[min(72vh,42rem)]">
       <section class="px-5 py-4">
         {#if logs.length === 0}
-          <Empty.Root>
-            <Empty.Header>
-              <Empty.Description>{homeworkCopy.auditEmpty}</Empty.Description>
-            </Empty.Header>
-          </Empty.Root>
+          <EmptyState description={homeworkCopy.auditEmpty} />
         {:else}
           <Item.Group>
             {#each logs as log}
@@ -80,10 +67,10 @@ export let setOpen: (open: boolean) => void;
         {/if}
       </section>
     </ScrollArea>
-    <Dialog.Footer>
-      <Button type="button" onclick={() => setOpen(false)}>
+    <div data-slot="dialog-footer">
+      <Button onclick={() => setOpen(false)}>
         {sectionCopy.close ?? ""}
       </Button>
-    </Dialog.Footer>
+    </div>
   </Dialog.Content>
 </Dialog.Root>

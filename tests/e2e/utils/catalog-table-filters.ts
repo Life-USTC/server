@@ -5,7 +5,9 @@ export async function openCatalogColumnFilter(
   page: Page,
   label: string | RegExp,
 ) {
-  const dialog = page.getByRole("dialog", { name: label, exact: true });
+  const dialog = page
+    .getByRole("dialog", { name: label, exact: true })
+    .and(page.locator("[data-open]"));
   if (await dialog.isVisible()) return dialog;
   const trigger = page
     .locator('[data-slot="table-column-header"]')
@@ -57,7 +59,7 @@ export async function expectCatalogFilterValue(
 }
 
 export async function applyCatalogFilters(page: Page) {
-  const dialog = page.getByRole("dialog");
+  const dialog = page.getByRole("dialog").and(page.locator("[data-open]"));
   if (await dialog.isVisible()) {
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();

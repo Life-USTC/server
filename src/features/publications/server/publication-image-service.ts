@@ -321,6 +321,11 @@ async function readLimitedBody(response: Response, signal: AbortSignal) {
     );
   }
 
+  const first = chunks[0];
+  if (chunks.length === 1 && first?.buffer instanceof ArrayBuffer) {
+    return new Uint8Array(first.buffer, first.byteOffset, total);
+  }
+
   const bytes = new Uint8Array(total);
   let offset = 0;
   for (const chunk of chunks) {
