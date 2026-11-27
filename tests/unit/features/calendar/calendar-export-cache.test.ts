@@ -11,7 +11,11 @@ import {
   scheduleUserCalendarExportRebuild,
   setCalendarExportRebuildSenderForTest,
 } from "@/features/calendar/server/calendar-export-queue";
-import { setCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
+import {
+  type CloudflareTraceSpan,
+  runWithCloudflareRuntimeEnv,
+  setCloudflareRuntimeEnv,
+} from "@/lib/adapters/cloudflare-runtime";
 import { createDeferred } from "../../../shared/deferred";
 
 const calendarExport = {
@@ -45,6 +49,86 @@ describe("用户 iCal 导出缓存", () => {
     vi.restoreAllMocks();
   });
 
+  it("revalidates equal calendar text without consuming the KV body", async () => {
+    vi.useFakeTimers();
+    const namespace = kvNamespace();
+    const cancel = vi.fn();
+    const getWithMetadata = vi.fn();
+    setCloudflareRuntimeEnv({
+      CALENDAR_EXPORTS: { ...namespace, getWithMetadata },
+    });
+    const stored = await storeBuiltUserCalendarExport("user-1", calendarExport);
+    const { text: _text, ...metadata } = stored;
+    vi.advanceTimersByTime(61_000);
+    getWithMetadata.mockResolvedValue({
+      metadata,
+      value: new ReadableStream({ cancel }),
+    });
+    const build = vi.fn();
+    const hit = await getCachedUserCalendarExport("user-1", build);
+    expect(hit.calendar).toEqual(stored);
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(namespace.get).not.toHaveBeenCalled();
+    expect(build).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(61_000);
+    const updated = {
+      ...stored,
+      text: "changed",
+      etag: '"changed"',
+      generatedAtMs: Date.now(),
+    };
+    getWithMetadata.mockResolvedValue({
+      metadata: null,
+      value: new Response(JSON.stringify(updated)).body,
+    });
+    expect(
+      (await getCachedUserCalendarExport("user-1", build)).calendar,
+    ).toEqual(updated);
+    expect(namespace.get).not.toHaveBeenCalled();
+  });
+
+  it("reports the KV body source only for completed reads", async () => {
+    vi.useFakeTimers();
+    const namespace = kvNamespace();
+    const getWithMetadata = vi.fn();
+    const setAttribute = vi.fn();
+    const enterSpan = <T>(name: string, callback: (span: CloudflareTraceSpan) => T) => {
+      expect(name).toBe("calendar.export.kv.read");
+      return callback({ isTraced: true, setAttribute });
+    };
+    await runWithCloudflareRuntimeEnv(
+      { CALENDAR_EXPORTS: { ...namespace, getWithMetadata } },
+      async () => {
+        const build = vi.fn().mockResolvedValue(calendarExport);
+        const read = () => getCachedUserCalendarExport("user-1", build);
+        const { calendar: stored } = await read();
+        if (!stored) throw new Error("Expected initial calendar build to succeed");
+        resetUserCalendarExportCacheForTest();
+        await read();
+        await read(); // Still fresh in memory; no KV span.
+        const { text: _text, ...metadata } = stored;
+        vi.advanceTimersByTime(61_000);
+        getWithMetadata.mockResolvedValueOnce({
+          metadata, value: new Response("unused").body,
+        });
+        await read();
+        vi.advanceTimersByTime(61_000);
+        getWithMetadata.mockResolvedValueOnce({
+          metadata: null, value: new Response(JSON.stringify(stored)).body,
+        });
+        await read();
+        vi.advanceTimersByTime(61_000);
+        getWithMetadata.mockRejectedValueOnce(new Error("KV unavailable"));
+        expect((await read()).calendar).toEqual(stored);
+        getWithMetadata.mockResolvedValueOnce({ metadata: null, value: null });
+        await read();
+        expect(setAttribute.mock.calls.filter(([key]) => key === "calendar.body.source")
+          .map(([, source]) => source)).toEqual(["missing", "kv_json", "memory", "kv_stream", "missing"]);
+      },
+      { tracing: { enterSpan } },
+    );
+  });
+
   it("ical.feed-telemetry-private", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
@@ -69,7 +153,10 @@ describe("用户 iCal 导出缓存", () => {
     expect(namespace.put).toHaveBeenCalledWith(
       "user-calendar:v2:user-1",
       expect.any(String),
-      { expirationTtl: 86_400 },
+      expect.objectContaining({
+        expirationTtl: 86_400,
+        metadata: expect.objectContaining({ etag: expect.any(String) }),
+      }),
     );
     expect(namespace.get).toHaveBeenLastCalledWith("user-calendar:v2:user-1", {
       cacheTtl: 60,
@@ -245,7 +332,10 @@ describe("用户 iCal 导出缓存", () => {
     expect(namespace.put).toHaveBeenLastCalledWith(
       "user-calendar:v2:user-1",
       expect.any(String),
-      { expirationTtl: 86_400 },
+      expect.objectContaining({
+        expirationTtl: 86_400,
+        metadata: expect.objectContaining({ etag: expect.any(String) }),
+      }),
     );
     expect(renewed.generatedAtMs).toBe(Date.now());
     expect(renewed.text).toBe(changed.text);
