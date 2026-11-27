@@ -231,7 +231,8 @@ for (const domain of ["Section", "Course", "Teacher"] as const) {
             await expect(rows).toHaveCount(2);
           } finally {
             release.resolve();
-            await preferenceFlow.clearRoutes(page);
+            // The workflow closes this page after draining its native reads.
+            // Removing interception here can race the final navigation's assets.
           }
         });
       },
@@ -342,7 +343,7 @@ test("catalog draft follows the latest native Apply when responses finish out of
       await expect(rows).toHaveCount(2);
     } finally {
       for (const gate of releases) gate.resolve();
-      await preferenceFlow.clearRoutes(page);
+      // Keep interception owned until the workflow drains and closes the page.
     }
   });
 });
