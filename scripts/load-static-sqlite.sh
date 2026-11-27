@@ -2,6 +2,9 @@
 set -eu
 
 : "${DATABASE_URL:?DATABASE_URL is required}"
+if [ -n "${STATIC_SNAPSHOT_MANIFEST_URL:-}" ]; then
+  exec bun run static:load:manifest
+fi
 default_url=https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite
 work_dir=$(mktemp -d)
 trap 'rm -rf "$work_dir"' EXIT

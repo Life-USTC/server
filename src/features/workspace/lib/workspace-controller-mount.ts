@@ -1,9 +1,3 @@
-import { getLocalStorageItem } from "@/lib/browser/local-storage";
-import {
-  WORKSPACE_VIEW_STORAGE_KEY,
-  workspaceViewsFromPreference,
-} from "./view-preferences";
-import type { WorkspaceViewState } from "./workspace-controller-helpers";
 import { currentCatalogLinkReturnTo } from "./workspace-link-ui";
 
 type WorkspaceMountCopy = {
@@ -15,7 +9,6 @@ type WorkspaceMountCopy = {
 };
 
 export function mountWorkspaceController(input: {
-  applyViewState: (state: WorkspaceViewState) => void;
   clearPendingRemoveSection: () => void;
   copy: WorkspaceMountCopy;
   replaceState: (href: string) => void;
@@ -32,13 +25,6 @@ export function mountWorkspaceController(input: {
     input.replaceState(nextHref);
     input.setLinkReturnTo(nextHref);
   }
-
-  input.applyViewState(
-    workspaceViewsFromPreference(
-      url,
-      getLocalStorageItem(WORKSPACE_VIEW_STORAGE_KEY),
-    ),
-  );
 
   return () => {
     input.clearPendingRemoveSection();

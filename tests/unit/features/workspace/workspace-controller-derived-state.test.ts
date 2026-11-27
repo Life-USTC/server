@@ -16,6 +16,8 @@ import type {
   WorkspacePageData,
 } from "@/features/workspace/lib/workspace-controller-helpers";
 
+import { filterTodoTable } from "@/features/workspace/lib/workspace-task-table-filters";
+
 const catalogLinkGroupLabels = Object.fromEntries(
   CATALOG_LINK_GROUP_ORDER.map((group) => [group, group]),
 ) as Record<CatalogLinkGroup, string>;
@@ -91,10 +93,8 @@ describe("仪表盘控制器派生状态", () => {
         catalogLinkGroupLabels,
         data: signedWorkspaceData(loadedLinks),
         dateFallback: "TBD",
-        examFilter: "incomplete",
         linkSearchQuery: "jw",
         notAvailable: "N/A",
-        todoFilter: "incomplete",
       });
 
       expect(
@@ -175,22 +175,32 @@ describe("仪表盘控制器派生状态", () => {
     } as TodoItem;
     const stale = { id: "removed", completed: false, dueAt: null } as TodoItem;
     const data = { ...signedWorkspaceData([]), todos: [stale, completed] };
-    const derive = (todoFilter: "incomplete" | "completed" | "all") =>
-      buildWorkspaceControllerDerivedState({
-        catalogLinkGroupLabels,
-        data,
-        dateFallback: "TBD",
-        examFilter: "incomplete",
-        linkSearchQuery: "",
-        notAvailable: "N/A",
-        currentCatalogLinkItems: [],
-        currentTodoItems: [completed],
-        todoFilter,
-      });
+    const { todoItems } = buildWorkspaceControllerDerivedState({
+      catalogLinkGroupLabels,
+      data,
+      dateFallback: "TBD",
+      linkSearchQuery: "",
+      notAvailable: "N/A",
+      currentCatalogLinkItems: [],
+      currentTodoItems: [completed],
+    });
 
-    expect(derive("incomplete").filteredTodos).toEqual([]);
-    expect(derive("completed").filteredTodos).toEqual([completed]);
-    expect(derive("all").filteredTodos).toEqual([completed]);
-    expect(derive("incomplete").filteredTodos).toEqual([]);
+    const fields = [
+      {
+        name: "completion",
+        label: "Status",
+        options: [
+          { value: "incomplete", label: "Incomplete" },
+          { value: "completed", label: "Completed" },
+        ],
+      },
+    ];
+    expect(
+      filterTodoTable(todoItems, fields, { completion: "incomplete" }),
+    ).toEqual([]);
+    expect(
+      filterTodoTable(todoItems, fields, { completion: "completed" }),
+    ).toEqual([completed]);
+    expect(filterTodoTable(todoItems, fields, {})).toEqual([completed]);
   });
 });

@@ -1,18 +1,21 @@
 <script lang="ts">
-	import { Tabs as TabsPrimitive } from "bits-ui";
+	import { Tabs } from "@ui-sdk/svelte/tabs";
+	import type { HTMLAttributes } from "svelte/elements";
 	import { cn } from "#lib/utils.js";
 
 	let {
 		ref = $bindable(null),
 		value = $bindable(""),
+		onValueChange,
 		class: className,
 		...restProps
-	}: TabsPrimitive.RootProps = $props();
+	}: HTMLAttributes<HTMLDivElement> & { value?: string; onValueChange?: (value: string) => void; orientation?: "horizontal" | "vertical" } & { ref?: HTMLDivElement | null } = $props();
 </script>
 
-<TabsPrimitive.Root
-	bind:ref
-	bind:value
+<Tabs
+	{@attach (element: HTMLDivElement) => { ref = element; return () => { ref = null; }; }}
+	value={value}
+	onValueChange={(next) => { if (next !== null) { value = next; onValueChange?.(next); } }}
 	data-slot="tabs"
 	class={cn("gap-2 group/tabs flex data-[orientation=horizontal]:flex-col", className)}
 	{...restProps}

@@ -1,6 +1,21 @@
 <script lang="ts">
-import type { CalendarDate, DateValue } from "@internationalized/date";
+import { type CalendarDate, parseDate } from "@internationalized/date";
 import CalendarIcon from "@lucide/svelte/icons/calendar";
+import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+import ChevronRight from "@lucide/svelte/icons/chevron-right";
+import {
+  Calendar,
+  CalendarDay,
+  CalendarGrid,
+  CalendarHeading,
+  CalendarMonthSelect,
+  CalendarNext,
+  CalendarPrevious,
+  CalendarWeekday,
+  CalendarWeekdays,
+  CalendarWeeks,
+  CalendarYearSelect,
+} from "@ui-sdk/svelte/calendar";
 import { untrack } from "svelte";
 import { dateTimePickerCopy } from "#lib/components/date-time-picker-copy.js";
 import {
@@ -8,7 +23,6 @@ import {
   parseDateTimeLocal,
 } from "#lib/components/date-time-picker-value.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import { Calendar } from "#lib/components/ui/calendar/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
 import * as InputGroup from "#lib/components/ui/input-group/index.js";
@@ -63,8 +77,8 @@ function commit(nextDate = selectedDate, nextTime = timeValue) {
   lastSyncedValue = value;
 }
 
-function handleDateChange(nextDate: DateValue | undefined) {
-  selectedDate = nextDate as CalendarDate | undefined;
+function handleDateChange(next: string | (string | null)[] | null) {
+  selectedDate = typeof next === "string" ? parseDate(next) : undefined;
   commit();
 }
 
@@ -115,7 +129,7 @@ let rootProps = $derived.by(() => {
   <InputGroup.Addon align="inline-end">
     <Popover.Root bind:open>
       <Popover.Trigger>
-        {#snippet child({ props })}
+        {#snippet render({ props })}
           <InputGroup.Button
             {...props}
             aria-label={calendarButtonLabel}
@@ -130,15 +144,27 @@ let rootProps = $derived.by(() => {
       </Popover.Trigger>
       <Popover.Content class="w-auto overflow-hidden p-0" align="start">
         <Calendar
-          bind:value={selectedDate}
-          captionLayout="dropdown"
+          value={selectedDate?.toString() ?? null}
           onValueChange={handleDateChange}
           locale={activeLocale === "zh-cn" ? "zh-CN" : "en-US"}
-          previousLabel={pickerCopy.previous}
-          nextLabel={pickerCopy.next}
           aria-label={calendarButtonLabel}
-          type="single"
-        />
+        >
+          <div class="flex items-center justify-between gap-1">
+            <CalendarPrevious aria-label={pickerCopy.previous}><ChevronLeft /></CalendarPrevious>
+            <CalendarHeading class="sr-only" />
+            <CalendarMonthSelect />
+            <CalendarYearSelect />
+            <CalendarNext aria-label={pickerCopy.next}><ChevronRight /></CalendarNext>
+          </div>
+          <CalendarGrid>
+            <CalendarWeekdays>
+              {#snippet children(index)}<CalendarWeekday {index} />{/snippet}
+            </CalendarWeekdays>
+            <CalendarWeeks>
+              {#snippet children(cell)}<CalendarDay value={cell.date} />{/snippet}
+            </CalendarWeeks>
+          </CalendarGrid>
+        </Calendar>
         <Field.FieldGroup class="gap-3 p-3">
           <Field.Field>
             <Field.FieldLabel for={`${controlId}-time`}>
@@ -153,7 +179,7 @@ let rootProps = $derived.by(() => {
               disabled={disabled || !selectedDate}
             />
           </Field.Field>
-          <Button type="button" variant="outline" onclick={() => { open = false; }}>
+          <Button variant="outline" onclick={() => { open = false; }}>
             {pickerCopy.done}
           </Button>
         </Field.FieldGroup>

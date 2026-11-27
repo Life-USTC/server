@@ -10,8 +10,7 @@ export let idPrefix = "homework";
 export let title = "";
 </script>
 
-<Field.Field data-disabled={disabled ? "true" : undefined}>
-  <Field.Label for={`${idPrefix}-title`}>{copy.titleLabel}</Field.Label>
+<Field.Field data-disabled={disabled ? "true" : undefined} for={`${idPrefix}-title`} label={copy.titleLabel}>
   <Input
     data-testid={`${idPrefix}-title`}
     {disabled}

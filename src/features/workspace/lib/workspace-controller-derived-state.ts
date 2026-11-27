@@ -1,9 +1,6 @@
 import type { CatalogLinkGroup } from "@/features/catalog-links/lib/catalog-links";
 import { isHomeworkPendingForViewer } from "@/features/homeworks/lib/homework-completion-state";
-import type { ExamFilter } from "./exams";
-import { filterExamRows } from "./exams";
 import { referenceDate } from "./overview-dates";
-import { filterTodos, sortTodosByDeadline } from "./todos";
 import { workspaceExamRows } from "./workspace-controller-display";
 import {
   type CalendarData,
@@ -12,7 +9,6 @@ import {
   type HomeworkItem,
   isSignedWorkspaceData,
   type SignedWorkspaceData,
-  type TodoFilter,
   type TodoItem,
   type WorkspacePageData,
 } from "./workspace-controller-helpers";
@@ -62,12 +58,10 @@ export function buildWorkspaceControllerDerivedState(input: {
   catalogLinkGroupLabels: Record<CatalogLinkGroup, string>;
   data: WorkspacePageData;
   dateFallback: string;
-  examFilter: ExamFilter;
   linkSearchQuery: string;
   notAvailable: string;
   currentCatalogLinkItems: CatalogLinkItem[];
   currentTodoItems: TodoItem[];
-  todoFilter: TodoFilter;
 }) {
   const signedData = isSignedWorkspaceData(input.data) ? input.data : null;
   const homeworkItems = signedData?.homeworks
@@ -89,10 +83,6 @@ export function buildWorkspaceControllerDerivedState(input: {
       null) as CalendarData | null,
     catalogLinkItems,
     examRows,
-    filteredExamRows: filterExamRows(examRows, input.examFilter),
-    filteredTodos: sortTodosByDeadline(
-      filterTodos(todoItems, input.todoFilter),
-    ),
     homeworkItems,
     signedData,
     signedLinkGroups: signedData?.links

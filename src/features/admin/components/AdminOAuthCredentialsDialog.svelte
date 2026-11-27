@@ -51,6 +51,7 @@ async function copyCredential(
   {#key `${clientId ?? "public"}:${preventedDismissalCount}`}
     <Dialog.Root
       open={true}
+      dismissible={canDismissCredentials}
       onOpenChange={(nextOpen) => {
         if (nextOpen) return;
         if (canDismissCredentials) close();
@@ -60,14 +61,13 @@ async function copyCredential(
     <Dialog.Content
       class="grid max-h-[calc(100dvh-2rem)] min-h-0 max-w-2xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl"
       aria-labelledby="oauth-credentials-title"
-      escapeKeydownBehavior={canDismissCredentials ? "close" : "ignore"}
-      interactOutsideBehavior={canDismissCredentials ? "close" : "ignore"}
       showCloseButton={canDismissCredentials}
     >
-      <Dialog.Header class="pr-10">
-        <Dialog.Title id="oauth-credentials-title">{copy.credentialsTitle}</Dialog.Title>
-        <Dialog.Description>{copy.credentialsWarning}</Dialog.Description>
-      </Dialog.Header>
+      <Dialog.Header
+        heading={copy.credentialsTitle}
+        titleId="oauth-credentials-title"
+        description={copy.credentialsWarning}
+      />
       {#if clientId}
         <ScrollArea class="min-h-0">
           <div class="grid gap-3 px-5 py-4">
@@ -97,7 +97,7 @@ async function copyCredential(
           />
           <div>
             <Button
-              type="button"
+              icon={CopyIcon}
               variant="outline"
               onclick={() =>
                 copyCredential(
@@ -106,14 +106,11 @@ async function copyCredential(
                   Boolean(clientSecret),
                 )}
             >
-              <CopyIcon data-icon="inline-start" />
               <span>{copy.copyCredentials}</span>
             </Button>
           </div>
           {#if copyMessage}
-            <Alert.Root variant={copyMessageVariant}>
-              <Alert.Description>{copyMessage}</Alert.Description>
-            </Alert.Root>
+            <Alert.Message variant={copyMessageVariant}>{copyMessage}</Alert.Message>
           {/if}
           {#if requiresSecretCopy}
             <label class="flex items-start gap-3 text-sm" for="oauth-credentials-saved">
@@ -132,15 +129,14 @@ async function copyCredential(
           </div>
         </ScrollArea>
       {/if}
-      <Dialog.Footer>
+      <div data-slot="dialog-footer">
         <Button
-          type="button"
           disabled={!canDismissCredentials}
           onclick={close}
         >
           {copy.dismissCredentials}
         </Button>
-      </Dialog.Footer>
+      </div>
     </Dialog.Content>
     </Dialog.Root>
   {/key}
