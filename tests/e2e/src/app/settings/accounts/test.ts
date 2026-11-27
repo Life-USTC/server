@@ -271,7 +271,7 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
         await expect(page).toHaveURL(/\/account\/settings\/accounts$/);
         await expect(
           page
-            .locator("[data-sonner-toast]")
+            .locator("[data-slot=toast]")
             .filter({ hasText: /已断开连接|Disconnected/i }),
         ).toBeVisible();
         expect(

@@ -12,6 +12,7 @@ import {
   PUBLIC_SSR_CACHE_PURGE_PATH,
   PUBLIC_SSR_CACHE_PURGE_SECRET_HEADER,
   PUBLIC_SSR_CACHE_PURGE_TAGS,
+  purgeCloudflareZoneCacheByTags,
   purgeEntrypointCatalogCache,
 } from "@/lib/cloudflare/public-ssr-cache-purge";
 
@@ -78,6 +79,38 @@ describe("public SSR cache purge endpoint", () => {
       ok: false,
       reason: "purge-rejected",
     });
+  });
+
+  it("requires both Cloudflare zone credentials", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+
+    await expect(
+      purgeCloudflareZoneCacheByTags({}, PUBLIC_SSR_CACHE_PURGE_TAGS),
+    ).resolves.toEqual({ ok: false, reason: "cache-unavailable" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("purges the Cloudflare zone with the fixed catalog tags", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ success: true }), {
+        headers: { "Content-Type": "application/json" },
+        status: 200,
+      }),
+    );
+
+    await expect(
+      purgeCloudflareZoneCacheByTags(
+        { CLOUDFLARE_API_TOKEN: "token", CLOUDFLARE_ZONE_ID: "zone" },
+        PUBLIC_SSR_CACHE_PURGE_TAGS,
+      ),
+    ).resolves.toEqual({ ok: true, tags: ["catalog"] });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.cloudflare.com/client/v4/zones/zone/purge_cache",
+      expect.objectContaining({
+        body: JSON.stringify({ tags: ["catalog"] }),
+        method: "POST",
+      }),
+    );
   });
 
   it("rejects a request without the shared secret and never purges", async () => {
@@ -157,6 +190,62 @@ describe("public SSR cache purge endpoint", () => {
       "info",
       "edge.cache.purge.finish",
       expect.objectContaining({ outcome: "success", tags: "catalog" }),
+    );
+  });
+
+  it("purges the entrypoint and Cloudflare zone together", async () => {
+    const purge = vi.fn().mockResolvedValue({ ok: true, tags: ["catalog"] });
+    const zonePurge = vi
+      .fn()
+      .mockResolvedValue({ ok: true, tags: ["catalog"] });
+
+    const response = await handlePublicSsrCachePurgeRequest({
+      purge,
+      request: purgeRequest(),
+      secret: SECRET,
+      zonePurge,
+    });
+
+    expect(response.status).toBe(200);
+    expect(purge).toHaveBeenCalledOnce();
+    expect(zonePurge).toHaveBeenCalledOnce();
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "info",
+      "edge.cache.purge.finish",
+      expect.objectContaining({
+        outcome: "success",
+        source: "cloudflare-zone",
+      }),
+    );
+  });
+
+  it("fails the import hook when the Cloudflare zone purge fails", async () => {
+    const purge = vi.fn().mockResolvedValue({ ok: true, tags: ["catalog"] });
+    const zonePurge = vi
+      .fn()
+      .mockResolvedValue({ ok: false, reason: "purge-rejected" });
+
+    const response = await handlePublicSsrCachePurgeRequest({
+      purge,
+      request: purgeRequest(),
+      secret: SECRET,
+      zonePurge,
+    });
+
+    expect(response.status).toBe(502);
+    expect(purge).toHaveBeenCalledOnce();
+    expect(zonePurge).toHaveBeenCalledOnce();
+    await expect(response.json()).resolves.toEqual({
+      error: "Cache purge failed",
+      reason: "purge-rejected",
+    });
+    expect(logAppEventMock).toHaveBeenCalledWith(
+      "error",
+      "edge.cache.purge.error",
+      expect.objectContaining({
+        outcome: "error",
+        source: "cloudflare-zone",
+      }),
     );
   });
 

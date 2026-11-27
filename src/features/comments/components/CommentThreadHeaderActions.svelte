@@ -17,7 +17,6 @@ export let toggleReply: (comment: CommentNode) => void;
 <div class="flex flex-wrap items-center gap-1">
   {#if comment.canReply}
     <Button
-      type="button"
       variant="ghost"
       onclick={() => {
         toggleReply(comment);
@@ -27,7 +26,7 @@ export let toggleReply: (comment: CommentNode) => void;
     </Button>
   {/if}
   {#if comment.canEdit}
-    <Button type="button" variant="ghost" onclick={() => startEdit(comment)}>
+    <Button variant="ghost" onclick={() => startEdit(comment)}>
       {commentCopy.editAction}
     </Button>
   {/if}
@@ -38,17 +37,12 @@ export let toggleReply: (comment: CommentNode) => void;
         actionMenuId = open ? comment.id : null;
       }}
     >
-      <DropdownMenu.Trigger>
-        {#snippet child({ props })}
-          <Button
-            {...props}
-            aria-label={commentCopy.moreActions}
-            variant="ghost"
-          >
-            {commentCopy.moreActions}
-          </Button>
-        {/snippet}
-      </DropdownMenu.Trigger>
+      <DropdownMenu.ButtonTrigger
+        aria-label={commentCopy.moreActions}
+        variant="ghost"
+      >
+        {commentCopy.moreActions}
+      </DropdownMenu.ButtonTrigger>
       <DropdownMenu.Content align="end">
         <DropdownMenu.Group>
           <DropdownMenu.Item onSelect={() => copyCommentLink(comment)}>

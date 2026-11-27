@@ -214,12 +214,20 @@ export async function loadYoungEventDetailPage({
   youngId,
 }: AppPageLoadEvent & { youngId: string }) {
   const [event, source] = await Promise.all([
-    getYoungEvent(youngId),
+    getYoungEvent(youngId, "page"),
     getYoungSourceFreshness(),
   ]);
 
+  const { comments, youngEvents } = getWorkspacePageCopy(locals.locale);
   return toLoadData({
-    copy: getWorkspacePageCopy(locals.locale),
+    copy: {
+      comments: {
+        title: comments.title,
+        retry: comments.retry,
+        loadFailed: comments.loadFailed,
+      },
+      youngEvents,
+    },
     locale: locals.locale,
     event,
     commentsData: null,

@@ -4,7 +4,7 @@ export let pageDemo: DemoIdentity | null | undefined = null;
 export let locale = "";
 
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
 import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import {
@@ -34,35 +34,35 @@ export let sectionCopy: SectionExamCopy;
 
 {#if events.length > 0}
   <div class="min-w-0 max-w-full">
-    <Table.Root
+    <Table
       class="min-w-[52rem] md:min-w-0"
       containerLabel={heading}
       data-testid="section-exams-list"
     >
-      <Table.Caption class="sr-only">{heading}</Table.Caption>
-      <Table.Header>
-        <Table.Row>
-          <Table.Head scope="col">{sectionCopy.examBatch}</Table.Head>
-          <Table.Head scope="col">{sectionCopy.examDate}</Table.Head>
-          <Table.Head scope="col">{sectionCopy.examTime}</Table.Head>
-          <Table.Head scope="col">{sectionCopy.location}</Table.Head>
-          <Table.Head scope="col">{sectionCopy.examMode}</Table.Head>
-          <Table.Head scope="col">{sectionCopy.examCount}</Table.Head>
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
+      <caption class="sr-only">{heading}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{sectionCopy.examBatch}</th>
+          <th scope="col">{sectionCopy.examDate}</th>
+          <th scope="col">{sectionCopy.examTime}</th>
+          <th scope="col">{sectionCopy.location}</th>
+          <th scope="col">{sectionCopy.examMode}</th>
+          <th scope="col">{sectionCopy.examCount}</th>
+        </tr>
+      </thead>
+      <tbody>
         {#each events as event (event.id)}
-          <Table.Row id={event.id}>
-            <Table.Cell class="whitespace-nowrap">
+          <tr id={event.id}>
+            <td class="whitespace-nowrap">
               {calendarEventDetail(event, sectionCopy.examBatch, "—")}
-            </Table.Cell>
-            <Table.Cell class="whitespace-nowrap font-medium">
+            </td>
+            <td class="whitespace-nowrap font-medium">
               {#if event.date}{fmtDate(event.date)}{:else}{sectionCopy.dateTBD}{/if}
-            </Table.Cell>
-            <Table.Cell class="whitespace-nowrap">
+            </td>
+            <td class="whitespace-nowrap">
               {calendarEventTime(event, "—")}
-            </Table.Cell>
-            <Table.Cell class="whitespace-nowrap">
+            </td>
+            <td class="whitespace-nowrap">
               {#if event.roomCodes?.length}
                 <div class="flex flex-wrap items-center gap-x-1 gap-y-0.5">
                   {#each event.roomCodes as room (room)}
@@ -76,15 +76,15 @@ export let sectionCopy: SectionExamCopy;
                   calendarEventLocation(event, "—"),
                 )}
               {/if}
-            </Table.Cell>
-            <Table.Cell class="whitespace-nowrap">{event.title || "—"}</Table.Cell>
-            <Table.Cell class="whitespace-nowrap text-left tabular-nums">
+            </td>
+            <td class="whitespace-nowrap">{event.title || "—"}</td>
+            <td class="whitespace-nowrap text-left tabular-nums">
               {calendarEventDetail(event, sectionCopy.examCount, "—")}
-            </Table.Cell>
-          </Table.Row>
+            </td>
+          </tr>
         {/each}
-      </Table.Body>
-    </Table.Root>
+      </tbody>
+    </Table>
   </div>
 {:else}
   <CollectionEmpty variant="quiet" description={sectionCopy.examEmpty} />

@@ -4,6 +4,7 @@ import {
   recordStaticImportState,
   STATIC_IMPORT_TRANSFORM_REVISION,
 } from "@/static-loader/import-state";
+import { runManifestImport } from "@/static-loader/manifest-import";
 import { staticImporterTest as it } from "../shared/static-importer-fixture";
 
 describe("global static import state persistence", () => {
@@ -78,6 +79,47 @@ describe("global static import state persistence", () => {
           }),
         ),
       ).rejects.toThrow("last committed snapshot");
+    });
+  });
+
+  it("section.source-manifest-fast-path", {
+    tags: ["@StaticImport/Service"],
+  }, async ({ importer, protocolRuntime, expect }) => {
+    await protocolRuntime.run(async () => {
+      const snapshotSha256 = "c".repeat(64);
+      const generatedAt = "2026-11-26T00:00:00Z";
+      await importer.$transaction((tx) =>
+        recordStaticImportState(tx, {
+          observedAt: new Date(generatedAt),
+          snapshotSha256,
+          transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
+        }),
+      );
+      const manifest = {
+        manifestVersion: 1,
+        snapshotSchemaVersion: "6",
+        generatedAt,
+        health: "complete",
+        sourceAvailability: {
+          unavailableCurriculumSemesterJwIds: [],
+          unavailableExamSemesterJwIds: [],
+        },
+        snapshot: { sha256: snapshotSha256, size: 10 },
+        compressedSnapshot: {
+          url: "snapshot.sqlite.gz",
+          sha256: "d".repeat(64),
+          size: 10,
+        },
+      };
+      const report = await runManifestImport({
+        prisma: importer,
+        manifestUrl: "https://static.example.test/snapshot-manifest.json",
+        cacheDir: "unused",
+        dryRun: false,
+        fetchImpl: async () => new Response(JSON.stringify(manifest)),
+      });
+      expect(report.outcome).toBe("unchanged");
+      expect(report.snapshot.sha256).toBe(snapshotSha256);
     });
   });
 });
