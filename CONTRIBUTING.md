@@ -70,7 +70,7 @@ already imported, wait for the next build before switching to the full file.
 code. Study documents use `plan/<id>` and `module/<id>` keys. Expanded study-plan
 memberships remain in SQLite.
 
-Static import reads `snapshot-manifest.json` before downloading. If the raw snapshot SHA and transform revision are already committed, it returns an unchanged report without downloading either artifact. Otherwise `static:load:manifest` verifies compressed and raw SHA-256/size values while streaming them into the snapshot cache, then uses the normal importer with a restricted database role. Schema deployment belongs to DB Migrate Deploy. `STATIC_SNAPSHOT_PATH` and `STATIC_SNAPSHOT_URL` loading remains available for local and recovery use.
+Static import reads `snapshot-manifest.json` before downloading. If the raw snapshot SHA and transform revision are already committed, it returns an unchanged report without downloading either artifact. Otherwise `static:load:manifest` verifies compressed and raw SHA-256/size values while streaming them into the snapshot cache, then uses the normal importer with a restricted database role. Apply schema migrations before importing. `STATIC_SNAPSHOT_PATH` and `STATIC_SNAPSHOT_URL` loading remains available for local and recovery use.
 
 The loader compares mapped content by semester before writing sections, schedules,
 exams and their relations. Official profiles have a separate content digest.

@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-repo=/opt/life-ustc-static-import/current
+repo=${STATIC_IMPORT_REPO:-$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)}
 compose="$repo/deploy/static-import/compose.yml"
 cd "$repo"
 git pull --ff-only

@@ -31,4 +31,3 @@ bun run check          # static, type, specification, and unit checks
 
 For tests, specification changes, and API contracts, read
 [CONTRIBUTING.md](CONTRIBUTING.md).
-Production monitoring and deploy runbooks are kept out of the public tree.

@@ -7,10 +7,10 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/opt/life-ustc-static-import/current
+WorkingDirectory=@STATIC_IMPORT_REPO@
 Environment=STATIC_IMPORT_IMAGE=life-ustc-static-import:local
-ExecStart=/usr/bin/docker compose -f /opt/life-ustc-static-import/current/deploy/static-import/compose.yml up --detach --remove-orphans
-ExecStop=/usr/bin/docker compose -f /opt/life-ustc-static-import/current/deploy/static-import/compose.yml stop
+ExecStart=/usr/bin/docker compose -f @STATIC_IMPORT_REPO@/deploy/static-import/compose.yml up --detach --remove-orphans
+ExecStop=/usr/bin/docker compose -f @STATIC_IMPORT_REPO@/deploy/static-import/compose.yml stop
 
 [Install]
 WantedBy=multi-user.target

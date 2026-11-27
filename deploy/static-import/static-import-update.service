@@ -6,5 +6,5 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/opt/life-ustc-static-import/current/deploy/static-import/update.sh
+ExecStart=@STATIC_IMPORT_REPO@/deploy/static-import/update.sh
 TimeoutStartSec=15min
