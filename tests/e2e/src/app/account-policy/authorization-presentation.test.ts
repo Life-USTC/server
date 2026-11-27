@@ -255,6 +255,7 @@ test("user.oauth-authorization-management", { tag: "@Account/Web" }, async ({
       await expect(
         item.getByText("Last 30 days", { exact: true }),
       ).toBeVisible();
+      // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
       const text = await page.locator("#main-content").innerText();
       expect(text).not.toContain(otherClientName);
       for (const privateValue of [

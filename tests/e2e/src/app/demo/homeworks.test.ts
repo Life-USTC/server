@@ -111,6 +111,7 @@ for (const locale of ["zh-cn", "en-us"] as const) {
         ).toBeDisabled();
         await expect(dialog.getByRole("textbox")).toHaveCount(0);
         const deadline = dialog.getByTestId("homework-deadline-summary");
+        // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
         const before = await deadline.innerText();
         await page.clock.fastForward(61_000);
         await expect(deadline).toHaveText(before);

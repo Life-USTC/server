@@ -85,7 +85,7 @@ export async function withCommunityFlow(
   const origin = isolatedWorker.origin;
   const secret = { "x-test-storage-secret": "local-test-storage-observer" };
   const probeId = crypto.randomUUID();
-  const probePath = "/__test/community-effects?id=" + probeId;
+  const probePath = `/__test/community-effects?id=${probeId}`;
   const headers = { ...secret, "x-test-community-probe": probeId };
   const contexts: BrowserContext[] = [];
   const analyticsDisposers: (() => Promise<void>)[] = [];
@@ -270,7 +270,7 @@ export async function withCommunityFlow(
         content: input.content,
         lastEditedById: account.id,
       });
-    } else throw new Error("Unexpected community browser write: " + path);
+    } else throw new Error(`Unexpected community browser write: ${path}`);
   }
   async function readProducer() {
     // This probe only observes settled effects. Recover one stale pooled

@@ -2,6 +2,7 @@
  * E2E: /catalog/sections/[jwId] — Section detail calendar and iCal export
  */
 import { expect } from "@playwright/test";
+import { requiredValue } from "../../../../../shared/required-value";
 import {
   arrangeSectionDetails,
   test,
@@ -105,6 +106,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         const link = row.locator(`a[href="/catalog/teachers/${teacher.id}"]`);
         await expect(link).toBeVisible();
         expect([teacher.nameCn, teacher.nameEn]).toContain(
+          // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
           await link.innerText(),
         );
         expect(
@@ -112,9 +114,12 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         ).toBe(true);
       }
       const room = scheduleTable.locator('a[href^="/catalog/rooms/"]').first();
-      const roomHref = await room.getAttribute("href");
+      const roomHref = requiredValue(
+        await room.getAttribute("href"),
+        "room link",
+      );
       await room.click();
-      await expect(page).toHaveURL(new URL(roomHref!, page.url()).href);
+      await expect(page).toHaveURL(new URL(roomHref, page.url()).href);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText("101");
       await expect(
         page.getByRole("link", { name: /教室地图|Classroom locations/ }),

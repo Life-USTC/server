@@ -68,9 +68,10 @@ async function createFixture(
         nameCn: marker,
       },
     });
-    const sections = await Promise.all(
-      [0, 1, 2].map((offset) =>
-        tx.section.create({
+    const sections = [];
+    for (const offset of [0, 1, 2])
+      sections.push(
+        await tx.section.create({
           data: {
             jwId: numericMarker + offset,
             code: `${marker}-${offset}`,
@@ -78,8 +79,7 @@ async function createFixture(
             semesterId: semester.id,
           },
         }),
-      ),
-    );
+      );
     const user = await tx.user.create({
       data: {
         email: `${numericMarker}@subscription-lock.integration`,

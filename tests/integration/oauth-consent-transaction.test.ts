@@ -54,31 +54,29 @@ function createConsentFixture(prisma: TestPrismaClient) {
         },
         select: { id: true },
       });
-      await Promise.all([
-        prisma.oAuthAccessToken.create({
-          data: {
-            clientId,
-            expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-            grantId: consent.grantId,
-            referenceId: consent.grantId,
-            refreshId: refresh.id,
-            scopes: ["profile"],
-            token: `access-${label}-${marker}`,
-            userId: user.id,
-          },
-        }),
-        prisma.deviceCode.create({
-          data: {
-            clientId,
-            deviceCode: `device-${label}-${marker}`,
-            expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-            scopes: ["profile"],
-            status: "approved",
-            userCode: `user-code-${label}-${marker}`,
-            userId: user.id,
-          },
-        }),
-      ]);
+      await prisma.oAuthAccessToken.create({
+        data: {
+          clientId,
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+          grantId: consent.grantId,
+          referenceId: consent.grantId,
+          refreshId: refresh.id,
+          scopes: ["profile"],
+          token: `access-${label}-${marker}`,
+          userId: user.id,
+        },
+      });
+      await prisma.deviceCode.create({
+        data: {
+          clientId,
+          deviceCode: `device-${label}-${marker}`,
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+          scopes: ["profile"],
+          status: "approved",
+          userCode: `user-code-${label}-${marker}`,
+          userId: user.id,
+        },
+      });
       return { clientId, consent, userId: user.id };
     });
   }

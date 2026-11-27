@@ -9,6 +9,7 @@ import {
 } from "@/lib/oauth/resource-urls";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 import { isolatedNodeTest } from "../shared/isolated-node-fixture";
+import { requiredValue } from "../shared/required-value";
 
 const test = isolatedNodeTest.extend(
   "state",
@@ -205,9 +206,9 @@ test(
           issuedTokenType: scenario.type,
         });
         if (scenario.valid) {
-          expect(replacement).toBeDefined();
-          expect(replacement?.tokenType).toBe(scenario.type);
-          const claims = decodeJwt(replacement!.accessToken);
+          const token = requiredValue(replacement, "replacement access token");
+          expect(token.tokenType).toBe(scenario.type);
+          const claims = decodeJwt(token.accessToken);
           expect(claims.cnf).toEqual(scenario.issued);
           expect(claims.aud).toEqual(resource);
         } else {

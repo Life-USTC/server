@@ -12,9 +12,10 @@ export async function createCatalogContractFixture(client: {
     const semester = await db.semester.create({
       data: { jwId: base, code: marker, nameCn: "2026秋" },
     });
-    const departments = await Promise.all(
-      [0, 1].map((index) =>
-        db.department.create({
+    const departments = [];
+    for (const index of [0, 1])
+      departments.push(
+        await db.department.create({
           data: {
             jwId: base + index,
             code: `${marker}-${index}`,
@@ -23,11 +24,11 @@ export async function createCatalogContractFixture(client: {
             isCollege: true,
           },
         }),
-      ),
-    );
-    const titles = await Promise.all(
-      [0, 1].map((index) =>
-        db.teacherTitle.create({
+      );
+    const titles = [];
+    for (const index of [0, 1])
+      titles.push(
+        await db.teacherTitle.create({
           data: {
             jwId: base + index,
             code: `${marker}-title-${index}`,
@@ -35,11 +36,11 @@ export async function createCatalogContractFixture(client: {
             nameEn: `Contract Title ${index}`,
           },
         }),
-      ),
-    );
-    const teachers = await Promise.all(
-      [0, 1].map((index) =>
-        db.teacher.create({
+      );
+    const teachers = [];
+    for (const index of [0, 1])
+      teachers.push(
+        await db.teacher.create({
           data: {
             jwId: base + index,
             personId: base + index + 10,
@@ -58,11 +59,11 @@ export async function createCatalogContractFixture(client: {
             wechat: `source-wechat-${marker}`,
           },
         }),
-      ),
-    );
-    const courses = await Promise.all(
-      [0, 1].map((index) =>
-        db.course.create({
+      );
+    const courses = [];
+    for (const index of [0, 1])
+      courses.push(
+        await db.course.create({
           data: {
             jwId: base + index,
             code: `${marker}-course-${index}`,
@@ -70,11 +71,11 @@ export async function createCatalogContractFixture(client: {
             nameEn: `Contract Course ${marker}-${index}`,
           },
         }),
-      ),
-    );
-    const sections = await Promise.all(
-      [0, 1].map((index) =>
-        db.section.create({
+      );
+    const sections = [];
+    for (const index of [0, 1])
+      sections.push(
+        await db.section.create({
           data: {
             jwId: base + index,
             code: `${marker}-section-${index}`,
@@ -83,8 +84,7 @@ export async function createCatalogContractFixture(client: {
             teachers: { connect: { id: teachers[index].id } },
           },
         }),
-      ),
-    );
+      );
     return {
       base,
       marker,

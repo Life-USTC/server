@@ -169,21 +169,21 @@ it("rendering-and-cache.cache-layers-and-invalidation-9", async () => {
       "utf8",
     );
     const config = parseConfig(source) as {
-      exports?: Record<
-        string,
-        { cache?: { enabled?: boolean; cross_version_cache?: boolean } }
-      >;
+      cache?: { enabled?: boolean; cross_version_cache?: boolean };
+      exports?: Record<string, { cache?: { enabled?: boolean } }>;
     };
     expect(config.exports?.PublicSsr?.cache, fileName).toEqual({
       enabled: true,
+    });
+    expect(config.cache, fileName).toEqual({
+      enabled: false,
       cross_version_cache: false,
     });
     for (const [name, entrypoint] of Object.entries(config.exports ?? {})) {
       if (entrypoint.cache?.enabled)
-        expect(
-          entrypoint.cache.cross_version_cache,
-          `${fileName}:${name}`,
-        ).toBe(false);
+        expect(config.cache?.cross_version_cache, `${fileName}:${name}`).toBe(
+          false,
+        );
     }
   }
 });

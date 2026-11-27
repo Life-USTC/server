@@ -10,6 +10,7 @@ import {
 import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import { PUBLICATION_INGESTION_SERVICE_PRINCIPAL as principal } from "@/lib/auth/service-principal";
 import { nodeProtocolTest } from "../shared/node-protocol-fixture";
+import { requiredValue } from "../shared/required-value";
 
 const it = nodeProtocolTest.extend(
   "publication",
@@ -101,7 +102,7 @@ it("publications.identity", { tags: ["@Publication/Service"] }, async ({
     payload.items = [item];
     const initial = (await ingest(payload)).results[0];
     const revision = await db.publicationRevision.findUniqueOrThrow({
-      where: { id: initial.revisionId! },
+      where: { id: requiredValue(initial.revisionId, "revision ID") },
       include: { objectLinks: true, imageSourceRefs: true },
     });
     expect(revision).toMatchObject({
@@ -212,16 +213,23 @@ it("publications.identity", { tags: ["@Publication/Service"] }, async ({
     ).toBe(1);
     expect(
       await db.publicationRevision.count({
-        where: { publicationId: initial.publicationId! },
+        where: {
+          publicationId: requiredValue(initial.publicationId, "publication ID"),
+        },
       }),
     ).toBe(2);
     const detail = await protocolRuntime.request(() =>
-      getPublicPublicationById(initial.publicationId!),
+      getPublicPublicationById(
+        requiredValue(initial.publicationId, "publication ID"),
+      ),
     );
     const page = await protocolRuntime.request(() =>
-      getPublicPublicationById(initial.publicationId!, {
-        includeBodyText: false,
-      }),
+      getPublicPublicationById(
+        requiredValue(initial.publicationId, "publication ID"),
+        {
+          includeBodyText: false,
+        },
+      ),
     );
     expect(detail?.revision.bodyText).toBe("Plain article text");
     expect(page).toEqual({
@@ -263,7 +271,7 @@ it("publications.outbox", { tags: ["@Publication/Service"] }, async ({
     const payload = batch("outbox");
     const initial = (await ingest(payload)).results[0];
     const publication = await db.publication.findUniqueOrThrow({
-      where: { id: initial.publicationId! },
+      where: { id: requiredValue(initial.publicationId, "publication ID") },
     });
     const storedBatch = await db.ingestionBatch.findUniqueOrThrow({
       where: {
@@ -433,7 +441,9 @@ it("publications.reprint-folding", { tags: ["@Publication/Service"] }, async ({
       publishedAt: s.date,
     }));
     const result = await ingest(payload);
-    const ids = result.results.map((r) => r.publicationId!);
+    const ids = result.results.map((r) =>
+      requiredValue(r.publicationId, "publication ID"),
+    );
     const filters = { source: payload.sources.map((s) => s.id) };
     const unfolded = await protocolRuntime.request(() =>
       listPublications({ filters }),
@@ -494,7 +504,9 @@ it("publications.reprint-sibling-exposure", {
       publishedAt: index === 23 ? "2026-09-02" : "2026-09-01",
     }));
     const result = await ingest(payload);
-    const ids = result.results.map((r) => r.publicationId!);
+    const ids = result.results.map((r) =>
+      requiredValue(r.publicationId, "publication ID"),
+    );
     const folded = await protocolRuntime.request(() =>
       listPublications({
         filters: { source: [payload.sources[0].id], fold: true },

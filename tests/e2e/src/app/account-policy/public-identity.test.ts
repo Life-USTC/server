@@ -78,6 +78,7 @@ test("user.public-identity-display", { tag: "@Account/Web" }, async ({
             expected,
           );
           await expect(page).toHaveTitle(`${expected} - Life@USTC`);
+          // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
           expect(await page.locator("#main-content").innerText()).not.toContain(
             user.id,
           );
@@ -96,6 +97,7 @@ test("user.public-identity-display", { tag: "@Account/Web" }, async ({
             await expect(article.getByRole("heading", { level: 3 })).toHaveText(
               expected,
             );
+            // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
             expect(await article.innerText()).not.toContain(user.id);
           }
         }

@@ -93,6 +93,7 @@ test("user.account-security-activity", { tag: "@Account/Web" }, async ({
       name: /账户安全活动|Account security activity/i,
     });
     const assertPrivacy = async () => {
+      // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
       const text = await region.innerText();
       expect(text).not.toContain("198.51.100");
       expect(text).not.toContain("Chrome/130.0");
@@ -107,6 +108,7 @@ test("user.account-security-activity", { tag: "@Account/Web" }, async ({
       await expect(
         region.getByText(`203.0.${i}.*`, { exact: true }),
       ).toBeVisible();
+      // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
       expect(await region.innerText()).not.toContain(`203.0.${i}.42`);
     }
     await expect(region.getByText(fixture.name, { exact: true })).toHaveCount(

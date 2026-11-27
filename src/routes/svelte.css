@@ -393,6 +393,7 @@ html {
 
 /* Standalone icon actions have a smaller painted disk inside the native target. */
 @utility icon-action {
+  /* biome-ignore lint/style/noDescendingSpecificity: Standalone icon actions intentionally override the toolbar defaults declared above. */
   &[data-button-variant] {
     @apply compact-button-face;
     @apply size-11 rounded-full p-0 md:size-8;

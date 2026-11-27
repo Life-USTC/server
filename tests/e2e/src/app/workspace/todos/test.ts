@@ -325,6 +325,7 @@ test.describe("仪表盘待办", () => {
         for (const button of await buttons.all()) {
           const label =
             (await button.getAttribute("aria-label")) ??
+            // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
             (await button.innerText());
           observedActions.push(
             Object.entries(actionLabels).find(([, pattern]) =>

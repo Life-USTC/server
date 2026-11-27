@@ -180,6 +180,7 @@ test("calendar.activity-owner-transition", { tag: "@Calendar/Web" }, async ({
                   state.calendarOwnerLeak = false;
                   new MutationObserver(() => {
                     // SSR bootstrap scripts retain initial data but are never rendered.
+                    // biome-ignore lint/performance/useDomNodeTextContent: Visible text excludes the SSR bootstrap scripts.
                     const renderedText = document.body.innerText;
                     if (
                       Array.from(

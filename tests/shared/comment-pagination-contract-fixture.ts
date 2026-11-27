@@ -30,24 +30,22 @@ export const commentPaginationTest = nodeProtocolTest.extend(
           select: { id: true },
         });
         const sectionId = section.id;
-        const [owner, otherUser, admin] = await Promise.all([
-          tx.user.create({
-            data: { email: `${marker}-owner@example.test`, name: "Owner" },
-            select: { id: true },
-          }),
-          tx.user.create({
-            data: { email: `${marker}-other@example.test`, name: "Other" },
-            select: { id: true },
-          }),
-          tx.user.create({
-            data: {
-              email: `${marker}-admin@example.test`,
-              isAdmin: true,
-              name: "Admin",
-            },
-            select: { id: true },
-          }),
-        ]);
+        const owner = await tx.user.create({
+          data: { email: `${marker}-owner@example.test`, name: "Owner" },
+          select: { id: true },
+        });
+        const otherUser = await tx.user.create({
+          data: { email: `${marker}-other@example.test`, name: "Other" },
+          select: { id: true },
+        });
+        const admin = await tx.user.create({
+          data: {
+            email: `${marker}-admin@example.test`,
+            isAdmin: true,
+            name: "Admin",
+          },
+          select: { id: true },
+        });
         const ownerId = owner.id;
         const otherUserId = otherUser.id;
         const adminId = admin.id;

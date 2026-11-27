@@ -18,7 +18,7 @@ export async function getAccountClientActivityRoute(request: Request) {
     const principal = await resolveApiPrincipal(request, {
       bearerScope: { feature: "account.client-activity", action: "read" },
     });
-    if (!principal || principal.kind !== "oauth" || !principal.grantId) {
+    if (principal?.kind !== "oauth" || !principal.grantId) {
       return unauthorized();
     }
 

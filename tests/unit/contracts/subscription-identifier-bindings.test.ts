@@ -10,6 +10,7 @@ import {
   validateSpecificationShapes,
 } from "../../../scripts/specifications/validate";
 import { readSpecification } from "../../../scripts/specifications/yaml";
+import { requiredValue } from "../../shared/required-value";
 
 const { getNamedType, isInputObjectType } = createRequire(import.meta.url)(
   "graphql",
@@ -92,12 +93,14 @@ it("interface-hierarchy.semantic-parity-13", { timeout: 15_000 }, async () => {
         ).toEqual(identifiers.map(([name]) => name).sort());
         if (identifiers.length)
           observations[`${entry.method ?? "GET"} ${entry.path}`] =
-            entry.identifier_inputs!;
+            requiredValue(entry.identifier_inputs, "identifier inputs");
       }
       for (const entry of cap.graphql?.mutations ?? []) {
-        const field = graphqlSchema.getMutationType()?.getFields()[entry.name];
-        expect(field, entry.name).toBeDefined();
-        const names = field!.args.flatMap((argument) => {
+        const field = requiredValue(
+          graphqlSchema.getMutationType()?.getFields()[entry.name],
+          `GraphQL mutation ${entry.name}`,
+        );
+        const names = field.args.flatMap((argument) => {
           const named = getNamedType(argument.type);
           if (isInputObjectType(named))
             return Object.values(named.getFields())
@@ -115,12 +118,16 @@ it("interface-hierarchy.semantic-parity-13", { timeout: 15_000 }, async () => {
           Object.keys(entry.identifier_inputs ?? {}).sort(),
           entry.name,
         ).toEqual(names.sort());
-        if (names.length) observations[entry.name] = entry.identifier_inputs!;
+        if (names.length)
+          observations[entry.name] = requiredValue(
+            entry.identifier_inputs,
+            "identifier inputs",
+          );
       }
       for (const entry of cap.mcp?.tools ?? []) {
         const tool = tools.find((tool) => tool.name === entry.name);
         expect(tool, entry.name).toBeDefined();
-        const names = Object.entries(tool!.inputSchema.properties ?? {})
+        const names = Object.entries(tool?.inputSchema.properties ?? {})
           .filter(
             ([name, schema]) =>
               /(?:Id|Ids)$/.test(name) && numeric(schema as Schema),
@@ -130,7 +137,11 @@ it("interface-hierarchy.semantic-parity-13", { timeout: 15_000 }, async () => {
           Object.keys(entry.identifier_inputs ?? {}).sort(),
           entry.name,
         ).toEqual(names.sort());
-        if (names.length) observations[entry.name] = entry.identifier_inputs!;
+        if (names.length)
+          observations[entry.name] = requiredValue(
+            entry.identifier_inputs,
+            "identifier inputs",
+          );
       }
     }
     expect(observations).toEqual({
@@ -165,7 +176,10 @@ it("interface-hierarchy.semantic-parity-13", { timeout: 15_000 }, async () => {
 it("rejects ambiguous or malformed identifier metadata", async () => {
   const validators = await loadSpecificationValidators();
   const data = await readSpecification<Spec>("docs/features/subscription.yaml");
-  const entry = data.capabilities["update-kind"].rest!.routes[0];
+  const entry = requiredValue(
+    data.capabilities["update-kind"].rest?.routes[0],
+    "update-kind REST route",
+  );
   const invalid: Record<string, string>[] = [
     { jwId: "id" },
     { jwId: "Section.code" },

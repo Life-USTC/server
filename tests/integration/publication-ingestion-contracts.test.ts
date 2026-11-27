@@ -2,6 +2,7 @@ import { ingestPublicationBatch } from "@/features/publications/server/publicati
 import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/request-publication-ingestion-schemas";
 import { PUBLICATION_INGESTION_SERVICE_PRINCIPAL as principal } from "@/lib/auth/service-principal";
 import { nodeProtocolTest } from "../shared/node-protocol-fixture";
+import { requiredValue } from "../shared/required-value";
 
 const it = nodeProtocolTest.extend("publication", async ({ protocolRuntime }) =>
   protocolRuntime.run(() => {
@@ -142,9 +143,9 @@ it("publications.revision-ordering", {
     const payload = batch("ordering");
     payload.items[0].observedAt = "2026-09-01";
     const first = await ingest(payload);
-    const id = first.results[0].publicationId!;
+    const id = requiredValue(first.results[0].publicationId, "publication ID");
     const original = await db.publicationRevision.findUniqueOrThrow({
-      where: { id: first.results[0].revisionId! },
+      where: { id: requiredValue(first.results[0].revisionId, "revision ID") },
     });
     expect(original.observedAt.toISOString()).toBe("2026-08-31T16:00:00.000Z");
     await next(payload, "newer", {
@@ -194,7 +195,10 @@ it("publications.missing-only-repair", {
     const { batch, ingest } = publication;
     const original = batch("repair-original");
     const created = await ingest(original);
-    const publicationId = created.results[0].publicationId!;
+    const publicationId = requiredValue(
+      created.results[0].publicationId,
+      "publication ID",
+    );
     const repair = {
       ...original,
       batchId: "repair-backfill",
@@ -253,7 +257,9 @@ it("publications.tombstones", { tags: ["@Publication/Service"] }, async ({
     });
     expect(deleted.results[0].status).toBe("updated");
     const record = await db.publication.findUniqueOrThrow({
-      where: { id: created.results[0].publicationId! },
+      where: {
+        id: requiredValue(created.results[0].publicationId, "publication ID"),
+      },
       include: { currentRevision: true },
     });
     expect(record.deletedAt).not.toBeNull();
@@ -289,7 +295,12 @@ it("publications.partial-item-rejection", {
     ).toBe(1);
     expect(
       await db.publicationRevision.count({
-        where: { publicationId: result.results[0].publicationId! },
+        where: {
+          publicationId: requiredValue(
+            result.results[0].publicationId,
+            "publication ID",
+          ),
+        },
       }),
     ).toBe(1);
   });
@@ -393,7 +404,12 @@ it("publications.reprint-fold-title-normalization", {
     );
     for (const [index, [, key]] of cases.entries()) {
       const row = await db.publication.findUniqueOrThrow({
-        where: { id: result.results[index].publicationId! },
+        where: {
+          id: requiredValue(
+            result.results[index].publicationId,
+            "publication ID",
+          ),
+        },
         select: { normalizedTitle: true },
       });
       expect(row.normalizedTitle).toBe(key);

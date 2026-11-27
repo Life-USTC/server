@@ -651,7 +651,7 @@ export function isShellLinkActive(link: ShellLink, current: NavigationUrl) {
     return (
       (pathname === target.pathname ||
         (link.detail.tab === "introduction" &&
-          pathname + "/introduction" === target.pathname)) &&
+          `${pathname}/introduction` === target.pathname)) &&
       activeDetailTab(link.detail.kind, current) === link.detail.tab
     );
   if (target.searchParams.size > 0) return queryLinkMatches(target, current);
