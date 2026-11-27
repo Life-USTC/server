@@ -3,7 +3,6 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { Textarea } from "#lib/components/ui/textarea/index.js";
 import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import OAuthScopesPicker from "@/features/oauth/components/OAuthScopesPicker.svelte";
@@ -54,10 +53,11 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
       class="grid max-h-[calc(100dvh-2rem)] min-h-0 max-w-2xl grid-rows-[auto_minmax(0,1fr)] overflow-hidden sm:max-w-2xl"
       aria-labelledby="oauth-create-title"
     >
-      <Dialog.Header class="pr-10">
-        <Dialog.Title id="oauth-create-title">{copy.createClient}</Dialog.Title>
-        <Dialog.Description>{copy.createClientDescription}</Dialog.Description>
-      </Dialog.Header>
+      <Dialog.Header
+        heading={copy.createClient}
+        titleId="oauth-create-title"
+        description={copy.createClientDescription}
+      />
       <form
         method="POST"
         action="?/createClient"
@@ -77,7 +77,6 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
                     aria-labelledby="admin-oauth-auth-pattern-label"
                     class="grid w-full gap-2 sm:grid-cols-3"
                     spacing={2}
-                    type="single"
                     required
                     value={selectedAuthMethod}
                     variant="outline"
@@ -106,10 +105,7 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
                 </Field.Description>
                 </Field.Field>
 
-                <Field.Field>
-                <Field.Label for="admin-oauth-client-name">
-                  {copy.clientName}
-                </Field.Label>
+                <Field.Field for="admin-oauth-client-name" label={copy.clientName}>
                   <Input
                     id="admin-oauth-client-name"
                     name="name"
@@ -156,25 +152,15 @@ $: scopesPickerCopy = buildOAuthScopesPickerCopy(copy, {
           </div>
         </Field.Group>
 
-      <Dialog.Footer>
+        <Dialog.Actions cancelLabel={copy.cancel} onCancel={close} cancelDisabled={isCreatingClient}>
           <Button
-            type="button"
-            variant="outline"
-            disabled={isCreatingClient}
-            onclick={close}
-          >
-            {copy.cancel}
-          </Button>
-          <Button
+            loading={isCreatingClient}
             type="submit"
             disabled={isCreatingClient || selectedScopes.length === 0}
           >
-            {#if isCreatingClient}
-              <Spinner data-icon="inline-start" />
-            {/if}
             {isCreatingClient ? copy.creating : copy.createClient}
           </Button>
-        </Dialog.Footer>
+        </Dialog.Actions>
       </form>
     </Dialog.Content>
   </Dialog.Root>

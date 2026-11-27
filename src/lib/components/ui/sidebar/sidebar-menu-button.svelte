@@ -29,7 +29,6 @@
 <script lang="ts">
 	import * as Tooltip from "#lib/components/ui/tooltip/index.js";
 	import { cn, type WithElementRef, type WithoutChildrenOrChild } from "#lib/utils.js";
-	import { mergeProps } from "bits-ui";
 	import type { ComponentProps, Snippet } from "svelte";
 	import type { HTMLAttributes } from "svelte/elements";
 	import { useSidebar } from "./context.svelte.js";
@@ -66,8 +65,7 @@
 	});
 </script>
 
-{#snippet Button({ props }: { props?: Record<string, unknown> })}
-	{@const mergedProps = mergeProps(buttonProps, props)}
+{#snippet Button(mergedProps: Record<string, unknown>)}
 	{#if child}
 		{@render child({ props: mergedProps })}
 	{:else}
@@ -78,12 +76,12 @@
 {/snippet}
 
 {#if !tooltipContent}
-	{@render Button({})}
+	{@render Button(buttonProps)}
 {:else}
 	<Tooltip.Root>
-		<Tooltip.Trigger>
-			{#snippet child({ props })}
-				{@render Button({ props })}
+		<Tooltip.Trigger {...buttonProps}>
+			{#snippet render({ props })}
+				{@render Button(props)}
 			{/snippet}
 		</Tooltip.Trigger>
 		<Tooltip.Content

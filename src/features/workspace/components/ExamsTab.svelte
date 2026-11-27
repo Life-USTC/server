@@ -2,10 +2,13 @@
 import type { DemoIdentity } from "@/features/demo/lib/demo-types";
 export let pageDemo: DemoIdentity | null | undefined = null;
 
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
+import { sectionSummary } from "@/features/catalog/lib/catalog-list-display";
+import RoomMapPreview from "@/features/rooms/components/RoomMapPreview.svelte";
+import { splitRoomLabels } from "@/features/rooms/lib/room-map-types";
 import { createExamTabDisplayActions } from "@/features/workspace/lib/exams-tab-display";
-import type { WorkspaceCardView } from "@/features/workspace/lib/view-preferences";
 import type {
   SignedWorkspaceData,
   WorkspaceCopy,
@@ -13,6 +16,7 @@ import type {
   WorkspaceSubscriptionsCopy,
 } from "@/features/workspace/lib/workspace-controller-types";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
+import { formatSemesterName } from "@/lib/text/format-semester-name";
 import {
   examTableFields,
   filterExamTable,
@@ -23,10 +27,11 @@ import ExamsTabToolbar from "./ExamsTabToolbar.svelte";
 import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
 import WorkspaceTaskColumnFilter from "./WorkspaceTaskColumnFilter.svelte";
 import type {
+  ExamDisplayRow,
   ExamMetadataLabels,
   ExamTimeLabel,
   NamePrimary,
-  WorkspaceExamFilter,
+  WorkspaceCardView,
   WorkspaceExamRow,
   WorkspaceTabHref,
 } from "./workspace-exam-component-types";
@@ -45,7 +50,6 @@ export let examTimeLabel: ExamTimeLabel;
 export let examMetadataLabels: ExamMetadataLabels;
 export let namePrimary: NamePrimary;
 
-export let examFilter: WorkspaceExamFilter;
 export let examRows: WorkspaceExamRow[];
 let applied: Record<string, string> = { completion: "incomplete" };
 let draft = { ...applied };
@@ -68,7 +72,6 @@ $: ({ fmtExamDate } = createExamTabDisplayActions({
   sectionCopy,
 }));
 function clearExamFilter() {
-  examFilter = "all";
   draft = {};
   applied = {};
 }
@@ -79,7 +82,58 @@ $: showClearExamFilter =
       (name) => name !== "completion" && Boolean(applied[name]),
     )) &&
   examRows.length > 0;
+$: columns = {
+  course: { names: ["course"], label: subscriptionsCopy.courseName },
+  section: { names: ["section", "semester"], label: subscriptionsCopy.section },
+  date: { names: ["examDate", "completion"], label: sectionCopy.examDate },
+  time: {
+    names: ["startTime", "endTime", "examMode"],
+    label: sectionCopy.examTime,
+  },
+  rooms: { names: ["rooms"], label: sectionCopy.room },
+};
+$: exams = filteredExamRows.map(
+  (exam): ExamDisplayRow => ({
+    id: exam.id,
+    href: exam.section.jwId
+      ? `/catalog/sections/${exam.section.jwId}/schedule#exams`
+      : workspaceTabHref("subscriptions"),
+    course: sectionSummary(exam.section, locale),
+    section: exam.section.code ?? subscriptionsCopy.section,
+    semester: formatSemesterName(
+      locale,
+      namePrimary(exam.section.semester) || signedData.copy.common.unknown,
+    ),
+    date: exam.examDate ? fmtExamDate(exam.examDate) : sectionCopy.examDateTBD,
+    time: examTimeLabel(exam.startTime, exam.endTime) || "—",
+    status: exam.completed
+      ? workspaceCopy.nav.exams.filterCompleted
+      : workspaceCopy.nav.exams.filterIncomplete,
+    mode: exam.examMode,
+    metadata: examMetadataLabels(exam),
+    rooms: exam.rooms,
+  }),
+);
 </script>
+
+{#snippet roomLinks(value: ExamDisplayRow["rooms"])}
+  {#if value}
+    <span class="inline-flex flex-wrap items-center gap-x-1 gap-y-0.5 align-middle">
+      {#each splitRoomLabels(value) as room (room)}
+        <RoomMapPreview {pageDemo} {locale} code={room} copy={workspaceCopy.roomMap} />
+      {/each}
+    </span>
+  {:else}{sectionCopy.roomTbd}{/if}
+{/snippet}
+
+{#snippet empty()}
+  <CollectionEmpty variant="filter-clear"
+    title={examRows.length ? workspaceCopy.nav.exams.filterEmpty : workspaceCopy.nav.exams.empty}
+    description={examRows.length ? workspaceCopy.nav.exams.filterEmptyDescription : workspaceCopy.nav.exams.emptyDescription}
+    clearFilterLabel={workspaceCopy.nav.exams.clearFilter}
+    onClearFilter={showClearExamFilter ? clearExamFilter : undefined}
+  />
+{/snippet}
 
 {#snippet columnFilter(names: string[], label: string, prefix: string)}
   <WorkspaceTaskColumnFilter fields={fields.filter((field) => names.includes(field.name))} values={draft} {applied} onchange={patchDraft} {label} prefix={`${prefix}-exam-${names[0]}`} labels={signedData.copy.common.tableFilters} formId="exam-table-filters" />
@@ -87,12 +141,14 @@ $: showClearExamFilter =
 
 {#snippet mobileColumns()}
   <div class="flex flex-wrap gap-3">
-    {@render columnFilter(["course"], subscriptionsCopy.courseName, "mobile")}
-    {@render columnFilter(["section", "semester"], subscriptionsCopy.section, "mobile")}
-    {@render columnFilter(["examDate", "completion"], sectionCopy.examDate, "mobile")}
-    {@render columnFilter(["startTime", "endTime", "examMode"], sectionCopy.examTime, "mobile")}
-    {@render columnFilter(["rooms"], sectionCopy.room, "mobile")}
+    {#each Object.values(columns) as column}
+      {@render columnFilter(column.names, column.label, "mobile")}
+    {/each}
   </div>
+{/snippet}
+
+{#snippet examsList()}
+  <ExamsListView {exams} {roomLinks} {empty} {sectionCopy} {columns} filterControls={columnFilter} />
 {/snippet}
 
 <section class="grid gap-4">
@@ -112,7 +168,7 @@ $: showClearExamFilter =
       {/each}
       <Button type="submit">{signedData.copy.common.applyFilters}</Button>
     </form>
-    <WorkspaceCollection>
+    <ResponsiveCollection workspace>
       {#snippet mobile()}
         <div class="mb-3 flex items-center justify-between gap-2" data-slot="collection-header">
           {#if mobileView === "cards"}{@render mobileColumns()}{/if}
@@ -123,64 +179,14 @@ $: showClearExamFilter =
           />
         </div>
         {#if mobileView === "cards"}
-          <ExamsCardsView
-            {pageDemo}
-            {locale}
-            unknownSemesterLabel={signedData.copy.common.unknown}
-            {workspaceCopy}
-            {workspaceTabHref}
-            {examMetadataLabels}
-            exams={filteredExamRows}
-            hasExamRows={examRows.length > 0}
-            showClearFilter={showClearExamFilter}
-            onClearFilter={clearExamFilter}
-            {examTimeLabel}
-            {fmtExamDate}
-            {namePrimary}
-            {sectionCopy}
-            {subscriptionsCopy}
-          />
+          <ExamsCardsView {exams} {roomLinks} {empty} {sectionCopy} />
         {:else}
-          <ExamsListView
-            {pageDemo}
-        filterControls={columnFilter}
-            {examMetadataLabels}
-            {locale}
-            unknownSemesterLabel={signedData.copy.common.unknown}
-            {namePrimary}
-            {workspaceCopy}
-            {workspaceTabHref}
-            {examTimeLabel}
-            exams={filteredExamRows}
-            hasExamRows={examRows.length > 0}
-            showClearFilter={showClearExamFilter}
-            onClearFilter={clearExamFilter}
-            {fmtExamDate}
-            {sectionCopy}
-            {subscriptionsCopy}
-          />
+          {@render examsList()}
         {/if}
       {/snippet}
       {#snippet desktop()}
-        <ExamsListView
-            {pageDemo}
-        filterControls={columnFilter}
-          {examMetadataLabels}
-          {locale}
-          unknownSemesterLabel={signedData.copy.common.unknown}
-          {namePrimary}
-          {workspaceCopy}
-          {workspaceTabHref}
-          {examTimeLabel}
-          exams={filteredExamRows}
-          hasExamRows={examRows.length > 0}
-          showClearFilter={showClearExamFilter}
-          onClearFilter={clearExamFilter}
-          {fmtExamDate}
-          {sectionCopy}
-          {subscriptionsCopy}
-        />
+        {@render examsList()}
       {/snippet}
-    </WorkspaceCollection>
+    </ResponsiveCollection>
   {/if}
 </section>

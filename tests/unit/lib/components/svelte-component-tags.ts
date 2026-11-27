@@ -16,14 +16,17 @@ export type ComponentTag = {
  * expression that allows both backtracks exponentially on repeated `{{}}`
  * (CodeQL "inefficient regular expression"); this walk is linear.
  */
-export function* componentTags(text: string): Generator<ComponentTag> {
+export function* componentTags(
+  text: string,
+  pattern = COMPONENT_TAG,
+): Generator<ComponentTag> {
   for (
     let start = text.indexOf("<");
     start >= 0;
     start = text.indexOf("<", start + 1)
   ) {
-    COMPONENT_TAG.lastIndex = start + 1;
-    const tag = COMPONENT_TAG.exec(text)?.[0];
+    pattern.lastIndex = start + 1;
+    const tag = pattern.exec(text)?.[0];
     if (!tag) continue;
     const attributesStart = start + 1 + tag.length;
     let cursor = attributesStart;

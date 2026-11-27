@@ -4,7 +4,6 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import * as NativeSelect from "#lib/components/ui/native-select/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { Textarea } from "#lib/components/ui/textarea/index.js";
 import type {
   BulkImportAction,
@@ -20,7 +19,6 @@ export let importText: string;
 export let isMatching: boolean;
 export let isOpen: boolean;
 export let match: BulkImportAction;
-export let onCancel: () => void;
 export let onOpenChange: (open: boolean) => void;
 export let semesterId: string;
 export let semesterOptions: BulkImportSemesterOption[];
@@ -30,8 +28,7 @@ const titleId = "bulk-import-title";
 
 <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
   <Dialog.Content class="flex max-w-lg flex-col overflow-hidden sm:max-w-lg" aria-labelledby={titleId}>
-    <Dialog.Header class="shrink-0">
-      <Dialog.Title id={titleId}>{copy.title}</Dialog.Title>
+    <Dialog.Header class="shrink-0" heading={copy.title} titleId={titleId}>
       <Dialog.Description>
         {copy.descriptionPrefix}{" "}<a
           href="https://jw.ustc.edu.cn"
@@ -46,30 +43,21 @@ const titleId = "bulk-import-title";
     </Dialog.Header>
     <Field.Group class="min-h-0 gap-4 overflow-y-auto px-5 py-4">
       {#if error}
-        <Alert.Root variant="destructive">
-          <Alert.Description>{error}</Alert.Description>
-        </Alert.Root>
+        <Alert.Message variant="destructive">{error}</Alert.Message>
       {/if}
       {#if importMessage}
-        <Alert.Root>
-          <Alert.Description>{importMessage}</Alert.Description>
-        </Alert.Root>
+        <Alert.Message>{importMessage}</Alert.Message>
       {/if}
-      <Field.Field>
-        <Field.Label for="bulk-import-semester">{copy.semesterLabel}</Field.Label>
-        <NativeSelect.Root bind:value={semesterId} class="w-full" id="bulk-import-semester">
-          {#if !semesterId}
-            <NativeSelect.Option disabled value="">
-              {copy.semesterPlaceholder}
-            </NativeSelect.Option>
-          {/if}
-          {#each semesterOptions as option}
-            <NativeSelect.Option value={option.value}>{option.label}</NativeSelect.Option>
-          {/each}
-        </NativeSelect.Root>
+      <Field.Field for="bulk-import-semester" label={copy.semesterLabel}>
+        <NativeSelect.Root
+          bind:value={semesterId}
+          class="w-full"
+          id="bulk-import-semester"
+          options={semesterOptions}
+          emptyLabel={copy.semesterPlaceholder}
+        />
       </Field.Field>
-      <Field.Field>
-        <Field.Label for="bulk-import-section-codes">{copy.sectionCodesLabel}</Field.Label>
+      <Field.Field for="bulk-import-section-codes" label={copy.sectionCodesLabel}>
         <Textarea
           id="bulk-import-section-codes"
           bind:value={importText}
@@ -78,14 +66,10 @@ const titleId = "bulk-import-title";
         />
       </Field.Field>
     </Field.Group>
-    <Dialog.Footer class="shrink-0">
-      <Button type="button" variant="outline" onclick={onCancel}>{copy.cancel}</Button>
-      <Button disabled={!canMatch} type="button" onclick={match}>
-        {#if isMatching}
-          <Spinner data-icon="inline-start" />
-        {/if}
+    <Dialog.Actions class="shrink-0" cancelLabel={copy.cancel} onCancel={() => onOpenChange(false)}>
+      <Button loading={isMatching} disabled={!canMatch} onclick={match}>
         {isMatching ? copy.matching : copy.matchButton}
       </Button>
-    </Dialog.Footer>
+    </Dialog.Actions>
   </Dialog.Content>
 </Dialog.Root>

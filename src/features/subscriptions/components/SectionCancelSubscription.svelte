@@ -30,8 +30,7 @@ const confirmation = createSubscriptionConfirmationAction(() => action);
 onDestroy(() => confirmation.dispose());
 </script>
 <form bind:this={form} class={stretched ? "w-full" : undefined} method="POST" action="?/unsubscribe" use:enhance={confirmation.submit}>
-  <Button class={stretched ? "w-full" : undefined} variant="outline" type="button" disabled={Boolean(readOnlyReason) || pending} title={readOnlyReason} aria-haspopup="dialog" onclick={() => { open = true; }}>
-    <CheckCircleIcon data-icon="inline-start" />{label}
+  <Button icon={CheckCircleIcon} class={stretched ? "w-full" : undefined} variant="outline" disabled={Boolean(readOnlyReason) || pending} title={readOnlyReason} aria-haspopup="dialog" onclick={() => { open = true; }}>{label}
   </Button>
 </form>
 <SubscriptionCancelDialog bind:open {name} {copy} onconfirm={() => confirmation.confirm(form)} />

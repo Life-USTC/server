@@ -125,7 +125,7 @@ test.describe("/account/settings/security 安全活动", () => {
         await expect(page).toHaveURL(/\/account\/settings\/security$/);
         await expect(
           page
-            .locator("[data-sonner-toast]")
+            .locator("[data-slot=toast]")
             .filter({ hasText: /日历链接已轮换|Calendar link rotated/i }),
         ).toBeVisible();
         const current = await storedProfile(

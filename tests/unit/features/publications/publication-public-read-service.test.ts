@@ -256,6 +256,20 @@ describe("public publication reads", () => {
     expect(mocks.publicationFindFirst).toHaveBeenCalledTimes(2);
   });
 
+  it("omits the database plain-text column for HTML page reads", async () => {
+    mocks.publicationFindFirst.mockResolvedValue(null);
+    await getPublicPublicationById("publication-1", { includeBodyText: false });
+    expect(mocks.publicationFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          currentRevision: expect.objectContaining({
+            omit: expect.objectContaining({ bodyText: true }),
+          }),
+        }),
+      }),
+    );
+  });
+
   it("returns detail bodyText and only the effective revision objects", async () => {
     mocks.publicationFindFirst.mockResolvedValue(publication());
 

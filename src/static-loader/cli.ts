@@ -1,9 +1,8 @@
 import "dotenv/config";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
 import { runImport } from "./import";
-import { runPostImportCachePurge } from "./post-import-cache-purge";
+import { completeImportCli } from "./import-cli";
 import { createPrismaClient } from "./prisma";
 import { Snapshot } from "./snapshot";
 import { parseBooleanSetting } from "./validation";
@@ -52,34 +51,14 @@ async function main() {
   console.log(`Snapshot SHA-256: ${snapshotSha256}`);
 
   const prisma = createPrismaClient();
-
-  try {
-    const report = await runImport(prisma, {
+  await completeImportCli(
+    prisma,
+    runImport(prisma, {
       snapshotPath,
       snapshotSha256,
       dryRun,
-    });
-    console.log("Import report:", report);
-
-    const statsFile = process.env.STATIC_LOADER_STATS_FILE;
-    if (statsFile) {
-      await writeFile(statsFile, JSON.stringify(report, null, 2));
-    }
-
-    // Applied and unchanged snapshots both invalidate, so failed purges can
-    // be retried without rematerializing the snapshot.
-    const purge = await runPostImportCachePurge(report);
-    if (purge.failed) {
-      // The import itself succeeded, so keep its report; but a stale edge
-      // after a committed import is a correctness problem, not a warning.
-      process.exitCode = 1;
-    }
-  } catch (error) {
-    console.error("Import failed:", error);
-    process.exitCode = 1;
-  } finally {
-    await prisma.$disconnect();
-  }
+    }),
+  );
 }
 
 main();

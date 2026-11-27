@@ -180,9 +180,7 @@ async function submitWorkspaceLinkPin(slug: string, action: "pin" | "unpin") {
       </Alert.Root>
     {:else if overview && overviewEpoch === owner.epoch && overview.navStats.user.id === owner.id}
       {#if pinError}
-        <Alert.Root variant="destructive">
-          <Alert.Description>{pinError}</Alert.Description>
-        </Alert.Root>
+        <Alert.Message variant="destructive">{pinError}</Alert.Message>
       {/if}
       <OverviewTab
         readOnlyReason={demo?.readOnlyReason}
