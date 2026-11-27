@@ -1,5 +1,6 @@
 /** Catalog-owned section-list and detail OpenAPI response DTO schemas. */
 import * as z from "zod";
+import { officialAcademicProfileSchema } from "@/features/catalog/lib/official-academic-profile";
 import { campusSchema } from "@/lib/api/schemas/academic-location-response-schemas";
 import {
   adminClassSchema,
@@ -124,6 +125,7 @@ export const courseDetailSectionSchema = sectionBaseSchema.extend({
 });
 
 export const courseDetailSchema = courseSchema.extend({
+  officialProfile: officialAcademicProfileSchema.nullable().optional(),
   sections: z.array(courseDetailSectionSchema),
   _count: z.strictObject({ sections: z.number().int() }),
 });

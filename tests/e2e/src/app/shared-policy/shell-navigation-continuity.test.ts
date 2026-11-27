@@ -282,7 +282,10 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                 nodes.map((node) => node.getAttribute("data-detail-page")),
               ),
           ).toEqual(["introduction", "schedule", "homework"]);
-          if (width < 768) await page.keyboard.press("Escape");
+          if (width < 768) {
+            await page.keyboard.press("Escape");
+            await expect(sectionNavigation).toBeHidden();
+          }
           await page.screenshot({
             path: testInfo.outputPath(`section-${locale}-${width}.png`),
           });

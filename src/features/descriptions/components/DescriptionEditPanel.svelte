@@ -3,19 +3,10 @@ import MarkdownEditor from "#lib/components/MarkdownEditor.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
+import type { DescriptionCopy } from "./description-component-types";
 
 export let cancelEdit: () => void;
-export let copy: {
-  cancel: string;
-  editorPlaceholder: string;
-  markdownGuide: string;
-  previewEmpty: string;
-  save: string;
-  saving: string;
-  tabPreview: string;
-  tabWrite: string;
-  title: string;
-};
+export let copy: DescriptionCopy;
 export let draft: string;
 export let isDisabled: boolean;
 export let isSaving: boolean;
@@ -29,22 +20,18 @@ export let saveDescription: () => void;
       bind:value={draft}
       aria-labelledby="description-edit-title"
       disabled={isDisabled}
-      guideLabel={copy.markdownGuide}
+      {copy}
       modeLabel={copy.title}
       placeholder={copy.editorPlaceholder}
-      previewEmptyLabel={copy.previewEmpty}
       remarkPlugins={campusReferenceMarkdownPlugins}
-      tabPreviewLabel={copy.tabPreview}
-      tabWriteLabel={copy.tabWrite}
     />
   </Field.Field>
   <div class="flex flex-wrap justify-end gap-2">
-    <Button type="button" variant="outline" onclick={cancelEdit}>
+    <Button variant="outline" onclick={cancelEdit}>
       {copy.cancel}
     </Button>
     <Button
       disabled={isSaving || isDisabled}
-      type="button"
       onclick={saveDescription}
     >
       {isSaving ? copy.saving : copy.save}

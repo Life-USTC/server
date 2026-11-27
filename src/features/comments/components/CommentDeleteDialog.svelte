@@ -1,7 +1,5 @@
 <script lang="ts">
-import * as Alert from "#lib/components/ui/alert/index.js";
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import type { CommentsCopy } from "./comment-component-types";
 
 export let close: () => void;
@@ -19,31 +17,15 @@ export let open: boolean;
       if (!nextOpen && !deleting) close();
     }}
   >
-    <AlertDialog.Content
-      class="max-w-md sm:max-w-md"
-      aria-labelledby="delete-comment-title"
-    >
-      <AlertDialog.Header>
-        <AlertDialog.Title id="delete-comment-title">{commentCopy.deleteConfirmTitle}</AlertDialog.Title>
-        <AlertDialog.Description>{commentCopy.deleteConfirmDescription}</AlertDialog.Description>
-      </AlertDialog.Header>
-      {#if error}
-        <Alert.Root variant="destructive"><Alert.Description>{error}</Alert.Description></Alert.Root>
-      {/if}
-      <AlertDialog.Footer>
-        <AlertDialog.Cancel disabled={deleting} type="button" variant="outline">
-          {commentCopy.cancelAction}
-        </AlertDialog.Cancel>
-        <AlertDialog.Action
-          disabled={deleting}
-          type="button"
-          variant="destructive"
-          onclick={deleteComment}
-        >
-          {#if deleting}<Spinner data-icon="inline-start" />{/if}
-          {commentCopy.deleteAction}
-        </AlertDialog.Action>
-      </AlertDialog.Footer>
-    </AlertDialog.Content>
+    <AlertDialog.Confirmation
+      titleId="delete-comment-title"
+      title={commentCopy.deleteConfirmTitle}
+      description={commentCopy.deleteConfirmDescription}
+      {error}
+      cancelLabel={commentCopy.cancelAction}
+      confirmLabel={commentCopy.deleteAction}
+      pending={deleting}
+      onclick={deleteComment}
+    />
   </AlertDialog.Root>
 {/if}

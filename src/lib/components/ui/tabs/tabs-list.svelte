@@ -18,7 +18,8 @@
 </script>
 
 <script lang="ts">
-	import { Tabs as TabsPrimitive } from "bits-ui";
+	import { TabsList } from "@ui-sdk/svelte/tabs";
+	import type { ComponentProps } from "svelte";
 	import { cn } from "#lib/utils.js";
 
 	let {
@@ -26,13 +27,13 @@
 		variant = "default",
 		class: className,
 		...restProps
-	}: TabsPrimitive.ListProps & {
+	}: ComponentProps<typeof TabsList> & { ref?: HTMLDivElement | null } & {
 		variant?: TabsListVariant;
 	} = $props();
 </script>
 
-<TabsPrimitive.List
-	bind:ref
+<TabsList
+	{@attach (element: HTMLDivElement) => { ref = element; return () => { ref = null; }; }}
 	data-slot="tabs-list"
 	data-variant={variant}
 	class={cn(tabsListVariants({ variant }), className)}

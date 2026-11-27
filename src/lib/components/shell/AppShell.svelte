@@ -115,10 +115,12 @@ let globalSearchOpen = $state(false);
 let GlobalSearchDialog:
   | typeof import("@/features/search/components/GlobalSearchDialog.svelte").default
   | null = $state(null);
-let userMenuOpen = $state(false);
+type ShellMenu = "user" | "locale" | "theme";
+let activeMenu = $state<ShellMenu | null>(null);
+let userMenuOpen = $derived(activeMenu === "user");
 let completedNavigationGeneration = $state(0);
-let localeMenuOpen = $state(false);
-let themeMenuOpen = $state(false);
+let localeMenuOpen = $derived(activeMenu === "locale");
+let themeMenuOpen = $derived(activeMenu === "theme");
 let contentScrollContainer: HTMLElement | undefined = $state();
 let viewerLoading = $state(
   untrack(() => data.resolveViewerOnClient && !data.user && !data.demo),
@@ -214,37 +216,22 @@ function isAncestorLink(link: ShellLink) {
 
 function setThemeMode(nextThemeMode: ThemeMode) {
   themeMode = setStoredThemeMode(nextThemeMode);
-  themeMenuOpen = false;
+  setThemeMenuOpen(false);
 }
 
-function setUserMenuOpen(open: boolean) {
-  userMenuOpen = open;
-  if (open) {
-    localeMenuOpen = false;
-    themeMenuOpen = false;
-  }
+function menuToggle(menu: ShellMenu) {
+  return (open: boolean) => {
+    if (open) activeMenu = menu;
+    else if (activeMenu === menu) activeMenu = null;
+  };
 }
 
-function setLocaleMenuOpen(open: boolean) {
-  localeMenuOpen = open;
-  if (open) {
-    userMenuOpen = false;
-    themeMenuOpen = false;
-  }
-}
-
-function setThemeMenuOpen(open: boolean) {
-  themeMenuOpen = open;
-  if (open) {
-    userMenuOpen = false;
-    localeMenuOpen = false;
-  }
-}
+const setUserMenuOpen = menuToggle("user");
+const setLocaleMenuOpen = menuToggle("locale");
+const setThemeMenuOpen = menuToggle("theme");
 
 function closeMenus() {
-  userMenuOpen = false;
-  localeMenuOpen = false;
-  themeMenuOpen = false;
+  activeMenu = null;
 }
 
 function resetContentScroll() {
@@ -563,35 +550,39 @@ let globalSearchShortcutLabel = $derived(
   <RouteLoadingBar loadingLabel={data.copy.shell.loading} />
 {/if}
 
+{#snippet topbar()}
+  <AppTopbar
+    {closeMenus}
+    copy={data.copy}
+    focused={focusedShell}
+    {globalSearchShortcutLabel}
+    {homeHref}
+    {homeLabel}
+    {hideSignIn}
+    locale={data.locale}
+    {localeMenuOpen}
+    onOpenGlobalSearch={openGlobalSearch}
+    {setLocale}
+    {setLocaleMenuOpen}
+    {setThemeMenuOpen}
+    {setThemeMode}
+    {themeMenuOpen}
+    {themeMode}
+    signedIn={Boolean(viewerUser)}
+    user={viewerUser}
+    {avatarFallback}
+    {profileHref}
+    {userMenuOpen}
+    {setUserMenuOpen}
+    currentPathname={routePage.url.pathname}
+    demo={navigationDemo}
+    {viewerLoading}
+  />
+{/snippet}
+
 {#if focusedShell}
   <div class="flex min-h-screen flex-col" data-shell="focused">
-    <AppTopbar
-      {closeMenus}
-      copy={data.copy}
-      focused
-      {globalSearchShortcutLabel}
-      {homeHref}
-      {homeLabel}
-      {hideSignIn}
-      locale={data.locale}
-      {localeMenuOpen}
-      onOpenGlobalSearch={openGlobalSearch}
-      {setLocale}
-      {setLocaleMenuOpen}
-      {setThemeMenuOpen}
-      {setThemeMode}
-      {themeMenuOpen}
-      {themeMode}
-      signedIn={Boolean(viewerUser)}
-      user={viewerUser}
-      {avatarFallback}
-      {profileHref}
-      {userMenuOpen}
-      {setUserMenuOpen}
-      currentPathname={routePage.url.pathname}
-      demo={navigationDemo}
-      {viewerLoading}
-    />
+    {@render topbar()}
 
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -- skip_link target -->
     <main
@@ -635,43 +626,19 @@ let globalSearchShortcutLabel = $derived(
         {/snippet}
       </AppSidebar>
 
-      <Sidebar.Inset
+      <main
+        data-slot="sidebar-inset"
         aria-label={mainContentLabel}
         id="main-content"
-        tabindex={-1}
+        tabindex="-1"
         class={cn(
-          "relative flex w-full min-w-0 flex-1 flex-col",
+          "min-w-0",
           detailWorkspace
             ? "min-h-0 overflow-hidden"
             : "lg:min-h-0 lg:overflow-hidden",
         )}
       >
-        <AppTopbar
-          {closeMenus}
-          copy={data.copy}
-          {globalSearchShortcutLabel}
-          {homeHref}
-          {homeLabel}
-          {hideSignIn}
-          locale={data.locale}
-          {localeMenuOpen}
-          onOpenGlobalSearch={openGlobalSearch}
-          {setLocale}
-          {setLocaleMenuOpen}
-          {setThemeMenuOpen}
-          {setThemeMode}
-          {themeMenuOpen}
-          {themeMode}
-          signedIn={Boolean(viewerUser)}
-          user={viewerUser}
-          {avatarFallback}
-          {profileHref}
-          {userMenuOpen}
-          {setUserMenuOpen}
-          currentPathname={routePage.url.pathname}
-          demo={navigationDemo}
-          {viewerLoading}
-        />
+        {@render topbar()}
 
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -- the desktop content region is the keyboard_scrollable viewport -->
         <div
@@ -708,7 +675,7 @@ let globalSearchShortcutLabel = $derived(
             {@render children?.()}
           </div>
         </div>
-      </Sidebar.Inset>
+      </main>
     </div>
 
     {#if showFooter}

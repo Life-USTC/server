@@ -5,6 +5,7 @@
   "workers_dev": false,
   "main": "src/worker.js",
   "upload_source_maps": true,
+  "minify": true,
   "compatibility_date": "2026-07-23",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "exports": {
