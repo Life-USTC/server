@@ -28488,6 +28488,183 @@
             ],
             "additionalProperties": false
           },
+          "officialProfile": {
+            "nullable": true,
+            "type": "object",
+            "properties": {
+              "credits": {
+                "nullable": true,
+                "type": "number"
+              },
+              "hours": {
+                "nullable": true,
+                "type": "number"
+              },
+              "department": {
+                "nullable": true,
+                "type": "string"
+              },
+              "language": {
+                "nullable": true,
+                "type": "string"
+              },
+              "prerequisites": {
+                "nullable": true,
+                "type": "string"
+              },
+              "assessment": {
+                "nullable": true,
+                "type": "string"
+              },
+              "grading": {
+                "nullable": true,
+                "type": "string"
+              },
+              "description": {
+                "type": "object",
+                "properties": {
+                  "zh": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "en": {
+                    "nullable": true,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "zh",
+                  "en"
+                ],
+                "additionalProperties": false
+              },
+              "textbook": {
+                "nullable": true,
+                "type": "string"
+              },
+              "textbooks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "nameZh": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "nameEn": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "author": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "isbn": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "nameZh",
+                    "nameEn",
+                    "author",
+                    "isbn"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "references": {
+                "nullable": true,
+                "type": "string"
+              },
+              "syllabus": {
+                "type": "object",
+                "properties": {
+                  "zh": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "content"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "en": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "content"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "topics": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "hours": {
+                          "nullable": true,
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "hours"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "zh",
+                  "en",
+                  "topics"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "credits",
+              "hours",
+              "department",
+              "language",
+              "prerequisites",
+              "assessment",
+              "grading",
+              "description",
+              "textbook",
+              "textbooks",
+              "references",
+              "syllabus"
+            ],
+            "additionalProperties": false
+          },
           "sections": {
             "type": "array",
             "items": {
@@ -29098,6 +29275,183 @@
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
+          },
+          "officialProfile": {
+            "nullable": true,
+            "type": "object",
+            "properties": {
+              "credits": {
+                "nullable": true,
+                "type": "number"
+              },
+              "hours": {
+                "nullable": true,
+                "type": "number"
+              },
+              "department": {
+                "nullable": true,
+                "type": "string"
+              },
+              "language": {
+                "nullable": true,
+                "type": "string"
+              },
+              "prerequisites": {
+                "nullable": true,
+                "type": "string"
+              },
+              "assessment": {
+                "nullable": true,
+                "type": "string"
+              },
+              "grading": {
+                "nullable": true,
+                "type": "string"
+              },
+              "description": {
+                "type": "object",
+                "properties": {
+                  "zh": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "en": {
+                    "nullable": true,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "zh",
+                  "en"
+                ],
+                "additionalProperties": false
+              },
+              "textbook": {
+                "nullable": true,
+                "type": "string"
+              },
+              "textbooks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "nameZh": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "nameEn": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "author": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "isbn": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "nameZh",
+                    "nameEn",
+                    "author",
+                    "isbn"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "references": {
+                "nullable": true,
+                "type": "string"
+              },
+              "syllabus": {
+                "type": "object",
+                "properties": {
+                  "zh": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "content"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "en": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "content"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "topics": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "hours": {
+                          "nullable": true,
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "hours"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "zh",
+                  "en",
+                  "topics"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "credits",
+              "hours",
+              "department",
+              "language",
+              "prerequisites",
+              "assessment",
+              "grading",
+              "description",
+              "textbook",
+              "textbooks",
+              "references",
+              "syllabus"
+            ],
+            "additionalProperties": false
           },
           "course": {
             "type": "object",

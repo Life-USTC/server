@@ -47,6 +47,10 @@ vi.mock("@/features/catalog/server/course-page-data", () => ({
   getCoursePage: getCoursePageMock,
 }));
 
+vi.mock("@/features/catalog/server/official-academic-profile-read", () => ({
+  readOfficialAcademicProfile: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock("@/features/catalog/server/teacher-page-data", () => ({
   getTeacherPage: getTeacherPageMock,
 }));
