@@ -1,0 +1,16 @@
+[Unit]
+Description=Static snapshot importer containers
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/life-ustc-static-import/current
+Environment=STATIC_IMPORT_IMAGE=life-ustc-static-import:local
+ExecStart=/usr/bin/docker compose -f /opt/life-ustc-static-import/current/deploy/static-import/compose.yml up --detach --remove-orphans
+ExecStop=/usr/bin/docker compose -f /opt/life-ustc-static-import/current/deploy/static-import/compose.yml stop
+
+[Install]
+WantedBy=multi-user.target

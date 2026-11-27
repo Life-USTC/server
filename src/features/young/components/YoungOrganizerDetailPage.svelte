@@ -1,10 +1,10 @@
 <script lang="ts">
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import DetailDefinitionList from "#lib/components/DetailDefinitionList.svelte";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import EndlessScroll from "#lib/components/EndlessScroll.svelte";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
 import Panel from "#lib/components/Panel.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import type {
@@ -82,23 +82,19 @@ function formatRange(event: YoungEventSummary) {
           <Item.Group class="gap-0" role="list">
             {#each events.data as event, index (event.youngId)}
               <div role="listitem">
-                <MobileListCard size="sm" variant={event.sourceMissing ? "muted" : "outline"}>
-                  {#snippet child({ props })}
-                    <a href={youngDetailHref(event.youngId)} {...props}>
-                      <Item.Content>
-                        <Item.Title>{event.name}</Item.Title>
-                        <Item.Description>
-                          {formatRange(event)}{#if event.location} · {event.location}{/if}{#if event.isOnline === true} · {youngCopy.online}{/if}
-                        </Item.Description>
-                        <Item.Footer class="flex-wrap justify-start">
-                          {#if event.category}<span>{event.category}</span>{/if}
-                          {#if event.status}<span>{event.status}</span>{/if}
-                          {#if event.requiresSignup === false}<span>{youngCopy.signupNotRequired}</span>{/if}
-                          {#if event.sourceMissing}<span>{youngCopy.sourceMissing}</span>{/if}
-                        </Item.Footer>
-                      </Item.Content>
-                    </a>
-                  {/snippet}
+                <MobileListCard variant={event.sourceMissing ? "muted" : "outline"} href={youngDetailHref(event.youngId)}>
+                  <Item.Content>
+                    <Item.Title>{event.name}</Item.Title>
+                    <Item.Description>
+                      {formatRange(event)}{#if event.location} · {event.location}{/if}{#if event.isOnline === true} · {youngCopy.online}{/if}
+                    </Item.Description>
+                    <Item.Footer class="flex-wrap justify-start">
+                      {#if event.category}<span>{event.category}</span>{/if}
+                      {#if event.status}<span>{event.status}</span>{/if}
+                      {#if event.requiresSignup === false}<span>{youngCopy.signupNotRequired}</span>{/if}
+                      {#if event.sourceMissing}<span>{youngCopy.sourceMissing}</span>{/if}
+                    </Item.Footer>
+                  </Item.Content>
                 </MobileListCard>
                 {#if index < events.data.length - 1}
                   <Item.Separator />
@@ -107,7 +103,7 @@ function formatRange(event: YoungEventSummary) {
             {/each}
           </Item.Group>
         {:else}
-          <ResultsEmpty title={youngCopy.noEventsFound} description={youngCopy.organizerDetailDescription} />
+          <EmptyState variant="results" title={youngCopy.noEventsFound} description={youngCopy.organizerDetailDescription} />
         {/if}
         </div>
       </Panel>

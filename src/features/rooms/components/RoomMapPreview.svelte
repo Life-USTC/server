@@ -217,11 +217,11 @@ function openMap() {
   void loadMap();
 }
 
-function restoreTriggerFocus(event: Event) {
-  event.preventDefault();
+function restoreTriggerFocus() {
   suppressPreview = true;
   (inline ? openButton : trigger)?.focus({ preventScroll: true });
   suppressPreview = false;
+  return null;
 }
 
 function closeDialog() {
@@ -254,13 +254,9 @@ function handleWheel(event: WheelEvent) {
           <Skeleton class="aspect-video w-full rounded-xl" />
           <p class="text-muted-foreground text-xs">{copy.loading}</p>
         {:else if failed}
-          <Alert.Root variant="destructive">
-            <Alert.Description>{copy.fetchError}</Alert.Description>
-          </Alert.Root>
+          <Alert.Message variant="destructive">{copy.fetchError}</Alert.Message>
         {:else if visibleMap?.status === "unavailable" || !imageUrl}
-          <Alert.Root>
-            <Alert.Description>{copy.unavailableDescription}</Alert.Description>
-          </Alert.Root>
+          <Alert.Message>{copy.unavailableDescription}</Alert.Message>
         {:else}
           <img
             alt={mapAlt}
@@ -277,25 +273,24 @@ function handleWheel(event: WheelEvent) {
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex flex-wrap gap-2">
             <Button
+              icon={ZoomInIcon}
               disabled={!imageUrl}
               size="sm"
-              type="button"
               variant="outline"
               bind:ref={openButton}
               onclick={openMap}
             >
-              <ZoomInIcon data-icon="inline-start" />
               {copy.openMap}
             </Button>
             {#if sourceImageUrl}
               <Button
+                icon={ExternalLinkIcon}
                 href={sourceImageUrl}
                 rel="noopener noreferrer"
                 size="sm"
                 target="_blank"
                 variant="ghost"
               >
-                <ExternalLinkIcon data-icon="inline-start" />
                 {copy.sourceImage}
               </Button>
             {/if}
@@ -325,14 +320,14 @@ function handleWheel(event: WheelEvent) {
           <span class={tableCell ? "whitespace-normal" : "truncate"}>{label ?? normalizedCode}</span>
         </a>
     <Popover.Content
-      customAnchor={trigger}
+      anchor={trigger}
       align="start"
       class="w-[min(24rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]"
       data-testid="room-map-preview-popover"
       sideOffset={8}
       bind:ref={previewContent}
-      onOpenAutoFocus={(event) => event.preventDefault()}
-      onCloseAutoFocus={(event) => event.preventDefault()}
+      initialFocus="none"
+      finalFocus="none"
       onpointerenter={keepPreviewOpen}
       onpointerleave={dismissPreview}
       onfocusin={keepPreviewOpen}
@@ -348,18 +343,15 @@ function handleWheel(event: WheelEvent) {
     <Dialog.Content
       class="flex max-h-[calc(100dvh-2rem)] max-w-6xl flex-col gap-3 overflow-hidden sm:max-w-6xl"
       data-testid="room-map-dialog"
-      onCloseAutoFocus={restoreTriggerFocus}
+      finalFocus={restoreTriggerFocus}
     >
-      <Dialog.Header>
-        <Dialog.Title>{dialogTitle}</Dialog.Title>
-        <Dialog.Description>{dialogDescription}</Dialog.Description>
-      </Dialog.Header>
+      <Dialog.Header heading={dialogTitle} description={dialogDescription} />
 
       {#if loading}
         <Skeleton class="aspect-video w-full" />
         <p>{copy.loading}</p>
       {:else if failed}
-        <Alert.Root variant="destructive"><Alert.Description>{copy.fetchError}</Alert.Description></Alert.Root>
+        <Alert.Message variant="destructive">{copy.fetchError}</Alert.Message>
       {:else if imageUrl}
         <div
           class="max-h-[calc(100dvh-14rem)] min-h-0 w-full flex-1 overflow-auto rounded-xl border border-border bg-muted/20"
@@ -376,49 +368,41 @@ function handleWheel(event: WheelEvent) {
           </div>
         </div>
       {:else}
-        <Alert.Root>
-          <Alert.Description>{copy.unavailableDescription}</Alert.Description>
-        </Alert.Root>
+        <Alert.Message>{copy.unavailableDescription}</Alert.Message>
       {/if}
 
-      <Dialog.Footer class="flex-wrap justify-between gap-2">
+      <div data-slot="dialog-footer" class="flex-wrap justify-between gap-2">
         <div class="flex gap-2">
           <Button
+            icon={ZoomOutIcon}
             aria-label={copy.zoomOut}
             disabled={!imageUrl || zoom <= 0.75}
             class="icon-action" size="icon"
-            type="button"
             variant="outline"
             onclick={() => (zoom = Math.max(0.75, zoom - 0.25))}
-          >
-            <ZoomOutIcon data-icon="inline-start" />
-          </Button>
+          />
           <Button
+            icon={ZoomInIcon}
             aria-label={copy.zoomIn}
             disabled={!imageUrl || zoom >= 3}
             class="icon-action" size="icon"
-            type="button"
             variant="outline"
             onclick={() => (zoom = Math.min(3, zoom + 0.25))}
-          >
-            <ZoomInIcon data-icon="inline-start" />
-          </Button>
+          />
           <Button
+            icon={RotateCcwIcon}
             aria-label={copy.resetZoom}
             disabled={!imageUrl || zoom === 1}
             class="icon-action" size="icon"
-            type="button"
             variant="ghost"
             onclick={() => (zoom = 1)}
-          >
-            <RotateCcwIcon data-icon="inline-start" />
-          </Button>
+          />
         </div>
         {#if imageUrl}
-          <Button href={imageUrl} target="_blank" rel="noopener noreferrer" variant="outline"><ExternalLinkIcon data-icon="inline-start" />{copy.openMap}</Button>
+          <Button icon={ExternalLinkIcon} href={imageUrl} target="_blank" rel="noopener noreferrer" variant="outline">{copy.openMap}</Button>
         {/if}
-        <Button type="button" variant="outline" onclick={closeDialog}>{copy.close}</Button>
-      </Dialog.Footer>
+        <Button variant="outline" onclick={closeDialog}>{copy.close}</Button>
+      </div>
     </Dialog.Content>
   </Dialog.Root>
 </span>

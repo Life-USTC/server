@@ -533,7 +533,7 @@ test("subscription.kind-web-editor-location", {
       const relevant = (node: Element) =>
         (node.tagName === "BUTTON" &&
           role.test(node.getAttribute("aria-label") ?? "")) ||
-        node.matches('[role="dialog"],[data-slot="dialog-overlay"]');
+        node.matches('[role="dialog"],[data-slot="dialog-backdrop"]');
       const emit = (event: Record<string, unknown>) => {
         if (remaining-- <= 0) return;
         console.log(
@@ -547,7 +547,7 @@ test("subscription.kind-web-editor-location", {
               bodyStyle: document.body?.getAttribute("style"),
               dialogs: [
                 ...document.querySelectorAll(
-                  '[role="dialog"],[data-slot="dialog-overlay"]',
+                  '[role="dialog"],[data-slot="dialog-backdrop"]',
                 ),
               ].map(describeNode),
               ...event,
@@ -714,7 +714,7 @@ test("subscription.kind-web-editor-location", {
                 if (relevant(node))
                   records.push({ action, node: describeNode(node) });
                 for (const child of node.querySelectorAll(
-                  '[role="dialog"],[data-slot="dialog-overlay"],button[aria-label]',
+                  '[role="dialog"],[data-slot="dialog-backdrop"],button[aria-label]',
                 ))
                   if (relevant(child))
                     records.push({ action, node: describeNode(child) });
@@ -796,7 +796,7 @@ test("subscription.kind-web-editor-location", {
                 .click();
               await expect(
                 dialog.getByRole("radio", { name: label }),
-              ).toHaveAttribute("data-state", "on");
+              ).toBeChecked();
               await page.keyboard.press("Escape");
             }
           }

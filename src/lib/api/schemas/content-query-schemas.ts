@@ -7,6 +7,7 @@ import {
 } from "@/features/homeworks/lib/homework-list-bounds";
 import {
   booleanQuerySchema,
+  dateQuerySchema,
   descriptionTargetTypeSchema,
   integerStringRangeSchema,
   integerStringSchema,
@@ -105,6 +106,8 @@ export const homeworkAuditQuerySchema = z.object({
 });
 
 export const subscribedHomeworksQuerySchema = z.object({
+  dueAtFrom: dateQuerySchema().optional(),
+  dueAtTo: dateQuerySchema().optional(),
   page: homeworkPageSchema.optional(),
   pageSize: paginationPageSizeParam(homeworkPageSizeSchema),
 });

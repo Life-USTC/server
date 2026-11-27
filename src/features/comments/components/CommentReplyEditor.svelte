@@ -14,8 +14,8 @@ import CommentUploadButton from "./CommentUploadButton.svelte";
 import type {
   CommentSelectOption,
   CommentsCopy,
-  CommentThreadProps,
   CommentUploadOption,
+  SubmitComment,
   UploadsCopy,
 } from "./comment-component-types";
 
@@ -31,7 +31,7 @@ export let replyIsAnonymous: boolean;
 export let replyUploadedFiles: CommentUploadOption[];
 export let replyVisibility: string;
 export let submitting: boolean;
-export let submitComment: CommentThreadProps["submitComment"];
+export let submitComment: SubmitComment;
 export let uploadCopy: UploadsCopy;
 export let uploading: boolean;
 export let uploadFile: (file: File, mode?: "edit" | "new" | "reply") => void;
@@ -55,16 +55,12 @@ $: replyEditorLabelId = `comment-reply-editor-label-${comment.id}`;
     <MarkdownEditor
       bind:value={replyDraft}
       aria-labelledby={replyEditorLabelId}
-      compact
       disabled={replyDisabled}
-      guideLabel={commentCopy.markdownGuide}
+      copy={commentCopy}
       modeLabel={commentCopy.markdownModeLabel}
       placeholder={commentCopy.replyPlaceholder}
-      previewEmptyLabel={commentCopy.previewEmpty}
       remarkPlugins={campusReferenceMarkdownPlugins}
       rows={3}
-      tabPreviewLabel={commentCopy.tabPreview}
-      tabWriteLabel={commentCopy.tabWrite}
     />
   </Field.Field>
   <CommentAttachmentPills
@@ -95,10 +91,9 @@ $: replyEditorLabelId = `comment-reply-editor-label-${comment.id}`;
         uploadFile(file, "reply");
       }}
     />
-    <Button type="button" variant="ghost" onclick={cancelReply}>{commentCopy.cancelAction}</Button>
+    <Button variant="ghost" onclick={cancelReply}>{commentCopy.cancelAction}</Button>
     <Button
       disabled={!replyDraft.trim() || replyDisabled || submitting || uploading}
-      type="button"
       onclick={() => {
         if (replyDisabled) return;
         submitComment(

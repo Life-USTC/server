@@ -83,7 +83,10 @@ async function getYoungEventTool({
   mode?: McpModeInput;
 }) {
   const resolvedMode = resolveMcpMode(mode);
-  const event = await getYoungEvent(youngId);
+  const event =
+    resolvedMode === "full"
+      ? await getYoungEvent(youngId)
+      : await getYoungEvent(youngId, "page");
 
   if (event == null) {
     return jsonToolResult(
@@ -99,14 +102,9 @@ async function getYoungEventTool({
     );
   }
 
-  if (resolvedMode === "full") {
-    return jsonToolResult({ found: true, youngId, event }, { mode: "full" });
-  }
-
-  const { rawJson: _rawJson, ...summary } = event;
   return jsonToolResult(
-    { found: true, youngId, event: summary },
-    { mode: "default" },
+    { found: true, youngId, event },
+    { mode: resolvedMode },
   );
 }
 

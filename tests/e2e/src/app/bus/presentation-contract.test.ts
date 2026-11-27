@@ -41,6 +41,9 @@ async function openControls(page: Page) {
 
 async function applyRouteFilters(page: Page) {
   await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("dialog", { name: /Change route|调整路线/ }),
+  ).toBeHidden();
   await page.getByRole("button", { name: /Apply filters|应用筛选/ }).click();
   await openControls(page);
 }

@@ -3,452 +3,30 @@ import type {
   CatalogLinkGroup,
   CatalogLinkIcon,
 } from "@/features/catalog-links/lib/catalog-links";
-import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
 import type { DemoView } from "@/features/demo/lib/demo-types";
 import type { HomeworkCapabilities } from "@/features/homeworks/lib/homework-capabilities";
-import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-style-guide";
-import type { RoomMapCopy } from "@/features/rooms/lib/room-map-types";
 import type { SubscriptionKind } from "@/features/subscriptions/lib/subscription-kind";
-import type {
-  WorkspaceBusCopy,
-  WorkspaceBusData,
-} from "@/features/workspace/lib/bus-tab-types";
+import type { TodoPriorityValue } from "@/features/todos/lib/todo-priority";
+import type { WorkspaceBusData } from "@/features/workspace/lib/bus-tab-types";
 import type { CalendarView } from "@/features/workspace/lib/calendar";
 import type {
   WorkspaceExamRow,
   WorkspaceExamSection,
 } from "@/features/workspace/lib/exams";
 import type { MatchedSubscriptionSection } from "@/features/workspace/lib/subscriptions";
-import type { TableFilterLabels } from "@/lib/table-filters";
+import type { AppPageCopy } from "@/lib/shell/page-copy";
 
 type WorkspaceRecord = Record<string, unknown>;
 
-export type WorkspaceCommonCopy = WorkspaceRecord & {
-  taskFilters: {
-    search: string;
-    more: string;
-    applied: string;
-    reset: string;
-    remove: string;
-    myStatus: string;
-    attributes: string;
-    todoSort: string;
-    homeworkSort: string;
-    emptyTodos: string;
-  };
-  tableFilters: TableFilterLabels;
-  applyFilters: string;
-  courses: string;
-  next: string;
-  previous: string;
-  semesters: string;
-  sections: string;
-  unknown: string;
-  userNotFound: string;
-};
-
-export type WorkspaceHomepageCopy = WorkspaceRecord & {
-  actions: {
-    mobileApp: string;
-    openWorkspace: string;
-    signIn: string;
-  };
-  appIconAlt: string;
-  publicWorkspace: {
-    cards: {
-      bus: { description: string; title: string };
-      courses: { description: string; title: string };
-      links: { description: string; title: string };
-      mobileApp: { description: string; title: string };
-      sections: { description: string; title: string };
-      signIn: { description: string; title: string };
-      teachers: { description: string; title: string };
-    };
-    description: string;
-    exploreLabel: string;
-    title: string;
-  };
-  subtitle: string;
-  title: {
-    line1: string;
-    line2: string;
-  };
-};
-
-export type WorkspaceRootCopy = WorkspaceRecord & {
-  CalendarEventCard: {
-    exam: string;
-    homework: string;
-    todo: string;
-  };
-  bus: WorkspaceBusCopy;
-  comments: CommentsCopy;
-  common: WorkspaceCommonCopy;
-  workspace: WorkspaceCopy;
-  homepage: WorkspaceHomepageCopy;
-  homeworks: WorkspaceHomeworksCopy;
-  myHomeworks: WorkspaceMyHomeworksCopy;
-  sectionDetail: WorkspaceSectionCopy;
-  subscriptions: WorkspaceSubscriptionsCopy;
-  todos: WorkspaceTodosCopy;
-  metadata: {
-    home: string;
-  };
-};
-
-export type WorkspaceCopy = WorkspaceRecord & {
-  stack: { urgency: string; upcoming: string };
-  roomMap: RoomMapCopy;
-  linkHub: {
-    filterGroup: string;
-    filterUrl: string;
-    filterPinned: string;
-    filterVisits: string;
-    colActions: string;
-    colDescription: string;
-    colName: string;
-    credit: string;
-    creditSuffix: string;
-    empty: string;
-    gridView: string;
-    groups: Record<string, string>;
-    listView: string;
-    pin: string;
-    pinFailedDescription: string;
-    pinFailedTitle: string;
-    searchPlaceholder: string;
-    title: string;
-    unpin: string;
-    viewMode: string;
-  };
-  moreItems: string;
-  notAvailable: string;
-  nav: {
-    ariaLabel: string;
-    calendar: { title: string };
-    bus: { description: string; title: string };
-    exams: {
-      cardView: string;
-      clearFilter: string;
-      empty: string;
-      emptyDescription: string;
-      filterAll: string;
-      filterCompleted: string;
-      filterEmpty: string;
-      filterEmptyDescription: string;
-      filterIncomplete: string;
-      listView: string;
-      noSubscriptionsDescription: string;
-      noSubscriptionsTitle: string;
-      title: string;
-      viewMode: string;
-    };
-    homeworks: { title: string };
-    links: { description: string; title: string };
-    overview: { title: string };
-    subscriptions: { title: string };
-    todos: { title: string };
-  };
-  calendarSemesterNext: string;
-  calendarSemesterPrev: string;
-  calendarAgendaEmpty: string;
-  calendarAgendaLabel: string;
-  calendarMoreActions: string;
-  calendarViewDay: string;
-  calendarViewLabel: string;
-  calendarNavigationLabel: string;
-  calendarDay: { prev: string; next: string; label: string };
-  calendarDayAgendaLabel: string;
-  calendarViewMonth: string;
-  calendarViewSemester: string;
-  calendarViewWeek: string;
-  calendarWeek: {
-    current: string;
-    next: string;
-    prev: string;
-  };
-  completedStatus: string;
-  focus: {
-    next: string;
-    noUpcoming: string;
-    now: string;
-    title: string;
-    urgent: string;
-  };
-  homeworks: {
-    empty: string;
-    titleV2: string;
-  };
-  openSlot: string;
-  overdue: {
-    empty: string;
-    title: string;
-  };
-  radar: {
-    empty: string;
-    title: string;
-  };
-  termSelection: {
-    browseCourses: string;
-    browseSections: string;
-    historyAvailable: string;
-    matchByCode: string;
-    noAnySelection: string;
-    noCurrentTerm: string;
-    noCurrentSemester: string;
-    title: string;
-    viewPastHomeworks: string;
-    viewPastSchedule: string;
-    viewPastSections: string;
-  };
-  today: {
-    empty: string;
-    title: string;
-  };
-  todos: {
-    dueSoon: string;
-    dueToday: string;
-    pending: string;
-    title: string;
-  };
-  pendingStatus: string;
-  todayAction: string;
-  week: {
-    title: string;
-  };
-};
-
-export type WorkspaceSectionCopy = WorkspaceRecord & {
-  calendarSheetDescription: string;
-  calendarSheetTitle: string;
-  close: string;
-  copied: string;
-  copyToClipboard: string;
-  dateTBD: string;
-  examDate: string;
-  examDateTBD: string;
-  examCount: string;
-  examTime: string;
-  examTypeFinal: string;
-  examTypeMidterm: string;
-  learnMoreAboutICalendar: string;
-  moreDetails: string;
-  nextMonth: string;
-  noTeachersListed: string;
-  previousMonth: string;
-  room: string;
-  roomTbd: string;
-  subscriptionMissing: string;
-  subscriptionPrivacyNote: string;
-  subscriptionUrlDescription: string;
-  subscriptionUrlLabel: string;
-  viewAllSubscriptions: string;
-  weekLabel: string;
-  weekNumber: string;
-  weekdays: {
-    shortFriday: string;
-    shortMonday: string;
-    shortSaturday: string;
-    shortSunday: string;
-    shortThursday: string;
-    shortTuesday: string;
-    shortWednesday: string;
-  };
-};
-
-export type WorkspaceSubscriptionsCopy = WorkspaceRecord & {
-  kindEditor: {
-    title: string;
-    save: string;
-    cancel: string;
-    failed: string;
-    regular: string;
-    auditor: string;
-    teaching_assistant: string;
-  };
-  browseCourses: string;
-  browseSections: string;
-  bulkImport: {
-    cancel: string;
-    checkFormat: string;
-    confirmTitle: string;
-    confirmTitleOne: string;
-    descriptionPrefix: string;
-    undergraduateSystem: string;
-    descriptionConjunction: string;
-    graduateSystem: string;
-    description: string;
-    fetchFailed: string;
-    importFailed: string;
-    importing: string;
-    matchButton: string;
-    matchedSummary: string;
-    matching: string;
-    noMatches: string;
-    noValidCodes: string;
-    placeholder: string;
-    sectionCodesLabel: string;
-    selectSection: string;
-    semesterLabel: string;
-    semesterPlaceholder: string;
-    subscribeSelected: string;
-    subscribeSelectedOne: string;
-    successDescription: string;
-    title: string;
-    unmatchedCodes: string;
-  };
-  quickAdd: {
-    alreadySubscribed: string;
-    cancel: string;
-    codeLabel: string;
-    description: string;
-    emptyDescription: string;
-    emptyTitle: string;
-    placeholder: string;
-    resultsDescription: string;
-    resultsLabel: string;
-    resultsLabelOne: string;
-    searchButton: string;
-    searching: string;
-    selectSection: string;
-    subscribeSelected: string;
-    subscribing: string;
-    title: string;
-  };
-  calendarEmpty: string;
-  cancelUnsubscribe: string;
-  closeDetails: string;
-  confirmUnsubscribe: string;
-  courseName: string;
-  credits: string;
-  detailsDescription: string;
-  iCalLink: string;
-  linkCopied: string;
-  linkCopiedDescription: string;
-  noSubscriptions: string;
-  noSubscriptionsDescription: string;
-  optOut: string;
-  optOutConfirm: string;
-  optOutError: string;
-  optOutRetry: string;
-  optOutSuccessDescription: string;
-  openCourse: string;
-  openDetails: string;
-  removing: string;
-  rowActions: string;
-  section: string;
-  sectionIncluded: string;
-  sectionsIncluded: string;
-  semester: string;
-  semesterGroup: string;
-  unsubscribe: string;
-  unsubscribeDescription: string;
-  unsubscribeTitle: string;
-};
-
-export interface WorkspaceHomeworksCopy extends HomeworkStyleGuideCopy {
-  classDeadlinesLoading: string;
-  classDeadlinesFailed: string;
-  classDeadlinesRetry: string;
-  [key: string]: string;
-  advancedHide: string;
-  advancedShow: string;
-  calendarButtonLabel: string;
-  cancel: string;
-  completedLabel: string;
-  commentsLabel: string;
-  commentsTitle: string;
-  completionFailed: string;
-  createAction: string;
-  createFailed: string;
-  createTitle: string;
-  descriptionEmpty: string;
-  descriptionLabel: string;
-  descriptionPlaceholder: string;
-  dueDateShortcuts: string;
-  timeShortcuts: string;
-  errorDescriptionTooLong: string;
-  errorInvalidSubmissionDue: string;
-  errorSectionNotFound: string;
-  errorTitleRequired: string;
-  errorTitleTooLong: string;
-  helperClear: string;
-  helperBeforeMonday: string;
-  helperMonth: string;
-  helperNextClass: string;
-  helperNextWeek: string;
-  helperPublishNow: string;
-  helperSemesterEnd: string;
-  helperStartNow: string;
-  helperThisWeek: string;
-  helperWeek: string;
-  homeworkPublishedAt: string;
-  markComplete: string;
-  markIncomplete: string;
-  moreDetails: string;
-  noCompletionRequired: string;
-  pendingLabel: string;
-  publishedAt: string;
-  relativeTime: string;
-  saving: string;
-  sectionLabel: string;
-  statusLabel: string;
-  submissionDue: string;
-  submissionStart: string;
-  subtitle: string;
-  tagMajor: string;
-  tagTeam: string;
-  titleLabel: string;
-  titlePlaceholder: string;
-  viewDetails: string;
-}
-
-export type WorkspaceMyHomeworksCopy = Record<string, string> & {
-  due: string;
-  noSubscriptions: string;
-  noSubscriptionsDescription: string;
-  section: string;
-};
-
-export type WorkspaceTodosCopy = WorkspaceRecord & {
-  calendarButtonLabel: string;
-  cancel: string;
-  contentLabel: string;
-  contentEmpty: string;
-  contentPlaceholder: string;
-  createAction: string;
-  createTitle: string;
-  completeSuccess: string;
-  delete: string;
-  deleteSuccess: string;
-  deleteAriaLabel: string;
-  deleteConfirmDescription: string;
-  deleteConfirmTitle: string;
-  dueAtLabel: string;
-  dueAtPlaceholder: string;
-  editAriaLabel: string;
-  editDescription: string;
-  editTitle: string;
-  errorContentTooLong: string;
-  errorInvalidDueAt: string;
-  errorTitleRequired: string;
-  errorTitleTooLong: string;
-  filterEmptyTitle: string;
-  filterEmptyDescription: string;
-  clearFilter: string;
-  markComplete: string;
-  markIncomplete: string;
-  priority: Record<string, string>;
-  priorityLabel: string;
-  saveChanges: string;
-  saveFailed: string;
-  uncompleteSuccess: string;
-  saving: string;
-  statusLabel: string;
-  subtitle: string;
-  titleLabel: string;
-  titlePlaceholder: string;
-};
+export type WorkspaceRootCopy = AppPageCopy;
+export type WorkspaceCommonCopy = AppPageCopy["common"];
+export type WorkspaceHomepageCopy = AppPageCopy["homepage"];
+export type WorkspaceCopy = AppPageCopy["workspace"];
+export type WorkspaceSectionCopy = AppPageCopy["sectionDetail"];
+export type WorkspaceSubscriptionsCopy = AppPageCopy["subscriptions"];
+export type WorkspaceHomeworksCopy = AppPageCopy["homeworks"];
+export type WorkspaceMyHomeworksCopy = AppPageCopy["myHomeworks"];
+export type WorkspaceTodosCopy = AppPageCopy["todos"];
 
 export type WorkspaceHomeworkItem = WorkspaceRecord & {
   completion?: unknown | null;
@@ -476,7 +54,7 @@ export type WorkspaceTodoItem = WorkspaceRecord & {
   content?: string | null;
   dueAt?: Date | string | null;
   id: string;
-  priority: string;
+  priority: TodoPriorityValue;
   title: string;
 };
 
@@ -486,7 +64,7 @@ export type WorkspaceCalendarTodoItem = WorkspaceRecord & {
   dateKey?: string | null;
   dueAt?: Date | string | null;
   id: string;
-  priority: string;
+  priority: TodoPriorityValue;
   title: string;
 };
 
@@ -677,13 +255,7 @@ export type SignedWorkspaceData = WorkspacePageData & {
 export type HomeworkItem = NonNullable<
   SignedWorkspaceData["homeworks"]
 >["homeworkSummaries"][number];
-export type HomeworkFilter = "incomplete" | "completed" | "all";
-export type HomeworkView = "cards" | "list";
 export type TodoItem = NonNullable<SignedWorkspaceData["todos"]>[number];
-export type TodoFilter = "incomplete" | "completed" | "all";
-export type TodoView = "cards" | "list";
-export type ExamView = "cards" | "list";
-export type LinkView = "grid" | "list";
 export type CalendarData = WorkspaceCalendarData;
 export type SubscriptionsData = NonNullable<
   SignedWorkspaceData["subscriptions"]
@@ -692,17 +264,10 @@ export type SubscribedSection =
   SubscriptionsData["subscriptions"][number]["sections"][number];
 export type ExamRow = WorkspaceExamRow<SubscribedSection>;
 export type MatchedSection = MatchedSubscriptionSection;
-export type SignedLinkGroup = {
+export type CatalogLinkGroupEntry = {
   group: CatalogLinkGroup;
   label: string;
   links: CatalogLinkItem[];
-};
-export type AnonymousLinkGroup = SignedLinkGroup;
-export type WorkspaceViewState = {
-  homeworkView: HomeworkView;
-  todoView: TodoView;
-  examView: ExamView;
-  linkView: LinkView;
 };
 
 export type WorkspaceCalendarControllerState = {

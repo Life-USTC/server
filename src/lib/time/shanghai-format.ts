@@ -132,3 +132,18 @@ export function createShanghaiDateTimeFormatter(
   formatterCache.set(key, formatter);
   return formatter;
 }
+
+export function campusTimestampFormatter(locale: string) {
+  return createShanghaiDateTimeFormatter(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+export function createCampusTimestampFormatter(locale: string) {
+  const formatter = campusTimestampFormatter(locale);
+  return (value: Date | string | null | undefined) =>
+    value
+      ? formatter.format(typeof value === "string" ? new Date(value) : value)
+      : "";
+}

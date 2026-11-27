@@ -1,9 +1,13 @@
 <script lang="ts">
+import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@ui-sdk/svelte/collapsible";
 import CompactEmpty from "#lib/components/CompactEmpty.svelte";
 import CalendarGrid from "#lib/components/calendar/CalendarGrid.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button, buttonVariants } from "#lib/components/ui/button/index.js";
-import * as Collapsible from "#lib/components/ui/collapsible/index.js";
 import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import {
   normalizeYoungCalendarDate,
@@ -15,6 +19,7 @@ import {
   youngCalendarPreviousDate,
   youngCalendarRange,
   youngCalendarWeeks,
+  youngEventTimes,
 } from "../lib/young-calendar";
 import { youngDateRange, youngDateTime } from "../lib/young-event-display";
 import type {
@@ -64,14 +69,12 @@ $: days = youngCalendarDays(
   timeBasis,
   anchorDate,
 );
+$: dayFormatter = createShanghaiDateTimeFormatter(locale, { day: "numeric" });
 $: weeks = youngCalendarWeeks(days).map((week) => ({
   days: week.days.map((day) => ({
     key: day.key,
     moreHref: hrefFor("day", day.key),
-    label: createShanghaiDateTimeFormatter(locale, {
-      timeZone: "Asia/Shanghai",
-      day: "numeric",
-    }).format(day.date),
+    label: dayFormatter.format(day.date),
     isToday: day.isToday,
     isMuted: day.isMuted,
     events: (view === "day" ? day.events : day.startingEvents).map((event) => ({
@@ -95,8 +98,7 @@ $: heading = youngCalendarHeading(view, anchorDate, locale);
 $: agenda = youngCalendarAgenda(days, anchorDate);
 
 function formatClock(event: YoungCalendarEvent) {
-  const start =
-    timeBasis === "registration" ? event.applyStartAt : event.startAt;
+  const { startAt: start } = youngEventTimes(event, timeBasis);
   if (!start) return "";
   return createShanghaiDateTimeFormatter(locale, {
     timeZone: "Asia/Shanghai",
@@ -107,16 +109,12 @@ function formatClock(event: YoungCalendarEvent) {
 }
 
 function formatTime(event: YoungCalendarEvent) {
-  const start =
-    timeBasis === "registration" ? event.applyStartAt : event.startAt;
-  const end = timeBasis === "registration" ? event.applyEndAt : event.endAt;
+  const { startAt: start, endAt: end } = youngEventTimes(event, timeBasis);
   return youngDateRange(start, end, labels) ?? "";
 }
 
 function crossesDate(event: YoungCalendarEvent) {
-  const start =
-    timeBasis === "registration" ? event.applyStartAt : event.startAt;
-  const end = timeBasis === "registration" ? event.applyEndAt : event.endAt;
+  const { startAt: start, endAt: end } = youngEventTimes(event, timeBasis);
   return Boolean(
     start &&
       end &&
@@ -201,10 +199,10 @@ function crossesDate(event: YoungCalendarEvent) {
     <div aria-label={labels.agenda} class="grid gap-5" role="region">
       {@render agendaRows(agenda.current)}
       {#if agenda.earlier.length}
-        <Collapsible.Root class="grid gap-3">
-          <Collapsible.Trigger class={buttonVariants({ variant: "outline", class: "justify-self-start" })}>{labels.earlierDates}</Collapsible.Trigger>
-          <Collapsible.Content class="grid gap-5">{@render agendaRows(agenda.earlier)}</Collapsible.Content>
-        </Collapsible.Root>
+        <Collapsible class="grid gap-3">
+          <CollapsibleTrigger class={buttonVariants({ variant: "outline", class: "justify-self-start" })}>{labels.earlierDates}</CollapsibleTrigger>
+          <CollapsiblePanel class="grid gap-5">{@render agendaRows(agenda.earlier)}</CollapsiblePanel>
+        </Collapsible>
       {/if}
     </div>
   </div>

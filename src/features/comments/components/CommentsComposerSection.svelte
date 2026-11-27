@@ -79,7 +79,7 @@ function openComposer() {
   <div class="grid gap-2">
     <div class="flex flex-wrap items-center justify-between gap-3">
       {#if heading}<h2 class="section-heading">{heading}</h2>{/if}
-      <Button type="button" variant="outline" disabled aria-describedby={readOnlyReasonId}>{commentCopy.postAction}</Button>
+      <Button variant="outline" disabled aria-describedby={readOnlyReasonId}>{commentCopy.postAction}</Button>
     </div>
     <p id={readOnlyReasonId} class="text-sm text-muted-foreground">{readOnlyReason}</p>
   </div>
@@ -93,18 +93,18 @@ function openComposer() {
 {:else if !viewerResolved}
   <div class="flex flex-wrap items-center justify-between gap-3">
     {#if heading}<h2 class="section-heading">{heading}</h2>{/if}
-    <Button type="button" variant="outline" disabled>{commentCopy.postAction}</Button>
+    <Button variant="outline" disabled>{commentCopy.postAction}</Button>
   </div>
 {:else}
   {#if heading}
     <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
       <h2 class="section-heading">{heading}</h2>
       {#if composerOpen}
-        <Button type="button" variant="outline" onclick={closeComposer}>
+        <Button variant="outline" onclick={closeComposer}>
           {commentCopy.cancelAction}
         </Button>
       {:else if viewer.isAuthenticated}
-        <Button type="button" variant="outline" onclick={openComposer}>
+        <Button variant="outline" onclick={openComposer}>
           {commentCopy.postAction}
         </Button>
       {:else}
@@ -115,7 +115,7 @@ function openComposer() {
     </div>
   {:else if !composerOpen}
     <div class="flex justify-start">
-      <Button type="button" variant="outline" onclick={openComposer}>
+      <Button variant="outline" onclick={openComposer}>
         {viewer.isAuthenticated ? commentCopy.postAction : commentCopy.loginToComment}
       </Button>
     </div>
@@ -125,7 +125,7 @@ function openComposer() {
     <div class="grid gap-3">
       {#if !heading}
         <div class="flex justify-end">
-          <Button type="button" variant="ghost" onclick={closeComposer}>
+          <Button variant="ghost" onclick={closeComposer}>
             {commentCopy.cancelAction}
           </Button>
         </div>
