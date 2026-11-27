@@ -1,6 +1,6 @@
 <script lang="ts">
-import { onMount } from "svelte";
 import LogInIcon from "@lucide/svelte/icons/log-in";
+import { onMount } from "svelte";
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import SignInButton from "#lib/components/SignInButton.svelte";
 import type { ThemeMode } from "#lib/components/shell/layout-shell.js";
