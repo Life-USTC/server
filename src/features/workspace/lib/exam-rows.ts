@@ -4,9 +4,7 @@ import {
   formatDateOnly,
 } from "./exam-date-display";
 import type {
-  ExamFilter,
   WorkspaceExam,
-  WorkspaceExamRow,
   WorkspaceExamSection,
   WorkspaceExamSubscriptions,
 } from "./exam-types";
@@ -62,16 +60,6 @@ export function flattenExamRows<Section extends WorkspaceExamSection>(
     if (right.dateKey) return 1;
     return left.id - right.id;
   });
-}
-
-export function filterExamRows<Section extends WorkspaceExamSection>(
-  rows: WorkspaceExamRow<Section>[],
-  filter: ExamFilter,
-) {
-  if (filter === "all") return rows;
-  return rows.filter((exam) =>
-    filter === "completed" ? exam.completed : !exam.completed,
-  );
 }
 
 function examHasDetails(exam: WorkspaceExam) {

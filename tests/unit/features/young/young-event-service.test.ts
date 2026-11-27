@@ -653,6 +653,19 @@ describe("young public runtime cache", () => {
     expect(youngEventMock.findMany).toHaveBeenCalledTimes(5);
   });
 
+  it("caches page and API projections independently", async () => {
+    const rawJson = { upstream: true };
+    youngEventMock.findUnique.mockResolvedValue({ ...RECORD, rawJson });
+    const page = await getYoungEvent("42", "page");
+    expect(page).not.toHaveProperty("rawJson");
+    expect(youngEventMock.findUnique.mock.calls[0][0].select.rawJson).toBe(
+      false,
+    );
+    expect((await getYoungEvent("42"))?.rawJson).toEqual(rawJson);
+    expect(await getYoungEvent("42", "page")).toEqual(page);
+    expect(youngEventMock.findUnique).toHaveBeenCalledTimes(2);
+  });
+
   it("caches sanitized detail and categories but not missing detail", async () => {
     youngEventMock.findUnique.mockResolvedValue({
       ...RECORD,

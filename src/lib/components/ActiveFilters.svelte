@@ -37,7 +37,6 @@ let {
     {#each items as item ("href" in item ? item.href : item.key)}
       <Button
         href={"href" in item ? item.href : undefined}
-        type="button"
         {disabled}
         onclick={(event) => "href" in item ? onremove?.(event, item.href) : item.remove()}
         variant="secondary"

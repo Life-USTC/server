@@ -1,6 +1,7 @@
 <script lang="ts">
+	import type { ComponentProps } from "svelte";
 	import { cn } from "#lib/utils.js";
-	import { DropdownMenu as DropdownMenuPrimitive } from "bits-ui";
+	import { MenuItem } from "@ui-sdk/svelte/menu";
 
 	let {
 		ref = $bindable(null),
@@ -8,14 +9,14 @@
 		inset,
 		variant = "default",
 		...restProps
-	}: DropdownMenuPrimitive.ItemProps & {
+	}: ComponentProps<typeof MenuItem> & { ref?: HTMLElement | null } & {
 		inset?: boolean;
 		variant?: "default" | "destructive";
 	} = $props();
 </script>
 
-<DropdownMenuPrimitive.Item
-	bind:ref
+<MenuItem
+	{@attach (element: HTMLElement) => { ref = element; return () => { ref = null; }; }}
 	data-slot="dropdown-menu-item"
 	data-inset={inset}
 	data-variant={variant}

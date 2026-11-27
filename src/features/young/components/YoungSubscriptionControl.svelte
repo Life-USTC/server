@@ -1,11 +1,15 @@
 <script lang="ts">
 import { ChevronDownIcon } from "@lucide/svelte";
+import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@ui-sdk/svelte/collapsible";
+import { toast } from "@ui-sdk/svelte/toast";
 import { onDestroy, untrack } from "svelte";
-import { toast } from "svelte-sonner";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Checkbox } from "#lib/components/ui/checkbox/index.js";
-import * as Collapsible from "#lib/components/ui/collapsible/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import {
   youngEventSubscriptionStateSchema,
@@ -259,16 +263,16 @@ async function save(next: boolean) {
   {#if !initialState && !readOnly}<p class="text-muted-foreground text-sm">{kind === "events" ? copy.hint : copy.followHint}</p>{/if}
     {#if kind === "events" && subscribed && loaded && !failed}
       <div class="text-muted-foreground text-sm">{copy.reminderSummary.replace("{value}", reminderSummary)}</div>
-      <Collapsible.Root class="group/reminders">
-        <Collapsible.Trigger>
-          {#snippet child({ props })}
+      <Collapsible class="group/reminders">
+        <CollapsibleTrigger>
+          {#snippet render({ props })}
             <Button {...props} variant="ghost" size="sm">
               {copy.reminderSettings} 
-            <ChevronDownIcon data-icon="inline-end" class="transition-transform group-data-[state=open]/reminders:rotate-180" />
+            <ChevronDownIcon data-icon="inline-end" class="transition-transform group-data-open/reminders:rotate-180" />
             </Button>
           {/snippet}
-        </Collapsible.Trigger>
-        <Collapsible.Content>
+        </CollapsibleTrigger>
+        <CollapsiblePanel>
           <div class="grid gap-3 pt-3">
             <Field.FieldSet disabled={readOnly || busy}>
               <Field.FieldLegend class="sr-only">{copy.reminderSettings}</Field.FieldLegend>
@@ -280,8 +284,8 @@ async function save(next: boolean) {
             </Field.FieldSet>
           <Button class="justify-self-start" disabled={readOnly || busy} variant="outline" onclick={() => save(true)}>{copy.save}</Button>
           </div>
-        </Collapsible.Content>
-      </Collapsible.Root>
+        </CollapsiblePanel>
+      </Collapsible>
     {/if}
   </div>
 {/if}

@@ -1,6 +1,9 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
 
+import { withRuntimeDatabaseAdapter } from "@/lib/db/prisma-adapter";
+import { getUserRlsTransactionClient } from "@/lib/db/rls-context";
+
 export const sectionCalendarInclude = {
   course: true,
   schedules: {
@@ -108,12 +111,21 @@ export async function getSectionsForCalendar(sectionIds: number[]) {
 }
 
 export async function getUserCalendarAccessRecord(userId: string) {
-  return prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      calendarFeedToken: true,
-    },
+  const tx = getUserRlsTransactionClient();
+  if (tx) {
+    return tx.user.findUnique({
+      where: { id: userId },
+      select: { id: true, calendarFeedToken: true },
+    });
+  }
+  return withRuntimeDatabaseAdapter("app", async (adapter) => {
+    const result = await adapter.queryRaw({
+      sql: 'SELECT "id", "calendarFeedToken" FROM "User" WHERE "id" = $1',
+      args: [userId],
+      argTypes: [{ scalarType: "string", arity: "scalar" }],
+    });
+    const row = result.rows[0] as [string, string | null] | undefined;
+    return row ? { id: row[0], calendarFeedToken: row[1] } : null;
   });
 }
 
