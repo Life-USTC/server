@@ -319,8 +319,12 @@ try {
       await apply();
       const group = () =>
         fixture.staticImportState.findMany({
-          where: { id: { not: "global" } },
+          where: { id: { notIn: ["global", "section-page-core-source"] } },
           orderBy: { id: "asc" },
+        });
+      const source = () =>
+        fixture.staticImportState.findUniqueOrThrow({
+          where: { id: "section-page-core-source" },
         });
       const firstGroups = await group();
       const firstAssignments = await fixture.teacherAssignment.findMany();
@@ -331,6 +335,8 @@ try {
         firstAssignments,
       );
       const before = await storedRevision();
+      const beforeSource = await source();
+      strictEqual(beforeSource.snapshotSha256, before?.snapshotSha256);
       const current = await section();
       // A real PostgreSQL trigger fails the final revision write, after all
       // catalog writes and lifecycle auditing have run in the same transaction.
@@ -346,6 +352,7 @@ try {
         await rejects(apply, /static contract final write rejected/);
         deepStrictEqual(await storedRevision(), before);
         deepStrictEqual(await section(), current);
+        deepStrictEqual(await source(), beforeSource);
         deepStrictEqual(await group(), firstGroups);
       } finally {
         await fixture.$executeRawUnsafe(

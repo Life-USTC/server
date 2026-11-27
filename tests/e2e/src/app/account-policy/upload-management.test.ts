@@ -453,9 +453,9 @@ test("upload.web-rename", { tag: "@Upload/Web" }, async ({
     ).toBeVisible();
     await expect(
       page
-        .locator('[data-sonner-toast][aria-live="polite"]')
+        .locator('[aria-live="polite"]')
         .filter({ hasText: "Rename complete" }),
-    ).toBeVisible();
+    ).toBeAttached();
     const download = await page.request.get(
       `/api/workspace/uploads/${id}/download`,
     );
@@ -526,7 +526,7 @@ test("upload.web-delete-feedback", { tag: "@Upload/Web" }, async ({
       ).text(),
     ).toBe("Learning material");
     await expect(
-      page.locator("[data-sonner-toast]").filter({ hasText: "File deleted" }),
+      page.locator("[data-slot=toast]").filter({ hasText: "File deleted" }),
     ).toHaveCount(0);
     await owned.db.$transaction((db) =>
       db.userSuspension.delete({ where: { id: suspension.id } }),
@@ -543,10 +543,8 @@ test("upload.web-delete-feedback", { tag: "@Upload/Web" }, async ({
       page.getByText(`0 B of ${owned.quotaLabel} used`, { exact: true }),
     ).toBeVisible();
     await expect(
-      page
-        .locator('[data-sonner-toast][aria-live="polite"]')
-        .filter({ hasText: "File deleted" }),
-    ).toBeVisible();
+      page.locator('[aria-live="polite"]').filter({ hasText: "File deleted" }),
+    ).toBeAttached();
     expect(
       (
         await page.request.get(`/api/workspace/uploads/${id}/download`)

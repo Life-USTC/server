@@ -1,12 +1,16 @@
 <script lang="ts">
 import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
+import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@ui-sdk/svelte/collapsible";
 import { onMount } from "svelte";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import TableColumnHeader from "#lib/components/TableColumnHeader.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TableFilterFields from "#lib/components/TableFilterFields.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Collapsible from "#lib/components/ui/collapsible/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import {
@@ -297,21 +301,21 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
             <TableFilterFields fields={loadedBus.campuses.flatMap((campus) => busStopFilterFields(campus.id, campus.namePrimary, busCopy))} values={tableDraft} onchange={updateFilters} labels={busCopy.tableFilters} idPrefix="bus-stops" {formId} />
           </TableColumnHeader>
           <Button type="submit" disabled={!busPlannerReady}>{busCopy.applyFilters}</Button>
-          <Button type="button" variant="outline" onclick={clearFilters}>{busCopy.clear}</Button>
+          <Button variant="outline" onclick={clearFilters}>{busCopy.clear}</Button>
         </Field.Group>
       </form>
-      <Collapsible.Root bind:open={timetableOpen} class="group/full-timetable">
+      <Collapsible bind:open={timetableOpen} class="group/full-timetable">
         {#if compact}
-          <Collapsible.Trigger>
-            {#snippet child({ props })}
+          <CollapsibleTrigger>
+            {#snippet render({ props })}
               <Button {...props} class="h-11 w-full justify-between lg:hidden" variant="outline">
                 {timetableOpen ? busCopy.hideFullTimetable : busCopy.fullTimetable}
-                <ChevronDownIcon data-icon="inline-end" class="transition-transform group-data-[state=open]/full-timetable:rotate-180" />
+                <ChevronDownIcon data-icon="inline-end" class="transition-transform group-data-open/full-timetable:rotate-180" />
               </Button>
             {/snippet}
-          </Collapsible.Trigger>
+          </CollapsibleTrigger>
         {/if}
-        <Collapsible.Content class="data-[state=closed]:hidden lg:!block" forceMount>
+        <CollapsiblePanel class="data-closed:hidden lg:!block" keepMounted>
           <div class="min-w-0 pt-3 lg:pt-0">
             <BusTabTimetable
               bus={loadedBus}
@@ -327,30 +331,21 @@ $: busShowsEstimatedHint = hasEstimatedBusTimes(
               {formId}
             />
           </div>
-        </Collapsible.Content>
-      </Collapsible.Root>
+        </CollapsiblePanel>
+      </Collapsible>
     </div>
   {:else if busLoadFailed}
-    <Empty.Root>
-      <Empty.Header>
-        <Empty.Title>{busCopy.loadFailed}</Empty.Title>
-      </Empty.Header>
-      <Empty.Content>
-        <Button type="button" variant="outline" onclick={() => void loadPublicBusData()}>
-          {busCopy.retry}
-        </Button>
-      </Empty.Content>
-    </Empty.Root>
+    <EmptyState title={busCopy.loadFailed}>
+      <Button variant="outline" onclick={() => void loadPublicBusData()}>
+        {busCopy.retry}
+      </Button>
+    </EmptyState>
   {:else if busLoading}
     <div class="grid gap-3" aria-label={busCopy.workspaceTitle} aria-busy="true">
       <Skeleton class="h-12 w-full" />
       <Skeleton class="h-48 w-full" />
     </div>
   {:else}
-    <Empty.Root>
-      <Empty.Header>
-        <Empty.Title>{busCopy.empty}</Empty.Title>
-      </Empty.Header>
-    </Empty.Root>
+    <EmptyState title={busCopy.empty} />
   {/if}
 </div>
