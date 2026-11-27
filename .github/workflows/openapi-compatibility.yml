@@ -17,8 +17,10 @@ jobs:
     permissions:
       contents: read
     steps:
+      # oasdiff runs in a Docker container that cannot see the cached
+      # checkout's host-side git alternates, so use a self-contained clone.
       - name: Checkout source
-        uses: useblacksmith/checkout@75c49b6ed30ce59336e9252425796cfcfac155f8 # v1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Fetch base branch
         shell: bash
