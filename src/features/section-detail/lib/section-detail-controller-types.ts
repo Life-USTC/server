@@ -1,3 +1,4 @@
+import type { OfficialAcademicProfile } from "@/features/catalog/lib/official-academic-profile";
 import type { CommentsInitialData } from "@/features/comments/lib/comment-panel-data";
 import type { DemoView } from "@/features/demo/lib/demo-types";
 import type { DescriptionPayload } from "@/features/descriptions/lib/description-card-actions";
@@ -141,6 +142,7 @@ export type HomeworkAuditLog = {
 };
 
 export type SectionDetailPageData = {
+  officialProfile?: OfficialAcademicProfile | null;
   demo?: DemoView | null;
   commentsData: CommentsInitialData | null;
   copy: SectionDetailCopy;
