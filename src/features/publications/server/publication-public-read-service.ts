@@ -5,10 +5,10 @@ import {
   type PublicationSourceOrganizationLevel,
 } from "@/features/publications/lib/publication-source-levels";
 import { Prisma } from "@/generated/prisma/client";
-import { renderEmbeddedMarkdown } from "@/lib/components/markdown-preview-renderer";
 import { prisma } from "@/lib/db/prisma";
 import { normalizePagination, type PaginationInput } from "@/lib/pagination";
 import { getCloudflareR2PublicationsBucket } from "@/lib/ports/runtime";
+import { renderPublicationBody } from "./publication-body-render";
 import { publicationObjectKey } from "./publication-ingestion-service";
 
 const PUBLIC_PUBLICATION_TYPES = ["news", "notice"] as const;
@@ -757,7 +757,7 @@ export async function getPublicPublicationById(
     publicationType: publication.publicationType,
     source: publication.source,
     renderedBodyHtml: bodyMarkdown
-      ? annotatePublicationImages(renderEmbeddedMarkdown(bodyMarkdown), images)
+      ? annotatePublicationImages(renderPublicationBody(bodyMarkdown), images)
       : "",
     revision: {
       ...publication.revision,
