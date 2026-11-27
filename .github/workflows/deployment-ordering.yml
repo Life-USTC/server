@@ -32,7 +32,7 @@ jobs:
       checks: read
     steps:
       - name: Checkout code
-        uses: useblacksmith/checkout@v1 # v7.0.1
+        uses: useblacksmith/checkout@75c49b6ed30ce59336e9252425796cfcfac155f8 # v1
         with:
           fetch-depth: 20
 
