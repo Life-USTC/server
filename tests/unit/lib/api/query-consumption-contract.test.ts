@@ -39,7 +39,7 @@ vi.mock("@/features/catalog/server/schedule-read-model", () => ({
 }));
 vi.mock("@/features/subscriptions/server/subscription-read-model", () => ({
   listSubscribedSchedules: mocks.subscribed,
-  toSubscribedScheduleEntryDto: vi.fn(),
+  buildSubscribedScheduleEntryDto: vi.fn(),
 }));
 vi.mock("@/features/workspace/server/compact-overview-read-model", () => ({
   getCompactOverview: mocks.overview,
