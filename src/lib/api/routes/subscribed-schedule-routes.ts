@@ -40,6 +40,8 @@ export async function getMySubscribedSchedulesRoute(request: Request) {
           limit: parsedQuery.limit ?? 150,
           locale,
           weekday: parsedQuery.weekday,
+          startMinuteFrom: parsedQuery.startMinuteFrom,
+          startMinuteTo: parsedQuery.startMinuteTo,
           sectionContext: "rest",
         });
         if (span?.isTraced)

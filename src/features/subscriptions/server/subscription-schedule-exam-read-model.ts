@@ -218,11 +218,17 @@ function upcomingKnownExamWhere(input: {
   };
 }
 
+function minuteToScheduleTime(minute: number) {
+  return Math.floor(minute / 60) * 100 + (minute % 60);
+}
+
 type ScheduleListOptions = {
   locale?: string;
   dateFrom?: Date;
   dateTo?: Date;
   weekday?: number;
+  startMinuteFrom?: number;
+  startMinuteTo?: number;
   limit?: number;
   sectionIds?: readonly number[];
   semesterId?: number;
@@ -243,6 +249,8 @@ export async function listSubscribedSchedules(
     dateFrom,
     dateTo,
     weekday,
+    startMinuteFrom,
+    startMinuteTo,
     limit,
     sectionIds,
     semesterId,
@@ -261,16 +269,39 @@ export async function listSubscribedSchedules(
     async (ids) => {
       const localizedPrisma = getPrisma(locale);
       const dateFilter = dateRangeFilter(dateFrom, dateTo);
+      const hasStartWindow =
+        startMinuteFrom !== undefined || startMinuteTo !== undefined;
       const query = {
         where: {
           sectionId: { in: ids },
           section: { retiredAt: null },
           ...(dateFilter ? { date: dateFilter } : {}),
+          ...(hasStartWindow
+            ? {
+                startTime: {
+                  ...(startMinuteFrom !== undefined
+                    ? { gte: minuteToScheduleTime(startMinuteFrom) }
+                    : {}),
+                  ...(startMinuteTo !== undefined
+                    ? { lte: minuteToScheduleTime(startMinuteTo) }
+                    : {}),
+                },
+              }
+            : {}),
           ...(weekday ? { weekday } : {}),
         },
         orderBy: subscribedScheduleOrderBy,
         ...(limit ? { take: limit } : {}),
       } satisfies Prisma.ScheduleFindManyArgs;
+
+      if (hasStartWindow) {
+        // Prisma issues relation queries even when the schedule query returns no rows.
+        const first = await localizedPrisma.schedule.findFirst({
+          where: query.where,
+          select: { id: true },
+        });
+        if (!first) return [];
+      }
 
       if (sectionContext === "rest") {
         return localizedPrisma.schedule.findMany({
