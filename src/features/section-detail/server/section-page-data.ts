@@ -99,11 +99,9 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
         examCount: exams.length,
         exams,
         scheduleCount: schedules.length,
-        schedules: schedules.map((schedule) => ({
+        schedules: schedules.map(({ teacherParticipations, ...schedule }) => ({
           ...schedule,
-          teachers: schedule.teacherParticipations.map(
-            ({ teacher }) => teacher,
-          ),
+          teachers: teacherParticipations.map(({ teacher }) => teacher),
         })),
       };
 

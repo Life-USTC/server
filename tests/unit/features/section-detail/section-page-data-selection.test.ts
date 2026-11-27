@@ -106,6 +106,21 @@ describe("section page data selection", () => {
     );
   });
 
+  it("sends the schedule teacher list once in page data", async () => {
+    const teacher = { id: 7, namePrimary: "Chen" };
+    sectionFindUnique.mockResolvedValue({
+      ...sectionCoreRecord(),
+      schedules: [{ date: null, teacherParticipations: [{ teacher }] }],
+    });
+    const { getSectionPage } = await import(
+      "@/features/section-detail/server/section-page-data"
+    );
+    const page = await getSectionPage(30, "zh-cn");
+    expect(page?.section.schedules).toEqual([
+      { date: null, teachers: [teacher] },
+    ]);
+  });
+
   it("caches static page core while loading the editable description separately", async () => {
     sectionFindUnique.mockImplementation((query) =>
       prismaThenable(
