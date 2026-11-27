@@ -6,7 +6,7 @@
 	let {
 		ref = $bindable(null),
 		class: className,
-		children,
+		children: labelContent,
 		...restProps
 	}: ComponentProps<typeof Label> = $props();
 </script>
@@ -21,5 +21,7 @@
 	)}
 	{...restProps}
 >
-	{@render children?.()}
+	{#snippet children(state)}
+		{@render labelContent?.(state)}
+	{/snippet}
 </Label>

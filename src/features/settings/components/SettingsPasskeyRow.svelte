@@ -1,102 +1,60 @@
 <script lang="ts">
 import type { Passkey } from "@better-auth/passkey";
-import {
-  passkeyAuthClient,
-  passkeyClientErrorKind,
-} from "#lib/auth/passkey-client.js";
+import { passkeyAuthClient } from "#lib/auth/passkey-client.js";
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as InputGroup from "#lib/components/ui/input-group/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
 import type { AppLocale } from "@/i18n/config";
+import { campusTimestampFormatter } from "@/lib/time/shanghai-format";
 import { invalidateAll } from "$app/navigation";
 import type { SettingsCopy } from "./settings-component-types";
-
-type Status = {
-  kind: "error";
-  message: string;
-};
 
 export let copy: SettingsCopy;
 export let locale: AppLocale;
 export let passkey: Passkey;
-export let reportStatus: (status: Status) => void;
+export let reportError: (cause?: unknown) => void;
 export let onSuccess: (message: string) => void = () => {};
 
 let deleteOpen = false;
-let deleting = false;
+let pending: "rename" | "delete" | null = null;
 let name = passkey.name?.trim() || copy.settings.passkeys.unnamed;
-let saving = false;
 
 $: displayName = passkey.name?.trim() || copy.settings.passkeys.unnamed;
 $: hasNameChange = name.trim().length > 0 && name.trim() !== displayName;
 $: createdAt = new Date(passkey.createdAt);
-$: createdAtLabel = new Intl.DateTimeFormat(locale, {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Asia/Shanghai",
-}).format(createdAt);
+$: createdAtLabel = campusTimestampFormatter(locale).format(createdAt);
 
-function errorMessage(error: unknown) {
-  const kind = passkeyClientErrorKind(error);
-  if (kind === "last-method") return copy.profile.cannotDisconnectLast;
-  if (kind === "stale-session") return copy.settings.passkeys.staleSession;
-  if (kind === "duplicate") return copy.settings.passkeys.duplicate;
-  if (kind === "cancelled") return copy.settings.passkeys.cancelled;
-  return copy.settings.passkeys.genericError;
-}
+async function changePasskey(action: "rename" | "delete") {
+  if (pending || (action === "rename" && !hasNameChange)) return;
 
-async function renamePasskey() {
-  const nextName = name.trim();
-  if (!nextName || !hasNameChange || saving || deleting) return;
-
-  saving = true;
+  pending = action;
   try {
-    const result = await passkeyAuthClient.passkey.updatePasskey({
-      id: passkey.id,
-      name: nextName,
-    });
+    const result =
+      action === "rename"
+        ? await passkeyAuthClient.passkey.updatePasskey({
+            id: passkey.id,
+            name: name.trim(),
+          })
+        : await passkeyAuthClient.passkey.deletePasskey({ id: passkey.id });
     if (result.error) {
       deleteOpen = false;
-      reportStatus({ kind: "error", message: errorMessage(result.error) });
+      reportError(result.error);
       return;
     }
-    onSuccess(copy.settings.passkeys.renamed);
+    if (action === "delete") deleteOpen = false;
+    onSuccess(
+      action === "rename"
+        ? copy.settings.passkeys.renamed
+        : copy.settings.passkeys.deleted,
+    );
+    if (action === "delete") await invalidateAll();
   } catch {
-    reportStatus({
-      kind: "error",
-      message: copy.settings.passkeys.genericError,
-    });
+    if (action === "delete") deleteOpen = false;
+    reportError();
   } finally {
-    saving = false;
-  }
-}
-
-async function deletePasskey() {
-  if (deleting || saving) return;
-
-  deleting = true;
-  try {
-    const result = await passkeyAuthClient.passkey.deletePasskey({
-      id: passkey.id,
-    });
-    if (result.error) {
-      deleteOpen = false;
-      reportStatus({ kind: "error", message: errorMessage(result.error) });
-      return;
-    }
-    deleteOpen = false;
-    onSuccess(copy.settings.passkeys.deleted);
-    await invalidateAll();
-  } catch {
-    deleteOpen = false;
-    reportStatus({
-      kind: "error",
-      message: copy.settings.passkeys.genericError,
-    });
-  } finally {
-    deleting = false;
+    pending = null;
   }
 }
 </script>
@@ -115,11 +73,11 @@ async function deletePasskey() {
       />
       <InputGroup.Addon align="inline-end">
         <InputGroup.Button
-          disabled={!hasNameChange || saving || deleting}
-          onclick={renamePasskey}
+          disabled={!hasNameChange || Boolean(pending)}
+          onclick={() => changePasskey("rename")}
           type="button"
         >
-          {#if saving}
+          {#if pending === "rename"}
             <Spinner data-icon="inline-start" />
             {copy.settings.passkeys.saving}
           {:else}
@@ -135,12 +93,11 @@ async function deletePasskey() {
   </Item.Content>
   <Item.Actions>
     <Button
-      disabled={saving || deleting}
+      disabled={Boolean(pending)}
       onclick={() => {
         deleteOpen = true;
       }}
-     
-      type="button"
+
       variant="outline"
     >
       {copy.settings.passkeys.delete}
@@ -151,38 +108,15 @@ async function deletePasskey() {
 <AlertDialog.Root
   bind:open={deleteOpen}
   onOpenChange={(open) => {
-    if (open || !deleting) deleteOpen = open;
+    if (open || pending !== "delete") deleteOpen = open;
   }}
 >
-  <AlertDialog.Content class="max-w-md sm:max-w-md">
-    <AlertDialog.Header>
-      <AlertDialog.Title>
-        {copy.settings.passkeys.deleteConfirmTitle}
-      </AlertDialog.Title>
-      <AlertDialog.Description>
-        {copy.settings.passkeys.deleteConfirmDescription.replace(
-          "{name}",
-          displayName,
-        )}
-      </AlertDialog.Description>
-    </AlertDialog.Header>
-    <AlertDialog.Footer>
-      <AlertDialog.Cancel disabled={deleting} type="button">
-        {copy.settings.passkeys.cancel}
-      </AlertDialog.Cancel>
-      <AlertDialog.Action
-        disabled={deleting}
-        onclick={deletePasskey}
-        type="button"
-        variant="destructive"
-      >
-        {#if deleting}
-          <Spinner data-icon="inline-start" />
-          {copy.settings.passkeys.deleting}
-        {:else}
-          {copy.settings.passkeys.delete}
-        {/if}
-      </AlertDialog.Action>
-    </AlertDialog.Footer>
-  </AlertDialog.Content>
+  <AlertDialog.Confirmation
+    title={copy.settings.passkeys.deleteConfirmTitle}
+    description={copy.settings.passkeys.deleteConfirmDescription.replace("{name}", displayName)}
+    cancelLabel={copy.settings.passkeys.cancel}
+    confirmLabel={pending === "delete" ? copy.settings.passkeys.deleting : copy.settings.passkeys.delete}
+    pending={pending === "delete"}
+    onclick={() => changePasskey("delete")}
+  />
 </AlertDialog.Root>

@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { AlertDialog as AlertDialogPrimitive } from "bits-ui";
+	import type { ComponentProps } from "svelte";
+	import { AlertDialogClose } from "@ui-sdk/svelte/alert-dialog";
 	import {
 		Button,
 		type ButtonVariant,
 		type ButtonSize,
 	} from "#lib/components/ui/button/index.js";
-	import { cn, type WithoutChildrenOrChild } from "#lib/utils.js";
+	import { cn } from "#lib/utils.js";
 	import type { Snippet } from "svelte";
 
 	let {
@@ -16,20 +17,20 @@
 		disabled,
 		children,
 		...restProps
-	}: WithoutChildrenOrChild<AlertDialogPrimitive.CancelProps> & {
+	}: ComponentProps<typeof AlertDialogClose> & { ref?: HTMLElement | null } & {
 		variant?: ButtonVariant;
 		size?: ButtonSize;
 		children?: Snippet;
 	} = $props();
 </script>
 
-<AlertDialogPrimitive.Cancel
-	bind:ref
+<AlertDialogClose
+	{@attach (element: HTMLElement) => { ref = element; return () => { ref = null; }; }}
 	data-slot="alert-dialog-cancel"
 	disabled={disabled}
 	{...restProps}
 >
-	{#snippet child({ props })}
+	{#snippet render({ props })}
 		<Button
 			{...props}
 			variant={variant}
@@ -40,4 +41,4 @@
 			{@render children?.()}
 		</Button>
 	{/snippet}
-</AlertDialogPrimitive.Cancel>
+</AlertDialogClose>

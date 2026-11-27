@@ -407,6 +407,8 @@ capabilities:
       routes:
       - path: /api/catalog/courses/[jwId]
         notes:
+        - officialProfile is a nullable projection of school catalogue facts. It is scoped
+          to the course and is separate from the community description.
         - sections is a newest-first preview capped at 20 records; _count.sections is the complete historical
           total.
       - path: /api/catalog/courses/[jwId]/sections

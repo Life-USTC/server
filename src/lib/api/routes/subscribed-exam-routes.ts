@@ -3,12 +3,10 @@ import { handleRouteError, parseRouteSearchParams } from "@/lib/api/helpers";
 import { schemaJsonResponse } from "@/lib/api/responses";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
 import {
-  subscribedExamDtoSchema,
+  subscribedExamPageDtoSchema,
   subscribedExamsQuerySchema,
-  subscribedExamsResponseSchema,
 } from "@/lib/api/schemas/subscribed-exams-schemas";
 import { requireAuth } from "@/lib/auth/api-auth";
-import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
 
 export async function getSubscribedExamsRoute(request: Request) {
   const auth = await requireAuth(request, {
@@ -26,15 +24,11 @@ export async function getSubscribedExamsRoute(request: Request) {
     const { page, pageSize, locale, ...filters } = query;
     const result = await listSubscribedExamPage(auth.userId, {
       ...filters,
+      includeCatalogRelations: false,
       locale: locale ?? getRequestLocale(request),
       pagination: { page, pageSize },
     });
-    return schemaJsonResponse(subscribedExamsResponseSchema, {
-      ...result,
-      data: result.data.map((exam) =>
-        subscribedExamDtoSchema.parse(serializeDatesDeep(exam)),
-      ),
-    });
+    return schemaJsonResponse(subscribedExamPageDtoSchema, result);
   } catch (error) {
     return handleRouteError("Failed to fetch subscribed exams", error);
   }

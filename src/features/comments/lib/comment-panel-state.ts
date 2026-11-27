@@ -6,20 +6,6 @@ export type CommentUploadDraftState = {
   uploadedFiles: CommentUploadOption[];
 };
 
-export type CommentReplyDraftState = CommentUploadDraftState & {
-  draft: string;
-  isAnonymous: boolean;
-  replyingId: string | null;
-  visibility: string;
-};
-
-export type CommentEditDraftState = CommentUploadDraftState & {
-  draft: string;
-  editingId: string | null;
-  isAnonymous: boolean;
-  visibility: string;
-};
-
 export function removeCommentUpload(
   uploadId: string,
   state: CommentUploadDraftState,
@@ -30,48 +16,26 @@ export function removeCommentUpload(
   };
 }
 
-export function emptyCommentReplyDraft(): CommentReplyDraftState {
+export function createCommentReplyDraft(replyingId: string | null = null) {
   return {
-    attachmentIds: [],
-    draft: "",
-    isAnonymous: false,
-    replyingId: null,
-    uploadedFiles: [],
-    visibility: "public",
+    replyingId,
+    replyDraft: "",
+    replyIsAnonymous: false,
+    replyVisibility: "public",
+    replyAttachmentIds: [] as string[],
+    replyUploadedFiles: [] as CommentUploadOption[],
   };
 }
 
-export function toggledCommentReplyDraft(
-  currentReplyingId: string | null,
-  commentId: string,
-): CommentReplyDraftState {
+export function createCommentEditDraft(comment?: CommentNode) {
   return {
-    ...emptyCommentReplyDraft(),
-    replyingId: currentReplyingId === commentId ? null : commentId,
-  };
-}
-
-export function commentEditDraftFromComment(
-  comment: CommentNode,
-): CommentEditDraftState {
-  return {
-    attachmentIds: comment.attachments.map((attachment) => attachment.uploadId),
-    draft: comment.body,
-    editingId: comment.id,
-    isAnonymous: comment.isAnonymous,
-    uploadedFiles: [],
-    visibility:
-      comment.visibility === "logged_in_only" ? "logged_in_only" : "public",
-  };
-}
-
-export function emptyCommentEditDraft(): CommentEditDraftState {
-  return {
-    attachmentIds: [],
-    draft: "",
-    editingId: null,
-    isAnonymous: false,
-    uploadedFiles: [],
-    visibility: "public",
+    editingId: comment?.id ?? null,
+    editDraft: comment?.body ?? "",
+    editVisibility:
+      comment?.visibility === "logged_in_only" ? "logged_in_only" : "public",
+    editIsAnonymous: comment?.isAnonymous ?? false,
+    editAttachmentIds:
+      comment?.attachments.map((attachment) => attachment.uploadId) ?? [],
+    editUploadedFiles: [] as CommentUploadOption[],
   };
 }

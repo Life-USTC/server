@@ -1,17 +1,17 @@
 <script lang="ts">
 import KeyRoundIcon from "@lucide/svelte/icons/key-round";
 import TrashIcon from "@lucide/svelte/icons/trash-2";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import {
   oauthFeatureLabel,
   oauthScopeLabel,
 } from "@/features/oauth/lib/oauth-copy";
 import type { AppLocale } from "@/i18n/config";
+import { createCampusTimestampFormatter } from "@/lib/time/shanghai-format";
 import { enhance, type SubmitFunction } from "$app/forms";
 import type {
   SettingsCopy,
@@ -25,21 +25,15 @@ export let locale: AppLocale;
 let pendingAuthorization: SettingsOAuthAuthorization | null = null;
 let revokingConsentId: string | null = null;
 
-const dateFormatter = new Intl.DateTimeFormat(locale, {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Asia/Shanghai",
-});
+let channelLabels: Partial<Record<string, string>>;
+$: channelLabels = copy.settings.security.channels;
+$: formatUpdatedAt = createCampusTimestampFormatter(locale);
 
 function clientName(authorization: SettingsOAuthAuthorization) {
   return (
     authorization.clientName?.trim() ||
     copy.settings.authorizations.unnamedClient
   );
-}
-
-function formatUpdatedAt(value: string) {
-  return dateFormatter.format(new Date(value));
 }
 
 function revokeAction(consentId: string): SubmitFunction {
@@ -62,15 +56,7 @@ function revokeAction(consentId: string): SubmitFunction {
   class="grid gap-4"
 >
   {#if authorizations.length === 0}
-    <Empty.Root>
-      <Empty.Header>
-        <Empty.Media variant="icon"><KeyRoundIcon /></Empty.Media>
-        <Empty.Title>{copy.settings.authorizations.emptyTitle}</Empty.Title>
-        <Empty.Description>
-          {copy.settings.authorizations.emptyDescription}
-        </Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <EmptyState icon={KeyRoundIcon} title={copy.settings.authorizations.emptyTitle} description={copy.settings.authorizations.emptyDescription} />
   {:else}
     <Item.Group role="list">
       {#each authorizations as authorization}
@@ -93,7 +79,6 @@ function revokeAction(consentId: string): SubmitFunction {
           <Item.Actions class="max-sm:w-full">
             <Button
               class="max-sm:w-full"
-              type="button"
               variant="outline"
               onclick={() => {
                 pendingAuthorization = authorization;
@@ -134,7 +119,7 @@ function revokeAction(consentId: string): SubmitFunction {
               </div>
               <dl class="mt-3 grid gap-1.5 text-xs text-muted-foreground sm:grid-cols-3">
                 <div><dt>{copy.settings.authorizations.lastUsedAt}</dt><dd class="text-foreground">{formatUpdatedAt(authorization.usage.lastUsedAt)}</dd></div>
-                <div><dt>{copy.settings.authorizations.lastChannel}</dt><dd class="text-foreground">{copy.settings.security.channels[authorization.usage.lastChannel] ?? authorization.usage.lastChannel}</dd></div>
+                <div><dt>{copy.settings.authorizations.lastChannel}</dt><dd class="text-foreground">{channelLabels[authorization.usage.lastChannel] ?? authorization.usage.lastChannel}</dd></div>
                 <div><dt>{copy.settings.authorizations.lastFeature}</dt><dd class="text-foreground">{oauthFeatureLabel(locale, authorization.usage.lastFeature)}</dd></div>
               </dl>
             {:else}
@@ -155,17 +140,10 @@ function revokeAction(consentId: string): SubmitFunction {
     }}
   >
     <AlertDialog.Content class="max-w-md sm:max-w-md">
-      <AlertDialog.Header>
-        <AlertDialog.Title>
-          {copy.settings.authorizations.revokeTitle}
-        </AlertDialog.Title>
-        <AlertDialog.Description>
-          {copy.settings.authorizations.revokeDescription.replace(
-            "{name}",
-            clientName(pendingAuthorization),
-          )}
-        </AlertDialog.Description>
-      </AlertDialog.Header>
+      <AlertDialog.Heading
+        title={copy.settings.authorizations.revokeTitle}
+        description={copy.settings.authorizations.revokeDescription.replace("{name}", clientName(pendingAuthorization))}
+      />
       <form
         method="POST"
         action="?/revokeAuthorization"
@@ -176,31 +154,13 @@ function revokeAction(consentId: string): SubmitFunction {
           name="consentId"
           value={pendingAuthorization.consentId}
         />
-        <AlertDialog.Footer>
-          <AlertDialog.Cancel
-            disabled={Boolean(revokingConsentId)}
-            type="button"
-            variant="outline"
-          >
-            {copy.profile.cancel}
-          </AlertDialog.Cancel>
-          <AlertDialog.Action
-            disabled={Boolean(revokingConsentId)}
-            type="submit"
-            variant="destructive"
-          >
-            {#if revokingConsentId}
-              <Spinner
-                aria-label={copy.settings.authorizations.revoking}
-                data-icon="inline-start"
-              />
-              {copy.settings.authorizations.revoking}
-            {:else}
-              <TrashIcon data-icon="inline-start" />
-              {copy.settings.authorizations.revoke}
-            {/if}
-          </AlertDialog.Action>
-        </AlertDialog.Footer>
+        <AlertDialog.Actions
+          cancelLabel={copy.profile.cancel}
+          confirmLabel={copy.settings.authorizations.revoke}
+          pendingLabel={copy.settings.authorizations.revoking}
+          pending={Boolean(revokingConsentId)}
+          icon={TrashIcon}
+        />
       </form>
     </AlertDialog.Content>
   </AlertDialog.Root>

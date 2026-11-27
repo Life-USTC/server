@@ -250,7 +250,7 @@ test("/account/welcome 可选择已上传头像并保存", {
       await expect(secondAvatar).toBeVisible();
       await expect(secondAvatar).toBeEnabled();
       await secondAvatar.click();
-      await expect(secondAvatar).toHaveAttribute("data-state", "on");
+      await expect(secondAvatar).toBeChecked();
       await expect(
         page.getByRole("img", { name: /个人头像|Profile picture/i }),
       ).toHaveAttribute("src", avatarOptions[1]);

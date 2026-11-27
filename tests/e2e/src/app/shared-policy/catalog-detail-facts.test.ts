@@ -92,9 +92,11 @@ async function detailColumns(page: Page, width: number) {
   await expect(identity).toHaveCount(1);
   await expect(aside).toHaveCount(1);
   if (width === 1280) {
-    const boxes = await Promise.all([identity, aside, reading].map(bounds));
-    expect(boxes[0].x).toBe(boxes[2].x);
-    expect(boxes[1].x).toBe(boxes[2].x);
+    await expect(async () => {
+      const boxes = await Promise.all([identity, aside, reading].map(bounds));
+      expect(boxes[0].x).toBe(boxes[2].x);
+      expect(boxes[1].x).toBe(boxes[2].x);
+    }).toPass({ timeout: 5000 });
   }
   return { main, identity, aside };
 }

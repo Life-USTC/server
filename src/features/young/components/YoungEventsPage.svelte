@@ -8,7 +8,7 @@ import SearchField from "#lib/components/SearchField.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import { resolveStatusToken } from "#lib/ui/action-status-tokens.js";
 import type {
   YoungEventSummary,
@@ -185,7 +185,7 @@ function listStatus(event: YoungEventSummary) {
           <SearchField id="young-event-search" label={copy.common.search} placeholder={youngCopy.searchPlaceholder} bind:value={() => draft.search ?? "", (value) => patchDraft({ search: value })} />
         </div>
         <Button type="submit">{copy.common.applyFilters}</Button>
-        <Button type="button" variant="ghost" onclick={() => { draft = {}; }}>{copy.common.clear}</Button>
+        <Button variant="ghost" onclick={() => { draft = {}; }}>{copy.common.clear}</Button>
       </form>
       <div class="flex flex-wrap items-center gap-3">
         {#each extras as field}
@@ -217,22 +217,18 @@ function listStatus(event: YoungEventSummary) {
                 <Item.Group class="gap-0" role="list">
                   {#each group.events as event (event.youngId)}
                     <div role="listitem">
-                      <MobileListCard size="sm">
-                        {#snippet child({ props })}
-                          <a href={youngDetailHref(event.youngId)} {...props}>
-                            <Item.Content class="min-w-0 basis-full [overflow-wrap:anywhere]">
-                              <Item.Title>{event.name}</Item.Title>
-                              <p class="text-sm leading-normal text-muted-foreground">
-                                <span>{listTime(event)}</span>
-                                {#if event.location}<span> · {event.location}</span>{/if}
-                              </p>
-                              {@render metaBadges(event)}
-                            </Item.Content>
-                            <Item.Actions>
-                              {@render statusBadge(event)}
-                            </Item.Actions>
-                          </a>
-                        {/snippet}
+                      <MobileListCard href={youngDetailHref(event.youngId)}>
+                        <Item.Content class="min-w-0 basis-full [overflow-wrap:anywhere]">
+                          <Item.Title>{event.name}</Item.Title>
+                          <p class="text-sm leading-normal text-muted-foreground">
+                            <span>{listTime(event)}</span>
+                            {#if event.location}<span> · {event.location}</span>{/if}
+                          </p>
+                          {@render metaBadges(event)}
+                        </Item.Content>
+                        <Item.Actions>
+                          {@render statusBadge(event)}
+                        </Item.Actions>
                       </MobileListCard>
                     </div>
                   {/each}
@@ -245,34 +241,34 @@ function listStatus(event: YoungEventSummary) {
           {/if}
         {/snippet}
         {#snippet desktop()}
-          <Table.Root>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head>{@render columnFilter(youngCopy.eventName, ["search"], "desktop")}</Table.Head>
-                <Table.Head>{@render columnFilter(youngCopy.eventTime, ["startAt"], "desktop")}</Table.Head>
-                <Table.Head>{@render columnFilter(youngCopy.location, ["location"], "desktop")}</Table.Head>
-                <Table.Head>{@render columnFilter(youngCopy.capacity, ["capacity", "appliedCount"], "desktop")}</Table.Head>
-                <Table.Head>{@render columnFilter(youngCopy.status, ["status"], "desktop")}</Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+          <Table>
+            <thead>
+              <tr>
+                <th>{@render columnFilter(youngCopy.eventName, ["search"], "desktop")}</th>
+                <th>{@render columnFilter(youngCopy.eventTime, ["startAt"], "desktop")}</th>
+                <th>{@render columnFilter(youngCopy.location, ["location"], "desktop")}</th>
+                <th>{@render columnFilter(youngCopy.capacity, ["capacity", "appliedCount"], "desktop")}</th>
+                <th>{@render columnFilter(youngCopy.status, ["status"], "desktop")}</th>
+              </tr>
+            </thead>
+            <tbody>
               {#each data as event (event.youngId)}
-                <Table.Row>
-                  <Table.Cell>
+                <tr>
+                  <td>
                       <a class="font-medium underline-offset-4 hover:underline" href={youngDetailHref(event.youngId)}>
                         <span>{event.name}</span>
                       </a>
                       {@render metaBadges(event)}
-                  </Table.Cell>
-                  <Table.Cell>{listTime(event)}</Table.Cell>
-                  <Table.Cell><span>{event.location ?? ""}</span></Table.Cell>
-                    <Table.Cell class="text-left tabular-nums">{event.appliedCount != null && event.appliedCount > 0 ? youngCapacity(event.appliedCount, event.capacity, youngCopy.unknownValue) : ""}</Table.Cell>
-                  <Table.Cell>{@render statusBadge(event)}</Table.Cell>
-                </Table.Row>
+                  </td>
+                  <td>{listTime(event)}</td>
+                  <td><span>{event.location ?? ""}</span></td>
+                    <td class="text-left tabular-nums">{event.appliedCount != null && event.appliedCount > 0 ? youngCapacity(event.appliedCount, event.capacity, youngCopy.unknownValue) : ""}</td>
+                  <td>{@render statusBadge(event)}</td>
+                </tr>
               {/each}
-            {#if data.length === 0}<Table.Row><Table.Cell colspan={5}>{@render empty()}</Table.Cell></Table.Row>{/if}
-            </Table.Body>
-          </Table.Root>
+            {#if data.length === 0}<tr><td colspan={5}>{@render empty()}</td></tr>{/if}
+            </tbody>
+          </Table>
         {/snippet}
       </ResponsiveCollection>
 

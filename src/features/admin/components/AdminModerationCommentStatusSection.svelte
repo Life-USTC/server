@@ -10,7 +10,6 @@ import type {
 export let commentStatus: "active" | "softbanned" | "deleted";
 export let commentStatusOptions: AdminModerationStatusOptions;
 export let copy: AdminModerationCopy;
-export let inputValue: (event: Event) => string;
 export let moderationNote: string;
 
 function selectStatus(value: string) {
@@ -27,7 +26,6 @@ function selectStatus(value: string) {
       aria-labelledby="admin-comment-status-label"
       class="grid w-full md:grid-cols-3"
       spacing={2}
-      type="single"
       required
       value={commentStatus}
       variant="outline"
@@ -43,14 +41,10 @@ function selectStatus(value: string) {
       {/each}
     </ToggleGroup.Root>
   </Field.Set>
-  <Field.Field>
-    <Field.Label for="admin-comment-moderation-note">{copy.moderationNote}</Field.Label>
+  <Field.Field for="admin-comment-moderation-note" label={copy.moderationNote}>
     <Input
       id="admin-comment-moderation-note"
-      value={moderationNote}
-      oninput={(event: Event) => {
-        moderationNote = inputValue(event);
-      }}
+      bind:value={moderationNote}
     />
   </Field.Field>
 </Field.Group>
