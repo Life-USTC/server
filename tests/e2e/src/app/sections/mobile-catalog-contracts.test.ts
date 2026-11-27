@@ -192,6 +192,16 @@ test("section.mobile-detail-actions", { tag: "@Section/Web" }, async ({
           );
           await readableHeading(page, courseNames[language]);
           await selectDetailTab(page, "overview");
+          // The initial route already renders introduction; its tab marker can
+          // match before navigation finishes and resets the reading scroll.
+          await expect(page).toHaveURL(
+            new RegExp(
+              `/catalog/sections/${fixture.sections[0].jwId}/introduction$`,
+            ),
+          );
+          await expect(
+            page.locator('nav[data-shell-navigation="mobile"]'),
+          ).toBeHidden();
           const overview = page.locator("#overview");
           const code = overview.getByText(fixture.sections[0].code, {
             exact: true,
