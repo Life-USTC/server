@@ -12,8 +12,7 @@ function isPlainRecord(value: unknown): value is UnknownRecord {
 function hasExactKeys(value: UnknownRecord, expectedKeys: readonly string[]) {
   const keys = Object.keys(value);
   if (keys.length !== expectedKeys.length) return false;
-  const expected = new Set(expectedKeys);
-  return keys.every((key) => expected.has(key));
+  return keys.every((key) => expectedKeys.includes(key));
 }
 
 function isFiniteNumber(value: unknown) {

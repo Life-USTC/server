@@ -13,11 +13,14 @@ export async function loadLocationAssets() {
   return Promise.all([loadGeoData(), loadRoomMapAssets()]);
 }
 
-export function parseTimeHHMM(date: Date, hhmm: number) {
-  return shanghaiDayjs(date)
-    .hour(Math.floor(hhmm / 100))
-    .minute(hhmm % 100)
-    .second(0);
+export function eventTimeRange(date: Date, startTime: number, endTime: number) {
+  const localDate = shanghaiDayjs(date);
+  const atTime = (hhmm: number) =>
+    localDate
+      .hour(Math.floor(hhmm / 100))
+      .minute(hhmm % 100)
+      .second(0);
+  return { start: atTime(startTime), end: atTime(endTime) };
 }
 
 export function toCategories(

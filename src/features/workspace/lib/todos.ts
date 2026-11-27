@@ -8,7 +8,6 @@ export {
   todoStatus,
 } from "./todo-display";
 export {
-  filterTodos,
   replaceTodoById,
   sortTodosByDeadline,
 } from "./todo-list-state";

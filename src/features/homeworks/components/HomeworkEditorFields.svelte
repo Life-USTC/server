@@ -11,21 +11,15 @@ import HomeworkTagFields from "./HomeworkTagFields.svelte";
 import HomeworkTimestampFields from "./HomeworkTimestampFields.svelte";
 import HomeworkTitleField from "./HomeworkTitleField.svelte";
 import type {
+  HomeworkEditorCopy,
   HomeworkFormCommentsCopy,
-  HomeworkFormCopy,
-  HomeworkTagCopy,
-  HomeworkTimestampActions,
-  HomeworkTimestampCapabilities,
-  HomeworkTimestampCopy,
+  HomeworkSemesterDates,
 } from "./homework-form-types";
 
-type EditorCopy = HomeworkFormCopy & HomeworkTagCopy & HomeworkTimestampCopy;
-
-export let actions: HomeworkTimestampActions = {};
+export let semester: HomeworkSemesterDates;
 export let advancedOpen = false;
-export let capabilities: HomeworkTimestampCapabilities = {};
 export let commentsCopy: HomeworkFormCommentsCopy;
-export let copy: EditorCopy;
+export let copy: HomeworkEditorCopy;
 export let description = "";
 export let disabled = false;
 export let classStarts: string[] = [];
@@ -93,15 +87,14 @@ $: dueShortcuts = buildHomeworkDueShortcuts({
   {:else if sectionJwId && classStartsState === "failed"}
     <Alert.Root variant="destructive"><Alert.Description>
       {copy.classDeadlinesFailed}
-      <Button type="button" variant="outline" size="sm" onclick={() => refreshClassStarts(sectionJwId, locale)}>{copy.classDeadlinesRetry}</Button>
+      <Button variant="outline" size="sm" onclick={() => refreshClassStarts(sectionJwId, locale)}>{copy.classDeadlinesRetry}</Button>
     </Alert.Description></Alert.Root>
   {/if}
   <HomeworkTitleField {copy} {disabled} {idPrefix} {title} />
   <HomeworkTimestampFields
-    {actions}
+    {semester}
     {dueShortcuts}
     bind:advancedOpen
-    {capabilities}
     {copy}
     {disabled}
     {idPrefix}

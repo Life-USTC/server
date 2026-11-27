@@ -5,7 +5,6 @@ import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import AdminUserDialogHeader from "@/features/admin/components/AdminUserDialogHeader.svelte";
 import AdminUserProfileSection from "@/features/admin/components/AdminUserProfileSection.svelte";
 import AdminUserSuspensionSection from "@/features/admin/components/AdminUserSuspensionSection.svelte";
@@ -21,7 +20,6 @@ export let copy: AdminUsersCopy;
 export let editIsAdmin: boolean;
 export let editName: string;
 export let editUsername: string;
-export let inputValue: (event: Event) => string;
 export let isLiftingSuspension: boolean;
 export let isSaving: boolean;
 export let isSuspending: boolean;
@@ -70,14 +68,13 @@ async function confirmRoleChange() {
 
       <ScrollArea class="min-h-0 h-[min(62dvh,34rem)] max-h-[calc(100dvh-10rem)]">
         <div class="grid gap-5 px-5 py-4">
-          {#if message && messageVariant === "destructive"}<Alert.Root variant={messageVariant}><Alert.Description>{message}</Alert.Description></Alert.Root>{/if}
+          {#if message && messageVariant === "destructive"}<Alert.Message variant={messageVariant}>{message}</Alert.Message>{/if}
 
           <AdminUserProfileSection
             {copy}
             bind:editIsAdmin
             bind:editName
             bind:editUsername
-            {inputValue}
           />
 
           <AdminUserSuspensionSection
@@ -97,19 +94,11 @@ async function confirmRoleChange() {
         </div>
       </ScrollArea>
 
-      <Dialog.Footer>
-        <Button type="button" variant="outline" onclick={close}>
-          {moderationCopy.cancelButton}
-        </Button>
-        <Button type="button" disabled={isSaving} onclick={requestSave}>
-          {#if isSaving}
-            <Spinner data-icon="inline-start" />
-          {:else}
-            <CheckCircleIcon data-icon="inline-start" />
-          {/if}
+      <Dialog.Actions cancelLabel={moderationCopy.cancelButton} onCancel={close}>
+        <Button loading={isSaving} icon={CheckCircleIcon} disabled={isSaving} onclick={requestSave}>
           <span>{isSaving ? copy.saving : copy.saveAction}</span>
         </Button>
-      </Dialog.Footer>
+      </Dialog.Actions>
     </Dialog.Content>
   </Dialog.Root>
 
@@ -119,24 +108,14 @@ async function confirmRoleChange() {
       if (!isSaving) roleChangeDialogOpen = open;
     }}
   >
-    <AlertDialog.Content class="max-w-md sm:max-w-md">
-      <AlertDialog.Header>
-        <AlertDialog.Title>{copy.roleChangeConfirmTitle}</AlertDialog.Title>
-        <AlertDialog.Description>
-          {editIsAdmin
-            ? copy.grantAdminConfirmDescription
-            : copy.revokeAdminConfirmDescription}
-        </AlertDialog.Description>
-      </AlertDialog.Header>
-      <AlertDialog.Footer>
-        <AlertDialog.Cancel type="button" disabled={isSaving} variant="outline">
-          {moderationCopy.cancelButton}
-        </AlertDialog.Cancel>
-        <AlertDialog.Action type="button" disabled={isSaving} onclick={confirmRoleChange}>
-          {#if isSaving}<Spinner data-icon="inline-start" />{/if}
-          {copy.confirmRoleChange}
-        </AlertDialog.Action>
-      </AlertDialog.Footer>
-    </AlertDialog.Content>
+    <AlertDialog.Confirmation
+      title={copy.roleChangeConfirmTitle}
+      description={editIsAdmin ? copy.grantAdminConfirmDescription : copy.revokeAdminConfirmDescription}
+      cancelLabel={moderationCopy.cancelButton}
+      confirmLabel={copy.confirmRoleChange}
+      pending={isSaving}
+      destructive={false}
+      onclick={confirmRoleChange}
+    />
   </AlertDialog.Root>
 {/if}

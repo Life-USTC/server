@@ -124,7 +124,9 @@ test("user.calendar-rotation-recent-auth", { tag: "@Calendar/Web" }, async ({
     await confirm();
     await expect(page).toHaveURL(/message=CalendarTokenRotated/);
     await expect(
-      page.getByText("Calendar link rotated", { exact: true }),
+      page
+        .getByRole("region", { name: "Notifications" })
+        .getByText("Calendar link rotated", { exact: true }),
     ).toBeVisible();
     const newToken = await token();
     expect(newToken).toMatch(/^[A-Za-z0-9_-]{32}$/);
