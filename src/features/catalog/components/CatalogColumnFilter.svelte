@@ -3,7 +3,7 @@ import TableColumnHeader from "#lib/components/TableColumnHeader.svelte";
 import TableFilterFields from "#lib/components/TableFilterFields.svelte";
 import * as Field from "#lib/components/ui/field/index.js";
 import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
-import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
+import type { CatalogColumnFilterProps } from "./catalog-column-filters";
 
 let {
   label,
@@ -31,7 +31,7 @@ const active = $derived(fields.some((field) => Boolean(values[field.name])));
     {#if sorting}
       <Field.Set class="gap-2">
         <Field.Legend>{sorting.label}</Field.Legend>
-        <ToggleGroup.Root type="single" variant="outline" aria-label={sorting.label} value={sort ?? "default"} onValueChange={(value) => { if (value) onchange({ sort: value === "default" ? "" : sorting?.key ?? "", order: value === "default" ? "" : value }); }}>
+        <ToggleGroup.Root variant="outline" aria-label={sorting.label} value={sort ?? "default"} onValueChange={(value) => { if (value) onchange({ sort: value === "default" ? "" : sorting?.key ?? "", order: value === "default" ? "" : value }); }}>
           <ToggleGroup.Item value="asc">{sorting.ascending}</ToggleGroup.Item>
           <ToggleGroup.Item value="desc">{sorting.descending}</ToggleGroup.Item>
           <ToggleGroup.Item value="default">{sorting.default}</ToggleGroup.Item>

@@ -8,6 +8,7 @@ import {
 import { listPublicationSourceOptions } from "@/features/publications/server/publication-source-directory-service";
 import type { AppLocale } from "@/i18n/config";
 import { publicationsQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 
 const FILTER_PARAMS = [
   "type",
@@ -36,14 +37,20 @@ export async function loadPublicationListPage(url: URL, locale: AppLocale) {
   const filters = parsedQuery.success ? parsedQuery.data : {};
   const requestedPage = parsePage(url.searchParams.get("page"));
   const [publications, sourceOptions] = await Promise.all([
-    listPublications({
-      filters,
-      pagination: {
-        page: requestedPage,
-        pageSize: 20,
-      },
-    }),
-    listPublicationSourceOptions(),
+    runCloudflareTraceSpan(
+      "publication.list.read",
+      { "publication.folded": Boolean(filters.fold) },
+      () =>
+        listPublications({
+          filters,
+          pagination: { page: requestedPage, pageSize: 20 },
+        }),
+    ),
+    runCloudflareTraceSpan(
+      "publication.list.source_options",
+      {},
+      listPublicationSourceOptions,
+    ),
   ]);
   if (
     publications.pagination.totalPages > 0 &&

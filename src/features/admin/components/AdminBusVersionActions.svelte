@@ -17,7 +17,6 @@ interface Props {
   copy: AdminBusCopy;
   compact?: boolean;
   enhancedAction: AdminBusEnhancedAction;
-  isPending: (actionKey: string) => boolean;
   onDelete: (version: AdminBusVersion) => void;
   pendingAction: string | null;
   version: AdminBusVersion;
@@ -27,7 +26,6 @@ let {
   copy,
   compact = false,
   enhancedAction,
-  isPending,
   onDelete,
   pendingAction,
   version,
@@ -43,20 +41,18 @@ let activateDialogOpen = $state(false);
         disabled={Boolean(pendingAction)}
         onclick={() => (activateDialogOpen = true)}
         size="sm"
-        type="button"
         variant="outline"
       >
-        {#if isPending(`activate-${version.id}`)}<Spinner data-icon="inline-start" />{:else}<CheckCircle data-icon="inline-start" />{/if}
+        {#if pendingAction === `activate-${version.id}`}<Spinner data-icon="inline-start" />{:else}<CheckCircle data-icon="inline-start" />{/if}
         {copy.activateAction}
       </Button>
       <Button
+        icon={Trash2}
         disabled={Boolean(pendingAction)}
         onclick={() => onDelete(version)}
         size="sm"
-        type="button"
         variant="destructive"
       >
-        <Trash2 data-icon="inline-start" />
         {copy.deleteAction}
       </Button>
     </div>
@@ -67,7 +63,7 @@ let activateDialogOpen = $state(false);
         label={copy.activateAction}
         onclick={() => (activateDialogOpen = true)}
       >
-        {#if isPending(`activate-${version.id}`)}<Spinner />{:else}<CheckCircle />{/if}
+        {#if pendingAction === `activate-${version.id}`}<Spinner />{:else}<CheckCircle />{/if}
       </TableIconButton>
       <TableIconButton
         disabled={Boolean(pendingAction)}
@@ -87,12 +83,10 @@ let activateDialogOpen = $state(false);
     }}
   >
     <AlertDialog.Content class="max-w-md sm:max-w-md">
-      <AlertDialog.Header>
-        <AlertDialog.Title>{copy.activateTitle}</AlertDialog.Title>
-        <AlertDialog.Description>
-          {copy.activateDescription.replace("{title}", version.title)}
-        </AlertDialog.Description>
-      </AlertDialog.Header>
+      <AlertDialog.Heading
+        title={copy.activateTitle}
+        description={copy.activateDescription.replace("{title}", version.title)}
+      />
       <div class="grid gap-1 px-5 py-4 text-sm">
         <div class="font-medium">{version.title}</div>
         <div class="break-all font-mono text-muted-foreground text-xs">
@@ -108,23 +102,14 @@ let activateDialogOpen = $state(false);
         )}
       >
         <input type="hidden" name="id" value={version.id} />
-        <AlertDialog.Footer>
-          <AlertDialog.Cancel
-            type="button"
-            disabled={Boolean(pendingAction)}
-            variant="outline"
-          >
-            {copy.cancelAction}
-          </AlertDialog.Cancel>
-          <AlertDialog.Action type="submit" disabled={Boolean(pendingAction)}>
-            {#if isPending(`activate-${version.id}`)}
-              <Spinner data-icon="inline-start" />
-            {:else}
-              <CheckCircle data-icon="inline-start" />
-            {/if}
-            {copy.confirmActivateAction}
-          </AlertDialog.Action>
-        </AlertDialog.Footer>
+        <AlertDialog.Actions
+          cancelLabel={copy.cancelAction}
+          confirmLabel={copy.confirmActivateAction}
+          pending={pendingAction === `activate-${version.id}`}
+          busy={Boolean(pendingAction)}
+          destructive={false}
+          icon={CheckCircle}
+        />
       </form>
     </AlertDialog.Content>
   </AlertDialog.Root>

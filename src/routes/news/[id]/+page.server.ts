@@ -15,7 +15,7 @@ export const load: PageServerLoad = async (event) => {
     event.parent(),
     event.locals.demo
       ? getDemoNewsDetail(event.locals.locale, event.params.id)
-      : getPublicPublicationById(event.params.id),
+      : getPublicPublicationById(event.params.id, { includeBodyText: false }),
   ]);
   const copy = getPublicationPageCopy(event.locals.locale);
   if (!publication) {

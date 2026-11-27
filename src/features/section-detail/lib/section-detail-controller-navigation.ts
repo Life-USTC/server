@@ -7,17 +7,6 @@ export type SectionHomeworkView = "cards" | "list";
 
 const homeworkViewStorageKey = "life-ustc-workspace-homework-view-mode";
 
-export function persistSectionHomeworkView(nextView: SectionHomeworkView) {
-  setLocalStorageItem(homeworkViewStorageKey, nextView);
-  const url = new URL(window.location.href);
-  if (nextView === "list") {
-    url.searchParams.set("homeworkView", "list");
-  } else {
-    url.searchParams.delete("homeworkView");
-  }
-  window.history.replaceState({}, "", url);
-}
-
 export function initialSectionHomeworkViewFromBrowser(
   fallback: SectionHomeworkView,
 ): SectionHomeworkView {

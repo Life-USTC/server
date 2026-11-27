@@ -25,6 +25,21 @@ const request = (query = "") =>
   new Request(`https://life.test/api/community/section-homeworks${query}`);
 
 describe("demo homework projection", () => {
+  it("filters inclusive due dates before paginating subscribed homework", async () => {
+    const query = new URLSearchParams({
+      dueAtFrom: "2026-09-25T10:00:00Z",
+      dueAtTo: "2026-09-25T10:00:00Z",
+      pageSize: "1",
+    });
+    const response = getDemoSubscribedHomeworksRoute(
+      request(`?${query}`),
+      "en-us",
+    );
+    const page = subscribedHomeworksResponseSchema.parse(await response.json());
+    expect(page.pagination.total).toBe(1);
+    expect(page.data[0]?.id).toBe("demo-homework-vectors");
+  });
+
   it.each(["zh-cn", "en-us"] as const)(
     "shares fixed homework states and section identities in %s",
     (locale) => {

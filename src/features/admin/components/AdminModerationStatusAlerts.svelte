@@ -7,13 +7,9 @@ export let refreshError = "";
 </script>
 
 {#if refreshError}
-  <Alert.Root variant="destructive">
-    <Alert.Description>{refreshError}</Alert.Description>
-  </Alert.Root>
+  <Alert.Message variant="destructive">{refreshError}</Alert.Message>
 {/if}
 
 {#if form?.message && form.kind !== "success"}
-  <Alert.Root variant={formAlertVariant(form.kind)}>
-    <Alert.Description>{form.message}</Alert.Description>
-  </Alert.Root>
+  <Alert.Message variant={formAlertVariant(form.kind)}>{form.message}</Alert.Message>
 {/if}
