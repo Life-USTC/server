@@ -68,7 +68,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
 
           await expect(
             page
-              .locator("[data-sonner-toast]")
+              .locator("[data-slot=toast]")
               .filter({ hasText: /通行密钥已添加|Passkey added/i }),
           ).toBeVisible();
           await expect(
@@ -98,7 +98,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
             .click();
           await expect(
             page
-              .locator("[data-sonner-toast]")
+              .locator("[data-slot=toast]")
               .filter({ hasText: /通行密钥名称已更新|Passkey name updated/i }),
           ).toBeVisible();
           await expect(
@@ -159,7 +159,7 @@ test.describe("/account/settings/accounts 通行密钥", () => {
           ).toBeVisible();
           await expect(
             page
-              .locator("[data-sonner-toast]")
+              .locator("[data-slot=toast]")
               .filter({ hasText: /通行密钥已删除|Passkey deleted/i }),
           ).toBeVisible();
           expect(

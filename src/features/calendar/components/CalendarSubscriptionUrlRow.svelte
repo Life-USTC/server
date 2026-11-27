@@ -16,8 +16,7 @@ export let value: string;
 export let warning = "";
 </script>
 
-<Field.Field data-disabled={!value ? "true" : undefined}>
-  <Field.Label for={id}>{label}</Field.Label>
+<Field.Field data-disabled={!value ? "true" : undefined} for={id} label={label}>
   {#if description}
     <Field.Description>{description}</Field.Description>
   {/if}

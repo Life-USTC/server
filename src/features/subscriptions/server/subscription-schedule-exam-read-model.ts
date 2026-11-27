@@ -462,8 +462,10 @@ export async function listSubscribedExamPage(
     includeDateUnknown = true,
     semesterId,
     pagination,
+    includeCatalogRelations = true,
   }: {
     locale?: string;
+    includeCatalogRelations?: boolean;
     dateFrom?: Date;
     dateTo?: Date;
     includeDateUnknown?: boolean;
@@ -493,7 +495,13 @@ export async function listSubscribedExamPage(
     (skip, take) =>
       localizedPrisma.exam.findMany({
         where,
-        include: subscribedExamPageInclude,
+        include: includeCatalogRelations
+          ? subscribedExamPageInclude
+          : {
+              examBatch: true,
+              examRooms: true,
+              section: { include: { course: true, semester: true } },
+            },
         orderBy: subscribedExamOrderBy,
         skip,
         take,

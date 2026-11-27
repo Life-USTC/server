@@ -1,8 +1,13 @@
 <script lang="ts">
-import { REGEXP_ONLY_DIGITS_AND_CHARS } from "bits-ui";
+import MinusIcon from "@lucide/svelte/icons/minus";
+import {
+  OTPInput,
+  OTPInputGroup,
+  OTPInputSeparator,
+  OTPInputSlot,
+} from "@ui-sdk/svelte/otp-input";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
-import * as InputOTP from "#lib/components/ui/input-otp/index.js";
 import type { DeviceCopy } from "./device-component-types";
 
 export let code: string;
@@ -23,40 +28,28 @@ function sanitizeDeviceCode(value: string) {
 <form class="min-w-0" method="GET" action="/oauth/device">
   <input type="hidden" name="step" value="approve" />
   <Field.Group class="min-w-0">
-    <Field.Field class="min-w-0">
-      <Field.Label for="code">{copy.deviceCodeLabel}</Field.Label>
-      <InputOTP.Root
-        autocomplete="off"
-        bind:value={inputCode}
-        class="min-w-0 justify-center gap-1 sm:gap-2"
-        id="device-code"
-        inputId="code"
-        inputmode="text"
-        maxlength={8}
+    <Field.Field class="min-w-0" for="code" label={copy.deviceCodeLabel}>
+      <OTPInput
+        id="code"
         name="code"
-        onValueChange={(value) => {
-          inputCode = sanitizeDeviceCode(value);
-        }}
-        pasteTransformer={sanitizeDeviceCode}
-        pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+        autoComplete="off"
+        inputMode="text"
+        maxLength={8}
+        pattern="alphanumeric"
+        bind:value={() => inputCode, (next) => { inputCode = sanitizeDeviceCode(next); }}
         required
       >
-        {#snippet children({ cells })}
-          <InputOTP.Group
-          >
-            {#each cells.slice(0, 4) as cell}
-              <InputOTP.Slot class="size-7 sm:size-8" {cell} />
+        {#each [0, 4] as start (start)}
+          {#if start > 0}
+            <OTPInputSeparator><MinusIcon aria-hidden="true" /></OTPInputSeparator>
+          {/if}
+          <OTPInputGroup>
+            {#each [0, 1, 2, 3] as offset (offset)}
+              <OTPInputSlot index={start + offset} />
             {/each}
-          </InputOTP.Group>
-          <InputOTP.Separator />
-          <InputOTP.Group
-          >
-            {#each cells.slice(4, 8) as cell}
-              <InputOTP.Slot class="size-7 sm:size-8" {cell} />
-            {/each}
-          </InputOTP.Group>
-        {/snippet}
-      </InputOTP.Root>
+          </OTPInputGroup>
+        {/each}
+      </OTPInput>
     </Field.Field>
     <Button type="submit">{copy.deviceVerify}</Button>
   </Field.Group>

@@ -107,24 +107,30 @@ export async function getYoungEventImageByPathResponse(input: {
   const contentTypeFallback =
     guessImageContentType(imagePath) ?? "application/octet-stream";
 
-  const head = await bucket.head(key);
-  if (head) {
-    const etag = head.etag ? normalizeEtag(head.etag) : undefined;
-    const headers = imageResponseHeaders(etag);
-    if (etag && requestMatchesEtag(input.request, etag)) {
-      return new Response(null, { status: 304, headers });
+  const head = input.request.headers.has("If-None-Match")
+    ? await bucket.head(key)
+    : undefined;
+  if (head?.etag) {
+    const etag = normalizeEtag(head.etag);
+    if (requestMatchesEtag(input.request, etag)) {
+      return new Response(null, {
+        status: 304,
+        headers: imageResponseHeaders(etag),
+      });
     }
-    const object = await bucket.get(key);
-    if (object?.body) {
-      headers.set(
-        "Content-Type",
-        object.httpMetadata?.contentType ??
-          head.httpMetadata?.contentType ??
-          contentTypeFallback,
-      );
-      headers.set("Content-Length", String(object.size));
-      return new Response(object.body, { headers });
-    }
+  }
+
+  const object = head === null ? null : await bucket.get(key);
+  if (object?.body) {
+    const headers = imageResponseHeaders(
+      object.etag ? normalizeEtag(object.etag) : undefined,
+    );
+    headers.set(
+      "Content-Type",
+      object.httpMetadata?.contentType ?? contentTypeFallback,
+    );
+    headers.set("Content-Length", String(object.size));
+    return new Response(object.body, { headers });
   }
 
   // Cache miss (or a head/get race): fetch the origin once, stream the bytes

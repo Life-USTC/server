@@ -27,6 +27,7 @@ import {
   toSectionCompactDto,
   toSectionPublicContextDto,
 } from "./academic-summary-dto-mappers";
+import { toOfficialAcademicProfile } from "./official-academic-profile";
 
 const sectionDetailInclude = {
   ...sectionInclude,
@@ -97,11 +98,15 @@ function namedValueDto(
 }
 
 export function toSectionDetailDto(
-  input: SectionDetailRecord,
+  input: SectionDetailRecord & { officialProfile?: unknown },
   locale: AppLocale,
 ): SectionDetailDto {
   return sectionDetailSchema.parse({
     ...sectionBaseDto(input),
+    officialProfile:
+      input.officialProfile === undefined
+        ? undefined
+        : toOfficialAcademicProfile(input.officialProfile),
     course: toCourseDto(input.course as CourseSummaryRecord, locale),
     semester: input.semester
       ? {
@@ -279,13 +284,19 @@ export async function findCourseDetailByJwId(
     id: jwId,
     kind: "course",
     locale,
-    shape: "detail-v2",
+    shape: "detail-v3",
     load: async () => {
       const course = await getPrisma(locale).course.findUnique({
         where: { jwId },
         include: courseDetailInclude,
+        omit: { officialProfile: false },
       });
-      return course ? toCourseDetailDto(course, locale) : null;
+      return course
+        ? {
+            ...toCourseDetailDto(course, locale),
+            officialProfile: toOfficialAcademicProfile(course.officialProfile),
+          }
+        : null;
     },
   });
 }
@@ -330,8 +341,8 @@ export async function findSectionDetailByJwId(
       options.includeTeacherDepartments !== undefined);
 
   const shape = hasPartialFlags
-    ? `detail-v1:exams=${options.includeExams === true}:schedules=${options.includeSchedules === true}:teacher-departments=${options.includeTeacherDepartments === true}`
-    : "detail-v1:full";
+    ? `detail-v2:exams=${options.includeExams === true}:schedules=${options.includeSchedules === true}:teacher-departments=${options.includeTeacherDepartments === true}`
+    : "detail-v2:full";
 
   return cachedPublicDetailRuntimeData({
     id: jwId,
@@ -343,6 +354,7 @@ export async function findSectionDetailByJwId(
         const section = await getPrisma(locale).section.findUnique({
           where: { jwId },
           include: sectionDetailInclude,
+          omit: { officialProfile: false },
         });
         return section ? toSectionDetailDto(section, locale) : null;
       }
@@ -350,6 +362,7 @@ export async function findSectionDetailByJwId(
       const section = await getPrisma(locale).section.findUnique({
         where: { jwId },
         include: buildPartialSectionDetailInclude(options),
+        omit: { officialProfile: false },
       });
 
       return section ? toSectionDetailDto(section, locale) : null;

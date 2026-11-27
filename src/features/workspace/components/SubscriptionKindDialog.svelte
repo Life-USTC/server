@@ -2,7 +2,6 @@
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import { subscriptionKindSchema } from "@/features/subscriptions/lib/subscription-kind";
 import { saveSubscriptionKind } from "@/features/subscriptions/lib/subscription-kind-client";
@@ -39,28 +38,25 @@ async function save() {
 
 <Dialog.Root open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
   <Dialog.Content>
-    <Dialog.Header>
-      <Dialog.Title>{copy.title}</Dialog.Title>
+    <Dialog.Header heading={copy.title}>
       <Dialog.Description>{section.course.namePrimary} · {section.code}</Dialog.Description>
     </Dialog.Header>
     <form onsubmit={(event) => { event.preventDefault(); void save(); }}>
       <Field.FieldGroup>
         <Field.Field data-invalid={Boolean(error)}>
           <Field.FieldLabel id="subscription-kind-label">{copy.title}</Field.FieldLabel>
-          <ToggleGroup.Root type="single" variant="outline" bind:value={kind} disabled={saving} aria-labelledby="subscription-kind-label" aria-invalid={Boolean(error)}>
+          <ToggleGroup.Root variant="outline" bind:value={kind} disabled={saving} aria-labelledby="subscription-kind-label" aria-invalid={Boolean(error)}>
             {#each subscriptionKindSchema.options as option}
               <ToggleGroup.Item value={option}>{copy[option]}</ToggleGroup.Item>
             {/each}
           </ToggleGroup.Root>
           {#if error}<Field.FieldError>{error}</Field.FieldError>{/if}
         </Field.Field>
-        <Dialog.Footer>
-          <Button type="button" variant="outline" disabled={saving} onclick={onClose}>{copy.cancel}</Button>
-          <Button type="submit" disabled={saving || !kind}>
-            {#if saving}<Spinner data-icon="inline-start" />{/if}
+        <Dialog.Actions cancelLabel={copy.cancel} onCancel={onClose} cancelDisabled={saving}>
+          <Button loading={saving} type="submit" disabled={saving || !kind}>
             {copy.save}
           </Button>
-        </Dialog.Footer>
+        </Dialog.Actions>
       </Field.FieldGroup>
     </form>
   </Dialog.Content>

@@ -575,7 +575,7 @@ test.describe("/catalog/teachers/[id] 教师详情页", () => {
           await expect(commentCard).toBeVisible();
           await expect(
             page
-              .locator("[data-sonner-toast]")
+              .locator("[data-slot=toast]")
               .filter({ hasText: /评论已发布|Comment posted/i }),
           ).toBeVisible();
           // comment.body

@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
+import { formatUploadSize } from "../lib/comment-ui";
 
 type CommentAttachment = {
   filename: string;
@@ -9,7 +10,6 @@ type CommentAttachment = {
 };
 
 export let attachments: CommentAttachment[] = [];
-export let formatSize: (value: number | undefined) => string;
 export let openLabel: string;
 </script>
 
@@ -19,7 +19,7 @@ export let openLabel: string;
       <Item.Root class="items-start" size="sm" variant="outline">
         <Item.Content class="min-w-0">
           <Item.Title>{attachment.filename}</Item.Title>
-          <Item.Description>{formatSize(attachment.size)}</Item.Description>
+          <Item.Description>{formatUploadSize(attachment.size)}</Item.Description>
         </Item.Content>
         <Item.Actions>
           <Button

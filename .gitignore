@@ -26,6 +26,7 @@
 # production
 /build
 /dist
+/.static-snapshots
 
 # misc
 .DS_Store

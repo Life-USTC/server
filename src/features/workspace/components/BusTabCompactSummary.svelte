@@ -1,7 +1,7 @@
 <script lang="ts">
 import ArrowLeftRightIcon from "@lucide/svelte/icons/arrow-left-right";
+import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import BusRouteDescription from "@/features/bus/components/BusRouteDescription.svelte";
 import type { BusApplicableRoute } from "@/features/bus/lib/bus-client";
@@ -80,21 +80,16 @@ $: emptyMessage =
       {/if}
     </div>
   {:else}
-    <Empty.Root class="p-0">
-      <Empty.Header>
-        <Empty.Description>{emptyMessage}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <CollectionEmpty variant="quiet" description={emptyMessage} />
   {/if}
 
   <div class="flex flex-wrap justify-end gap-2">
     <Button
+      icon={ArrowLeftRightIcon}
       disabled={!busPlannerReady}
-      type="button"
       variant="outline"
       onclick={reverseBusStops}
     >
-      <ArrowLeftRightIcon data-icon="inline-start" />
       {busCopy.planner.reverse}
     </Button>
     <Button href="/catalog/bus/map" variant="ghost">

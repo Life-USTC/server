@@ -1,4 +1,3 @@
-import { pinyin } from "pinyin-pro";
 import type {
   CatalogLinkGroup,
   CatalogLinkIcon,
@@ -7,12 +6,7 @@ import {
   getCatalogLinkGroup,
   type LocalizedCatalogLinkItem,
 } from "@/features/catalog-links/lib/catalog-links";
-
-/** Lowercase pinyin (no tones, no spaces) for client-side search and IME. */
-function toSearchPinyin(text: string): string {
-  if (!text.trim()) return "";
-  return pinyin(text, { toneType: "none" }).replace(/\s+/g, "").toLowerCase();
-}
+import { toSearchPinyin } from "./catalog-text-pinyin";
 
 export type CatalogLinkSummary = {
   slug: string;

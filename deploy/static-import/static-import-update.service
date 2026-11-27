@@ -1,0 +1,10 @@
+[Unit]
+Description=Update static snapshot importer containers
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/life-ustc-static-import/current/deploy/static-import/update.sh
+TimeoutStartSec=15min

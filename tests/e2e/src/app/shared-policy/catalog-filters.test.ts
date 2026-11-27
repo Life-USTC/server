@@ -174,7 +174,7 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
             const field = dialog.locator(`[data-filter-field="${name}"]`);
             await expect(field).toBeVisible();
             const inputs = field.locator(
-              'input:not([type="hidden"]), button[role="checkbox"]',
+              'input:not([type="hidden"], [aria-hidden="true"]), button[role="checkbox"]',
             );
             for (const input of await inputs.all())
               await expect(input).toHaveAccessibleName(/.+/);

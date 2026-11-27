@@ -37,11 +37,6 @@ $: disabledAttr = disabled ? "true" : undefined;
     class="min-w-32"
     {disabled}
     id={visibilityId}
-  >
-    {#each visibilityOptions as option}
-      <NativeSelect.Option value={option.value}>
-        {option.label}
-      </NativeSelect.Option>
-    {/each}
-  </NativeSelect.Root>
+    options={visibilityOptions}
+  />
 </Field.Field>

@@ -6,10 +6,7 @@ import { onMount, tick } from "svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import { page } from "$app/state";
 import PersonalCalendarLinkButton from "./PersonalCalendarLinkButton.svelte";
-import type {
-  WorkspaceSubscriptionsTabCopy,
-  WorkspaceSubscriptionsTabProps,
-} from "./subscription-tab-types";
+import type { WorkspaceSubscriptionsTabProps } from "./subscription-tab-types";
 
 export let calendarLinkState:
   | "ready"
@@ -21,7 +18,7 @@ export let showSubscriptionActions = true;
 export let openBulkImportDialog: () => void;
 export let openQuickAddDialog: () => void;
 export let sectionCopy: WorkspaceSubscriptionsTabProps["sectionCopy"];
-export let subscriptionsCopy: WorkspaceSubscriptionsTabCopy;
+export let subscriptionsCopy: WorkspaceSubscriptionsTabProps["subscriptionsCopy"];
 export let readOnlyReason: string | undefined = undefined;
 let calendarLink: PersonalCalendarLinkButton;
 onMount(async () => {
@@ -34,25 +31,22 @@ onMount(async () => {
 
 <div class="grid min-w-0 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
   {#if showSubscriptionActions}
-  <Button class="w-full sm:w-auto" type="button" disabled={Boolean(readOnlyReason)} title={readOnlyReason} onclick={openQuickAddDialog}>
-    <BookPlus data-icon="inline-start" />
+  <Button icon={BookPlus} class="w-full sm:w-auto" disabled={Boolean(readOnlyReason)} title={readOnlyReason} onclick={openQuickAddDialog}>
     {subscriptionsCopy.quickAdd.title}
   </Button>
   <Button
+    icon={ClipboardList}
     class="w-full sm:w-auto"
-    type="button"
     variant="outline"
     disabled={Boolean(readOnlyReason)}
     title={readOnlyReason}
     onclick={openBulkImportDialog}
   >
-    <ClipboardList data-icon="inline-start" />
     {subscriptionsCopy.bulkImport.title}
   </Button>
   {/if}
   {#if readOnlyReason}
-    <Button class="w-full sm:w-auto" type="button" variant="outline" disabled title={readOnlyReason}>
-      <Link2 data-icon="inline-start" />
+    <Button icon={Link2} class="w-full sm:w-auto" variant="outline" disabled title={readOnlyReason}>
       {subscriptionsCopy.iCalLink}
     </Button>
   {:else}

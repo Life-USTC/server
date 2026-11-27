@@ -1,33 +1,8 @@
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
-import type { EndlessScrollLabels } from "@/lib/navigation/endless-list.svelte";
-import type { TableFilterLabels } from "@/lib/table-filters";
+import type messages from "../../../../messages/en-us.json";
 
-export type TeacherListCommonLabels = {
-  tableFilters: TableFilterLabels;
-  endlessScroll: EndlessScrollLabels;
-
-  clear: string;
-  applyFilters: string;
-  loading: string;
-  search: string;
-  unknown: string;
-};
-
-export type TeacherListLabels = {
-  code: string;
-  department: string;
-  email: string;
-  emptyDescription: string;
-  filterTitle: string;
-  name: string;
-  noDepartment: string;
-  noTeachersFound: string;
-  searchLabel: string;
-  searchNameOrCode: string;
-  sections: string;
-  subtitle: string;
-  title_label: string;
-};
+export type TeacherListCommonLabels = typeof messages.common;
+export type TeacherListLabels = typeof messages.teachers;
 
 export type TeacherListFilters = {
   name?: string | null;
@@ -52,7 +27,3 @@ export type TeacherListRow = CatalogNamed & {
   id: string | number;
   teacherTitle?: CatalogNamed | null;
 };
-
-export type TeacherListFilterUpdater = (
-  patch: Partial<TeacherListFilters>,
-) => void;

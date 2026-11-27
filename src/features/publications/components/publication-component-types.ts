@@ -1,6 +1,5 @@
 import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
 import type {
-  PublicPublicationDetail,
   PublicPublicationList,
   PublicPublicationObject,
 } from "@/features/publications/server/publication-public-read-service";
@@ -42,10 +41,6 @@ export type PublicationSourceDirectoryPageData = {
 };
 
 export type PublicationSourceSummary = PublicPublicationSourceSummary;
-
-export type PublicationDetailPageData = {
-  publication: PublicPublicationDetail;
-};
 
 export type PublicationObject = PublicPublicationObject;
 
