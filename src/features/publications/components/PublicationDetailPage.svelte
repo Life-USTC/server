@@ -1,10 +1,14 @@
 <script lang="ts">
 import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
 import Download from "@lucide/svelte/icons/download";
+import {
+  Collapsible,
+  CollapsiblePanel,
+  CollapsibleTrigger,
+} from "@ui-sdk/svelte/collapsible";
 import CollectionPage from "#lib/components/CollectionPage.svelte";
 import RenderedMarkdown from "#lib/components/RenderedMarkdown.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Collapsible from "#lib/components/ui/collapsible/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
 import { formatShanghaiDate } from "#lib/time/shanghai-format.js";
 import { publicationAttributionValue } from "@/features/publications/lib/publication-attribution";
@@ -109,10 +113,10 @@ const articleInformation = $derived(
             {#if readOnly}<p class="mt-2 text-sm" id="demo-news-external-unavailable">{readOnlyReason}</p>{/if}
     {/if}
     {#if revision.summary.length > 160}
-      <Collapsible.Root class="mt-3 min-w-0">
-              <Collapsible.Trigger class="text-sm text-muted-foreground underline underline-offset-4">{copy.showSummary}</Collapsible.Trigger>
-              <Collapsible.Content><p class="mt-3 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{revision.summary}</p></Collapsible.Content>
-      </Collapsible.Root>
+      <Collapsible class="mt-3 min-w-0">
+              <CollapsibleTrigger class="text-sm text-muted-foreground underline underline-offset-4">{copy.showSummary}</CollapsibleTrigger>
+              <CollapsiblePanel><p class="mt-3 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{revision.summary}</p></CollapsiblePanel>
+      </Collapsible>
     {:else if revision.summary}
             <p class="mt-4 min-w-0 max-w-prose text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{revision.summary}</p>
     {/if}

@@ -75,7 +75,6 @@ function toggleGroup(group: OAuthScopePickerGroup) {
         {copy.selectedCountLabel}
       </Field.Description>
       <Button
-        type="button"
         size="sm"
         variant="outline"
         disabled={availableScopes.length === 0}
@@ -98,7 +97,6 @@ function toggleGroup(group: OAuthScopePickerGroup) {
         <Field.Legend class="font-medium text-sm">{group.title}</Field.Legend>
         <Button
           class="justify-self-end"
-          type="button"
           size="sm"
           variant="ghost"
           disabled={groupValues.length === 0}

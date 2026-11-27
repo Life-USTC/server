@@ -7,17 +7,11 @@ export let subscriptionActionError: string;
 </script>
 
 {#if bulkImportMessage}
-  <Alert.Root>
-    <Alert.Description>{bulkImportMessage}</Alert.Description>
-  </Alert.Root>
+  <Alert.Message>{bulkImportMessage}</Alert.Message>
 {/if}
 {#if bulkImportError}
-  <Alert.Root variant="destructive">
-    <Alert.Description>{bulkImportError}</Alert.Description>
-  </Alert.Root>
+  <Alert.Message variant="destructive">{bulkImportError}</Alert.Message>
 {/if}
 {#if subscriptionActionError}
-  <Alert.Root variant="destructive">
-    <Alert.Description>{subscriptionActionError}</Alert.Description>
-  </Alert.Root>
+  <Alert.Message variant="destructive">{subscriptionActionError}</Alert.Message>
 {/if}

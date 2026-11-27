@@ -237,6 +237,7 @@ async function ingestWithRetry(
                 links,
                 events,
                 pointers,
+                payload.revisionPolicy,
               ),
             );
           }

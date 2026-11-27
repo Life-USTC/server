@@ -66,7 +66,7 @@ let backLabel = $derived(
     </Card.Header>
     <Card.Content class="flex flex-wrap justify-center gap-2">
       {#if !isNotFound}
-        <Button type="button" onclick={() => location.reload()}>{errorCopy.tryAgain}</Button>
+        <Button onclick={() => location.reload()}>{errorCopy.tryAgain}</Button>
       {/if}
       <Button href={backHref} variant={isNotFound ? "default" : "outline"}>{backLabel}</Button>
     </Card.Content>
