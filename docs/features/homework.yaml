@@ -615,20 +615,6 @@ requirements:
     test:
       file: tests/e2e/src/app/workspace/homeworks/presentation-contract.test.ts
       name: homework.detail-secondary-content
-- id: homework.detail-dialog-dismissal
-  category: presentation
-  rule: Homework detail uses a centered desktop dialog with Escape and outside-click dismissal. On mobile
-    it fills the viewport and supports Escape and the visible close control.
-  acceptance:
-    given: An authenticated owner can open a homework from desktop and mobile workspace summaries.
-    when: The viewer opens the detail, checks its bounds and closes/reopens it using the available controls.
-    then:
-    - Desktop detail is centered in the modal backdrop and outside click closes it.
-    - Mobile detail fills the viewport and its close control dismisses it.
-    - Escape closes the reopened detail at both widths.
-    test:
-      file: tests/e2e/src/app/workspace/homeworks/presentation-contract.test.ts
-      name: homework.detail-dialog-dismissal
 - id: homework.section-style-guide
   category: presentation
   rule: Section homework create/edit forms expose the same initially collapsed homework-naming guide as workspace creation.

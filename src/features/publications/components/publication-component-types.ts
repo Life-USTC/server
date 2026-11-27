@@ -1,6 +1,7 @@
 import type { PublicationSourceOrganizationLevel } from "@/features/publications/lib/publication-source-levels";
 import type {
   PublicPublicationList,
+  PublicPublicationListItem,
   PublicPublicationObject,
 } from "@/features/publications/server/publication-public-read-service";
 import type {
@@ -29,7 +30,18 @@ export type PublicationSourceOption = {
 
 export type PublicationListPageData = {
   hasPublications: boolean;
-  publications: PublicPublicationList;
+  publications: {
+    pagination: PublicPublicationList["pagination"];
+    data: (Pick<
+      PublicPublicationListItem,
+      "id" | "publicationType" | "source" | "foldGroup"
+    > & {
+      revision: Pick<
+        PublicPublicationListItem["revision"],
+        "title" | "summary" | "publishedAt" | "updatedAtSource"
+      >;
+    })[];
+  };
   filters: PublicationListFilters;
   sourceOptions: PublicationSourceOption[];
 };

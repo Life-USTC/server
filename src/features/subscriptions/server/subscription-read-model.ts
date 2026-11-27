@@ -18,6 +18,7 @@ export {
   type SectionOption,
 } from "./subscription-read-model-shared";
 export {
+  buildSubscribedScheduleEntryDto,
   countUpcomingSubscribedExams,
   listSubscribedExamPage,
   listSubscribedExams,

@@ -9,6 +9,7 @@ import { DEFAULT_LOCALE } from "@/i18n/config";
 import { subscribedScheduleEntrySchema } from "@/lib/api/schemas/schedule-response-schema-core";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import { toLocalizedNameDto } from "@/lib/localized-name";
+import { buildPaginatedResponse, normalizePagination } from "@/lib/pagination";
 import { paginatedQuery } from "@/lib/query-pagination";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
@@ -75,12 +76,21 @@ const subscribedSchedulePageInclude = {
   section: { include: sectionCatalogInclude },
 } satisfies Prisma.ScheduleInclude;
 
+const restScheduleInclude = {
+  ...subscribedScheduleInclude,
+  section: { include: { course: true, semester: true } },
+} satisfies Prisma.ScheduleInclude;
+
+type RestScheduleRecord = Prisma.ScheduleGetPayload<{
+  include: typeof restScheduleInclude;
+}>;
+
 export type SubscribedScheduleRecord = Prisma.ScheduleGetPayload<{
   include: typeof subscribedScheduleInclude;
 }>;
 
-export function toSubscribedScheduleEntryDto(
-  input: SubscribedScheduleRecord,
+export function buildSubscribedScheduleEntryDto(
+  input: RestScheduleRecord,
   locale: AppLocale,
 ) {
   const schedule = buildScheduleEntryDto(input, locale);
@@ -100,7 +110,7 @@ export function toSubscribedScheduleEntryDto(
       _count: { sections: source._count.sections },
     };
   });
-  return subscribedScheduleEntrySchema.parse({
+  return {
     ...schedule,
     teachers,
     teacherParticipations: schedule.teacherParticipations.map(
@@ -109,7 +119,16 @@ export function toSubscribedScheduleEntryDto(
         teacher: teachers[index],
       }),
     ),
-  });
+  };
+}
+
+export function toSubscribedScheduleEntryDto(
+  input: SubscribedScheduleRecord,
+  locale: AppLocale,
+) {
+  return subscribedScheduleEntrySchema.parse(
+    buildSubscribedScheduleEntryDto(input, locale),
+  );
 }
 
 const subscribedExamInclude = {
@@ -203,6 +222,26 @@ function minuteToScheduleTime(minute: number) {
   return Math.floor(minute / 60) * 100 + (minute % 60);
 }
 
+type ScheduleListOptions = {
+  locale?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  weekday?: number;
+  startMinuteFrom?: number;
+  startMinuteTo?: number;
+  limit?: number;
+  sectionIds?: readonly number[];
+  semesterId?: number;
+};
+
+export function listSubscribedSchedules(
+  userId: string,
+  options: ScheduleListOptions & { sectionContext: "rest" },
+): Promise<RestScheduleRecord[]>;
+export function listSubscribedSchedules(
+  userId: string,
+  options?: ScheduleListOptions & { sectionContext?: SubscribedSectionContext },
+): Promise<SubscribedScheduleRecord[]>;
 export async function listSubscribedSchedules(
   userId: string,
   {
@@ -216,19 +255,10 @@ export async function listSubscribedSchedules(
     sectionIds,
     semesterId,
     sectionContext = "compact",
-  }: {
-    locale?: string;
-    dateFrom?: Date;
-    dateTo?: Date;
-    weekday?: number;
-    startMinuteFrom?: number;
-    startMinuteTo?: number;
-    limit?: number;
-    sectionIds?: readonly number[];
-    semesterId?: number;
-    sectionContext?: SubscribedSectionContext;
+  }: ScheduleListOptions & {
+    sectionContext?: SubscribedSectionContext | "rest";
   } = {},
-) {
+): Promise<RestScheduleRecord[] | SubscribedScheduleRecord[]> {
   const resolvedSectionIds =
     semesterId !== undefined
       ? await getSubscribedSectionIdsForSemester(userId, semesterId)
@@ -273,6 +303,12 @@ export async function listSubscribedSchedules(
         if (!first) return [];
       }
 
+      if (sectionContext === "rest") {
+        return localizedPrisma.schedule.findMany({
+          ...query,
+          include: restScheduleInclude,
+        });
+      }
       return localizedPrisma.schedule.findMany({
         ...query,
         include:
@@ -510,6 +546,10 @@ export async function listSubscribedExamPage(
     semesterId !== undefined
       ? await getSubscribedSectionIdsForSemester(userId, semesterId)
       : await getSubscribedSectionIds(userId);
+  if (!sectionIds.length) {
+    const { page, pageSize } = normalizePagination(pagination);
+    return buildPaginatedResponse([], page, pageSize, 0);
+  }
   const localizedPrisma = getPrisma(locale);
   const where = {
     sectionId: { in: sectionIds },
@@ -535,5 +575,6 @@ export async function listSubscribedExamPage(
     () => localizedPrisma.exam.count({ where }),
     pagination.page,
     pagination.pageSize,
+    { inferShortFirstPageTotal: true },
   );
 }

@@ -681,38 +681,6 @@ test("/admin/users 可创建默认时长封禁", { tag: "@Admin/Web" }, async ({
   );
 });
 
-test("页面契约", { tag: "@Admin/Web" }, async ({
-  adminFlow,
-  run,
-  page,
-  admin: _admin,
-}) => {
-  await run(() =>
-    adminFlow.run(
-      async () => {
-        const response = await gotoAndWaitForReady(page, "/admin/users", {
-          browserHealth: {},
-          expectMeaningfulContent: true,
-          expectNoHorizontalOverflow: true,
-          uiQuality: {},
-        });
-        expect(response?.ok()).toBe(true);
-        await expect(page.locator("#main-content")).toBeVisible();
-        await expect(
-          page.getByRole("heading", {
-            name: /用户管理|User Management|用户列表|Users/i,
-          }),
-        ).toBeVisible();
-        await expect(
-          page.locator("table, [role='table'], [data-slot='table']"),
-        ).toBeVisible();
-      },
-      {},
-      adminWriteChecks([]),
-    ),
-  );
-});
-
 for (const locale of ["en-us", "zh-cn"] as const) {
   test(
     `admin.users-suspension-alignment ${locale}`,

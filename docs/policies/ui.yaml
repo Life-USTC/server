@@ -1252,7 +1252,7 @@ requirements:
     - The profile settings H1 shows the tab title, not the hub label alone.
     test:
       file: tests/e2e/src/app/settings/profile/test.ts
-      name: 页面契约
+      name: ui.settings-navigation-2
 - id: ui.settings-navigation-4
   category: presentation
   topic: settings-navigation

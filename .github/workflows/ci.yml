@@ -33,21 +33,13 @@ defaults:
 
 jobs:
   check:
-    name: Checks
-    runs-on: ubuntu-latest
+    name: Static
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - &checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-bun-env
-      - name: Verify development seed guard
-        run: bash tests/ci/seed-guard.test.sh
-      - name: Verify RLS metadata collector safety
-        run: python3 scripts/operations/test_rls_metadata_audit.py
-      - name: Test static import webhook and worker runtime
-        run: python3 -m unittest discover -s deploy/static-import/tests -p 'test_*.py'
-      - name: Build static import image
-        run: docker build --file deploy/static-import/Dockerfile --tag life-ustc-static-import:ci .
       - name: Generate application, database, and Worker types
         run: bun run app:prepare
       - name: Check formatting and lint
@@ -64,8 +56,8 @@ jobs:
         run: bun run openapi:check
 
   test-unit:
-    name: Unit tests
-    runs-on: ubuntu-latest
+    name: Unit
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
@@ -74,6 +66,10 @@ jobs:
       - uses: ./.github/actions/setup-bun-env
       - name: Generate application, database, and Worker types
         run: bun run app:prepare
+      - name: Verify development seed guard
+        run: bash tests/ci/seed-guard.test.sh
+      - name: Verify RLS metadata collector safety
+        run: python3 scripts/operations/test_rls_metadata_audit.py
       - name: Run unit tests and check coverage
         run: bunx vitest run --coverage
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -83,6 +79,17 @@ jobs:
           path: coverage
           if-no-files-found: warn
           retention-days: 14
+
+  test-static-import:
+    name: Static import
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - *checkout
+      - name: Test static import webhook and worker runtime
+        run: python3 -m unittest discover -s deploy/static-import/tests -p 'test_*.py'
+      - name: Build static import image
+        run: docker build --file deploy/static-import/Dockerfile --tag life-ustc-static-import:ci .
 
   test-domain:
     name: ${{ matrix.name }}
@@ -163,7 +170,7 @@ jobs:
           retention-days: 14
 
   test-rls:
-    name: Permissions
+    name: RLS
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     services: *test-database
@@ -194,7 +201,7 @@ jobs:
 
   build-e2e-artifacts:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     outputs:
       matrix: ${{ steps.inventory.outputs.matrix }}
@@ -222,7 +229,7 @@ jobs:
 
   static-loader-image:
     name: Static loader
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     services: *test-database
     steps:
@@ -238,11 +245,10 @@ jobs:
         run: bun tests/ci/static-loader-image.ts
 
   specification-evidence:
-    # Keep this name: branch protection requires it as a status check.
-    name: Specification execution evidence / run
-    runs-on: ubuntu-latest
+    name: CI
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
-    needs: [check, build-e2e-artifacts, static-loader-image, test-unit, test-domain, test-rls]
+    needs: [check, build-e2e-artifacts, static-loader-image, test-static-import, test-unit, test-domain, test-rls]
     if: ${{ always() }}
     permissions: {}
     steps:

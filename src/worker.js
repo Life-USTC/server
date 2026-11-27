@@ -463,9 +463,6 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
   const cacheUrl = new URL(cachedRequest.url);
   edgeObservation.cacheOutcome = "unknown";
   edgeObservation.requestClass = "public-ssr-cache";
-  edgeObservation.route = normalizePublicSsrObservedRoute(
-    new URL(request.url).pathname,
-  );
   const response = await context.exports
     .PublicSsr({ props: { locale, mode } })
     .fetch(cachedRequest, {
@@ -474,7 +471,7 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
   return finish(
     personalizeCachedResponse(response, requestId),
     "public-ssr-cache",
-    normalizePublicSsrObservedRoute(new URL(request.url).pathname),
+    edgeObservation.route,
     resolveEdgeCacheOutcome(response),
   );
 }
@@ -496,9 +493,7 @@ export default {
           setCloudflareRequestContext({
             method: request.method,
             requestId,
-            route: normalizePublicSsrObservedRoute(
-              new URL(request.url).pathname,
-            ),
+            route: edgeObservation.route,
           });
           if (isDemoRequest(request)) {
             edgeObservation.completed = true;

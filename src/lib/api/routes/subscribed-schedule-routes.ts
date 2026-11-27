@@ -1,3 +1,4 @@
+import { runCloudflareTraceSpan } from "@/lib/adapters/cloudflare-runtime";
 import { handleRouteError, parseRouteSearchParams } from "@/lib/api/helpers";
 import { schemaJsonResponse } from "@/lib/api/responses";
 import { getRequestLocale } from "@/lib/api/routes/request-locale";
@@ -6,9 +7,14 @@ import { subscribedSchedulesResponseSchema } from "@/lib/api/schemas/schedule-re
 import { requireAuth } from "@/lib/auth/api-auth";
 
 export async function getMySubscribedSchedulesRoute(request: Request) {
-  const auth = await requireAuth(request, {
-    bearerScope: { feature: "workspace.schedule", action: "read" },
-  });
+  const auth = await runCloudflareTraceSpan(
+    "workspace.schedules.auth",
+    {},
+    () =>
+      requireAuth(request, {
+        bearerScope: { feature: "workspace.schedule", action: "read" },
+      }),
+  );
   if (auth instanceof Response) return auth;
   const { userId } = auth;
 
@@ -21,22 +27,32 @@ export async function getMySubscribedSchedulesRoute(request: Request) {
   if (parsedQuery instanceof Response) return parsedQuery;
 
   try {
-    const { listSubscribedSchedules, toSubscribedScheduleEntryDto } =
+    const { buildSubscribedScheduleEntryDto, listSubscribedSchedules } =
       await import("@/features/subscriptions/server/subscription-read-model");
     const locale = parsedQuery.locale ?? getRequestLocale(request);
-    const schedules = await listSubscribedSchedules(userId, {
-      dateFrom: parsedQuery.dateFrom,
-      dateTo: parsedQuery.dateTo,
-      limit: parsedQuery.limit ?? 150,
-      locale,
-      weekday: parsedQuery.weekday,
-      startMinuteFrom: parsedQuery.startMinuteFrom,
-      startMinuteTo: parsedQuery.startMinuteTo,
-    });
+    const schedules = await runCloudflareTraceSpan(
+      "workspace.schedules.read",
+      {},
+      async (span) => {
+        const rows = await listSubscribedSchedules(userId, {
+          dateFrom: parsedQuery.dateFrom,
+          dateTo: parsedQuery.dateTo,
+          limit: parsedQuery.limit ?? 150,
+          locale,
+          weekday: parsedQuery.weekday,
+          startMinuteFrom: parsedQuery.startMinuteFrom,
+          startMinuteTo: parsedQuery.startMinuteTo,
+          sectionContext: "rest",
+        });
+        if (span?.isTraced)
+          span.setAttribute("workspace.schedules.count", rows.length);
+        return rows;
+      },
+    );
 
     return schemaJsonResponse(subscribedSchedulesResponseSchema, {
       schedules: schedules.map((schedule) =>
-        toSubscribedScheduleEntryDto(schedule, locale),
+        buildSubscribedScheduleEntryDto(schedule, locale),
       ),
     });
   } catch (error) {

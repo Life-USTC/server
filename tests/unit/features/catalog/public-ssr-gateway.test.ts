@@ -307,6 +307,7 @@ describe("public SSR gateway", () => {
     "/news",
     "/news/example-publication",
     "/news?type=notice",
+    "/favicon.ico",
     "/open-graph.png",
     "/robots.txt",
     "/search",

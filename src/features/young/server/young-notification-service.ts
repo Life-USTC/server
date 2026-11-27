@@ -24,7 +24,28 @@ export async function refreshYoungNotifications(
     await lockYoungSubscriptionUser(tx, userId);
     const subscriptions = await tx.userYoungEventSubscription.findMany({
       where: { userId },
-      include: { event: true },
+      select: {
+        id: true,
+        observedState: true,
+        createdAt: true,
+        remindSignup: true,
+        remindDeadline: true,
+        remindStart: true,
+        event: {
+          select: {
+            youngId: true,
+            name: true,
+            location: true,
+            status: true,
+            signupStatusCode: true,
+            sourceMissing: true,
+            startAt: true,
+            endAt: true,
+            applyStartAt: true,
+            applyEndAt: true,
+          },
+        },
+      },
     });
     let calendarChanged = false;
     const notifications: Prisma.YoungNotificationCreateManyInput[] = [];
@@ -50,6 +71,7 @@ export async function refreshYoungNotifications(
         const updated = await tx.userYoungEventSubscription.update({
           where: { userId_youngId: { userId, youngId: event.youngId } },
           data: { observedState: state, observedRevision: { increment: 1 } },
+          select: { observedRevision: true },
         });
         await tx.youngNotification.create({
           data: {

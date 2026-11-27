@@ -132,7 +132,7 @@ for (const domain of ["Section", "Course", "Teacher"] as const) {
                   domain === "Section" ? "credits" : "code",
                 ) !== (domain === "Section" ? "4" : "DRAFT-")
               ) {
-                await route.continue();
+                await route.fallback();
                 return;
               }
               const response = await route.fetch();
@@ -280,7 +280,7 @@ test("catalog draft follows the latest native Apply when responses finish out of
       (url) => url.pathname === `${path}/__data.json`,
       async (route) => {
         if (captured >= 2) {
-          await route.continue();
+          await route.fallback();
           return;
         }
         const index = captured++;

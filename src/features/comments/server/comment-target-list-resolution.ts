@@ -1,3 +1,4 @@
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { parseInteger } from "@/lib/integers";
 import {
@@ -178,46 +179,23 @@ export async function resolveCommentListTargetReference(
     };
   }
 
-  if (input.targetType === "section" && sectionJwId) {
+  if (
+    input.targetType === "section" &&
+    (sectionJwId || parseInteger(input.rawTargetId))
+  ) {
+    const lookup = sectionJwId
+      ? Prisma.sql`s."jwId" = ${sectionJwId}`
+      : Prisma.sql`s.id = ${parseInteger(input.rawTargetId)}`;
     countCommentStageQuery(counter);
-    const section = await prisma.section.findUnique({
-      where: { jwId: sectionJwId },
-      select: {
-        code: true,
-        course: { select: { jwId: true, nameCn: true } },
-        id: true,
-        jwId: true,
-      },
-    });
-    if (!section) return targetNotFound("section", sectionJwId);
-    const target = await resolveCommentTarget({
-      rawTargetId: section.id,
-      sectionId: input.sectionId,
-      teacherId: input.teacherId,
-      targetType: "section",
-      verifyExistence: false,
-    });
-    if (!target) return invalidTarget("section");
-    return {
-      ok: true,
-      target: { ...target, targetMetadata: sectionMetadata(section) },
-      targetType: "section",
-    };
-  }
-
-  if (input.targetType === "section" && parseInteger(input.rawTargetId)) {
-    const targetId = parseInteger(input.rawTargetId);
-    countCommentStageQuery(counter);
-    const section = await prisma.section.findUnique({
-      where: { id: targetId as number },
-      select: {
-        code: true,
-        course: { select: { jwId: true, nameCn: true } },
-        id: true,
-        jwId: true,
-      },
-    });
-    if (!section) return targetNotFound("section", input.rawTargetId);
+    const [section] = await prisma.$queryRaw<SectionTargetMetadataRow[]>`
+      SELECT s.id, s.code, s."jwId",
+             json_build_object('jwId', c."jwId", 'nameCn', c."nameCn") AS course
+      FROM "Section" s
+      JOIN "Course" c ON c.id = s."courseId"
+      WHERE ${lookup}
+    `;
+    if (!section)
+      return targetNotFound("section", sectionJwId ?? input.rawTargetId);
     const target = await resolveCommentTarget({
       rawTargetId: section.id,
       sectionId: input.sectionId,

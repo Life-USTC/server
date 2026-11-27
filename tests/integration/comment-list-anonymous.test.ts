@@ -17,7 +17,7 @@ const it = nodeProtocolTest.extend(
           data: { jwId: 1, code: "anonymous", nameCn: "Anonymous comments" },
         });
         const section = await tx.section.create({
-          data: { jwId: 1, code: "anonymous", courseId: course.id },
+          data: { jwId: 78149, code: "anonymous", courseId: course.id },
         });
         const teacher = await tx.teacher.create({
           data: { jwId: 1, code: "anonymous", nameCn: "Comment teacher" },
@@ -62,6 +62,10 @@ const it = nodeProtocolTest.extend(
           });
           targets.push({ query, visibleId: visible.id });
         }
+        targets.push({
+          query: `targetType=section&targetId=${section.id}`,
+          visibleId: targets[0].visibleId,
+        });
         return targets;
       }),
     ),

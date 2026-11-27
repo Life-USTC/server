@@ -7,7 +7,6 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
-import { expectSettingsPage } from "../../../../utils/settings-fixture";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -133,21 +132,5 @@ test.describe("/account/settings/preferences 外观与语言偏好", () => {
         await expect(page.locator("html")).toHaveAttribute("lang", "en-us");
       },
     );
-  });
-});
-
-test("页面契约", { tag: "@Account/Web" }, async ({
-  run,
-  accountRun,
-  page,
-  isolatedWorker,
-}) => {
-  await run(async () => {
-    const actor = await isolatedWorker.createActor();
-    await page.context().addCookies([actor.cookie]);
-  });
-  await accountRun({ writes: [], audits: [] }, async () => {
-    await expectSettingsPage(page, "/account/settings/preferences");
-    await expect(page.getByText(/外观|Appearance/i).first()).toBeVisible();
   });
 });

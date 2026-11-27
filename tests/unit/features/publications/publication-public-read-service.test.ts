@@ -261,7 +261,7 @@ describe("public publication reads", () => {
     await getPublicPublicationById("publication-1", { includeBodyText: false });
     expect(mocks.publicationFindFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: expect.objectContaining({
+        select: expect.objectContaining({
           currentRevision: expect.objectContaining({
             omit: expect.objectContaining({ bodyText: true }),
           }),

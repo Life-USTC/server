@@ -337,6 +337,7 @@ describe("public runtime cache", () => {
 
   it("falls through colo and KV misses and schedules KV and colo writes", async () => {
     const pending = createDeferred<{ source: string }>();
+    const toJSON = vi.fn(() => ({ source: "database" }));
     const namespace = kvNamespace();
     const { match, put } = installNamedCache();
     const load = vi.fn(() => pending.promise);
@@ -361,6 +362,7 @@ describe("public runtime cache", () => {
         const options = {
           coloCacheKey,
           kvCacheKey,
+          kvTtlMs: 120_000,
           shouldCacheResult: (result: { source: string }) => result !== null,
           validateColoCacheResult: validatesSource,
         };
@@ -372,7 +374,11 @@ describe("public runtime cache", () => {
           options,
         );
         await vi.waitFor(() => expect(load).toHaveBeenCalledOnce());
-        pending.resolve({ source: "database" });
+        pending.resolve(
+          Object.defineProperty({ source: "database" }, "toJSON", {
+            value: toJSON,
+          }),
+        );
         await expect(first).resolves.toEqual({ source: "database" });
         expect(scheduled).toHaveLength(2);
         await Promise.all(scheduled);
@@ -380,13 +386,19 @@ describe("public runtime cache", () => {
       context,
     );
 
+    expect(toJSON).toHaveBeenCalledExactlyOnceWith("value");
     expect(namespace.get).toHaveBeenCalledOnce();
     expect(match).toHaveBeenCalledOnce();
     expect(put).toHaveBeenCalledOnce();
     expect(namespace.put).toHaveBeenCalledOnce();
     const [kvKey, kvValue, kvOptions] = namespace.put.mock.calls[0] ?? [];
     expect(kvKey).toBe(kvCacheKey);
-    expect(kvOptions).toEqual({ expirationTtl: 60 });
+    expect(kvOptions).toEqual({ expirationTtl: 120 });
+    const coloEnvelope = await put.mock.calls[0]?.[1].json();
+    expect(coloEnvelope.value).toEqual({ source: "database" });
+    expect(coloEnvelope.expiresAt).toBeLessThan(
+      JSON.parse(kvValue as string).expiresAt,
+    );
     await expect(JSON.parse(kvValue as string)).toMatchObject({
       expiresAt: expect.any(Number),
       schema: "catalog-detail-core-v2",

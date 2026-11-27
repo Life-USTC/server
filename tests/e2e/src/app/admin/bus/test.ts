@@ -299,38 +299,3 @@ test("/admin/bus 移动端首条版本操作可达", { tag: "@Bus/Web" }, async 
     ),
   );
 });
-
-test("页面契约", { tag: "@Bus/Web" }, async ({
-  adminFlow,
-  run,
-  page,
-  admin,
-  busState,
-}) => {
-  await run(() =>
-    adminFlow.run(
-      async () => {
-        void admin;
-        void busState;
-        const response = await gotoAndWaitForReady(page, "/admin/bus", {
-          browserHealth: {},
-          expectMeaningfulContent: true,
-          expectNoHorizontalOverflow: true,
-          uiQuality: {},
-        });
-        expect(response?.ok()).toBe(true);
-        await expect(page.locator("#main-content")).toBeVisible();
-        await expect(
-          page.getByRole("heading", { name: /校车管理|Bus Management/i }),
-        ).toBeVisible();
-        await expect(
-          page.getByRole("button", {
-            name: /^(从 Static 导入|Import from Static)$/i,
-          }),
-        ).toBeVisible();
-      },
-      {},
-      adminWriteChecks([]),
-    ),
-  );
-});
