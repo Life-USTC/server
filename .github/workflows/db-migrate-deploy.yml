@@ -24,7 +24,7 @@ concurrency:
 jobs:
   validate:
     name: Validate fixed operation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     if: >-
       github.repository == 'Life-USTC/server' &&
@@ -52,7 +52,7 @@ jobs:
   migrate:
     needs: validate
     name: Deploy Prisma migrations
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     if: >-
       github.repository == 'Life-USTC/server' &&
@@ -82,7 +82,7 @@ jobs:
   inspect:
     name: Inspect fixed Young organizer aggregates
     needs: validate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     if: >-
       github.repository == 'Life-USTC/server' &&

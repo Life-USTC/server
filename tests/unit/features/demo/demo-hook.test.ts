@@ -429,3 +429,25 @@ it.each([false, true])(
     }
   },
 );
+
+it("defers introduction modules until paint using the page script nonce", async () => {
+  const result = await request("/catalog/sections/[jwId]/introduction", "GET", {
+    cookie: "",
+  });
+  const options = result.resolve.mock.calls[0][1];
+  const preload = options?.preload;
+  const transform = options?.transformPageChunk;
+  if (!preload || !transform)
+    throw new Error("Missing introduction render options");
+  expect(preload({ type: "js", path: "/_app/immutable/entry/start.js" })).toBe(
+    true,
+  );
+  expect(
+    preload({ type: "js", path: "/_app/immutable/nodes/section.js" }),
+  ).toBe(false);
+  const html = await transform({ html: "<head></head>", done: true });
+  expect(html).toMatch(/<script nonce="[^"]+">/);
+  expect(html).toContain("largest-contentful-paint");
+  expect(html).toContain("/_app/immutable/nodes/section.js");
+  expect(html).not.toContain("/_app/immutable/entry/start.js");
+});

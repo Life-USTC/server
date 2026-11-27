@@ -11,8 +11,8 @@ concurrency:
 
 jobs:
   breaking-changes:
-    name: GraphQL breaking changes
-    runs-on: ubuntu-latest
+    name: GraphQL compatibility
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read

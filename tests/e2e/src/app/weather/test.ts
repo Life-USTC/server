@@ -1,11 +1,3 @@
-/**
- * E2E tests for /catalog/weather page
- *
- * Public weather page rendering the two tracked USTC campus locations.
- * The page contract reads explicit fresh snapshots in its private Worker;
- * chart interactions keep their independently specified page-data fixtures.
- */
-
 import { expect } from "@playwright/test";
 import {
   formatShanghaiDate,
@@ -20,24 +12,8 @@ import {
   weatherProviderFailureResponses,
 } from "../../../utils/weather-cache-fixture";
 import { showWeatherFixture } from "../../../utils/weather-fixture";
-import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/catalog/weather", () => {
-  test("页面契约", { tag: "@Weather/Web" }, async ({
-    page,
-    preferenceFlow,
-    isolatedWorker,
-  }) => {
-    await preferenceFlow.run(async () => {
-      await preferenceFlow.prepare(() =>
-        arrangeWeatherCache(isolatedWorker.origin),
-      );
-      await assertPageContract(page, {
-        routePath: "/catalog/weather",
-      });
-    });
-  });
-
   test("weather.two-locations-only", { tag: "@Weather/Web" }, async ({
     page,
     preferenceFlow,

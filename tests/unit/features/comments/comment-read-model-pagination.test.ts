@@ -183,9 +183,6 @@ describe("loadCommentThread pagination", () => {
       if (sql.includes("ranked_descendants")) {
         return descendantQueryMock(query);
       }
-      if (sql.includes("comment_hidden_root_count")) {
-        return Promise.resolve([{ count: 0n }]);
-      }
       if (sql.includes("comment_attachment_summaries")) {
         return publicAttachmentSummaryQueryMock(query);
       }
@@ -691,9 +688,9 @@ describe("loadCommentThread pagination", () => {
 
   it("counts anonymous hidden comments across the target without paging them", async () => {
     publicQueryMock.mockReset();
-    publicQueryMock
-      .mockResolvedValueOnce([{ id: null, total: 1n }])
-      .mockResolvedValueOnce([{ count: 2n }]);
+    publicQueryMock.mockResolvedValueOnce([
+      { id: null, total: 1n, hiddenCount: 2n },
+    ]);
 
     const result = await loadCommentThread({
       pagination: { pageSize: 20, skip: 0 },
@@ -708,7 +705,7 @@ describe("loadCommentThread pagination", () => {
     });
 
     expect(result).toMatchObject({ comments: [], hiddenCount: 2, total: 1 });
-    expect(publicQueryMock).toHaveBeenCalledTimes(2);
+    expect(publicQueryMock).toHaveBeenCalledOnce();
     expect(
       writeCommentsStageAnalyticsMock.mock.calls.find(
         ([input]) => (input as { stage: string }).stage === "comments.root",
@@ -716,7 +713,7 @@ describe("loadCommentThread pagination", () => {
     ).toEqual(
       expect.objectContaining({
         dbContext: "none",
-        dbQueryCount: 2,
+        dbQueryCount: 1,
         dbTransactionCount: 0,
         stage: "comments.root",
       }),

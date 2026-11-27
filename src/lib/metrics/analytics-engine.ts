@@ -906,6 +906,19 @@ export function resetAnalyticsEngineDiagnosticsForTest() {
   analyticsWriteFailureLogged = new WeakSet<object>();
 }
 
+// Each event writer constructs fresh arrays for its point. Normalize them
+// before handing ownership to Analytics Engine.
+function normalizeFields<T>(
+  fields: T[],
+  limit: number,
+  normalize: (field: T) => T,
+) {
+  if (fields.length > limit) fields.length = limit;
+  for (let index = 0; index < fields.length; index++) {
+    fields[index] = normalize(fields[index]);
+  }
+}
+
 function writeAnalyticsDataPoint(input: {
   blobs: string[];
   doubles: number[];
@@ -922,14 +935,10 @@ function writeAnalyticsDataPoint(input: {
   }
 
   try {
-    dataset.writeDataPoint({
-      // Analytics Engine accepts one index and at most 20 values of either
-      // type. Keep the sink bounded even if a future caller accidentally
-      // widens an event payload.
-      indexes: input.indexes.slice(0, 1).map(boundedValue),
-      blobs: input.blobs.slice(0, 20).map(boundedValue),
-      doubles: input.doubles.slice(0, 20).map(finiteNumber),
-    });
+    normalizeFields(input.indexes, 1, boundedValue);
+    normalizeFields(input.blobs, 20, boundedValue);
+    normalizeFields(input.doubles, 20, finiteNumber);
+    dataset.writeDataPoint(input);
   } catch (error) {
     logAnalyticsWriteFailure(dataset, error);
   }

@@ -10,7 +10,7 @@ import { resolveSectionDetailTabQueryRedirect } from "@/features/section-detail/
 import { hasDemoCookie } from "@/lib/auth/demo-request-signal";
 import { hasRequestAuthSignal } from "@/lib/auth/request-auth-signal";
 import { INTERNAL_ROUTE_PREFIX } from "@/lib/navigation/internal-routes";
-import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import { nextShanghaiMidnightMs } from "@/lib/time/shanghai-format";
 
 export { resolveSectionDetailTabQueryRedirect };
 
@@ -65,6 +65,7 @@ const DIRECT_REQUEST_PATHS = new Set([
   "/error",
   "/llms.txt",
   "/metrics",
+  "/favicon.ico",
   "/open-graph.png",
   "/robots.txt",
   "/sitemap.xml",
@@ -124,11 +125,8 @@ export function publicSsrCacheHeaders(
       "Cloudflare-CDN-Cache-Control": PUBLIC_SSR_PAGE_EDGE_CACHE_CONTROL,
     };
   }
-  const campusNow = shanghaiDayjs(now);
-  if (
-    campusNow.format("YYYY-MM-DD") !==
-    shanghaiDayjs(renderStartedAt).format("YYYY-MM-DD")
-  ) {
+  const midnight = nextShanghaiMidnightMs(now);
+  if (midnight !== nextShanghaiMidnightMs(renderStartedAt)) {
     return {
       "Cache-Control": "private, no-store",
       "Cloudflare-CDN-Cache-Control": "no-store",
@@ -136,7 +134,7 @@ export function publicSsrCacheHeaders(
   }
   const untilMidnight = Math.max(
     1,
-    campusNow.add(1, "day").startOf("day").diff(campusNow, "second"),
+    Math.floor((midnight - now.getTime()) / 1000),
   );
   const ttl = Math.min(
     youngPage ? 60 : PUBLIC_SSR_SHARED_CACHE_MAX_AGE_SECONDS,

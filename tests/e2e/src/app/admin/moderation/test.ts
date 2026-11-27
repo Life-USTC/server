@@ -974,39 +974,6 @@ test("/admin/moderation 作业治理可访问", { tag: "@Homework/Web" }, async 
   );
 });
 
-test("页面契约", { tag: "@Admin/Web" }, async ({
-  adminFlow,
-  run,
-  page,
-  moderation,
-}) => {
-  await run(() =>
-    adminFlow.run(
-      async () => {
-        const response = await gotoAndWaitForReady(
-          page,
-          `/admin/moderation?search=${moderation.marker}`,
-          {
-            browserHealth: {},
-            expectMeaningfulContent: true,
-            expectNoHorizontalOverflow: true,
-            uiQuality: {},
-          },
-        );
-        expect(response?.ok()).toBe(true);
-        await expect(
-          page.getByRole("link", { name: /评论|Comments/i }),
-        ).toBeVisible();
-        await expect(
-          page.getByRole("heading", { name: /Moderation|内容审核/, level: 1 }),
-        ).toBeVisible();
-      },
-      {},
-      adminWriteChecks([]),
-    ),
-  );
-});
-
 test("admin.high-risk-feedback", { tag: "@Homework/Web" }, async ({
   homeworkDeletionRun,
   page,

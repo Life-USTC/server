@@ -1,5 +1,6 @@
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma, withUserDbContext } from "@/lib/db/prisma";
+import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 import { getSectionHomeworkData } from "./section-detail-homework-data";
 
 /** Web-only projection. Public HTML must never call this reader. */
@@ -37,11 +38,13 @@ export async function getSectionPersonalData(input: {
   const { userId } = input;
   const [subscription, homeworkData] = await Promise.all([
     userId
-      ? withUserDbContext(userId, (tx) =>
-          tx.userSectionSubscription.findUnique({
-            where: { userId_sectionId: { userId, sectionId: section.id } },
-            select: { kind: true },
-          }),
+      ? runCloudflareTraceSpan("catalog.section.viewer.subscription", {}, () =>
+          withUserDbContext(userId, (tx) =>
+            tx.userSectionSubscription.findUnique({
+              where: { userId_sectionId: { userId, sectionId: section.id } },
+              select: { kind: true },
+            }),
+          ),
         )
       : null,
     getSectionHomeworkData(section.id, input.userId, input.focusedHomeworkId),

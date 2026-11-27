@@ -4,10 +4,12 @@ import { updateSocialMetadata } from "@/lib/social-metadata";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
-  const layoutData = await event.parent();
-  const data = event.locals.demo
-    ? getDemoNewsListPage(event.url, event.locals.demo, event.locals.locale)
-    : await loadPublicationListPage(event.url, event.locals.locale);
+  const [layoutData, data] = await Promise.all([
+    event.parent(),
+    event.locals.demo
+      ? getDemoNewsListPage(event.url, event.locals.demo, event.locals.locale)
+      : loadPublicationListPage(event.url, event.locals.locale),
+  ]);
   return {
     ...data,
     socialMetadata: updateSocialMetadata(layoutData.socialMetadata, {
