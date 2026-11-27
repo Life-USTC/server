@@ -1,11 +1,19 @@
 <script lang="ts">
 import * as Alert from "#lib/components/ui/alert/index.js";
-import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
+import { Button } from "#lib/components/ui/button/index.js";
 import type CommentsPanelComponent from "@/features/comments/components/CommentsPanel.svelte";
 import type { CommentsCopy } from "@/features/comments/components/comment-component-types";
+import { commentTargetPermalinkBaseHref } from "@/features/comments/lib/comment-panel-controller";
+import HomeworkCreateDialog from "@/features/homeworks/components/HomeworkCreateDialog.svelte";
+import HomeworkDetailDialog from "@/features/homeworks/components/HomeworkDetailDialog.svelte";
+import { canCompletePersonalHomework } from "@/features/homeworks/lib/homework-capabilities";
+import {
+  formatHomeworkDetailDateTime,
+  formatHomeworkDueRelativeTime,
+  normalizeHomeworkDetail,
+} from "@/features/homeworks/lib/homework-presentation";
 import { createHomeworkTabDisplayActions } from "@/features/workspace/lib/homeworks-tab-display";
 import type {
-  HomeworkFilter,
   SignedWorkspaceData,
   WorkspaceCommonCopy,
   WorkspaceCopy,
@@ -16,16 +24,14 @@ import type {
 } from "@/features/workspace/lib/workspace-controller-types";
 import { hasWorkspaceSubscriptions } from "@/features/workspace/lib/workspace-subscription-state";
 import type { SubmitFunction } from "$app/forms";
-import { withoutTaskFilter } from "../lib/workspace-task-filter-state";
 import {
   filterHomeworkTable,
   homeworkTableFields,
 } from "../lib/workspace-task-table-filters";
-import HomeworksCardsView from "./HomeworksCardsView.svelte";
-import HomeworksListView from "./HomeworksListView.svelte";
-import HomeworksTabDialogs from "./HomeworksTabDialogs.svelte";
-import HomeworksTabToolbar from "./HomeworksTabToolbar.svelte";
+import HomeworkCreateFormFields from "./HomeworkCreateFormFields.svelte";
+import HomeworksCollection from "./HomeworksCollection.svelte";
 import WorkspaceNoSubscriptionsState from "./WorkspaceNoSubscriptionsState.svelte";
+import WorkspaceTaskAddButton from "./WorkspaceTaskAddButton.svelte";
 import WorkspaceTaskFilterToolbar from "./WorkspaceTaskFilterToolbar.svelte";
 import type { WorkspaceHomeworkCreateSection } from "./workspace-homework-create-types";
 
@@ -55,14 +61,11 @@ export let homeworkActionError: string;
 export let locale: string;
 export let referenceDate: Date | string;
 export let openCreateHomeworkDialog: () => void;
-export let applyHomeworkStartNow: () => void;
-export let applyHomeworkDueAtSemesterEnd: () => void;
 export let toggleHomeworkCompletion: (
   homework: WorkspaceHomeworkItem,
 ) => void | Promise<void>;
 export let createHomeworkAction: SubmitFunction;
 
-export let homeworkFilter: HomeworkFilter;
 export let showCreateHomework: boolean;
 export let createHomeworkAdvancedOpen: boolean;
 export let createHomeworkPublishedAt: string;
@@ -103,21 +106,9 @@ $: filteredHomeworkItems = filterHomeworkTable(
   applied,
   new Date(referenceDate),
 );
-function patchDraft(patch: Record<string, string>) {
-  draft = { ...draft, ...patch };
-}
-function removeFilter(name: string) {
-  applied = withoutTaskFilter(applied, name);
-  draft = withoutTaskFilter(draft, name);
-}
-function applyFilters(event: SubmitEvent) {
-  event.preventDefault();
-  applied = { ...draft };
-}
 $: hasHomeworkItems = homeworkItems.length > 0;
 
 function clearHomeworkFilter() {
-  homeworkFilter = "all";
   draft = {};
   applied = {};
 }
@@ -146,6 +137,19 @@ $: ({
   referenceDate,
   sectionCopy,
 }));
+$: selectedHomeworkDetail = selectedHomework
+  ? normalizeHomeworkDetail(selectedHomework, {
+      contextHref: homeworkSectionHref(selectedHomework),
+      contextLabel: homeworkCourseLabel(selectedHomework),
+    })
+  : null;
+$: selectedHomeworkPermalinkBaseHref = selectedHomework?.section?.jwId
+  ? commentTargetPermalinkBaseHref({
+      homeworkId: selectedHomework.id,
+      sectionJwId: selectedHomework.section.jwId,
+      type: "homework",
+    })
+  : null;
 </script>
 
 
@@ -161,99 +165,110 @@ $: ({
       ]}
     />
   {:else}
-    <HomeworksTabToolbar
-      {canWriteShared}
+    <WorkspaceTaskAddButton
       {readOnlyReason}
-      homeworksCopy={homeworksCopy}
-      openCreateHomeworkDialog={openCreateHomeworkDialog}
+      disabled={!canWriteShared}
+      label={homeworksCopy.addButton}
+      testId="workspace-homeworks-add"
+      onclick={openCreateHomeworkDialog}
     />
 
     {#if signedData.homeworkCapabilities?.canComplete && !canWriteShared && !signedData.demo}
-      <Alert.Root><Alert.Description>{homeworksCopy.suspended}</Alert.Description></Alert.Root>
+      <Alert.Message>{homeworksCopy.suspended}</Alert.Message>
     {/if}
 
     {#if homeworkActionError}
-      <Alert.Root variant="destructive">
-        <Alert.Description>{homeworkActionError}</Alert.Description>
-      </Alert.Root>
+      <Alert.Message variant="destructive">{homeworkActionError}</Alert.Message>
     {/if}
 
-    <WorkspaceTaskFilterToolbar id="homework-table-filters" {fields} commonNames={["completion", "course", "semester", "submissionDueAt"]} {draft} {applied} copy={commonCopy} sortLabel={commonCopy.taskFilters.homeworkSort} onchange={patchDraft} onapply={applyFilters} onreset={clearHomeworkFilter} onremove={removeFilter} />
-    <WorkspaceCollection>
-      {#snippet mobile()}
-
-        <HomeworksCardsView
-          showPersonalStatus={!signedData.demo}
-      {readOnlyReason}
-          locale={locale}
-          unknownSemesterLabel={commonCopy.unknown}
-          filteredHomeworkItems={filteredHomeworkItems}
-          hasHomeworkItems={hasHomeworkItems}
-          showClearFilter={showClearHomeworkFilter}
-          onClearFilter={clearHomeworkFilter}
-          fmtDate={fmtDate}
-          homeworkCompletionActionLabel={homeworkCompletionActionLabel}
-          homeworkCopy={homeworkCopy}
-          homeworkEtaLabel={homeworkEtaLabel}
-          homeworkIsOverdue={homeworkIsOverdue}
-          homeworkSectionHref={homeworkSectionHref}
-          homeworksCopy={homeworksCopy}
-          homeworkSavingById={homeworkSavingById}
-          bind:selectedHomework
-          toggleHomeworkCompletion={toggleHomeworkCompletion}
-        />
-      {/snippet}
-      {#snippet desktop()}
-        <HomeworksListView
-          showPersonalStatus={!signedData.demo}
-      {readOnlyReason}
-          locale={locale}
-          unknownSemesterLabel={commonCopy.unknown}
-          filteredHomeworkItems={filteredHomeworkItems}
-          hasHomeworkItems={hasHomeworkItems}
-          showClearFilter={showClearHomeworkFilter}
-          onClearFilter={clearHomeworkFilter}
-          fmtDate={fmtDate}
-          homeworkCompletionActionLabel={homeworkCompletionActionLabel}
-          homeworkCopy={homeworkCopy}
-          homeworkEtaLabel={homeworkEtaLabel}
-          homeworkIsOverdue={homeworkIsOverdue}
-          homeworkSectionHref={homeworkSectionHref}
-          homeworksCopy={homeworksCopy}
-          homeworkSavingById={homeworkSavingById}
-          bind:selectedHomework
-          toggleHomeworkCompletion={toggleHomeworkCompletion}
-        />
-      {/snippet}
-    </WorkspaceCollection>
-
-    <HomeworksTabDialogs
-      {canWriteShared}
+    <WorkspaceTaskFilterToolbar id="homework-table-filters" {fields} commonNames={["completion", "course", "semester", "submissionDueAt"]} bind:draft bind:applied copy={commonCopy} sortLabel={commonCopy.taskFilters.homeworkSort} onreset={clearHomeworkFilter} />
+    <HomeworksCollection
       showPersonalStatus={!signedData.demo}
       {readOnlyReason}
-      CommentsPanel={CommentsPanel}
-      applyHomeworkDueAtSemesterEnd={applyHomeworkDueAtSemesterEnd}
-      applyHomeworkStartNow={applyHomeworkStartNow}
-      commentsCopy={commentsCopy}
-      createHomeworkAction={createHomeworkAction}
-      bind:createHomeworkAdvancedOpen
-      bind:createHomeworkError
-      bind:createHomeworkPublishedAt
-      bind:createHomeworkSectionId
-      bind:createHomeworkSubmissionDueAt
-      bind:createHomeworkSubmissionStartAt
-      homeworkCourseLabel={homeworkCourseLabel}
-      homeworksCopy={homeworksCopy}
-      homeworkSavingById={homeworkSavingById}
-      homeworkSectionHref={homeworkSectionHref}
-      homeworkSectionLabel={homeworkSectionLabel}
-      isCreatingHomework={isCreatingHomework}
-      locale={locale}
-      referenceDate={referenceDate}
-      sections={signedData.homeworks.sections}
+      {locale}
+      unknownSemesterLabel={commonCopy.unknown}
+      {filteredHomeworkItems}
+      {hasHomeworkItems}
+      showClearFilter={showClearHomeworkFilter}
+      onClearFilter={clearHomeworkFilter}
+      {fmtDate}
+      {homeworkCompletionActionLabel}
+      {homeworkCopy}
+      {homeworkEtaLabel}
+      {homeworkIsOverdue}
+      {homeworkSectionHref}
+      {homeworksCopy}
+      {homeworkSavingById}
       bind:selectedHomework
-      bind:showCreateHomework
-      toggleHomeworkCompletion={toggleHomeworkCompletion}
+      {toggleHomeworkCompletion}
     />
+
+    {#if canWriteShared && !readOnlyReason}
+      <HomeworkCreateDialog
+        open={showCreateHomework}
+        copy={homeworksCopy}
+        submitAction={createHomeworkAction}
+        saving={isCreatingHomework}
+        testId="workspace-homework-create"
+        onClose={() => {
+          showCreateHomework = false;
+          createHomeworkError = "";
+        }}
+      >
+        <HomeworkCreateFormFields
+          {locale}
+          {commentsCopy}
+          {createHomeworkError}
+          bind:createHomeworkAdvancedOpen
+          bind:createHomeworkPublishedAt
+          bind:createHomeworkSectionId
+          bind:createHomeworkSubmissionDueAt
+          bind:createHomeworkSubmissionStartAt
+          {homeworkSectionLabel}
+          {homeworksCopy}
+          {isCreatingHomework}
+          sections={signedData.homeworks.sections}
+        />
+      </HomeworkCreateDialog>
+    {/if}
+
+    <HomeworkDetailDialog
+      showPersonalStatus={!signedData.demo}
+      {readOnlyReason}
+      freezeReferenceTime={Boolean(readOnlyReason)}
+      {CommentsPanel}
+      completionSaving={selectedHomework ? homeworkSavingById[selectedHomework.id] : false}
+      contextHref={selectedHomeworkDetail?.contextHref}
+      contextLabel={selectedHomeworkDetail?.contextLabel}
+      copy={homeworksCopy}
+      dateFallback={homeworksCopy.dateTBD}
+      fmtDate={(value) =>
+        formatHomeworkDetailDateTime(value, locale, homeworksCopy.dateTBD)}
+      homework={selectedHomeworkDetail}
+      onClose={() => {
+        selectedHomework = null;
+      }}
+      onToggleCompletion={() => {
+        if (selectedHomework) return toggleHomeworkCompletion(selectedHomework);
+      }}
+      permalinkBaseHref={selectedHomeworkPermalinkBaseHref}
+      relativeEtaLabel={(value, liveReferenceDate) =>
+        formatHomeworkDueRelativeTime(
+          value,
+          liveReferenceDate,
+          locale,
+          homeworksCopy.dateTBD,
+        )}
+      {referenceDate}
+      showCompletion={(canCompletePersonalHomework({isAuthenticated: !signedData.demo}) && selectedHomework !== null) || Boolean(readOnlyReason)}
+    >
+      {#snippet contextActions()}
+        {#if selectedHomeworkPermalinkBaseHref}
+          <Button href={selectedHomeworkPermalinkBaseHref} variant="outline" class="w-full whitespace-normal text-center sm:w-auto">
+            {homeworksCopy.openFullDetails}
+          </Button>
+        {/if}
+      {/snippet}
+    </HomeworkDetailDialog>
   {/if}
 </section>

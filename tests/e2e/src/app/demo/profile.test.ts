@@ -390,9 +390,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
                   "/account/settings/profile?tab=accounts&message=Success",
                 );
                 await expect(page.locator("#name")).toHaveValue(identity);
-                await expect(page.locator("[data-sonner-toast]")).toHaveCount(
-                  0,
-                );
+                await expect(page.locator("[data-slot=toast]")).toHaveCount(0);
                 if (width === 390)
                   await page
                     .getByRole("button", {

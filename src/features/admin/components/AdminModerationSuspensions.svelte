@@ -1,11 +1,5 @@
 <script lang="ts">
 import Unlock from "@lucide/svelte/icons/unlock";
-import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
-import CollectionListShell from "#lib/components/CollectionListShell.svelte";
-import CollectionTableShell from "#lib/components/CollectionTableShell.svelte";
-import MobileListCard from "#lib/components/MobileListCard.svelte";
-import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
-import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
@@ -14,9 +8,9 @@ import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Spinner } from "#lib/components/ui/spinner/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
 import { enhance, type SubmitFunction } from "$app/forms";
 import type { AdminModerationFilterControls } from "./admin-moderation-page-types";
+import ModerationCollection from "./ModerationCollection.svelte";
 
 type ModerationSuspension = {
   expiresAt?: string | Date | null;
@@ -83,129 +77,96 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
 </script>
 
 <section class="grid gap-3">
-    <ResponsiveCollection>
-      {#snippet mobile()}
-        <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
-          {@render filterControls("search", "mobile")}
-          {@render filterControls("author", "mobile")}
-          {@render filterControls("reason", "mobile")}
-          {@render filterControls("expiresAt", "mobile")}
-
-          {@render filterControls("status", "mobile")}
-        </div>
-        {#if suspensions.length === 0}<CollectionEmpty variant="compact" description={copy.noSuspensions} />{:else}
-        <CollectionListShell>
-          <Item.Group class="gap-0">
-            {#each suspensions as suspension, index (suspension.id)}
-              <MobileListCard>
-                <Item.Content class="min-w-0 gap-2">
-                  {@const currentUserLabel = userLabel(suspension)}
-                  <Item.Title title={currentUserLabel}>{currentUserLabel}</Item.Title>
-                  {#if suspension.user.username}
-                  <Item.Description class="font-mono">
-                    @{suspension.user.username}
-                  </Item.Description>
-                  {/if}
-                <Item.Description title={`${suspension.reason ?? copy.noReason} · ${expiresLabel(suspension)}`}>
-                  <TruncatedText text={`${suspension.reason ?? copy.noReason} · ${expiresLabel(suspension)}`} />
-                </Item.Description>
-                </Item.Content>
-                <Item.Actions class="flex-wrap items-center gap-2">
-                  {#if suspension.liftedAt}
-                    <Badge variant="ghost">{copy.lifted}</Badge>
-                  {:else}
-                    <Badge variant="destructive">{copy.active}</Badge>
-                    <Button
-                      disabled={Boolean(liftingSuspensionId)}
-                      aria-label={liftingSuspensionId === suspension.id ? copy.saving : copy.liftSuspensionAction}
-                      onclick={() => pendingLiftSuspension = suspension}
-                      size="sm"
-                      type="button"
-                      variant="ghost"
-                    >
-                    {#if liftingSuspensionId === suspension.id}<Spinner data-icon="inline-start" />{:else}<Unlock data-icon="inline-start" />{/if}
-                      {liftingSuspensionId === suspension.id ? copy.saving : copy.liftSuspensionAction}
-                    </Button>
-                  {/if}
-                </Item.Actions>
-              </MobileListCard>
-            {#if index < suspensions.length - 1}<Item.Separator class="my-0" />{/if}
-            {/each}
-          </Item.Group>
-        </CollectionListShell>
+  <ModerationCollection
+    tableClass="w-full min-w-[54rem]"
+    actionsLabel={copy.actions}
+    columns={[
+      ["author", 23],
+      ["reason", 34],
+      ["expiresAt", 20],
+      ["status", 13],
+    ]}
+    {filterControls}
+    items={suspensions}
+    label={copy.user}
+    emptyDescription={copy.noSuspensions}
+    fields={["search", "author", "reason", "expiresAt", "status"]}
+  >
+    {#snippet card(suspension: ModerationSuspension)}
+      <Item.Content class="min-w-0 gap-2">
+        {@const currentUserLabel = userLabel(suspension)}
+        <Item.Title title={currentUserLabel}>{currentUserLabel}</Item.Title>
+        {#if suspension.user.username}
+        <Item.Description class="font-mono">
+          @{suspension.user.username}
+        </Item.Description>
         {/if}
-      {/snippet}
-      {#snippet desktop()}
-
-        <div class="min-w-0">
-          <CollectionTableShell label={copy.user}>
-            <Table.Root class="w-full min-w-[54rem]">
-              <Table.Header>
-        <TableControlsRow colspan={5}>{@render filterControls("search", "desktop")}</TableControlsRow>
-                <Table.Row>
-                  <Table.Head class="w-[23%]">{@render filterControls("author", "desktop")}</Table.Head>
-                  <Table.Head class="w-[34%]">{@render filterControls("reason", "desktop")}</Table.Head>
-                  <Table.Head class="w-[20%]">{@render filterControls("expiresAt", "desktop")}</Table.Head>
-                  <Table.Head class="w-[13%]">{@render filterControls("status", "desktop")}</Table.Head>
-                <Table.Head class="w-14 min-w-14">
-                  <span class="sr-only">{copy.actions}</span>
-                </Table.Head>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {#each suspensions as suspension}
-                  <Table.Row class="group">
-                    <Table.Cell class="max-w-0">
-                      {@const currentUserLabel = userLabel(suspension)}
-                      <div class="grid min-w-0 gap-0.5">
-                      <span class="block max-w-full" title={currentUserLabel}>
-                        <TruncatedText class="font-medium" text={currentUserLabel} />
-                      </span>
-                        <TruncatedText
-                          class="font-mono text-muted-foreground text-xs"
-                          text={suspension.user.username ? `@${suspension.user.username}` : null}
-                        />
-                      </div>
-                    </Table.Cell>
-                    <Table.Cell class="max-w-0">
-                      <TruncatedText
-                        lines={2}
-                        text={suspension.reason ?? copy.noReason}
-                      />
-                    </Table.Cell>
-                  <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
-                    {expiresLabel(suspension)}
-                  </Table.Cell>
-                    <Table.Cell class="text-left">
-                      {#if suspension.liftedAt}
-                        <Badge variant="ghost">{copy.lifted}</Badge>
-                      {:else}
-                        <Badge variant="destructive">{copy.active}</Badge>
-                      {/if}
-                    </Table.Cell>
-                    <Table.Cell class="w-14 min-w-14 text-left">
-                      {#if !suspension.liftedAt}
-                        <TableRowActions>
-                          <TableIconButton
-                            disabled={Boolean(liftingSuspensionId)}
-                            label={liftingSuspensionId === suspension.id ? copy.saving : copy.liftSuspensionAction}
-                            onclick={() => pendingLiftSuspension = suspension}
-                          >
-                          {#if liftingSuspensionId === suspension.id}<Spinner />{:else}<Unlock />{/if}
-                          </TableIconButton>
-                        </TableRowActions>
-                      {/if}
-                    </Table.Cell>
-                  </Table.Row>
-                {:else}
-          <Table.Row><Table.Cell colspan={5}><CollectionEmpty variant="compact" description={copy.noSuspensions} /></Table.Cell></Table.Row>
-        {/each}
-              </Table.Body>
-            </Table.Root>
-          </CollectionTableShell>
+      <Item.Description title={`${suspension.reason ?? copy.noReason} · ${expiresLabel(suspension)}`}>
+        <TruncatedText text={`${suspension.reason ?? copy.noReason} · ${expiresLabel(suspension)}`} />
+      </Item.Description>
+      </Item.Content>
+      <Item.Actions class="flex-wrap items-center gap-2">
+        {#if suspension.liftedAt}
+          <Badge variant="ghost">{copy.lifted}</Badge>
+        {:else}
+          <Badge variant="destructive">{copy.active}</Badge>
+          <Button
+            loading={liftingSuspensionId === suspension.id} icon={Unlock}
+            disabled={Boolean(liftingSuspensionId)}
+            aria-label={liftingSuspensionId === suspension.id ? copy.saving : copy.liftSuspensionAction}
+            onclick={() => pendingLiftSuspension = suspension}
+            size="sm"
+            variant="ghost"
+          >
+            {liftingSuspensionId === suspension.id ? copy.saving : copy.liftSuspensionAction}
+          </Button>
+        {/if}
+      </Item.Actions>
+    {/snippet}
+    {#snippet cells(suspension: ModerationSuspension)}
+      {@const currentUserLabel = userLabel(suspension)}
+      <td class="max-w-0">
+        <div class="grid min-w-0 gap-0.5">
+          <span class="block max-w-full" title={currentUserLabel}>
+            <TruncatedText class="font-medium" text={currentUserLabel} />
+          </span>
+          <TruncatedText
+            class="font-mono text-muted-foreground text-xs"
+            text={suspension.user.username ? `@${suspension.user.username}` : null}
+          />
         </div>
-      {/snippet}
-    </ResponsiveCollection>
+      </td>
+      <td class="max-w-0">
+        <TruncatedText
+          lines={2}
+          text={suspension.reason ?? copy.noReason}
+        />
+      </td>
+      <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+        {expiresLabel(suspension)}
+      </td>
+      <td class="text-left">
+        {#if suspension.liftedAt}
+          <Badge variant="ghost">{copy.lifted}</Badge>
+        {:else}
+          <Badge variant="destructive">{copy.active}</Badge>
+        {/if}
+      </td>
+      <td class="w-14 min-w-14 text-left">
+        {#if !suspension.liftedAt}
+          <TableRowActions>
+            <TableIconButton
+              disabled={Boolean(liftingSuspensionId)}
+              label={liftingSuspensionId === suspension.id ? copy.saving : copy.liftSuspensionAction}
+              onclick={() => pendingLiftSuspension = suspension}
+            >
+              {#if liftingSuspensionId === suspension.id}<Spinner />{:else}<Unlock />{/if}
+            </TableIconButton>
+          </TableRowActions>
+        {/if}
+      </td>
+    {/snippet}
+  </ModerationCollection>
 </section>
 
 {#if pendingLiftSuspension}
@@ -216,41 +177,23 @@ function confirmedLiftAction(suspension: ModerationSuspension): SubmitFunction {
     }}
   >
     <AlertDialog.Content class="max-w-md sm:max-w-md">
-      <AlertDialog.Header>
-        <AlertDialog.Title>{copy.liftSuspensionConfirmTitle}</AlertDialog.Title>
-        <AlertDialog.Description>
-          {formatMessage(copy.liftSuspensionConfirmDescription, {
-            user: userLabel(pendingLiftSuspension),
-          })}
-        </AlertDialog.Description>
-      </AlertDialog.Header>
+      <AlertDialog.Heading
+        title={copy.liftSuspensionConfirmTitle}
+        description={formatMessage(copy.liftSuspensionConfirmDescription, { user: userLabel(pendingLiftSuspension) })}
+      />
       <form
         method="POST"
         action="?/liftSuspension"
         use:enhance={confirmedLiftAction(pendingLiftSuspension)}
       >
         <input type="hidden" name="id" value={pendingLiftSuspension.id} />
-        <AlertDialog.Footer>
-          <AlertDialog.Cancel
-            type="button"
-            disabled={Boolean(liftingSuspensionId)}
-            variant="outline"
-          >
-            {copy.cancelButton}
-          </AlertDialog.Cancel>
-          <AlertDialog.Action
-            type="submit"
-            disabled={Boolean(liftingSuspensionId)}
-            variant="destructive"
-          >
-            {#if liftingSuspensionId === pendingLiftSuspension.id}
-              <Spinner data-icon="inline-start" />
-            {:else}
-              <Unlock data-icon="inline-start" />
-            {/if}
-            {copy.liftSuspensionConfirmAction}
-          </AlertDialog.Action>
-        </AlertDialog.Footer>
+        <AlertDialog.Actions
+          cancelLabel={copy.cancelButton}
+          confirmLabel={copy.liftSuspensionConfirmAction}
+          pending={liftingSuspensionId === pendingLiftSuspension.id}
+          busy={Boolean(liftingSuspensionId)}
+          icon={Unlock}
+        />
       </form>
     </AlertDialog.Content>
   </AlertDialog.Root>

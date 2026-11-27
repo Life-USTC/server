@@ -3,7 +3,7 @@ import ChevronLeftIcon from "@lucide/svelte/icons/chevron-left";
 import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
 import { onMount, type Snippet } from "svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import { cn } from "#lib/utils.js";
 import BusRouteDescription from "@/features/bus/components/BusRouteDescription.svelte";
 import type { BusApplicableRoute } from "@/features/bus/lib/bus-client";
@@ -71,33 +71,33 @@ onMount(() => {
     data-testid="bus-timetable-scroll-region"
     style="--table-min-width: {tableMinWidth}"
   >
-    <Table.Root class="min-w-[var(--table-min-width)]">
-      <Table.Caption class="sr-only">{label}</Table.Caption>
+    <Table class="min-w-[var(--table-min-width)]">
+      <caption class="sr-only">{label}</caption>
       {#each routeGroups as { route, stopColumns } (route.route.id)}
-        <Table.Body data-testid="bus-route-section">
-          <Table.Row>
-            <Table.Head colspan={columnCount} scope="rowgroup">
+        <tbody data-testid="bus-route-section">
+          <tr>
+            <th colspan={columnCount} scope="rowgroup">
               <h3 class="min-w-0 font-medium text-sm">
                 <BusRouteDescription description={route.route.descriptionPrimary} />
               </h3>
-            </Table.Head>
-          </Table.Row>
-          <Table.Row>
+            </th>
+          </tr>
+          <tr>
             {#each stopColumns as stop, index}
-              <Table.Head
+              <th
                 id={`bus-route-${route.route.id}-stop-${stop.stopOrder}`}
                 scope="col"
                 colspan={index === stopColumns.length - 1 ? columnCount - stopColumns.length + 1 : 1}
                 class="text-left"
               >
                 <TableFieldFilter label={stop.label} fields={busStopFilterFields(route.route.stops.find((item) => item.stopOrder === stop.stopOrder)!.campus.id, stop.label, busCopy)} values={filterValues} onchange={onFilterChange} labels={busCopy.tableFilters} idPrefix={`bus-route-${route.route.id}-stop-${stop.stopOrder}`} {formId} />
-              </Table.Head>
+              </th>
             {/each}
-          </Table.Row>
+          </tr>
           {#each route.visibleTrips as trip}
             {@const tripKey = `${route.route.id}:${trip.trip.id}`}
             {@const isNextTrip = tripKey === busNextTripHighlightKey}
-            <Table.Row
+            <tr
               class={cn(
                 trip.status === "departed" ? "opacity-60" : undefined,
                 isNextTrip ? "bg-muted/70 hover:bg-muted" : undefined,
@@ -105,21 +105,21 @@ onMount(() => {
             >
               {#each stopColumns as stop, index}
                 {@const stopTime = busTripStopTimeForOrder(trip, stop.stopOrder)}
-                <Table.Cell
+                <td
                   headers={`bus-route-${route.route.id}-stop-${stop.stopOrder}`}
                   colspan={index === stopColumns.length - 1 ? columnCount - stopColumns.length + 1 : 1}
                   class="text-left"
                 >
                   <span class="font-mono tabular-nums">{busStopTimeLabel(stopTime)}</span>
-                </Table.Cell>
+                </td>
               {/each}
-            </Table.Row>
+            </tr>
           {/each}
-        </Table.Body>
+        </tbody>
       {:else}
-        <Table.Body><Table.Row><Table.Cell colspan={columnCount}>{@render empty()}</Table.Cell></Table.Row></Table.Body>
+        <tbody><tr><td colspan={columnCount}>{@render empty()}</td></tr></tbody>
       {/each}
-    </Table.Root>
+    </Table>
     {#if canScrollLeft}
       <div
         aria-hidden="true"

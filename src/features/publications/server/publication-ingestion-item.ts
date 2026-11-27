@@ -116,6 +116,7 @@ export async function ingestItem(
   links: PendingPublicationLinks[],
   events: Prisma.PublicationEventOutboxCreateManyInput[],
   pointers: PendingPublicationPointers,
+  revisionPolicy?: "missingOnly",
 ): Promise<PublicationIngestionItemResult> {
   if (!item.tombstone) {
     await validatePublicationImageSources(item.imageSources);
@@ -235,7 +236,7 @@ export async function ingestItem(
     );
   }
 
-  if (!shouldApply) {
+  if (revisionPolicy === "missingOnly" || !shouldApply) {
     const unchanged = result(
       item,
       "unchanged",

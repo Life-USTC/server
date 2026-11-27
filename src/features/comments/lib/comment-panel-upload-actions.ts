@@ -1,11 +1,8 @@
-import {
-  type CommentEditorMode,
-  commentAttachmentStateWithUpload,
-} from "./comment-panel-controller";
-import { applyCommentUploadState } from "./comment-panel-upload-state";
+import type { createCommentPanelDefaultState } from "./comment-panel-default-state";
+import type { CommentEditorMode } from "./comment-panel-draft-state";
+import { commentUploadPendingStateWithDelta } from "./comment-panel-upload-state";
 import { attachmentMarkdown, formatUploadSize } from "./comment-ui";
 import {
-  type CommentUploadOption,
   type CommentUploadSummary,
   loadCommentUploadSummary,
   uploadCommentAttachment,
@@ -20,13 +17,8 @@ type UploadCopy = {
 };
 
 export function createCommentPanelUploadActions(input: {
-  getEditAttachmentIds: () => string[];
-  getEditUploadedFiles: () => CommentUploadOption[];
-  getReplyAttachmentIds: () => string[];
-  getReplyUploadedFiles: () => CommentUploadOption[];
-  getSelectedAttachments: () => string[];
+  panel: ReturnType<typeof createCommentPanelDefaultState>;
   getUploadCopy: () => UploadCopy;
-  getUploadedFiles: () => CommentUploadOption[];
   insertMarkdown: (value: string, mode: CommentEditorMode) => void;
   onSuccess?: (filename: string) => void;
   replaceMarkdownToken: (
@@ -34,16 +26,15 @@ export function createCommentPanelUploadActions(input: {
     replacement: string,
     mode: CommentEditorMode,
   ) => void;
-  setEditAttachmentIds: (value: string[]) => void;
-  setEditUploadedFiles: (value: CommentUploadOption[]) => void;
-  setMessage: (value: string) => void;
-  setMessageVariant: (value: "destructive" | "default") => void;
-  setReplyAttachmentIds: (value: string[]) => void;
-  setReplyUploadedFiles: (value: CommentUploadOption[]) => void;
-  setSelectedAttachments: (value: string[]) => void;
-  updatePendingUploads: (mode: CommentEditorMode, delta: number) => void;
-  setUploadedFiles: (value: CommentUploadOption[]) => void;
 }) {
+  const { panel } = input;
+  function updatePendingUploads(mode: CommentEditorMode, delta: number) {
+    panel.uploadPending = commentUploadPendingStateWithDelta({
+      mode,
+      delta,
+      state: panel.uploadPending,
+    });
+  }
   let uploadSummary: CommentUploadSummary | null = null;
 
   async function loadUploadSummary() {
@@ -55,9 +46,9 @@ export function createCommentPanelUploadActions(input: {
   }
 
   async function uploadFile(file: File, mode: CommentEditorMode = "new") {
-    input.updatePendingUploads(mode, 1);
-    input.setMessage("");
-    input.setMessageVariant("default");
+    updatePendingUploads(mode, 1);
+    panel.message = "";
+    panel.messageVariant = "default";
     const uploadCopy = input.getUploadCopy();
     const token = `![${uploadCopy.uploading} ${file.name}](upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)})`;
     input.insertMarkdown(token, mode);
@@ -71,29 +62,27 @@ export function createCommentPanelUploadActions(input: {
         },
         uploadCopy,
       });
-      const next = commentAttachmentStateWithUpload({
-        editAttachmentIds: input.getEditAttachmentIds(),
-        editUploadedFiles: input.getEditUploadedFiles(),
-        mode,
-        replyAttachmentIds: input.getReplyAttachmentIds(),
-        replyUploadedFiles: input.getReplyUploadedFiles(),
-        selectedAttachments: input.getSelectedAttachments(),
-        upload,
-        uploadedFiles: input.getUploadedFiles(),
-      });
-      applyCommentUploadState(next, input);
+      if (mode === "edit") {
+        panel.editAttachmentIds = [...panel.editAttachmentIds, upload.id];
+        panel.editUploadedFiles = [...panel.editUploadedFiles, upload];
+      } else if (mode === "reply") {
+        panel.replyAttachmentIds = [...panel.replyAttachmentIds, upload.id];
+        panel.replyUploadedFiles = [...panel.replyUploadedFiles, upload];
+      } else {
+        panel.selectedAttachments = [...panel.selectedAttachments, upload.id];
+        panel.uploadedFiles = [...panel.uploadedFiles, upload];
+      }
       input.replaceMarkdownToken(token, attachmentMarkdown(file, upload), mode);
       input.onSuccess?.(upload.filename);
     } catch (error) {
       input.replaceMarkdownToken(token, "", mode);
-      input.setMessage(
+      panel.message =
         error instanceof Error
           ? error.message
-          : uploadCopy.toastUploadErrorDescription,
-      );
-      input.setMessageVariant("destructive");
+          : uploadCopy.toastUploadErrorDescription;
+      panel.messageVariant = "destructive";
     } finally {
-      input.updatePendingUploads(mode, -1);
+      updatePendingUploads(mode, -1);
     }
   }
 

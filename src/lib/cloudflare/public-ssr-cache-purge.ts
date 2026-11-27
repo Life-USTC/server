@@ -13,8 +13,9 @@
  *
  * The only mechanism for the second cache is `ctx.cache.purge()`, and it is
  * scoped to the entrypoint that calls it. That is why the actual purge runs as
- * an RPC method on the `PublicSsr` entrypoint in `src/worker.js`, and why this
- * module only owns the authenticated endpoint that invokes it.
+ * an RPC method on the `PublicSsr` entrypoint in `src/worker.js`. The
+ * authenticated endpoint below invokes both cache purges so callers only need
+ * the machine secret.
  */
 
 import { timingSafeSecretEqual } from "@/lib/auth/secret-comparison";
@@ -93,6 +94,41 @@ function summarizePurgeErrors(
 
 export function isPublicSsrCachePurgeRequest(request: Request) {
   return new URL(request.url).pathname === PUBLIC_SSR_CACHE_PURGE_PATH;
+}
+
+function cloudflareCredential(env: unknown, name: string) {
+  if (!env || typeof env !== "object") return undefined;
+  const value = (env as Record<string, unknown>)[name];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+export async function purgeCloudflareZoneCacheByTags(
+  env: unknown,
+  tags: readonly string[],
+): Promise<PublicSsrCachePurgeResult> {
+  const zoneId = cloudflareCredential(env, "CLOUDFLARE_ZONE_ID");
+  const token = cloudflareCredential(env, "CLOUDFLARE_API_TOKEN");
+  if (!zoneId || !token) return { ok: false, reason: "cache-unavailable" };
+  try {
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/zones/${zoneId}/purge_cache`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tags: [...tags] }),
+      },
+    );
+    const result = (await response.json()) as { success?: boolean };
+    if (!response.ok || result.success !== true) {
+      return { ok: false, reason: "purge-rejected" };
+    }
+    return { ok: true, tags: [...tags] };
+  } catch {
+    return { ok: false, reason: "purge-threw" };
+  }
 }
 
 /**
@@ -187,6 +223,7 @@ export async function handlePublicSsrCachePurgeRequest(input: {
   purge: () => Promise<PublicSsrCachePurgeResult>;
   request: Request;
   secret?: string;
+  zonePurge?: () => Promise<PublicSsrCachePurgeResult>;
 }): Promise<Response> {
   if (!(await authorizePurgeRequest(input.request, input.secret))) {
     return unauthorized();
@@ -195,9 +232,22 @@ export async function handlePublicSsrCachePurgeRequest(input: {
     return jsonResponse(405, { error: "Method not allowed" });
   }
 
+  const zonePurge = input.zonePurge
+    ? Promise.resolve()
+        .then(input.zonePurge)
+        .catch(
+          (error): PublicSsrCachePurgeResult => ({
+            detail: describeThrown(error),
+            ok: false,
+            reason: "purge-threw",
+          }),
+        )
+    : undefined;
+
   let result: PublicSsrCachePurgeResult;
+  let zoneResult: PublicSsrCachePurgeResult | undefined;
   try {
-    result = await input.purge();
+    [result, zoneResult] = await Promise.all([input.purge(), zonePurge]);
   } catch (error) {
     const detail = describeThrown(error);
     logAppEvent("error", "edge.cache.purge.error", {
@@ -225,6 +275,29 @@ export async function handlePublicSsrCachePurgeRequest(input: {
     return jsonResponse(result.reason === "cache-unavailable" ? 503 : 502, {
       error: "Cache purge failed",
       reason: result.reason,
+    });
+  }
+
+  if (zoneResult && !zoneResult.ok) {
+    logAppEvent("error", "edge.cache.purge.error", {
+      ...(zoneResult.detail === undefined ? {} : { detail: zoneResult.detail }),
+      event: "edge.cache.purge.error",
+      outcome: "error",
+      reason: zoneResult.reason,
+      source: "cloudflare-zone",
+    });
+    return jsonResponse(zoneResult.reason === "cache-unavailable" ? 503 : 502, {
+      error: "Cache purge failed",
+      reason: zoneResult.reason,
+    });
+  }
+
+  if (zoneResult?.ok) {
+    logAppEvent("info", "edge.cache.purge.finish", {
+      event: "edge.cache.purge.finish",
+      outcome: "success",
+      source: "cloudflare-zone",
+      tags: zoneResult.tags.join(","),
     });
   }
 

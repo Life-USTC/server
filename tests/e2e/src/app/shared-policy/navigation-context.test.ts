@@ -87,9 +87,9 @@ async function identify(page: Page, worker: IsolatedWorker, userId: string) {
 }
 async function sidebar(page: Page, width: number) {
   if (width < 768) {
-    const dialog = page.locator(
-      '[data-slot="sidebar"][data-mobile="true"][role="dialog"]',
-    );
+    const dialog = page
+      .getByRole("dialog")
+      .and(page.locator('[data-mobile="true"]'));
     if (!(await dialog.isVisible()))
       await page
         .locator("[data-shell-topbar]")

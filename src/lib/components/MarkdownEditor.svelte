@@ -10,35 +10,32 @@ type MarkdownEditorProps = Omit<
   ComponentProps<typeof InputGroup.Textarea>,
   "value"
 > & {
-  compact?: boolean;
+  copy: {
+    markdownGuide: string;
+    previewEmpty: string;
+    tabPreview: string;
+    tabWrite: string;
+  };
   guideHref?: string;
-  guideLabel?: string;
   isDragActive?: boolean;
   modeLabel?: string;
   name?: string;
-  previewEmptyLabel?: string;
   previewLayout?: "tabs" | "split";
   remarkPlugins?: PluggableList;
-  tabPreviewLabel?: string;
-  tabWriteLabel?: string;
   value?: string;
 };
 
 let {
-  compact: _compact = false,
+  copy,
   disabled = false,
   guideHref = "/guides/markdown-support",
-  guideLabel = "",
   isDragActive = false,
   modeLabel = "",
   name = undefined,
   placeholder = "",
-  previewEmptyLabel = "",
   previewLayout = "tabs",
   remarkPlugins = [],
   rows = 6,
-  tabPreviewLabel = "",
-  tabWriteLabel = "",
   value = $bindable(""),
   class: className = "",
   ...restProps
@@ -97,27 +94,27 @@ function setActiveTab(value: string) {
   {#snippet markdownPreview()}
     {#await import("#lib/components/MarkdownPreview.svelte") then previewModule}
       {@const Preview = previewModule.default}
-      <Preview content={value} emptyLabel={previewEmptyLabel} {remarkPlugins} />
+      <Preview content={value} emptyLabel={copy.previewEmpty} {remarkPlugins} />
     {/await}
   {/snippet}
 
   {#if previewLayout === "split"}
     <div class="grid gap-3" data-preview-layout="split">
       <div
-        aria-label={tabWriteLabel || undefined}
+        aria-label={copy.tabWrite || undefined}
         class="grid gap-1"
-        role={tabWriteLabel ? "region" : undefined}
+        role={copy.tabWrite ? "region" : undefined}
       >
-        {#if tabWriteLabel}<Field.Title>{tabWriteLabel}</Field.Title>{/if}
+        {#if copy.tabWrite}<Field.Title>{copy.tabWrite}</Field.Title>{/if}
         {@render editorField()}
       </div>
       <div
-        aria-label={tabPreviewLabel || undefined}
+        aria-label={copy.tabPreview || undefined}
         class="grid min-h-32 content-start gap-3 rounded-md border p-3"
         data-slot="markdown-editor-preview"
-        role={tabPreviewLabel ? "region" : undefined}
+        role={copy.tabPreview ? "region" : undefined}
       >
-        {#if tabPreviewLabel}<Field.Title>{tabPreviewLabel}</Field.Title>{/if}
+        {#if copy.tabPreview}<Field.Title>{copy.tabPreview}</Field.Title>{/if}
         {@render markdownPreview()}
       </div>
     </div>
@@ -128,8 +125,8 @@ function setActiveTab(value: string) {
       class="gap-3"
     >
       <Tabs.List aria-label={modeLabel || undefined}>
-        <Tabs.Trigger class="text-foreground/70" value="write">{tabWriteLabel}</Tabs.Trigger>
-        <Tabs.Trigger class="text-foreground/70" value="preview">{tabPreviewLabel}</Tabs.Trigger>
+        <Tabs.Trigger class="text-foreground/70" value="write">{copy.tabWrite}</Tabs.Trigger>
+        <Tabs.Trigger class="text-foreground/70" value="preview">{copy.tabPreview}</Tabs.Trigger>
       </Tabs.List>
 
       <Tabs.Content value="write" class="m-0">
@@ -143,9 +140,9 @@ function setActiveTab(value: string) {
     </Tabs.Root>
   {/if}
 
-  {#if guideLabel}
+  {#if copy.markdownGuide}
     <div class="flex justify-end">
-      <Button href={guideHref} variant="ghost">{guideLabel}</Button>
+      <Button href={guideHref} variant="ghost">{copy.markdownGuide}</Button>
     </div>
   {/if}
 </div>
