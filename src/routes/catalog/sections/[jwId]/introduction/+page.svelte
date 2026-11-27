@@ -7,6 +7,7 @@ import SectionBasicInfoDetails from "@/features/section-detail/components/Sectio
 import SectionBasicInfoRelatedSections from "@/features/section-detail/components/SectionBasicInfoRelatedSections.svelte";
 import SectionTeachersCard from "@/features/section-detail/components/SectionTeachersCard.svelte";
 import { detailPageModule } from "@/features/section-detail/lib/detail-page-module.svelte";
+import { legacyDetailDestination } from "@/lib/components/shell/detail-navigation";
 import SectionDetailRoute from "../SectionDetailRoute.svelte";
 import type { ActionData, PageData } from "./$types";
 
@@ -18,7 +19,48 @@ const DescriptionCard = $derived(module.component);
 const commentsModule = detailPageModule(
   () => import("@/features/comments/components/CommentsPanel.svelte"),
 );
-const CommentsPanel = $derived(commentsModule.component);
+let visibleCommentsSection = $state<number | null>(null);
+const CommentsPanel = $derived(
+  visibleCommentsSection === data.section.id ? commentsModule.component : null,
+);
+
+function observeComments(sectionId: number) {
+  return (node: HTMLElement) => {
+    const hasCommentTarget = () =>
+      location.hash === "#comments" || location.hash.startsWith("#comment-");
+    // The shell navigates legacy fragments to their canonical tab. That page
+    // owns the read, including comment links that resolve to the homework tab.
+    if (
+      hasCommentTarget() &&
+      legacyDetailDestination("section", new URL(location.href))
+    )
+      return;
+    if (hasCommentTarget() || typeof IntersectionObserver === "undefined") {
+      visibleCommentsSection = sectionId;
+      return;
+    }
+    const activate = () => {
+      visibleCommentsSection = sectionId;
+      observer.disconnect();
+      window.removeEventListener("hashchange", onHashChange);
+    };
+    const onHashChange = () => {
+      if (hasCommentTarget()) activate();
+    };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) activate();
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(node);
+    window.addEventListener("hashchange", onHashChange);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("hashchange", onHashChange);
+    };
+  };
+}
 </script>
 
 <SectionDetailRoute {data} {form}>
@@ -62,7 +104,7 @@ const CommentsPanel = $derived(commentsModule.component);
         <SectionBasicInfoAdminClasses {primaryName} section={displaySection} {sectionCopy} />
         <SectionBasicInfoRelatedSections section={displaySection} {sectionCopy} />
       </div>
-    <section id="comments" class="scroll-mt-4 min-w-0">
+    <section id="comments" class="scroll-mt-4 min-w-0" {@attach observeComments(data.section.id)}>
       {#key `comments:section:${data.section.id}`}
         {#if CommentsPanel}
           <CommentsPanel
