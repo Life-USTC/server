@@ -56,7 +56,7 @@ test("known subscriptions return only their schedules with localized teacher det
       },
     });
     const response = await owner.request.get(
-      `${base}?dateFrom=2026-04-29&dateTo=2026-04-29&limit=5`,
+      `${base}?dateFrom=2026-04-29&dateTo=2026-04-29&startMinuteFrom=540&startMinuteTo=540&limit=5`,
     );
     expect(response.status()).toBe(200);
     const body = subscribedSchedulesResponseSchema.parse(await response.json());
@@ -85,6 +85,11 @@ test("known subscriptions return only their schedules with localized teacher det
       ],
     });
     expect(body.schedules[0].teachers[0]._count.sections).toBeGreaterThan(0);
+    const outsideWindow = await owner.request.get(
+      `${base}?dateFrom=2026-04-29&dateTo=2026-04-29&startMinuteFrom=541`,
+    );
+    expect(outsideWindow.status()).toBe(200);
+    expect((await outsideWindow.json()).schedules).toEqual([]);
     const unrelated = await other.request.get(base);
     expect(unrelated.status()).toBe(200);
     expect((await unrelated.json()).schedules).toEqual([]);
