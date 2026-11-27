@@ -119,15 +119,22 @@ export async function flushPublicationLinks(
     });
     await tx.publicationObjectLink.createMany({
       data: links.flatMap(({ revisionId, item }) =>
-        item.objects.map((manifest) => ({
-          revisionId,
-          objectId: objects.get(objectIdentity(manifest))!.id,
-          role: manifest.kind,
-          sortOrder: manifest.sortOrder ?? null,
-          altText: manifest.altText ?? null,
-          filename: manifest.filename ?? null,
-          sourceUrl: manifest.sourceUrl ?? null,
-        })),
+        item.objects.map((manifest) => {
+          const object = objects.get(objectIdentity(manifest));
+          if (!object)
+            throw new PublicationIngestionBadRequestError(
+              `Object manifest does not match ${manifest.kind}/${manifest.sha256}`,
+            );
+          return {
+            revisionId,
+            objectId: object.id,
+            role: manifest.kind,
+            sortOrder: manifest.sortOrder ?? null,
+            altText: manifest.altText ?? null,
+            filename: manifest.filename ?? null,
+            sourceUrl: manifest.sourceUrl ?? null,
+          };
+        }),
       ),
       skipDuplicates: true,
     });
@@ -135,7 +142,7 @@ export async function flushPublicationLinks(
       if (!unchanged) continue;
       const missing = item.objects
         .filter((manifest) => {
-          const status = objects.get(objectIdentity(manifest))!.status;
+          const status = objects.get(objectIdentity(manifest))?.status;
           return status !== "linked" && status !== "verified";
         })
         .map(({ kind, sha256 }) => ({ kind, sha256 }));

@@ -87,16 +87,14 @@ export async function listYoungEventSubscriptions(
   const { page, pageSize, skip } = normalizePagination(input);
   return withUserDbContext(userId, async (tx) => {
     const where = { userId };
-    const [total, rows] = await Promise.all([
-      tx.userYoungEventSubscription.count({ where }),
-      tx.userYoungEventSubscription.findMany({
-        where,
-        skip,
-        take: pageSize,
-        orderBy: [{ createdAt: "desc" }, { youngId: "asc" }],
-        include: { event: { select: YOUNG_EVENT_SELECT } },
-      }),
-    ]);
+    const total = await tx.userYoungEventSubscription.count({ where });
+    const rows = await tx.userYoungEventSubscription.findMany({
+      where,
+      skip,
+      take: pageSize,
+      orderBy: [{ createdAt: "desc" }, { youngId: "asc" }],
+      include: { event: { select: YOUNG_EVENT_SELECT } },
+    });
     return buildPaginatedResponse(
       rows.map((row) => ({
         youngId: row.youngId,
@@ -169,20 +167,18 @@ export async function listYoungOrganizerSubscriptions(
   const { page, pageSize, skip } = normalizePagination(input);
   return withUserDbContext(userId, async (tx) => {
     const where = { userId };
-    const [total, rows] = await Promise.all([
-      tx.userYoungOrganizerSubscription.count({ where }),
-      tx.userYoungOrganizerSubscription.findMany({
-        where,
-        skip,
-        take: pageSize,
-        orderBy: [{ createdAt: "desc" }, { organizerId: "asc" }],
-        select: {
-          organizerId: true,
-          createdAt: true,
-          organizer: { select: { id: true, name: true } },
-        },
-      }),
-    ]);
+    const total = await tx.userYoungOrganizerSubscription.count({ where });
+    const rows = await tx.userYoungOrganizerSubscription.findMany({
+      where,
+      skip,
+      take: pageSize,
+      orderBy: [{ createdAt: "desc" }, { organizerId: "asc" }],
+      select: {
+        organizerId: true,
+        createdAt: true,
+        organizer: { select: { id: true, name: true } },
+      },
+    });
     return buildPaginatedResponse(rows, page, pageSize, total);
   });
 }

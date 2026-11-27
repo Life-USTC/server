@@ -13,17 +13,18 @@ it("demo.no-live-writes", { tags: ["@Account/Service"] }, async ({
   await protocolRuntime.run(async () => {
     const { actor, victim, token, session } = await fixtures.$transaction(
       async (tx) => {
-        const [actor, victim] = await Promise.all(
-          ["actor", "victim"].map(async (name) => {
-            const user = await tx.user.create({
-              data: {
-                name: `[integration-test] Demo boundary ${name}`,
-                email: `demo-boundary-${crypto.randomUUID()}@example.test`,
-              },
-            });
-            return user;
-          }),
-        );
+        const actor = await tx.user.create({
+          data: {
+            name: "[integration-test] Demo boundary actor",
+            email: `demo-boundary-${crypto.randomUUID()}@example.test`,
+          },
+        });
+        const victim = await tx.user.create({
+          data: {
+            name: "[integration-test] Demo boundary victim",
+            email: `demo-boundary-${crypto.randomUUID()}@example.test`,
+          },
+        });
         const token = crypto.randomUUID();
         const session = await tx.session.create({
           data: {

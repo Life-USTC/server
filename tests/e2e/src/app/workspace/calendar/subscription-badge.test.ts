@@ -88,6 +88,7 @@ for (const locale of ["zh-CN", "en-US"]) {
           await expect(course).toBeVisible();
           const title = await course
             .locator('[data-slot="item-title"]')
+            // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
             .innerText();
           expect(title.trim()).not.toBe("");
           if (kind === "regular") originalTitles.set(key, title);

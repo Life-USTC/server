@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { getBetterAuthInstance } from "@/lib/auth/core";
 import { registrationTest } from "../shared/oauth-registration-fixture";
+import { requiredValue } from "../shared/required-value";
 
 const origin = "http://localhost:3000";
 
@@ -46,7 +47,9 @@ registrationTest(
           ),
         );
         expect(response.status).toBe(302);
-        const location = new URL(response.headers.get("location")!);
+        const location = new URL(
+          requiredValue(response.headers.get("location"), "redirect location"),
+        );
         if (challenge?.code_challenge_method === "S256")
           expect(location.pathname).toBe("/account/sign-in");
         else expect(location.searchParams.get("error")).toBeTruthy();

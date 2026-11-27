@@ -162,6 +162,7 @@ test("HTTP navigation and API requests preserve Host, original origin and non-ow
     expect(response.url()).toBe(`${origin}/echo`);
     expect((await response.json()).host).toBe(new URL(origin).host);
     await page.goto(`${origin}/echo`);
+    // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
     expect(JSON.parse(await page.locator("body").innerText()).host).toBe(
       new URL(origin).host,
     );
@@ -278,6 +279,7 @@ for (const status of [302, 303, 307])
             page.getByRole("button", { name: "Submit" }).click(),
           ]);
           const final = JSON.parse(
+            // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
             await page.locator("body").innerText(),
           ) as Entry;
           expect(final.method).toBe(status === 307 ? "POST" : "GET");

@@ -10,6 +10,7 @@ import { createGraphqlRequestHandler } from "@/lib/graphql/server";
 import { ownMcpHarness } from "../integration/mcp/_harness/client";
 import { createCatalogContractFixture } from "./catalog-contract-fixture";
 import { nodeHttpTest } from "./node-http-contract-fixture";
+import { requiredValue } from "./required-value";
 
 const graphqlHandler = createGraphqlRequestHandler(false);
 export const restSubscriptionTest = nodeHttpTest
@@ -24,11 +25,17 @@ export const restSubscriptionTest = nodeHttpTest
             } as RequestEvent)
           : new URL(request.url).pathname.startsWith("/api/catalog/courses/")
             ? await getCourseDetailRoute(request, {
-                jwId: new URL(request.url).pathname.split("/").at(-1)!,
+                jwId: requiredValue(
+                  new URL(request.url).pathname.split("/").at(-1),
+                  "course JWID",
+                ),
               })
             : new URL(request.url).pathname.startsWith("/api/catalog/sections/")
               ? await getSectionDetailRoute(request, {
-                  jwId: new URL(request.url).pathname.split("/").at(-1)!,
+                  jwId: requiredValue(
+                    new URL(request.url).pathname.split("/").at(-1),
+                    "section JWID",
+                  ),
                 })
               : request.method === "PATCH"
                 ? await patchSubscriptionKindRoute(

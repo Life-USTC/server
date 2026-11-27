@@ -1,6 +1,5 @@
 import { describe, expect } from "vitest";
 import { listUserOAuthAuthorizations } from "@/features/oauth/server/user-authorizations.server";
-import { authPrisma } from "@/lib/db/auth-prisma";
 import { recordOAuthGrantUsage } from "@/lib/oauth/grant-usage";
 import { oauthUsageTest as test } from "../shared/oauth-usage-fixture";
 

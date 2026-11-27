@@ -13,6 +13,7 @@ export function detailDialog(page: Page) {
 export async function expectIconOnlyCloseButton(dialog: Locator) {
   const close = dialog.getByRole("button", { name: /^(Close|关闭)$/i }).first();
   await expect(close).toBeVisible();
+  // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
   expect((await close.innerText()).trim()).toBe("");
   return close;
 }

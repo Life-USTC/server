@@ -19,22 +19,20 @@ function prepareAuthorizations(owner: TestPrismaClient) {
     const clientId = `oauth-authorization-${marker}`;
     const trustedClientId = `oauth-trusted-${marker}`;
     const refreshToken = `refresh-${marker}`;
-    const [user, otherUser] = await Promise.all([
-      prisma.user.create({
-        data: {
-          email: `oauth-authorization-${marker}@example.test`,
-          name: "OAuth authorization user",
-        },
-        select: { id: true },
-      }),
-      prisma.user.create({
-        data: {
-          email: `oauth-authorization-other-${marker}@example.test`,
-          name: "Other OAuth authorization user",
-        },
-        select: { id: true },
-      }),
-    ]);
+    const user = await prisma.user.create({
+      data: {
+        email: `oauth-authorization-${marker}@example.test`,
+        name: "OAuth authorization user",
+      },
+      select: { id: true },
+    });
+    const otherUser = await prisma.user.create({
+      data: {
+        email: `oauth-authorization-other-${marker}@example.test`,
+        name: "Other OAuth authorization user",
+      },
+      select: { id: true },
+    });
     const userId = user.id;
     const otherUserId = otherUser.id;
 
@@ -57,33 +55,31 @@ function prepareAuthorizations(owner: TestPrismaClient) {
       ],
     });
 
-    const [latestConsent, otherConsent, trustedConsent] = await Promise.all([
-      prisma.oAuthConsent.create({
-        data: {
-          clientId,
-          scopes: ["calendar:read", "profile"],
-          updatedAt: new Date("2026-07-20T00:00:00.000Z"),
-          userId,
-        },
-        select: { grantId: true, id: true },
-      }),
-      prisma.oAuthConsent.create({
-        data: {
-          clientId,
-          scopes: ["profile"],
-          userId: otherUserId,
-        },
-        select: { id: true },
-      }),
-      prisma.oAuthConsent.create({
-        data: {
-          clientId: trustedClientId,
-          scopes: ["profile"],
-          userId,
-        },
-        select: { id: true },
-      }),
-    ]);
+    const latestConsent = await prisma.oAuthConsent.create({
+      data: {
+        clientId,
+        scopes: ["calendar:read", "profile"],
+        updatedAt: new Date("2026-07-20T00:00:00.000Z"),
+        userId,
+      },
+      select: { grantId: true, id: true },
+    });
+    const otherConsent = await prisma.oAuthConsent.create({
+      data: {
+        clientId,
+        scopes: ["profile"],
+        userId: otherUserId,
+      },
+      select: { id: true },
+    });
+    const trustedConsent = await prisma.oAuthConsent.create({
+      data: {
+        clientId: trustedClientId,
+        scopes: ["profile"],
+        userId,
+      },
+      select: { id: true },
+    });
     const latestConsentId = latestConsent.id;
     const latestGrantId = latestConsent.grantId;
     const otherUserConsentId = otherConsent.id;
@@ -101,60 +97,58 @@ function prepareAuthorizations(owner: TestPrismaClient) {
       },
       select: { id: true },
     });
-    await Promise.all([
-      prisma.oAuthAccessToken.create({
-        data: {
-          clientId,
-          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-          grantId: latestGrantId,
-          referenceId: latestGrantId,
-          refreshId: refresh.id,
-          scopes: ["calendar:read", "profile"],
-          token: `access-${marker}`,
-          userId,
-        },
-      }),
-      prisma.deviceCode.create({
-        data: {
-          clientId,
-          deviceCode: `device-${marker}`,
-          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-          scopes: ["calendar:read", "profile"],
-          status: "approved",
-          userCode: `user-${marker}`,
-          userId,
-        },
-      }),
-      prisma.oAuthAccessToken.create({
-        data: {
-          clientId,
-          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-          scopes: ["profile"],
-          token: `other-access-${marker}`,
-          userId: otherUserId,
-        },
-      }),
-      prisma.oAuthRefreshToken.create({
-        data: {
-          clientId,
-          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-          scopes: ["profile"],
-          token: `other-refresh-${marker}`,
-          userId: otherUserId,
-        },
-      }),
-      prisma.deviceCode.create({
-        data: {
-          clientId,
-          deviceCode: `other-device-${marker}`,
-          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-          scopes: ["profile"],
-          status: "approved",
-          userCode: `other-user-${marker}`,
-          userId: otherUserId,
-        },
-      }),
-    ]);
+    await prisma.oAuthAccessToken.create({
+      data: {
+        clientId,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        grantId: latestGrantId,
+        referenceId: latestGrantId,
+        refreshId: refresh.id,
+        scopes: ["calendar:read", "profile"],
+        token: `access-${marker}`,
+        userId,
+      },
+    });
+    await prisma.deviceCode.create({
+      data: {
+        clientId,
+        deviceCode: `device-${marker}`,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        scopes: ["calendar:read", "profile"],
+        status: "approved",
+        userCode: `user-${marker}`,
+        userId,
+      },
+    });
+    await prisma.oAuthAccessToken.create({
+      data: {
+        clientId,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        scopes: ["profile"],
+        token: `other-access-${marker}`,
+        userId: otherUserId,
+      },
+    });
+    await prisma.oAuthRefreshToken.create({
+      data: {
+        clientId,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        scopes: ["profile"],
+        token: `other-refresh-${marker}`,
+        userId: otherUserId,
+      },
+    });
+    await prisma.deviceCode.create({
+      data: {
+        clientId,
+        deviceCode: `other-device-${marker}`,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        scopes: ["profile"],
+        status: "approved",
+        userCode: `other-user-${marker}`,
+        userId: otherUserId,
+      },
+    });
     return {
       marker,
       clientId,

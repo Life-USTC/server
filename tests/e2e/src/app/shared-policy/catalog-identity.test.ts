@@ -369,6 +369,7 @@ test("ui.global-search-results-2", { tag: "@Search/Web" }, async ({
         await expect(result).toHaveCount(1);
         await expect
           .poll(async () =>
+            // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
             (await result.innerText()).replace(/\s+/g, " ").trim(),
           )
           .toBe(`${title} ${description}`);
@@ -414,6 +415,7 @@ test("ui.global-search-results-3", { tag: "@Search/Web" }, async ({
         .getByRole("option")
         .filter({ has: page.getByText(name, { exact: true }) });
       await expect(result).toHaveCount(1);
+      // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
       expect((await result.innerText()).trim()).toBe(
         `${name}\n${fixture.course.code}`,
       );
@@ -505,6 +507,7 @@ test("ui.global-search-results-4", { tag: "@Search/Web" }, async ({
           .filter({ has: page.getByText(name, { exact: true }) });
 
         await expect(result).toHaveCount(1);
+        // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
         const visible = await result.innerText();
         expect(visible.trim()).toBe(context ? `${name}\n${context}` : name);
         expect(visible).not.toContain(String(teacher.id));
@@ -780,6 +783,7 @@ for (const { domain, select } of [
         );
         if (domain === "Teacher") await selectDetailTab(page, "sections");
         await expect(page.locator("#main-content")).toContainText(code);
+        // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
         const visible = await page.locator("#main-content").innerText();
         for (const id of forbidden) expect(visible).not.toContain(id);
         for (const id of forbidden)
@@ -803,6 +807,7 @@ test("permission-ui.identity-4 Account Web", { tag: "@Account/Web" }, async ({
     for (const path of ["/account/settings"]) {
       await gotoAndWaitForReady(page, path);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
       expect(await page.locator("#main-content").innerText()).not.toContain(
         user.id,
       );
@@ -825,6 +830,7 @@ test("permission-ui.identity-4 User Web", { tag: "@User/Web" }, async ({
     for (const path of [`/community/users/${user.username}`]) {
       await gotoAndWaitForReady(page, path);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
       expect(await page.locator("#main-content").innerText()).not.toContain(
         user.id,
       );
@@ -938,6 +944,7 @@ test("cases.missing-data.section-missing-teacher-location-or-exam-1", {
           ? "暂无可用考试安排"
           : "No exam arrangements available yet",
       );
+      // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
       expect(await page.locator("#main-content").innerText()).not.toMatch(
         /取消|cancelled|canceled/i,
       );
@@ -1381,6 +1388,7 @@ subscriptionTest(
               name,
             );
             await selectDetailTab(page, "overview");
+            // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
             const courseFacts = await page.locator("#overview").innerText();
             expect(courseFacts).not.toContain(current.nameCn);
             expect(courseFacts).not.toContain(previous.nameCn);

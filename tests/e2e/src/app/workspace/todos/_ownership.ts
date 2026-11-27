@@ -129,7 +129,7 @@ export const test = workerTest.extend<{
     const errors: unknown[] = [];
     const secret = { "x-test-storage-secret": "local-test-storage-observer" };
     const probeId = crypto.randomUUID();
-    const probePath = "/__test/community-effects?id=" + probeId;
+    const probePath = `/__test/community-effects?id=${probeId}`;
     const headers = { ...secret, "x-test-community-probe": probeId };
     let registered = false;
     let closing = false;
@@ -198,7 +198,7 @@ export const test = workerTest.extend<{
                   .poll(
                     async () => {
                       const response = await observer.get(
-                        "/__test/calendar-consumer?userId=" + userId,
+                        `/__test/calendar-consumer?userId=${userId}`,
                         {
                           headers: secret,
                         },
@@ -375,7 +375,7 @@ export const test = workerTest.extend<{
       for (const userId of userIds) {
         expect(
           (
-            await observer.post("/__test/calendar-consumer?userId=" + userId, {
+            await observer.post(`/__test/calendar-consumer?userId=${userId}`, {
               headers: secret,
             })
           ).status(),
@@ -475,12 +475,12 @@ export const test = workerTest.extend<{
               if (mode === "cookie") {
                 const { cookie } = await actorSession();
                 return newRequest({
-                  cookie: cookie.name + "=" + cookie.value,
+                  cookie: `${cookie.name}=${cookie.value}`,
                   origin,
                 });
               }
               const { accessToken } = await token(channel);
-              return newRequest({ Authorization: "Bearer " + accessToken });
+              return newRequest({ Authorization: `Bearer ${accessToken}` });
             },
             mcp: async () => {
               const { accessToken, resource } = await token("mcp");
@@ -491,7 +491,7 @@ export const test = workerTest.extend<{
                   requestInit: {
                     headers: {
                       ...headers,
-                      Authorization: "Bearer " + accessToken,
+                      Authorization: `Bearer ${accessToken}`,
                     },
                   },
                 },

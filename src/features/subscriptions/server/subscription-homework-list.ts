@@ -63,10 +63,13 @@ export async function fetchSubscribedHomeworkRlsSnapshot(
     return { total, homeworkIds: [], completions: [] };
   }
 
-  const [total, { homeworkIds, completions }] = await Promise.all([
-    tx.homework.count({ where: query.where }),
-    fetchSubscribedHomeworkIdsAndCompletionsInTransaction(tx, userId, query),
-  ]);
+  const total = await tx.homework.count({ where: query.where });
+  const { homeworkIds, completions } =
+    await fetchSubscribedHomeworkIdsAndCompletionsInTransaction(
+      tx,
+      userId,
+      query,
+    );
   return { total, homeworkIds, completions };
 }
 

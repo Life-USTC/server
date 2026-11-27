@@ -27,7 +27,7 @@ export function moveSearchActiveIndex(
 
   if (direction === "down") {
     if (currentIndex < itemCount - 1) return currentIndex + 1;
-    return currentIndex < 0 ? 0 : currentIndex;
+    return Math.max(currentIndex, 0);
   }
 
   if (currentIndex <= 0) return -1;

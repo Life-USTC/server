@@ -68,23 +68,21 @@ describe("协作数据不变量", () => {
       const prefix = marker("suspension-replace");
       const { admin, user, previousSuspension } =
         await fixturePrisma.$transaction(async (tx) => {
-          const [admin, user] = await Promise.all([
-            tx.user.create({
-              data: {
-                email: `${prefix}-admin@example.test`,
-                name: "Suspension Admin",
-                isAdmin: true,
-              },
-              select: { id: true },
-            }),
-            tx.user.create({
-              data: {
-                email: `${prefix}-user@example.test`,
-                name: "Suspension Replacement User",
-              },
-              select: { id: true },
-            }),
-          ]);
+          const admin = await tx.user.create({
+            data: {
+              email: `${prefix}-admin@example.test`,
+              name: "Suspension Admin",
+              isAdmin: true,
+            },
+            select: { id: true },
+          });
+          const user = await tx.user.create({
+            data: {
+              email: `${prefix}-user@example.test`,
+              name: "Suspension Replacement User",
+            },
+            select: { id: true },
+          });
           const previousSuspension = await tx.userSuspension.create({
             data: {
               userId: user.id,
@@ -139,48 +137,44 @@ describe("协作数据不变量", () => {
         auditLog,
         suspension,
       } = await fixturePrisma.$transaction(async (tx) => {
-        const [, deletingAdmin, suspendedUser] = await Promise.all([
-          tx.user.create({
-            data: {
-              email: `${prefix}-remaining-admin@example.test`,
-              name: "Remaining Admin",
-              isAdmin: true,
-            },
-            select: { id: true },
-          }),
-          tx.user.create({
-            data: {
-              email: `${prefix}-deleting-admin@example.test`,
-              name: "Deleting Admin",
-              isAdmin: true,
-            },
-            select: { id: true },
-          }),
-          tx.user.create({
-            data: {
-              email: `${prefix}-suspended@example.test`,
-              name: "Suspended User",
-            },
-            select: { id: true },
-          }),
-        ]);
-        const [deletionSession, otherUser] = await Promise.all([
-          tx.session.create({
-            data: {
-              expires: new Date(Date.now() + 60 * 60 * 1000),
-              sessionToken: crypto.randomUUID(),
-              userId: deletingAdmin.id,
-            },
-            select: { id: true },
-          }),
-          tx.user.create({
-            data: {
-              email: `${prefix}-other-user@example.test`,
-              name: "Other User",
-            },
-            select: { id: true },
-          }),
-        ]);
+        await tx.user.create({
+          data: {
+            email: `${prefix}-remaining-admin@example.test`,
+            name: "Remaining Admin",
+            isAdmin: true,
+          },
+          select: { id: true },
+        });
+        const deletingAdmin = await tx.user.create({
+          data: {
+            email: `${prefix}-deleting-admin@example.test`,
+            name: "Deleting Admin",
+            isAdmin: true,
+          },
+          select: { id: true },
+        });
+        const suspendedUser = await tx.user.create({
+          data: {
+            email: `${prefix}-suspended@example.test`,
+            name: "Suspended User",
+          },
+          select: { id: true },
+        });
+        const deletionSession = await tx.session.create({
+          data: {
+            expires: new Date(Date.now() + 60 * 60 * 1000),
+            sessionToken: crypto.randomUUID(),
+            userId: deletingAdmin.id,
+          },
+          select: { id: true },
+        });
+        const otherUser = await tx.user.create({
+          data: {
+            email: `${prefix}-other-user@example.test`,
+            name: "Other User",
+          },
+          select: { id: true },
+        });
         const auditLog = await tx.auditLog.create({
           data: {
             action: "account_profile_update",

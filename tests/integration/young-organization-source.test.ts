@@ -23,7 +23,7 @@ const migrationSql = () =>
     "prisma/migrations/20261113010000_young_organization_source_shadow/migration.sql",
     "utf8",
   );
-const it = staticImporterTest.extend<{ organizationSourceSchema: void }>({
+const it = staticImporterTest.extend<{ organizationSourceSchema: undefined }>({
   organizationSourceSchema: [
     async ({ isolatedDatabase }, use) => {
       // Existing fixture templates clone the configured schema without deploying

@@ -73,6 +73,7 @@ test("non-owned HTTPS tunnels preserve TLS verification, Host and secure cookies
           const page = await context.newPage();
           await page.goto(origin);
           expect(page.url()).toBe(`${origin}/`);
+          // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
           expect(await page.locator("body").innerText()).toBe(
             "owned TLS endpoint",
           );

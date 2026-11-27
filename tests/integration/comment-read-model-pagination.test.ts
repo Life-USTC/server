@@ -628,17 +628,17 @@ describe("comment root pagination read model", () => {
         const { testPrisma, sectionId, marker } = pagination;
         const { roots } = await testPrisma.$transaction(async (tx) => {
           const cursorMarker = `${marker}-cursor-validation`;
-          const roots = await Promise.all(
-            [1, 2].map((index) =>
-              tx.comment.create({
+          const roots = [];
+          for (const index of [1, 2])
+            roots.push(
+              await tx.comment.create({
                 data: {
                   body: `${cursorMarker}-${index}`,
                   sectionId,
                   visibility: "public",
                 },
               }),
-            ),
-          );
+            );
           return { roots };
         });
         const foreignCursor = encodeCommentReplyCursor({

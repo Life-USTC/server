@@ -14,13 +14,13 @@ it("young-workspace.digest", { tags: ["@Young/Service"] }, async ({
       const user = await tx.user.create({
         data: { email: `${marker}@digest.test`, name: "Digest owner" },
       });
-      const organizers = await Promise.all(
-        ["club", "other", "new"].map((name) =>
-          tx.youngOrganizer.create({
+      const organizers: { id: string }[] = [];
+      for (const name of ["club", "other", "new"])
+        organizers.push(
+          await tx.youngOrganizer.create({
             data: { name, normalizedName: `${name}-${marker}` },
           }),
-        ),
-      );
+        );
       await tx.userYoungOrganizerSubscription.createMany({
         data: organizers.map((organizer, index) => ({
           userId: user.id,

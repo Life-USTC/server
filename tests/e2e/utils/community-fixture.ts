@@ -51,7 +51,7 @@ export const test = accountTest.extend<{
     );
   },
   communitySemesters: async ({ isolatedWorker, run }, use) => {
-    const anchor = new Date().getTime();
+    const anchor = Date.now();
     const dateAt = (days: number) => new Date(anchor + days * 86_400_000);
     await use(
       await run(() =>
@@ -241,9 +241,9 @@ export async function createCommentAudiences({
       users.push(
         await tx.user.create({
           data: {
-            name: "Private catalog " + role,
-            username: "cp" + marker.replaceAll("-", "").slice(0, 17),
-            email: "community-" + marker + "@example.test",
+            name: `Private catalog ${role}`,
+            username: `cp${marker.replaceAll("-", "").slice(0, 17)}`,
+            email: `community-${marker}@example.test`,
             isAdmin: role === "admin",
           },
         }),
@@ -273,7 +273,7 @@ export function arrangeDescription(
 ) {
   return db.description.create({
     data: {
-      [targetType + "Id"]: targetId,
+      [`${targetType}Id`]: targetId,
       content: supplement,
       lastEditedById: editorId,
     },

@@ -70,7 +70,7 @@ export async function withPreferenceFlow(
   // idle-connection timeout. Keep this header off browser requests.
   const probeOptions = { headers: { ...secret, Connection: "close" } };
   const probeId = crypto.randomUUID();
-  const probePath = "/__test/community-effects?id=" + probeId;
+  const probePath = `/__test/community-effects?id=${probeId}`;
   const headers = { ...secret, "x-test-community-probe": probeId };
   const contexts = new Set<BrowserContext>([page.context()]);
   const analyticsDisposers: (() => Promise<void>)[] = [];
@@ -227,7 +227,7 @@ export async function withPreferenceFlow(
               (mode === "pins" && path === "/api/workspace/link-pins") ||
               (mode === "bus" && path === "/api/workspace/bus-preferences");
             if (!allowed)
-              remember(new Error("Unexpected preference write: " + path));
+              remember(new Error(`Unexpected preference write: ${path}`));
             const response = await route.fetch({ maxRedirects: 0 });
             // Retain the real status and body, including intentional 400/500 cases.
             await response.body();

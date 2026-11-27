@@ -259,22 +259,20 @@ export async function getUploadUsedBytes(input: {
   prisma: UploadUsagePrisma;
   userId: string;
 }) {
-  const [usage, pendingUsage] = await Promise.all([
-    input.prisma.upload.aggregate({
-      where: { userId: input.userId },
-      _sum: { size: true },
-    }),
-    input.prisma.uploadPending.aggregate({
-      where: {
-        userId: input.userId,
-        expiresAt: { gt: input.now },
-        ...(input.excludePendingKey
-          ? { NOT: { key: input.excludePendingKey } }
-          : {}),
-      },
-      _sum: { size: true },
-    }),
-  ]);
+  const usage = await input.prisma.upload.aggregate({
+    where: { userId: input.userId },
+    _sum: { size: true },
+  });
+  const pendingUsage = await input.prisma.uploadPending.aggregate({
+    where: {
+      userId: input.userId,
+      expiresAt: { gt: input.now },
+      ...(input.excludePendingKey
+        ? { NOT: { key: input.excludePendingKey } }
+        : {}),
+    },
+    _sum: { size: true },
+  });
 
   return (usage._sum.size ?? 0) + (pendingUsage._sum.size ?? 0);
 }

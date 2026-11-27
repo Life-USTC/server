@@ -282,35 +282,19 @@ export async function syncYoungEvents(
 export async function countStats(
   prisma: Prisma.TransactionClient,
 ): Promise<ImportRecordCounts> {
-  const [
-    semesters,
-    departments,
-    courses,
-    sections,
-    teachers,
-    scheduleGroups,
-    schedules,
-    exams,
-    rooms,
-    buildings,
-    campuses,
-    adminClasses,
-    youngEvents,
-  ] = await Promise.all([
-    prisma.semester.count(),
-    prisma.department.count(),
-    prisma.course.count(),
-    prisma.section.count(),
-    prisma.teacher.count(),
-    prisma.scheduleGroup.count(),
-    prisma.schedule.count(),
-    prisma.exam.count(),
-    prisma.room.count(),
-    prisma.building.count(),
-    prisma.campus.count(),
-    prisma.adminClass.count(),
-    prisma.youngEvent.count(),
-  ]);
+  const semesters = await prisma.semester.count();
+  const departments = await prisma.department.count();
+  const courses = await prisma.course.count();
+  const sections = await prisma.section.count();
+  const teachers = await prisma.teacher.count();
+  const scheduleGroups = await prisma.scheduleGroup.count();
+  const schedules = await prisma.schedule.count();
+  const exams = await prisma.exam.count();
+  const rooms = await prisma.room.count();
+  const buildings = await prisma.building.count();
+  const campuses = await prisma.campus.count();
+  const adminClasses = await prisma.adminClass.count();
+  const youngEvents = await prisma.youngEvent.count();
 
   return {
     semesters,

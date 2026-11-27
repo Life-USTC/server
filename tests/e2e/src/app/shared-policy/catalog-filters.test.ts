@@ -138,6 +138,7 @@ async function cases(db: TestPrismaClient): Promise<FilterCase[]> {
 }
 
 async function resultText(page: Page) {
+  // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
   return page.locator("#main-content").innerText();
 }
 

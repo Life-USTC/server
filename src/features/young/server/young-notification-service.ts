@@ -181,26 +181,24 @@ export async function listYoungNotifications(
       ...(input.unread ? { readAt: null } : {}),
       OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
     };
-    const [total, rows] = await Promise.all([
-      tx.youngNotification.count({ where }),
-      tx.youngNotification.findMany({
-        where,
-        skip,
-        take: pageSize,
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        select: {
-          id: true,
-          youngId: true,
-          organizerId: true,
-          kind: true,
-          title: true,
-          body: true,
-          createdAt: true,
-          readAt: true,
-          expiresAt: true,
-        },
-      }),
-    ]);
+    const total = await tx.youngNotification.count({ where });
+    const rows = await tx.youngNotification.findMany({
+      where,
+      skip,
+      take: pageSize,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      select: {
+        id: true,
+        youngId: true,
+        organizerId: true,
+        kind: true,
+        title: true,
+        body: true,
+        createdAt: true,
+        readAt: true,
+        expiresAt: true,
+      },
+    });
     return buildPaginatedResponse(rows, page, pageSize, total);
   });
 }

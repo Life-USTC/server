@@ -1,6 +1,7 @@
 import { expect, type Request } from "@playwright/test";
 import { createDeferred } from "../../../../shared/deferred";
 import { createSignedDemoCookie } from "../../../../shared/demo-token";
+import { requiredValue } from "../../../../shared/required-value";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
@@ -203,7 +204,7 @@ for (const [locale, width] of [
           context === "settings"
             ? "/account/settings/profile"
             : context === "activities"
-              ? `/catalog/young-events/${fixture.event!.youngId}`
+              ? `/catalog/young-events/${requiredValue(fixture.event, "activity fixture").youngId}`
               : context === "bus"
                 ? "/catalog/bus/map?campus=east"
                 : "/admin/users?search=sidebar-case";

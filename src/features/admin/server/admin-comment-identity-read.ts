@@ -6,20 +6,19 @@ export async function requireCommentIdentityModerator(
   client: Prisma.TransactionClient,
   adminUserId: string,
 ) {
-  const [user, suspension] = await Promise.all([
-    client.user.findUnique({
-      where: { id: adminUserId },
-      select: { isAdmin: true },
-    }),
-    client.userSuspension.findFirst({
-      where: {
-        userId: adminUserId,
-        liftedAt: null,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-      },
-      select: { id: true },
-    }),
-  ]);
+  const now = new Date();
+  const user = await client.user.findUnique({
+    where: { id: adminUserId },
+    select: { isAdmin: true },
+  });
+  const suspension = await client.userSuspension.findFirst({
+    where: {
+      userId: adminUserId,
+      liftedAt: null,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+    },
+    select: { id: true },
+  });
   if (!user?.isAdmin || suspension) error(403, "Forbidden");
 }
 

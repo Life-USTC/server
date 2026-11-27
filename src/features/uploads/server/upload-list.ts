@@ -18,25 +18,23 @@ export async function listUploads(
   const now = new Date();
   const where = uploadTableWhere(userId, filters);
   return withUserDbContext(userId, async (tx) => {
-    const [uploads, total, usage, pendingUsage] = await Promise.all([
-      tx.upload.findMany({
-        where,
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        skip: pagination.skip,
-        take: pagination.pageSize,
-        select: managedUploadSelect,
-      }),
-      tx.upload.count({ where }),
-      tx.upload.aggregate({
-        where: { userId },
-        _sum: { size: true },
-        _count: { _all: true },
-      }),
-      tx.uploadPending.aggregate({
-        where: { userId, expiresAt: { gt: now } },
-        _sum: { size: true },
-      }),
-    ]);
+    const uploads = await tx.upload.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: pagination.skip,
+      take: pagination.pageSize,
+      select: managedUploadSelect,
+    });
+    const total = await tx.upload.count({ where });
+    const usage = await tx.upload.aggregate({
+      where: { userId },
+      _sum: { size: true },
+      _count: { _all: true },
+    });
+    const pendingUsage = await tx.uploadPending.aggregate({
+      where: { userId, expiresAt: { gt: now } },
+      _sum: { size: true },
+    });
 
     const usedBytes = (usage._sum.size ?? 0) + (pendingUsage._sum.size ?? 0);
 

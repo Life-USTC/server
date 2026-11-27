@@ -109,6 +109,7 @@ export async function assertInternalPriorityFieldAbsent(
   field: InternalPriorityField,
 ) {
   if (field.exactText) await assertNoStandaloneInternalText(scope, field.value);
+  // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
   else expect(await scope.innerText()).not.toContain(field.value);
   const values = await scope.evaluate((root) => {
     const elements = [
@@ -156,6 +157,7 @@ export async function assertPriorityView(
       expect(language?.toLowerCase().split("-")[0]).toBe(
         field.absentInLocale.split("-")[0],
       );
+      // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
       expect(await check.scope.innerText()).not.toContain(field.text);
       return false;
     }

@@ -7,6 +7,7 @@ import {
   getOAuthRestAudienceUrls,
 } from "@/lib/mcp/urls";
 import type { PaginatedResponse } from "@/lib/pagination";
+import { requiredValue } from "../../../shared/required-value";
 import { isolatedMcpTest } from "../_harness/isolated-context";
 
 const contractTest = isolatedMcpTest.extend(
@@ -24,8 +25,12 @@ const contractTest = isolatedMcpTest.extend(
         { length: 5 },
         () => `pages-${crypto.randomUUID()}`,
       );
-      const organizerIds = Array.from({ length: 5 }, () => crypto.randomUUID());
-      const noticeIds = Array.from({ length: 7 }, () => crypto.randomUUID());
+      const organizerIds: string[] = Array.from({ length: 5 }, () =>
+        crypto.randomUUID(),
+      );
+      const noticeIds: string[] = Array.from({ length: 7 }, () =>
+        crypto.randomUUID(),
+      );
       const now = new Date(Math.floor(Date.now() / 1000) * 1000 + 437);
       const created = [0, 1, 1, 2, 3, 0, 0].map(
         (days) => new Date(now.getTime() - days * 86_400_000),
@@ -347,7 +352,10 @@ for (const method of ["REST", "GraphQL", "MCP"] as const) {
             }
             return {
               youngId: id,
-              createdAt: state.created[index].getTime(),
+              createdAt: requiredValue(
+                state.created[index],
+                "creation timestamp",
+              ).getTime(),
               remindSignup: false,
               remindDeadline: false,
               remindStart: false,
@@ -355,14 +363,17 @@ for (const method of ["REST", "GraphQL", "MCP"] as const) {
             };
           }
           if (kind === "organizers") {
-            const index = organizerIds.findIndex((value) => value === id);
+            const index = organizerIds.indexOf(id);
             return {
               organizerId: id,
-              createdAt: state.created[index].getTime(),
+              createdAt: requiredValue(
+                state.created[index],
+                "creation timestamp",
+              ).getTime(),
               organizer: { id, name: `Organizer ${index}` },
             };
           }
-          const index = noticeIds.findIndex((value) => value === id);
+          const index = noticeIds.indexOf(id);
           return {
             id,
             youngId: eventIds[index % 5],
@@ -370,7 +381,10 @@ for (const method of ["REST", "GraphQL", "MCP"] as const) {
             kind: "event_changed",
             title: `Notice ${index}`,
             body: `Detail ${index}`,
-            createdAt: state.created[index].getTime(),
+            createdAt: requiredValue(
+              state.created[index],
+              "creation timestamp",
+            ).getTime(),
             readAt: index === 3 ? state.now.getTime() : null,
             expiresAt: index === 4 ? state.now.getTime() + 86_400_000 : null,
           };
