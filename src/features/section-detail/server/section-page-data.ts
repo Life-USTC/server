@@ -10,6 +10,8 @@ import type { AppLocale } from "@/i18n/config";
 import { getPrisma } from "@/lib/db/prisma";
 import { runCloudflareTraceSpan } from "@/lib/ports/runtime";
 
+import { loadSectionPageExams } from "./section-page-exams";
+import { loadSectionPageLabels } from "./section-page-labels";
 import { loadSectionPageMutableData } from "./section-page-mutable-data";
 
 async function getSectionPageCore(jwId: number, locale: AppLocale) {
@@ -26,33 +28,56 @@ async function getSectionPageCore(jwId: number, locale: AppLocale) {
       runCloudflareTraceSpan(
         "catalog.detail.section.query",
         { "catalog.detail.kind": "section" },
-        async () =>
-          await getPrisma(locale).section.findUnique({
-            where: { jwId },
-            select: {
-              ...sectionPageSelect,
-              course: {
-                select: {
-                  ...sectionPageSelect.course.select,
-                  _count: { select: { sections: { where: relatedWhere } } },
-                  sections: {
-                    where: relatedWhere,
-                    orderBy: [
-                      { semester: { jwId: "desc" as const } },
-                      { code: "asc" as const },
-                      { jwId: "asc" as const },
-                    ],
-                    take: SECTION_RELATED_PREVIEW_LIMIT,
-                    select: sectionPageRelatedSectionSelect,
+        async () => {
+          const db = getPrisma(locale);
+          const [core, sections, labels, exams] = await Promise.all([
+            db.section.findUnique({
+              where: { jwId },
+              select: {
+                ...sectionPageSelect,
+                course: {
+                  select: {
+                    ...sectionPageSelect.course.select,
+                    _count: { select: { sections: { where: relatedWhere } } },
                   },
                 },
+                campus: false,
+                roomType: false,
+                teachLanguage: false,
+                examMode: false,
+                openDepartment: false,
+                description: false,
+                teachers: sectionPageTeachersWithDepartmentSelect,
+                exams: false,
+                schedules: sectionPageSelect.schedules,
               },
-              description: false,
-              teachers: sectionPageTeachersWithDepartmentSelect,
-              exams: sectionPageSelect.exams,
-              schedules: sectionPageSelect.schedules,
-            },
-          }),
+            }),
+            db.section.findMany({
+              where: {
+                ...relatedWhere,
+                course: { sections: { some: { jwId } } },
+              },
+              orderBy: [
+                { semester: { jwId: "desc" } },
+                { code: "asc" },
+                { jwId: "asc" },
+              ],
+              take: SECTION_RELATED_PREVIEW_LIMIT,
+              select: sectionPageRelatedSectionSelect,
+            }),
+            loadSectionPageLabels(db, jwId, locale),
+            loadSectionPageExams(db, jwId, locale),
+          ]);
+          return (
+            core &&
+            labels && {
+              ...core,
+              ...labels,
+              exams,
+              course: { ...core.course, sections },
+            }
+          );
+        },
       ),
   });
 

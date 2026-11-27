@@ -3,11 +3,13 @@ import { serializeDescriptionRecord } from "@/features/descriptions/server/descr
 import { runWithCloudflareRuntimeEnv } from "@/lib/adapters/cloudflare-runtime";
 import { resetPublicRuntimeCacheForTest } from "@/lib/public-runtime-cache";
 
-const { sectionFindUnique, mutableQuery, getPrisma } = vi.hoisted(() => ({
-  sectionFindUnique: vi.fn(),
-  mutableQuery: vi.fn(),
-  getPrisma: vi.fn(),
-}));
+const { sectionFindMany, sectionFindUnique, mutableQuery, getPrisma } =
+  vi.hoisted(() => ({
+    sectionFindMany: vi.fn(),
+    sectionFindUnique: vi.fn(),
+    mutableQuery: vi.fn(),
+    getPrisma: vi.fn(),
+  }));
 
 vi.mock("@/lib/db/prisma", () => ({
   getPrisma,
@@ -70,7 +72,22 @@ describe("section page data selection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetPublicRuntimeCacheForTest();
-    getPrisma.mockReturnValue({ section: { findUnique: sectionFindUnique } });
+    sectionFindMany.mockResolvedValue(sectionRecord().course.sections);
+    getPrisma.mockReturnValue({
+      $queryRaw: vi.fn(async (query: TemplateStringsArray) => {
+        if (query.join("").includes('JOIN "Exam"')) return [];
+        return [
+          {
+            campus: null,
+            roomType: null,
+            teachLanguage: null,
+            examMode: null,
+            openDepartment: null,
+          },
+        ];
+      }),
+      section: { findUnique: sectionFindUnique, findMany: sectionFindMany },
+    });
     mutableQuery.mockImplementation(async () => {
       const record = await sectionFindUnique({
         select: { description: true, retiredAt: true },
@@ -152,9 +169,14 @@ describe("section page data selection", () => {
       description: true,
       retiredAt: true,
     });
-    expect(coreSelect.course.select.sections).toMatchObject({
+    expect(coreSelect.course.select.sections).toBeUndefined();
+    expect(sectionFindMany.mock.calls[0][0]).toMatchObject({
       take: 20,
-      where: { jwId: { not: 30 }, retiredAt: null },
+      where: {
+        jwId: { not: 30 },
+        retiredAt: null,
+        course: { sections: { some: { jwId: 30 } } },
+      },
     });
     expect(coreSelect.course.select._count).toEqual({
       select: {
@@ -214,6 +236,7 @@ describe("section page data selection", () => {
           "updatedAt": "2026-03-01T08:00:00+08:00",
         },
         "section": {
+          "campus": null,
           "course": {
             "id": 10,
             "jwId": 100,
@@ -221,8 +244,10 @@ describe("section page data selection", () => {
           },
           "courseId": 10,
           "examCount": 0,
+          "examMode": null,
           "exams": [],
           "id": 20,
+          "openDepartment": null,
           "otherCourseSectionCount": 42,
           "otherCourseSections": [
             {
@@ -235,8 +260,10 @@ describe("section page data selection", () => {
             },
           ],
           "retiredAt": null,
+          "roomType": null,
           "scheduleCount": 0,
           "schedules": [],
+          "teachLanguage": null,
           "teachers": [],
         },
       }
