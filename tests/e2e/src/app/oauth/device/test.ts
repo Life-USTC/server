@@ -243,9 +243,9 @@ test("/oauth/device 移动端只呈现一个标题和一个代码输入", {
     await expect(
       page.getByText(/^(设备验证码|Device Code)$/, { exact: true }),
     ).toHaveCount(1);
-    await expect(page.locator('[data-slot="input-otp-slot"]')).toHaveCount(8);
+    await expect(page.locator('[data-slot="otp-input-slot"]')).toHaveCount(8);
     const otpMetrics = await page
-      .locator('[data-slot="input-otp"]')
+      .locator('[data-slot="otp-input"]')
       .evaluate((element) => ({
         clientWidth: element.clientWidth,
         scrollWidth: element.scrollWidth,
@@ -276,9 +276,9 @@ test("/oauth/device 320px 和 375px 输入槽完整显示", {
     for (const width of [320, 375]) {
       await page.setViewportSize({ width, height: 800 });
       await gotoAndWaitForReady(page, "/oauth/device");
-      const otp = page.locator('[data-slot="input-otp"]');
+      const otp = page.locator('[data-slot="otp-input"]');
       await expect(otp).toBeVisible();
-      await expect(page.locator('[data-slot="input-otp-slot"]')).toHaveCount(8);
+      await expect(page.locator('[data-slot="otp-input-slot"]')).toHaveCount(8);
       const metrics = await otp.evaluate((element) => ({
         clientWidth: element.clientWidth,
         scrollWidth: element.scrollWidth,
@@ -288,7 +288,7 @@ test("/oauth/device 320px 和 375px 输入槽完整显示", {
       const cardBox = await card.boundingBox();
       if (!cardBox) throw new Error("Device code Card is not visible");
       for (const slot of await page
-        .locator('[data-slot="input-otp-slot"]')
+        .locator('[data-slot="otp-input-slot"]')
         .all()) {
         const slotBox = await slot.boundingBox();
         if (!slotBox) throw new Error("Device code slot is not visible");

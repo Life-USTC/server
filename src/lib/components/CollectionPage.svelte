@@ -1,12 +1,11 @@
 <script lang="ts">
-import type { Snippet } from "svelte";
+import type { ComponentProps, Snippet } from "svelte";
 import DetailPageLayout from "./DetailPageLayout.svelte";
 import PageHeader from "./PageHeader.svelte";
 import PageLayout from "./PageLayout.svelte";
 import Panel from "./Panel.svelte";
 
 type PageFrameWidth = "reading" | "content" | "wide" | "full";
-type PageDensity = "comfortable" | "detail" | "compact";
 type PageTemplateLayout = "stack" | "detail";
 
 /**
@@ -23,60 +22,42 @@ type PageTemplateLayout = "stack" | "detail";
  * A two-column detail page: set layout="detail" and fill aside.
  * A custom header: pass the header snippet instead of title.
  */
-type Props = {
-  actions?: Snippet;
-  actionsClass?: string;
-  after?: Snippet;
+type Props = Omit<ComponentProps<typeof PageHeader>, "title"> & {
   aside?: Snippet;
   before?: Snippet;
-  belowTitle?: Snippet;
   children: Snippet;
-  class?: string;
-  density?: PageDensity;
-  description?: string;
-  eyebrow?: string;
-  eyebrowContent?: Snippet;
   footer?: Snippet;
   header?: Snippet;
   headerClass?: string;
   layout?: PageTemplateLayout;
   lead?: Snippet;
-  meta?: Snippet;
   panel?: boolean;
   title?: string;
-  titleClass?: string;
-  titleExtra?: Snippet;
   toolbar?: Snippet;
   width?: PageFrameWidth;
 };
 
 let {
-  actions,
-  actionsClass = "",
-  after,
   aside: asideContent,
   before,
-  belowTitle,
   children,
   class: className,
-  density = "comfortable",
-  description = "",
-  eyebrow = "",
-  eyebrowContent,
   footer,
   header: customHeader,
   headerClass = "",
   layout = "stack",
   lead,
-  meta,
   panel = true,
   title,
-  titleClass = "",
-  titleExtra,
   toolbar,
   width = "wide",
+  ...headerProps
 }: Props = $props();
 </script>
+
+{#snippet defaultHeader(title: string)}
+  <PageHeader {...headerProps} {title} class={headerClass} />
+{/snippet}
 
 {#snippet pageHeader()}
   {#if customHeader}
@@ -85,54 +66,20 @@ let {
     {#if lead}
       <div class="grid min-w-0 gap-3">
         {@render lead()}
-        <PageHeader
-          {actions}
-          {actionsClass}
-          {after}
-          {belowTitle}
-          class={headerClass}
-          {description}
-          {density}
-          {eyebrow}
-          {eyebrowContent}
-          {meta}
-          {title}
-          {titleClass}
-          {titleExtra}
-        />
+        {@render defaultHeader(title)}
       </div>
     {:else}
-      <PageHeader
-        {actions}
-        {actionsClass}
-        {after}
-        {belowTitle}
-        class={headerClass}
-        {description}
-        {density}
-        {eyebrow}
-        {eyebrowContent}
-        {meta}
-        {title}
-        {titleClass}
-        {titleExtra}
-      />
+      {@render defaultHeader(title)}
     {/if}
   {/if}
 {/snippet}
 
 {#if layout === "detail"}
-  <DetailPageLayout aside={asideContent}>
-    {#snippet header()}
-      {@render pageHeader()}
-    {/snippet}
+  <DetailPageLayout aside={asideContent} header={pageHeader}>
     {@render children()}
   </DetailPageLayout>
 {:else}
-  <PageLayout {width} class={className}>
-    {#snippet header()}
-      {@render pageHeader()}
-    {/snippet}
+  <PageLayout {width} class={className} header={pageHeader}>
     {#if before}
       {@render before()}
     {/if}

@@ -195,7 +195,7 @@ test("homework.detail-dialog-dismissal", { tag: "@Homework/Web" }, async ({
         if (!bounds) throw new Error("Expected dialog bounds");
         if (width >= 768) {
           const overlay = await page
-            .locator('[data-slot="dialog-overlay"]')
+            .locator('[data-slot="dialog-backdrop"]')
             .boundingBox();
           if (!overlay) throw new Error("Expected modal backdrop bounds");
           expect(

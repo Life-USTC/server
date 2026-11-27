@@ -27,13 +27,8 @@ export let viewer: ViewerContext;
       class="w-full"
       disabled={!viewer.isAuthenticated || viewer.isSuspended}
       id="comment-composer-target"
-    >
-      {#each postTargetOptions as option}
-        <NativeSelect.Option value={option.value}>
-          {option.label}
-        </NativeSelect.Option>
-      {/each}
-    </NativeSelect.Root>
+      options={postTargetOptions}
+    />
     <Field.Description>
       {commentCopy.commentTargetCurrent.replace(
         "{label}",

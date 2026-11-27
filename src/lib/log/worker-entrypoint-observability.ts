@@ -216,6 +216,13 @@ export function observedEdgeResponse(input: {
   let ioObservedDurationMs = 0;
   try {
     ioObservedDurationMs = elapsedMs(input.startMs);
+    if (input.requestClass === "public-ssr-cache") {
+      // The outer response is personalized after the shared SSR cache lookup.
+      response.headers.append(
+        "Server-Timing",
+        `worker;dur=${Math.round(ioObservedDurationMs)}`,
+      );
+    }
   } catch (error) {
     logEdgeObservationFailure(input, "sampling", error);
   }

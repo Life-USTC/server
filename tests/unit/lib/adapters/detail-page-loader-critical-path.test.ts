@@ -47,6 +47,10 @@ vi.mock("@/features/catalog/server/course-page-data", () => ({
   getCoursePage: getCoursePageMock,
 }));
 
+vi.mock("@/features/catalog/server/official-academic-profile-read", () => ({
+  readOfficialAcademicProfile: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock("@/features/catalog/server/teacher-page-data", () => ({
   getTeacherPage: getTeacherPageMock,
 }));
@@ -889,7 +893,7 @@ describe("section detail loader critical path", () => {
     });
   });
 
-  it("loads full stream section data for anonymous PublicSsr requests", async () => {
+  it("trims schedule previews while preserving the shared introduction data", async () => {
     const relatedSection = {
       ...section,
       otherCourseSections: [{ id: 32 }],
@@ -901,21 +905,25 @@ describe("section detail loader critical path", () => {
     const { loadSectionDetailPage } = await import(
       "@/features/section-detail/server/section-detail-page-server"
     );
-    const load = () =>
+    const load = (tab = "") =>
       loadSectionDetailPage({
         locals: locals(null, true),
         params: { jwId: String(section.jwId) },
-        request: request(`/catalog/sections/${section.jwId}`),
-        url: new URL(`https://example.test/catalog/sections/${section.jwId}`),
+        request: request(`/catalog/sections/${section.jwId}${tab}`),
+        url: new URL(
+          `https://example.test/catalog/sections/${section.jwId}${tab}`,
+        ),
       });
 
-    const [first, second] = await Promise.all([load(), load()]);
+    const schedule = await load("/schedule");
+    const introduction = await load("/introduction");
 
     expect(getSectionPageMock).toHaveBeenCalledTimes(2);
     expect(getSectionPageMock).toHaveBeenCalledWith(section.jwId, "en-us");
     expect(withSectionPageRelatedDataMock).not.toHaveBeenCalled();
-    expect(first.section).toBe(relatedSection);
-    expect(second.section).toBe(relatedSection);
+    expect(schedule.section.otherCourseSections).toEqual([]);
+    expect(introduction.section).toBe(relatedSection);
+    expect(introduction.section.otherCourseSections).toEqual([{ id: 32 }]);
   });
 
   it("loads full stream section data for signed-in requests without overview cache", async () => {

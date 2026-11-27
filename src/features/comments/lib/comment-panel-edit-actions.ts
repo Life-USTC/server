@@ -1,57 +1,41 @@
 import type { CommentNode } from "@/features/comments/server/comment-types";
 import { saveCommentEditRequest } from "./comment-panel-actions";
-import type { CommentEditorMode } from "./comment-panel-draft-state";
-import {
-  type CommentEditDraftState,
-  commentEditDraftFromComment,
-  emptyCommentEditDraft,
-} from "./comment-panel-state";
-
-type CommentEditCopy = {
-  submitFailed: string;
-};
+import type { createCommentPanelDefaultState } from "./comment-panel-default-state";
+import { createCommentEditDraft } from "./comment-panel-state";
 
 export function createCommentPanelEditActions(input: {
-  applyEditDraftState: (state: CommentEditDraftState) => void;
-  getCommentCopy: () => CommentEditCopy;
-  getEditAttachmentIds: () => string[];
-  getEditDraft: () => string;
-  getEditIsAnonymous: () => boolean;
-  getEditVisibility: () => string;
-  hasPendingUploads: (mode: CommentEditorMode) => boolean;
+  panel: ReturnType<typeof createCommentPanelDefaultState>;
+  getCommentCopy: () => { submitFailed: string };
   loadComments: () => Promise<void>;
   onSuccess?: () => void;
-  setActionMenuId: (value: string | null) => void;
-  setMessage: (value: string) => void;
-  setMessageVariant: (value: "destructive" | "default") => void;
 }) {
+  const { panel } = input;
   function startEdit(comment: CommentNode) {
-    input.applyEditDraftState(commentEditDraftFromComment(comment));
-    input.setActionMenuId(null);
+    Object.assign(panel, createCommentEditDraft(comment));
+    panel.actionMenuId = null;
   }
 
   function cancelEdit() {
-    input.applyEditDraftState(emptyCommentEditDraft());
+    Object.assign(panel, createCommentEditDraft());
   }
 
   async function saveEdit(comment: CommentNode) {
-    const body = input.getEditDraft().trim();
-    if (!body || input.hasPendingUploads("edit")) return;
+    const body = panel.editDraft.trim();
+    if (!body || panel.uploadPending.edit > 0) return;
     const copy = input.getCommentCopy();
     try {
       await saveCommentEditRequest({
-        attachmentIds: input.getEditAttachmentIds(),
+        attachmentIds: panel.editAttachmentIds,
         body,
         commentId: comment.id,
-        isAnonymous: input.getEditIsAnonymous(),
+        isAnonymous: panel.editIsAnonymous,
         submitFailed: copy.submitFailed,
-        visibility: input.getEditVisibility(),
+        visibility: panel.editVisibility,
       });
     } catch (error) {
-      input.setMessageVariant("destructive");
-      input.setMessage(
-        error instanceof Error ? error.message : copy.submitFailed,
-      );
+      panel.messageVariant = "destructive";
+      panel.message =
+        error instanceof Error ? error.message : copy.submitFailed;
       return;
     }
     cancelEdit();

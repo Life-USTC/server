@@ -1,5 +1,5 @@
 <script lang="ts">
-import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
+import MoreActionsMenu from "#lib/components/MoreActionsMenu.svelte";
 import { toolbarFieldClass } from "#lib/components/toolbar-control.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
@@ -40,7 +40,6 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
     <ToggleGroup.Root
       aria-label={workspaceCopy.calendarViewLabel}
       class="w-full sm:w-fit"
-      type="single"
       required
       value={calendarView}
       variant="outline"
@@ -62,35 +61,20 @@ let personalCalendarLink: PersonalCalendarLinkButton | undefined;
         {setCalendarDay} {setCalendarMonth} {setCalendarSemester} {setCalendarWeek}
       />
       <div class="xl:hidden">
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger>
-          {#snippet child({ props })}
-            <Button
-              {...props}
-              aria-label={workspaceCopy.calendarMoreActions}
-              class="icon-action" size="icon"
-              type="button"
-              variant="outline"
-            >
-              <MoreHorizontal data-icon="inline-start" />
-            </Button>
-          {/snippet}
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Content align="end" preventScroll={false}>
-          <DropdownMenu.Group>
-            <DropdownMenu.Item>
-              {#snippet child({ props })}
-                <a {...props} href={activitiesManageHref}>{activitiesManageLabel}</a>
-              {/snippet}
+      <MoreActionsMenu label={workspaceCopy.calendarMoreActions}>
+        <DropdownMenu.Group>
+          <DropdownMenu.Item>
+            {#snippet render({ props })}
+              <a {...props} href={activitiesManageHref}>{activitiesManageLabel}</a>
+            {/snippet}
+          </DropdownMenu.Item>
+          {#if signedData.calendarLinkState || signedData.calendarSubscriptionUrl}
+            <DropdownMenu.Item onSelect={() => personalCalendarLink?.open()}>
+              {subscriptionsCopy.iCalLink}
             </DropdownMenu.Item>
-            {#if signedData.calendarLinkState || signedData.calendarSubscriptionUrl}
-              <DropdownMenu.Item onSelect={() => personalCalendarLink?.open()}>
-                {subscriptionsCopy.iCalLink}
-              </DropdownMenu.Item>
-            {/if}
-          </DropdownMenu.Group>
-        </DropdownMenu.Content>
-      </DropdownMenu.Root>
+          {/if}
+        </DropdownMenu.Group>
+      </MoreActionsMenu>
       </div>
     </div>
   </div>

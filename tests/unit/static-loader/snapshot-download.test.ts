@@ -5,6 +5,32 @@ import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { expect, it } from "vitest";
 
+it("dispatches manifest loading without a snapshot path", () => {
+  const directory = mkdtempSync(
+    join(tmpdir(), "snapshot-manifest-command-test-"),
+  );
+  try {
+    writeFileSync(
+      join(directory, "bun"),
+      '#!/bin/sh\nprintf "%s" "$*" > "$FIXTURE/result"\n',
+      { mode: 0o755 },
+    );
+    execFileSync("sh", ["scripts/load-static-sqlite.sh"], {
+      env: {
+        PATH: `${directory}:${process.env.PATH}`,
+        DATABASE_URL: "test",
+        FIXTURE: directory,
+        STATIC_SNAPSHOT_MANIFEST_URL: "https://example.test/manifest.json",
+      },
+    });
+    expect(readFileSync(join(directory, "result"), "utf8")).toBe(
+      "run static:load:manifest",
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 it("loads compressed and legacy snapshots and rejects failures outside the default fallback", () => {
   const directory = mkdtempSync(join(tmpdir(), "snapshot-download-test-"));
   const payload = Buffer.from("SQLite format 3\0fixture");

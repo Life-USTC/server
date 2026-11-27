@@ -160,6 +160,7 @@ describe("worker entrypoint observability", () => {
     });
 
     expect(response.headers.get("x-request-id")).toBe("request-1");
+    expect(response.headers.get("Server-Timing")).toBe("worker;dur=250");
     expect(logAppEventMock).toHaveBeenCalledWith(
       "info",
       "edge.request.finish",

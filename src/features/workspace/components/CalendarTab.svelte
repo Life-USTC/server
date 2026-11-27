@@ -2,8 +2,8 @@
 import { onDestroy } from "svelte";
 import CalendarAgenda from "#lib/components/calendar/CalendarAgenda.svelte";
 import CalendarGrid from "#lib/components/calendar/CalendarGrid.svelte";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import { weekStartFor } from "@/features/workspace/lib/calendar";
 import { buildWorkspaceCalendarGridWeeks } from "@/features/workspace/lib/calendar-grid";
 import {
@@ -273,11 +273,7 @@ $: agendaDays = baseAgendaDays.map((day) => ({
         {/if}
       {/key}
     {:else}
-      <Empty.Root class="items-start text-left">
-        <Empty.Header class="items-start text-left">
-          <Empty.Title>{subscriptionsCopy.calendarEmpty}</Empty.Title>
-        </Empty.Header>
-      </Empty.Root>
+      <EmptyState variant="start" title={subscriptionsCopy.calendarEmpty} />
     {/if}
   {/if}
 </section>

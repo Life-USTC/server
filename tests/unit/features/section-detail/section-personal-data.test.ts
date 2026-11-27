@@ -1,15 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { findSection, readSubscription, readHomeworks } = vi.hoisted(() => ({
-  findSection: vi.fn(),
-  readSubscription: vi.fn(),
-  readHomeworks: vi.fn(),
-}));
+const { findAnonymousSection, findSection, readSubscription, readHomeworks } =
+  vi.hoisted(() => ({
+    findAnonymousSection: vi.fn(),
+    findSection: vi.fn(),
+    readSubscription: vi.fn(),
+    readHomeworks: vi.fn(),
+  }));
 vi.mock("@/lib/db/prisma", () => ({
-  prisma: { section: { findUnique: findSection } },
-}));
-vi.mock("@/features/subscriptions/server/subscriptions", () => ({
-  getUserSectionSubscriptionStatusForSection: readSubscription,
+  prisma: {
+    $queryRaw: findAnonymousSection,
+    section: { findUnique: findSection },
+  },
+  withUserDbContext: (_userId: string, action: (tx: unknown) => unknown) =>
+    action({ userSectionSubscription: { findUnique: readSubscription } }),
 }));
 vi.mock(
   "@/features/section-detail/server/section-detail-homework-data",
@@ -47,6 +51,29 @@ beforeEach(() => {
 });
 
 describe("section Web personal projection", () => {
+  it("skips the homework list only for an existing empty anonymous section", async () => {
+    const request = { jwId: 301, userId: null, focusedHomeworkId: null };
+    findAnonymousSection.mockResolvedValueOnce([]);
+    expect(await getSectionPersonalData(request)).toBeNull();
+    findAnonymousSection.mockResolvedValueOnce([
+      { id: 31, hasHomeworks: false },
+    ]);
+    expect(await getSectionPersonalData(request)).toMatchObject({
+      viewer: { signedIn: false, isSubscribed: false },
+      homeworkData: {
+        viewer: { isAuthenticated: false },
+        homeworks: [],
+        auditLogs: [],
+      },
+    });
+    expect(readHomeworks).not.toHaveBeenCalled();
+    findAnonymousSection.mockResolvedValueOnce([
+      { id: 31, hasHomeworks: true },
+    ]);
+    await getSectionPersonalData(request);
+    expect(readHomeworks).toHaveBeenCalledWith(31, null, null);
+  });
+
   it("leaves subscription and completion anonymous without a session", async () => {
     const result = await getSectionPersonalData({
       jwId: 301,
@@ -66,7 +93,10 @@ describe("section Web personal projection", () => {
         userId,
         focusedHomeworkId: "hw-1",
       });
-      expect(readSubscription).toHaveBeenLastCalledWith(userId, 301);
+      expect(readSubscription).toHaveBeenLastCalledWith({
+        where: { userId_sectionId: { userId, sectionId: 31 } },
+        select: { kind: true },
+      });
       expect(readHomeworks).toHaveBeenLastCalledWith(31, userId, "hw-1");
       expect(result?.viewer).toEqual({
         signedIn: true,
