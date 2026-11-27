@@ -5,7 +5,7 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
-import { expectSettingsPage, test } from "../../../../utils/settings-fixture";
+import { test } from "../../../../utils/settings-fixture";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -138,20 +138,5 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
         await expect(region.getByText(name, { exact: true })).toHaveCount(0);
       },
     );
-  });
-});
-
-test("页面契约", { tag: "@Account/Web" }, async ({
-  accountRun,
-  page,
-  account: _account,
-}) => {
-  await accountRun({ writes: [], audits: [] }, async () => {
-    await expectSettingsPage(page, "/account/settings/authorizations");
-    await expect(
-      page.getByRole("region", {
-        name: /已授权的 OAuth 应用|Authorized OAuth applications/i,
-      }),
-    ).toBeVisible();
   });
 });

@@ -485,18 +485,6 @@ requirements:
     test:
       file: tests/integration/rest-subscription-kind-contract.test.ts
       name: openapi.subscription-kind
-- id: openapi.build-generation
-  category: consistency
-  rule: Production builds regenerate the server OpenAPI artifact, and the repository check rejects a changed artifact.
-  acceptance:
-    given: The production build and OpenAPI check commands are configured in package.json.
-    when: Their actual command definitions are inspected.
-    then:
-    - The build regenerates OpenAPI before building the application.
-    - The OpenAPI check regenerates then rejects a diff in the committed artifact.
-    test:
-      file: tests/unit/lib/openapi/openapi-workflow-contract.test.ts
-      name: openapi.build-generation
 - id: openapi.public-catalog-pagination-bounds
   category: validation
   rule: Public catalog list page and pageSize inputs are integers from 1 through 100.

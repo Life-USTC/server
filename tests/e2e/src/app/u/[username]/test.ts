@@ -31,7 +31,6 @@ import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { test as privateTest } from "../../../../utils/personal-preferences-fixture";
 import { absoluteTestUrl } from "../../../../utils/request-url";
-import { assertPageContract } from "../../_shared/page-contract";
 import { test } from "./_fixture";
 
 test("user.public-profile-canonical-route", { tag: "@User/Web" }, async ({
@@ -107,18 +106,6 @@ privateTest(
 );
 
 test.describe("/community/users/[identifier]", () => {
-  test("页面契约", { tag: "@User/Web" }, async ({
-    preferenceFlow,
-    publicAdminProfile: _publicAdminProfile,
-    page,
-  }) => {
-    await preferenceFlow.run(async () => {
-      await assertPageContract(page, {
-        routePath: "/community/users/[identifier]",
-      });
-    });
-  });
-
   test("显示所有必需的资料字段", { tag: "@User/Web" }, async ({
     preferenceFlow,
     publicAdminProfile: _publicAdminProfile,
@@ -282,18 +269,6 @@ test.describe("/community/users/[identifier]", () => {
 });
 
 test.describe("/community/users/[identifier] by ID", () => {
-  test("页面契约", { tag: "@User/Web" }, async ({
-    preferenceFlow,
-    publicAdminProfile: _publicAdminProfile,
-    page,
-  }) => {
-    await preferenceFlow.run(async () => {
-      await assertPageContract(page, {
-        routePath: "/community/users/[identifier]",
-      });
-    });
-  });
-
   privateTest(
     "内部用户 ID 地址直接解析同一资料页",
     { tag: "@User/Web" },

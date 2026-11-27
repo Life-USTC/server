@@ -4,7 +4,6 @@ import {
   gotoAndWaitForReady,
 } from "../../../utils/page-ready";
 import { test } from "../../../utils/publication-fixture";
-import { assertPageContract } from "../_shared/page-contract";
 
 test.describe("/news 新闻与通知预览", () => {
   test("publications.search-filter-literal-label", {
@@ -62,9 +61,11 @@ test.describe("/news 新闻与通知预览", () => {
     });
   });
 
-  test("页面契约", { tag: "@Publication/Web" }, async ({ browseRun, page }) => {
+  test("publications.source-directory-navigation-ownership", {
+    tag: "@Publication/Web",
+  }, async ({ browseRun, page }) => {
     await browseRun(async () => {
-      await assertPageContract(page, { routePath: "/news" });
+      await gotoAndWaitForReady(page, "/news");
       // Source directory stays a single sidebar entry; do not repeat it in the
       // list page header actions (ui.route-navigation / issue #1251).
       await expect(

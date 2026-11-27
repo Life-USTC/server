@@ -22,7 +22,6 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
-import { assertPageContract } from "../../_shared/page-contract";
 import {
   test as overlayTest,
   signInPrivateDebugUser,
@@ -32,24 +31,6 @@ import { getDetailViewport, jumpToSection } from "./_helpers";
 const SECTION_URL = `/catalog/sections/${DEV_SEED.section.jwId}`;
 
 test.describe("/catalog/sections/[jwId] 班级详情页", () => {
-  test("页面契约", { tag: "@Section/Web" }, async ({
-    page,
-    preferenceFlow,
-    detailCatalog,
-    isolatedWorker,
-  }) => {
-    await preferenceFlow.prepare(() =>
-      isolatedWorker.database.owner.$transaction((db) =>
-        arrangeSectionDetails(db, detailCatalog),
-      ),
-    );
-    await preferenceFlow.run(async () => {
-      await assertPageContract(page, {
-        routePath: "/catalog/sections/[jwId]",
-      });
-    });
-  });
-
   test("无效参数返回 404", { tag: "@Section/Web" }, async ({
     page,
     preferenceFlow,
@@ -573,22 +554,4 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
       );
     },
   );
-});
-
-test("页面契约", { tag: "@Section/Web" }, async ({
-  page,
-  preferenceFlow,
-  detailCatalog,
-  isolatedWorker,
-}) => {
-  await preferenceFlow.prepare(() =>
-    isolatedWorker.database.owner.$transaction((db) =>
-      arrangeSectionDetails(db, detailCatalog),
-    ),
-  );
-  await preferenceFlow.run(async () => {
-    await assertPageContract(page, {
-      routePath: "/catalog/sections/[jwId]/introduction",
-    });
-  });
 });

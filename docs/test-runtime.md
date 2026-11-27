@@ -1,7 +1,14 @@
 # Test runtime and fixtures
 
 Setup and role environment variables: [local development](local-development.md).
-Choose the runtime for the boundary being tested:
+Choose the runtime for the boundary being tested. Keep formatting, lint and
+type checks as the first, inexpensive gate. Behavioral tests should connect an
+input to an observable result or persisted side effect; page visits alone are
+route smoke coverage, not business coverage. Do not retain one-off migration
+replays or diagnostic event instrumentation as permanent suites. Retain a
+regression only while its current invariant has a distinct failure mode that is
+not covered more cheaply at another boundary. Source-structure guards are for
+lasting architectural rules, not mirrors of the current implementation.
 
 | Boundary                          | Entry point                                                              | What it exercises                                                       |
 | --------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
@@ -48,7 +55,10 @@ verify transport behavior, not call-site selection.
 
 [Page inventory](../tests/e2e/src/app/_shared/page-inventory.ts) lists desktop/mobile
 route samples; it does not establish behavior coverage.
-[Page contracts](../tests/e2e/src/app/_shared/page-contract.ts) compose common checks.
+[Mobile route health](../tests/e2e/mobile-pages/route-health.ts) owns generic
+status, title, overflow and accessibility smoke. The shared page helper only
+handles dynamic samples and route-specific behavior; do not add static heading
+or copy presence assertions to it.
 The [accessibility helper](../tests/e2e/utils/ui-quality.ts) runs the selected WCAG A/AA axe rules, including contrast and target size.
 Serious/critical violations fail the gate; incomplete results are reported for
 review. A passing audit does not establish full accessibility coverage.

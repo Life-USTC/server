@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { Client } from "pg";
 import { describe, expect } from "vitest";
 import { createComment } from "@/features/comments/server/comment-create";
 import { updateOwnComment } from "@/features/comments/server/comment-update-delete";
@@ -67,45 +65,6 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
   "CommentAttachment PostgreSQL row security",
   { tags: ["@Comment/Permissions"] },
   () => {
-    it("applies the migration to existing links without changing their contents", async ({
-      isolatedDatabase: { owner, app, connections },
-      rlsComments: { public: commentId },
-      attachments: { ownUploadId },
-    }) => {
-      const migration = new Client({ connectionString: connections.owner });
-      await migration.connect();
-      try {
-        await migration.query(`
-          DROP POLICY "CommentAttachment_visible_parent" ON public."CommentAttachment";
-          DROP POLICY "CommentAttachment_author_insert" ON public."CommentAttachment";
-          DROP POLICY "CommentAttachment_author_delete" ON public."CommentAttachment";
-          ALTER TABLE public."CommentAttachment" DISABLE ROW LEVEL SECURITY;
-          ALTER TABLE public."CommentAttachment" NO FORCE ROW LEVEL SECURITY;
-        `);
-        const before = await owner.commentAttachment.findMany({
-          orderBy: { id: "asc" },
-        });
-        expect(await app.commentAttachment.count()).toBe(4);
-        await migration.query(
-          readFileSync(
-            "prisma/migrations/20261103130000_comment_attachment_rls/migration.sql",
-            "utf8",
-          ),
-        );
-        expect(await app.commentAttachment.count()).toBe(1);
-        await expect(
-          app.commentAttachment.create({
-            data: { commentId, uploadId: ownUploadId },
-          }),
-        ).rejects.toThrow(/row-level security/);
-        expect(
-          await owner.commentAttachment.findMany({ orderBy: { id: "asc" } }),
-        ).toEqual(before);
-      } finally {
-        await migration.end();
-      }
-    });
-
     it("forces parent visibility while preserving public summaries and authorized downloads", async ({
       isolatedDatabase: { app },
       rlsActors: { firstUserId, secondUserId, adminUserId },
