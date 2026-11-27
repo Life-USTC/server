@@ -33,6 +33,25 @@ export async function changedImportGroups(
   return changed;
 }
 
+/** Older importers only updated the global row. Rebuild the section cache
+ * generation once when resuming after such an import. */
+export async function previousSectionRevisionTracked(
+  tx: Prisma.TransactionClient,
+): Promise<boolean> {
+  const states = await tx.staticImportState.findMany({
+    where: { id: { in: ["global", "section-page-core-source"] } },
+    select: { id: true, snapshotSha256: true, transformRevision: true },
+  });
+  const global = states.find((row) => row.id === "global");
+  const source = states.find((row) => row.id === "section-page-core-source");
+  return Boolean(
+    global &&
+      source &&
+      global.snapshotSha256 === source.snapshotSha256 &&
+      global.transformRevision === source.transformRevision,
+  );
+}
+
 export function semesterImportDigests(
   sections: readonly { jwId: number; semesterCode: number }[],
   examSemesters: ReadonlySet<number>,

@@ -4,7 +4,10 @@ import {
   openCatalogColumnFilter,
   setCatalogFilterValue,
 } from "../../../utils/catalog-table-filters";
-import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../utils/page-ready";
 import { test } from "../../../utils/personal-preferences-fixture";
 
 test("section filter drafts, multi-selection, comparisons and reactive pagination", {
@@ -128,6 +131,7 @@ test("section filter drafts, multi-selection, comparisons and reactive paginatio
     await gotoAndWaitForReady(page, target.toString());
     await expect(rows).toHaveCount(10);
     await page.reload();
+    await waitForUiSettled(page);
     await expect(rows).toHaveCount(10);
     expect(Object.fromEntries(new URL(page.url()).searchParams)).toEqual({
       ...applied,

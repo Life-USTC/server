@@ -210,7 +210,7 @@ async function copyInstallCommand() {
           {#if primaryQrSrc}
             <Popover.Root>
               <Popover.Trigger>
-                {#snippet child({ props })}
+                {#snippet render({ props })}
                   <Button
                     {...props}
                     aria-label={data.copy.primaryQrAlt}
@@ -295,7 +295,6 @@ async function copyInstallCommand() {
         <h2 class="section-heading">{data.copy.installTitle}</h2>
         <Button
           class="group h-auto min-w-0 w-full justify-between rounded-xl p-3 text-left whitespace-normal"
-          type="button"
           variant="outline"
           onclick={copyInstallCommand}
         >

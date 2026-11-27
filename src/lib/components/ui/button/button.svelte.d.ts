@@ -34,6 +34,8 @@ export type ButtonProps = WithElementRef<HTMLButtonAttributes> &
 	WithElementRef<HTMLAnchorAttributes> & {
 		variant?: ButtonVariant;
 		size?: ButtonSize;
+		loading?: boolean;
+		icon?: Component<{ "data-icon"?: string }>;
 	};
 
 declare const Button: Component<ButtonProps, Record<string, never>, "ref">;

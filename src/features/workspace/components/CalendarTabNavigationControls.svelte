@@ -69,9 +69,9 @@ function today() {
 {#if calendarData}
   <div class="grid min-w-0 gap-2 sm:flex sm:flex-wrap sm:items-center">
     <ButtonGroup.Root aria-label={workspaceCopy.calendarNavigationLabel}>
-      <Button aria-label={previousLabel} size="icon" type="button" variant="outline" disabled={calendarView === "semester" && semesterIndex <= 0} onclick={() => move(-1)}><ChevronLeft data-icon="inline-start" /></Button>
-      <Button type="button" variant="outline" onclick={today}>{workspaceCopy.todayAction}</Button>
-      <Button aria-label={nextLabel} size="icon" type="button" variant="outline" disabled={calendarView === "semester" && semesterIndex >= calendarData.calendarSemesterNavList.length - 1} onclick={() => move(1)}><ChevronRight data-icon="inline-start" /></Button>
+      <Button icon={ChevronLeft} aria-label={previousLabel} size="icon" variant="outline" disabled={calendarView === "semester" && semesterIndex <= 0} onclick={() => move(-1)} />
+      <Button variant="outline" onclick={today}>{workspaceCopy.todayAction}</Button>
+      <Button icon={ChevronRight} aria-label={nextLabel} size="icon" variant="outline" disabled={calendarView === "semester" && semesterIndex >= calendarData.calendarSemesterNavList.length - 1} onclick={() => move(1)} />
     </ButtonGroup.Root>
     {#if calendarView === "day"}
       <Input aria-label={workspaceCopy.calendarDay.label} type="date" value={calendarDay} class="w-auto max-w-full" onchange={(event) => { if (event.currentTarget.value) setCalendarDay(event.currentTarget.value); }} />

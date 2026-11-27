@@ -1,20 +1,19 @@
 <script lang="ts">
 import TeacherIcon from "@lucide/svelte/icons/user-round";
 import MobileListCard from "#lib/components/MobileListCard.svelte";
-import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
-import ResultsEmpty from "#lib/components/ResultsEmpty.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import {
-  type CatalogNamed,
   catalogLocalizedDisplayName,
+  catalogPrimaryName as primaryName,
 } from "@/features/catalog/lib/catalog-list-display";
 import { page as routePage } from "$app/state";
 import CatalogColumnFilter from "./CatalogColumnFilter.svelte";
 import CatalogEntityName from "./CatalogEntityName.svelte";
+import CatalogResults from "./CatalogResults.svelte";
 import CatalogTableLink from "./CatalogTableLink.svelte";
-import type { CatalogColumnFilterProps } from "./catalog-column-filter-types";
+import type { CatalogColumnFilterProps } from "./catalog-column-filters";
 import type {
   TeacherListCommonLabels,
   TeacherListLabels,
@@ -24,185 +23,137 @@ import type {
 interface Props {
   commonLabels: TeacherListCommonLabels;
   columnFilters: Record<string, CatalogColumnFilterProps>;
-  primaryName: (item: CatalogNamed | null | undefined) => string;
   teacherLabels: TeacherListLabels;
   teachers: TeacherListRow[];
 }
 
-let {
-  commonLabels,
-  columnFilters,
-  primaryName,
-  teacherLabels,
-  teachers,
-}: Props = $props();
+let { commonLabels, columnFilters, teacherLabels, teachers }: Props = $props();
 
 let locale = $derived(routePage.data.locale ?? "zh-cn");
-/** Hide columns that are entirely empty or unknown on the current page. */
-let showTitleColumn = $derived(
-  teachers.some((teacher) => Boolean(teacher.teacherTitle)),
-);
-let showEmailColumn = $derived(
-  teachers.some((teacher) => Boolean(teacher.email)),
-);
+let showTitleColumn = $derived(Boolean(columnFilters.title));
+let showEmailColumn = $derived(Boolean(columnFilters.email));
 
 function teacherSectionsHref(teacher: TeacherListRow) {
   return `/catalog/teachers/${teacher.id}/sections`;
 }
 </script>
 
-
-{#snippet empty()}
-    <div class="py-10">
-      <ResultsEmpty
-        description={teacherLabels.emptyDescription}
-        title={teacherLabels.noTeachersFound}
-      />
-    </div>
-{/snippet}
-
-<section class="grid min-w-0 gap-3">
-    <ResponsiveCollection>
-      {#snippet mobile()}
-        <div class="grid gap-3" data-slot="collection-header">
-          <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-            {#each Object.entries(columnFilters) as [key, column] (key)}
-              <CatalogColumnFilter {...column} idPrefix={"mobile-teacher-" + key} />
-            {/each}
-          </div>
-        </div>
-        {#if teachers.length > 0}
-        <Item.Group class="gap-0" role="list">
-          {#each teachers as teacher, index}
-            {@const teacherHref = `/catalog/teachers/${teacher.id}`}
-            {@const sectionCount = teacher._count.sections}
-            <div role="listitem" class="relative">
-              <MobileListCard size="sm">
-                {#snippet child({ props })}
-                  <a href={teacherHref} {...props}>
-                    <Item.Content><Item.Title><TeacherIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" /><CatalogEntityName item={teacher} locale={locale} /></Item.Title></Item.Content>
-                    <Item.Actions>
-                      {#if sectionCount > 0}
-                        <span
-                          class="invisible min-w-11 tabular-nums text-sm"
-                          aria-hidden="true"
-                        >{sectionCount}</span>
-                      {:else}
-                        <span class="tabular-nums text-muted-foreground text-sm" data-testid="teacher-section-count">0</span>
-                      {/if}
-                    </Item.Actions>
-
-                    <Item.Footer
-                      class="flex-wrap justify-start gap-x-3 gap-y-1 text-sm"
-                    >
-                      {#if teacher.code}
-                        <span class="font-mono text-muted-foreground">{teacher.code}</span>
-                      {/if}
-                    <span>{teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}</span>
-                    {#if showTitleColumn}
-                      <span>{teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}</span>
-                    {/if}
-                      {#if showEmailColumn}
-                        <span>{teacher.email ?? "-"}</span>
-                      {/if}
-                    </Item.Footer>
-                  </a>
-                {/snippet}
-              </MobileListCard>
-              {#if sectionCount > 0}
-                <a
-                  href={teacherSectionsHref(teacher)}
-                  class="absolute right-3 top-0 flex min-h-11 min-w-11 items-center justify-end text-sm tabular-nums text-muted-foreground underline-offset-2"
-                  data-testid="teacher-section-count"
-                >{sectionCount}</a>
-              {/if}
-            </div>
-            {#if index < teachers.length - 1}
-              <Item.Separator aria-hidden="true" />
-            {/if}
-          {/each}
-        </Item.Group>
+<CatalogResults rows={teachers} filters={columnFilters} prefix="mobile-teacher-" title={teacherLabels.noTeachersFound} description={teacherLabels.emptyDescription}>
+  {#snippet card(teacher)}
+    {@const teacherHref = `/catalog/teachers/${teacher.id}`}
+    {@const sectionCount = teacher._count.sections}
+    <MobileListCard href={teacherHref}>
+      <Item.Content><Item.Title><TeacherIcon aria-hidden="true" class="me-1 inline size-4 shrink-0 align-[-0.125em]" /><CatalogEntityName item={teacher} locale={locale} /></Item.Title></Item.Content>
+      <Item.Actions>
+        {#if sectionCount > 0}
+          <span
+            class="invisible min-w-11 tabular-nums text-sm"
+            aria-hidden="true"
+          >{sectionCount}</span>
         {:else}
-          {@render empty()}
+          <span class="tabular-nums text-muted-foreground text-sm" data-testid="teacher-section-count">0</span>
         {/if}
-      {/snippet}
-      {#snippet desktop()}
-        <Table.Root class="">
-          <Table.Header>
-            <Table.Row>
-              <Table.Head class="pl-8"><CatalogColumnFilter {...columnFilters.name} idPrefix="desktop-teacher-name" /></Table.Head>
-              <Table.Head><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-teacher-code" /></Table.Head>
-              <Table.Head><CatalogColumnFilter {...columnFilters.department} idPrefix="desktop-teacher-department" /></Table.Head>
-              {#if showTitleColumn}
-                <Table.Head><CatalogColumnFilter {...columnFilters.title} idPrefix="desktop-teacher-title" /></Table.Head>
-              {/if}
-              {#if showEmailColumn}
-                <Table.Head><CatalogColumnFilter {...columnFilters.email} idPrefix="desktop-teacher-email" /></Table.Head>
-              {/if}
-              <Table.Head class="pl-8"><CatalogColumnFilter {...columnFilters.sections} idPrefix="desktop-teacher-sections" /></Table.Head>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {#each teachers as teacher}
-              {@const teacherHref = `/catalog/teachers/${teacher.id}`}
-              {@const sectionCount = teacher._count.sections}
-              <Table.Row>
-                <Table.Cell class="p-0">
-                  <CatalogTableLink class="font-medium" href={teacherHref}>
-                  <TruncatedText class="font-medium"
-                      text={catalogLocalizedDisplayName(teacher, locale)}
-                    >
-                      {#snippet children()}
-                        <CatalogEntityName item={teacher} locale={locale} />
-                      {/snippet}
-                    </TruncatedText>
-                  </CatalogTableLink>
-                </Table.Cell>
-              <Table.Cell class="whitespace-nowrap font-mono">
-                {teacher.code || "-"}
-              </Table.Cell>
-                <Table.Cell>
-                  <TruncatedText
-                    text={teacher.department
-                      ? primaryName(teacher.department)
-                      : teacherLabels.noDepartment}
-                  />
-                </Table.Cell>
-                {#if showTitleColumn}
-                  <Table.Cell>
-                    {teacher.teacherTitle
-                      ? primaryName(teacher.teacherTitle)
-                      : commonLabels.unknown}
-                  </Table.Cell>
-                {/if}
-              {#if showEmailColumn}
-                <Table.Cell>
-                  <TruncatedText text={teacher.email ?? "-"} />
-                </Table.Cell>
-              {/if}
-              <Table.Cell class="p-0 whitespace-nowrap text-left tabular-nums">
-                {#if sectionCount > 0}
-                  <CatalogTableLink
-                    class="tabular-nums"
-                    href={teacherSectionsHref(teacher)}
-                    numeric
-                  >
-                    <span data-testid="teacher-section-count">{sectionCount}</span>
-                  </CatalogTableLink>
-                {:else}
-                  <span
-                    class="flex h-full min-h-12 min-w-0 w-full items-center pr-3 pl-8 tabular-nums"
-                    data-testid="teacher-section-count"
-                  >0</span>
-                {/if}
-              </Table.Cell>
-              </Table.Row>
-            {/each}
-          {#if teachers.length === 0}
-              <Table.Row><Table.Cell colspan={4 + Number(showTitleColumn) + Number(showEmailColumn)}>{@render empty()}</Table.Cell></Table.Row>
+      </Item.Actions>
+
+      <Item.Footer
+        class="flex-wrap justify-start gap-x-3 gap-y-1 text-sm"
+      >
+        {#if teacher.code}
+          <span class="font-mono text-muted-foreground">{teacher.code}</span>
+        {/if}
+      <span>{teacher.department ? primaryName(teacher.department) : teacherLabels.noDepartment}</span>
+      {#if showTitleColumn}
+        <span>{teacher.teacherTitle ? primaryName(teacher.teacherTitle) : commonLabels.unknown}</span>
+      {/if}
+        {#if showEmailColumn}
+          <span>{teacher.email ?? "-"}</span>
+        {/if}
+      </Item.Footer>
+    </MobileListCard>
+    {#if sectionCount > 0}
+      <a
+        href={teacherSectionsHref(teacher)}
+        class="absolute right-3 top-0 flex min-h-11 min-w-11 items-center justify-end text-sm tabular-nums text-muted-foreground underline-offset-2"
+        data-testid="teacher-section-count"
+      >{sectionCount}</a>
+    {/if}
+  {/snippet}
+  {#snippet table(empty)}
+    <Table class="">
+      <thead>
+        <tr>
+          <th class="pl-8"><CatalogColumnFilter {...columnFilters.name} idPrefix="desktop-teacher-name" /></th>
+          <th><CatalogColumnFilter {...columnFilters.code} idPrefix="desktop-teacher-code" /></th>
+          <th><CatalogColumnFilter {...columnFilters.department} idPrefix="desktop-teacher-department" /></th>
+          {#if showTitleColumn}
+            <th><CatalogColumnFilter {...columnFilters.title} idPrefix="desktop-teacher-title" /></th>
+          {/if}
+          {#if showEmailColumn}
+            <th><CatalogColumnFilter {...columnFilters.email} idPrefix="desktop-teacher-email" /></th>
+          {/if}
+          <th class="pl-8"><CatalogColumnFilter {...columnFilters.sections} idPrefix="desktop-teacher-sections" /></th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each teachers as teacher}
+          {@const teacherHref = `/catalog/teachers/${teacher.id}`}
+          {@const sectionCount = teacher._count.sections}
+          <tr>
+            <td class="p-0">
+              <CatalogTableLink class="font-medium" href={teacherHref}>
+              <TruncatedText class="font-medium"
+                  text={catalogLocalizedDisplayName(teacher, locale)}
+                >
+                  {#snippet children()}
+                    <CatalogEntityName item={teacher} locale={locale} />
+                  {/snippet}
+                </TruncatedText>
+              </CatalogTableLink>
+            </td>
+          <td class="whitespace-nowrap font-mono">
+            {teacher.code || "-"}
+          </td>
+            <td>
+              <TruncatedText
+                text={teacher.department
+                  ? primaryName(teacher.department)
+                  : teacherLabels.noDepartment}
+              />
+            </td>
+            {#if showTitleColumn}
+              <td>
+                {teacher.teacherTitle
+                  ? primaryName(teacher.teacherTitle)
+                  : commonLabels.unknown}
+              </td>
             {/if}
-          </Table.Body>
-        </Table.Root>
-      {/snippet}
-    </ResponsiveCollection>
-</section>
+          {#if showEmailColumn}
+            <td>
+              <TruncatedText text={teacher.email ?? "-"} />
+            </td>
+          {/if}
+          <td class="p-0 whitespace-nowrap text-left tabular-nums">
+            {#if sectionCount > 0}
+              <CatalogTableLink
+                class="tabular-nums"
+                href={teacherSectionsHref(teacher)}
+                numeric
+              >
+                <span data-testid="teacher-section-count">{sectionCount}</span>
+              </CatalogTableLink>
+            {:else}
+              <span
+                class="flex h-full min-h-12 min-w-0 w-full items-center pr-3 pl-8 tabular-nums"
+                data-testid="teacher-section-count"
+              >0</span>
+            {/if}
+          </td>
+          </tr>
+        {/each}
+      {#if teachers.length === 0}
+          <tr><td colspan={4 + Number(showTitleColumn) + Number(showEmailColumn)}>{@render empty()}</td></tr>
+        {/if}
+      </tbody>
+    </Table>
+  {/snippet}
+</CatalogResults>

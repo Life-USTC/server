@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
+  queryMutableRow,
   buildSuggestionsMock,
   sectionFindFirstMock,
   sectionFindManyMock,
   semesterMock,
 } = vi.hoisted(() => ({
+  queryMutableRow: vi.fn(),
   buildSuggestionsMock: vi.fn().mockResolvedValue({}),
   sectionFindFirstMock: vi.fn(),
   sectionFindManyMock: vi.fn().mockResolvedValue([]),
@@ -22,6 +24,13 @@ vi.mock("@/features/catalog/server/section-code-match-semester", () => ({
 
 vi.mock("@/features/catalog/server/section-code-match-suggestions", () => ({
   buildSectionCodeSuggestions: buildSuggestionsMock,
+}));
+
+vi.mock("@/lib/db/prisma-adapter", () => ({
+  withRuntimeDatabaseAdapter: (
+    _role: string,
+    run: (adapter: { queryRaw: typeof queryMutableRow }) => unknown,
+  ) => run({ queryRaw: queryMutableRow }),
 }));
 
 vi.mock("@/lib/db/prisma", () => ({
@@ -62,11 +71,19 @@ describe("retired Section discovery boundaries", () => {
   });
 
   it("loads retirement state for historical Section detail UI", async () => {
-    const { sectionPageSelect } = await import(
-      "@/features/section-detail/server/section-page-select"
+    const { loadSectionPageMutableData } = await import(
+      "@/features/section-detail/server/section-page-mutable-data"
     );
 
-    expect(sectionPageSelect.retiredAt).toBe(true);
+    const retiredAt = "2026-08-26T00:00:00.000Z";
+    queryMutableRow.mockResolvedValueOnce({ rows: [[retiredAt]] });
+    expect((await loadSectionPageMutableData(42)).retiredAt).toBe(retiredAt);
+    expect(queryMutableRow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sql: expect.stringContaining('s."retiredAt"'),
+        args: [42],
+      }),
+    );
   });
 
   it("counts only active Sections in public teacher results", async () => {

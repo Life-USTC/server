@@ -79,8 +79,6 @@ export type SectionHomeworkAuditLog = {
   titleSnapshot?: string | null;
 };
 
-export type SectionHomeworkTimestampAction = () => void;
-
 export type SectionHomeworkSemesterDate = (
   boundary: "start" | "end",
 ) => SectionHomeworkDateValue;

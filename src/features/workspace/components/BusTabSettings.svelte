@@ -48,14 +48,13 @@ function selectDayType(value: string) {
 
       <Field.Field>
         <Button
+          icon={ArrowLeftRightIcon}
           aria-label={busCopy.planner.reverse}
           class="h-11 w-full justify-center md:h-8"
           disabled={!busPlannerReady}
-          type="button"
           onclick={reverseBusStops}
           variant="outline"
         >
-          <ArrowLeftRightIcon data-icon="inline-start" />
           {busCopy.planner.reverse}
         </Button>
       </Field.Field>
@@ -85,7 +84,6 @@ function selectDayType(value: string) {
           aria-labelledby={`${idPrefix}-day-type-label`}
           class="grid w-full grid-cols-3"
           spacing={2}
-          type="single"
           required
           value={busDayType}
           variant="outline"

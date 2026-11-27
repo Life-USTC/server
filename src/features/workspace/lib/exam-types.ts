@@ -1,7 +1,5 @@
 import type { LocalizedName } from "./localized-names";
 
-export type ExamFilter = "incomplete" | "completed" | "all";
-
 export type WorkspaceExamRoom = {
   count: number;
   room: string;

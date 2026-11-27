@@ -1,46 +1,17 @@
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
 
-export type CourseDetailCopy = {
-  course: {
-    basicInfo: string;
-    category: string;
-    code: string;
-    level: string;
-  };
-  courseDetail: {
-    basicInfoDescription: string;
-    campus: string;
-    capacity: string;
-    classType: string;
-    courseType: string;
-    emptySectionsDescription: string;
-    teachingSections: string;
-    noSections: string;
-    sectionCode: string;
-    semester: string;
-    teachers: string;
-  };
-};
+import type {
+  loadCourseDetailPage,
+  loadTeacherDetailPage,
+} from "../server/catalog-detail-page-server";
 
-export type TeacherDetailCopy = {
-  teacherDetail: {
-    address: string;
-    basicInfo: string;
-    basicInfoDescription: string;
-    courseName: string;
-    credits: string;
-    department: string;
-    email: string;
-    mobile: string;
-    name: string;
-    noDepartment: string;
-    noSections: string;
-    sectionCode: string;
-    semester: string;
-    telephone: string;
-    title: string;
-  };
-};
+export type CoursePage = Awaited<ReturnType<typeof loadCourseDetailPage>>;
+export type TeacherPage = Awaited<ReturnType<typeof loadTeacherDetailPage>>;
+
+export type CourseDetailCopy = CoursePage["copy"];
+export type TeacherDetailCopy = TeacherPage["copy"];
+export type CourseDetailCourse = CoursePage["course"];
+export type TeacherDetailTeacher = TeacherPage["teacher"];
 
 export type CourseDetailSection = {
   campus?: CatalogNamed | null;
@@ -52,15 +23,6 @@ export type CourseDetailSection = {
   teachers: CatalogNamed[];
 };
 
-export type CourseDetailCourse = CatalogNamed & {
-  category?: CatalogNamed | null;
-  classType?: CatalogNamed | null;
-  code: string;
-  educationLevel?: CatalogNamed | null;
-  sections: CourseDetailSection[];
-  type?: CatalogNamed | null;
-};
-
 export type TeacherDetailSection = {
   teachers?: CatalogNamed[];
   code: string;
@@ -68,14 +30,4 @@ export type TeacherDetailSection = {
   credits?: number | string | null;
   jwId: number | string;
   semester?: { nameCn?: string | null } | null;
-};
-
-export type TeacherDetailTeacher = CatalogNamed & {
-  address?: string | null;
-  department?: CatalogNamed | null;
-  email?: string | null;
-  mobile?: string | null;
-  sections: TeacherDetailSection[];
-  teacherTitle?: CatalogNamed | null;
-  telephone?: string | null;
 };
