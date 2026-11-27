@@ -256,6 +256,20 @@ describe("public publication reads", () => {
     expect(mocks.publicationFindFirst).toHaveBeenCalledTimes(2);
   });
 
+  it("omits the database plain-text column for HTML page reads", async () => {
+    mocks.publicationFindFirst.mockResolvedValue(null);
+    await getPublicPublicationById("publication-1", { includeBodyText: false });
+    expect(mocks.publicationFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          currentRevision: expect.objectContaining({
+            omit: expect.objectContaining({ bodyText: true }),
+          }),
+        }),
+      }),
+    );
+  });
+
   it("returns detail bodyText and only the effective revision objects", async () => {
     mocks.publicationFindFirst.mockResolvedValue(publication());
 
@@ -503,12 +517,10 @@ describe("public publication reads", () => {
   });
 
   it("folds reprints into one row per group and exposes the sibling count (fold=1)", async () => {
-    mocks.queryRaw
-      .mockResolvedValueOnce([
-        { id: "publication-1", groupSize: 3n },
-        { id: "publication-2", groupSize: 1n },
-      ])
-      .mockResolvedValueOnce([{ total: 2n }]);
+    mocks.queryRaw.mockResolvedValueOnce([
+      { id: "publication-1", groupSize: 3n, total: 2n },
+      { id: "publication-2", groupSize: 1n, total: 2n },
+    ]);
     mocks.publicationFindMany.mockResolvedValue([
       publication({ id: "publication-2" }),
       publication({ id: "publication-1" }),
@@ -525,6 +537,7 @@ describe("public publication reads", () => {
       total: 2,
       totalPages: 1,
     });
+    expect(mocks.queryRaw).toHaveBeenCalledTimes(1);
     // Order follows the folded query's ids, not the hydration findMany order.
     expect(result.data.map((item) => item.id)).toEqual([
       "publication-1",
@@ -542,9 +555,7 @@ describe("public publication reads", () => {
   });
 
   it("returns an empty page without hydrating when fold=1 finds no groups", async () => {
-    mocks.queryRaw
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ total: 0n }]);
+    mocks.queryRaw.mockResolvedValueOnce([]);
 
     const result = await listPublications({
       filters: { fold: true },
@@ -553,7 +564,21 @@ describe("public publication reads", () => {
 
     expect(result.data).toEqual([]);
     expect(result.pagination.total).toBe(0);
+    expect(mocks.queryRaw).toHaveBeenCalledTimes(1);
     expect(mocks.publicationFindMany).not.toHaveBeenCalled();
+  });
+
+  it("keeps the folded total on an out-of-range page", async () => {
+    mocks.queryRaw
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ total: 3n }]);
+    const result = await listPublications({
+      filters: { fold: true },
+      pagination: { page: 3, pageSize: 2 },
+    });
+    expect(result.data).toEqual([]);
+    expect(result.pagination.total).toBe(3);
+    expect(result.pagination.totalPages).toBe(2);
   });
 
   it("exposes sibling reprints on the detail page via alsoPublishedIn", async () => {

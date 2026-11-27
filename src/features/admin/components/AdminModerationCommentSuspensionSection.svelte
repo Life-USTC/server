@@ -38,7 +38,6 @@ export let suspensionReason: string;
   />
   <Button
     disabled={isSuspendingUser || !comment.user?.id}
-    type="button"
     variant="destructive"
     onclick={suspendCommentAuthor}
   >

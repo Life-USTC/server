@@ -175,9 +175,8 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             if (
               width === 390 &&
               (await page
-                .locator(
-                  '[data-slot="sidebar"][data-mobile="true"][role="dialog"]',
-                )
+                .getByRole("dialog")
+                .and(page.locator('[data-mobile="true"]'))
                 .isVisible())
             )
               await page.keyboard.press("Escape");
@@ -633,9 +632,9 @@ test(
           0,
         );
         const active = nav.locator('a[aria-current="page"]');
-        const sheet = page.locator(
-          '[data-slot="sidebar"][data-mobile="true"][role="dialog"]',
-        );
+        const sheet = page
+          .getByRole("dialog")
+          .and(page.locator('[data-mobile="true"]'));
         await expect(sheet).toBeVisible();
         await expect(active).toBeVisible();
         await expect(active).toHaveAttribute("href", "/");
@@ -763,9 +762,9 @@ test(
         release.resolve();
         await originalDocument?.dispose();
         await originalMain?.dispose();
-        const sheet = page.locator(
-          '[data-slot="sidebar"][data-mobile="true"][role="dialog"]',
-        );
+        const sheet = page
+          .getByRole("dialog")
+          .and(page.locator('[data-mobile="true"]'));
         if (
           !page.isClosed() &&
           (await sheet.count()) === 1 &&

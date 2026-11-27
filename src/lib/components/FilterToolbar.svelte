@@ -54,8 +54,8 @@ onMount(() => {
   {#if advanced}
     <Sheet.Root bind:open>
       <Sheet.Trigger>
-        {#snippet child({ props })}
-          <Button {...props} type="button" variant="outline" class={cn(toolbarControlClass, !advancedBeforeActions && "order-2 md:order-4")} {disabled}>
+        {#snippet render({ props })}
+          <Button {...props} aria-expanded={open} type="button" variant="outline" class={cn(toolbarControlClass, !advancedBeforeActions && "order-2 md:order-4")} {disabled}>
             <SlidersHorizontalIcon data-icon="inline-start" aria-hidden="true" />
             <span class={cn(!showFilterLabel && "max-md:sr-only")}>{filterTitle}</span>
             {#if activeCount}<Badge variant="secondary">{activeCount}</Badge>{/if}
@@ -63,10 +63,10 @@ onMount(() => {
         {/snippet}
       </Sheet.Trigger>
       <Sheet.Content side={narrow ? "bottom" : "right"} class={narrow ? "max-h-[85dvh] gap-0 overflow-hidden rounded-t-xl p-0" : "gap-0 overflow-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-lg"}>
-        <Sheet.Header class="shrink-0 border-b pr-12">
+        <div data-slot="sheet-header" class="shrink-0 border-b pr-12">
           <Sheet.Title>{filterTitle}</Sheet.Title>
           <Sheet.Description class="sr-only">{filterTitle}</Sheet.Description>
-        </Sheet.Header>
+        </div>
         <div class="min-h-0 flex-1 overflow-y-auto p-4">{@render advanced()}</div>
       </Sheet.Content>
     </Sheet.Root>

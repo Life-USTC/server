@@ -162,6 +162,7 @@ describe("section page data selection", () => {
       ([query]) => query?.select?.description && !query?.select?.course,
     )?.[0]?.select;
     expect(coreSelect.description).toBe(false);
+    expect(coreSelect).not.toHaveProperty("retiredAt");
     expect(descriptionSelect).toEqual({
       description: true,
       retiredAt: true,

@@ -54,17 +54,20 @@ async function openRouteControls(page: Page) {
     name: /Change route|调整路线/,
   });
   const dialog = page.getByRole("dialog", { name: /Change route|调整路线/ });
-  if (!(await dialog.isVisible())) {
+  if ((await trigger.getAttribute("aria-expanded")) !== "true") {
     await expect(trigger).toBeVisible();
     await trigger.click();
   }
   await expect(
-    page.locator("[data-testid='bus-start-stop-group']"),
+    dialog.locator("[data-testid='bus-start-stop-group']"),
   ).toBeVisible();
 }
 
 async function applyRouteFilters(page: Page) {
   await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("dialog", { name: /Change route|调整路线/ }),
+  ).toBeHidden();
   await page.getByRole("button", { name: /Apply filters|应用筛选/ }).click();
   await openRouteControls(page);
 }
@@ -381,8 +384,8 @@ test.describe("校车面板标签页", () => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus");
 
-      await openRouteControls(page);
       await openFullTimetable(page);
+      await openRouteControls(page);
       const reverseButton = page
         .getByRole("button", { name: /Reverse|反向/ })
         .last();
@@ -420,8 +423,8 @@ test.describe("校车面板标签页", () => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus");
 
-      await openRouteControls(page);
       await openFullTimetable(page);
+      await openRouteControls(page);
       await chooseStop(page, /End stop|到达站/, /南区/);
 
       await expect(routeSectionRows(page)).toHaveCount(1);
@@ -439,8 +442,8 @@ test.describe("校车面板标签页", () => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus");
 
-      await openRouteControls(page);
       await openFullTimetable(page);
+      await openRouteControls(page);
       const initialRows = await page.locator("tbody tr").count();
       const departedToggle = page.getByRole("switch", {
         name: /Show departed trips|显示已发车班次/,
@@ -464,8 +467,8 @@ test.describe("校车面板标签页", () => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, "/catalog/bus");
 
-      await openRouteControls(page);
       await openFullTimetable(page);
+      await openRouteControls(page);
       await page
         .getByRole("switch", { name: /Show departed trips|显示已发车班次/ })
         .click();

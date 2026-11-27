@@ -1,6 +1,7 @@
-import { formatCampusDateTime } from "@/lib/time/campus-date";
-import { parseDateInput } from "@/lib/time/parse-date-input";
-import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import {
+  formatCampusDateTime,
+  resolveCampusDate,
+} from "@/lib/time/campus-date";
 import { intlLocale, isZhLocale } from "@/shared/lib/time-locale";
 
 export type HomeworkDateValue = Date | string | null | undefined;
@@ -175,8 +176,8 @@ export function homeworkDeadlineState(
   value: HomeworkDateValue,
   referenceValue: HomeworkDateValue = new Date(),
 ): HomeworkDeadlineState {
-  const due = toDate(value);
-  const reference = toDate(referenceValue);
+  const due = resolveCampusDate(value);
+  const reference = resolveCampusDate(referenceValue);
   if (!due || !reference) return "unset";
   return due.getTime() <= reference.getTime() ? "overdue" : "upcoming";
 }
@@ -191,8 +192,8 @@ export function formatHomeworkDueRelativeTime(
   locale: string,
   fallback: string,
 ) {
-  const due = toDate(value);
-  const reference = toDate(referenceValue);
+  const due = resolveCampusDate(value);
+  const reference = resolveCampusDate(referenceValue);
   if (!due || !reference) return fallback;
 
   const deltaMinutes = Math.round(
@@ -227,17 +228,6 @@ function normalizeDescription(value: HomeworkDescriptionValue) {
   };
 }
 
-function toDate(value: HomeworkDateValue) {
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : value;
-  }
-  if (typeof value !== "string") return null;
-  const parsed = parseDateInput(value);
-  return parsed instanceof Date && !Number.isNaN(parsed.getTime())
-    ? parsed
-    : null;
-}
-
 function durationUnit(minutes: number): {
   amount: number;
   unit: "day" | "hour" | "minute" | "month" | "week";
@@ -268,29 +258,5 @@ function formatDuration(
     } as const;
     return `${number}${labels[unit]}`;
   }
-  const label =
-    amount === 1
-      ? unit
-      : unit === "day"
-        ? "days"
-        : unit === "hour"
-          ? "hours"
-          : unit === "minute"
-            ? "minutes"
-            : unit === "month"
-              ? "months"
-              : "weeks";
-  return `${number} ${label}`;
-}
-
-/** Keep the time math in the campus timezone for callers that pass local timestamps. */
-export function homeworkDateDifferenceInMinutes(
-  value: HomeworkDateValue,
-  referenceValue: HomeworkDateValue,
-) {
-  const due = value == null ? null : shanghaiDayjs(value);
-  const reference =
-    referenceValue == null ? null : shanghaiDayjs(referenceValue);
-  if (!due?.isValid() || !reference?.isValid()) return null;
-  return due.diff(reference, "minute", true);
+  return `${number} ${unit}${amount === 1 ? "" : "s"}`;
 }

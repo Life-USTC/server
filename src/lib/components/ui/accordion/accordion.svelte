@@ -1,18 +1,20 @@
 <script lang="ts">
-	import { Accordion as AccordionPrimitive } from "bits-ui";
+	import { Accordion } from "@ui-sdk/svelte/accordion";
+	import type { ComponentProps } from "svelte";
 	import { cn } from "#lib/utils.js";
 
 	let {
 		ref = $bindable(null),
-		value = $bindable(),
+		value = $bindable<string[]>([]),
 		class: className,
 		...restProps
-	}: AccordionPrimitive.RootProps = $props();
+	}: ComponentProps<typeof Accordion> & { ref?: HTMLDivElement | null } = $props();
 </script>
 
-<AccordionPrimitive.Root
-	bind:ref
-	bind:value={value as never}
+<Accordion
+	{@attach (element: HTMLDivElement) => { ref = element; return () => { ref = null; }; }}
+	bind:value
+	collapsible
 	data-slot="accordion"
 	class={cn("cn-accordion flex w-full flex-col", className)}
 	{...restProps}

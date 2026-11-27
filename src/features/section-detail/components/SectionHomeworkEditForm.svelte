@@ -3,25 +3,17 @@ import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import HomeworkEditorFields from "@/features/homeworks/components/HomeworkEditorFields.svelte";
-import { homeworkSemesterShortcutCapabilities } from "@/features/homeworks/lib/homework-timestamp-defaults";
 import type {
   SectionHomeworkCopy,
   SectionHomeworkDisplay,
   SectionHomeworkMarkdownCopy,
   SectionHomeworkSemesterDate,
   SectionHomeworkSubmitHandler,
-  SectionHomeworkTimestampAction,
 } from "./section-homework-display-types";
 
-export let applyDueAtSemesterEnd: SectionHomeworkTimestampAction;
 export let classSectionJwId: number | string | null | undefined = undefined;
 export let classStarts: string[] = [];
 export let locale: string;
-export let applyDueInMonth: SectionHomeworkTimestampAction;
-export let applyDueInWeek: SectionHomeworkTimestampAction;
-export let applyPublishNow: SectionHomeworkTimestampAction;
-export let applyStartAtSemesterStart: SectionHomeworkTimestampAction;
-export let applyStartNow: SectionHomeworkTimestampAction;
 export let cancelEdit: () => void;
 export let commentsCopy: SectionHomeworkMarkdownCopy;
 export let editHomeworkMessage: string;
@@ -34,21 +26,6 @@ export let semesterDate: SectionHomeworkSemesterDate;
 export let updateHomework: SectionHomeworkSubmitHandler;
 
 let advancedOpen = false;
-const shortcutReferenceNow = new Date();
-
-$: homeworkTimestampActions = {
-  dueAtSemesterEnd: applyDueAtSemesterEnd,
-  dueInMonth: applyDueInMonth,
-  dueInWeek: applyDueInWeek,
-  publishNow: applyPublishNow,
-  startAtSemesterStart: applyStartAtSemesterStart,
-  startNow: applyStartNow,
-};
-$: homeworkTimestampCapabilities = homeworkSemesterShortcutCapabilities({
-  semesterEnd: semesterDate("end"),
-  semesterStart: semesterDate("start"),
-  now: shortcutReferenceNow,
-});
 </script>
 
 <form
@@ -60,9 +37,8 @@ $: homeworkTimestampCapabilities = homeworkSemesterShortcutCapabilities({
       sectionJwId={classSectionJwId}
   {classStarts}
       {locale}
-      actions={homeworkTimestampActions}
       bind:advancedOpen={advancedOpen}
-      capabilities={homeworkTimestampCapabilities}
+      semester={{ start: semesterDate("start"), end: semesterDate("end") }}
       commentsCopy={commentsCopy}
       copy={homeworkCopy}
       description={homework.description?.content ?? ""}
@@ -76,12 +52,10 @@ $: homeworkTimestampCapabilities = homeworkSemesterShortcutCapabilities({
       title={homework.title}
     />
     {#if editHomeworkMessage}
-      <Alert.Root variant="destructive">
-        <Alert.Description>{editHomeworkMessage}</Alert.Description>
-      </Alert.Root>
+      <Alert.Message variant="destructive">{editHomeworkMessage}</Alert.Message>
     {/if}
     <div class="flex justify-end gap-2 pt-1">
-      <Button type="button" variant="outline" onclick={cancelEdit}>{homeworkCopy.cancel}</Button>
+      <Button variant="outline" onclick={cancelEdit}>{homeworkCopy.cancel}</Button>
       <Button type="submit">{homeworkCopy.saveChanges}</Button>
     </div>
   </Field.Group>

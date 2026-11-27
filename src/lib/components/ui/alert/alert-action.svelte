@@ -1,20 +1,11 @@
 <script lang="ts">
-	import type { HTMLAttributes } from "svelte/elements";
-	import { cn, type WithElementRef } from "#lib/utils.js";
-
-	let {
-		ref = $bindable(null),
-		class: className,
-		children,
-		...restProps
-	}: WithElementRef<HTMLAttributes<HTMLDivElement>> = $props();
+  import StyledDiv, { type DivProps } from "../StyledDiv.svelte";
+  let { ref = $bindable(null), ...props }: DivProps = $props();
 </script>
 
-<div
-	bind:this={ref}
-	data-slot="alert-action"
-	class={cn("absolute top-2 right-2", className)}
-	{...restProps}
->
-	{@render children?.()}
-</div>
+<StyledDiv
+  data-slot="alert-action"
+  {...props}
+  bind:ref
+  baseClass="absolute top-2 right-2"
+/>
