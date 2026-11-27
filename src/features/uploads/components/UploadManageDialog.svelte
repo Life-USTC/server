@@ -1,13 +1,12 @@
 <script lang="ts">
+import { toast } from "@ui-sdk/svelte/toast";
 import { untrack } from "svelte";
-import { toast } from "svelte-sonner";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { invalidateAll } from "$app/navigation";
 import type { getUploadPageCopy } from "../server/upload-page-copy";
 
@@ -65,8 +64,7 @@ async function submit(event: Event) {
 {#if action === "rename"}
   <Dialog.Root open={true} onOpenChange={(open) => { if (!open && !pending) close(); }}>
     <Dialog.Content showCloseButton={false}>
-      <Dialog.Header>
-        <Dialog.Title>{copy.renameAction}</Dialog.Title>
+      <Dialog.Header heading={copy.renameAction}>
         <Dialog.Description class="break-all">{upload.filename}</Dialog.Description>
       </Dialog.Header>
       <form onsubmit={submit} class="grid gap-4">
@@ -76,26 +74,25 @@ async function submit(event: Event) {
             <Input id="upload-filename" bind:value={filename} required maxlength={255} disabled={pending} />
           </Field.Field>
         </Field.FieldGroup>
-        {#if failed}<Alert.Root variant="destructive"><Alert.Description>{copy.toastRenameErrorDescription}</Alert.Description></Alert.Root>{/if}
-        <Dialog.Footer>
-          <Button type="button" variant="outline" onclick={close} disabled={pending}>{copy.cancelRenameAction}</Button>
-          <Button type="submit" disabled={pending || !filename.trim()}>{#if pending}<Spinner data-icon="inline-start" />{/if}{copy.saveRenameAction}</Button>
-        </Dialog.Footer>
+        {#if failed}<Alert.Message variant="destructive">{copy.toastRenameErrorDescription}</Alert.Message>{/if}
+        <Dialog.Actions cancelLabel={copy.cancelRenameAction} onCancel={close} cancelDisabled={pending}>
+          <Button loading={pending} type="submit" disabled={pending || !filename.trim()}>{copy.saveRenameAction}</Button>
+        </Dialog.Actions>
       </form>
     </Dialog.Content>
   </Dialog.Root>
 {:else}
   <AlertDialog.Root open={true} onOpenChange={(open) => { if (!open && !pending) close(); }}>
-    <AlertDialog.Content>
-      <AlertDialog.Header>
-        <AlertDialog.Title>{copy.deleteAction}</AlertDialog.Title>
-        <AlertDialog.Description class="break-words">{copy.deleteConfirm.replace("{name}", upload.filename)}</AlertDialog.Description>
-      </AlertDialog.Header>
-      {#if failed}<Alert.Root variant="destructive"><Alert.Description>{copy.toastDeleteErrorDescription}</Alert.Description></Alert.Root>{/if}
-      <AlertDialog.Footer>
-        <AlertDialog.Cancel disabled={pending}>{copy.cancelRenameAction}</AlertDialog.Cancel>
-        <AlertDialog.Action variant="destructive" disabled={pending} onclick={submit}>{#if pending}<Spinner data-icon="inline-start" />{/if}{copy.deleteAction}</AlertDialog.Action>
-      </AlertDialog.Footer>
-    </AlertDialog.Content>
+    <AlertDialog.Confirmation
+      compact
+      title={copy.deleteAction}
+      description={copy.deleteConfirm.replace("{name}", upload.filename)}
+      descriptionClass="break-words"
+      error={failed ? copy.toastDeleteErrorDescription : ""}
+      cancelLabel={copy.cancelRenameAction}
+      confirmLabel={copy.deleteAction}
+      {pending}
+      onclick={submit}
+    />
   </AlertDialog.Root>
 {/if}

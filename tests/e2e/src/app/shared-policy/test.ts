@@ -208,9 +208,17 @@ for (const domain of ["Course", "Section", "Teacher"] as const) {
           ...(collection === "/catalog/sections" ? ["homework"] : []),
         ]) {
           await selectDetailTab(page, id);
-          const reading = await column.locator(`#${id}`).boundingBox();
-          const stream = await column.boundingBox();
-          expect(reading?.width).toBe(stream?.width);
+          await expect
+            .poll(() =>
+              column.evaluate((stream, sectionId) => {
+                const width = stream.getBoundingClientRect().width;
+                const reading = stream.querySelector(`#${sectionId}`);
+                return (
+                  width > 0 && reading?.getBoundingClientRect().width === width
+                );
+              }, id),
+            )
+            .toBe(true);
           await expect(page.locator("[data-detail-identity]")).toHaveCount(
             collection === "/catalog/sections" && id !== "homework" ? 1 : 0,
           );
