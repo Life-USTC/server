@@ -1,67 +1,7 @@
 import type { CatalogNamed } from "@/features/catalog/lib/catalog-list-display";
-import type { EndlessScrollLabels } from "@/lib/navigation/endless-list.svelte";
-import type { TableFilterLabels } from "@/lib/table-filters";
+import type messages from "../../../../messages/en-us.json";
 
-export type SectionListCommonLabels = {
-  tableFilters: TableFilterLabels;
-  endlessScroll: EndlessScrollLabels;
-  applyFilters: string;
-
-  clear: string;
-  loading: string;
-  search: string;
-};
-
-export type SectionListLabels = {
-  campus: string;
-  capacity: string;
-  enrolled: string;
-  enrollmentLimit: string;
-  teacherCount: string;
-  category: string;
-  classType: string;
-  courseName: string;
-  courseCode: string;
-  credits: string;
-  department: string;
-  educationLevel: string;
-  filters: {
-    any: string;
-    apply: string;
-    defaultSort: string;
-    exactCredits: string;
-    orderAsc: string;
-    orderDesc: string;
-    sortBy: string;
-    sortCampus: string;
-    sortCapacity: string;
-    sortCode: string;
-    sortCourse: string;
-    sortCredits: string;
-    sortSemester: string;
-    sortTeacherCount: string;
-  };
-  noSectionsFound: string;
-  noSemester: string;
-  searchFor: string;
-  searchHelp: string;
-  searchHelpDescription: string;
-  searchHelpExamples: Array<{
-    description: string;
-    example: string;
-    syntax: string;
-  }>;
-  searchHelpTitle: string;
-  searchPlaceholder: string;
-  sectionCode: string;
-  semester: string;
-  subtitle: string;
-  summary: {
-    filters: string;
-  };
-  teachers: string;
-  close: string;
-};
+export type SectionListLabels = typeof messages.sections;
 
 export type SectionListFilters = {
   courseName?: string | null;
@@ -92,11 +32,6 @@ export type SectionListFilters = {
   teacher?: string | null;
 };
 
-export type SectionListOption = {
-  label: string;
-  value: string;
-};
-
 export type SectionListOptionSource = CatalogNamed & {
   id: number | string;
   nameCn: string;
@@ -116,9 +51,4 @@ export type SectionListRow = {
   semester?: SectionListSemester | null;
   stdCount?: number | null;
   teachers: CatalogNamed[];
-};
-
-export type SectionListResultData = {
-  data: SectionListRow[];
-  filters: SectionListFilters;
 };

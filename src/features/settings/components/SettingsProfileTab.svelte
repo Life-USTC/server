@@ -1,7 +1,6 @@
 <script lang="ts">
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import ProfileAvatarPicker from "@/features/profile/components/ProfileAvatarPicker.svelte";
 import ProfileIdentityFields from "@/features/profile/components/ProfileIdentityFields.svelte";
 import { enhance, type SubmitFunction } from "$app/forms";
@@ -61,8 +60,7 @@ const updateProfile: SubmitFunction = ({ cancel }) => {
     />
   </Field.Group>
 
-  <Button class="w-fit" type="submit" disabled={readOnly || !isMounted || saving}>
-    {#if saving}<Spinner data-icon="inline-start" />{/if}
+  <Button loading={saving} class="w-fit" type="submit" disabled={readOnly || !isMounted || saving}>
     {saving ? copy.profile.pleaseWait : copy.profile.save}
   </Button>
 </form>

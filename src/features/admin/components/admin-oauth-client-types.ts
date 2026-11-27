@@ -6,10 +6,6 @@ export type AdminOAuthCopy = Record<string, string> & {
   createClient: string;
 };
 
-export type AdminOAuthAdminCopy = {
-  title: string;
-};
-
 export type AdminOAuthClient = {
   clientId: string;
   createdAt: string | Date;

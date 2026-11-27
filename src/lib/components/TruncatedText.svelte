@@ -67,7 +67,7 @@ const observeOverflow: Action<HTMLSpanElement, string> = (node) => {
 };
 
 function triggerProps(props: Record<string, unknown>) {
-  // bits-ui Trigger defaults to button semantics; do not copy those onto a <span>,
+  // The tooltip trigger defaults to button semantics; do not copy those onto a <span>,
   // especially when TruncatedText is nested under a real <button>/<a>.
   const { class: triggerClass, type: _type, role: _role, ...rest } = props;
   return {
@@ -92,7 +92,7 @@ function triggerProps(props: Record<string, unknown>) {
 {#if displayText}
   <Tooltip.Root bind:open disabled={!overflowing}>
     <Tooltip.Trigger tabindex={interactiveParent ? -1 : 0}>
-      {#snippet child({ props })}
+      {#snippet render({ props })}
         <span
           {...triggerProps(props)}
           data-slot="truncated-text"
@@ -103,14 +103,16 @@ function triggerProps(props: Record<string, unknown>) {
         </span>
       {/snippet}
     </Tooltip.Trigger>
-    <Tooltip.Content
-      class={cn(
-        "max-w-sm break-words",
-        preserveWhitespace ? "whitespace-pre-wrap" : "whitespace-normal",
-      )}
-    >
-      {displayText}
-    </Tooltip.Content>
+    {#if open}
+      <Tooltip.Content
+        class={cn(
+          "max-w-sm break-words",
+          preserveWhitespace ? "whitespace-pre-wrap" : "whitespace-normal",
+        )}
+      >
+        {displayText}
+      </Tooltip.Content>
+    {/if}
   </Tooltip.Root>
 {:else}
   <span

@@ -645,6 +645,8 @@ capabilities:
       routes:
       - path: /api/catalog/sections/[jwId]
         notes:
+        - officialProfile is a nullable projection scoped to the exact teaching section;
+          missing values do not inherit the course profile.
         - Direct historical lookup remains available for inactive Sections; retiredAt records when the
           Section was marked inactive.
         - Optional includeExams, includeSchedules, and includeTeacherDepartments query flags return narrow

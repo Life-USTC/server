@@ -18,8 +18,8 @@ export function serializeDatesDeep<T>(value: T): T {
   if (!isRecord(value)) return value;
 
   const out: Record<string, unknown> = {};
-  for (const [key, item] of Object.entries(value)) {
-    out[key] = serializeDatesDeep(item);
+  for (const key of Object.keys(value)) {
+    out[key] = serializeDatesDeep(value[key]);
   }
   return out as T;
 }

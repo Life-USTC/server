@@ -48,8 +48,7 @@ $: guides = [
 
   <footer class="flex flex-wrap justify-between gap-2">
     {#if backUrl}
-      <Button href={backUrl} variant="ghost">
-        <ArrowLeft data-icon="inline-start" />
+      <Button icon={ArrowLeft} href={backUrl} variant="ghost">
         {welcomeCopy.back}
       </Button>
     {/if}

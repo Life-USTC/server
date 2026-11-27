@@ -40,7 +40,6 @@ $: canSubmit =
   <Button
     class="ml-auto"
     disabled={!canSubmit}
-    type="button"
     onclick={submitComment}
   >
     {submitting ? commentCopy.posting : commentCopy.postAction}

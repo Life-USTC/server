@@ -111,7 +111,7 @@ test.describe("/account/settings/profile 个人资料设置", () => {
           .locator('form[action="?/updateProfile"]')
           .getByRole("button", { name: /保存|Save/i });
         const successToast = page
-          .locator("[data-sonner-toast]")
+          .locator("[data-slot=toast]")
           .filter({ hasText: /成功|Success|updated successfully/i });
 
         await nameInput.fill(newName);
@@ -127,13 +127,11 @@ test.describe("/account/settings/profile 个人资料设置", () => {
         await saveResponse.body();
         await expect(successToast).toBeVisible();
         // The real save feedback must stay above the shared bar throughout
-        // narrow and tablet shell layouts; desktop retains Sonner's offset.
+        // narrow and tablet shell layouts; desktop retains the desktop offset.
         for (const width of [390, 900, 1280]) {
           await page.setViewportSize({ width, height: 844 });
           const primary = page.locator("[data-mobile-primary-navigation]");
-          const toaster = page.locator(
-            '[data-sonner-toaster][data-y-position="bottom"]',
-          );
+          const toaster = page.locator("[data-slot=toast-region]");
           await expect(toaster).toHaveCSS(
             "bottom",
             width < 1024 ? "80px" : "24px",
