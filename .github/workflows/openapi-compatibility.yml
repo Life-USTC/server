@@ -11,8 +11,8 @@ concurrency:
 
 jobs:
   breaking-changes:
-    name: OpenAPI breaking changes
-    runs-on: ubuntu-latest
+    name: OpenAPI
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 10
     permissions:
       contents: read
