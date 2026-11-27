@@ -42,6 +42,8 @@ const owner = $derived.by(() => {
     ? { id: "", epoch: "" }
     : current;
 });
+const ownerId = $derived(owner.id);
+const ownerEpoch = $derived(owner.epoch);
 const workspacePageCopy = $derived(getWorkspacePageCopy(locale));
 let overview = $state<OverviewSignedData | null>(null);
 let overviewEpoch = $state("");
@@ -107,8 +109,6 @@ async function load(
 }
 
 $effect(() => {
-  const ownerId = owner.id;
-  const ownerEpoch = owner.epoch;
   const atTime = snapshotAt;
   const previewWeek = overviewWeek;
   const requestLocale = locale;
@@ -180,9 +180,7 @@ async function submitWorkspaceLinkPin(slug: string, action: "pin" | "unpin") {
       </Alert.Root>
     {:else if overview && overviewEpoch === owner.epoch && overview.navStats.user.id === owner.id}
       {#if pinError}
-        <Alert.Root variant="destructive">
-          <Alert.Description>{pinError}</Alert.Description>
-        </Alert.Root>
+        <Alert.Message variant="destructive">{pinError}</Alert.Message>
       {/if}
       <OverviewTab
         readOnlyReason={demo?.readOnlyReason}

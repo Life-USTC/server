@@ -1,7 +1,7 @@
 <script lang="ts">
 import appIconUrl from "#lib/assets/life-ustc-icon-192.png";
 import AppShell from "#lib/components/shell/AppShell.svelte";
-import { Toaster } from "#lib/components/ui/sonner/index.js";
+import Toaster from "#lib/components/ui/toast/Toaster.svelte";
 import { page as routePage } from "$app/state";
 import "./svelte.css";
 import type { LayoutData } from "./$types";
@@ -65,4 +65,4 @@ let documentTitle = $derived(socialMetadata?.title ?? "Life@USTC");
 
 <AppShell data={data}>{@render children?.()}</AppShell>
 
-<Toaster mobileOffset={{ left: "1rem", right: "1rem" }} position="bottom-right" />
+<Toaster />

@@ -38,6 +38,11 @@ describe("course detail query", () => {
       educationLevel: null,
       gradation: null,
       type: null,
+      officialProfile: {
+        credit: 2,
+        examType: "Course project",
+        jw: { private: true },
+      },
       sections: [],
       _count: { sections: 0 },
     };
@@ -53,11 +58,13 @@ describe("course detail query", () => {
       jwId: course.jwId,
       namePrimary: "Course 7",
       nameSecondary: "课程 7",
+      officialProfile: { credits: 2, assessment: "Course project" },
     });
     expect(courseFindUniqueMock).toHaveBeenCalledTimes(1);
     expect(courseFindUniqueMock).toHaveBeenCalledWith({
       where: { jwId: course.jwId },
       include: expect.any(Object),
+      omit: { officialProfile: false },
     });
   });
 });

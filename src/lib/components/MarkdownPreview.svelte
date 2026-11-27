@@ -1,10 +1,10 @@
 <script lang="ts">
 import type { PluggableList } from "unified";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import { renderEmbeddedMarkdown } from "#lib/components/markdown-preview-renderer.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import { cn } from "#lib/utils.js";
 import "#lib/components/markdown-preview.css";
-import "katex/dist/katex.min.css";
+import katexStylesheet from "katex/dist/katex.min.css?url";
 
 export let content = "";
 export let emptyLabel = "";
@@ -18,14 +18,16 @@ $: renderedHtml = content.trim()
   : "";
 </script>
 
+<svelte:head>
+  {#if renderedHtml?.includes('class="katex')}
+    <link rel="stylesheet" href={katexStylesheet} />
+  {/if}
+</svelte:head>
+
 <div class={cn("markdown-preview text-sm", className)} data-slot="markdown-preview">
   {#if renderedHtml}
     {@html renderedHtml}
   {:else if emptyLabel}
-    <Empty.Root class="min-h-24">
-      <Empty.Header>
-        <Empty.Description>{emptyLabel}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <EmptyState class="min-h-24" description={emptyLabel} />
   {/if}
 </div>

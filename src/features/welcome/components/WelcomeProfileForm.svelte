@@ -6,30 +6,23 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Card from "#lib/components/ui/card/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { Input } from "#lib/components/ui/input/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import ProfileAvatarPicker from "@/features/profile/components/ProfileAvatarPicker.svelte";
 import ProfileIdentityFields from "@/features/profile/components/ProfileIdentityFields.svelte";
+import type { SubmitFunction } from "$app/forms";
 import { enhance } from "$app/forms";
-import type {
-  CompleteProfileAction,
-  WelcomeCopy,
-  WelcomeProfileCopy,
-  WelcomeProfileUser,
-  WelcomeRootCopy,
-} from "./welcome-component-types";
+import type { WelcomePageData } from "./welcome-component-types";
 
-export let avatarOptions: string[];
-export let callbackUrl: string;
-export let completeProfileAction: CompleteProfileAction;
-export let copy: WelcomeRootCopy;
-export let currentImage: string;
+export let data: WelcomePageData;
+export let completeProfileAction: SubmitFunction;
 export let formMessage: string | null | undefined;
 export let isCompletingProfile: boolean;
-export let previewImage: string;
-export let profileCopy: WelcomeProfileCopy;
 export let selectedImage: string | undefined;
-export let user: WelcomeProfileUser;
-export let welcomeCopy: WelcomeCopy;
+
+$: user = data.user;
+$: profileCopy = data.copy.profile;
+$: welcomeCopy = data.copy.welcome;
+$: currentImage = user.image ?? "";
+$: previewImage = selectedImage || currentImage || "/images/icon.png";
 
 let uploadedAvatarPreview = "";
 
@@ -47,7 +40,7 @@ onDestroy(() => {
 </script>
 
 <form method="POST" action="?/complete" enctype="multipart/form-data" use:enhance={completeProfileAction}>
-  <input type="hidden" name="callbackUrl" value={callbackUrl} />
+  <input type="hidden" name="callbackUrl" value={data.callbackUrl} />
   <Card.Root>
     <Card.Header class="items-center text-center">
       <Badge class="w-fit" variant="secondary">{welcomeCopy.firstSignIn}</Badge>
@@ -57,15 +50,13 @@ onDestroy(() => {
 
     <Card.Content class="grid gap-6">
       {#if formMessage}
-        <Alert.Root variant="destructive">
-          <Alert.Description>{formMessage}</Alert.Description>
-        </Alert.Root>
+        <Alert.Message variant="destructive">{formMessage}</Alert.Message>
       {/if}
 
       <ProfileAvatarPicker
-        {avatarOptions}
+        avatarOptions={user.profilePictures}
         label={profileCopy.profilePicture}
-        avatarOptionLabel={copy.accessibility.avatarOption}
+        avatarOptionLabel={data.copy.accessibility.avatarOption}
         {currentImage}
         previewImage={uploadedAvatarPreview || previewImage}
         bind:selectedImage
@@ -73,8 +64,7 @@ onDestroy(() => {
         emptyDescription={welcomeCopy.avatarLater}
         selectorTestId="avatar-selector"
       >
-        <Field.Field>
-          <Field.Label for="avatar">{profileCopy.avatarUpload}</Field.Label>
+        <Field.Field for="avatar" label={profileCopy.avatarUpload}>
           <Input
             id="avatar"
             name="avatar"
@@ -90,10 +80,7 @@ onDestroy(() => {
         <ProfileIdentityFields copy={profileCopy} {user} />
       </Field.Group>
 
-      <Button class="w-full" type="submit" disabled={isCompletingProfile}>
-        {#if isCompletingProfile}
-          <Spinner data-icon="inline-start" />
-        {/if}
+      <Button loading={isCompletingProfile} class="w-full" type="submit" disabled={isCompletingProfile}>
         {isCompletingProfile ? profileCopy.saving : welcomeCopy.continue}
       </Button>
     </Card.Content>

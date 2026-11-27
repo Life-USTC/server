@@ -3,7 +3,6 @@ import Download from "@lucide/svelte/icons/download";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { enhance } from "$app/forms";
 import type { AdminBusCopy, AdminBusEnhancedAction } from "./admin-bus-types";
 
@@ -11,11 +10,10 @@ interface Props {
   close: () => void;
   copy: AdminBusCopy;
   enhancedAction: AdminBusEnhancedAction;
-  isPending: (actionKey: string) => boolean;
   pendingAction: string | null;
 }
 
-let { close, copy, enhancedAction, isPending, pendingAction }: Props = $props();
+let { close, copy, enhancedAction, pendingAction }: Props = $props();
 </script>
 
 <Dialog.Root
@@ -28,40 +26,20 @@ let { close, copy, enhancedAction, isPending, pendingAction }: Props = $props();
     class="max-w-lg sm:max-w-lg"
     aria-labelledby="bus-import-title"
   >
-    <Dialog.Header>
-      <Dialog.Title id="bus-import-title">{copy.importAction}</Dialog.Title>
-      <Dialog.Description>
-        {copy.importDescription}
-      </Dialog.Description>
-    </Dialog.Header>
+    <Dialog.Header heading={copy.importAction} titleId="bus-import-title" description={copy.importDescription} />
     <form
       method="POST"
       action="?/importStatic"
       use:enhance={enhancedAction("import", close)}
     >
       <div class="px-5 py-4">
-        <Alert.Root>
-          <Alert.Description>{copy.importWarning}</Alert.Description>
-        </Alert.Root>
+        <Alert.Message>{copy.importWarning}</Alert.Message>
       </div>
-      <Dialog.Footer>
-        <Button
-          type="button"
-          disabled={Boolean(pendingAction)}
-          variant="outline"
-          onclick={close}
-        >
-          {copy.cancelAction}
-        </Button>
-        <Button type="submit" disabled={Boolean(pendingAction)}>
-          {#if isPending("import")}
-            <Spinner data-icon="inline-start" />
-          {:else}
-            <Download data-icon="inline-start" />
-          {/if}
+      <Dialog.Actions cancelLabel={copy.cancelAction} onCancel={close} cancelDisabled={Boolean(pendingAction)}>
+        <Button loading={pendingAction === "import"} icon={Download} type="submit" disabled={Boolean(pendingAction)}>
           {copy.importAction}
         </Button>
-      </Dialog.Footer>
+      </Dialog.Actions>
     </form>
   </Dialog.Content>
 </Dialog.Root>

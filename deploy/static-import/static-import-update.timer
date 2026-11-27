@@ -1,0 +1,10 @@
+[Unit]
+Description=Check static snapshot importer image updates
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

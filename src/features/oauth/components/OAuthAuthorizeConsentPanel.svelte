@@ -1,7 +1,6 @@
 <script lang="ts">
 import CheckCircle from "@lucide/svelte/icons/check-circle";
 import { Button } from "#lib/components/ui/button/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { oauthScopeCountLabel } from "@/features/admin/lib/oauth-controller";
 import OAuthScopesPicker from "@/features/oauth/components/OAuthScopesPicker.svelte";
 import { buildOAuthScopesPickerCopy } from "@/features/oauth/lib/oauth-scopes-picker-copy";
@@ -66,8 +65,7 @@ $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
     <input type="hidden" name="accept" value="false" />
     <input type="hidden" name="scope" value={scope} />
     <input type="hidden" name="oauthQuery" value={oauthQuery} />
-    <Button class="w-full" disabled={Boolean(pendingDecision)} type="submit" variant="outline">
-      {#if pendingDecision === "deny"}<Spinner data-icon="inline-start" />{/if}
+    <Button loading={pendingDecision === "deny"} class="w-full" disabled={Boolean(pendingDecision)} type="submit" variant="outline">
       {copy.deny}
     </Button>
   </form>
@@ -79,12 +77,7 @@ $: canAllow = scopes.length === 0 || selectedScopes.length > 0;
       <input type="hidden" name="scopes" value={selectedScope} />
     {/each}
     <input type="hidden" name="oauthQuery" value={oauthQuery} />
-    <Button class="w-full" disabled={!canAllow || Boolean(pendingDecision)} type="submit">
-      {#if pendingDecision === "allow"}
-        <Spinner data-icon="inline-start" />
-      {:else}
-        <CheckCircle data-icon="inline-start" />
-      {/if}
+    <Button loading={pendingDecision === "allow"} icon={CheckCircle} class="w-full" disabled={!canAllow || Boolean(pendingDecision)} type="submit">
       {copy.allow}
     </Button>
   </form>

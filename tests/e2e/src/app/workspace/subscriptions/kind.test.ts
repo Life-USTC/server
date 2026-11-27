@@ -99,7 +99,7 @@ for (const viewport of [
               ).toBeVisible();
               await expect(
                 dialog.getByRole("radio", { name: /旁听|Auditor/ }),
-              ).toHaveAttribute("data-state", "on");
+              ).toBeChecked();
             }
             await dialog
               .getByRole("button", { name: /^(取消|Cancel)$/ })
@@ -126,7 +126,7 @@ for (const viewport of [
           await openKindDialog(page, academic.section.jwId, viewport.width);
           await expect(
             dialog.getByRole("radio", { name: /助教|Teaching assistant/ }),
-          ).toHaveAttribute("data-state", "on");
+          ).toBeChecked();
           await expectResponsivePage(page, errors);
         },
         {
