@@ -46,10 +46,19 @@ for (const count of [1, 2]) {
             exact: true,
           })
           .click();
-        await page
-          .getByTestId("welcome-import-results")
-          .getByRole("button")
-          .click();
+        const [batchResponse] = await Promise.all([
+          page.waitForResponse(
+            (response) =>
+              response.request().method() === "POST" &&
+              new URL(response.url()).pathname ===
+                "/api/workspace/subscriptions/batch",
+          ),
+          page
+            .getByTestId("welcome-import-results")
+            .getByRole("button")
+            .click(),
+        ]);
+        expect(batchResponse.status()).toBe(200);
         await expect(
           page.locator('[data-slot="alert-description"]').filter({
             hasText: en
