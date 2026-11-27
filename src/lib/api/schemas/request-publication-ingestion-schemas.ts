@@ -182,6 +182,7 @@ export const publicationIngestionBatchRequestSchema = z
     clientRunId: z.string().trim().min(1).max(200),
     batchId: z.string().trim().min(1).max(200),
     observedAt: publicationDateTimeSchema,
+    revisionPolicy: z.literal("missingOnly").optional(),
     sources: z.array(publicationSourceDescriptorSchema).min(1).max(500),
     items: z
       .array(publicationItemSchema)

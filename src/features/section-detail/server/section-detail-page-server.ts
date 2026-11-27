@@ -3,6 +3,7 @@ import {
   buildSectionStructuredData,
   serializeStructuredData,
 } from "@/features/catalog/lib/catalog-structured-data";
+import { readOfficialAcademicProfile } from "@/features/catalog/server/official-academic-profile-read";
 import { DEMO_REFERENCE_NOW } from "@/features/demo/lib/demo-types";
 import {
   getDemoCatalogPersonal,
@@ -84,6 +85,10 @@ async function loadSectionDetailPageData({
   ]);
   if (!pageData) error(404, "Section not found");
   const { description, section } = pageData;
+  const officialProfile =
+    !locals.demo && detailSection === "introduction"
+      ? await readOfficialAcademicProfile("section", jwId, locals.locale)
+      : null;
   const copy = getSectionDetailPageCopy(locals.locale);
   const courseName = primaryName(section.course) || section.code;
   const homeworkData = {
@@ -116,12 +121,19 @@ async function loadSectionDetailPageData({
     name: courseName,
   });
   return {
-    section,
+    section:
+      detailSection === "introduction"
+        ? section
+        : { ...section, otherCourseSections: [] },
     locale: locals.locale,
     todayCalendarKey: requireCampusDateKeyForValue(
       locals.demo ? new Date(DEMO_REFERENCE_NOW) : new Date(),
     ),
-    copy,
+    copy: {
+      ...copy,
+      metadata: { pages: { sectionDetail: copy.metadata.pages.sectionDetail } },
+    },
+    officialProfile,
     descriptionData,
     commentsData: null,
     detailSection,

@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { WelcomeBulkImportActionInput } from "@/features/welcome/lib/welcome-bulk-import-action-types";
+import type { WelcomeBulkImportActionInput } from "@/features/welcome/lib/welcome-bulk-import-actions";
 import { createWelcomeBulkImportActions } from "@/features/welcome/lib/welcome-bulk-import-actions";
 import { createWelcomeControllerDefaultState } from "@/features/welcome/lib/welcome-controller-default-state";
-import { formatWelcomeCopy } from "@/features/welcome/lib/welcome-display";
 
 const extractSubscriptionSectionCodes = vi.fn();
 const matchSubscriptionSectionCodes = vi.fn();
@@ -24,17 +23,14 @@ function createInput() {
   state.importText = "001013.01";
 
   const input: WelcomeBulkImportActionInput = {
-    formatCopy: formatWelcomeCopy,
+    state,
     getBulkCopy: () => ({
       checkFormat: "check format",
       fetchFailed: "fetch failed",
       importFailed: "import failed",
       noValidCodes: "no valid codes",
     }),
-    getImportText: () => state.importText,
     getLocale: () => "zh-cn",
-    getSelectedSectionIds: () => state.selectedSectionIds,
-    getSelectedSemesterId: () => state.selectedSemesterId,
     getSubscriptionsCopy: () => ({
       sectionIncluded: "{count} section included",
       sectionsIncluded: "{count} sections included",
@@ -43,36 +39,6 @@ function createInput() {
       importedSummary: "Added {count} sections.",
       noMatchingSections: "No matching sections were found.",
     }),
-    setImportError: (value) => {
-      state.importError = value;
-    },
-    setImporting: (value) => {
-      state.isImporting = value;
-    },
-    setImportIncludedSummary: (value) => {
-      state.importIncludedSummary = value;
-    },
-    setImportMessage: (value) => {
-      state.importMessage = value;
-    },
-    setImportText: (value) => {
-      state.importText = value;
-    },
-    setMatchedSections: (value) => {
-      state.matchedSections = value;
-    },
-    setMatching: (value) => {
-      state.isMatching = value;
-    },
-    setResultsVisible: (value) => {
-      state.areResultsVisible = value;
-    },
-    setSelectedSectionIds: (value) => {
-      state.selectedSectionIds = value;
-    },
-    setUnmatchedCodes: (value) => {
-      state.unmatchedCodes = value;
-    },
   };
 
   return { input, state };

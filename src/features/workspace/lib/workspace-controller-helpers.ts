@@ -1,29 +1,17 @@
 export { buildCalendarWeekdayLabels } from "./workspace-controller-labels";
 export const todoPriorityOrder = ["medium", "high", "low"] as const;
-export {
-  homeworkDueAtSemesterEnd,
-  homeworkTimestampNow as homeworkStartsNow,
-  initialHomeworkTimestampDraft as initialCreateHomeworkDraft,
-} from "@/features/homeworks/lib/homework-timestamp-defaults";
 export { isSignedWorkspaceData } from "./workspace-controller-type-guards";
 export type {
-  AnonymousLinkGroup,
   CalendarData,
+  CatalogLinkGroupEntry,
   CatalogLinkItem,
   ExamRow,
-  ExamView,
-  HomeworkFilter,
   HomeworkItem,
-  HomeworkView,
-  LinkView,
   MatchedSection,
-  SignedLinkGroup,
   SignedWorkspaceData,
   SubscribedSection,
   SubscriptionsData,
-  TodoFilter,
   TodoItem,
-  TodoView,
   WorkspaceActionData,
   WorkspaceCalendarControllerState,
   WorkspaceCalendarData,
@@ -49,5 +37,4 @@ export type {
   WorkspaceTodoItem,
   WorkspaceTodoPriorityOption,
   WorkspaceTodosCopy,
-  WorkspaceViewState,
 } from "./workspace-controller-types";

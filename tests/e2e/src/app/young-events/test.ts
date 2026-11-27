@@ -250,7 +250,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
             if (shown)
               await expect(
                 page
-                  .locator('[data-slot="table-row"]:visible')
+                  .getByRole("row")
                   .filter({ has: link })
                   .locator("[data-status-token]"),
               ).toHaveText(active ? currentBadge : historicalBadge);
@@ -268,7 +268,7 @@ test.describe("/catalog/young-events 第二课堂活动", () => {
         await expect(raw).toHaveCount(1);
         await expect(
           page
-            .locator('[data-slot="table-row"]:visible')
+            .getByRole("row")
             .filter({ has: raw })
             .locator("[data-status-token]"),
         ).toHaveText("审核中");

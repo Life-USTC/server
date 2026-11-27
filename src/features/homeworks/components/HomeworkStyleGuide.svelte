@@ -5,11 +5,10 @@ import type { HomeworkStyleGuideCopy } from "@/features/homeworks/lib/homework-s
 export let copy: HomeworkStyleGuideCopy;
 export let testIdPrefix: string;
 
-let guideValue = "";
+let guideValue: string[] = [];
 </script>
 
 <Accordion.Root
-  type="single"
   value={guideValue}
   onValueChange={(value) => {
     guideValue = value;

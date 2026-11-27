@@ -160,13 +160,13 @@ it("ui.layout-principles-4", async () => {
     ),
   ).toContain("src/lib/components/PageSectionNav.svelte");
   for (const root of [
-    "young/components/YoungEventsPage",
-    "young/components/YoungCalendarPage",
-    "young/components/YoungOrganizersPage",
-    "admin/components/AdminModerationPageController",
-    "settings/components/SettingsPageController",
+    "src/features/young/components/YoungEventsPage.svelte",
+    "src/features/young/components/YoungCalendarPage.svelte",
+    "src/features/young/components/YoungOrganizersPage.svelte",
+    "src/routes/admin/moderation/+page.svelte",
+    "src/routes/account/settings/+page.svelte",
   ]) {
-    const primitives = await renderedPrimitives(`src/features/${root}.svelte`);
+    const primitives = await renderedPrimitives(root);
     expect(primitives, root).not.toContain(
       "src/lib/components/PageSectionNav.svelte",
     );
@@ -177,7 +177,7 @@ it("ui.layout-principles-4", async () => {
   for (const root of [
     "catalog/components/CatalogColumnFilter",
     "young/components/YoungEventFilters",
-    "workspace/components/TodoFormFields",
+    "workspace/components/TodoFormDialog",
     "workspace/components/HomeworkCreateFormFields",
     "profile/components/ProfileIdentityFields",
   ])
@@ -197,9 +197,8 @@ it("ui.feature-interaction-ownership", async () => {
     "SearchField",
     "FilterToolbar",
     "ResponsiveCollection",
-    "WorkspaceCollection",
     "ResultsSummary",
-    "ResultsEmpty",
+    "EmptyState",
     "CollectionEmpty",
     "CollectionListShell",
     "CollectionTableShell",
@@ -269,8 +268,8 @@ it("ui.collection-primitive-ownership", async () => {
     "catalog/components/SectionsResults",
     "young/components/YoungEventsPage",
     "young/components/YoungOrganizersPage",
-    "workspace/components/HomeworksCardsView",
-    "workspace/components/TodosCardsView",
+    "workspace/components/HomeworksCollection",
+    "workspace/components/TodosCollection",
     "workspace/components/ExamsCardsView",
     "workspace/components/SubscriptionsCardsView",
   ])
@@ -288,8 +287,7 @@ it("ui.collection-primitive-ownership", async () => {
     "young/components/PersonalActivityCalendar.svelte",
     "workspace/components/CalendarTab.svelte",
     "workspace/components/CalendarTabToolbar.svelte",
-    "workspace/components/TodosTabToolbar.svelte",
-    "workspace/components/HomeworksTabToolbar.svelte",
+    "workspace/components/WorkspaceTaskAddButton.svelte",
     "section-detail/components/SectionDetailHeader.svelte",
     "section-detail/components/SectionDetailMainContent.svelte",
   ]);

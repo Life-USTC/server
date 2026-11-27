@@ -1,3 +1,4 @@
+export { default as Message } from "./alert-message.svelte";
 import Root from "./alert.svelte";
 import Description from "./alert-description.svelte";
 import Title from "./alert-title.svelte";

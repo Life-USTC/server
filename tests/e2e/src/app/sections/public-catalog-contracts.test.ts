@@ -399,7 +399,9 @@ test("section.personal-deep-link-gate", { tag: "@Subscription/Web" }, async ({
       (response) =>
         response.status() === 503 && response.url().includes("/viewer"),
     );
-    await page.goto(target);
+    // The bare deep link above resolves to the homework tab. Exercise the
+    // failure on that final page so its viewer response owns the assertions.
+    await page.goto(target.replace("?", "/homework?"));
     await (await failure).body();
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.locator('form[action="?/subscribe"]')).toHaveCount(0);
