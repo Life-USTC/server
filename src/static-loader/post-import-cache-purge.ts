@@ -1,7 +1,6 @@
 import {
   CATALOG_EDGE_CACHE_TAG,
-  purgeCloudflareCacheByTags,
-  purgeWorkerEntrypointCache,
+  purgePublicCatalogCaches,
 } from "./edge-cache-purge";
 import { parseBooleanSetting } from "./validation";
 
@@ -78,9 +77,9 @@ async function runLayer(
 /**
  * Invalidate every cache layer that can hold catalog responses.
  *
- * The two layers are independent: the zone purge cannot reach the Workers
- * entrypoint cache and the entrypoint purge cannot reach the zone. Both run,
- * and a failure in either one is reported rather than swallowed.
+ * The authenticated Worker endpoint purges the independent zone and entrypoint
+ * layers. It answers success only after both succeed, keeping Cloudflare
+ * management credentials out of the importer.
  *
  * A repeated apply must retry invalidation after an earlier purge failure.
  * Only rolled-back (dry-run) imports skip purging.
@@ -95,26 +94,17 @@ export async function runPostImportCachePurge(
 
   const allowSkip = allowSkippingPostImportCachePurge();
 
-  const [zone, workerEntrypoint] = await Promise.all([
-    runLayer(
-      "Cloudflare zone/CDN",
-      () => purgeCloudflareCacheByTags([CATALOG_EDGE_CACHE_TAG]),
-      "CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN not set",
-      logger,
-      allowSkip,
-    ),
-    runLayer(
-      "Workers entrypoint (public SSR)",
-      purgeWorkerEntrypointCache,
-      "APP_PUBLIC_ORIGIN or EDGE_CACHE_PURGE_SECRET not set",
-      logger,
-      allowSkip,
-    ),
-  ]);
+  const outcome = await runLayer(
+    "Cloudflare zone/CDN and Workers entrypoint",
+    purgePublicCatalogCaches,
+    "APP_PUBLIC_ORIGIN or EDGE_CACHE_PURGE_SECRET not set",
+    logger,
+    allowSkip,
+  );
 
   return {
-    failed: zone === "failed" || workerEntrypoint === "failed",
-    workerEntrypoint,
-    zone,
+    failed: outcome === "failed",
+    workerEntrypoint: outcome,
+    zone: outcome,
   };
 }

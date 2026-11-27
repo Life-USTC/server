@@ -2,6 +2,7 @@ import { isHomeworkPendingForViewer } from "@/features/homeworks/lib/homework-co
 import { splitRoomLabels } from "@/features/rooms/lib/room-map-types";
 import { matchTableFilter, type TableFilterField } from "@/lib/table-filters";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
+import { formatTime } from "@/shared/lib/clock-time-format";
 import { namePrimary } from "./localized-names";
 import { sortTodosByDeadline } from "./todo-list-state";
 import type {
@@ -28,9 +29,7 @@ function dateValue(value: unknown) {
 }
 
 function timeValue(value: number | null) {
-  if (value == null) return null;
-  const padded = String(value).padStart(4, "0");
-  return `${padded.slice(0, 2)}:${padded.slice(2)}`;
+  return value == null ? null : formatTime(value);
 }
 
 export function todoTableFields(

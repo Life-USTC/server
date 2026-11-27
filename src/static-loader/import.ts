@@ -26,6 +26,7 @@ import {
 import {
   changedImportGroups,
   importGroupDigest,
+  previousSectionRevisionTracked,
   semesterImportDigests,
 } from "./import-groups";
 import {
@@ -198,6 +199,16 @@ async function importSnapshot(
     completeness.sectionJwIds,
     sections.map((section) => section.jwId),
   );
+  snapshot.clearCachedRows([
+    "catalog_teach_lesson_list_for_teach",
+    "catalog_teach_lesson_list_for_teach_course",
+    "catalog_teach_lesson_list_for_teach_openDepartment",
+    "catalog_teach_lesson_list_for_teach_examMode",
+    "catalog_teach_lesson_list_for_teach_teachLang",
+    "catalog_teach_lesson_list_for_teach_dateTimePlacePersonText",
+    "catalog_teach_lesson_list_for_teach_adminClasses",
+    "catalog_teach_lesson_list_for_teach_teacherAssignmentList",
+  ]);
   const departmentPlaceholders = collectCodeOnlyDepartmentPlaceholders(
     departments,
     sections,
@@ -211,6 +222,7 @@ async function importSnapshot(
       teacherAssignments,
       adminClassSectionPairs,
     );
+  snapshot.clearCachedRows();
 
   for (const pair of scheduleInfrastructureTeacherPairs) {
     sectionTeacherPairs.push(pair);
@@ -260,10 +272,35 @@ async function importSnapshot(
       ],
     ]),
   );
+  // Section pages join these shared records across semesters. Track their
+  // mapped content independently of Young and Blackboard snapshot updates.
+  const sectionReferenceGroup = "section-reference-data";
+  groupDigests.set(
+    sectionReferenceGroup,
+    importGroupDigest([
+      semesters,
+      departments,
+      departmentPlaceholders,
+      courses,
+      officialOnlyCourses,
+      teachers,
+      ...Object.values(catalogLookups),
+      teacherTitles,
+      teacherLessonTypes,
+      examBatches,
+      campuses,
+      roomTypes,
+      buildings,
+      rooms,
+      adminClasses,
+    ]),
+  );
+  // Related-section previews can include classes from any semester. Include the
+  // group names so removing a semester also changes the section revision.
+  const sectionCoreGroup = "section-page-core";
+  groupDigests.set(sectionCoreGroup, importGroupDigest([[...groupDigests]]));
   const youngEvents = loadYoungEvents(snapshot);
   const youngSyncedAt = youngSnapshotSyncedAt(snapshot);
-  // The write phase needs only mapped records, not the full raw history.
-  snapshot.clearCachedRows();
   const plannedRecordCounts: ImportRecordCounts = {
     semesters: semesters.length,
     departments: departments.length + departmentPlaceholders.length,
@@ -315,6 +352,9 @@ async function importSnapshot(
       return null;
     }
     const changed = await changedImportGroups(tx, groupDigests);
+    console.log(
+      `Section reference data: ${changed.has(sectionReferenceGroup) ? "changed" : "unchanged"}`,
+    );
     const sections = plan.sections.filter((row) =>
       changed.has(`semester:${row.semesterCode}`),
     );
@@ -497,6 +537,20 @@ async function importSnapshot(
       seenSectionJwIds: [...allSectionJwIds],
       snapshotSha256: config.snapshotSha256,
     });
+    // Related-section counts and previews exclude retired sections. A change
+    // in presence must advance the revision even for identical mapped rows.
+    if (
+      sectionPresenceStats.deactivatedCount > 0 ||
+      sectionPresenceStats.reactivatedCount > 0
+    ) {
+      changed.add(sectionCoreGroup);
+    }
+    if (
+      !changed.has(sectionCoreGroup) &&
+      !(await previousSectionRevisionTracked(tx))
+    ) {
+      changed.add(sectionCoreGroup);
+    }
     for (const [id, digest] of groupDigests) {
       if (!changed.has(id)) continue;
       await recordStaticImportState(tx, {
@@ -506,6 +560,12 @@ async function importSnapshot(
         transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
       });
     }
+    await recordStaticImportState(tx, {
+      id: "section-page-core-source",
+      observedAt,
+      snapshotSha256: config.snapshotSha256,
+      transformRevision: STATIC_IMPORT_TRANSFORM_REVISION,
+    });
     await step(recordStaticImportState, tx, {
       observedAt,
       youngSyncedAt: importedYoungSyncedAt,

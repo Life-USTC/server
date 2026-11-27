@@ -1,8 +1,9 @@
 <script lang="ts">
+import { toast } from "@ui-sdk/svelte/toast";
 import { onMount } from "svelte";
-import { toast } from "svelte-sonner";
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
 import SignInButton from "#lib/components/SignInButton.svelte";
+import SuspensionAlert from "#lib/components/SuspensionAlert.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
@@ -17,11 +18,11 @@ import {
 import { fetchDescriptionPayload } from "@/features/descriptions/lib/description-card-client";
 import type { AppLocale } from "@/i18n/config";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
-import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
+import { createCampusTimestampFormatter } from "@/lib/time/shanghai-format";
 import DescriptionCardHeader from "./DescriptionCardHeader.svelte";
 import DescriptionEditPanel from "./DescriptionEditPanel.svelte";
 import DescriptionReadPanel from "./DescriptionReadPanel.svelte";
-import DescriptionSuspensionAlert from "./DescriptionSuspensionAlert.svelte";
+import type { DescriptionCopy } from "./description-component-types";
 
 type PanelTab = "description" | "history";
 
@@ -34,38 +35,7 @@ export let readOnlyReason: string | undefined = undefined;
 export let heading: string | null = null;
 export let showTitle = true;
 export let locale: AppLocale = "zh-cn";
-export let copy: {
-  cancel: string;
-  edit: string;
-  editedBy: string;
-  editorPlaceholder: string;
-  editorUnknown: string;
-  empty: string;
-  emptyTitle: string;
-  emptyValue: string;
-  historyEmpty: string;
-  historyTitle: string;
-  lastEdited: string;
-  loadFailed: string;
-  retry: string;
-  loginToEdit: string;
-  markdownGuide: string;
-  previewEmpty: string;
-  previousLabel: string;
-  save: string;
-  saving: string;
-  suspendedExpires: string;
-  suspendedMessage: string;
-  suspendedPermanent: string;
-  suspendedReason: string;
-  suspendedTitle: string;
-  tabPreview: string;
-  tabWrite: string;
-  title: string;
-  updateError: string;
-  updatedLabel: string;
-  updateSuccess?: string;
-};
+export let copy: DescriptionCopy;
 
 let description = initialData.description;
 let history = initialData.history;
@@ -128,10 +98,7 @@ let isSaving = false;
 let message = "";
 let activePanelTab: PanelTab = "description";
 
-$: dateTimeFormatter = createShanghaiDateTimeFormatter(locale, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+$: formatDate = createCampusTimestampFormatter(locale);
 
 $: softEmpty = !description.content && history.length === 0 && !message;
 
@@ -139,11 +106,6 @@ $: usePageHeading = Boolean(heading);
 $: showInlineTitle = showTitle && !usePageHeading;
 /** Page heading owns the primary edit/login action when present. */
 $: showInlineAction = !usePageHeading;
-
-function formatDate(value: string | null | undefined) {
-  if (!value) return "";
-  return dateTimeFormatter.format(new Date(value));
-}
 
 const { cancelEdit, editorName, saveDescription, startEdit } =
   createDescriptionCardActions({
@@ -189,13 +151,12 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
   <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
     <h2 class="section-heading">{heading}</h2>
     {#if readOnlyReason}
-      <Button type="button" variant="outline" disabled title={readOnlyReason}>{copy.edit}</Button>
+      <Button variant="outline" disabled title={readOnlyReason}>{copy.edit}</Button>
     {:else if viewerLoading}
       <Skeleton class="h-9 w-24" />
     {:else if !viewerFailed && viewer.isAuthenticated && !viewer.isSuspended && !isEditing}
       <Button
         data-testid="description-edit"
-        type="button"
         variant="outline"
         onclick={startEdit}
       >
@@ -233,13 +194,11 @@ const { cancelEdit, editorName, saveDescription, startEdit } =
 
   <div class="grid gap-5">
     {#if viewer.isSuspended}
-      <DescriptionSuspensionAlert {copy} formatDate={formatDate} {viewer} />
+      <SuspensionAlert {copy} {formatDate} {viewer} />
     {/if}
 
     {#if message}
-      <Alert.Root variant="destructive">
-        <Alert.Description>{message}</Alert.Description>
-      </Alert.Root>
+      <Alert.Message variant="destructive">{message}</Alert.Message>
     {/if}
 
     {#if isEditing}

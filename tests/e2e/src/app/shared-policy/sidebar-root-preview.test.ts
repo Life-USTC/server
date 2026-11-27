@@ -208,6 +208,8 @@ for (const [locale, width] of [
                 ? "/catalog/bus/map?campus=east"
                 : "/admin/users?search=sidebar-case";
         await gotoAndWaitForReady(page, route);
+        if (context === "settings")
+          await page.locator("input#name").fill("Unsaved sidebar draft");
         if (width === 390)
           await page
             .getByRole("button", { name: menuName, exact: true })
@@ -253,8 +255,6 @@ for (const [locale, width] of [
         await expect(toggle).toHaveRole("button");
         await expect(toggle).toHaveAccessibleName(rootLabel);
         await expect(toggle).not.toHaveAttribute("href");
-        if (context === "settings")
-          await page.locator("input#name").fill("Unsaved sidebar draft");
         const original = await page.evaluateHandle(() => ({
           document,
           main: document.querySelector("#main-content"),

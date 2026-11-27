@@ -204,9 +204,11 @@ test("young-event.subscription-write-gate", { tag: "@Young/Web" }, async ({
         ).toBeDisabled();
         expect(writes).toBe(0);
         releaseRead();
-        await expect(page.getByRole("alert")).toContainText(
-          "Could not complete the request",
-        );
+        await expect(
+          page
+            .getByRole("alert")
+            .filter({ hasText: "Could not complete the request" }),
+        ).toBeVisible();
         await expect(action).toHaveCount(0);
         expect(writes).toBe(0);
         failRead = false;

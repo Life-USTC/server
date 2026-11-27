@@ -17,7 +17,6 @@ export let refreshQueue: () => void | Promise<void>;
     <Button
       class="w-full sm:w-auto"
       disabled={isRefreshing}
-      type="button"
       variant="outline"
       onclick={refreshQueue}
     >

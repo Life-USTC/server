@@ -1,22 +1,22 @@
 <script lang="ts">
 import LaptopIcon from "@lucide/svelte/icons/laptop";
+import { toast } from "@ui-sdk/svelte/toast";
 import { onMount } from "svelte";
-import { toast } from "svelte-sonner";
 import {
   buildReauthenticationPageUrl,
   buildSignInPageUrl,
 } from "#lib/auth/auth-routing.js";
 import { passkeyAuthClient as authClient } from "#lib/auth/passkey-client.js";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import * as Alert from "#lib/components/ui/alert/index.js";
 import * as AlertDialog from "#lib/components/ui/alert-dialog/index.js";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
 import { Skeleton } from "#lib/components/ui/skeleton/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { summarizeAuditUserAgent } from "@/features/settings/lib/security-device-label";
 import type { AppLocale } from "@/i18n/config";
+import { createCampusTimestampFormatter } from "@/lib/time/shanghai-format";
 import type { SettingsCopy } from "./settings-component-types";
 
 type Session = NonNullable<
@@ -46,11 +46,7 @@ $: canRevoke = loaded && !loading && !revoking;
 $: hasOtherSessions = sessions.some(
   (session) => session.id !== currentSessionID,
 );
-$: dateFormatter = new Intl.DateTimeFormat(locale, {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "Asia/Shanghai",
-});
+$: formatDate = createCampusTimestampFormatter(locale);
 $: confirmation =
   pending?.kind === "all"
     ? labels.confirmAll
@@ -149,7 +145,7 @@ async function revoke(action: RevokeAction) {
     <Alert.Root variant="destructive">
       <Alert.Title>{labels.loadError}</Alert.Title>
       <Alert.Description>
-        <Button type="button" variant="outline" disabled={loading} onclick={loadSessions}>{labels.retry}</Button>
+        <Button variant="outline" disabled={loading} onclick={loadSessions}>{labels.retry}</Button>
       </Alert.Description>
     </Alert.Root>
   {/if}
@@ -165,18 +161,13 @@ async function revoke(action: RevokeAction) {
     <Alert.Root variant="destructive">
       <Alert.Title>{labels.revokeError}</Alert.Title>
       <Alert.Description>
-        <Button type="button" variant="outline" disabled={!canRevoke} onclick={() => { if (failedAction) void revoke(failedAction); }}>{labels.retry}</Button>
+        <Button variant="outline" disabled={!canRevoke} onclick={() => { if (failedAction) void revoke(failedAction); }}>{labels.retry}</Button>
       </Alert.Description>
     </Alert.Root>
   {/if}
 
   {#if loaded && sessions.length === 0}
-    <Empty.Root>
-      <Empty.Header>
-        <Empty.Media variant="icon"><LaptopIcon /></Empty.Media>
-        <Empty.Title>{labels.empty}</Empty.Title>
-      </Empty.Header>
-    </Empty.Root>
+    <EmptyState icon={LaptopIcon} title={labels.empty} />
   {:else if loaded && sessions.length > 0}
     <Item.Group role="list">
       {#each sessions as session (session.id)}
@@ -187,13 +178,13 @@ async function revoke(action: RevokeAction) {
               {#if session.id === currentSessionID}<Badge variant="secondary">{labels.current}</Badge>{/if}
             </Item.Title>
             <Item.Description class="line-clamp-none">
-              {labels.createdAt.replace("{time}", dateFormatter.format(new Date(session.createdAt)))}
+              {labels.createdAt.replace("{time}", formatDate(session.createdAt))}
               <br />
-              {labels.expiresAt.replace("{time}", dateFormatter.format(new Date(session.expiresAt)))}
+              {labels.expiresAt.replace("{time}", formatDate(session.expiresAt))}
             </Item.Description>
           </Item.Content>
           <Item.Actions class="self-end sm:self-auto">
-            <Button type="button" variant="outline" disabled={!canRevoke} onclick={() => confirm({ kind: "single", session })}>
+            <Button variant="outline" disabled={!canRevoke} onclick={() => confirm({ kind: "single", session })}>
               {labels.revokeOne}
             </Button>
           </Item.Actions>
@@ -203,27 +194,22 @@ async function revoke(action: RevokeAction) {
   {/if}
 
   <div class="flex flex-col gap-2 sm:flex-row">
-    <Button type="button" variant="outline" disabled={!canRevoke || !hasOtherSessions} onclick={() => confirm({ kind: "others" })}>
-      {#if revoking}<Spinner data-icon="inline-start" />{/if}
+    <Button loading={revoking} variant="outline" disabled={!canRevoke || !hasOtherSessions} onclick={() => confirm({ kind: "others" })}>
       {labels.revokeOthers}
     </Button>
-    <Button type="button" variant="destructive" disabled={!canRevoke || sessions.length === 0} onclick={() => confirm({ kind: "all" })}>
+    <Button variant="destructive" disabled={!canRevoke || sessions.length === 0} onclick={() => confirm({ kind: "all" })}>
       {labels.revokeAll}
     </Button>
   </div>
 </section>
 
 <AlertDialog.Root bind:open={dialogOpen}>
-  <AlertDialog.Content>
-    <AlertDialog.Header>
-      <AlertDialog.Title>{labels.confirmTitle}</AlertDialog.Title>
-      <AlertDialog.Description>{confirmation}</AlertDialog.Description>
-    </AlertDialog.Header>
-    <AlertDialog.Footer>
-      <AlertDialog.Cancel type="button">{copy.profile.cancel}</AlertDialog.Cancel>
-      <AlertDialog.Action type="button" variant="destructive" onclick={() => { if (pending) void revoke(pending); }}>
-        {labels.confirm}
-      </AlertDialog.Action>
-    </AlertDialog.Footer>
-  </AlertDialog.Content>
+  <AlertDialog.Confirmation
+    title={labels.confirmTitle}
+    description={confirmation}
+    cancelLabel={copy.profile.cancel}
+    confirmLabel={labels.confirm}
+    onclick={() => { if (pending) void revoke(pending); }}
+    compact
+  />
 </AlertDialog.Root>

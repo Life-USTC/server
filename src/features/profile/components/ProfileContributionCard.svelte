@@ -2,6 +2,7 @@
 import Panel from "#lib/components/Panel.svelte";
 import type { ProfileCopy } from "@/features/profile/lib/profile-copy";
 import type { AppLocale } from "@/i18n/config";
+import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import ProfileContributionFooter from "./ProfileContributionFooter.svelte";
 import ProfileContributionHeatmap from "./ProfileContributionHeatmap.svelte";
 import type {
@@ -16,17 +17,13 @@ export let stats: ProfileStat[];
 export let totalContributions: number;
 export let weeks: ContributionCell[][];
 
-$: monthFormatter = new Intl.DateTimeFormat(locale, { month: "short" });
+$: monthFormatter = createShanghaiDateTimeFormatter(locale, { month: "short" });
 $: monthLabels = weeks.map((week, index) => {
   const firstDay = week[0]?.date;
-  if (!firstDay) return "";
-  const date = new Date(firstDay);
   const previousDay = weeks[index - 1]?.[0]?.date;
-  if (!previousDay) return monthFormatter.format(date);
-  const previous = new Date(previousDay);
-  return date.getMonth() === previous.getMonth()
-    ? ""
-    : monthFormatter.format(date);
+  return firstDay && firstDay.slice(0, 7) !== previousDay?.slice(0, 7)
+    ? monthFormatter.format(new Date(firstDay))
+    : "";
 });
 
 const contributionLegend = [

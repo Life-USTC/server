@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Badge } from "#lib/components/ui/badge/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import type {
   HomeworkDateValue,
   HomeworkDetailModel,
@@ -27,48 +27,48 @@ function displayDate(value: HomeworkDateValue) {
 </script>
 
 <section class="min-w-0" data-testid="homework-secondary-details">
-  <Table.Root>
-    <Table.Body>
+  <Table>
+    <tbody>
       {#if showPersonalStatus || flagLabels.length > 0}
-      <Table.Row>
-        <Table.Head
+      <tr>
+        <th
           class="text-muted-foreground h-auto w-[38%] px-0 py-2"
           scope="row"
         >
           {copy.statusLabel}
-        </Table.Head>
-        <Table.Cell class="h-auto px-0 py-2">
+        </th>
+        <td class="h-auto px-0 py-2">
           <div class="grid min-w-0 gap-1">
             {#if showPersonalStatus}
               <HomeworkPersonalStatus completed={homework.completed} completionRequired={homework.completionRequired} {copy} />
             {/if}
             {#if flagLabels.length > 0}<div class="flex min-w-0 flex-wrap gap-2">{#each flagLabels as label}<Badge variant="outline">{label}</Badge>{/each}</div>{/if}
           </div>
-        </Table.Cell>
-      </Table.Row>
+        </td>
+      </tr>
       {/if}
-      <Table.Row>
-        <Table.Head
+      <tr>
+        <th
           class="text-muted-foreground h-auto px-0 py-2"
           scope="row"
         >
           {copy.submissionStart}
-        </Table.Head>
-        <Table.Cell class="h-auto px-0 py-2">
+        </th>
+        <td class="h-auto px-0 py-2">
           {displayDate(homework.submissionStartAt)}
-        </Table.Cell>
-      </Table.Row>
-      <Table.Row>
-        <Table.Head
+        </td>
+      </tr>
+      <tr>
+        <th
           class="text-muted-foreground h-auto px-0 py-2"
           scope="row"
         >
           {copy.publishedAt}
-        </Table.Head>
-        <Table.Cell class="h-auto px-0 py-2">
+        </th>
+        <td class="h-auto px-0 py-2">
           {displayDate(homework.publishedAt)}
-        </Table.Cell>
-      </Table.Row>
-    </Table.Body>
-  </Table.Root>
+        </td>
+      </tr>
+    </tbody>
+  </Table>
 </section>

@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { officialAcademicProfileSchema } from "@/features/catalog/lib/official-academic-profile";
 import {
   courseSchema,
   examModeSchema,
@@ -43,6 +44,7 @@ export {
 } from "./academic-teacher-assignment-response-schemas";
 
 export const sectionDetailSchema = sectionBaseSchema.extend({
+  officialProfile: officialAcademicProfileSchema.nullable().optional(),
   course: courseSchema,
   semester: semesterSchema.nullable(),
   campus: campusSchema.nullable(),

@@ -6,7 +6,7 @@ import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import HomeworkPersonalStatus from "@/features/homeworks/components/HomeworkPersonalStatus.svelte";
 import {
   formatHomeworkDueRelativeTime,
@@ -102,19 +102,19 @@ onMount(() => {
       {/snippet}
       {#snippet desktop()}
         <div class="min-w-0">
-          <Table.Root>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head>{sectionCopy.title}</Table.Head>
-                <Table.Head>{sectionCopy.due}</Table.Head>
-                <Table.Head>{sectionCopy.flags}</Table.Head>
-                {#if showPersonalStatus}<Table.Head>{homeworkCopy.myStatus}</Table.Head>{/if}
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+          <Table>
+            <thead>
+              <tr>
+                <th>{sectionCopy.title}</th>
+                <th>{sectionCopy.due}</th>
+                <th>{sectionCopy.flags}</th>
+                {#if showPersonalStatus}<th>{homeworkCopy.myStatus}</th>{/if}
+              </tr>
+            </thead>
+            <tbody>
               {#each homeworks as homework}
-                <Table.Row>
-                  <Table.Cell>
+                <tr>
+                  <td>
                     <button
                       class="min-h-11 max-w-full text-left break-words hover:underline"
                       type="button"
@@ -124,11 +124,11 @@ onMount(() => {
                     >
                       {homework.title}
                     </button>
-                  </Table.Cell>
-                  <Table.Cell
-                    >{fmtDateTime(homework.submissionDueAt)}</Table.Cell
+                  </td>
+                  <td
+                    >{fmtDateTime(homework.submissionDueAt)}</td
                   >
-                  <Table.Cell>
+                  <td>
                     <div class="flex min-w-0 flex-wrap gap-2">
                       {#if !showPersonalStatus && homework.completionRequired === false}
                         <Badge variant="outline">{homeworkCopy.noCompletionRequired}</Badge>
@@ -140,14 +140,14 @@ onMount(() => {
                           >{homeworkCopy.tagTeam}</Badge
                         >{/if}
                     </div>
-                  </Table.Cell>
+                  </td>
                   {#if showPersonalStatus}
-                    <Table.Cell><div role="group" aria-label={homeworkCopy.myStatus}>{@render personalStatus(homework)}</div></Table.Cell>
+                    <td><div role="group" aria-label={homeworkCopy.myStatus}>{@render personalStatus(homework)}</div></td>
                   {/if}
-                </Table.Row>
+                </tr>
               {/each}
-            </Table.Body>
-          </Table.Root>
+            </tbody>
+          </Table>
         </div>
       {/snippet}
     </ResponsiveCollection>

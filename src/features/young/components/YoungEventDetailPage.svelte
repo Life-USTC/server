@@ -37,8 +37,11 @@ type Props = {
     remindStart?: boolean;
   };
   commentsData?: CommentsInitialData | null;
-  copy: AppPageCopy;
-  event: YoungEventDetail;
+  copy: {
+    comments: Pick<AppPageCopy["comments"], "title" | "retry" | "loadFailed">;
+    youngEvents: AppPageCopy["youngEvents"];
+  };
+  event: Omit<YoungEventDetail, "rawJson">;
   source: YoungSourceFreshness;
 };
 
@@ -232,10 +235,7 @@ const signupLabel = $derived(
       </Panel>
     {/if}
     {#if event.sourceMissing}
-      <Alert.Root
-        ><Alert.Description>{youngCopy.sourceMissing}</Alert.Description
-        ></Alert.Root
-      >
+      <Alert.Message>{youngCopy.sourceMissing}</Alert.Message>
     {/if}
     <YoungSourceNote
       labels={youngCopy}
