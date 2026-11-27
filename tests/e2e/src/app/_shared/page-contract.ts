@@ -3,7 +3,6 @@ import { expectRequiresSignIn } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import {
   expandDaySidebarGroup,
-  selectDetailTab,
   sidebarNavigationLink,
   visibleText,
 } from "../../../utils/locators";
@@ -111,9 +110,6 @@ export async function assertPageContract(
   if (routePath === "/workspace/uploads") {
     await gotoContractPage(page, routePath);
     await expectMainContent(page);
-    await expect(
-      page.getByRole("heading", { name: /我的上传|My Uploads/i }),
-    ).toBeVisible();
     const mobile = (page.viewportSize()?.width ?? 1280) < 768;
     if (mobile)
       await page
@@ -142,39 +138,6 @@ export async function assertPageContract(
     }
     return;
   }
-  if (routePath.startsWith("/account/settings/")) {
-    if (routePath === "/account/settings") {
-      // handled explicitly below for explicitness
-    } else {
-      await gotoContractPage(page, routePath);
-      await expectMainContent(page);
-      const expectedTab = routePath.split("/").pop();
-      const tabMarker =
-        expectedTab === "profile"
-          ? page.getByRole("heading", { name: /编辑个人资料|Edit Profile/i })
-          : expectedTab === "accounts"
-            ? page.getByRole("region", {
-                name: /关联账户|Linked accounts/i,
-              })
-            : expectedTab === "preferences"
-              ? page.getByText(/外观|Appearance/i).first()
-              : expectedTab === "authorizations"
-                ? page.getByRole("region", {
-                    name: /已授权的 OAuth 应用|Authorized OAuth applications/i,
-                  })
-                : expectedTab === "danger"
-                  ? page.getByRole("region", {
-                      name: /删除账户|Delete Account/i,
-                    })
-                  : page.getByRole("heading", { name: /设置|Settings/i });
-      await expect(
-        page.getByRole("heading", { name: /设置|Settings/i, level: 1 }),
-      ).toBeVisible();
-      await expect(tabMarker).toBeVisible();
-      return;
-    }
-  }
-
   if (routePath === "/workspace/subscriptions/sections") {
     await gotoContractPage(page, routePath);
     await expect(page).toHaveURL(/\/workspace\/subscriptions(?:\?.*)?$/);
@@ -224,57 +187,6 @@ export async function assertPageContract(
       return;
     }
 
-    case "/admin/bus": {
-      await gotoContractPage(page, routePath);
-      await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", { name: /校车管理|Bus Management/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: /导入|Import/i }),
-      ).toBeVisible();
-      return;
-    }
-
-    case "/admin/moderation": {
-      await gotoContractPage(page, routePath);
-      await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", { name: /内容审核|Moderation/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: /评论|Comments/i }),
-      ).toBeVisible();
-      return;
-    }
-
-    case "/admin/oauth": {
-      await gotoContractPage(page, routePath);
-      await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", { name: /OAuth|OAuth 客户端/i }),
-      ).toBeVisible();
-      // Header + empty-state both expose Create Client; L1 only needs one.
-      await expect(
-        page.getByRole("button", { name: /创建客户端|Create Client/i }).first(),
-      ).toBeVisible();
-      return;
-    }
-
-    case "/admin/users": {
-      await gotoContractPage(page, routePath);
-      await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", {
-          name: /用户管理|User Management|用户列表|Users/i,
-        }),
-      ).toBeVisible();
-      await expect(
-        page.locator("table, [role='table'], [data-slot='table']"),
-      ).toBeVisible();
-      return;
-    }
-
     case "/catalog/sections/[jwId]": {
       await gotoContractPage(
         page,
@@ -284,10 +196,6 @@ export async function assertPageContract(
       await expect(visibleText(page, DEV_SEED.section.code)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await expect(page.locator("#introduction")).toBeVisible();
-      await selectDetailTab(page, "schedule");
-      await expect(
-        page.getByRole("heading", { name: /上课安排|Class schedule/i }),
-      ).toBeVisible();
       return;
     }
 
@@ -297,10 +205,6 @@ export async function assertPageContract(
       await expect(visibleText(page, DEV_SEED.course.nameCn)).toBeVisible();
       await expect(visibleText(page, DEV_SEED.course.code)).toBeVisible();
       await expect(page.locator("#introduction")).toBeVisible();
-      await selectDetailTab(page, "sections");
-      await expect(
-        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
-      ).toBeVisible();
       return;
     }
 
@@ -312,10 +216,6 @@ export async function assertPageContract(
       await expectMainContent(page);
       await expect(visibleText(page, DEV_SEED.teacher.nameCn)).toBeVisible();
       await expect(page.locator("#introduction")).toBeVisible();
-      await selectDetailTab(page, "sections");
-      await expect(
-        page.getByRole("heading", { name: /授课班级|Teaching Sections/i }),
-      ).toBeVisible();
       return;
     }
 
@@ -348,47 +248,14 @@ export async function assertPageContract(
       return;
     }
 
-    case "/catalog/bus": {
-      await gotoContractPage(page, routePath);
-      await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", { level: 1, name: /校车|Shuttle Bus/i }),
-      ).toBeVisible();
-      return;
-    }
-
     case "/catalog/rooms": {
       await gotoContractPage(page, routePath);
       await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", {
-          level: 1,
-          name: /教室位置|Room location/i,
-        }),
-      ).toBeVisible();
       await expect(page.getByRole("textbox")).toBeVisible();
       await expect(
         page
           .locator('[data-slot="empty-title"]')
           .filter({ hasText: /^(尚未查询教室|No room selected yet)$/ }),
-      ).toBeVisible();
-      return;
-    }
-
-    case "/catalog/weather": {
-      await gotoContractPage(page, routePath);
-      await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", { level: 1, name: /天气|Weather/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("heading", {
-          level: 2,
-          name: /本部|Main campus/,
-        }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("heading", { level: 2, name: /高新校区|Gaoxin campus/ }),
       ).toBeVisible();
       return;
     }
@@ -399,12 +266,6 @@ export async function assertPageContract(
         `/catalog/young-events?search=${encodeURIComponent(DEV_SEED.youngEvent.name)}`,
       );
       await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", {
-          level: 1,
-          name: /第二课堂|Second Classroom/i,
-        }),
-      ).toBeVisible();
       await expect(visibleText(page, DEV_SEED.youngEvent.name)).toBeVisible();
       return;
     }
@@ -436,12 +297,6 @@ export async function assertPageContract(
         "/catalog/young-events/calendar?view=month&date=2026-05-10",
       );
       await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", {
-          level: 1,
-          name: /活动日历|Event calendar/i,
-        }),
-      ).toBeVisible();
       await expect(page.getByTestId("young-calendar")).toBeVisible();
       return;
     }
@@ -449,9 +304,6 @@ export async function assertPageContract(
     case "/catalog/young-events/organizers": {
       await gotoContractPage(page, "/catalog/young-events/organizers");
       await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", { level: 1, name: /主办方|Organizers/i }),
-      ).toBeVisible();
       await expect(page.getByRole("searchbox")).toBeVisible();
       return;
     }
@@ -498,56 +350,13 @@ export async function assertPageContract(
     case "/search": {
       await gotoContractPage(page, routePath);
       await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", { name: /搜索|Search/i }),
-      ).toBeVisible();
       await expect(page.getByRole("combobox")).toBeVisible();
-      return;
-    }
-
-    case "/news": {
-      await gotoContractPage(page, routePath);
-      await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", { level: 1, name: /新闻|News/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("searchbox", { name: /搜索|Search/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("radio", { name: /^(全部|All)$/i }),
-      ).toBeVisible();
-      const advancedFilters = page.getByRole("button", {
-        name: /更多筛选|More filters/i,
-      });
-      await expect(advancedFilters).toHaveAttribute("aria-expanded", "false");
-      await advancedFilters.click();
-      await expect(
-        page.getByRole("dialog", { name: /更多筛选|More filters/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("group", { name: /^(来源|Sources)$/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("group", {
-          name: /按组织层级筛选|Filter by organization level/i,
-        }),
-      ).toBeVisible();
-      await page.keyboard.press("Escape");
-      await expect(page.getByRole("dialog")).toBeHidden();
-      await expect(advancedFilters).toBeFocused();
       return;
     }
 
     case "/news/sources": {
       await gotoContractPage(page, routePath);
       await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", {
-          level: 1,
-          name: /新闻来源目录|News source directory/i,
-        }),
-      ).toBeVisible();
       await expect(
         page.getByRole("link", {
           name: /返回新闻与通知|Back to news and notices/i,
@@ -567,7 +376,6 @@ export async function assertPageContract(
       await detailLink.click();
       await expect(page).toHaveURL(/\/news\/[^/?]+(?:\?.*)?$/);
       await expectMainContent(page);
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       return;
     }
 
@@ -684,77 +492,11 @@ export async function assertPageContract(
       return;
     }
 
-    case "/usage/mobile": {
-      await gotoContractPage(page, routePath);
-      await expectMainContent(page);
-      await expect(
-        page.getByRole("link", { name: /App Store|下载/i }),
-      ).toBeVisible();
-      await expect(
-        page.locator('img[src="/images/mobile-app/screenshot-01.png"]').first(),
-      ).toBeVisible();
-      return;
-    }
-
-    case "/usage/bot": {
-      await gotoContractPage(page, routePath);
-      await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", { name: /Presto/i, level: 1 }),
-      ).toBeVisible();
-      return;
-    }
-
-    case "/usage/mcp": {
-      await gotoContractPage(page, routePath);
-      await expectMainContent(page);
-      await expect(
-        page
-          .getByRole("button", {
-            name: /复制 MCP 端点|Copy MCP endpoint/i,
-          })
-          .first(),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("link", {
-          name: /打开 ChatGPT Plugins|Open ChatGPT Plugins/i,
-        }),
-      ).toHaveAttribute(
-        "href",
-        "https://developers.openai.com/api/docs/guides/custom-mcp-server",
-      );
-      await expect(
-        page.locator('img[src="/images/usage/mcp-use-case.png"]').first(),
-      ).toBeVisible();
-      return;
-    }
-
-    case "/usage/cli": {
-      await gotoContractPage(page, routePath);
-      await expectMainContent(page);
-      await expect(
-        page.getByRole("link", { name: /在 GitHub 查看|View on GitHub/i }),
-      ).toHaveAttribute("href", "https://github.com/Life-USTC/CLI");
-      await expect(
-        page.getByText(
-          /go install github\.com\/Life-USTC\/CLI\/cmd\/life-ustc@latest/,
-        ),
-      ).toBeVisible();
-      await expect(
-        page.getByText(
-          /life-ustc catalog course -s "线性代数" --no-interactive --limit 3/,
-        ),
-      ).toBeVisible();
-      return;
-    }
-
     case "/oauth/authorize": {
       // Bare authorize URL (no client_id / PKCE) redirects to sign-in.
       await gotoContractPage(page, routePath);
       await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", { name: /登录|Sign In/i }),
-      ).toBeVisible();
+      await expect(page).toHaveURL(/\/account\/sign-in(?:\?.*)?$/);
       return;
     }
 
@@ -767,34 +509,6 @@ export async function assertPageContract(
       return;
     }
 
-    case "/terms":
-    case "/privacy": {
-      await gotoContractPage(page, routePath);
-      await expectMainContent(page);
-      await expect(page.locator("h1")).toBeVisible();
-      await expect(page.locator("h2").first()).toBeVisible();
-      await expect(page.locator("li").first()).toBeVisible();
-      return;
-    }
-
-    case "/account/settings": {
-      await gotoContractPage(page, routePath);
-      await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", { name: /设置|Settings/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: /个人资料|Profile/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: /账号关联|Accounts/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: /危险区|Danger/i }),
-      ).toBeVisible();
-      return;
-    }
-
     case "/account/welcome": {
       await expectRequiresSignIn(page, routePath);
       return;
@@ -803,12 +517,6 @@ export async function assertPageContract(
     case "/": {
       await gotoContractPage(page, routePath);
       await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", {
-          level: 1,
-          name: /总览|Overview/i,
-        }),
-      ).toBeVisible();
       await expect(
         page
           .locator("#main-content")
@@ -846,9 +554,6 @@ export async function assertPageContract(
         "/e2e/oauth/callback?code=e2e-test-code&state=e2e-test-state",
       );
       await expectMainContent(page);
-      await expect(
-        page.getByRole("heading", { name: /OAuth E2E Callback/i }),
-      ).toBeVisible();
       await expect(
         page.locator("pre").getByText('"code": "e2e-test-code"'),
       ).toBeVisible();

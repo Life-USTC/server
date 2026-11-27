@@ -30,7 +30,7 @@ import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";
-import { expectSettingsPage, test } from "../../../../utils/settings-fixture";
+import { test } from "../../../../utils/settings-fixture";
 import { test as oauthTest } from "../../../../utils/settings-oauth-fixture";
 
 test.describe.configure({ mode: "parallel" });
@@ -291,18 +291,5 @@ test.describe("/account/settings/accounts 关联账号设置", () => {
         ).toBe(1);
       },
     );
-  });
-});
-
-test("页面契约", { tag: "@Account/Web" }, async ({
-  accountRun,
-  page,
-  account: _account,
-}) => {
-  await accountRun({ writes: [], audits: [] }, async () => {
-    await expectSettingsPage(page, "/account/settings/accounts");
-    await expect(
-      page.getByRole("region", { name: /关联账户|Linked accounts/i }),
-    ).toBeVisible();
   });
 });

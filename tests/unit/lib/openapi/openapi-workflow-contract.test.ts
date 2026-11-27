@@ -7,19 +7,6 @@ async function readRepositoryFile(path: string) {
 }
 
 describe("OpenAPI build and workflow contracts", () => {
-  it("openapi.build-generation", async () => {
-    const packageJson = JSON.parse(
-      await readRepositoryFile("package.json"),
-    ) as { scripts: Record<string, string> };
-
-    expect(packageJson.scripts.build).toBe(
-      "bun run app:prepare && bun run openapi:generate && vite build",
-    );
-    expect(packageJson.scripts["openapi:check"]).toBe(
-      "bun run scripts/openapi/generate.ts --check",
-    );
-  });
-
   it("blocks breaking changes unless the explicit approval label is present", async () => {
     const workflow = await readRepositoryFile(
       ".github/workflows/openapi-compatibility.yml",

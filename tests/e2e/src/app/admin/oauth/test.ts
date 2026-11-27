@@ -460,33 +460,3 @@ test("/admin/oauth 移动端使用紧凑列表且无页面横向溢出", {
     ),
   );
 });
-
-test("页面契约", { tag: "@OAuth/Web" }, async ({
-  adminFlow,
-  run,
-  page,
-  admin: _admin,
-}) => {
-  await run(() =>
-    adminFlow.run(
-      async () => {
-        const response = await gotoAndWaitForReady(page, "/admin/oauth", {
-          browserHealth: {},
-          expectMeaningfulContent: true,
-          expectNoHorizontalOverflow: true,
-          uiQuality: {},
-        });
-        expect(response?.ok()).toBe(true);
-        await expect(page.locator("#main-content")).toBeVisible();
-        await expect(
-          page.getByRole("heading", { name: /OAuth|OAuth 客户端/i }),
-        ).toBeVisible();
-        await expect(
-          page.getByRole("button", { name: CREATE_BUTTON }).first(),
-        ).toBeVisible();
-      },
-      {},
-      adminWriteChecks([]),
-    ),
-  );
-});

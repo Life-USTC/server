@@ -1,4 +1,3 @@
-import { appendFileSync } from "node:fs";
 import { expect, type Page } from "@playwright/test";
 import {
   expectNoPageHorizontalOverflow,
@@ -492,342 +491,76 @@ test("subscription.quick-add-result-bound", {
 test("subscription.kind-web-editor-location", {
   tag: "@Subscription/Web",
 }, async ({ page, presentation, isolatedWorker, catalogSubscriptionRun }) => {
-  const evidence: string[] = [];
-  const evidencePath = test.info().outputPath("role-dialog-events.jsonl");
-  let diagnosticWriteWarning: string | undefined;
-  const record = (message: import("@playwright/test").ConsoleMessage) => {
-    const prefix = "SUBSCRIPTION_ROLE_DIALOG ";
-    if (!message.text().startsWith(prefix) || evidence.length >= 1200) return;
-    const line = message.text().slice(prefix.length);
-    evidence.push(line);
-    if (!diagnosticWriteWarning) {
-      try {
-        appendFileSync(evidencePath, `${line}\n`);
-      } catch (cause) {
-        diagnosticWriteWarning = String(cause);
-        console.warn(
-          "Subscription role diagnostic file unavailable",
-          diagnosticWriteWarning,
-        );
-      }
-    }
-  };
-  page.on("console", record);
-  let completed = false;
-  try {
-    await page.addInitScript(() => {
-      let remaining = 1200;
-      const role = /^(班级订阅身份|Section subscription role)$/;
-      const describeNode = (target: EventTarget | null) =>
-        target instanceof Element
-          ? {
-              tag: target.tagName,
-              id: target.id,
-              role: target.getAttribute("role"),
-              label: target.getAttribute("aria-label"),
-              slot: target.getAttribute("data-slot"),
-              state: target.getAttribute("data-state"),
-              connected: target.isConnected,
-            }
-          : null;
-      const relevant = (node: Element) =>
-        (node.tagName === "BUTTON" &&
-          role.test(node.getAttribute("aria-label") ?? "")) ||
-        node.matches('[role="dialog"],[data-slot="dialog-backdrop"]');
-      const emit = (event: Record<string, unknown>) => {
-        if (remaining-- <= 0) return;
-        console.log(
-          "SUBSCRIPTION_ROLE_DIALOG " +
-            JSON.stringify({
-              time: performance.now(),
-              timeOrigin: performance.timeOrigin,
-              language: document.documentElement?.lang ?? "",
-              viewport: [innerWidth, innerHeight],
-              active: describeNode(document.activeElement),
-              bodyStyle: document.body?.getAttribute("style"),
-              dialogs: [
-                ...document.querySelectorAll(
-                  '[role="dialog"],[data-slot="dialog-backdrop"]',
-                ),
-              ].map(describeNode),
-              ...event,
-            }),
-        );
-      };
-      // Observe only the immediate native pointer gesture; never act on the UI.
-      let pointerWindow:
-        | {
-            until: number;
-            remaining: number;
-            trigger: Element;
-            x: number;
-            y: number;
-          }
-        | undefined;
-      const pointerGeometry = () => {
-        if (!pointerWindow) return {};
-        const rect = pointerWindow.trigger.getBoundingClientRect();
-        return {
-          scroll: [scrollX, scrollY],
-          trigger: describeNode(pointerWindow.trigger),
-          triggerRect: [rect.x, rect.y, rect.width, rect.height],
-          downPointHit: describeNode(
-            document.elementFromPoint(pointerWindow.x, pointerWindow.y),
-          ),
-        };
-      };
-      document.addEventListener(
-        "scroll",
-        (event) => {
-          if (
-            remaining <= 0 ||
-            !pointerWindow ||
-            performance.now() > pointerWindow.until ||
-            pointerWindow.remaining <= 0
-          )
-            return;
-          pointerWindow.remaining -= 1;
-          emit({
-            type: "pointer-window-scroll",
-            target: describeNode(event.target),
-            targetScroll:
-              event.target instanceof Element
-                ? [event.target.scrollLeft, event.target.scrollTop]
-                : null,
-            ...pointerGeometry(),
-          });
-        },
-        { capture: true, passive: true },
-      );
-      for (const name of [
-        "pointerdown",
-        "pointerup",
-        "mouseup",
-        "click",
-        "keydown",
-        "keyup",
-        "focusin",
-        "focusout",
-      ]) {
-        for (const capture of [true, false]) {
-          document.addEventListener(
-            name,
-            (event) => {
-              if (remaining <= 0) return;
-              const path = event
-                .composedPath()
-                .filter((node): node is Element => node instanceof Element);
-              if (
-                name === "pointerdown" &&
-                capture &&
-                event instanceof MouseEvent
-              ) {
-                const trigger = path.find(
-                  (node) =>
-                    node.tagName === "BUTTON" &&
-                    role.test(node.getAttribute("aria-label") ?? ""),
-                );
-                if (trigger)
-                  pointerWindow = {
-                    until: performance.now() + 250,
-                    remaining: 24,
-                    trigger,
-                    x: event.clientX,
-                    y: event.clientY,
-                  };
-              }
-              const inPointerWindow = Boolean(
-                pointerWindow &&
-                  performance.now() <= pointerWindow.until &&
-                  pointerWindow.remaining > 0,
-              );
-              const observePointerTerminal =
-                inPointerWindow &&
-                ["pointerup", "mouseup", "click"].includes(name);
-              if (name === "mouseup" && !observePointerTerminal) return;
-              if (
-                !observePointerTerminal &&
-                !(event instanceof KeyboardEvent && event.key === "Escape") &&
-                !path.some(
-                  (node) => relevant(node) || node.closest('[role="dialog"]'),
-                )
-              )
-                return;
-              if (inPointerWindow && pointerWindow)
-                pointerWindow.remaining -= 1;
-              emit({
-                type: "event",
-                ...(inPointerWindow
-                  ? {
-                      pointerWindow: true,
-                      ...pointerGeometry(),
-                      ...(event instanceof MouseEvent
-                        ? {
-                            point: [event.clientX, event.clientY],
-                            pointHit: describeNode(
-                              document.elementFromPoint(
-                                event.clientX,
-                                event.clientY,
-                              ),
-                            ),
-                          }
-                        : {}),
-                    }
-                  : {}),
-                name,
-                phase: capture ? "capture" : "bubble",
-                trusted: event.isTrusted,
-                prevented: event.defaultPrevented,
-                key: event instanceof KeyboardEvent ? event.key : undefined,
-                target: describeNode(event.target),
-                path: path.slice(0, 9).map(describeNode),
-              });
-            },
-            capture,
-          );
-        }
-      }
-      new MutationObserver((changes) => {
-        if (remaining <= 0) return;
-        const records: unknown[] = [];
-        for (const change of changes) {
-          if (
-            change.type === "attributes" &&
-            change.target instanceof Element &&
-            change.attributeName &&
-            relevant(change.target)
-          ) {
-            records.push({
-              action: "attribute",
-              name: change.attributeName,
-              oldValue: change.oldValue,
-              node: describeNode(change.target),
-              value: change.target.getAttribute(change.attributeName ?? ""),
-            });
-          }
-          for (const [action, nodes] of [
-            ["added", change.addedNodes],
-            ["removed", change.removedNodes],
+  const { user, sections } = presentation;
+  await catalogSubscriptionRun(
+    user,
+    {
+      calendarMessages: Array.from({ length: 12 }, () => ({
+        type: "user" as const,
+        userId: user.id,
+      })),
+      calendarTokenCreated: true,
+    },
+    async (effects) => {
+      await page
+        .context()
+        .addCookies([
+          (await isolatedWorker.createSession(user.id)).cookie,
+          { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
+        ]);
+      const db = isolatedWorker.database.owner;
+      for (const locale of ["zh-cn", "en-us"]) {
+        await setLocale(page, locale, effects.headers);
+        for (const width of widths) {
+          await open(page, width);
+          for (const [kind, label] of [
+            ["teaching_assistant", /^(助教|Teaching assistant)$/],
+            ["auditor", /^(旁听|Auditor)$/],
+            ["regular", /^(普通|Regular)$/],
           ] as const) {
-            for (const node of nodes)
-              if (node instanceof Element) {
-                if (relevant(node))
-                  records.push({ action, node: describeNode(node) });
-                for (const child of node.querySelectorAll(
-                  '[role="dialog"],[data-slot="dialog-backdrop"],button[aria-label]',
-                ))
-                  if (relevant(child))
-                    records.push({ action, node: describeNode(child) });
-              }
-          }
-        }
-        if (!records.length) return;
-        emit({ type: "mutation", records });
-      }).observe(document, {
-        subtree: true,
-        childList: true,
-        attributes: true,
-        attributeOldValue: true,
-        attributeFilter: ["data-state", "aria-hidden", "style", "disabled"],
-      });
-    });
-    const { user, sections } = presentation;
-    await catalogSubscriptionRun(
-      user,
-      {
-        calendarMessages: Array.from({ length: 12 }, () => ({
-          type: "user" as const,
-          userId: user.id,
-        })),
-        calendarTokenCreated: true,
-      },
-      async (effects) => {
-        await page
-          .context()
-          .addCookies([
-            (await isolatedWorker.createSession(user.id)).cookie,
-            { name: "NEXT_LOCALE", value: "zh-cn", url: isolatedWorker.origin },
-          ]);
-        const db = isolatedWorker.database.owner;
-        for (const locale of ["zh-cn", "en-us"]) {
-          await setLocale(page, locale, effects.headers);
-          for (const width of widths) {
-            await open(page, width);
-            for (const [kind, label] of [
-              ["teaching_assistant", /^(助教|Teaching assistant)$/],
-              ["auditor", /^(旁听|Auditor)$/],
-              ["regular", /^(普通|Regular)$/],
-            ] as const) {
-              const link = page
-                .locator(
-                  `a[data-testid="subscription-course-link"][href="/catalog/sections/${sections[0].jwId}"]`,
-                )
-                .filter({ visible: true });
-              const row = link.locator(
-                'xpath=ancestor::*[self::tr or @data-slot="item"][1]',
-              );
-              await row
-                .getByRole("button", {
-                  name: /^(班级订阅身份|Section subscription role)$/,
-                })
-                .click();
-              const dialog = page.getByRole("dialog", {
+            const link = page
+              .locator(
+                `a[data-testid="subscription-course-link"][href="/catalog/sections/${sections[0].jwId}"]`,
+              )
+              .filter({ visible: true });
+            const row = link.locator(
+              'xpath=ancestor::*[self::tr or @data-slot="item"][1]',
+            );
+            await row
+              .getByRole("button", {
                 name: /^(班级订阅身份|Section subscription role)$/,
-              });
-              await dialog.getByRole("radio", { name: label }).click();
-              await dialog
-                .getByRole("button", { name: /^(保存|Save)$/ })
-                .click();
-              await expect(dialog).toBeHidden();
-              expect(
-                await db.userSectionSubscription.findUniqueOrThrow({
-                  where: {
-                    userId_sectionId: {
-                      userId: user.id,
-                      sectionId: sections[0].id,
-                    },
+              })
+              .click();
+            const dialog = page.getByRole("dialog", {
+              name: /^(班级订阅身份|Section subscription role)$/,
+            });
+            await dialog.getByRole("radio", { name: label }).click();
+            await dialog.getByRole("button", { name: /^(保存|Save)$/ }).click();
+            await expect(dialog).toBeHidden();
+            expect(
+              await db.userSectionSubscription.findUniqueOrThrow({
+                where: {
+                  userId_sectionId: {
+                    userId: user.id,
+                    sectionId: sections[0].id,
                   },
-                }),
-              ).toMatchObject({ kind });
-              await row
-                .getByRole("button", {
-                  name: /^(班级订阅身份|Section subscription role)$/,
-                })
-                .click();
-              await expect(
-                dialog.getByRole("radio", { name: label }),
-              ).toBeChecked();
-              await page.keyboard.press("Escape");
-            }
+                },
+              }),
+            ).toMatchObject({ kind });
+            await row
+              .getByRole("button", {
+                name: /^(班级订阅身份|Section subscription role)$/,
+              })
+              .click();
+            await expect(
+              dialog.getByRole("radio", { name: label }),
+            ).toBeChecked();
+            await page.keyboard.press("Escape");
           }
         }
-      },
-    );
-    completed = true;
-  } finally {
-    page.off("console", record);
-    if (!completed) {
-      try {
-        const diagnostic = diagnosticWriteWarning
-          ? [
-              JSON.stringify({
-                type: "diagnostic-warning",
-                message: diagnosticWriteWarning,
-              }),
-            ]
-          : [];
-        await test.info().attach("role-dialog-events", {
-          body: [...diagnostic, ...evidence].join("\n"),
-          contentType: "application/x-ndjson",
-        });
-      } catch (attachmentFailure) {
-        console.warn(
-          "Subscription role diagnostic attachment unavailable",
-          String(attachmentFailure),
-        );
       }
-    }
-  }
+    },
+  );
 });
 
 test("subscribed-sections.grouped-by-semester", {

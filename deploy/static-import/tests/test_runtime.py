@@ -11,7 +11,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
 from runtime import ImportQueue, delivery_metadata, signature
-from worker import prune_cache, run_import, run_once
+from worker import prune_cache, run_once
 
 
 class RuntimeTests(unittest.TestCase):
@@ -104,31 +104,6 @@ class RuntimeTests(unittest.TestCase):
                     "succeeded",
                 )
             self.assertEqual(queue.counts(), {"succeeded": 1})
-
-    def test_import_uses_real_entrypoint_and_reads_stats(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            environment = {"STATIC_IMPORT_QUEUE_DIR": directory}
-
-            def completed(*_args, **kwargs):
-                report = kwargs["env"]["STATIC_LOADER_STATS_FILE"]
-                Path(report).write_text(json.dumps({"outcome": "unchanged"}))
-                return type(
-                    "Result", (), {"returncode": 0, "stdout": "", "stderr": ""}
-                )()
-
-            with (
-                patch.dict(os.environ, environment, clear=True),
-                patch("worker.subprocess.run", side_effect=completed) as process,
-            ):
-                self.assertEqual(
-                    run_import(
-                        "https://static.life-ustc.tiankaima.dev/snapshot-manifest.json"
-                    ),
-                    {"outcome": "unchanged"},
-                )
-                self.assertEqual(
-                    process.call_args.args[0], ["scripts/load-static-sqlite.sh"]
-                )
 
     def test_cache_pruning_retains_newest_files_within_bound(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

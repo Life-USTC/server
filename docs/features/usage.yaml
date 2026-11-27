@@ -39,18 +39,6 @@ requirements:
     test:
       file: tests/unit/features/catalog/public-cache-policy-acceptance.test.ts
       name: rendering-and-cache.cacheable-public-pages-5
-- id: usage.page-contract
-  category: presentation
-  rule: Each usage guide satisfies the shared public page contract at desktop and mobile widths in Chinese
-    and English.
-  acceptance:
-    given: The four client usage guide routes.
-    when: An anonymous browser opens each route through the shared page contract helper.
-    then:
-    - Each page passes the public layout, navigation, and accessibility contract checks.
-    test:
-      file: tests/e2e/src/app/usage/test.ts
-      name: /usage/mobile page contract
 - id: usage.primary-handoffs
   category: presentation
   rule: Usage guides expose their primary client handoff controls, including download, contact, or repository

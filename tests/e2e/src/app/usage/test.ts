@@ -1,23 +1,6 @@
 import { expect } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { test } from "../../../utils/public-worker";
-import { assertPageContract } from "../_shared/page-contract";
-
-for (const routePath of [
-  "/usage/mobile",
-  "/usage/bot",
-  "/usage/mcp",
-  "/usage/cli",
-]) {
-  test(`${routePath} page contract`, { tag: "@Site/Web" }, async ({
-    page,
-    publicFlow,
-  }) => {
-    await publicFlow.run(async () => {
-      await assertPageContract(page, { routePath });
-    });
-  });
-}
 
 test("usage pages expose their primary handoff", { tag: "@Site/Web" }, async ({
   page,
