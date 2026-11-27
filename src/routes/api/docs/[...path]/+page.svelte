@@ -188,6 +188,7 @@ async function loadSpec() {
 }
 
 async function renderReference(expected = ++generation) {
+  if (import.meta.env.SSR) return;
   const content = apiDocument;
   const epoch = currentEpoch();
   if (!content || !epoch) return;
