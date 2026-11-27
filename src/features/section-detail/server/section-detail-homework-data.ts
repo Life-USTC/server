@@ -2,9 +2,7 @@ import {
   getSectionHomeworkDetail,
   listSectionHomeworks,
 } from "@/features/homeworks/server/homework-list-read-model";
-import { campusReferenceMarkdownPlugins } from "@/features/markdown/lib/campus-reference-markdown";
 import type { SectionDetailPageData } from "@/features/section-detail/lib/section-detail-controller-types";
-import { renderEmbeddedMarkdown } from "@/lib/components/markdown-preview-renderer";
 import {
   serializeDatesDeep,
   toShanghaiIsoString,
@@ -14,16 +12,26 @@ type SectionHomeworkDetail = NonNullable<
   Awaited<ReturnType<typeof getSectionHomeworkDetail>>
 >["homework"];
 
-function renderSectionHomeworkDetail(homework: SectionHomeworkDetail) {
+async function renderDescription(content: string) {
+  const [{ renderEmbeddedMarkdown }, { campusReferenceMarkdownPlugins }] =
+    await Promise.all([
+      import("@/lib/components/markdown-preview-renderer"),
+      import("@/features/markdown/lib/campus-reference-markdown"),
+    ]);
+  return renderEmbeddedMarkdown(content, {
+    remarkPlugins: campusReferenceMarkdownPlugins,
+  });
+}
+
+async function renderSectionHomeworkDetail(homework: SectionHomeworkDetail) {
   const { section: _section, ...scopedHomework } = serializeDatesDeep(homework);
   return {
     ...scopedHomework,
     description: scopedHomework.description
       ? {
           ...scopedHomework.description,
-          renderedHtml: renderEmbeddedMarkdown(
+          renderedHtml: await renderDescription(
             scopedHomework.description.content ?? "",
-            { remarkPlugins: campusReferenceMarkdownPlugins },
           ),
         }
       : null,
@@ -68,9 +76,14 @@ export async function getSectionHomeworkData(
   const focusedDetail =
     detail?.homework.sectionId === sectionId ? detail : null;
 
+  const renderedDetail =
+    focusedDetail &&
+    result.homeworks.some((item) => item.id === focusedDetail.homework.id)
+      ? await renderSectionHomeworkDetail(focusedDetail.homework)
+      : null;
   const homeworks = result.homeworks.map((homework) =>
-    focusedDetail?.homework.id === homework.id
-      ? renderSectionHomeworkDetail(focusedDetail.homework)
+    renderedDetail?.id === homework.id
+      ? renderedDetail
       : serializeSectionHomeworkSummary(homework),
   );
 

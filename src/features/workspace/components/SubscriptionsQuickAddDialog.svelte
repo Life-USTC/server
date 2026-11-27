@@ -12,7 +12,6 @@ import * as Item from "#lib/components/ui/item/index.js";
 import * as NativeSelect from "#lib/components/ui/native-select/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import SectionCardIdentity from "@/features/catalog/components/SectionCardIdentity.svelte";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
 import type {
@@ -160,43 +159,28 @@ async function subscribeSelectedSections() {
     <Dialog.Content
       class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-lg flex-col gap-0 overflow-clip p-0 sm:h-[min(64vh,36rem)] sm:max-h-[min(64vh,36rem)] sm:max-w-lg"
     >
-      <Dialog.Header class="shrink-0 px-5 pb-2 pt-4">
-        <Dialog.Title>{subscriptionsCopy.quickAdd.title}</Dialog.Title>
-        <Dialog.Description>
-          {subscriptionsCopy.quickAdd.description}
-        </Dialog.Description>
-      </Dialog.Header>
+      <Dialog.Header class="shrink-0 px-5 pb-2 pt-4"
+        heading={subscriptionsCopy.quickAdd.title}
+        description={subscriptionsCopy.quickAdd.description}
+      />
 
       <ScrollArea class="h-0 min-h-0 flex-1">
         <div class="min-w-0">
           <Field.Group class="gap-4 px-5 pb-2 pt-2">
             {#if error}
-              <Alert.Root variant="destructive">
-                <Alert.Description>{error}</Alert.Description>
-              </Alert.Root>
+              <Alert.Message variant="destructive">{error}</Alert.Message>
             {/if}
 
-            <Field.Field>
-              <Field.Label for="subscriptions-quick-add-semester">
-                {subscriptionsCopy.bulkImport.semesterLabel}
-              </Field.Label>
+            <Field.Field for="subscriptions-quick-add-semester" label={subscriptionsCopy.bulkImport.semesterLabel}>
               <NativeSelect.Root
                 bind:value={semesterId}
                 class="w-full"
                 id="subscriptions-quick-add-semester"
-              >
-                {#each semesterOptions as option}
-                  <NativeSelect.Option value={option.value}>
-                    {option.label}
-                  </NativeSelect.Option>
-                {/each}
-              </NativeSelect.Root>
+                options={semesterOptions}
+              />
             </Field.Field>
 
-            <Field.Field>
-              <Field.Label for="subscriptions-quick-add-code">
-                {subscriptionsCopy.quickAdd.codeLabel}
-              </Field.Label>
+            <Field.Field for="subscriptions-quick-add-code" label={subscriptionsCopy.quickAdd.codeLabel}>
               <InputGroup.Root>
                 <InputGroup.Input
                   id="subscriptions-quick-add-code"
@@ -211,17 +195,12 @@ async function subscribeSelectedSections() {
                 />
                 <InputGroup.Addon align="inline-end">
                   <Button
+                    loading={isSearching} icon={Search}
                     disabled={!canSearch}
                     size="xs"
-                    type="button"
                     variant="ghost"
                     onclick={searchSections}
                   >
-                    {#if isSearching}
-                      <Spinner data-icon="inline-start" />
-                    {:else}
-                      <Search data-icon="inline-start" />
-                    {/if}
                     {isSearching
                       ? subscriptionsCopy.quickAdd.searching
                       : subscriptionsCopy.quickAdd.searchButton}
@@ -282,25 +261,19 @@ async function subscribeSelectedSections() {
         </div>
       </ScrollArea>
 
-      <Dialog.Footer class="mx-0 mb-0 shrink-0">
-        <Button type="button" variant="outline" onclick={closeDialog}>
-          {subscriptionsCopy.quickAdd.cancel}
-        </Button>
+      <Dialog.Actions class="mx-0 mb-0 shrink-0" cancelLabel={subscriptionsCopy.quickAdd.cancel} onCancel={closeDialog}>
         <Button
+          loading={isSubmitting}
           disabled={selectedSectionIds.length === 0 || isSubmitting}
-          type="button"
           onclick={subscribeSelectedSections}
         >
-          {#if isSubmitting}
-            <Spinner data-icon="inline-start" />
-          {/if}
           {isSubmitting
             ? subscriptionsCopy.quickAdd.subscribing
             : formatMessage(subscriptionsCopy.quickAdd.subscribeSelected, {
                 count: selectedSectionIds.length,
               })}
         </Button>
-      </Dialog.Footer>
+      </Dialog.Actions>
     </Dialog.Content>
   </Dialog.Root>
 {/if}

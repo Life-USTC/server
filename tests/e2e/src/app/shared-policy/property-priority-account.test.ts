@@ -298,7 +298,7 @@ for (const locale of ["en-us", "zh-cn"] as const)
             const matched = main
               .locator('[data-slot="field"]')
               .filter({ has: page.getByRole("checkbox") });
-            const identity = matched.locator('[data-slot="field-label"]');
+            const identity = matched.locator("label[for]");
             const details = matched.locator('[data-slot="item-content"]');
             await assertPriorityView({
               scope: matched,

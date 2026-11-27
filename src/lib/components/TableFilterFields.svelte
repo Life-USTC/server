@@ -46,7 +46,7 @@ function toggle(name: string, value: string, checked: boolean) {
       <Field.Set class="gap-2" data-filter-field={field.name} aria-labelledby={`${id}-legend`}>
         <Field.Legend class="flex w-full items-center justify-between gap-3">
           <span id={`${id}-legend`}>{field.label}</span>
-          <Button type="button" variant="ghost" size="sm" class="min-h-11 md:min-h-11 md:pointer-fine:min-h-8" disabled={selected.length === 0} onclick={() => onchange({ [field.name]: "" })}>
+          <Button variant="ghost" size="sm" class="min-h-11 md:min-h-11 md:pointer-fine:min-h-8" disabled={selected.length === 0} onclick={() => onchange({ [field.name]: "" })}>
             {labels.clear}
           </Button>
         </Field.Legend>
@@ -61,12 +61,11 @@ function toggle(name: string, value: string, checked: boolean) {
         {#if field.description}<Field.Description>{field.description}</Field.Description>{/if}
       </Field.Set>
     {:else}
-      <Field.Field data-filter-field={field.name}>
-        <Field.Label for={id}>{field.label}</Field.Label>
+      <Field.Field data-filter-field={field.name} for={id} label={field.label}>
         {#if field.type && field.type !== "text"}
           <NativeSelect.Root aria-label={`${field.label} · ${labels.operator}`} value={values[`${field.name}Op`] || "eq"} onchange={(event) => onchange({ [`${field.name}Op`]: event.currentTarget.value })} class="w-full">
             {#each Object.entries(labels.operators) as [operator, label]}
-              <NativeSelect.Option value={operator as NumericFilterOperator}>{label}</NativeSelect.Option>
+              <option value={operator as NumericFilterOperator}>{label}</option>
             {/each}
           </NativeSelect.Root>
         {/if}

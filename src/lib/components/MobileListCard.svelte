@@ -6,8 +6,15 @@ import { cn } from "#lib/utils.js";
 let {
   class: className,
   size = "sm",
+  href,
+  child,
+  children,
   ...props
-}: ComponentProps<typeof Item.Root> = $props();
+}: ComponentProps<typeof Item.Root> & { href?: string } = $props();
 </script>
 
-<Item.Root {size} class={cn("min-w-0 items-start", className)} {...props} />
+{#snippet link({ props }: { props: Record<string, unknown> })}
+  <a {href} {...props}>{@render children?.()}</a>
+{/snippet}
+
+<Item.Root {size} class={cn("min-w-0 items-start", className)} child={href === undefined ? child : link} {children} {...props} />

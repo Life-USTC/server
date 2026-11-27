@@ -2,6 +2,7 @@ import type { AuditChannel } from "@/generated/prisma/client";
 import {
   getCloudflareRuntimeContext,
   getCloudflareRuntimeTaskScheduler,
+  runCloudflareTraceSpan,
 } from "@/lib/adapters/cloudflare-runtime";
 import {
   type RuntimeDatabaseAdapter,
@@ -134,7 +135,11 @@ function usageBatchKey(input: OAuthGrantUsageInput, usedAt: Date) {
 async function flushPendingUsage(state: UsageBatch) {
   const batch = [...state.pending.values()];
   state.pending.clear();
-  await writeUsageBatch(batch);
+  await runCloudflareTraceSpan(
+    "oauth.usage.flush",
+    { "oauth.usage.batch_size": batch.length },
+    () => writeUsageBatch(batch),
+  );
 }
 
 function startUsageFlush(state: UsageBatch) {

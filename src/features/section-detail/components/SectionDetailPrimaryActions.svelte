@@ -29,11 +29,12 @@ export let viewer: {
   {#if viewer.loading}
     <Skeleton class="h-9 w-28" />
   {:else if retired && !viewer.isSubscribed}
-    <Button variant="outline" disabled={Boolean(readOnlyReason)} onclick={onOpenCalendar}><CalendarIcon data-icon="inline-start" />{sectionCopy.addToCalendar}</Button>
+    <Button icon={CalendarIcon} variant="outline" disabled={Boolean(readOnlyReason)} onclick={onOpenCalendar}>{sectionCopy.addToCalendar}</Button>
   {:else if !viewer.failed}
     <form class={stretched ? "w-full" : undefined} method="GET">
       <input name="subscribe" type="hidden" value="1" />
       <Button
+        icon={BookmarkPlusIcon}
         class={stretched ? "w-full" : undefined}
         aria-haspopup="dialog"
         type="submit"
@@ -46,7 +47,6 @@ export let viewer: {
           onOpenSubscribe();
         }}
       >
-        <BookmarkPlusIcon data-icon="inline-start" />
         {viewer.isSubscribed ? sectionCopy.subscribeSuccess : sectionCopy.subscribeLabel}
       </Button>
     </form>

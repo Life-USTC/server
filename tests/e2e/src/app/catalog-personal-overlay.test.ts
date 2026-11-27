@@ -227,7 +227,10 @@ overlayTest(
         await page.goto("/catalog/bus", { waitUntil: "domcontentloaded" });
         const planner = page.getByTestId("bus-responsive-planner");
         await expect(planner).toBeVisible();
-        await expect(page.getByRole("alert")).toBeVisible();
+        const preferenceError = page.locator(
+          '[data-slot="alert"][role="alert"]',
+        );
+        await expect(preferenceError).toBeVisible();
         const publicControl = planner
           .getByRole("button")
           .filter({ visible: true })
@@ -247,7 +250,7 @@ overlayTest(
               .getByRole("button", { name: /重试|Retry|重新加载|Reload/i })
               .click(),
         );
-        await expect(page.getByRole("alert")).toHaveCount(0);
+        await expect(preferenceError).toHaveCount(0);
         await expect(planner).toBeVisible();
         expect(reads).toBe(2);
         expect(writes).toBe(0);
