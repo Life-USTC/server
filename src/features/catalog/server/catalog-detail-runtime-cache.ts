@@ -30,7 +30,11 @@ export async function buildPublicDetailRuntimeCacheOptions<T>(input: {
   shouldCacheResult?: (result: T) => boolean;
   validateColoCacheResult?: (result: unknown) => boolean;
 }) {
-  const revision = await getCatalogDetailCacheRevision();
+  const revision = await getCatalogDetailCacheRevision(
+    input.kind === "section" && input.kvShape === "page-core-v3"
+      ? "section"
+      : "global",
+  );
   return {
     coloCacheKey: publicDetailColoCacheKey(
       input.origin ?? getCanonicalOrigin(),

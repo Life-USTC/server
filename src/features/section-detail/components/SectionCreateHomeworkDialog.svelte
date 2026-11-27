@@ -1,28 +1,22 @@
 <script lang="ts">
-import { Button } from "#lib/components/ui/button/index.js";
-import * as Dialog from "#lib/components/ui/dialog/index.js";
-import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
-import SectionCreateHomeworkFields from "./SectionCreateHomeworkFields.svelte";
+import * as Alert from "#lib/components/ui/alert/index.js";
+import * as Field from "#lib/components/ui/field/index.js";
+import HomeworkCreateDialog from "@/features/homeworks/components/HomeworkCreateDialog.svelte";
+import HomeworkEditorFields from "@/features/homeworks/components/HomeworkEditorFields.svelte";
 import type {
-  SectionCreateHomeworkCommentsCopy,
-  SectionCreateHomeworkCopy,
-} from "./section-create-homework-types";
+  HomeworkCreateCopy,
+  HomeworkFormCommentsCopy,
+  HomeworkSemesterDates,
+} from "@/features/homeworks/components/homework-form-types";
 
-export let applyDueAtSemesterEnd: () => void;
+export let semester: HomeworkSemesterDates;
 export let classSectionJwId: number | string | null | undefined = undefined;
 export let classStarts: string[] = [];
 export let locale: string;
-export let applyDueInMonth: () => void;
-export let applyDueInWeek: () => void;
-export let applyPublishNow: () => void;
-export let applyStartAtSemesterStart: () => void;
-export let applyStartNow: () => void;
 export let close: () => void;
-export let commentsCopy: SectionCreateHomeworkCommentsCopy;
+export let commentsCopy: HomeworkFormCommentsCopy;
 export let createHomework: (event: SubmitEvent) => void;
-export let hasSemesterEnd: boolean;
-export let hasSemesterStart: boolean;
-export let homeworkCopy: SectionCreateHomeworkCopy;
+export let homeworkCopy: HomeworkCreateCopy;
 export let homeworkMessage: string;
 export let publishedAt: string;
 export let sectionLabel: string;
@@ -31,58 +25,25 @@ export let submissionDueAt: string;
 export let submissionStartAt: string;
 </script>
 
-{#if show}
-  <Dialog.Root
-    open={true}
-    onOpenChange={(open) => {
-      if (!open) close();
-    }}
-  >
-    <Dialog.Content
-      aria-describedby={undefined}
-      class="flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] min-h-0 max-w-2xl flex-col gap-0 overflow-clip p-0 sm:h-[min(78vh,48rem)] sm:max-h-[min(78vh,48rem)] sm:max-w-2xl"
-    >
-      <form
-        class="flex min-h-0 flex-1 flex-col overflow-hidden"
-        onsubmit={createHomework}
-      >
-        <Dialog.Header class="shrink-0 px-5 pb-2 pt-5 pr-14 sm:px-6 sm:pt-6">
-          <div class="flex flex-wrap items-start justify-between gap-3">
-            <div class="min-w-0 grid gap-1.5">
-              <Dialog.Title class="break-words">{homeworkCopy.createTitle}</Dialog.Title>
-            </div>
-
-          </div>
-        </Dialog.Header>
-        <ScrollArea class="h-0 min-h-0 flex-1">
-          <SectionCreateHomeworkFields
-            {classSectionJwId}
-  {classStarts}
-            {locale}
-            {applyDueAtSemesterEnd}
-            {applyDueInMonth}
-            {applyDueInWeek}
-            {applyPublishNow}
-            {applyStartAtSemesterStart}
-            {applyStartNow}
-            {commentsCopy}
-            {hasSemesterEnd}
-            {hasSemesterStart}
-            {homeworkCopy}
-            {homeworkMessage}
-            {sectionLabel}
-            bind:publishedAt
-            bind:submissionDueAt
-            bind:submissionStartAt
-          />
-        </ScrollArea>
-        <Dialog.Footer class="mx-0 mb-0 shrink-0 border-t-0 sm:px-6">
-          <Button type="button" variant="outline" onclick={close}>
-            {homeworkCopy.cancel}
-          </Button>
-          <Button type="submit">{homeworkCopy.createAction}</Button>
-        </Dialog.Footer>
-      </form>
-    </Dialog.Content>
-  </Dialog.Root>
-{/if}
+<HomeworkCreateDialog open={show} onClose={close} copy={homeworkCopy} onsubmit={createHomework}>
+  <Field.Field class="rounded-lg bg-muted/40 p-3">
+    <Field.Title>{homeworkCopy.sectionLabel}</Field.Title>
+    <p class="text-sm font-medium">{sectionLabel}</p>
+  </Field.Field>
+  <HomeworkEditorFields
+    sectionJwId={classSectionJwId}
+    {classStarts}
+    {locale}
+    {semester}
+    commentsCopy={commentsCopy}
+    copy={homeworkCopy}
+    idPrefix="section-homework"
+    bind:publishedAt={publishedAt}
+    styleGuidePrefix="section-create-homework"
+    bind:submissionDueAt={submissionDueAt}
+    bind:submissionStartAt={submissionStartAt}
+  />
+  {#if homeworkMessage}
+    <Alert.Message variant="destructive">{homeworkMessage}</Alert.Message>
+  {/if}
+</HomeworkCreateDialog>

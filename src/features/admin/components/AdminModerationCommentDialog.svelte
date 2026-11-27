@@ -4,7 +4,6 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 import { Separator } from "#lib/components/ui/separator/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import AdminModerationCommentPreview from "./AdminModerationCommentPreview.svelte";
 import AdminModerationCommentStatusSection from "./AdminModerationCommentStatusSection.svelte";
 import AdminModerationCommentSuspensionSection from "./AdminModerationCommentSuspensionSection.svelte";
@@ -24,7 +23,6 @@ export let copy: AdminModerationCopy;
 export let customExpiresAt: string;
 export let dialogMessage: string;
 export let dialogMessageVariant: "destructive" | "default";
-export let inputValue: (event: Event) => string;
 export let isSavingComment: boolean;
 export let isSuspendingUser: boolean;
 export let moderationNote: string;
@@ -49,8 +47,7 @@ export let targetLabel: (comment: AdminModerationComment) => string;
       aria-labelledby="manage-comment-title"
       showCloseButton={false}
     >
-      <Dialog.Header>
-        <Dialog.Title id="manage-comment-title">{copy.manageComment}</Dialog.Title>
+      <Dialog.Header heading={copy.manageComment} titleId="manage-comment-title">
         <Dialog.Description>
           {commentAuthorLabel(comment)} · {targetLabel(comment)}
         </Dialog.Description>
@@ -58,7 +55,7 @@ export let targetLabel: (comment: AdminModerationComment) => string;
 
       <ScrollArea class="min-h-0 h-full max-h-[min(56dvh,34rem)]">
         <div class="grid gap-5 px-5 pt-4 pb-6">
-          {#if dialogMessage}<Alert.Root class="py-2" variant={dialogMessageVariant}><Alert.Description>{dialogMessage}</Alert.Description></Alert.Root>{/if}
+          {#if dialogMessage}<Alert.Message class="py-2" variant={dialogMessageVariant}>{dialogMessage}</Alert.Message>{/if}
 
           <AdminModerationCommentPreview
             {comment}
@@ -71,7 +68,6 @@ export let targetLabel: (comment: AdminModerationComment) => string;
             bind:commentStatus
             {commentStatusOptions}
             {copy}
-            {inputValue}
             bind:moderationNote
           />
 
@@ -88,15 +84,12 @@ export let targetLabel: (comment: AdminModerationComment) => string;
         </div>
       </ScrollArea>
 
-      <Dialog.Footer>
-        <Button type="button" variant="ghost" onclick={close}>{copy.cancelButton}</Button>
-        <Button disabled={isSavingComment} type="button" onclick={saveCommentModeration}>
-          {#if isSavingComment}
-            <Spinner data-icon="inline-start" />
-          {/if}
+      <div data-slot="dialog-footer">
+        <Button variant="ghost" onclick={close}>{copy.cancelButton}</Button>
+        <Button loading={isSavingComment} disabled={isSavingComment} onclick={saveCommentModeration}>
           {isSavingComment ? copy.saving : copy.confirmButton}
         </Button>
-      </Dialog.Footer>
+      </div>
     </Dialog.Content>
   </Dialog.Root>
 {/if}

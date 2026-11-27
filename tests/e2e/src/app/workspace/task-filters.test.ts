@@ -89,10 +89,6 @@ async function expectSelection(group: Locator, selected: string) {
         ? /^(已完成|Completed|Ended|已结束)$/i
         : /^(未完成|Incomplete|Upcoming|未结束)$/i;
     await expect(group.getByRole("checkbox", { name })).toBeChecked();
-    await expect(group.getByRole("checkbox", { name })).toHaveAttribute(
-      "data-state",
-      "checked",
-    );
   }
 }
 

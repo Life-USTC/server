@@ -2,8 +2,8 @@ import { type ICalCalendar, ICalEventBusyStatus } from "ical-generator";
 import { ICAL_SITE_URL } from "@/features/calendar/server/ical-event-constants";
 import {
   buildLocationField,
+  eventTimeRange,
   type GeoData,
-  parseTimeHHMM,
   type RoomMaps,
   toCategories,
 } from "@/features/calendar/server/ical-event-utils";
@@ -28,8 +28,11 @@ export function createExamEvent(
   if (!exam.examDate) return;
 
   const L = getIcalLabels(locale);
-  const start = parseTimeHHMM(exam.examDate, exam.startTime ?? 0);
-  const end = parseTimeHHMM(exam.examDate, exam.endTime ?? 0);
+  const { start, end } = eventTimeRange(
+    exam.examDate,
+    exam.startTime ?? 0,
+    exam.endTime ?? 0,
+  );
 
   const rooms = exam.examRooms
     .map((r) => r.room)

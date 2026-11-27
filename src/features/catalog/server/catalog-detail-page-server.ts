@@ -12,6 +12,7 @@ import {
 } from "@/features/catalog/lib/catalog-structured-data";
 import { PUBLIC_DETAIL_SECTION_PREVIEW_LIMIT } from "@/features/catalog/server/academic-query-includes";
 import { getCoursePage } from "@/features/catalog/server/course-page-data";
+import { readOfficialAcademicProfile } from "@/features/catalog/server/official-academic-profile-read";
 import { getTeacherPage } from "@/features/catalog/server/teacher-page-data";
 import {
   buildDemoCatalogDescription,
@@ -102,6 +103,10 @@ async function loadCourseDetailPageData({
     redirect(308, `${redirectUrl.pathname}${redirectUrl.search}`);
   }
   const displayName = catalogPrimaryName(course) || course.code;
+  const officialProfile =
+    !locals.demo && detailSection === "introduction"
+      ? await readOfficialAcademicProfile("course", jwId, locals.locale)
+      : null;
   const { commentsData, descriptionData } = await runCloudflareTraceSpan(
     "catalog.detail.comments",
     { "catalog.detail.kind": "course" },
@@ -138,6 +143,7 @@ async function loadCourseDetailPageData({
     course,
     locale: locals.locale,
     copy,
+    officialProfile,
     descriptionData,
     commentsData,
     detailSection,

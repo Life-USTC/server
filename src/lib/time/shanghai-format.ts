@@ -9,20 +9,40 @@ export const APP_DATETIME_LOCAL_FORMAT = "YYYY-MM-DDTHH:mm";
 
 const MODERN_SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1_000;
 const MODERN_SHANGHAI_START_MS = Date.UTC(1992, 0, 1);
+const MODERN_SHANGHAI_END_MS =
+  Date.UTC(10000, 0, 1) - MODERN_SHANGHAI_OFFSET_MS;
 const formatterCache = new Map<string, Intl.DateTimeFormat>();
 
-function formatModernShanghaiTimestamp(input: Date) {
+function modernShanghaiIso(input: Date) {
   const time = input.getTime();
-  if (!Number.isFinite(time) || time < MODERN_SHANGHAI_START_MS) return null;
-  return `${new Date(time + MODERN_SHANGHAI_OFFSET_MS)
-    .toISOString()
-    .slice(0, input.getUTCMilliseconds() === 0 ? 19 : 23)}+08:00`;
+  if (!(time >= MODERN_SHANGHAI_START_MS && time < MODERN_SHANGHAI_END_MS))
+    return null;
+  return new Date(time + MODERN_SHANGHAI_OFFSET_MS).toISOString();
+}
+
+function formatModernShanghaiTimestamp(input: Date) {
+  const iso = modernShanghaiIso(input);
+  if (!iso) return null;
+  return `${iso.slice(0, input.getUTCMilliseconds() === 0 ? 19 : 23)}+08:00`;
 }
 
 export function formatShanghaiTimestamp(input: ConfigType): string {
   if (input instanceof Date) {
     const fastTimestamp = formatModernShanghaiTimestamp(input);
     if (fastTimestamp) return fastTimestamp;
+  }
+  // KV returns JSON timestamps for dates that Prisma returns as Date objects.
+  if (
+    import.meta.env?.SSR &&
+    typeof input === "string" &&
+    input.length === 24 &&
+    input.endsWith("Z")
+  ) {
+    const parsed = new Date(input);
+    if (Number.isFinite(parsed.getTime()) && parsed.toISOString() === input) {
+      const fastTimestamp = formatModernShanghaiTimestamp(parsed);
+      if (fastTimestamp) return fastTimestamp;
+    }
   }
   const date = shanghaiDayjs(input);
   return date.format(
@@ -33,6 +53,10 @@ export function formatShanghaiTimestamp(input: ConfigType): string {
 }
 
 export function formatShanghaiDate(input: ConfigType): string {
+  if (import.meta.env?.SSR && input instanceof Date) {
+    const iso = modernShanghaiIso(input);
+    if (iso) return iso.slice(0, 10);
+  }
   return shanghaiDayjs(input).format(APP_DATE_ONLY_FORMAT);
 }
 
@@ -92,4 +116,19 @@ export function createShanghaiDateTimeFormatter(
   const formatter = new Intl.DateTimeFormat(locale, normalizedOptions);
   formatterCache.set(key, formatter);
   return formatter;
+}
+
+export function campusTimestampFormatter(locale: string) {
+  return createShanghaiDateTimeFormatter(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+export function createCampusTimestampFormatter(locale: string) {
+  const formatter = campusTimestampFormatter(locale);
+  return (value: Date | string | null | undefined) =>
+    value
+      ? formatter.format(typeof value === "string" ? new Date(value) : value)
+      : "";
 }
