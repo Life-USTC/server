@@ -182,6 +182,49 @@ it("publications.revision-ordering", {
   });
 });
 
+it("publications.missing-only-repair", {
+  tags: ["@Publication/Service"],
+}, async ({
+  publication,
+  isolatedDatabase: { owner: db },
+  protocolRuntime,
+  expect,
+}) => {
+  await protocolRuntime.run(async () => {
+    const { batch, ingest } = publication;
+    const original = batch("repair-original");
+    const created = await ingest(original);
+    const publicationId = created.results[0].publicationId!;
+    const repair = {
+      ...original,
+      batchId: "repair-backfill",
+      clientRunId: "repair-backfill",
+      revisionPolicy: "missingOnly" as const,
+      items: [{ ...original.items[0] }],
+    };
+    if (repair.items[0].tombstone) throw new Error("Expected publication");
+    repair.items[0].observedAt = "2026-09-03T10:00:00+08:00";
+    repair.items[0].title = "stale repair content";
+    repair.items[0].revisionHash = "b".repeat(64);
+    const skipped = await ingest(repair);
+    expect(skipped.results[0].status).toBe("unchanged");
+    const current = await db.publication.findUniqueOrThrow({
+      where: { id: publicationId },
+      include: { currentRevision: true },
+    });
+    expect(current.title).toBe("repair-original");
+    expect(current.currentRevision?.revisionHash).toBe("a".repeat(64));
+    expect(
+      await db.publicationRevision.count({ where: { publicationId } }),
+    ).toBe(1);
+
+    const missing = batch("repair-missing");
+    missing.revisionPolicy = "missingOnly";
+    const inserted = await ingest(missing);
+    expect(inserted.results[0].status).toBe("created");
+  });
+});
+
 it("publications.tombstones", { tags: ["@Publication/Service"] }, async ({
   publication,
   isolatedDatabase: { owner: db },

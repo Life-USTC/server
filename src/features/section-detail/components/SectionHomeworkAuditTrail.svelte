@@ -21,7 +21,7 @@ export let logs: SectionHomeworkAuditLog[];
 
 {#if logs.length > 0}
   <section class="border-t pt-6">
-    <Accordion.Root type="single">
+    <Accordion.Root>
       <Accordion.Item value="history">
         <Accordion.Trigger>{homeworkCopy.contentHistoryAction}</Accordion.Trigger>
         <Accordion.Content>

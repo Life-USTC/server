@@ -1,0 +1,73 @@
+services:
+  webhook:
+    image: ${STATIC_IMPORT_IMAGE:-life-ustc-static-import:local}
+    build:
+      context: ../..
+      dockerfile: deploy/static-import/Dockerfile
+    command: ["python3", "deploy/static-import/webhook.py"]
+    env_file:
+      - path: ${STATIC_IMPORT_CONFIG_DIR:-/etc/life-ustc-static-import}/webhook.env
+        required: true
+    environment:
+      STATIC_IMPORT_QUEUE_DIR: /data
+      STATIC_IMPORT_ALLOWED_HOST: static.life-ustc.tiankaima.dev
+    volumes:
+      - queue:/data
+    ports:
+      - "127.0.0.1:8787:8787"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cpus: 0.25
+    mem_limit: 128m
+    pids_limit: 64
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    restart: always
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/healthz', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  worker:
+    image: ${STATIC_IMPORT_IMAGE:-life-ustc-static-import:local}
+    build:
+      context: ../..
+      dockerfile: deploy/static-import/Dockerfile
+    command: ["python3", "deploy/static-import/worker.py"]
+    env_file:
+      - path: ${STATIC_IMPORT_CONFIG_DIR:-/etc/life-ustc-static-import}/importer.env
+        required: true
+    environment:
+      STATIC_IMPORT_QUEUE_DIR: /data
+      STATIC_SNAPSHOT_CACHE_DIR: /cache
+      SQLITE_TMPDIR: /cache
+      STATIC_SNAPSHOT_MANIFEST_URL: https://static.life-ustc.tiankaima.dev/snapshot-manifest.json
+      STATIC_LOADER_DRY_RUN: "false"
+    volumes:
+      - queue:/data
+      - cache:/cache
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    cpus: 1.0
+    mem_limit: 2500m
+    pids_limit: 128
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - database
+    restart: always
+
+networks:
+  database:
+    name: ${STATIC_IMPORT_DATABASE_NETWORK:-postgres_default}
+    external: true
+
+volumes:
+  queue:
+  cache:

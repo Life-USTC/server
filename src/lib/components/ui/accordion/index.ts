@@ -1,6 +1,6 @@
 import Root from "./accordion.svelte";
 import Content from "./accordion-content.svelte";
-import Item from "./accordion-item.svelte";
+import { AccordionItem as Item } from "@ui-sdk/svelte/accordion";
 import Trigger from "./accordion-trigger.svelte";
 
 export {

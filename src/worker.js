@@ -19,7 +19,6 @@ import {
 import { setDemoPrivateHeaders } from "./features/demo/server/demo-request-boundary";
 import { cleanupStaleUploadPendingStorage } from "./features/uploads/server/upload-pending-cleanup";
 import { runWeatherCronSnapshot } from "./features/weather/server/weather-cron";
-import { runYoungNotificationCron } from "./features/young/server/young-notification-cron";
 import {
   getCloudflareRuntimeTaskScheduler,
   runWithCloudflareRuntimeEnv,
@@ -32,6 +31,8 @@ import {
   handlePublicSsrCachePurgeRequest,
   isPublicSsrCachePurgeRequest,
   PUBLIC_SSR_CACHE_PURGE_PATH,
+  PUBLIC_SSR_CACHE_PURGE_TAGS,
+  purgeCloudflareZoneCacheByTags,
   purgeEntrypointCatalogCache,
   resolvePublicSsrCachePurgeSecret,
 } from "./lib/cloudflare/public-ssr-cache-purge";
@@ -323,6 +324,8 @@ async function handleFetch(request, env, context, requestId, edgeObservation) {
       purge: () => context.exports.PublicSsr({}).purgeCatalogRepresentations(),
       request,
       secret: resolvePublicSsrCachePurgeSecret(env),
+      zonePurge: () =>
+        purgeCloudflareZoneCacheByTags(env, PUBLIC_SSR_CACHE_PURGE_TAGS),
     });
     return finish(purgeResponse, "dynamic", PUBLIC_SSR_CACHE_PURGE_PATH);
   }
@@ -636,6 +639,9 @@ export default {
 
               if (controller.cron === YOUNG_NOTIFICATION_CRON) {
                 task = "young-notifications";
+                const { runYoungNotificationCron } = await import(
+                  "./features/young/server/young-notification-cron"
+                );
                 const report =
                   await runYoungNotificationCron(maintenancePrisma);
                 logScheduledTaskFinish(task, report, elapsedMs(startMs));

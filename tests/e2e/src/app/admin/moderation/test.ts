@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { adminWriteChecks } from "../../../../utils/admin-fixture";
 import { expectRequiresSignIn } from "../../../../utils/auth";
 import { visibleText } from "../../../../utils/locators";
@@ -10,6 +10,27 @@ function moderationTableRow(page: Page, text: string) {
   return page.locator("tbody tr:visible").filter({ hasText: text }).first();
 }
 
+async function expectAlignedColumns(row: Locator, count: number) {
+  const heads = row
+    .locator("xpath=ancestor::table[1]")
+    .locator("thead tr:last-child th");
+  const cells = row.getByRole("cell");
+  for (const columns of [heads, cells]) {
+    await expect(columns).toHaveCount(count);
+    expect(
+      await columns.evaluateAll((elements) =>
+        elements.every((element) => {
+          const { textAlign, direction } = getComputedStyle(element);
+          return (
+            textAlign === "left" ||
+            (textAlign === "start" && direction === "ltr")
+          );
+        }),
+      ),
+    ).toBe(true);
+  }
+}
+
 async function openModerationCommentDialog(
   page: Page,
   text: string,
@@ -17,6 +38,7 @@ async function openModerationCommentDialog(
 ) {
   const row = moderationTableRow(page, text);
   await expect(row).toBeVisible({ timeout: 10_000 });
+  await expectAlignedColumns(row, 6);
   const manageButton = row
     .getByRole("button", { name: /管理评论|Manage Comment/i })
     .first();
@@ -44,6 +66,7 @@ async function openModerationDescriptionDialog(
 ) {
   const row = moderationTableRow(page, text);
   await expect(row).toBeVisible({ timeout: 10_000 });
+  await expectAlignedColumns(row, 5);
   const manageButton = row
     .getByRole("button", { name: /管理课程简介|Manage Description/i })
     .first();
@@ -283,7 +306,7 @@ test("/admin/moderation 移动端弹窗滚动体不遮挡封禁控件", {
             dialog.getByRole("button", { name: /取消|Cancel/i }),
           ).toHaveCount(1);
           await expect(
-            dialog.locator('[data-slot="dialog-close"]'),
+            dialog.getByRole("button", { name: /^(关闭|Close)$/i }),
           ).toHaveCount(0);
 
           const suspendButton = dialog.getByRole("button", {
@@ -371,7 +394,7 @@ test("/admin/moderation 可更新评论状态与备注", { tag: "@Comment/Web" }
         await expect(dialog).not.toBeVisible({ timeout: 15_000 });
         await expect(
           page
-            .locator("[data-sonner-toast]")
+            .locator("[data-slot=toast]")
             .filter({ hasText: /评论已更新|Comment updated/i }),
         ).toBeVisible();
       },
@@ -604,6 +627,7 @@ test("/admin/moderation 封禁列表可解除封禁", { tag: "@Admin/Web" }, asy
           .locator("tbody tr:visible")
           .filter({ hasText: reason });
         await expect(row).toBeVisible();
+        await expectAlignedColumns(row, 5);
         const liftButton = row.getByRole("button", {
           name: /解除封禁|Lift suspension/i,
         });
@@ -650,7 +674,7 @@ test("/admin/moderation 封禁列表可解除封禁", { tag: "@Admin/Web" }, asy
         await expect(row.getByText(/已解除|Lifted/i)).toBeVisible();
         await expect(
           page
-            .locator("[data-sonner-toast]")
+            .locator("[data-slot=toast]")
             .filter({ hasText: /封禁已解除|Suspension lifted/i }),
         ).toBeVisible();
       },
@@ -711,7 +735,7 @@ test("/admin/moderation 可从评论弹窗封禁用户", { tag: "@Admin/Web" }, 
         expect(typeof suspensionId).toBe("string");
         await expect(
           page
-            .locator("[data-sonner-toast]")
+            .locator("[data-slot=toast]")
             .filter({ hasText: /封禁成功|Suspended successfully/i }),
         ).toBeVisible();
         await expect(
@@ -887,7 +911,7 @@ test("/admin/moderation 可更新课程简介内容", {
 
         await expect(
           page
-            .locator("[data-sonner-toast]")
+            .locator("[data-slot=toast]")
             .filter({ hasText: /课程简介已更新|Description updated/i }),
         ).toBeVisible();
 
@@ -926,6 +950,7 @@ test("/admin/moderation 作业治理可访问", { tag: "@Homework/Web" }, async 
           page.locator('a[aria-current="page"][href*="tab=homeworks"]'),
         ).toHaveAttribute("aria-current", "page");
         const firstRow = moderationTableRow(page, moderation.homework.title);
+        await expectAlignedColumns(firstRow, 6);
         await expect(firstRow).toBeVisible();
         await expect(
           page.getByRole("button", { name: /^(删除|Delete)$/i }).first(),
@@ -1019,7 +1044,7 @@ test("admin.high-risk-feedback", { tag: "@Homework/Web" }, async ({
     await expect(confirmation).toBeHidden();
     await expect(
       page
-        .locator("[data-sonner-toast]")
+        .locator("[data-slot=toast]")
         .filter({ hasText: /作业已删除|Homework deleted/i }),
     ).toBeVisible();
     // The enhanced action reloads the queue, so the already-open row carries the

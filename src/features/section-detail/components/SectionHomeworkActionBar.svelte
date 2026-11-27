@@ -1,5 +1,5 @@
 <script lang="ts">
-import MoreHorizontalIcon from "@lucide/svelte/icons/more-horizontal";
+import MoreActionsMenu from "#lib/components/MoreActionsMenu.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as DropdownMenu from "#lib/components/ui/dropdown-menu/index.js";
 import type {
@@ -26,7 +26,6 @@ export let startEdit: () => void;
   {#if canWrite && editing}
     <Button
       variant="outline"
-      type="button"
       onclick={() => {
         cancelEdit();
       }}
@@ -35,41 +34,25 @@ export let startEdit: () => void;
     </Button>
   {/if}
   {#if !editing && (canWrite || canManage)}
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger>
-        {#snippet child({ props })}
-          <Button
-            {...props}
-            aria-label={homeworkCopy.moreDetails}
-            class="icon-action"
-            size="icon"
-            type="button"
-            variant="outline"
+    <MoreActionsMenu label={homeworkCopy.moreDetails}>
+      <DropdownMenu.Group>
+        {#if canWrite}
+          <DropdownMenu.Item onSelect={startEdit}>
+            {homeworkCopy.editAction}
+          </DropdownMenu.Item>
+        {/if}
+        {#if canWrite && canManage}
+          <DropdownMenu.Separator />
+        {/if}
+        {#if canManage}
+          <DropdownMenu.Item
+            onSelect={() => setDeleteHomeworkTarget(homework)}
+            variant="destructive"
           >
-            <MoreHorizontalIcon data-icon="inline-start" />
-          </Button>
-        {/snippet}
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Content align="end">
-        <DropdownMenu.Group>
-          {#if canWrite}
-            <DropdownMenu.Item onSelect={startEdit}>
-              {homeworkCopy.editAction}
-            </DropdownMenu.Item>
-          {/if}
-          {#if canWrite && canManage}
-            <DropdownMenu.Separator />
-          {/if}
-          {#if canManage}
-            <DropdownMenu.Item
-              onSelect={() => setDeleteHomeworkTarget(homework)}
-              variant="destructive"
-            >
-              {homeworkCopy.deleteAction}
-            </DropdownMenu.Item>
-          {/if}
-        </DropdownMenu.Group>
-      </DropdownMenu.Content>
-    </DropdownMenu.Root>
+            {homeworkCopy.deleteAction}
+          </DropdownMenu.Item>
+        {/if}
+      </DropdownMenu.Group>
+    </MoreActionsMenu>
   {/if}
 </div>

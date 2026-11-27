@@ -62,7 +62,6 @@ onMount(() => {
         aria-labelledby="settings-appearance-label"
         class="grid w-full grid-cols-3"
         spacing={2}
-        type="single"
         required
         value={themeMode}
         variant="outline"
@@ -93,7 +92,6 @@ onMount(() => {
         aria-labelledby="settings-language-label"
         class="grid w-full grid-cols-2"
         spacing={2}
-        type="single"
         required
         value={locale}
         variant="outline"
