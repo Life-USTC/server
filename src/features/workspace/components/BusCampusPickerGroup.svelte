@@ -28,7 +28,6 @@ function selectCampus(value: string) {
     aria-labelledby={`${idPrefix}-label`}
     class={wrapLabels ? "grid w-full grid-cols-2 md:grid-cols-3" : "grid w-full grid-cols-3"}
     spacing={2}
-    type="single"
     value={selectedCampusId === null ? "" : String(selectedCampusId)}
     variant="outline"
     onValueChange={selectCampus}

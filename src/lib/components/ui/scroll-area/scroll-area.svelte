@@ -1,44 +1,22 @@
 <script lang="ts">
-	import { ScrollArea as ScrollAreaPrimitive } from "bits-ui";
-	import { Scrollbar } from "./index.js";
-	import { cn, type WithoutChild } from "#lib/utils.js";
+  import { ScrollArea, ScrollAreaContent, ScrollAreaScrollbar, ScrollAreaThumb, ScrollAreaViewport } from "@ui-sdk/svelte/scroll-area";
+  import type { HTMLAttributes } from "svelte/elements";
+  import { cn } from "#lib/utils.js";
 
-	let {
-		ref = $bindable(null),
-		viewportRef = $bindable(null),
-		class: className,
-		orientation = "vertical",
-		scrollbarXClasses = "",
-		scrollbarYClasses = "",
-		children,
-		...restProps
-	}: WithoutChild<ScrollAreaPrimitive.RootProps> & {
-		orientation?: "vertical" | "horizontal" | "both" | undefined;
-		scrollbarXClasses?: string | undefined;
-		scrollbarYClasses?: string | undefined;
-		viewportRef?: HTMLElement | null;
-	} = $props();
+  let { class: className, orientation = "vertical", children, ...props }: HTMLAttributes<HTMLDivElement> & {
+    orientation?: "horizontal" | "vertical" | "both";
+  } = $props();
 </script>
 
-<ScrollAreaPrimitive.Root
-	bind:ref
-	data-slot="scroll-area"
-	class={cn("relative", className)}
-	{...restProps}
->
-	<ScrollAreaPrimitive.Viewport
-		bind:ref={viewportRef}
-		data-slot="scroll-area-viewport"
-		tabindex={0}
-		class="cn-scroll-area-viewport focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
-	>
-		{@render children?.()}
-	</ScrollAreaPrimitive.Viewport>
-	{#if orientation === "vertical" || orientation === "both"}
-		<Scrollbar orientation="vertical" class={scrollbarYClasses} />
-	{/if}
-	{#if orientation === "horizontal" || orientation === "both"}
-		<Scrollbar orientation="horizontal" class={scrollbarXClasses} />
-	{/if}
-	<ScrollAreaPrimitive.Corner />
-</ScrollAreaPrimitive.Root>
+<ScrollArea class={cn("relative", className)} {...props}>
+  <ScrollAreaViewport tabindex={0} class="size-full rounded-[inherit] outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+    <ScrollAreaContent>{@render children?.()}</ScrollAreaContent>
+  </ScrollAreaViewport>
+  {#each (["vertical", "horizontal"] as const) as axis (axis)}
+    {#if orientation === "both" || orientation === axis}
+      <ScrollAreaScrollbar orientation={axis} class="absolute touch-none select-none p-px data-[orientation=vertical]:inset-y-0 data-[orientation=vertical]:right-0 data-[orientation=vertical]:w-2.5 data-[orientation=horizontal]:inset-x-0 data-[orientation=horizontal]:bottom-0 data-[orientation=horizontal]:h-2.5">
+        <ScrollAreaThumb class="block rounded-full bg-border" />
+      </ScrollAreaScrollbar>
+    {/if}
+  {/each}
+</ScrollArea>

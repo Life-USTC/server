@@ -7,7 +7,7 @@ import {
 
 export function initialHomeworkTimestampDraft(now: Date = new Date()) {
   return {
-    publishedAt: toShanghaiDateTimeLocalValue(startOfShanghaiDay()),
+    publishedAt: toShanghaiDateTimeLocalValue(startOfShanghaiDay(now)),
     submissionStartAt: toShanghaiDateTimeLocalValue(now),
     submissionDueAt: "",
   };

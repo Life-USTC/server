@@ -565,7 +565,6 @@ export function cachedPublicRuntimeData<T>(
   const start = monotonicNowMs();
   const store = cacheStore();
   const storeKey = JSON.stringify([analyticsNamespace, key]);
-  pruneExpired(store, now);
 
   const existing = store.get(storeKey) as CacheEntry<T> | undefined;
   if (existing && existing.expiresAt > now) {
@@ -581,6 +580,8 @@ export function cachedPublicRuntimeData<T>(
     });
     return existing.value;
   }
+
+  pruneExpired(store, now);
 
   writeCacheEventAnalytics({
     event: "miss",

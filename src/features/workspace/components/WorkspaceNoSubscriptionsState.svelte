@@ -1,7 +1,6 @@
 <script lang="ts">
+import EmptyState from "#lib/components/EmptyState.svelte";
 import { Button, type ButtonVariant } from "#lib/components/ui/button/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
-import { cn } from "#lib/utils.js";
 
 type WorkspaceNoSubscriptionsAction = {
   href?: string;
@@ -18,29 +17,18 @@ let className = "";
 export { className as class };
 </script>
 
-<Empty.Root
-  class={cn(
-    "items-start text-left",
-    className,
-  )}
->
-  <Empty.Header class="items-start text-left">
-    <Empty.Title>{title}</Empty.Title>
-    <Empty.Description>{description}</Empty.Description>
-  </Empty.Header>
-  <Empty.Content class="w-full items-start">
-    <div class="grid w-full gap-2 sm:flex sm:flex-wrap">
-      {#each actions as action}
-        <Button
-          class="w-full sm:w-auto"
-          href={action.href}
-          type={action.href ? undefined : "button"}
-          variant={action.variant}
-          onclick={action.onclick}
-        >
-          {action.label}
-        </Button>
-      {/each}
-    </div>
-  </Empty.Content>
-</Empty.Root>
+<EmptyState variant="start" class={className} {title} {description}>
+  <div class="grid w-full gap-2 sm:flex sm:flex-wrap">
+    {#each actions as action}
+      <Button
+        class="w-full sm:w-auto"
+        href={action.href}
+        type={action.href ? undefined : "button"}
+        variant={action.variant}
+        onclick={action.onclick}
+      >
+        {action.label}
+      </Button>
+    {/each}
+  </div>
+</EmptyState>

@@ -14,7 +14,7 @@ import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Item from "#lib/components/ui/item/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import { getWorkspacePageCopy } from "@/lib/shell/page-copy";
 import { matchTableFilter, type TableFilterField } from "@/lib/table-filters";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
@@ -135,26 +135,26 @@ function apply(event: SubmitEvent) {
       {#snippet desktop()}
         <div class="min-w-0 max-w-full">
           <CollectionTableShell label={copy.existingClientsDescription}>
-            <Table.Root class="w-full min-w-[64rem]">
-            <Table.Caption class="sr-only">
+            <Table class="w-full min-w-[64rem]">
+            <caption class="sr-only">
               {copy.existingClientsDescription}
-            </Table.Caption>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head class="w-[29%]">{@render column(0, "desktop")}</Table.Head>
-                <Table.Head class="w-[25%]">{@render column(1, "desktop")}</Table.Head>
-                <Table.Head class="w-[24%]">{@render column(2, "desktop")}</Table.Head>
-                <Table.Head class="w-[15%]">{@render column(3, "desktop")}</Table.Head>
-                <Table.Head class="w-14 min-w-14">
+            </caption>
+            <thead>
+              <tr>
+                <th class="w-[29%]">{@render column(0, "desktop")}</th>
+                <th class="w-[25%]">{@render column(1, "desktop")}</th>
+                <th class="w-[24%]">{@render column(2, "desktop")}</th>
+                <th class="w-[15%]">{@render column(3, "desktop")}</th>
+                <th class="w-14 min-w-14">
                   <span class="sr-only">{copy.deleteClient}</span>
-                </Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
               {#each visibleClients as client (client.clientId)}
-                <Table.Row class="group">
-                  <Table.Cell class="max-w-0">
-                    {@const clientName = client.name ?? copy.unnamedClient}
+                {@const clientName = client.name ?? copy.unnamedClient}
+                <tr class="group">
+                  <td class="max-w-0">
                     <div class="flex min-w-0 flex-col gap-1">
                       <span class="block max-w-full" title={clientName}>
                         <TruncatedText class="font-medium" text={clientName} />
@@ -166,8 +166,8 @@ function apply(event: SubmitEvent) {
                         />
                       </span>
                     </div>
-                  </Table.Cell>
-                  <Table.Cell>
+                  </td>
+                  <td>
                     <div class="flex flex-nowrap gap-1.5">
                       <Badge variant={client.skipConsent ? "secondary" : "outline"}>
                         {client.skipConsent
@@ -181,33 +181,32 @@ function apply(event: SubmitEvent) {
                         {client.disabled ? copy.disabled : copy.enabled}
                       </Badge>
                     </div>
-                  </Table.Cell>
-                  <Table.Cell class="max-w-0">
+                  </td>
+                  <td class="max-w-0">
                     <TruncatedBadge
                       class="w-full max-w-full"
                       text={client.scopes.length > 0
                         ? client.scopes.join(", ")
                         : copy.notAvailable}
                     />
-                  </Table.Cell>
-                  <Table.Cell class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+                  </td>
+                  <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
                     {formatCreatedAt(client.createdAt)}
-                  </Table.Cell>
-                  <Table.Cell class="w-14 min-w-14 text-left">
+                  </td>
+                  <td class="w-14 min-w-14 text-left">
                     <TableRowActions>
                       <TableIconButton
                         label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
                         variant="destructive"
                         onclick={() => onDelete(client)}
-                      >
-                        <TrashIcon data-icon="inline-start" />
-                      </TableIconButton>
+                        icon={TrashIcon}
+                      />
                     </TableRowActions>
-                  </Table.Cell>
-                </Table.Row>
+                  </td>
+                </tr>
               {/each}
-            </Table.Body>
-            </Table.Root>
+            </tbody>
+            </Table>
           </CollectionTableShell>
         </div>
       {/snippet}
@@ -261,9 +260,8 @@ function apply(event: SubmitEvent) {
                     label={`${copy.deleteClient}: ${client.name ?? copy.unnamedClient}`}
                     variant="destructive"
                     onclick={() => onDelete(client)}
-                  >
-                    <TrashIcon data-icon="inline-start" />
-                  </TableIconButton>
+                    icon={TrashIcon}
+                  />
                 </Item.Actions>
               </MobileListCard>
             {/each}

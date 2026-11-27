@@ -14,8 +14,6 @@ export type AdminBusEnhancedAction = (
   actionKey: string,
   onSuccess?: () => void,
 ) => import("$app/forms").SubmitFunction;
-export type AdminBusVersionFormatter = (version: AdminBusVersion) => string;
-
 export type AdminBusCopy = {
   filterEffectiveFrom: string;
   filterEffectiveUntil: string;
@@ -49,8 +47,4 @@ export type AdminBusCopy = {
   title: string;
   versionsDescription: string;
   versionsTitle: string;
-};
-
-export type AdminBusHeaderAdminCopy = {
-  title: string;
 };

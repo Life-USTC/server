@@ -87,16 +87,13 @@ let composerDisabledAttr = $derived(composerDisabled ? "true" : undefined);
         bind:value={body}
         aria-labelledby={composerEditorLabelId}
         disabled={composerDisabled}
-        guideLabel={commentCopy.markdownGuide}
+        copy={commentCopy}
         {isDragActive}
         modeLabel={commentCopy.markdownModeLabel}
         placeholder={viewer.isAuthenticated
           ? commentCopy.editorPlaceholder
           : commentCopy.loginToComment}
-        previewEmptyLabel={commentCopy.previewEmpty}
         remarkPlugins={campusReferenceMarkdownPlugins}
-        tabPreviewLabel={commentCopy.tabPreview}
-        tabWriteLabel={commentCopy.tabWrite}
         ondragleave={() => {
           isDragActive = false;
         }}

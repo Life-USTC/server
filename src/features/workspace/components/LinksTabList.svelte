@@ -3,10 +3,11 @@ export let visitCountLabel: string | undefined = undefined;
 export let readOnlyReason: string | undefined = undefined;
 
 import type { Snippet } from "svelte";
+import EmptyState from "#lib/components/EmptyState.svelte";
 import TableControlsRow from "#lib/components/TableControlsRow.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
-import * as Table from "#lib/components/ui/table/index.js";
+import Table from "#lib/components/ui/table/table.svelte";
 import { cn } from "#lib/utils.js";
 import {
   LINK_TABLE_ACTIONS_COL,
@@ -14,18 +15,17 @@ import {
   LINK_TABLE_NAME_COL,
 } from "@/features/workspace/lib/link-table-layout";
 import type {
-  AnonymousLinkGroup,
+  CatalogLinkGroupEntry,
   WorkspaceOverviewLinkItem,
 } from "@/features/workspace/lib/workspace-controller-helpers";
 import type { TableFilterField, TableFilterLabels } from "@/lib/table-filters";
 import CatalogLinkTableCell from "./CatalogLinkTableCell.svelte";
-import WorkspaceEmptyState from "./WorkspaceEmptyState.svelte";
 
 export let colActions: string = "";
 export let colDescription: string;
 export let colName: string;
 export let emptyLabel: string;
-export let groups: AnonymousLinkGroup[];
+export let groups: CatalogLinkGroupEntry[];
 export let linkIconLabel: (icon: string) => string;
 export let searchControls: Snippet;
 export let fields: TableFilterField[];
@@ -37,26 +37,26 @@ export let actions: Snippet<[WorkspaceOverviewLinkItem]> | undefined =
 </script>
 
 <div class="relative w-full overflow-x-auto">
-  <Table.Root class={LINK_TABLE_CLASS}>
+  <Table class={LINK_TABLE_CLASS}>
     <colgroup>
       <col class={LINK_TABLE_NAME_COL} />
       <col />
       {#if actions}<col class={LINK_TABLE_ACTIONS_COL} />{/if}
     </colgroup>
-    <Table.Header>
+    <thead>
       <TableControlsRow colspan={actions ? 3 : 2}>{@render searchControls()}</TableControlsRow>
-      <Table.Row>
-        <Table.Head><TableFieldFilter label={colName} fields={[fields[0]]} {values} {onchange} labels={filterLabels} idPrefix="links-desktop-name" formId="links-filters" /></Table.Head>
-        <Table.Head><TableFieldFilter label={colDescription} fields={[fields[1]]} {values} {onchange} labels={filterLabels} idPrefix="links-desktop-description" formId="links-filters" /></Table.Head>
-        {#if actions}<Table.Head>{colActions}</Table.Head>{/if}
-      </Table.Row>
-    </Table.Header>
+      <tr>
+        <th><TableFieldFilter label={colName} fields={[fields[0]]} {values} {onchange} labels={filterLabels} idPrefix="links-desktop-name" formId="links-filters" /></th>
+        <th><TableFieldFilter label={colDescription} fields={[fields[1]]} {values} {onchange} labels={filterLabels} idPrefix="links-desktop-description" formId="links-filters" /></th>
+        {#if actions}<th>{colActions}</th>{/if}
+      </tr>
+    </thead>
     {#each groups as entry}
-    <Table.Body>
-      <Table.Row><Table.Head scope="rowgroup" colspan={actions ? 3 : 2}>{entry.label}</Table.Head></Table.Row>
+    <tbody>
+      <tr><th scope="rowgroup" colspan={actions ? 3 : 2}>{entry.label}</th></tr>
       {#each entry.links as link}
-        <Table.Row class="group" data-catalog-link-slug={link.slug} tabindex={-1}>
-          <Table.Cell class="p-0">
+        <tr class="group" data-catalog-link-slug={link.slug} tabindex={-1}>
+          <td class="p-0">
             <CatalogLinkTableCell {visitCountLabel} {readOnlyReason} {link}>
               <span class="flex min-w-0 items-center gap-2">
                 <span
@@ -68,27 +68,27 @@ export let actions: Snippet<[WorkspaceOverviewLinkItem]> | undefined =
                 <TruncatedText class="font-medium" text={link.title} />
               </span>
             </CatalogLinkTableCell>
-          </Table.Cell>
-          <Table.Cell class="p-0">
+          </td>
+          <td class="p-0">
             <CatalogLinkTableCell {readOnlyReason} {link}>
               <TruncatedText class="text-muted-foreground" text={link.description} />
             </CatalogLinkTableCell>
-          </Table.Cell>
+          </td>
           {#if actions}
-            <Table.Cell class="p-0">
+            <td class="p-0">
               <div class={cn(
                 "flex h-full min-h-12 items-center justify-start px-(--table-cell-inset)",
                 !link.isPinned && !readOnlyReason && "md:opacity-0 md:transition-opacity md:group-focus-within:opacity-100 md:group-hover:opacity-100",
               )}>{@render actions(link)}</div>
-            </Table.Cell>
+            </td>
           {/if}
-        </Table.Row>
+        </tr>
       {/each}
-    </Table.Body>
+    </tbody>
     {:else}
-      <Table.Body><Table.Row><Table.Cell colspan={actions ? 3 : 2}>
-        <WorkspaceEmptyState title={emptyLabel} />
-      </Table.Cell></Table.Row></Table.Body>
+      <tbody><tr><td colspan={actions ? 3 : 2}>
+        <EmptyState title={emptyLabel} />
+      </td></tr></tbody>
     {/each}
-  </Table.Root>
+  </Table>
 </div>

@@ -6,7 +6,6 @@ import { Checkbox } from "#lib/components/ui/checkbox/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import SectionCardIdentity from "@/features/catalog/components/SectionCardIdentity.svelte";
 import { page } from "$app/state";
 import type {
@@ -22,7 +21,6 @@ export let importError = "";
 export let isImporting: boolean;
 export let isOpen: boolean;
 export let matchedSections: BulkImportSectionView[];
-export let onCancel: () => void;
 export let onConfirm: () => void | Promise<void>;
 export let onOpenChange: (open: boolean) => void;
 export let selectedSectionIdSet: Set<number>;
@@ -48,9 +46,7 @@ const titleId = "bulk-import-confirm-title";
     <ScrollArea class="h-[min(60vh,24rem)]">
       <div class="grid gap-4 px-5 py-4">
         {#if importError}
-          <Alert.Root variant="destructive">
-            <Alert.Description>{importError}</Alert.Description>
-          </Alert.Root>
+          <Alert.Message variant="destructive">{importError}</Alert.Message>
         {/if}
         {#if matchedSections.length > 0}
           <Field.Set>
@@ -86,25 +82,18 @@ const titleId = "bulk-import-confirm-title";
         {/if}
 
         {#if unmatchedCodes.length > 0}
-          <Alert.Root>
-            <Alert.Title>
-              {formatMessage(copy.unmatchedCodes, { count: unmatchedCodes.length })}
-            </Alert.Title>
-            <Alert.Description>{unmatchedCodes.join(", ")}</Alert.Description>
-          </Alert.Root>
+          <Alert.Message heading={formatMessage(copy.unmatchedCodes, { count: unmatchedCodes.length })}>
+            {unmatchedCodes.join(", ")}
+          </Alert.Message>
         {/if}
       </div>
     </ScrollArea>
-    <Dialog.Footer>
-      <Button type="button" variant="outline" onclick={onCancel}>{copy.cancel}</Button>
-      <Button disabled={selectedSectionIdSet.size === 0 || isImporting} type="button" onclick={onConfirm}>
-        {#if isImporting}
-          <Spinner data-icon="inline-start" />
-        {/if}
+    <Dialog.Actions cancelLabel={copy.cancel} onCancel={() => onOpenChange(false)}>
+      <Button loading={isImporting} disabled={selectedSectionIdSet.size === 0 || isImporting} onclick={onConfirm}>
         {isImporting
           ? copy.importing
           : formatMessage(selectedSectionIdSet.size === 1 ? copy.subscribeSelectedOne : copy.subscribeSelected, { count: selectedSectionIdSet.size })}
       </Button>
-    </Dialog.Footer>
+    </Dialog.Actions>
   </Dialog.Content>
 </Dialog.Root>

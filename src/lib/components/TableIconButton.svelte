@@ -1,8 +1,14 @@
 <script lang="ts">
-import { Button, type ButtonVariant } from "#lib/components/ui/button/index.js";
+import {
+  Button,
+  type ButtonProps,
+  type ButtonVariant,
+} from "#lib/components/ui/button/index.js";
 import * as Tooltip from "#lib/components/ui/tooltip/index.js";
 
 export let label: string;
+export let icon: ButtonProps["icon"] = undefined;
+export let loading = false;
 export let disabled = false;
 export let href: string | undefined = undefined;
 export let title: string | null | undefined = undefined;
@@ -13,13 +19,15 @@ export let onclick: ((event: MouseEvent) => void) | undefined = undefined;
 
 <Tooltip.Root>
   <Tooltip.Trigger>
-    {#snippet child({ props })}
+    {#snippet render({ props })}
       <Button
         {...props}
         aria-label={label}
         class="icon-action"
         {title}
         {disabled}
+        {icon}
+        {loading}
         {href}
         size="icon"
         type={href ? undefined : (type ?? "button")}

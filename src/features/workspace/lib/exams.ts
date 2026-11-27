@@ -8,12 +8,8 @@ export {
   examMetadataLabels,
   examTypeLabel,
 } from "./exam-display";
-export {
-  filterExamRows,
-  flattenExamRows,
-} from "./exam-rows";
+export { flattenExamRows } from "./exam-rows";
 export type {
-  ExamFilter,
   ExamLabels,
   WorkspaceExam,
   WorkspaceExamRoom,
