@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type * as z from "zod";
 import type { CommentTargetLoadState } from "@/features/comments/lib/comment-panel-data";
+import { createCommentPanelDefaultState } from "@/features/comments/lib/comment-panel-default-state";
 import type { CommentEditorMode } from "@/features/comments/lib/comment-panel-draft-state";
 import { createCommentPanelEditActions } from "@/features/comments/lib/comment-panel-edit-actions";
 import { createCommentPanelLoadSubmitActions } from "@/features/comments/lib/comment-panel-load-submit-actions";
@@ -308,18 +309,14 @@ describe("评论面板上传挂起状态", () => {
 
   it("编辑编辑器上传期间阻止编辑保存", async () => {
     const loadComments = vi.fn();
+    const panel = createCommentPanelDefaultState();
+    panel.editDraft = "edited body";
+    panel.editAttachmentIds = ["edit-upload"];
+    panel.uploadPending.edit = 1;
     const actions = createCommentPanelEditActions({
-      applyEditDraftState: vi.fn(),
+      panel,
       getCommentCopy: () => ({ submitFailed: "submit failed" }),
-      getEditAttachmentIds: () => ["edit-upload"],
-      getEditDraft: () => "edited body",
-      getEditIsAnonymous: () => false,
-      getEditVisibility: () => "public",
-      hasPendingUploads: (mode) => mode === "edit",
       loadComments,
-      setActionMenuId: vi.fn(),
-      setMessage: vi.fn(),
-      setMessageVariant: vi.fn(),
     });
 
     await actions.saveEdit(comment());

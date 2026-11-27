@@ -1,6 +1,6 @@
 <script lang="ts">
+import { Avatar, AvatarFallback, AvatarImage } from "@ui-sdk/svelte/avatar";
 import type { Snippet } from "svelte";
-import * as Avatar from "#lib/components/ui/avatar/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import * as ToggleGroup from "#lib/components/ui/toggle-group/index.js";
 import type { ProfileFormUser } from "./profile-form-types";
@@ -25,20 +25,19 @@ export let user: ProfileFormUser;
 <Field.Set data-disabled={disabled ? "true" : undefined}>
   <Field.Legend variant="label">{label}</Field.Legend>
   <div class="flex flex-wrap items-center gap-4">
-    <Avatar.Root class="size-20 shrink-0">
-      <Avatar.Image
+    <Avatar class="size-20 shrink-0">
+      <AvatarImage
         alt={label}
         data-testid={previewTestId}
         src={previewImage}
       />
-      <Avatar.Fallback>
+      <AvatarFallback>
         {(user.name ?? user.username ?? "U").slice(0, 1).toUpperCase()}
-      </Avatar.Fallback>
-    </Avatar.Root>
+      </AvatarFallback>
+    </Avatar>
 
     {#if avatarOptions.length > 0}
       <ToggleGroup.Root
-        type="single"
         aria-label={label}
         data-testid={selectorTestId}
         class="flex flex-wrap"
@@ -50,14 +49,14 @@ export let user: ProfileFormUser;
         {#each avatarOptions as avatar, index}
           <ToggleGroup.Item
             aria-label={`${avatarOptionLabel} ${index + 1}`}
-            class="size-12 rounded-full p-0 data-[state=on]:ring-2 data-[state=on]:ring-primary data-[state=on]:ring-offset-2"
+            class="size-12 rounded-full p-0 aria-checked:ring-2 aria-checked:ring-primary aria-checked:ring-offset-2"
             disabled={disabled}
             value={avatar}
           >
-            <Avatar.Root class="size-full">
-              <Avatar.Image alt={avatarOptionLabel} src={avatar} />
-              <Avatar.Fallback>{index + 1}</Avatar.Fallback>
-            </Avatar.Root>
+            <Avatar class="size-full">
+              <AvatarImage alt={avatarOptionLabel} src={avatar} />
+              <AvatarFallback>{index + 1}</AvatarFallback>
+            </Avatar>
           </ToggleGroup.Item>
         {/each}
       </ToggleGroup.Root>

@@ -2,11 +2,9 @@
 import type { ComponentProps } from "svelte";
 export let content: ComponentProps<typeof SectionDetailMainContent>["content"];
 
+import { toast } from "@ui-sdk/svelte/toast";
 import { onMount } from "svelte";
-import { toast } from "svelte-sonner";
-// biome-ignore assist/source/organizeImports: keep Svelte template/action imports grouped with local suppressions.
-import { homeworkSemesterShortcutCapabilities } from "@/features/homeworks/lib/homework-timestamp-defaults";
-import SectionDetailDialogs from "@/features/section-detail/components/SectionDetailDialogs.svelte";
+import { nextHomeworkClassStarts } from "@/features/homeworks/lib/homework-due-shortcuts";
 import SectionDetailMainContent from "@/features/section-detail/components/SectionDetailMainContent.svelte";
 import SectionDetailPageHead from "@/features/section-detail/components/SectionDetailPageHead.svelte";
 import {
@@ -24,7 +22,7 @@ import {
   type SectionDetailPageData,
   type SectionHomework,
 } from "@/features/section-detail/lib/section-detail-controller-helpers";
-import { mountSectionDetailController } from "@/features/section-detail/lib/section-detail-controller-mount";
+import { initialSectionHomeworkViewFromBrowser } from "@/features/section-detail/lib/section-detail-controller-navigation";
 import {
   buildSectionDetailCommentTargets,
   buildSectionPeriodDetailRows,
@@ -34,7 +32,6 @@ import {
 } from "@/features/section-detail/lib/section-detail-derived-state";
 import { createSectionDetailDisplayActions } from "@/features/section-detail/lib/section-detail-display-actions";
 import { createSectionDetailHomeworkActions } from "@/features/section-detail/lib/section-detail-homework-actions";
-import { createSectionHomeworkTimestampActions } from "@/features/section-detail/lib/section-detail-homework-timestamp-actions";
 import {
   createSectionDetailTabPanelSsrSeedFromPageData,
   createSectionDetailTabPanelStore,
@@ -42,6 +39,7 @@ import {
 import { createSectionDetailUiActions } from "@/features/section-detail/lib/section-detail-ui-actions";
 import { fetchSectionPersonalData } from "@/features/section-detail/lib/section-personal-client";
 import { getShellViewer } from "@/lib/shell/shell-viewer";
+import SectionSubscribeDialog from "./SectionSubscribeDialog.svelte";
 
 type PageData = SectionDetailPageData;
 type ActionData = SectionDetailActionData;
@@ -49,33 +47,13 @@ type ActionData = SectionDetailActionData;
 export let data: PageData;
 export let form: ActionData;
 
-let {
-  _clipboardError,
-  _clipboardMessage,
-  _copiedCalendarTarget,
-  _completionSaving,
-  _createHomeworkPublishedAt,
-  _createHomeworkSubmissionDueAt,
-  _createHomeworkSubmissionStartAt,
-  _deleteHomeworkTarget,
-  _editHomeworkMessage,
-  _editHomeworkPublishedAt,
-  _editHomeworkSubmissionDueAt,
-  _editHomeworkSubmissionStartAt,
-  _editingHomework,
-  _homeworkAuditLogs,
-  _homeworkMessage,
-  _homeworkView,
-  _homeworkViewer,
-  _homeworks,
-  _isCalendarDialogOpen,
-  _isHomeworkAuditDialogOpen,
-  _origin,
-  _selectedHomework,
-  _showCreateHomework,
-  _showSubscribeDialog,
-  _subscriptionPendingAction,
-} = createSectionDetailControllerDefaultState(data);
+let state = createSectionDetailControllerDefaultState(data);
+
+function set<K extends keyof typeof state>(key: K) {
+  return (value: (typeof state)[K]) => {
+    state[key] = value;
+  };
+}
 
 const shellViewer = getShellViewer();
 let streamLoading = true;
@@ -114,10 +92,10 @@ async function loadPersonalData() {
     });
     if (controller.signal.aborted) return;
     personalViewer = result.viewer;
-    _homeworkViewer = result.homeworkData.viewer;
-    _homeworks = result.homeworkData.homeworks;
-    _homeworkAuditLogs = result.homeworkData.auditLogs;
-    syncFocusedHomework(_homeworks);
+    state.homeworkViewer = result.homeworkData.viewer;
+    state.homeworks = result.homeworkData.homeworks;
+    state.homeworkAuditLogs = result.homeworkData.auditLogs;
+    syncFocusedHomework(state.homeworks);
     scrollToFocusedHomework();
   } catch {
     if (!controller.signal.aborted) personalFailed = true;
@@ -164,7 +142,7 @@ function syncFocusedHomework(homeworks: SectionHomework[]) {
     (homework) => homework.id === data.focusedHomeworkId,
   );
   if (focused) {
-    _selectedHomework = focused;
+    state.selectedHomework = focused;
   }
 }
 
@@ -181,11 +159,11 @@ async function selectHomework(homework: SectionHomework) {
     if (requestId !== homeworkDetailRequest) return;
 
     const { section: _section, ...scopedHomework } = detail.homework;
-    _homeworkAuditLogs = detail.auditLogs;
-    _selectedHomework = scopedHomework;
+    state.homeworkAuditLogs = detail.auditLogs;
+    state.selectedHomework = scopedHomework;
   } catch (error) {
     if (requestId !== homeworkDetailRequest) return;
-    _homeworkMessage =
+    state.homeworkMessage =
       error instanceof Error ? error.message : _sectionCopy.operationFailed;
   }
 }
@@ -197,13 +175,13 @@ async function loadHomeworkAuditLogs() {
       data.section.id,
       _sectionCopy.operationFailed,
     );
-    if (requestId !== homeworkAuditRequest || !_isHomeworkAuditDialogOpen)
+    if (requestId !== homeworkAuditRequest || !state.isHomeworkAuditDialogOpen)
       return;
-    _homeworkAuditLogs = auditLogs;
+    state.homeworkAuditLogs = auditLogs;
   } catch (error) {
-    if (requestId !== homeworkAuditRequest || !_isHomeworkAuditDialogOpen)
+    if (requestId !== homeworkAuditRequest || !state.isHomeworkAuditDialogOpen)
       return;
-    _homeworkMessage =
+    state.homeworkMessage =
       error instanceof Error ? error.message : _sectionCopy.operationFailed;
   }
 }
@@ -223,7 +201,7 @@ async function ensureStreamPanelsLoaded() {
     if (tab !== "homework" && !tabPanelStore.isLoaded(tab)) {
       tabPanelState = await tabPanelStore.ensureLoaded(tab, panelInput);
     }
-    syncFocusedHomework(_homeworks);
+    syncFocusedHomework(state.homeworks);
   } catch {
     streamError = _sectionCopy.operationFailed;
   } finally {
@@ -244,7 +222,6 @@ function scrollToFocusedHomework() {
 const {
   auditActionLabel: _homeworkAuditActionLabel,
   auditActorName: _homeworkAuditActorName,
-  dateTimeInputValue: _dateTimeInputValue,
   formatMessage: _formatMessage,
   primaryName: _primaryName,
   secondaryName: _secondaryName,
@@ -283,14 +260,14 @@ $: _sectionHomeworkLabel = [
 $: _commentTargets = buildSectionDetailCommentTargets(_copy, data.section);
 $: calendarUrls = sectionDetailCalendarUrls({
   jwId: data.section.jwId,
-  origin: _origin,
+  origin: state.origin,
 });
 $: singleCalendarUrl = calendarUrls.singleCalendarUrl;
 $: periodDetailRows = buildSectionPeriodDetailRows(_sectionCopy, data.section);
-$: _canWriteHomework = canWriteSectionHomework(_homeworkViewer);
+$: _canWriteHomework = canWriteSectionHomework(state.homeworkViewer);
 $: _canManageSelectedHomework = canManageSectionHomework(
-  _homeworkViewer,
-  _selectedHomework,
+  state.homeworkViewer,
+  state.selectedHomework,
 );
 $: sectionCalendarEvents =
   data.detailSection === "schedule"
@@ -308,100 +285,37 @@ const {
   openCreateHomeworkDialog: _openCreateHomeworkDialog,
   openSubscribeDialog: _openSubscribeDialog,
   semesterDate: _semesterDate,
-  setHomeworkView: _setHomeworkView,
   startEditHomework: _startEditHomework,
   subscriptionAction: _subscriptionAction,
 } = createSectionDetailUiActions({
   getSection: () => displaySection,
-  getSelectedHomework: () => _selectedHomework,
-  setCreateHomeworkPublishedAt: (value) => {
-    _createHomeworkPublishedAt = value;
-  },
-  setCreateHomeworkSubmissionDueAt: (value) => {
-    _createHomeworkSubmissionDueAt = value;
-  },
-  setCreateHomeworkSubmissionStartAt: (value) => {
-    _createHomeworkSubmissionStartAt = value;
-  },
-  setEditHomeworkMessage: (value) => {
-    _editHomeworkMessage = value;
-  },
-  setEditHomeworkPublishedAt: (value) => {
-    _editHomeworkPublishedAt = value;
-  },
-  setEditHomeworkSubmissionDueAt: (value) => {
-    _editHomeworkSubmissionDueAt = value;
-  },
-  setEditHomeworkSubmissionStartAt: (value) => {
-    _editHomeworkSubmissionStartAt = value;
-  },
-  setEditingHomework: (value) => {
-    _editingHomework = value;
-  },
-  setHomeworkMessage: (value) => {
-    _homeworkMessage = value;
-  },
-  setHomeworkView: (value) => {
-    _homeworkView = value;
-  },
-  setShowCreateHomework: (value) => {
-    _showCreateHomework = value;
-  },
-  setShowSubscribeDialog: (value) => {
-    _showSubscribeDialog = value;
-  },
+  getSelectedHomework: () => state.selectedHomework,
+  setCreateHomeworkPublishedAt: set("createHomeworkPublishedAt"),
+  setCreateHomeworkSubmissionDueAt: set("createHomeworkSubmissionDueAt"),
+  setCreateHomeworkSubmissionStartAt: set("createHomeworkSubmissionStartAt"),
+  setEditHomeworkMessage: set("editHomeworkMessage"),
+  setEditHomeworkPublishedAt: set("editHomeworkPublishedAt"),
+  setEditHomeworkSubmissionDueAt: set("editHomeworkSubmissionDueAt"),
+  setEditHomeworkSubmissionStartAt: set("editHomeworkSubmissionStartAt"),
+  setEditingHomework: set("editingHomework"),
+  setHomeworkMessage: set("homeworkMessage"),
+  setShowCreateHomework: set("showCreateHomework"),
+  setShowSubscribeDialog: set("showSubscribeDialog"),
   onSuccess: (action) => {
     void loadPersonalData();
-    _showSubscribeDialog = false;
+    state.showSubscribeDialog = false;
     toast.success(
       action === "subscribe"
         ? _sectionCopy.subscribeSuccess
         : _sectionCopy.unsubscribeSuccess,
     );
   },
-  setSubscriptionPendingAction: (value) => {
-    _subscriptionPendingAction = value;
-  },
+  setSubscriptionPendingAction: set("subscriptionPendingAction"),
 });
 
 function _closeCalendarDialog() {
-  _isCalendarDialogOpen = false;
+  state.isCalendarDialogOpen = false;
 }
-
-const {
-  applyCreateDueAtSemesterEnd: _applyCreateDueAtSemesterEnd,
-  applyCreateDueInMonth: _applyCreateDueInMonth,
-  applyCreateDueInWeek: _applyCreateDueInWeek,
-  applyCreatePublishNow: _applyCreatePublishNow,
-  applyCreateStartAtSemesterStart: _applyCreateStartAtSemesterStart,
-  applyCreateStartNow: _applyCreateStartNow,
-  applyEditDueAtSemesterEnd: _applyEditDueAtSemesterEnd,
-  applyEditDueInMonth: _applyEditDueInMonth,
-  applyEditDueInWeek: _applyEditDueInWeek,
-  applyEditPublishNow: _applyEditPublishNow,
-  applyEditStartAtSemesterStart: _applyEditStartAtSemesterStart,
-  applyEditStartNow: _applyEditStartNow,
-} = createSectionHomeworkTimestampActions({
-  getSemesterDate: _semesterDate,
-  setCreatePublishedAt: (value) => {
-    _createHomeworkPublishedAt = value;
-  },
-  setCreateSubmissionDueAt: (value) => {
-    _createHomeworkSubmissionDueAt = value;
-  },
-  setCreateSubmissionStartAt: (value) => {
-    _createHomeworkSubmissionStartAt = value;
-  },
-  setEditPublishedAt: (value) => {
-    _editHomeworkPublishedAt = value;
-  },
-  setEditSubmissionDueAt: (value) => {
-    _editHomeworkSubmissionDueAt = value;
-  },
-  setEditSubmissionStartAt: (value) => {
-    _editHomeworkSubmissionStartAt = value;
-  },
-});
 
 const {
   clearClipboardTimer: _clearClipboardTimer,
@@ -410,39 +324,31 @@ const {
 } = createSectionCalendarClipboardActions({
   getCopiedMessage: () => _sectionCopy.copied,
   getFailureMessage: () => _sectionCopy.operationFailed,
-  setCalendarDialogOpen: (value) => {
-    _isCalendarDialogOpen = value;
-  },
-  setClipboardError: (value) => {
-    _clipboardError = value;
-  },
-  setClipboardMessage: (value) => {
-    _clipboardMessage = value;
-  },
-  setCopiedCalendarTarget: (value) => {
-    _copiedCalendarTarget = value;
-  },
+  setCalendarDialogOpen: set("isCalendarDialogOpen"),
+  setClipboardError: set("clipboardError"),
+  setClipboardMessage: set("clipboardMessage"),
+  setCopiedCalendarTarget: set("copiedCalendarTarget"),
 });
 
 const {
   createHomework: _createHomework,
   deleteHomework: _deleteHomework,
-  loadHomeworks: _loadHomeworks,
   toggleHomeworkCompletion: _toggleHomeworkCompletion,
   updateHomework: _updateHomework,
 } = createSectionDetailHomeworkActions({
   cancelEditHomework: _cancelEditHomework,
   closeCreateHomeworkDialog: _closeCreateHomeworkDialog,
-  getCreateHomeworkPublishedAt: () => _createHomeworkPublishedAt,
-  getCreateHomeworkSubmissionDueAt: () => _createHomeworkSubmissionDueAt,
-  getCreateHomeworkSubmissionStartAt: () => _createHomeworkSubmissionStartAt,
-  getDeleteHomeworkTarget: () => _deleteHomeworkTarget,
-  getEditHomeworkPublishedAt: () => _editHomeworkPublishedAt,
-  getEditHomeworkSubmissionDueAt: () => _editHomeworkSubmissionDueAt,
-  getEditHomeworkSubmissionStartAt: () => _editHomeworkSubmissionStartAt,
+  getCreateHomeworkPublishedAt: () => state.createHomeworkPublishedAt,
+  getCreateHomeworkSubmissionDueAt: () => state.createHomeworkSubmissionDueAt,
+  getCreateHomeworkSubmissionStartAt: () =>
+    state.createHomeworkSubmissionStartAt,
+  getDeleteHomeworkTarget: () => state.deleteHomeworkTarget,
+  getEditHomeworkPublishedAt: () => state.editHomeworkPublishedAt,
+  getEditHomeworkSubmissionDueAt: () => state.editHomeworkSubmissionDueAt,
+  getEditHomeworkSubmissionStartAt: () => state.editHomeworkSubmissionStartAt,
   getHomeworkCopy: () => _homeworkCopy,
-  getHomeworkViewer: () => _homeworkViewer,
-  getHomeworks: () => _homeworks,
+  getHomeworkViewer: () => state.homeworkViewer,
+  getHomeworks: () => state.homeworks,
   getSectionId: () => data.section.id,
   onSuccess: (action) => {
     const message =
@@ -457,50 +363,31 @@ const {
               : _homeworkCopy.markIncomplete;
     toast.success(message);
   },
-  getSelectedHomework: () => _selectedHomework,
-  setCompletionSaving: (value) => {
-    _completionSaving = value;
-  },
-  setDeleteHomeworkTarget: (value) => {
-    _deleteHomeworkTarget = value;
-  },
-  setEditHomeworkMessage: (value) => {
-    _editHomeworkMessage = value;
-  },
-  setHomeworkAuditLogs: (value) => {
-    _homeworkAuditLogs = value;
-  },
-  setHomeworkMessage: (value) => {
-    _homeworkMessage = value;
-  },
-  setHomeworkViewer: (value) => {
-    _homeworkViewer = value;
-  },
-  setHomeworks: (value) => {
-    _homeworks = value;
-  },
-  setSelectedHomework: (value) => {
-    _selectedHomework = value;
-  },
+  getSelectedHomework: () => state.selectedHomework,
+  setCompletionSaving: set("completionSaving"),
+  setDeleteHomeworkTarget: set("deleteHomeworkTarget"),
+  setEditHomeworkMessage: set("editHomeworkMessage"),
+  setHomeworkAuditLogs: set("homeworkAuditLogs"),
+  setHomeworkMessage: set("homeworkMessage"),
+  setHomeworkViewer: set("homeworkViewer"),
+  setHomeworks: set("homeworks"),
+  setSelectedHomework: set("selectedHomework"),
 });
 
+function setAuditOpen(open: boolean) {
+  state.isHomeworkAuditDialogOpen = open;
+  if (open) void loadHomeworkAuditLogs();
+}
+
 function _auditLogsForHomework(homeworkId: string) {
-  return sectionHomeworkAuditLogs(_homeworkAuditLogs, homeworkId);
+  return sectionHomeworkAuditLogs(state.homeworkAuditLogs, homeworkId);
 }
 
 onMount(() => {
-  const cleanup = mountSectionDetailController({
-    clearClipboardTimer: _clearClipboardTimer,
-    getHomeworkView: () => _homeworkView,
-    loadHomeworks: _loadHomeworks,
-    setHomeworkView: (view) => {
-      _homeworkView = view;
-    },
-    setOrigin: (origin) => {
-      _origin = origin;
-    },
-    shouldLoadHomeworks: false,
-  });
+  state.origin = window.location.origin;
+  state.homeworkView = initialSectionHomeworkViewFromBrowser(
+    state.homeworkView,
+  );
   if ($shellViewer.status === "ready") void loadPersonalData();
   else {
     personalFailed = $shellViewer.status === "error";
@@ -514,9 +401,37 @@ onMount(() => {
     personalAbortController?.abort();
     homeworkDetailRequest += 1;
     homeworkAuditRequest += 1;
-    cleanup();
+    _clearClipboardTimer();
   };
 });
+let homeworkDialogs: typeof import("./section-homework-dialogs") | null = null;
+let CalendarSubscriptionDialog:
+  | typeof import("@/features/calendar/components/CalendarSubscriptionDialog.svelte").default
+  | null = null;
+
+async function ensureSectionHomeworkDialogs() {
+  homeworkDialogs ??= await import("./section-homework-dialogs");
+}
+
+async function ensureSectionCalendarDialog() {
+  CalendarSubscriptionDialog ??= (
+    await import(
+      "@/features/calendar/components/CalendarSubscriptionDialog.svelte"
+    )
+  ).default;
+}
+
+$: if (
+  state.showCreateHomework ||
+  state.selectedHomework ||
+  state.deleteHomeworkTarget ||
+  state.isHomeworkAuditDialogOpen
+) {
+  void ensureSectionHomeworkDialogs();
+}
+$: if (state.isCalendarDialogOpen) {
+  void ensureSectionCalendarDialog();
+}
 </script>
 
 <SectionDetailPageHead
@@ -541,11 +456,11 @@ onMount(() => {
     fmtDate={_fmtDate}
     fmtDateTime={_fmtDateTime}
     homeworkCopy={_homeworkCopy}
-    homeworks={_homeworks}
+    homeworks={state.homeworks}
     notAvailable={_notAvailable}
     openCalendarDialog={_openCalendarDialog}
     openCreateHomeworkDialog={_openCreateHomeworkDialog}
-    openHomeworkAuditDialog={() => { _isHomeworkAuditDialogOpen = true; void loadHomeworkAuditLogs(); }}
+    openHomeworkAuditDialog={() => setAuditOpen(true)}
     openSubscribeDialog={_openSubscribeDialog}
     {periodDetailRows}
     primaryName={_primaryName}
@@ -562,81 +477,124 @@ onMount(() => {
   />
 </section>
 
-<SectionDetailDialogs
-  applyCreateDueAtSemesterEnd={_applyCreateDueAtSemesterEnd}
-  applyCreateDueInMonth={_applyCreateDueInMonth}
-  applyCreateDueInWeek={_applyCreateDueInWeek}
-  applyCreatePublishNow={_applyCreatePublishNow}
-  applyCreateStartAtSemesterStart={_applyCreateStartAtSemesterStart}
-  applyCreateStartNow={_applyCreateStartNow}
-  applyEditDueAtSemesterEnd={_applyEditDueAtSemesterEnd}
-  applyEditDueInMonth={_applyEditDueInMonth}
-  applyEditDueInWeek={_applyEditDueInWeek}
-  applyEditPublishNow={_applyEditPublishNow}
-  applyEditStartAtSemesterStart={_applyEditStartAtSemesterStart}
-  applyEditStartNow={_applyEditStartNow}
-  auditLogsForHomework={_auditLogsForHomework}
-  canManageSelectedHomework={_canManageSelectedHomework}
-  canWriteHomework={!personalLoading && !personalFailed && _canWriteHomework}
-  completionSaving={_completionSaving}
-  cancelEditHomework={_cancelEditHomework}
-  clipboardError={_clipboardError}
-  clipboardMessage={_clipboardMessage}
-  closeCalendarDialog={_closeCalendarDialog}
-  closeCreateHomeworkDialog={_closeCreateHomeworkDialog}
-  closeSubscribeDialog={_closeSubscribeDialog}
-  commentsCopy={_commentsCopy}
-  commonCopy={_commonCopy}
-  copiedCalendarTarget={_copiedCalendarTarget}
-  copyText={_copyText}
-  createHomework={_createHomework}
-  bind:createHomeworkPublishedAt={_createHomeworkPublishedAt}
-  bind:createHomeworkSubmissionDueAt={_createHomeworkSubmissionDueAt}
-  bind:createHomeworkSubmissionStartAt={_createHomeworkSubmissionStartAt}
-  data={overlayData}
-  deleteHomework={_deleteHomework}
-  deleteHomeworkTarget={_deleteHomeworkTarget}
-  editHomeworkMessage={_editHomeworkMessage}
-  bind:editHomeworkPublishedAt={_editHomeworkPublishedAt}
-  bind:editHomeworkSubmissionDueAt={_editHomeworkSubmissionDueAt}
-  bind:editHomeworkSubmissionStartAt={_editHomeworkSubmissionStartAt}
-  editingHomework={_editingHomework}
-  fmtDateTime={_fmtDateTime}
-  formatMessage={_formatMessage}
-  hasSemesterEnd={_showCreateHomework && homeworkSemesterShortcutCapabilities({ semesterEnd: _semesterDate("end") }).hasSemesterEnd}
-  hasSemesterStart={_showCreateHomework && Boolean(_semesterDate("start"))}
-  homeworkAuditActionLabel={_homeworkAuditActionLabel}
-  homeworkAuditActorName={_homeworkAuditActorName}
-  homeworkAuditLogs={_homeworkAuditLogs}
-  homeworkCopy={_homeworkCopy}
-  homeworkMessage={_homeworkMessage}
-  isCalendarDialogOpen={_isCalendarDialogOpen}
-  isHomeworkAuditDialogOpen={_isHomeworkAuditDialogOpen}
-  locale={data.locale}
-  sectionCopy={_sectionCopy}
-  sectionLabel={_sectionHomeworkLabel}
-  selectedHomework={_selectedHomework}
-  semesterDate={_semesterDate}
-  setCalendarDialogOpen={(open) => {
-    _isCalendarDialogOpen = open;
-  }}
-  setDeleteHomeworkTarget={(homework) => {
-    _deleteHomeworkTarget = homework;
-  }}
-  setHomeworkAuditDialogOpen={(open) => {
-    _isHomeworkAuditDialogOpen = open;
-    if (open) void loadHomeworkAuditLogs();
-  }}
-  setSelectedHomework={(homework) => {
-    _selectedHomework = homework;
-  }}
-  showCreateHomework={_showCreateHomework}
-  showSubscribeDialog={_showSubscribeDialog && !personalLoading && !personalFailed}
-  {singleCalendarUrl}
-  courseName={_courseName}
-  startEditHomework={_startEditHomework}
-  subscriptionAction={_subscriptionAction}
-  subscriptionPendingAction={_subscriptionPendingAction}
-  toggleHomeworkCompletion={_toggleHomeworkCompletion}
-  updateHomework={_updateHomework}
-/>
+{#if homeworkDialogs}
+  <svelte:component
+    this={homeworkDialogs.CreateHomeworkDialog}
+    classSectionJwId={data.demo ? undefined : data.section.jwId}
+    classStarts={nextHomeworkClassStarts(data.section.schedules ?? [])}
+    locale={data.locale}
+    semester={state.showCreateHomework ? { start: _semesterDate("start"), end: _semesterDate("end") } : {}}
+    close={_closeCreateHomeworkDialog}
+    commentsCopy={_commentsCopy}
+    createHomework={_createHomework}
+    homeworkCopy={_homeworkCopy}
+    homeworkMessage={state.homeworkMessage}
+    bind:publishedAt={state.createHomeworkPublishedAt}
+    sectionLabel={_sectionHomeworkLabel}
+    show={state.showCreateHomework}
+    bind:submissionDueAt={state.createHomeworkSubmissionDueAt}
+    bind:submissionStartAt={state.createHomeworkSubmissionStartAt}
+  />
+
+  <svelte:component
+    this={homeworkDialogs.HomeworkDetailDialog}
+    showPersonalStatus={!data.demo && !overlayData.viewer.loading && !overlayData.viewer.failed && overlayData.viewer.signedIn === true}
+    classSectionJwId={data.demo ? undefined : data.section.jwId}
+    classStarts={nextHomeworkClassStarts(data.section.schedules ?? [])}
+    readOnlyReason={data.demo?.readOnlyReason}
+    referenceDate={data.demo?.referenceNow}
+    CommentsPanel={homeworkDialogs.CommentsPanel}
+    {_auditLogsForHomework}
+    {_canManageSelectedHomework}
+    _canWriteHomework={!personalLoading && !personalFailed && _canWriteHomework}
+    _completionSaving={state.completionSaving}
+    {_cancelEditHomework}
+    {_commentsCopy}
+    {_commonCopy}
+    _editHomeworkMessage={state.editHomeworkMessage}
+    bind:_editHomeworkPublishedAt={state.editHomeworkPublishedAt}
+    bind:_editHomeworkSubmissionDueAt={state.editHomeworkSubmissionDueAt}
+    bind:_editHomeworkSubmissionStartAt={state.editHomeworkSubmissionStartAt}
+    _editingHomework={state.editingHomework}
+    {_fmtDateTime}
+    {_formatMessage}
+    {_homeworkAuditActionLabel}
+    {_homeworkCopy}
+    {_sectionCopy}
+    _selectedHomework={state.selectedHomework}
+    {_semesterDate}
+    _setDeleteHomeworkTarget={set("deleteHomeworkTarget")}
+    {_startEditHomework}
+    {_toggleHomeworkCompletion}
+    {_updateHomework}
+    locale={data.locale}
+    sectionLabel={_sectionHomeworkLabel}
+    sectionJwId={data.section.jwId}
+    close={() => {
+      state.selectedHomework = null;
+      _cancelEditHomework();
+    }}
+  />
+
+  {#if state.isHomeworkAuditDialogOpen}
+    <svelte:component
+      this={homeworkDialogs.HomeworkAuditDialog}
+      actionLabel={_homeworkAuditActionLabel}
+      actorName={_homeworkAuditActorName}
+      fmtDateTime={_fmtDateTime}
+      formatMessage={_formatMessage}
+      homeworkCopy={_homeworkCopy}
+      logs={state.homeworkAuditLogs}
+      sectionCopy={_sectionCopy}
+      setOpen={setAuditOpen}
+    />
+  {/if}
+
+  {#if state.deleteHomeworkTarget}
+    <svelte:component
+      this={homeworkDialogs.HomeworkDeleteDialog}
+      formatMessage={_formatMessage}
+      homeworkCopy={_homeworkCopy}
+      onCancel={() => { state.deleteHomeworkTarget = null; }}
+      onConfirm={_deleteHomework}
+      target={state.deleteHomeworkTarget}
+    />
+  {/if}
+{/if}
+
+{#if CalendarSubscriptionDialog}
+  <svelte:component
+    this={CalendarSubscriptionDialog}
+    clipboardError={state.clipboardError}
+    clipboardMessage={state.clipboardMessage}
+    close={_closeCalendarDialog}
+    copy={_sectionCopy}
+    isOpen={state.isCalendarDialogOpen}
+    onOpenChange={set("isCalendarDialogOpen")}
+    personalScope={{ label: _sectionCopy.subscriptionUrlLabel, description: _sectionCopy.subscriptionUrlDescription, linkLabel: _sectionCopy.subscriptionMissing }}
+    showSubscriptionsLink={false}
+    urls={[{
+      copied: state.copiedCalendarTarget === "single",
+      description: _sectionCopy.calendarUrlDescription,
+      id: "calendar-url",
+      label: _sectionCopy.calendarUrlLabel,
+      onCopy: () => _copyText(singleCalendarUrl, "single"),
+      value: singleCalendarUrl,
+    }]}
+  />
+{/if}
+
+{#if state.showSubscribeDialog && !personalLoading && !personalFailed && (data.section.retiredAt == null || overlayData.viewer.isSubscribed)}
+  <SectionSubscribeDialog
+    close={_closeSubscribeDialog}
+    courseName={_courseName}
+    isSubscribed={Boolean(overlayData.viewer.isSubscribed)}
+    openCalendar={() => { _closeSubscribeDialog(); state.isCalendarDialogOpen = true; }}
+    commonCopy={_commonCopy}
+    homeworkCopy={_homeworkCopy}
+    sectionCopy={_sectionCopy}
+    signedIn={overlayData.viewer.signedIn === true}
+    subscriptionAction={_subscriptionAction}
+    subscriptionPendingAction={state.subscriptionPendingAction}
+  />
+{/if}

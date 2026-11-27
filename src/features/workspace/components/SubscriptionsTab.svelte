@@ -60,19 +60,6 @@ function setBulkImportOpen(open: boolean) {
   isBulkImportOpen = open;
 }
 
-function cancelBulkImport() {
-  resetBulkImport();
-  isBulkImportOpen = false;
-}
-
-function setConfirmImportOpen(open: boolean) {
-  isConfirmImportOpen = open;
-}
-
-function cancelConfirmImport() {
-  isConfirmImportOpen = false;
-}
-
 function setImportSectionSelection(sectionId: number, checked: boolean) {
   if (selectedImportSectionIdSet.has(sectionId) !== checked) {
     toggleImportSectionSelection(sectionId);
@@ -145,9 +132,8 @@ $: bulkImportSections = matchedSections.map<BulkImportSectionView>(
     bind:importText={bulkImportText}
     importMessage={bulkImportMessage}
     isMatching={isMatchingSections}
-    bind:isOpen={isBulkImportOpen}
+    isOpen={isBulkImportOpen}
     match={matchImportSections}
-    onCancel={cancelBulkImport}
     onOpenChange={setBulkImportOpen}
     bind:semesterId={bulkImportSemesterId}
     semesterOptions={signedData.subscriptions.semesters.map((semester) => ({
@@ -161,11 +147,10 @@ $: bulkImportSections = matchedSections.map<BulkImportSectionView>(
     {formatMessage}
     importError={bulkImportError}
     isImporting={isImportingSections}
-    bind:isOpen={isConfirmImportOpen}
+    isOpen={isConfirmImportOpen}
     matchedSections={bulkImportSections}
-    onCancel={cancelConfirmImport}
     onConfirm={confirmImportSections}
-    onOpenChange={setConfirmImportOpen}
+    onOpenChange={(open) => { isConfirmImportOpen = open; }}
     selectedSectionIdSet={selectedImportSectionIdSet}
     setSectionSelection={setImportSectionSelection}
     unmatchedCodes={unmatchedSectionCodes}

@@ -341,9 +341,22 @@ async function expectUnclipped(locator: Locator) {
   expect(geometry.clipped, JSON.stringify(geometry.observations)).toEqual([]);
 }
 
+// Keep the cross-month pair together. Splitting the desktop tooltip journey
+// leaves time for each owned case to verify its final native calendar effects.
+const crossRouteCases = [
+  {
+    width: 1280,
+    name: "first-and-makeup",
+    dates: ["2026-04-08", "2026-05-12"],
+  },
+  { width: 1280, name: "cross-month", dates: ["2026-04-29", "2026-05-01"] },
+  { width: 390, name: "all-dates", dates: meetings.map(({ date }) => date) },
+];
+
 for (const locale of ["en-us", "zh-cn"] as const) {
-  for (const width of [1280, 390]) {
-    test(`calendar.teaching-week-cross-route ${locale} ${width}`, {
+  for (const { width, name, dates } of crossRouteCases) {
+    const checkedMeetings = meetings.filter(({ date }) => dates.includes(date));
+    test(`calendar.teaching-week-cross-route ${locale} ${width} ${name}`, {
       tag: "@Calendar/Web",
     }, async ({ page, calendar: fixture, calendarDb, calendarRun }) => {
       // Arrange before the unchanged workflow/effects snapshot. The original
@@ -381,7 +394,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
             `/catalog/sections/${fixture.section.jwId}/schedule`,
           );
           const table = page.getByTestId("section-calendar-table");
-          for (const meeting of meetings) {
+          for (const meeting of checkedMeetings) {
             const row = table
               .getByRole("row")
               .filter({
@@ -418,7 +431,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
           if (!title)
             throw new Error("Calendar fixture needs both course titles");
           const names = labels(locale);
-          for (const [index, meeting] of meetings.entries()) {
+          for (const [index, meeting] of checkedMeetings.entries()) {
             // Keep the cross-date journey in one document using the real period controls.
             if (index === 0)
               await gotoAndWaitForReady(
@@ -487,7 +500,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                         const id = link.getAttribute("aria-describedby");
                         const content = id ? document.getElementById(id) : null;
                         const linked =
-                          content?.matches("[data-tooltip-content]") === true;
+                          content?.matches("[role=tooltip]") === true;
                         const style = content
                           ? getComputedStyle(content)
                           : null;
@@ -516,7 +529,7 @@ for (const locale of ["en-us", "zh-cn"] as const) {
                     complete: true,
                   });
                 const tooltip = page.locator(
-                  `[data-tooltip-content][id="${contentId}"]`,
+                  `[role=tooltip][id="${contentId}"]`,
                 );
                 await expect(tooltip).toContainText(title);
                 await expect(tooltip).toContainText("09:00");
