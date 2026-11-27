@@ -25,62 +25,6 @@ export type MatchedImportSection = {
   teachers: WorkspaceNamed[];
 };
 
-export type WorkspaceSubscriptionsTabCopy = WorkspaceSubscriptionsCopy & {
-  bulkImport: {
-    cancel: string;
-    confirmTitle: string;
-    confirmTitleOne: string;
-    descriptionPrefix: string;
-    undergraduateSystem: string;
-    descriptionConjunction: string;
-    graduateSystem: string;
-    description: string;
-    importing: string;
-    matchButton: string;
-    matchedSummary: string;
-    matching: string;
-    placeholder: string;
-    sectionCodesLabel: string;
-    semesterLabel: string;
-    semesterPlaceholder: string;
-    subscribeSelected: string;
-    subscribeSelectedOne: string;
-    title: string;
-  };
-  quickAdd: {
-    alreadySubscribed: string;
-    cancel: string;
-    codeLabel: string;
-    description: string;
-    emptyDescription: string;
-    emptyTitle: string;
-    placeholder: string;
-    resultsDescription: string;
-    resultsLabel: string;
-    resultsLabelOne: string;
-    searchButton: string;
-    searching: string;
-    selectSection: string;
-    subscribeSelected: string;
-    subscribing: string;
-    title: string;
-  };
-  iCalLink: string;
-  cancelUnsubscribe: string;
-  closeDetails: string;
-  confirmUnsubscribe: string;
-  detailsDescription: string;
-  openCourse: string;
-  openDetails: string;
-  sectionIncluded: string;
-  sectionsIncluded: string;
-  semester: string;
-  semesterGroup: string;
-  unsubscribe: string;
-  unsubscribeDescription: string;
-  unsubscribeTitle: string;
-};
-
 export type WorkspaceSubscriptionsSignedData = SignedWorkspaceData & {
   subscriptions: NonNullable<SignedWorkspaceData["subscriptions"]> & {
     calendarSubscriptionUrl?: string | null;
@@ -127,7 +71,7 @@ export type WorkspaceSubscriptionsTabProps = {
   subscribeQuickAddSections: (
     selectedSectionIds: number[],
   ) => void | Promise<void>;
-  subscriptionsCopy: WorkspaceSubscriptionsTabCopy;
+  subscriptionsCopy: WorkspaceSubscriptionsCopy;
   toggleImportSectionSelection: (sectionId: number) => void;
   unmatchedSectionCodes: string[];
 };

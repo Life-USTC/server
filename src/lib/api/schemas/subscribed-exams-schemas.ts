@@ -58,10 +58,14 @@ export const subscribedExamsResponseSchema =
   createPaginatedSchema(subscribedExamSchema);
 
 // Project the richer shared read model onto the existing public exam DTO.
-export const subscribedExamDtoSchema = subscribedExamSchema.extend({
+const subscribedExamDtoSchema = subscribedExamSchema.extend({
   section: subscribedExamSchema.shape.section
     .extend({
       course: subscribedExamSchema.shape.section.shape.course.strip(),
     })
     .strip(),
 });
+
+export const subscribedExamPageDtoSchema = createPaginatedSchema(
+  subscribedExamDtoSchema,
+);

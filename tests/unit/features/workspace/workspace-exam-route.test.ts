@@ -36,6 +36,7 @@ describe("workspace exam REST boundary", () => {
     });
     expect(listMock).toHaveBeenCalledWith("owner", {
       includeDateUnknown: true,
+      includeCatalogRelations: false,
       locale: "en-us",
       pagination: { page: 1, pageSize: 20 },
     });
@@ -68,6 +69,7 @@ describe("workspace exam REST boundary", () => {
       dateTo: new Date("2026-09-15T00:00:00Z"),
       semesterId: 9,
       includeDateUnknown: false,
+      includeCatalogRelations: false,
       locale: "zh-cn",
       pagination: { page: 2, pageSize: 3 },
     });

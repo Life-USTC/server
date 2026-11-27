@@ -117,7 +117,7 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
         await expect(page).toHaveURL(/\/account\/settings\/authorizations$/);
         await expect(
           page
-            .locator("[data-sonner-toast]")
+            .locator("[data-slot=toast]")
             .filter({ hasText: revokeSuccessText }),
         ).toBeVisible();
         await expect(
@@ -132,7 +132,7 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
         await expect(page).toHaveURL(/\/account\/settings\/authorizations$/);
         await expect(
           page
-            .locator("[data-sonner-toast]")
+            .locator("[data-slot=toast]")
             .filter({ hasText: revokeSuccessText }),
         ).toHaveCount(0);
         await expect(region.getByText(name, { exact: true })).toHaveCount(0);

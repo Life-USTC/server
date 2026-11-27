@@ -117,7 +117,6 @@ $: pageContent = {
           <span>{sectionCopy.pleaseRetry}</span>
           <Button
             size="sm"
-            type="button"
             variant="outline"
             onclick={retryStreamPanels}
           >

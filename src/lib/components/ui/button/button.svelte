@@ -1,4 +1,5 @@
 <script lang="ts" module>
+	import type { Component } from "svelte";
 	import { cn, type WithElementRef } from "#lib/utils.js";
 	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from "svelte/elements";
 	import { type VariantProps, tv } from "tailwind-variants";
@@ -36,22 +37,33 @@
 		WithElementRef<HTMLAnchorAttributes> & {
 			variant?: ButtonVariant;
 			size?: ButtonSize;
+			loading?: boolean;
+			icon?: Component<{ "data-icon"?: string }>;
 		};
 </script>
 
 <script lang="ts">
+	import { Spinner } from "#lib/components/ui/spinner/index.js";
+	import { Button as SDKButton } from "@ui-sdk/svelte/button";
 	let {
 		class: className,
 		variant = "default",
 		size = "default",
 		ref = $bindable(null),
 		href = undefined,
+		onclick,
 		type = "button",
 		disabled,
+		loading = false,
+		icon: Icon,
 		children,
 		...restProps
 	}: ButtonProps = $props();
 </script>
+
+{#snippet content()}
+  {#if loading}<Spinner data-icon="inline-start" />{:else if Icon}<Icon data-icon="inline-start" />{/if}{@render children?.()}
+{/snippet}
 
 {#if href}
 	<a
@@ -59,24 +71,30 @@
 		data-slot="button"
 		data-button-variant={variant}
 		class={cn(buttonVariants({ variant, size }), className)}
+		{onclick}
 		href={disabled ? undefined : href}
 		aria-disabled={disabled}
 		role={disabled ? "link" : undefined}
 		tabindex={disabled ? -1 : undefined}
 		{...restProps}
 	>
-		{@render children?.()}
+		{@render content()}
 	</a>
 {:else}
-	<button
-		bind:this={ref}
+	<SDKButton
+		{@attach (element: HTMLButtonElement) => { ref = element; return () => { ref = null; }; }}
 		data-slot="button"
 		data-button-variant={variant}
 		class={cn(buttonVariants({ variant, size }), className)}
-		{type}
-		{disabled}
+		type={type ?? "button"}
+    disabled={disabled ?? false}
+    onclick={(event) => {
+      if (onclick && event.currentTarget instanceof HTMLButtonElement) {
+        onclick(event as MouseEvent & { currentTarget: HTMLButtonElement });
+      }
+    }}
 		{...restProps}
 	>
-		{@render children?.()}
-	</button>
+		{@render content()}
+	</SDKButton>
 {/if}
