@@ -23,15 +23,12 @@ export let markdownModeLabel = "";
   <MarkdownEditor
     aria-labelledby={`${idPrefix}-description-label`}
     {disabled}
-    guideLabel={commentsCopy.markdownGuide}
+    copy={commentsCopy}
     maxlength={HOMEWORK_DESCRIPTION_MAX_LENGTH}
     modeLabel={markdownModeLabel || copy.descriptionLabel}
     name="description"
     placeholder={copy.descriptionPlaceholder}
-    previewEmptyLabel={commentsCopy.previewEmpty}
     remarkPlugins={campusReferenceMarkdownPlugins}
-    tabPreviewLabel={commentsCopy.tabPreview}
-    tabWriteLabel={commentsCopy.tabWrite}
     value={description}
   />
 </Field.Field>

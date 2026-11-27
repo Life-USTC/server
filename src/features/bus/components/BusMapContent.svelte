@@ -1,6 +1,6 @@
 <script lang="ts">
+import EmptyState from "#lib/components/EmptyState.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Empty from "#lib/components/ui/empty/index.js";
 import BusMapPageHeader from "@/features/bus/components/BusMapPageHeader.svelte";
 import BusMapVehicleGlyph from "@/features/bus/components/BusMapVehicleGlyph.svelte";
 import BusTransitSvg from "@/features/bus/components/BusTransitSvg.svelte";
@@ -65,12 +65,7 @@ $: busMapView = buildBusMapViewState(mapData, dayTypeLabels, locale);
   </div>
 
   {#if !mapData}
-    <Empty.Root class="py-16">
-      <Empty.Header>
-        <Empty.Title>{copy.noData}</Empty.Title>
-        <Empty.Description>{copy.noDataDescription}</Empty.Description>
-      </Empty.Header>
-    </Empty.Root>
+    <EmptyState title={copy.noData} description={copy.noDataDescription} />
   {:else}
     <div class="bus-map-canvas flex min-h-0 min-w-0 items-start justify-center">
       <BusTransitSvg

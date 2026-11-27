@@ -1,14 +1,18 @@
 <script lang="ts">
-import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
-import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
-import AdminModerationDescriptionCards from "./AdminModerationDescriptionCards.svelte";
-import AdminModerationDescriptionSummary from "./AdminModerationDescriptionSummary.svelte";
-import AdminModerationDescriptionTable from "./AdminModerationDescriptionTable.svelte";
+import ResultsSummary from "#lib/components/ResultsSummary.svelte";
+import TruncatedText from "#lib/components/TruncatedText.svelte";
+import * as Item from "#lib/components/ui/item/index.js";
+import AdminEditAction from "./AdminEditAction.svelte";
+import {
+  adminModerationDescriptionEditedAt,
+  adminModerationDescriptionLastEditor,
+} from "./admin-moderation-description-display";
 import type {
   AdminModerationDescription,
   AdminModerationDescriptionCopy,
 } from "./admin-moderation-description-types";
 import type { AdminModerationFilterControls } from "./admin-moderation-page-types";
+import ModerationCollection from "./ModerationCollection.svelte";
 
 export let filterControls: AdminModerationFilterControls;
 export let copy: AdminModerationDescriptionCopy;
@@ -26,44 +30,74 @@ export let targetLabel: (description: AdminModerationDescription) => string;
 </script>
 
 <section class="grid grid-cols-[minmax(0,1fr)] gap-3">
-  <AdminModerationDescriptionSummary
-    {copy}
-    count={descriptions.length}
-    {formatMessage}
+  <ResultsSummary
+    summary={formatMessage(descriptions.length === 1 ? copy.showingResultsOne : copy.showingResults, {
+        count: String(descriptions.length),
+      })}
   />
 
-    <ResponsiveCollection>
-      {#snippet mobile()}
-        <div class="mb-3 flex flex-wrap items-center gap-2" data-slot="collection-header">
-          {@render filterControls("search", "mobile")}
-          {@render filterControls("author", "mobile")}
-          {@render filterControls("editedAt", "mobile")}
-
-          {@render filterControls("descriptionContent", "mobile")}
-          {@render filterControls("descriptionTarget", "mobile")}
-        </div>
-        {#if descriptions.length === 0}<CollectionEmpty variant="compact" description={copy.noDescriptions} />{:else}
-        <AdminModerationDescriptionCards
-          {copy}
-          {descriptions}
-          {formatDate}
-          {formatMessage}
-          manageLabel={copy.manageDescription}
-          {onManage}
-          {targetLabel}
+  <ModerationCollection
+    tableClass="w-full min-w-[54rem]"
+    actionsLabel={copy.actions}
+    columns={[
+      ["descriptionContent", 36],
+      ["author", 18],
+      ["descriptionTarget", 22],
+      ["editedAt", 14],
+    ]}
+    {filterControls}
+    items={descriptions}
+    label={copy.descriptionPreview}
+    emptyDescription={copy.noDescriptions}
+    fields={["search", "author", "editedAt", "descriptionContent", "descriptionTarget"]}
+  >
+    {#snippet card(description: AdminModerationDescription)}
+    <Item.Content class="min-w-0 gap-2">
+      <Item.Title class="line-clamp-4 whitespace-pre-wrap">{description.content || copy.emptyDescription}</Item.Title>
+      <Item.Description>{targetLabel(description)}</Item.Description>
+      <Item.Description>
+        {formatDate(adminModerationDescriptionEditedAt(description))}
+      </Item.Description>
+      <Item.Description>
+        {formatMessage(copy.lastEditor, {
+          name: adminModerationDescriptionLastEditor(description, copy),
+        })}
+      </Item.Description>
+    </Item.Content>
+    <Item.Actions class="shrink-0 self-start">
+      <AdminEditAction layout="card" label={copy.manageDescription} onclick={() => onManage(description)} />
+    </Item.Actions>
+    {/snippet}
+    {#snippet cells(description: AdminModerationDescription)}
+      {@const author = adminModerationDescriptionLastEditor(description, copy)}
+      <td class="max-w-0">
+        <TruncatedText
+          class="text-sm font-medium"
+          lines={2}
+          preserveWhitespace
+          text={description.content?.trim()
+            ? description.content
+            : copy.emptyDescription}
         />
-        {/if}
-      {/snippet}
-      {#snippet desktop()}
-        <AdminModerationDescriptionTable
-          {filterControls}
-          {copy}
-          {descriptionTargetHref}
-          {descriptions}
-          {formatDate}
-          {onManage}
-          {targetLabel}
-        />
-      {/snippet}
-    </ResponsiveCollection>
+      </td>
+      <td class="max-w-0">
+        <span class="block max-w-full truncate" title={author}>{author}</span>
+      </td>
+      <td class="max-w-0">
+        <a
+          class="block min-w-0 max-w-full overflow-hidden hover:underline"
+          href={descriptionTargetHref(description)}
+          title={targetLabel(description)}
+        >
+          <TruncatedText text={targetLabel(description)} />
+        </a>
+      </td>
+      <td class="whitespace-nowrap text-left tabular-nums text-muted-foreground">
+        {formatDate(adminModerationDescriptionEditedAt(description))}
+      </td>
+      <td class="w-14 min-w-14 text-left">
+        <AdminEditAction layout="table" label={copy.manageDescription} onclick={() => onManage(description)} />
+      </td>
+    {/snippet}
+  </ModerationCollection>
 </section>

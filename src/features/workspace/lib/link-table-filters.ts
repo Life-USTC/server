@@ -4,7 +4,7 @@ import {
   type TableFilterLabels,
 } from "@/lib/table-filters";
 import type {
-  AnonymousLinkGroup,
+  CatalogLinkGroupEntry,
   WorkspaceCopy,
 } from "./workspace-controller-types";
 
@@ -51,7 +51,7 @@ export function linkTableFields(
 }
 
 export function filterLinkGroups(
-  groups: AnonymousLinkGroup[],
+  groups: CatalogLinkGroupEntry[],
   fields: TableFilterField[],
   values: Record<string, string>,
 ) {
