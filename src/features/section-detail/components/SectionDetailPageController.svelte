@@ -82,7 +82,8 @@ async function loadPersonalData() {
   if (
     !$shellViewer.viewer &&
     !data.demo &&
-    (data.detailSection === "introduction" || data.detailSection === "schedule") &&
+    (data.detailSection === "introduction" ||
+      data.detailSection === "schedule") &&
     !data.focusedHomeworkId
   ) {
     personalLoading = false;
