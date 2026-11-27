@@ -28,8 +28,7 @@ let { data, form }: { data: PageData; form: ActionData } = $props();
         <div class="mt-5 mb-2 flex items-center justify-between gap-2">
           <h2 class="section-heading">{data.copy.sectionDetail.classSchedule}</h2>
           {#if sectionCalendarEvents.length}
-            <Button variant="outline" size="sm" disabled={Boolean(data.demo)} onclick={openCalendarDialog}>
-              <CalendarPlusIcon data-icon="inline-start" />{sectionCopy.addToCalendar}
+            <Button icon={CalendarPlusIcon} variant="outline" size="sm" disabled={Boolean(data.demo)} onclick={openCalendarDialog}>{sectionCopy.addToCalendar}
             </Button>
           {/if}
         </div>

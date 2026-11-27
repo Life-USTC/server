@@ -126,7 +126,7 @@ async function copyUrl() {
 </script>
 
 {#if renderTrigger}
-  <Button class={className} {size} type="button" {variant} onclick={open}>
+  <Button class={className} {size} {variant} onclick={open}>
     {#if showIcon}
       <Link2 data-icon="inline-start" />
     {/if}
@@ -158,16 +158,14 @@ async function copyUrl() {
 {:else}
 <Dialog.Root open={isOpen} onOpenChange={setOpen}>
   <Dialog.Content>
-    <Dialog.Header>
-      <Dialog.Title>{buttonLabel}</Dialog.Title>
-      <Dialog.Description>{calendarLinkState === "reauthenticate" ? recoveryCopy.reauthenticate : recoveryCopy.unavailable}</Dialog.Description>
-    </Dialog.Header>
+    <Dialog.Header
+      heading={buttonLabel}
+      description={calendarLinkState === "reauthenticate" ? recoveryCopy.reauthenticate : recoveryCopy.unavailable}
+    />
     {#if retryFailed}
-      <Alert.Root variant="destructive">
-        <Alert.Description>{recoveryCopy.unavailable}</Alert.Description>
-      </Alert.Root>
+      <Alert.Message variant="destructive">{recoveryCopy.unavailable}</Alert.Message>
     {/if}
-    <Dialog.Footer>
+    <div data-slot="dialog-footer">
       {#if calendarLinkState === "reauthenticate"}
         <Button href={buildReauthenticationPageUrl(returnTo)}>{recoveryCopy.signIn}</Button>
       {:else}
@@ -177,7 +175,7 @@ async function copyUrl() {
         </Button>
       {/if}
       <Button variant="outline" onclick={close}>{sectionCopy.close}</Button>
-    </Dialog.Footer>
+    </div>
   </Dialog.Content>
 </Dialog.Root>
 {/if}

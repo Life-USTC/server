@@ -37,7 +37,10 @@ export type YoungCalendarWeek = {
   days: YoungCalendarDay[];
 };
 
-function eventTimes(event: YoungCalendarEvent, timeBasis: YoungEventTimeBasis) {
+export function youngEventTimes(
+  event: YoungCalendarEvent,
+  timeBasis: YoungEventTimeBasis,
+) {
   return timeBasis === "registration"
     ? { startAt: event.applyStartAt, endAt: event.applyEndAt }
     : { startAt: event.startAt, endAt: event.endAt };
@@ -99,7 +102,7 @@ export function youngCalendarDays(
   // while the original timestamp text retains the public list's tie ordering.
   const timedEvents = events
     .map((event) => {
-      const times = eventTimes(event, timeBasis);
+      const times = youngEventTimes(event, timeBasis);
       return {
         event,
         start: times.startAt ? new Date(times.startAt).getTime() : NaN,

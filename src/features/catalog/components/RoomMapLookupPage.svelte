@@ -174,17 +174,17 @@ function floorLabel(floor: string) {
         <h2 class="font-medium text-sm">{copy.browseTitle}</h2>
         <p class="text-muted-foreground text-sm">{copy.browseGuidance}</p>
       </div>
-      <Accordion.Root type="multiple" bind:value={openedCampus}>
+      <Accordion.Root multiple bind:value={openedCampus}>
         {#each campuses as campus (campus)}
           <Accordion.Item value={campus}>
             <Accordion.Trigger>{campus}</Accordion.Trigger>
             <Accordion.Content>
-              <Accordion.Root type="multiple" bind:value={openedBuilding}>
+              <Accordion.Root multiple bind:value={openedBuilding}>
                 {#each buildings.filter((building) => (building.campus ?? copy.unknownCampus) === campus) as entry (entry.building)}
                   <Accordion.Item value={entry.building} data-testid="room-map-building">
                     <Accordion.Trigger level={4}>{entry.building} · {roomCountLabel(entry.roomCount)}</Accordion.Trigger>
                     <Accordion.Content>
-                      <Accordion.Root type="multiple" bind:value={openedFloor}>
+                      <Accordion.Root multiple bind:value={openedFloor}>
                         {#each entry.floors as floor (floor.floor)}
                           <Accordion.Item value={`${entry.building}:${floor.floor}`}>
                             <Accordion.Trigger level={5}>{floorLabel(floor.floor)}</Accordion.Trigger>
