@@ -18,9 +18,7 @@ export let cancelEdit: () => void;
 export let comment: CommentNode;
 export let commentCopy: CommentsCopy;
 export let editAttachmentIds: string[];
-export let editAttachmentOptions: (
-  comment: CommentNode,
-) => CommentUploadOption[];
+export let files: CommentUploadOption[];
 export let editDraft: string;
 export let editIsAnonymous: boolean;
 export let editVisibility: string;
@@ -54,19 +52,15 @@ $: editEditorLabelId = `comment-edit-editor-label-${comment.id}`;
     <MarkdownEditor
       bind:value={editDraft}
       aria-labelledby={editEditorLabelId}
-      compact
-      guideLabel={commentCopy.markdownGuide}
+      copy={commentCopy}
       modeLabel={commentCopy.markdownModeLabel}
       placeholder={commentCopy.editorPlaceholder}
-      previewEmptyLabel={commentCopy.previewEmpty}
       remarkPlugins={campusReferenceMarkdownPlugins}
       rows={4}
-      tabPreviewLabel={commentCopy.tabPreview}
-      tabWriteLabel={commentCopy.tabWrite}
     />
   </Field.Field>
   <CommentAttachmentPills
-    files={editAttachmentOptions(comment)}
+    {files}
     removeLabel={commentCopy.removeAttachment}
     onRemove={(id) => {
       editAttachmentIds = editAttachmentIds.filter(
@@ -84,12 +78,11 @@ $: editEditorLabelId = `comment-edit-editor-label-${comment.id}`;
         uploadFile(file, "edit");
       }}
     />
-    <Button type="button" variant="ghost" onclick={cancelEdit}>
+    <Button variant="ghost" onclick={cancelEdit}>
       {commentCopy.cancelAction}
     </Button>
     <Button
       disabled={!editDraft.trim() || uploading}
-      type="button"
       onclick={() => saveEdit(comment)}
     >
       {commentCopy.saveAction}

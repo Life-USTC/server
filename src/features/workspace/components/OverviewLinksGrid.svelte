@@ -5,7 +5,7 @@ import { catalogLinkVisitHref } from "@/features/catalog-links/lib/catalog-links
 import { WORKSPACE_OVERVIEW_PREVIEW_LIMIT } from "@/features/workspace/lib/overview-preview";
 import type {
   WorkspaceCopy,
-  WorkspaceLinkPinAction,
+  WorkspaceLinkPinSubmit,
   WorkspaceOverviewLinkItem,
 } from "@/features/workspace/lib/workspace-controller-helpers";
 import LinksTabPinButton from "./LinksTabPinButton.svelte";
@@ -16,10 +16,7 @@ export let workspaceCopy: WorkspaceCopy;
 export let workspaceTabHref: WorkspaceCalendarTabHref;
 export let linkIconLabel: (icon: string) => string;
 export let links: WorkspaceOverviewLinkItem[];
-export let submitWorkspaceLinkPin: (
-  slug: string,
-  action: "pin" | "unpin",
-) => void;
+export let submitWorkspaceLinkPin: WorkspaceLinkPinSubmit;
 export let updatingCatalogLinkSlug: string | null;
 let className = "";
 
@@ -27,16 +24,6 @@ export { className as class };
 
 const previewLimit = WORKSPACE_OVERVIEW_PREVIEW_LIMIT;
 $: previewLinks = links.slice(0, previewLimit);
-
-function pinLabel(link: WorkspaceOverviewLinkItem) {
-  return link.isPinned
-    ? workspaceCopy.linkHub.unpin
-    : workspaceCopy.linkHub.pin;
-}
-
-function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
-  return link.isPinned ? "unpin" : "pin";
-}
 </script>
 
 <OverviewSection
@@ -80,11 +67,10 @@ function pinAction(link: WorkspaceOverviewLinkItem): WorkspaceLinkPinAction {
             class={`absolute top-2 right-1 ${link.isPinned || readOnlyReason ? "" : "md:pointer-events-none md:opacity-0 md:transition-opacity md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 md:group-hover:pointer-events-auto md:group-hover:opacity-100"}`}
           >
             <LinksTabPinButton
-        {readOnlyReason}
+              {readOnlyReason}
               {link}
               linkReturnTo={workspaceTabHref("overview")}
-              {pinAction}
-              {pinLabel}
+              {workspaceCopy}
               {submitWorkspaceLinkPin}
               {updatingCatalogLinkSlug}
             />

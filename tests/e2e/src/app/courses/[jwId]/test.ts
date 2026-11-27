@@ -384,7 +384,7 @@ test.describe("/catalog/courses/[jwId] 课程详情", () => {
           await expect(commentCard).toBeVisible();
           await expect(
             page
-              .locator("[data-sonner-toast]")
+              .locator("[data-slot=toast]")
               .filter({ hasText: /评论已发布|Comment posted/i }),
           ).toBeVisible();
           // comment.author.name visible

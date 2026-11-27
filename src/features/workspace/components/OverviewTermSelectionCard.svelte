@@ -21,12 +21,10 @@ export { className as class };
 <OverviewSection class={className} testId="workspace-overview-term-context" title={workspaceCopy.termSelection.title}>
   <SoftEmptyMessage message={description} />
   <div class="mt-1 flex flex-wrap gap-2">
-    <Button href={workspaceTabHref("subscriptions")}>
-      <Search data-icon="inline-start" />
+    <Button icon={Search} href={workspaceTabHref("subscriptions")}>
       {workspaceCopy.termSelection.matchByCode}
     </Button>
-    <Button href="/catalog/sections" variant="outline">
-      <BookOpen data-icon="inline-start" />
+    <Button icon={BookOpen} href="/catalog/sections" variant="outline">
       {workspaceCopy.termSelection.browseSections}
     </Button>
     <Button href="/catalog/courses" variant="outline">

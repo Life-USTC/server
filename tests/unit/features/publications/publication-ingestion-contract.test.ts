@@ -25,6 +25,15 @@ describe("publication ingestion contract", () => {
     expect(parsed.success).toBe(true);
   });
 
+  it("accepts missing-only repair batches without changing the live fixture", () => {
+    const parsed = publicationIngestionBatchRequestSchema.parse({
+      ...fixture,
+      revisionPolicy: "missingOnly",
+    });
+    expect(parsed.revisionPolicy).toBe("missingOnly");
+    expect(fixture).not.toHaveProperty("revisionPolicy");
+  });
+
   it("accepts the minimal source descriptor form", () => {
     const parsed = publicationIngestionBatchRequestSchema.safeParse({
       ...fixture,

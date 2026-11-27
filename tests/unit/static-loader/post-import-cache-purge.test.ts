@@ -19,9 +19,7 @@ function okResponse() {
   return new Response('{"success":true}', { status: 200 });
 }
 
-function configureBothLayers() {
-  process.env.CLOUDFLARE_ZONE_ID = "zone-1";
-  process.env.CLOUDFLARE_API_TOKEN = "token-1";
+function configurePurge() {
   process.env.APP_PUBLIC_ORIGIN = ORIGIN;
   process.env.EDGE_CACHE_PURGE_SECRET = PURGE_SECRET;
 }
@@ -47,7 +45,7 @@ describe("post-import cache purge", () => {
   });
 
   it("rendering-and-cache.cache-layers-and-invalidation-5", async () => {
-    configureBothLayers();
+    configurePurge();
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(okResponse());
@@ -63,16 +61,10 @@ describe("post-import cache purge", () => {
       zone: "purged",
     });
 
-    // The zone purge alone never reaches the Workers entrypoint cache, so a
-    // committed import has to call both endpoints.
-    const targets = fetchMock.mock.calls.map(([input]) => String(input));
-    expect(targets).toContain(`${ORIGIN}${PUBLIC_SSR_CACHE_PURGE_PATH}`);
-    expect(
-      targets.some((target) => target.includes("/zones/zone-1/purge_cache")),
-    ).toBe(true);
-
-    const entrypointCall = fetchMock.mock.calls.find(([input]) =>
-      String(input).endsWith(PUBLIC_SSR_CACHE_PURGE_PATH),
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const entrypointCall = fetchMock.mock.calls[0];
+    expect(String(entrypointCall?.[0])).toBe(
+      `${ORIGIN}${PUBLIC_SSR_CACHE_PURGE_PATH}`,
     );
     const init = entrypointCall?.[1] as RequestInit & {
       headers: Record<string, string>;
@@ -86,7 +78,7 @@ describe("post-import cache purge", () => {
   it.each(["rolled-back"] as const)(
     "purges nothing for a %s import",
     async (outcome) => {
-      configureBothLayers();
+      configurePurge();
       const fetchMock = vi
         .spyOn(globalThis, "fetch")
         .mockResolvedValue(okResponse());
@@ -103,7 +95,7 @@ describe("post-import cache purge", () => {
   );
 
   it("retries both cache layers for an unchanged committed snapshot", async () => {
-    configureBothLayers();
+    configurePurge();
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(new Response("unavailable", { status: 503 }));
@@ -119,11 +111,11 @@ describe("post-import cache purge", () => {
       workerEntrypoint: "purged",
       zone: "purged",
     });
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("reports a failure loudly when the entrypoint purge is rejected", async () => {
-    configureBothLayers();
+    configurePurge();
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input) =>
       String(input).endsWith(PUBLIC_SSR_CACHE_PURGE_PATH)
         ? new Response('{"error":"Cache purge failed"}', { status: 502 })
@@ -136,16 +128,16 @@ describe("post-import cache purge", () => {
     expect(report).toEqual({
       failed: true,
       workerEntrypoint: "failed",
-      zone: "purged",
+      zone: "failed",
     });
     expect(log.error).toHaveBeenCalledWith(
-      expect.stringContaining("Workers entrypoint"),
+      expect.stringContaining("Cloudflare zone/CDN and Workers entrypoint"),
       expect.any(Error),
     );
   });
 
   it("does not log a rejected entrypoint response body", async () => {
-    configureBothLayers();
+    configurePurge();
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input) =>
       String(input).endsWith(PUBLIC_SSR_CACHE_PURGE_PATH)
         ? new Response(`private body ${PURGE_SECRET}`, { status: 502 })
@@ -160,34 +152,7 @@ describe("post-import cache purge", () => {
     expect(String(log.error.mock.calls[0]?.[1])).toContain("HTTP 502");
   });
 
-  it("treats a successful HTTP status with a rejected zone purge as failure", async () => {
-    configureBothLayers();
-    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) =>
-      String(input).includes("/zones/")
-        ? new Response(
-            JSON.stringify({
-              success: false,
-              errors: [{ message: PURGE_SECRET }],
-            }),
-            { status: 200 },
-          )
-        : okResponse(),
-    );
-    const log = logger();
-
-    const report = await runPostImportCachePurge({ outcome: "committed" }, log);
-
-    expect(report).toEqual({
-      failed: true,
-      workerEntrypoint: "purged",
-      zone: "failed",
-    });
-    expect(String(log.error.mock.calls[0]?.[1])).not.toContain(PURGE_SECRET);
-  });
-
   it("rendering-and-cache.cache-layers-and-invalidation-12", async () => {
-    process.env.CLOUDFLARE_ZONE_ID = "zone-1";
-    process.env.CLOUDFLARE_API_TOKEN = "token-1";
     process.env.EDGE_CACHE_PURGE_SECRET = PURGE_SECRET;
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
@@ -199,17 +164,15 @@ describe("post-import cache purge", () => {
     expect(report).toEqual({
       failed: true,
       workerEntrypoint: "failed",
-      zone: "purged",
+      zone: "failed",
     });
     expect(log.error).toHaveBeenCalledWith(
-      expect.stringContaining("Workers entrypoint"),
+      expect.stringContaining("Cloudflare zone/CDN and Workers entrypoint"),
     );
     expect(JSON.stringify(fetchMock.mock.calls)).not.toContain(PURGE_SECRET);
   });
 
   it("allows skipping purge layers locally when explicitly opted in", async () => {
-    process.env.CLOUDFLARE_ZONE_ID = "zone-1";
-    process.env.CLOUDFLARE_API_TOKEN = "token-1";
     process.env.EDGE_CACHE_PURGE_SECRET = PURGE_SECRET;
     process.env[ALLOW_SKIPPING_POST_IMPORT_CACHE_PURGE_ENV] = "true";
     const fetchMock = vi
@@ -224,8 +187,8 @@ describe("post-import cache purge", () => {
     expect(report).toEqual({
       failed: false,
       workerEntrypoint: "skipped",
-      zone: "purged",
+      zone: "skipped",
     });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

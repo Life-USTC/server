@@ -4,16 +4,16 @@ import ClassIcon from "@lucide/svelte/icons/graduation-cap";
 import Pencil from "@lucide/svelte/icons/pencil";
 import UserMinus from "@lucide/svelte/icons/user-minus";
 import CollectionEmpty from "#lib/components/CollectionEmpty.svelte";
+import ResponsiveCollection from "#lib/components/ResponsiveCollection.svelte";
 import TableFieldFilter from "#lib/components/TableFieldFilter.svelte";
 import TableIconButton from "#lib/components/TableIconButton.svelte";
 import TableRowActions from "#lib/components/TableRowActions.svelte";
 import TruncatedText from "#lib/components/TruncatedText.svelte";
 import { Badge } from "#lib/components/ui/badge/index.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
-import * as Table from "#lib/components/ui/table/index.js";
-import WorkspaceCollection from "#lib/components/WorkspaceCollection.svelte";
+import Table from "#lib/components/ui/table/table.svelte";
 import SubscriptionCancelDialog from "@/features/subscriptions/components/SubscriptionCancelDialog.svelte";
+import { subscriptionKindSchema } from "@/features/subscriptions/lib/subscription-kind";
 import { groupSubscribedSectionsBySemester } from "@/features/workspace/lib/subscriptions";
 import type {
   SubscriptionsData,
@@ -85,12 +85,9 @@ const columns = $derived<TableFilterField[][]>([
     {
       name: "kind",
       label: subscriptionsCopy.kindEditor.title,
-      options: ["regular", "auditor", "teaching_assistant"].map((value) => ({
+      options: subscriptionKindSchema.options.map((value) => ({
         value,
-        label:
-          subscriptionsCopy.kindEditor[
-            value as "regular" | "auditor" | "teaching_assistant"
-          ],
+        label: subscriptionsCopy.kindEditor[value],
       })),
     },
   ],
@@ -189,6 +186,29 @@ function handleRemoveDialogOpenChange(open: boolean) {
 }
 </script>
 
+{#snippet sectionActions(section: SubscriptionSection)}
+  <TableIconButton
+    label={subscriptionsCopy.kindEditor.title}
+    disabled={Boolean(readOnlyReason)}
+    onclick={() => requestEditKind(section)}
+    icon={Pencil}
+  />
+
+  <TableIconButton
+    href={`/catalog/sections/${section.jwId}`}
+    label={sectionCopy.moreDetails}
+    icon={ArrowUpRight}
+  />
+  <TableIconButton
+    disabled={Boolean(readOnlyReason) || removingSectionId === section.id}
+    label={subscriptionsCopy.unsubscribe}
+    variant="destructive"
+    onclick={() => requestRemoveSection(section)}
+    icon={UserMinus}
+    loading={removingSectionId === section.id}
+  />
+{/snippet}
+
 {#if subscriptions.length > 0}
   <form id="subscriptions-filters" onsubmit={apply} class="flex flex-wrap items-end gap-3 [&_[data-slot=table-column-header]_button]:mx-0">
     <TableFieldFilter label={semesterField.label} fields={[semesterField]} values={draft} onchange={change} labels={common.tableFilters} idPrefix="subscriptions-extra" formId="subscriptions-filters" />
@@ -221,23 +241,19 @@ function handleRemoveDialogOpenChange(open: boolean) {
             )}
           </span>
         </div>
-        <WorkspaceCollection>
+        <ResponsiveCollection workspace>
           {#snippet mobile()}
             <SubscriptionsCardsView
               {courseName}
               {teacherNames}
-              {readOnlyReason}
-              workspaceCopy={workspaceCopy}
-              requestRemoveSection={requestRemoveSection}
-              requestEditKind={requestEditKind}
-              removingSectionId={removingSectionId}
-              sectionCopy={sectionCopy}
+              {workspaceCopy}
+              {sectionActions}
               sections={group.sections}
               subscriptionsCopy={subscriptionsCopy}
             />
           {/snippet}
           {#snippet desktop()}
-          <Table.Root
+          <Table
             class="w-full table-fixed"
             data-testid="subscription-semester-table"
           >
@@ -247,22 +263,22 @@ function handleRemoveDialogOpenChange(open: boolean) {
               <col class="w-20" />
               <col class="w-32" />
             </colgroup>
-            <Table.Header>
-              <Table.Row>
-                <Table.Head>{subscriptionsCopy.courseName}</Table.Head>
-                <Table.Head>{sectionCopy.teachers}</Table.Head>
-                <Table.Head class="text-left">
+            <thead>
+              <tr>
+                <th>{subscriptionsCopy.courseName}</th>
+                <th>{sectionCopy.teachers}</th>
+                <th class="text-left">
                   {subscriptionsCopy.credits}
-                </Table.Head>
-                <Table.Head>
+                </th>
+                <th>
                   <span class="sr-only">{sectionCopy.moreDetails}</span>
-                </Table.Head>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
               {#each group.sections as section}
-                <Table.Row class="group">
-                  <Table.Cell>
+                <tr class="group">
+                  <td>
                     <div class="flex min-w-0 flex-wrap items-center gap-1.5">
                         <a
                           class="inline-flex min-w-0 max-w-full items-center gap-1.5 py-0.5 text-base font-medium"
@@ -275,45 +291,22 @@ function handleRemoveDialogOpenChange(open: boolean) {
                         <Badge variant="secondary">{subscriptionsCopy.kindEditor[section.kind]}</Badge>
                       {/if}
                     </div>
-                  </Table.Cell>
+                  </td>
 
-                  <Table.Cell><TruncatedText text={teacherNames(section)} /></Table.Cell>
-                  <Table.Cell class="text-left">{section.credits ?? workspaceCopy.notAvailable}</Table.Cell>
+                  <td><TruncatedText text={teacherNames(section)} /></td>
+                  <td class="text-left">{section.credits ?? workspaceCopy.notAvailable}</td>
 
-                  <Table.Cell>
+                  <td>
                     <TableRowActions>
-                      <TableIconButton
-                        label={subscriptionsCopy.kindEditor.title}
-                        disabled={Boolean(readOnlyReason)}
-                        onclick={() => requestEditKind(section)}
-                      ><Pencil data-icon="inline-start" /></TableIconButton>
-
-                      <TableIconButton
-                        disabled={Boolean(readOnlyReason) || removingSectionId === section.id}
-                        label={subscriptionsCopy.unsubscribe}
-                        variant="destructive"
-                        onclick={() => requestRemoveSection(section)}
-                      >
-                        {#if removingSectionId === section.id}
-                          <Spinner data-icon="inline-start" />
-                        {:else}
-                          <UserMinus data-icon="inline-start" />
-                        {/if}
-                      </TableIconButton>
-                      <TableIconButton
-                        href={`/catalog/sections/${section.jwId}`}
-                        label={sectionCopy.moreDetails}
-                      >
-                        <ArrowUpRight data-icon="inline-start" />
-                      </TableIconButton>
+                      {@render sectionActions(section)}
                     </TableRowActions>
-                  </Table.Cell>
-                </Table.Row>
+                  </td>
+                </tr>
               {/each}
-            </Table.Body>
-          </Table.Root>
+            </tbody>
+          </Table>
           {/snippet}
-        </WorkspaceCollection>
+        </ResponsiveCollection>
       </section>
     {/each}
   </div>

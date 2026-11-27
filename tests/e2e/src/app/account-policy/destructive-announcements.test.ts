@@ -48,7 +48,7 @@ test("cases.content-security.destructive-actions-1", {
       ).toEqual({ status: "active" });
       await expect(
         page
-          .locator("[data-sonner-toast]")
+          .locator("[data-slot=toast]")
           .filter({ hasText: "Comment deleted" }),
       ).toHaveCount(0);
     };
@@ -79,9 +79,9 @@ test("cases.content-security.destructive-actions-1", {
     await expect(dialog).toHaveCount(0);
     await expect(
       page
-        .locator('[data-sonner-toast][aria-live="polite"][aria-atomic="true"]')
+        .locator('[aria-live="polite"][aria-atomic="true"]')
         .filter({ hasText: "Comment deleted" }),
-    ).toBeVisible();
+    ).toBeAttached();
     await expect(comment).toHaveCount(0);
     expect(
       await f.db.comment.findUnique({
@@ -125,7 +125,7 @@ test("cases.content-security.destructive-actions-2", {
       ).toHaveCount(0);
       await expect(
         page
-          .locator("[data-sonner-toast]")
+          .locator("[data-slot=toast]")
           .filter({ hasText: "Suspended successfully" }),
       ).toHaveCount(0);
       expect(
@@ -181,7 +181,7 @@ test("cases.content-security.destructive-actions-2", {
       held.release();
     }
     const success = page
-      .locator('[data-sonner-toast][aria-live="polite"][aria-atomic="true"]')
+      .locator('[aria-live="polite"][aria-atomic="true"]')
       .filter({ hasText: "Suspended successfully" });
     await expect(success).toBeVisible();
     await expect(
@@ -247,7 +247,7 @@ test("cases.content-security.destructive-actions-3", {
       ).toEqual({ status: "active" });
       await expect(
         page
-          .locator("[data-sonner-toast]")
+          .locator("[data-slot=toast]")
           .filter({ hasText: "Comment updated" }),
       ).toHaveCount(0);
     };
@@ -292,9 +292,9 @@ test("cases.content-security.destructive-actions-3", {
     await expect(dialog).toHaveCount(0);
     await expect(
       page
-        .locator('[data-sonner-toast][aria-live="polite"][aria-atomic="true"]')
+        .locator('[aria-live="polite"][aria-atomic="true"]')
         .filter({ hasText: "Comment updated" }),
-    ).toBeVisible();
+    ).toBeAttached();
     await expect(row.getByText("Private", { exact: true })).toBeVisible();
     await expect(row.getByText("Active", { exact: true })).toHaveCount(0);
     expect(

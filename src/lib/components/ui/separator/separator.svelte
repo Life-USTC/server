@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Separator as SeparatorPrimitive } from "bits-ui";
+	import { Separator } from "@ui-sdk/svelte/separator";
+	import type { ComponentProps } from "svelte";
 	import { cn } from "#lib/utils.js";
 
 	let {
@@ -7,11 +8,11 @@
 		class: className,
 		"data-slot": dataSlot = "separator",
 		...restProps
-	}: SeparatorPrimitive.RootProps = $props();
+	}: ComponentProps<typeof Separator> & { ref?: HTMLDivElement | null } = $props();
 </script>
 
-<SeparatorPrimitive.Root
-	bind:ref
+<Separator
+	{@attach (element: HTMLDivElement) => { ref = element; return () => { ref = null; }; }}
 	data-slot={dataSlot}
 	class={cn(
 		"bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:w-px",

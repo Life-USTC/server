@@ -93,6 +93,11 @@ import {
 import worker, { PublicSsr } from "@/worker";
 
 const PURGE_SECRET = "edge-cache-purge-secret-value";
+const PURGE_ENV = {
+  [PUBLIC_SSR_CACHE_PURGE_SECRET_ENV]: PURGE_SECRET,
+  CLOUDFLARE_API_TOKEN: "zone-token",
+  CLOUDFLARE_ZONE_ID: "zone-1",
+};
 
 async function withHtmlRewriter<T>(callback: () => Promise<T>) {
   const globalScope = globalThis as typeof globalThis & {
@@ -808,6 +813,9 @@ describe("Worker routing entrypoint", () => {
   });
 
   it("hops the internal cache purge into the PublicSsr entrypoint", async () => {
+    const zoneFetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(Response.json({ success: true }));
     const purgeCatalogRepresentations = vi
       .fn()
       .mockResolvedValue({ ok: true, tags: ["catalog"] });
@@ -821,7 +829,7 @@ describe("Worker routing entrypoint", () => {
         headers: { [PUBLIC_SSR_CACHE_PURGE_SECRET_HEADER]: PURGE_SECRET },
         method: "POST",
       }),
-      { [PUBLIC_SSR_CACHE_PURGE_SECRET_ENV]: PURGE_SECRET },
+      PURGE_ENV,
       {
         exports: { PublicSsr: publicSsrStub },
         waitUntil: backgroundTasks.waitUntil,
@@ -833,10 +841,17 @@ describe("Worker routing entrypoint", () => {
     // The zone purge cannot reach this cache, so the request must end up on
     // the entrypoint that owns it rather than in the SvelteKit app.
     expect(purgeCatalogRepresentations).toHaveBeenCalledTimes(1);
+    expect(zoneFetch).toHaveBeenCalledWith(
+      "https://api.cloudflare.com/client/v4/zones/zone-1/purge_cache",
+      expect.objectContaining({ method: "POST" }),
+    );
     expect(appFetchMock).not.toHaveBeenCalled();
   });
 
   it("constructs the PublicSsr purge binding with an Options argument", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({ success: true }),
+    );
     const purgeCatalogRepresentations = vi
       .fn()
       .mockResolvedValue({ ok: true, tags: ["catalog"] });
@@ -850,7 +865,7 @@ describe("Worker routing entrypoint", () => {
         headers: { [PUBLIC_SSR_CACHE_PURGE_SECRET_HEADER]: PURGE_SECRET },
         method: "POST",
       }),
-      { [PUBLIC_SSR_CACHE_PURGE_SECRET_ENV]: PURGE_SECRET },
+      PURGE_ENV,
       {
         exports: { PublicSsr: publicSsrStub },
         waitUntil: backgroundTasks.waitUntil,
@@ -879,7 +894,7 @@ describe("Worker routing entrypoint", () => {
       new Request(`https://life-ustc.test${PUBLIC_SSR_CACHE_PURGE_PATH}`, {
         method: "POST",
       }),
-      { [PUBLIC_SSR_CACHE_PURGE_SECRET_ENV]: PURGE_SECRET },
+      PURGE_ENV,
       {
         exports: { PublicSsr: publicSsrStub },
         waitUntil: backgroundTasks.waitUntil,
