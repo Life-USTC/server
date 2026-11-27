@@ -1,6 +1,6 @@
 <script lang="ts">
-import OfficialAcademicProfile from "@/features/catalog/components/OfficialAcademicProfile.svelte";
 import CatalogDetailPage from "@/features/catalog/components/CatalogDetailPage.svelte";
+import OfficialAcademicProfile from "@/features/catalog/components/OfficialAcademicProfile.svelte";
 import LazyDescriptionCard from "@/features/descriptions/components/LazyDescriptionCard.svelte";
 import type { PageData } from "./$types";
 

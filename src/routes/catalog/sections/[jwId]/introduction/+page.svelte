@@ -1,7 +1,7 @@
 <script lang="ts">
-import OfficialAcademicProfile from "@/features/catalog/components/OfficialAcademicProfile.svelte";
 import BookOpenIcon from "@lucide/svelte/icons/book-open";
 import LazyModuleStatus from "#lib/components/LazyModuleStatus.svelte";
+import OfficialAcademicProfile from "@/features/catalog/components/OfficialAcademicProfile.svelte";
 import SectionBasicInfoAdminClasses from "@/features/section-detail/components/SectionBasicInfoAdminClasses.svelte";
 import SectionBasicInfoDetails from "@/features/section-detail/components/SectionBasicInfoDetails.svelte";
 import SectionBasicInfoRelatedSections from "@/features/section-detail/components/SectionBasicInfoRelatedSections.svelte";

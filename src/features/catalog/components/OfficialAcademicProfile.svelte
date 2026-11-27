@@ -2,7 +2,11 @@
 import type { OfficialAcademicProfile } from "@/features/catalog/lib/official-academic-profile";
 import type { AppLocale } from "@/i18n/config";
 
-let { profile, locale, kind }: {
+let {
+  profile,
+  locale,
+  kind,
+}: {
   profile: OfficialAcademicProfile;
   locale: AppLocale;
   kind: "course" | "section";
@@ -40,19 +44,27 @@ const labels = {
 };
 const lang = $derived(locale === "en-us" ? "en" : "zh");
 const copy = $derived(labels[lang]);
-const facts = $derived([
-  [copy.credits, profile.credits],
-  [copy.hours, profile.hours],
-  [copy.department, profile.department],
-  [copy.language, profile.language],
-  [copy.prerequisites, profile.prerequisites],
-  [copy.assessment, profile.assessment],
-  [copy.grading, profile.grading],
-  [copy.textbook, profile.textbook],
-  [copy.references, profile.references],
-].filter(([, value]) => value !== null));
-const description = $derived(profile.description[lang] ?? profile.description[lang === "zh" ? "en" : "zh"]);
-const paragraphs = $derived(profile.syllabus[lang].length ? profile.syllabus[lang] : profile.syllabus[lang === "zh" ? "en" : "zh"]);
+const facts = $derived(
+  [
+    [copy.credits, profile.credits],
+    [copy.hours, profile.hours],
+    [copy.department, profile.department],
+    [copy.language, profile.language],
+    [copy.prerequisites, profile.prerequisites],
+    [copy.assessment, profile.assessment],
+    [copy.grading, profile.grading],
+    [copy.textbook, profile.textbook],
+    [copy.references, profile.references],
+  ].filter(([, value]) => value !== null),
+);
+const description = $derived(
+  profile.description[lang] ?? profile.description[lang === "zh" ? "en" : "zh"],
+);
+const paragraphs = $derived(
+  profile.syllabus[lang].length
+    ? profile.syllabus[lang]
+    : profile.syllabus[lang === "zh" ? "en" : "zh"],
+);
 </script>
 
 {#if description || facts.length || profile.textbooks.length || paragraphs.length || profile.syllabus.topics.length}
