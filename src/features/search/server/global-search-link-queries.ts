@@ -1,12 +1,43 @@
 import {
-  catalogLinkItemMatchesTokens,
+  type CatalogLinkSearchable,
+  linkMatchesTokens,
   searchQueryToTokens,
 } from "@/features/catalog-links/lib/catalog-link-search";
 import {
+  type CatalogLinkItem,
   localizeCatalogLink,
   USTC_CATALOG_LINKS,
 } from "@/features/catalog-links/lib/catalog-links";
+import { toSearchPinyin } from "@/features/catalog-links/server/catalog-text-pinyin";
 import type { AppLocale } from "@/i18n/config";
+
+function toSearchableFields(
+  title: string,
+  description: string,
+  url: string,
+): CatalogLinkSearchable {
+  return {
+    title,
+    description,
+    url,
+    titlePinyin: toSearchPinyin(title),
+    descriptionPinyin: toSearchPinyin(description),
+    group: "life",
+  };
+}
+
+function catalogLinkItemMatchesTokens(link: CatalogLinkItem, tokens: string[]) {
+  const localizedFields = [
+    { title: link.title, description: link.description },
+    link.localizations["en-us"],
+  ];
+  return localizedFields.some((fields) =>
+    linkMatchesTokens(
+      toSearchableFields(fields.title, fields.description, link.url),
+      tokens,
+    ),
+  );
+}
 
 const MIN_QUERY_LENGTH = 2;
 

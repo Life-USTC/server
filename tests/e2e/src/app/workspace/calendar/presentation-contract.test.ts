@@ -205,7 +205,7 @@ for (const [view, label] of [
         const control = page.getByRole("radio", { name: label });
         await control.click();
 
-        await expect(control).toHaveAttribute("data-state", "on");
+        await expect(control).toBeChecked();
         await control.click();
         await expect(control).toBeChecked();
         const viewSurface =

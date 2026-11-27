@@ -1,13 +1,6 @@
-import type {
-  ExamRow,
-  WorkspaceCopy,
-  WorkspaceSectionCopy,
-  WorkspaceSubscriptionsCopy,
-} from "@/features/workspace/lib/workspace-controller-types";
+import type { ExamRow } from "@/features/workspace/lib/workspace-controller-types";
 import type { workspaceTabHref } from "@/features/workspace/lib/workspace-nav";
 import type { WorkspaceNamed } from "./workspace-component-types";
-
-export type WorkspaceExamFilter = "incomplete" | "completed" | "all";
 
 export type WorkspaceExamRow = ExamRow;
 
@@ -22,8 +15,18 @@ export type ExamMetadataLabels = (exam: WorkspaceExamRow) => string[];
 
 export type NamePrimary = (value?: WorkspaceNamed | null) => string;
 
-export type ExamsCopyProps = {
-  workspaceCopy: WorkspaceCopy;
-  sectionCopy: WorkspaceSectionCopy;
-  subscriptionsCopy: WorkspaceSubscriptionsCopy;
+export type WorkspaceCardView = "cards" | "list";
+
+export type ExamDisplayRow = {
+  id: WorkspaceExamRow["id"];
+  href: string;
+  course: string;
+  section: string;
+  semester: string;
+  date: string;
+  time: string;
+  status: string;
+  mode: WorkspaceExamRow["examMode"];
+  metadata: string[];
+  rooms: WorkspaceExamRow["rooms"];
 };

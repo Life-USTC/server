@@ -19,9 +19,6 @@ test.describe("仪表盘作业", () => {
   }) => {
     await homeworkRun(
       async () => {
-        await page.addInitScript(() => {
-          localStorage.removeItem("life-ustc-workspace-view-mode");
-        });
         await page.setViewportSize({ width: 390, height: 844 });
         await gotoAndWaitForReady(page, "/workspace/homeworks");
 
@@ -183,9 +180,6 @@ test.describe("仪表盘作业", () => {
     await homeworkRun(
       async () => {
         test.setTimeout(90_000);
-        await page.addInitScript(() => {
-          localStorage.removeItem("life-ustc-workspace-view-mode");
-        });
         await page.setViewportSize({ height: 568, width: 320 });
         await gotoAndWaitForReady(page, "/workspace/homeworks");
 

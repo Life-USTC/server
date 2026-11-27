@@ -18,7 +18,6 @@ $: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
   <Button
     class="{toolbarFieldClass} w-full max-w-sm justify-start gap-2 px-3 text-muted-foreground lg:max-w-md"
     onclick={onOpen}
-    type="button"
     variant="outline"
   >
     <span class="sr-only">{copy.openSearch}</span>
@@ -30,13 +29,11 @@ $: placeholder = signedIn ? copy.placeholderSignedIn : copy.placeholder;
   </Button>
 {:else}
   <Button
+    icon={SearchIcon}
     aria-label={copy.openSearch}
     class="icon-action"
     size="icon"
     onclick={onOpen}
-    type="button"
     variant="ghost"
-  >
-    <SearchIcon data-icon="inline-start" />
-  </Button>
+  />
 {/if}

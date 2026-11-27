@@ -3,7 +3,6 @@ import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as Field from "#lib/components/ui/field/index.js";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
-import { Spinner } from "#lib/components/ui/spinner/index.js";
 import { Textarea } from "#lib/components/ui/textarea/index.js";
 import { DESCRIPTION_CONTENT_MAX_LENGTH } from "@/features/descriptions/lib/description-limits";
 import { enhance, type SubmitFunction } from "$app/forms";
@@ -27,7 +26,6 @@ export let formatMessage: (
   template: string,
   values: Record<string, string>,
 ) => string;
-export let inputValue: (event: Event) => string;
 export let isSaving: boolean;
 export let targetLabel: (description: AdminModerationDescription) => string;
 </script>
@@ -50,8 +48,7 @@ export let targetLabel: (description: AdminModerationDescription) => string;
         use:enhance={enhanceAction}
       >
         <Field.Group class="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-4 overflow-hidden">
-          <Dialog.Header>
-            <Dialog.Title id="manage-description-title">{copy.manageDescription}</Dialog.Title>
+          <Dialog.Header heading={copy.manageDescription} titleId="manage-description-title">
             <Dialog.Description>
               {targetLabel(description)} · {formatMessage(copy.editedAt, { date: formatDate(descriptionEditedAt(description)) })}
             </Dialog.Description>
@@ -67,40 +64,30 @@ export let targetLabel: (description: AdminModerationDescription) => string;
                 formatMessage={formatMessage}
               />
 
-              <Field.Field>
-                <Field.Label for="admin-description-content">
-                  {copy.descriptionContent}
-                </Field.Label>
+              <Field.Field for="admin-description-content" label={copy.descriptionContent}>
                 <Textarea
                   id="admin-description-content"
                   class="min-h-56"
                   maxlength={DESCRIPTION_CONTENT_MAX_LENGTH}
                   name="content"
-                  value={descriptionDraft}
-                  oninput={(event: Event) => {
-                    descriptionDraft = inputValue(event);
-                  }}
+                  bind:value={descriptionDraft}
                 />
               </Field.Field>
             </Field.Group>
           </ScrollArea>
 
-          <Dialog.Footer>
+          <div data-slot="dialog-footer">
             <Button
               disabled={isSaving}
-              type="button"
               variant="ghost"
               onclick={close}
             >
               {copy.cancelButton}
             </Button>
-            <Button disabled={isSaving} type="submit">
-              {#if isSaving}
-                <Spinner data-icon="inline-start" />
-              {/if}
+            <Button loading={isSaving} disabled={isSaving} type="submit">
               {isSaving ? copy.saving : copy.confirmButton}
             </Button>
-          </Dialog.Footer>
+          </div>
         </Field.Group>
       </form>
     </Dialog.Content>

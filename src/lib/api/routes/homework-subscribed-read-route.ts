@@ -54,6 +54,8 @@ export async function getSubscribedHomeworksRoute(request: Request) {
         { request },
         () =>
           listSubscribedHomeworkPage(userId, {
+            dueAtFrom: parsed.query.dueAtFrom,
+            dueAtTo: parsed.query.dueAtTo,
             includeEditors: true,
             locale,
             pagination: parsed.pagination,
