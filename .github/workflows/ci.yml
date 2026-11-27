@@ -34,11 +34,11 @@ defaults:
 jobs:
   check:
     name: Checks
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2604
     timeout-minutes: 30
     steps:
       - &checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: useblacksmith/checkout@v1 # v7.0.1
       - uses: ./.github/actions/setup-bun-env
       - name: Verify development seed guard
         run: bash tests/ci/seed-guard.test.sh
@@ -65,7 +65,7 @@ jobs:
 
   test-unit:
     name: Unit tests
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2604
     timeout-minutes: 30
     env:
       GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
@@ -86,7 +86,7 @@ jobs:
 
   test-domain:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 60
     needs: [build-e2e-artifacts]
     strategy:
@@ -164,7 +164,7 @@ jobs:
 
   test-rls:
     name: Permissions
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     services: *test-database
     steps:
@@ -194,7 +194,7 @@ jobs:
 
   build-e2e-artifacts:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2604
     timeout-minutes: 30
     outputs:
       matrix: ${{ steps.inventory.outputs.matrix }}
@@ -222,7 +222,7 @@ jobs:
 
   static-loader-image:
     name: Static loader
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2604
     timeout-minutes: 30
     services: *test-database
     steps:
@@ -240,7 +240,7 @@ jobs:
   specification-evidence:
     # Keep this name: branch protection requires it as a status check.
     name: Specification execution evidence / run
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2604
     timeout-minutes: 5
     needs: [check, build-e2e-artifacts, static-loader-image, test-unit, test-domain, test-rls]
     if: ${{ always() }}
