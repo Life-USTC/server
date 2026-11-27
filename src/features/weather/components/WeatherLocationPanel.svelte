@@ -9,6 +9,7 @@ import type { WeatherPageLocation } from "@/features/weather/server/weather-page
 import { temperatureRangePositions } from "@/features/weather/weather-ui";
 import type { AppLocale } from "@/i18n/config";
 import type { AppPageCopy } from "@/lib/shell/page-copy";
+import { formatMessage } from "@/shared/lib/format-message";
 
 type Props = {
   location: WeatherPageLocation;
@@ -25,13 +26,6 @@ const { locationKey, snapshot } = $derived(location);
 const weekdayFormatter = $derived(
   createShanghaiDateTimeFormatter(locale, { weekday: "short" }),
 );
-
-function formatTemplate(template: string, values: Record<string, string>) {
-  return Object.entries(values).reduce(
-    (text, [key, value]) => text.replace(`{${key}}`, value),
-    template,
-  );
-}
 
 function formatTemperature(value: number | null) {
   return value === null ? "—" : `${Math.round(value)}°`;
@@ -112,7 +106,7 @@ function formatTemperature(value: number | null) {
             {weatherCopy.windLabel}
           </p>
           <p class="mt-1 font-medium">
-            {formatTemplate(weatherCopy.wind, {
+            {formatMessage(weatherCopy.wind, {
               direction: snapshot.current.windDirection,
               value: String(snapshot.current.windSpeed),
             })}

@@ -44,6 +44,7 @@ const PUBLICATION_DETAIL_SELECT = {
     },
   },
   currentRevision: {
+    omit: { rawMetadata: true },
     include: {
       imageSourceRefs: {
         orderBy: { imageSourceId: "asc" },
@@ -382,7 +383,7 @@ async function queryFoldedPublicationPage(
 ) {
   const whereSql = foldPublicationWhereSql(filters);
   const rows = await prisma.$queryRaw<
-    { id: string; groupSize: bigint }[]
+    { id: string; groupSize: bigint; total: bigint }[]
   >(Prisma.sql`
     WITH filtered AS (
       SELECT
@@ -409,7 +410,7 @@ async function queryFoldedPublicationPage(
         ) AS "groupSize"
       FROM filtered
     )
-    SELECT id, "groupSize"
+    SELECT id, "groupSize", count(*) OVER () AS total
     FROM ranked
     WHERE "rowNumber" = 1
     ORDER BY "publishedAt" DESC NULLS LAST, "lastSeenAt" DESC, id ASC
@@ -417,20 +418,21 @@ async function queryFoldedPublicationPage(
     OFFSET ${pagination.skip}
   `);
 
-  const [{ total }] = await prisma.$queryRaw<{ total: bigint }[]>(Prisma.sql`
-    WITH filtered AS (
-      SELECT
-        p.id,
-        p."normalizedTitle",
-        p."publishedDateShanghai"
-      FROM "Publication" p
-      JOIN "PublicationSource" s ON s.id = p."sourceId"
-      JOIN "PublicationRevision" cr ON cr.id = p."currentRevisionId"
-      WHERE ${whereSql}
-    )
-    SELECT count(*)::bigint AS total
-    FROM (SELECT DISTINCT "normalizedTitle", "publishedDateShanghai" FROM filtered) groups
-  `);
+  let total = rows[0]?.total ?? 0n;
+  // An offset beyond the last group leaves no row carrying the window count.
+  if (rows.length === 0 && pagination.skip > 0) {
+    const [count] = await prisma.$queryRaw<{ total: bigint }[]>(Prisma.sql`
+      SELECT count(*) AS total
+      FROM (
+        SELECT DISTINCT p."normalizedTitle", p."publishedDateShanghai"
+        FROM "Publication" p
+        JOIN "PublicationSource" s ON s.id = p."sourceId"
+        JOIN "PublicationRevision" cr ON cr.id = p."currentRevisionId"
+        WHERE ${whereSql}
+      ) groups
+    `);
+    total = count.total;
+  }
 
   return {
     ids: rows.map((row) => row.id),
@@ -469,10 +471,12 @@ function mapObjectLink(link: PublicPublicationObjectLink) {
 }
 
 function mapObjects(revision: PublicPublicationRevision) {
-  return revision.objectLinks.flatMap((link) => {
+  const objects: PublicPublicationObject[] = [];
+  for (const link of revision.objectLinks) {
     const object = mapObjectLink(link);
-    return object ? [object] : [];
-  });
+    if (object) objects.push(object);
+  }
+  return objects;
 }
 
 async function readBodyMarkdown(revision: PublicPublicationRevision) {
@@ -716,10 +720,19 @@ async function findAlsoPublishedIn(record: {
   );
 }
 
-export async function getPublicPublicationById(id: string) {
+export async function getPublicPublicationById(
+  id: string,
+  { includeBodyText = true } = {},
+) {
   const record = await prisma.publication.findFirst({
     where: { id, ...publicPublicationWhere() },
-    select: PUBLICATION_DETAIL_SELECT,
+    select: {
+      ...PUBLICATION_DETAIL_SELECT,
+      currentRevision: {
+        ...PUBLICATION_DETAIL_SELECT.currentRevision,
+        omit: { bodyText: !includeBodyText, rawMetadata: true },
+      },
+    },
   });
   if (!record) return null;
   const publication = mapPublication(record);
@@ -727,7 +740,10 @@ export async function getPublicPublicationById(id: string) {
 
   const revision = record.currentRevision;
   if (!revision) return null;
-  const bodyMarkdown = await readBodyMarkdown(revision);
+  const [bodyMarkdown, alsoPublishedIn] = await Promise.all([
+    readBodyMarkdown(revision),
+    findAlsoPublishedIn(record),
+  ]);
   const images = revision.imageSourceRefs.map((ref) => ({
     id: ref.imageSourceId,
     url: `/api/publications/images/${ref.imageSourceId}`,
@@ -746,13 +762,13 @@ export async function getPublicPublicationById(id: string) {
     revision: {
       ...publication.revision,
       images,
-      bodyText: revision.bodyText,
+      bodyText: revision.bodyText ?? null,
       bodyMarkdown,
       extractionMethod: revision.extractionMethod,
       classifierVersion: revision.classifierVersion,
       objects: publication.objects,
     },
-    alsoPublishedIn: await findAlsoPublishedIn(record),
+    alsoPublishedIn,
   } satisfies PublicPublicationDetail;
 }
 

@@ -81,7 +81,7 @@ $: tooltipBody = tooltipDetail || detail || title;
 
 <Tooltip.Root>
   <Tooltip.Trigger>
-    {#snippet child({ props })}
+    {#snippet render({ props })}
       <Item.Root
         class={cn(
           "relative min-w-0 flex-col flex-nowrap items-stretch no-underline",

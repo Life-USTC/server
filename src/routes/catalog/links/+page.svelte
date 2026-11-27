@@ -8,7 +8,6 @@ import { Skeleton } from "#lib/components/ui/skeleton/index.js";
 import { groupCatalogLinks } from "@/features/catalog-links/lib/catalog-link-search";
 import DemoNotice from "@/features/demo/components/DemoNotice.svelte";
 import { homePublicReadEpoch } from "@/features/demo/lib/demo-home-owner";
-import AnonymousLinksTab from "@/features/workspace/components/AnonymousLinksTab.svelte";
 import LinksTab from "@/features/workspace/components/LinksTab.svelte";
 import { workspaceCalendarOwner } from "@/features/workspace/lib/workspace-calendar-owner";
 import { linkIconLabel } from "@/features/workspace/lib/workspace-link-icon";
@@ -183,6 +182,9 @@ onMount(() => {
 afterNavigate(({ to }) => {
   if (mounted && to) void revealDemoLink(to.url.hash, viewerIdentity);
 });
+$: personal = Boolean(
+  data.demo || (signedIn && !viewerLoading && !viewerFailed),
+);
 </script>
 
 <svelte:head>
@@ -203,26 +205,20 @@ afterNavigate(({ to }) => {
       <Button variant="outline" onclick={() => void retryViewer()}>{workspaceCopy.linkHub.retry}</Button>
     </Alert.Root>
   {/if}
-  {#if data.demo || (signedIn && !viewerLoading && !viewerFailed)}
+  {#key personal}
     <LinksTab
-      {revealRequest}
+      {personal}
+      revealRequest={personal ? revealRequest : 0}
       readOnlyReason={data.demo?.readOnlyReason}
       {workspaceCopy}
       {linkActionError}
       {linkIconLabel}
       {linkReturnTo}
-      signedLinkGroups={linkGroups}
+      groups={linkGroups}
       submitWorkspaceLinkPin={submitWorkspaceLinkPin}
       {updatingCatalogLinkSlug}
       bind:linkSearchQuery
     />
-  {:else}
-    <AnonymousLinksTab
-      {workspaceCopy}
-      {linkIconLabel}
-      anonymousLinkGroups={linkGroups}
-      bind:linkSearchQuery
-    />
-  {/if}
+  {/key}
   {/if}
 </CollectionPage>

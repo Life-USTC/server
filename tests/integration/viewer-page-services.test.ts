@@ -110,6 +110,7 @@ describe("viewer page services", () => {
                 create: {
                   id: `homework-${id}`,
                   title: `Viewer homework ${id}`,
+                  submissionDueAt: new Date("2026-04-29T08:00:00.123Z"),
                 },
               },
               exams: {
@@ -180,6 +181,25 @@ describe("viewer page services", () => {
       expect(sections.data.map((section) => section.id)).toEqual([
         firstSectionId,
       ]);
+
+      const due = new Date("2026-04-29T08:00:00.123Z");
+      const readWindow = (dueAtFrom: Date, dueAtTo: Date) =>
+        protocolRuntime.request(() =>
+          listSubscribedHomeworkPage(users[0].id, {
+            pagination: { page: 1, pageSize: 1 },
+            dueAtFrom,
+            dueAtTo,
+          }),
+        );
+      const boundary = await readWindow(due, due);
+      expect(boundary.pagination.total).toBe(1);
+      expect(boundary.data.map((homework) => homework.id)).toEqual([
+        `homework-${firstSectionId}`,
+      ]);
+      const after = new Date(due.getTime() + 1);
+      const excluded = await readWindow(after, after);
+      expect(excluded.pagination.total).toBe(0);
+      expect(excluded.data).toEqual([]);
 
       expect(homeworks.pagination.total).toBe(1);
       expect(homeworks.data.length).toBe(1);

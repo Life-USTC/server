@@ -1,10 +1,5 @@
 export {
   dateTimeInputValue,
-  homeworkDueAtSemesterEnd,
-  homeworkDueInDays,
-  homeworkDueInMonths,
-  homeworkStartAtSemesterStart,
-  homeworkTimestampNow,
   initialHomeworkTimestampDraft as initialHomeworkDraft,
 } from "@/features/homeworks/lib/homework-timestamp-defaults";
 export type {
