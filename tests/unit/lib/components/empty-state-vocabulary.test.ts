@@ -52,44 +52,14 @@ const BREAKPOINTS = ["sm", "md", "lg", "xl", "2xl"] as const;
  */
 const UNCONVERGED: readonly { file: string; tag: string; class: string }[] = [
   {
-    file: "src/features/admin/components/AdminBusVersionsTable.svelte",
-    tag: "CollectionEmpty",
-    class: "rounded-none",
-  },
-  {
-    file: "src/features/api-docs/components/ApiDocsPage.svelte",
+    file: "src/routes/api/docs/[...path]/+page.svelte",
     tag: "Empty.Root",
     class: "border border-border border-solid bg-card",
-  },
-  {
-    file: "src/features/bus/components/BusMapContent.svelte",
-    tag: "Empty.Root",
-    class: "py-16",
   },
   {
     file: "src/features/search/components/GlobalSearchResults.svelte",
     tag: "Empty.Root",
     class: "py-8",
-  },
-  {
-    file: "src/features/workspace/components/BusTabCompactSummary.svelte",
-    tag: "Empty.Root",
-    class: "p-0",
-  },
-  {
-    file: "src/features/workspace/components/CalendarTab.svelte",
-    tag: "Empty.Root",
-    class: "items-start text-left",
-  },
-  {
-    file: "src/features/workspace/components/WorkspaceNoSubscriptionsState.svelte",
-    tag: "Empty.Root",
-    class: "items-start text-left",
-  },
-  {
-    file: "src/features/workspace/components/WorkspaceTaskEmptyState.svelte",
-    tag: "CollectionEmpty",
-    class: "min-h-24 py-8",
   },
 ];
 

@@ -185,7 +185,7 @@ test("oauth.client-authentication-inventory", { tag: "@OAuth/Web" }, async ({
           const emailScope = dialog.getByRole("checkbox", {
             name: /查看您的邮箱地址|View your email address/i,
           });
-          if ((await emailScope.getAttribute("data-state")) !== "checked") {
+          if ((await emailScope.getAttribute("aria-checked")) !== "true") {
             await emailScope.click();
           }
 

@@ -23,7 +23,6 @@ import type {
   SectionHomeworkSectionCopy,
   SectionHomeworkSemesterDate,
   SectionHomeworkSubmitHandler,
-  SectionHomeworkTimestampAction,
 } from "./section-homework-display-types";
 
 export let showPersonalStatus = false;
@@ -32,12 +31,6 @@ export let referenceDate: string | undefined = undefined;
 export let classSectionJwId: number | string | null | undefined = undefined;
 export let classStarts: string[] = [];
 export let CommentsPanel: HomeworkDetailCommentsPanel;
-export let _applyEditDueAtSemesterEnd: SectionHomeworkTimestampAction;
-export let _applyEditDueInMonth: SectionHomeworkTimestampAction;
-export let _applyEditDueInWeek: SectionHomeworkTimestampAction;
-export let _applyEditPublishNow: SectionHomeworkTimestampAction;
-export let _applyEditStartAtSemesterStart: SectionHomeworkTimestampAction;
-export let _applyEditStartNow: SectionHomeworkTimestampAction;
 export let _auditLogsForHomework: SectionHomeworkAuditLookup;
 export let _canManageSelectedHomework: boolean;
 export let _canWriteHomework: boolean;
@@ -118,12 +111,11 @@ $: permalinkBaseHref = _selectedHomework
         {classSectionJwId}
   {classStarts}
         {locale}
-        applyDueAtSemesterEnd={_applyEditDueAtSemesterEnd}
-        applyDueInMonth={_applyEditDueInMonth}
-        applyDueInWeek={_applyEditDueInWeek}
-        applyPublishNow={_applyEditPublishNow}
-        applyStartAtSemesterStart={_applyEditStartAtSemesterStart}
-        applyStartNow={_applyEditStartNow}
+
+
+
+
+
         cancelEdit={_cancelEditHomework}
         commentsCopy={_commentsCopy}
         bind:editHomeworkMessage={_editHomeworkMessage}

@@ -20,6 +20,17 @@ const {
   withUserDbContextMock: vi.fn(),
 }));
 
+const queryRaw = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/db/prisma-adapter", () => ({
+  withRuntimeDatabaseAdapter: (
+    role: string,
+    run: (adapter: { queryRaw: typeof queryRaw }) => unknown,
+  ) => {
+    expect(role).toBe("app");
+    return run({ queryRaw });
+  },
+}));
+
 vi.mock("@/lib/db/prisma", () => ({
   getPrisma: () => ({
     user: { findUnique: localizedUserFindUniqueMock },
@@ -140,15 +151,19 @@ describe("retired Section query contracts", () => {
       "@/features/calendar/server/calendar-export-data"
     );
 
-    await getUserCalendarAccessRecord("user-1");
-
-    expect(userFindUniqueMock).toHaveBeenCalledWith({
-      where: { id: "user-1" },
-      select: {
-        id: true,
-        calendarFeedToken: true,
-      },
+    queryRaw
+      .mockResolvedValueOnce({ rows: [["user-1", null]] })
+      .mockResolvedValueOnce({ rows: [] });
+    await expect(getUserCalendarAccessRecord("user-1")).resolves.toEqual({
+      id: "user-1",
+      calendarFeedToken: null,
     });
+    expect(queryRaw).toHaveBeenCalledWith({
+      sql: 'SELECT "id", "calendarFeedToken" FROM "User" WHERE "id" = $1',
+      args: ["user-1"],
+      argTypes: [{ scalarType: "string", arity: "scalar" }],
+    });
+    await expect(getUserCalendarAccessRecord("absent")).resolves.toBeNull();
   });
 
   it("keeps subscription history but never selects or returns the calendar credential", async () => {
