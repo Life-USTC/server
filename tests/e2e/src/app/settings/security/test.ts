@@ -55,6 +55,7 @@ test.describe("/account/settings/security 安全活动", () => {
         await expect(
           region.getByText("Chrome · Windows").first(),
         ).toBeVisible();
+        // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
         const text = await region.innerText();
         expect(text).not.toContain("203.0.113.42");
         expect(text).not.toContain("Chrome/130.0");

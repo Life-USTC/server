@@ -117,8 +117,9 @@ test("ui.contribution-heatmap-2", { tag: "@User/Web" }, async ({
         hasTouch: true,
       });
       try {
+        if (!baseURL) throw new Error("Expected baseURL");
         await context.addCookies([
-          { name: "NEXT_LOCALE", value: locale, url: baseURL! },
+          { name: "NEXT_LOCALE", value: locale, url: baseURL },
         ]);
         const page = await preferenceFlow.newPage(context);
         await gotoAndWaitForReady(page, `/community/users/${user.username}`);
@@ -128,11 +129,17 @@ test("ui.contribution-heatmap-2", { tag: "@User/Web" }, async ({
         );
         const cells = grid.getByRole("gridcell");
         const actual = await cells.evaluateAll((elements) =>
-          elements.map((element) => ({
-            date: element.getAttribute("data-date")!,
-            count: Number(element.getAttribute("data-count")),
-            label: element.getAttribute("aria-label"),
-          })),
+          elements.map((element) => {
+            const date = element.getAttribute("data-date");
+            const label = element.getAttribute("aria-label");
+            if (!date || !label)
+              throw new Error("Expected contribution cell metadata");
+            return {
+              date,
+              count: Number(element.getAttribute("data-count")),
+              label,
+            };
+          }),
         );
         expect(actual.length).toBeGreaterThanOrEqual(365);
         const formatter = new Intl.DateTimeFormat(locale, {
@@ -168,7 +175,7 @@ test("ui.contribution-heatmap-2", { tag: "@User/Web" }, async ({
         ] as const) {
           await page.keyboard.press(key);
           await expect(cells.nth(index)).toBeFocused();
-          await expect(detail).toHaveText(actual[index].label!);
+          await expect(detail).toHaveText(actual[index].label);
           await expect(cells.nth(index)).toHaveAttribute(
             "aria-selected",
             "true",
@@ -181,7 +188,7 @@ test("ui.contribution-heatmap-2", { tag: "@User/Web" }, async ({
           actual.length - 1,
         ]) {
           await cells.nth(index).tap();
-          await expect(detail).toHaveText(actual[index].label!);
+          await expect(detail).toHaveText(actual[index].label);
           await expect(cells.nth(index)).toHaveAttribute(
             "aria-selected",
             "true",

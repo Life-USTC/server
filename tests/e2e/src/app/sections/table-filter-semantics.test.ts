@@ -16,11 +16,11 @@ test("section filter drafts, multi-selection, comparisons and reactive paginatio
   await preferenceFlow.run(async () => {
     const db = isolatedWorker.database.owner;
     const campuses = await db.$transaction(async (tx) => {
-      const campuses = await Promise.all(
-        ["East", "West"].map((name, index) =>
-          tx.campus.create({ data: { jwId: index + 1, nameCn: name } }),
-        ),
-      );
+      const campuses = [];
+      for (const [index, name] of ["East", "West"].entries())
+        campuses.push(
+          await tx.campus.create({ data: { jwId: index + 1, nameCn: name } }),
+        );
       const semester = await tx.semester.create({
         data: { jwId: 1, code: "2026-fall", nameCn: "2026年秋季学期" },
       });

@@ -8,6 +8,11 @@
   "minify": true,
   "compatibility_date": "2026-07-23",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // Only PublicSsr opts into caching; deployments keep separate cache keys.
+  "cache": {
+    "enabled": false,
+    "cross_version_cache": false
+  },
   "exports": {
     "PublicSsr": {
       "type": "worker",
@@ -18,8 +23,7 @@
       // `POST /_internal/edge-cache/purge`, which hops into this entrypoint —
       // a zone purge cannot reach Workers Caching content.
       "cache": {
-        "enabled": true,
-        "cross_version_cache": false
+        "enabled": true
       }
     }
   },

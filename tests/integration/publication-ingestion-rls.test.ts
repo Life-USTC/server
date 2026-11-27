@@ -251,44 +251,44 @@ describe.skipIf(process.env.RLS_TEST_ENABLED !== "true")(
             data: { attempts: 1 },
           });
 
-          const selected = await Promise.all([
-            tx.publicationSource.findUnique({
+          const selected = [
+            await tx.publicationSource.findUnique({
               where: { id: ids.sourceId },
               select: { name: true },
             }),
-            tx.publication.findUnique({
+            await tx.publication.findUnique({
               where: { id: ids.publicationId },
               select: { title: true },
             }),
-            tx.publicationRevision.findUnique({
+            await tx.publicationRevision.findUnique({
               where: { id: ids.revisionId },
               select: { title: true },
             }),
-            tx.publicationObject.findUnique({
+            await tx.publicationObject.findUnique({
               where: { id: ids.objectId },
               select: { lastError: true },
             }),
-            tx.publicationObjectLink.findUnique({
+            await tx.publicationObjectLink.findUnique({
               where: { id: ids.linkId },
               select: { altText: true },
             }),
-            tx.ingestionRun.findUnique({
+            await tx.ingestionRun.findUnique({
               where: { id: ids.runId },
               select: { status: true },
             }),
-            tx.ingestionBatch.findUnique({
+            await tx.ingestionBatch.findUnique({
               where: { id: ids.batchId },
               select: { result: true },
             }),
-            tx.ingestionBatchObject.findUnique({
+            await tx.ingestionBatchObject.findUnique({
               where: { id: ids.batchObjectId },
               select: { expectedContentType: true },
             }),
-            tx.publicationEventOutbox.findUnique({
+            await tx.publicationEventOutbox.findUnique({
               where: { id: ids.eventId },
               select: { attempts: true },
             }),
-          ]);
+          ];
           expect(selected).toEqual([
             { name: "[integration-test] RLS publication source updated" },
             { title: "RLS publication after update" },

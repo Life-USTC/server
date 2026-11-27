@@ -98,6 +98,7 @@ async function opaqueIdentity(
       .locator(`a[href="/catalog/${kind}/${entity.jwId}"]:visible`)
       .first();
     await expect(link).toBeVisible();
+    // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
     expect(await page.locator("#main-content").innerText()).not.toContain(
       String(entity.jwId),
     );
@@ -110,6 +111,7 @@ async function opaqueIdentity(
       fixture.courses[0].nameCn,
     );
     if (expectSectionDetailReady) await expectSectionDetailReady();
+    // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
     expect(await page.locator("#main-content").innerText()).not.toContain(
       String(entity.jwId),
     );

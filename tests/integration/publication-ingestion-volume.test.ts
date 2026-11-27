@@ -6,6 +6,7 @@ import { publicationIngestionBatchRequestSchema } from "@/lib/api/schemas/reques
 import { PUBLICATION_INGESTION_SERVICE_PRINCIPAL as principal } from "@/lib/auth/service-principal";
 import { prisma as runtime } from "@/lib/db/prisma";
 import { createFixturePrisma } from "../shared/prisma";
+import { requiredValue } from "../shared/required-value";
 
 const db = createFixturePrisma();
 const marker = crypto.randomUUID();
@@ -274,7 +275,10 @@ it("keeps staged observation ordering and excludes rejected or stale object clai
     "unchanged",
     "updated",
   ]);
-  const publicationId = response.results[1].publicationId!;
+  const publicationId = requiredValue(
+    response.results[1].publicationId,
+    "publication ID",
+  );
   expect(response.results[2].revisionId).toBe(response.results[1].revisionId);
   expect(response.results[3].revisionId).toBe(response.results[1].revisionId);
   expect(response.results[7].revisionId).toBe(response.results[1].revisionId);
@@ -394,7 +398,12 @@ it("preserves first MIME, per-revision metadata and sequential duplicate items",
   expect(stored.objects[0].expectedContentType).toBe("text/plain");
   expect(stored.objects[0].object.contentType).toBe("text/plain");
   const revisions = await db.publicationRevision.findMany({
-    where: { publicationId: response.results[0].publicationId! },
+    where: {
+      publicationId: requiredValue(
+        response.results[0].publicationId,
+        "publication ID",
+      ),
+    },
     orderBy: { observedAt: "asc" },
     include: { imageSourceRefs: true, objectLinks: true },
   });

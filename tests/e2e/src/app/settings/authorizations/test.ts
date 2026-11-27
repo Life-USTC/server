@@ -44,6 +44,7 @@ test.describe("/account/settings/authorizations OAuth 授权", () => {
         await expect(authorizationItem.getByText(scope)).toBeVisible();
       }
 
+      // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
       const pageText = await page.locator("#main-content").innerText();
       expect(pageText).not.toContain(authorization.clientId);
       expect(pageText).not.toContain(authorization.clientSecret);

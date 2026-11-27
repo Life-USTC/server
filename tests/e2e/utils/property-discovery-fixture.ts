@@ -130,9 +130,10 @@ export async function arrangePropertyDiscoveryFixture(
       },
     });
     const base = 1_600_000_000;
-    const campuses = await Promise.all(
-      [0, 1].map((i) =>
-        db.busCampus.create({
+    const campuses = [];
+    for (const i of [0, 1])
+      campuses.push(
+        await db.busCampus.create({
           data: {
             id: base + i,
             nameCn: `优先级${i === 0 ? "甲" : "乙"}站${marker.slice(0, 4)}`,
@@ -141,8 +142,7 @@ export async function arrangePropertyDiscoveryFixture(
             longitude: 117.26 + i * 0.01,
           },
         }),
-      ),
-    );
+      );
     const route = await db.busRoute.create({
       data: {
         id: base + 2,

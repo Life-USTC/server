@@ -44,7 +44,6 @@ import { DEV_SEED } from "../../../../utils/dev-seed";
 import { visibleText } from "../../../../utils/locators";
 import { observeAction } from "../../../../utils/observed-action";
 import {
-  detailScrollViewport,
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../../utils/page-ready";

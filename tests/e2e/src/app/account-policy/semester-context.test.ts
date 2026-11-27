@@ -57,6 +57,7 @@ for (const [domain, method, locales, widths] of [
                 : "暂无当前学期信息。",
             );
             expect(
+              // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
               await page.locator("#main-content").innerText(),
             ).not.toContain(
               locale === "en-us"
@@ -283,6 +284,7 @@ for (const domain of ["Overview", "Subscription"] as const) {
               ? "You only have past-term section subscriptions."
               : "你目前只订阅了往期班级。",
           );
+          // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
           expect(await page.locator("#main-content").innerText()).not.toContain(
             locale === "en-us"
               ? "Current semester is unavailable."
@@ -297,6 +299,7 @@ for (const domain of ["Overview", "Subscription"] as const) {
           await expect(homework).toContainText(
             locale === "en-us" ? "Fall 2025" : DEV_SEED.previousSemesterNameCn,
           );
+          // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
           expect(await homework.innerText()).not.toContain(
             DEV_SEED.semesterNameCn,
           );

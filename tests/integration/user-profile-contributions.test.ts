@@ -27,24 +27,22 @@ const it = nodeProtocolTest.extend(
           data: { jwId: 1, code: marker, courseId: course.id },
         });
         const sectionId = section.id;
-        const [user, otherUser] = await Promise.all([
-          tx.user.create({
-            data: {
-              email: `profile-contributions-${marker}@example.test`,
-              name: "Profile contribution integration",
-              username: `profile-contributions-${marker}`,
-            },
-            select: { id: true },
-          }),
-          tx.user.create({
-            data: {
-              email: `profile-contributions-other-${marker}@example.test`,
-              name: "Other profile contribution integration",
-              username: `profile-contributions-other-${marker}`,
-            },
-            select: { id: true },
-          }),
-        ]);
+        const user = await tx.user.create({
+          data: {
+            email: `profile-contributions-${marker}@example.test`,
+            name: "Profile contribution integration",
+            username: `profile-contributions-${marker}`,
+          },
+          select: { id: true },
+        });
+        const otherUser = await tx.user.create({
+          data: {
+            email: `profile-contributions-other-${marker}@example.test`,
+            name: "Other profile contribution integration",
+            username: `profile-contributions-other-${marker}`,
+          },
+          select: { id: true },
+        });
         const userId = user.id;
         const otherUserId = otherUser.id;
 
@@ -139,24 +137,22 @@ const it = nodeProtocolTest.extend(
           select: { id: true },
         });
         const homeworkId = includedHomework.id;
-        await Promise.all([
-          tx.homework.create({
-            data: {
-              createdAt: new Date("2026-03-01T19:00:00.000Z"),
-              createdById: userId,
-              deletedAt: new Date("2026-03-01T19:30:00.000Z"),
-              sectionId: section.id,
-              title: "excluded deleted homework",
-            },
-          }),
-          tx.homeworkCompletion.create({
-            data: {
-              completedAt: new Date("2026-03-01T20:00:00.000Z"),
-              homeworkId: includedHomework.id,
-              userId,
-            },
-          }),
-        ]);
+        await tx.homework.create({
+          data: {
+            createdAt: new Date("2026-03-01T19:00:00.000Z"),
+            createdById: userId,
+            deletedAt: new Date("2026-03-01T19:30:00.000Z"),
+            sectionId: section.id,
+            title: "excluded deleted homework",
+          },
+        });
+        await tx.homeworkCompletion.create({
+          data: {
+            completedAt: new Date("2026-03-01T20:00:00.000Z"),
+            homeworkId: includedHomework.id,
+            userId,
+          },
+        });
         return { userId, otherUserId, sectionId, homeworkId };
       });
       return {

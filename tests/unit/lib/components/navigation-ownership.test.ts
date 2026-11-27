@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "svelte/compiler";
 import { expect, it } from "vitest";
+import { requiredValue } from "../../../shared/required-value";
 
 type SyntaxNode = {
   type?: string;
@@ -25,7 +26,7 @@ async function renderedComponents(root: string) {
   const pending = [root];
   const visited = new Set<string>();
   while (pending.length) {
-    const filename = pending.pop()!;
+    const filename = requiredValue(pending.pop(), "pending filename");
     if (visited.has(filename)) continue;
     visited.add(filename);
     if (!filename.startsWith("src/features/")) continue;

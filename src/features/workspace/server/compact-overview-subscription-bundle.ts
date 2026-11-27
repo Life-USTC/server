@@ -66,17 +66,13 @@ function countPendingOverviewHomeworksInTransaction(
   });
 }
 
-function loadOverviewHomeworkViewerState(
+async function loadOverviewHomeworkViewerState(
   userId: string,
   homeworkIds: readonly string[],
 ) {
-  return Promise.all([
-    getUserSubscriptionKinds(userId),
-    getHomeworkCommentCounts(homeworkIds, userId),
-  ]).then(([subscriptionKinds, commentCounts]) => ({
-    commentCounts,
-    subscriptionKinds,
-  }));
+  const subscriptionKinds = await getUserSubscriptionKinds(userId);
+  const commentCounts = await getHomeworkCommentCounts(homeworkIds, userId);
+  return { commentCounts, subscriptionKinds };
 }
 
 async function loadOverviewHomeworkRlsReads(input: {
@@ -100,20 +96,19 @@ async function loadOverviewHomeworkRlsReads(input: {
   });
 
   return withUserDbContext(input.userId, async (tx) => {
-    const [pendingHomeworksCount, dueSoonRls] = await Promise.all([
-      countPendingOverviewHomeworksInTransaction(
+    const pendingHomeworksCount =
+      await countPendingOverviewHomeworksInTransaction(
         tx,
         input.userId,
         input.atTime,
         input.sectionIds,
-      ),
-      fetchSubscribedHomeworkRlsSnapshot(
-        tx,
-        input.userId,
-        dueSoonQuery,
-        input.includeSamples,
-      ),
-    ]);
+      );
+    const dueSoonRls = await fetchSubscribedHomeworkRlsSnapshot(
+      tx,
+      input.userId,
+      dueSoonQuery,
+      input.includeSamples,
+    );
     // Nested viewer-scoped reads reuse this RLS transaction. Left to the
     // serial tail that localizes the samples, the same two queries each open
     // their own transaction and pay BEGIN, set_config and COMMIT for it.

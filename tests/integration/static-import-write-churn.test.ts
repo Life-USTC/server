@@ -588,9 +588,9 @@ describe("static import write churn", () => {
             where: { sectionId: { in: [keptSection.id, uncoveredSection.id] } },
             orderBy: { id: "asc" },
           });
-          const tuples = await Promise.all(
-            before.map((row) => tupleId(tx, "Schedule", `"id" = ${row.id}`)),
-          );
+          const tuples = [];
+          for (const row of before)
+            tuples.push(await tupleId(tx, "Schedule", `"id" = ${row.id}`));
           // The first 500 sections now have no schedules. The retained meeting is
           // in the second batch; the last section is outside this source's scope.
           await writeSchedules(
@@ -613,11 +613,10 @@ describe("static import write churn", () => {
               orderBy: { id: "asc" },
             }),
           ).toEqual(before);
-          expect(
-            await Promise.all(
-              before.map((row) => tupleId(tx, "Schedule", `"id" = ${row.id}`)),
-            ),
-          ).toEqual(tuples);
+          const after = [];
+          for (const row of before)
+            after.push(await tupleId(tx, "Schedule", `"id" = ${row.id}`));
+          expect(after).toEqual(tuples);
           throw rollback;
         });
       } catch (error) {

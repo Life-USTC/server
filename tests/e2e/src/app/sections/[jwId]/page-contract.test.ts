@@ -8,6 +8,7 @@ import {
 
 import { expect } from "@playwright/test";
 import { formatSemesterName } from "@/lib/text/format-semester-name";
+import { requiredValue } from "../../../../../shared/required-value";
 import { openCommentComposer } from "../../../../utils/comments";
 import {
   arrangeDescription,
@@ -271,6 +272,7 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
     await preferenceFlow.run(async () => {
       await gotoAndWaitForReady(page, SECTION_URL);
       // The page content should not contain the raw jwId as visible text
+      // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
       const content = await page.locator("#main-content").innerText();
       // jwId should not appear as a standalone number in the visible UI
       expect(content).not.toMatch(new RegExp(`\\b${DEV_SEED.section.jwId}\\b`));
@@ -325,12 +327,16 @@ test.describe("/catalog/sections/[jwId] 班级详情页", () => {
         const navigation = page.locator("[data-mobile-primary-navigation]");
         await expect(actions).toBeInViewport();
         await expect(navigation).toBeVisible();
-        const actionsBox = await actions.boundingBox();
-        const navigationBox = await navigation.boundingBox();
-        expect(actionsBox).not.toBeNull();
-        expect(navigationBox).not.toBeNull();
-        expect(actionsBox!.y + actionsBox!.height).toBeLessThanOrEqual(
-          navigationBox!.y,
+        const actionsBox = requiredValue(
+          await actions.boundingBox(),
+          "section actions bounds",
+        );
+        const navigationBox = requiredValue(
+          await navigation.boundingBox(),
+          "mobile navigation bounds",
+        );
+        expect(actionsBox.y + actionsBox.height).toBeLessThanOrEqual(
+          navigationBox.y,
         );
         await actions
           .getByRole("button", {

@@ -131,6 +131,7 @@ async function selectPeriod(
   // Move the real period controls afterwards; do not change that product rule.
   const shape = view === "month" ? /^\d{4}-\d{2}$/ : /\d{4}-\d{2}-\d{2}/;
   await expect(period).toHaveText(shape);
+  // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
   const value = (await period.innerText()).match(/\d{4}-\d{2}(?:-\d{2})?/);
   if (!value)
     throw new Error("Calendar period heading must identify its dates");
@@ -164,6 +165,7 @@ async function selectPeriod(
         ? "下个月"
         : "下一周";
   for (let index = 0; index < Math.abs(delta); index++) {
+    // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
     const before = await period.innerText();
     await page
       .getByRole("button", { name: delta > 0 ? next : previous, exact: true })

@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "svelte/compiler";
 import { expect, it } from "vitest";
+import { requiredValue } from "../../../shared/required-value";
 
 type Node = {
   type?: string;
@@ -33,7 +34,7 @@ it("ui.basic-info-card-2", async () => {
     const seen = new Set<string>();
     const tags = new Set<string>();
     while (pending.length) {
-      const filename = pending.pop()!;
+      const filename = requiredValue(pending.pop(), "pending filename");
       if (seen.has(filename)) continue;
       seen.add(filename);
       const ast = parse(await readFile(filename, "utf8"), {

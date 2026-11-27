@@ -248,6 +248,7 @@ for (const domain of ["Admin", "Teacher"] as const) {
                 await expect(blank).toHaveCount(1);
                 await expect(blank).toHaveAttribute("aria-hidden", "true");
                 expect(await blank.ariaSnapshot()).toBe("");
+                // biome-ignore lint/performance/useDomNodeTextContent: This assertion checks rendered text, including visibility and line breaks.
                 expect(await blank.innerText()).toBe("");
               }
               if (matrix.name === "users") {

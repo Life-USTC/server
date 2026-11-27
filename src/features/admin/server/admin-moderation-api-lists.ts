@@ -29,49 +29,47 @@ export async function listAdminModerationComments({
 
   return withUserDbContext(adminUserId, async (tx) => {
     await requireCommentIdentityModerator(tx, adminUserId);
-    const [data, total] = await Promise.all([
-      tx.comment.findMany({
-        where,
-        include: {
-          user: { select: { name: true } },
-          section: {
-            select: {
-              jwId: true,
-              code: true,
-              course: { select: { jwId: true, code: true, nameCn: true } },
-            },
-          },
-          course: { select: { jwId: true, code: true, nameCn: true } },
-          teacher: { select: { id: true, nameCn: true } },
-          homework: {
-            select: {
-              id: true,
-              title: true,
-              section: { select: { code: true, jwId: true } },
-            },
-          },
-          sectionTeacher: {
-            select: {
-              section: {
-                select: {
-                  jwId: true,
-                  code: true,
-                  course: { select: { jwId: true, code: true, nameCn: true } },
-                },
-              },
-              teacher: { select: { nameCn: true } },
-            },
-          },
-          youngEvent: {
-            select: { id: true, name: true, youngId: true },
+    const data = await tx.comment.findMany({
+      where,
+      include: {
+        user: { select: { name: true } },
+        section: {
+          select: {
+            jwId: true,
+            code: true,
+            course: { select: { jwId: true, code: true, nameCn: true } },
           },
         },
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        skip,
-        take: pageSize,
-      }),
-      tx.comment.count({ where }),
-    ]);
+        course: { select: { jwId: true, code: true, nameCn: true } },
+        teacher: { select: { id: true, nameCn: true } },
+        homework: {
+          select: {
+            id: true,
+            title: true,
+            section: { select: { code: true, jwId: true } },
+          },
+        },
+        sectionTeacher: {
+          select: {
+            section: {
+              select: {
+                jwId: true,
+                code: true,
+                course: { select: { jwId: true, code: true, nameCn: true } },
+              },
+            },
+            teacher: { select: { nameCn: true } },
+          },
+        },
+        youngEvent: {
+          select: { id: true, name: true, youngId: true },
+        },
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip,
+      take: pageSize,
+    });
+    const total = await tx.comment.count({ where });
 
     await auditCommentIdentityRead({
       adminUserId,
