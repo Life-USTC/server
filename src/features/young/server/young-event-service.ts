@@ -17,7 +17,6 @@ import {
   readYoungCalendarFacts,
   readYoungSyncedAt,
 } from "./young-calendar-query";
-import { renderYoungEventHtml } from "./young-event-html";
 import { youngEventImageUrl } from "./young-event-image-service";
 import { buildYoungEventListQuery } from "./young-event-query";
 
@@ -413,12 +412,21 @@ export async function listYoungCalendarEvents(
   return { ...result, source };
 }
 
-export async function getYoungEvent(
+export function getYoungEvent(
   youngId: string,
-): Promise<YoungEventDetail | null> {
+): Promise<YoungEventDetail | null>;
+export function getYoungEvent(
+  youngId: string,
+  projection: "page",
+): Promise<Omit<YoungEventDetail, "rawJson"> | null>;
+export async function getYoungEvent(youngId: string, projection?: "page") {
+  const includeRawJson = projection !== "page";
   return cachedCatalogRuntimeData(
     "catalog:young-event-detail",
-    JSON.stringify({ shape: "summary-v2", youngId }),
+    JSON.stringify({
+      shape: includeRawJson ? "summary-v2" : "page-v1",
+      youngId,
+    }),
     getCanonicalOrigin(),
     async () => {
       const record = await runCloudflareTraceSpan(
@@ -429,13 +437,14 @@ export async function getYoungEvent(
             where: { youngId },
             select: {
               ...YOUNG_EVENT_SELECT,
-              rawJson: true,
+              rawJson: includeRawJson,
               description: true,
               participationNotes: true,
             },
           }),
       );
       if (record == null) return null;
+      const { renderYoungEventHtml } = await import("./young-event-html");
       const { rawJson, description, participationNotes, ...summaryRecord } =
         record;
       return {
@@ -448,7 +457,7 @@ export async function getYoungEvent(
           participationNotes == null
             ? null
             : renderYoungEventHtml(participationNotes),
-        rawJson,
+        ...(includeRawJson ? { rawJson } : {}),
       };
     },
     { shouldCacheResult: (result) => result != null },
