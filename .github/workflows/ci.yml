@@ -36,6 +36,8 @@ jobs:
     name: Static
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04' || 'linux-cpu' }}
     timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - &checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
