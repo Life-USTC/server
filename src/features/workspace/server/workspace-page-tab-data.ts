@@ -101,7 +101,10 @@ export async function loadSignedWorkspaceTabData(input: {
   );
   const todosPromise = shouldLoadTodos
     ? timeWorkspaceStage("todos", stageContext, () =>
-        workspaceTabs.getTodosTabData(input.userId),
+        workspaceTabs.getTodosTabData(
+          input.userId,
+          input.tab === "overview" ? "pending" : "all",
+        ),
       )
     : inactiveStage(null);
   const pendingTodosCountPromise = shouldLoadTodos

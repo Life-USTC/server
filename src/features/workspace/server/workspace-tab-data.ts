@@ -48,8 +48,13 @@ export type TodoItem = {
   updatedAt: string;
 };
 
-export async function getTodosTabData(userId: string): Promise<TodoItem[]> {
-  const todos = await listTodos({ userId });
+export async function getTodosTabData(
+  userId: string,
+  scope: "all" | "pending" = "all",
+): Promise<TodoItem[]> {
+  const todos = await listTodos(
+    scope === "pending" ? { userId, completed: false } : { userId },
+  );
 
   return todos.map((todo) => ({
     id: todo.id,
