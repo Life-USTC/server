@@ -20,7 +20,7 @@ concurrency:
 jobs:
   verify:
     name: Verify delivered production commit
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 30
     if: >-
       github.repository == 'Life-USTC/server' &&

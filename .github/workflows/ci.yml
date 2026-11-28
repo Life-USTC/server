@@ -34,7 +34,7 @@ defaults:
 jobs:
   check:
     name: Static
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-24.04' || 'linux-cpu' }}
+    runs-on: linux-cpu
     timeout-minutes: 30
     env:
       NODE_OPTIONS: --max-old-space-size=6144
@@ -62,7 +62,7 @@ jobs:
 
   test-unit:
     name: Unit
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 30
     env:
       GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
@@ -87,7 +87,7 @@ jobs:
 
   test-static-import:
     name: Static import
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 15
     steps:
       - *checkout
@@ -98,7 +98,7 @@ jobs:
 
   test-domain:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 60
     needs: [build-e2e-artifacts]
     strategy:
@@ -176,7 +176,7 @@ jobs:
 
   test-rls:
     name: RLS
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 30
     services: *test-database
     steps:
@@ -206,7 +206,7 @@ jobs:
 
   build-e2e-artifacts:
     name: Build
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 30
     outputs:
       matrix: ${{ steps.inventory.outputs.matrix }}
@@ -234,7 +234,7 @@ jobs:
 
   static-loader-image:
     name: Static loader
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 30
     services: *test-database
     steps:
@@ -251,7 +251,7 @@ jobs:
 
   specification-evidence:
     name: CI
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 5
     needs: [check, build-e2e-artifacts, static-loader-image, test-static-import, test-unit, test-domain, test-rls]
     if: ${{ always() }}
