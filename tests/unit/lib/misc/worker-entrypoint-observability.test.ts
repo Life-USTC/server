@@ -66,6 +66,31 @@ describe("worker entrypoint observability", () => {
     },
   );
 
+  it.each([
+    ["GET", "/catalog/sections/42", true],
+    ["GET", "/catalog/sections/42/schedule/?week=1", true],
+    ["GET", "/catalog/sections/42/schedule/__data.json", false],
+    ["GET", "/catalog/sections/42/unlisted-tab", false],
+    ["POST", "/catalog/sections/42/homework", false],
+    ["HEAD", "/catalog/sections/42/introduction", false],
+  ] as const)(
+    "classifies %s %s for section page metrics",
+    (method, path, sectionDetailPage) => {
+      observedEdgeResponse({
+        cacheOutcome: "miss",
+        request: new Request(new URL(path, "https://example.test"), { method }),
+        requestClass: "public-ssr-cache",
+        requestId: "section-page-request",
+        response: new Response(),
+        route: "public-page",
+        startMs: performance.now(),
+      });
+      expect(writeWorkerRequestAnalyticsMock).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ sectionDetailPage, cacheOutcome: "miss" }),
+      );
+    },
+  );
+
   it("normalizes public SSR routes without retaining entity identifiers", () => {
     expect(
       normalizePublicSsrObservedRoute("/catalog/courses/course-secret"),
