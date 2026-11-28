@@ -58,11 +58,15 @@ describe("API 辅助函数", () => {
         },
       });
 
+    const encode = vi.spyOn(TextEncoder.prototype, "encode");
     const response = await runWithCloudflareRuntimeEnv(
       {},
       () => jsonResponse({ label: "科" }),
       { tracing: { enterSpan } },
     );
+    expect(
+      encode.mock.calls.filter(([value]) => value === '{"label":"科"}'),
+    ).toHaveLength(1);
     const body = await response.text();
 
     expect(body).toBe('{"label":"科"}');
@@ -70,6 +74,14 @@ describe("API 辅助函数", () => {
     expect(attributes.get("http.response.body.size")).toBe(
       new TextEncoder().encode(body).byteLength,
     );
+
+    const empty = await runWithCloudflareRuntimeEnv(
+      {},
+      () => jsonResponse(undefined, { status: 204 }),
+      { tracing: { enterSpan } },
+    );
+    expect(empty.body).toBeNull();
+    expect(attributes.get("http.response.body.size")).toBe(0);
   });
 
   async function expectNoMeasuredBodySize(
