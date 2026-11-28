@@ -6,7 +6,7 @@ import {
 
 const entries = new Map<
   string,
-  { body: Uint8Array; exp: number; status: number; type: string | null }
+  { body: ArrayBuffer; exp: number; status: number; type: string | null }
 >();
 let generation = 0;
 
@@ -75,7 +75,7 @@ export async function cachedPublicNavigationFetch(
   const key = prefix + url.search;
   const hit = entries.get(key);
   if (hit && hit.exp > now) {
-    return new Response(hit.body.slice(), {
+    return new Response(hit.body, {
       headers: hit.type ? { "content-type": hit.type } : {},
       status: hit.status,
     });
@@ -91,7 +91,7 @@ export async function cachedPublicNavigationFetch(
     return response;
   }
   // Streaming data may fail after its first node. Leave its body untouched.
-  const body = new Uint8Array(await response.arrayBuffer());
+  const body = await response.arrayBuffer();
   let reusable = false;
   try {
     reusable = isSuccessfulPublicNavigationData(
@@ -110,7 +110,7 @@ export async function cachedPublicNavigationFetch(
     type: response.headers.get("content-type"),
   });
   if (entries.size > 40) entries.delete(entries.keys().next().value ?? key);
-  return new Response(body.slice(), {
+  return new Response(body, {
     headers: response.headers,
     status: response.status,
   });
