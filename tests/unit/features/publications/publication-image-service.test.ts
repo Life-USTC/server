@@ -11,10 +11,12 @@ const mocks = vi.hoisted(() => ({
   fetchMock: vi.fn(),
 }));
 
-vi.mock("@/lib/db/prisma", () => ({
-  prisma: {
-    $queryRaw: mocks.imageSourceQuery,
-  },
+vi.mock("@/lib/db/prisma-adapter", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/db/prisma-adapter")>()),
+  withRuntimeDatabaseAdapter: (
+    _database: string,
+    action: (adapter: { queryRaw: typeof mocks.imageSourceQuery }) => unknown,
+  ) => action({ queryRaw: mocks.imageSourceQuery }),
 }));
 
 vi.mock("@/lib/adapters/cloudflare-runtime", async (importOriginal) => ({
@@ -57,13 +59,15 @@ function sourceRecord(
   _hash: string,
   source: { allowedHosts?: string[]; blockedHosts?: string[] } = {},
 ) {
-  return [
-    {
-      url,
-      allowedHosts: source.allowedHosts ?? ["news.example.test"],
-      blockedHosts: source.blockedHosts ?? [],
-    },
-  ];
+  return {
+    rows: [
+      [
+        url,
+        source.allowedHosts ?? ["news.example.test"],
+        source.blockedHosts ?? [],
+      ],
+    ],
+  };
 }
 
 beforeEach(() => {

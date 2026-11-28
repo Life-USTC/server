@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db/prisma";
+import { withRuntimeDatabaseAdapter } from "@/lib/db/prisma-adapter";
 import { logAppEvent } from "@/lib/log/app-logger";
 import {
   getCloudflareR2PublicationsBucket,
@@ -181,44 +181,46 @@ function imageUrlHash(value: string) {
 }
 
 async function findImageSource(hash: string) {
-  const sources = await prisma.$queryRaw<
-    Array<{
-      url: string;
-      allowedHosts: string[];
-      blockedHosts: string[];
-    }>
-  >`
-    SELECT image.url, source."allowedHosts", source."blockedHosts"
-    FROM "PublicationImageSource" image
-    JOIN "PublicationRevisionImageSource" ref ON ref."imageSourceId" = image.id
-    JOIN "PublicationRevision" revision ON revision.id = ref."revisionId"
-    JOIN "Publication" publication ON publication.id = revision."publicationId"
-      AND publication."currentRevisionId" = revision.id
-    JOIN "PublicationSource" source ON source.id = publication."sourceId"
-    WHERE image.id = ${hash}
-      AND NOT revision."isTombstone"
-      AND publication."deletedAt" IS NULL
-      AND revision."publicationType" IN ('news', 'notice')
-      AND publication."publicationType" IN ('news', 'notice')
-  `;
+  const sources = await withRuntimeDatabaseAdapter("app", async (adapter) => {
+    const result = await adapter.queryRaw({
+      sql: `
+        SELECT image.url, source."allowedHosts", source."blockedHosts"
+        FROM "PublicationImageSource" image
+        JOIN "PublicationRevisionImageSource" ref ON ref."imageSourceId" = image.id
+        JOIN "PublicationRevision" revision ON revision.id = ref."revisionId"
+        JOIN "Publication" publication ON publication.id = revision."publicationId"
+          AND publication."currentRevisionId" = revision.id
+        JOIN "PublicationSource" source ON source.id = publication."sourceId"
+        WHERE image.id = $1
+          AND NOT revision."isTombstone"
+          AND publication."deletedAt" IS NULL
+          AND revision."publicationType" IN ('news', 'notice')
+          AND publication."publicationType" IN ('news', 'notice')
+      `,
+      args: [hash],
+      argTypes: [{ scalarType: "string", arity: "scalar" }],
+    });
+    return result.rows as [string, string[], string[]][];
+  });
   const source = sources[0];
   if (!source) return null;
+  const [url] = source;
   let registeredHost: string | null;
   try {
-    registeredHost = normalizeHost(new URL(source.url).hostname);
+    registeredHost = normalizeHost(new URL(url).hostname);
   } catch {
     registeredHost = null;
   }
   if (!registeredHost) return null;
-  for (const { allowedHosts, blockedHosts } of sources) {
+  for (const [, allowedHosts, blockedHosts] of sources) {
     const owner = {
-      originalUrl: source.url,
+      originalUrl: url,
       registeredHost,
       publication: { source: { allowedHosts, blockedHosts } },
     } satisfies PublicationImageSourceOwner;
     if (
       parsePublicationImageOrigin(
-        source.url,
+        url,
         owner.publication.source,
         owner.registeredHost,
       )
