@@ -520,6 +520,8 @@ async function readBodyMarkdown(revision: PublicPublicationRevision) {
 
   if (total !== object.size) return null;
 
+  if (chunks.length === 1) return new TextDecoder().decode(chunks[0]);
+
   const bytes = new Uint8Array(total);
   let offset = 0;
   for (const chunk of chunks) {
