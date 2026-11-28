@@ -19,14 +19,12 @@ concurrency:
 jobs:
   catalog-only:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install --no-install-recommends -y postgresql-client-16
+      - name: Verify PostgreSQL client
+        run: /usr/lib/postgresql/16/bin/psql --version
       - name: Collect bounded catalog metadata
         env:
           RLS_AUDIT_DATABASE_URL: ${{ secrets.MIGRATOR_DATABASE_URL }}

@@ -34,11 +34,16 @@ defaults:
 jobs:
   check:
     name: Static
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - &checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
       - uses: ./.github/actions/setup-bun-env
       - name: Generate application, database, and Worker types
         run: bun run app:prepare
@@ -57,7 +62,7 @@ jobs:
 
   test-unit:
     name: Unit
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 30
     env:
       GRAPHQL_SCHEMA_SKIP_BASE_COMPATIBILITY: "true"
@@ -82,7 +87,7 @@ jobs:
 
   test-static-import:
     name: Static import
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 15
     steps:
       - *checkout
@@ -93,7 +98,7 @@ jobs:
 
   test-domain:
     name: ${{ matrix.name }}
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 60
     needs: [build-e2e-artifacts]
     strategy:
@@ -171,7 +176,7 @@ jobs:
 
   test-rls:
     name: RLS
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 30
     services: *test-database
     steps:
@@ -201,7 +206,7 @@ jobs:
 
   build-e2e-artifacts:
     name: Build
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 30
     outputs:
       matrix: ${{ steps.inventory.outputs.matrix }}
@@ -229,7 +234,7 @@ jobs:
 
   static-loader-image:
     name: Static loader
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 30
     services: *test-database
     steps:
@@ -246,7 +251,7 @@ jobs:
 
   specification-evidence:
     name: CI
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 5
     needs: [check, build-e2e-artifacts, static-loader-image, test-static-import, test-unit, test-domain, test-rls]
     if: ${{ always() }}

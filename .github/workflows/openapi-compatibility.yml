@@ -12,7 +12,7 @@ concurrency:
 jobs:
   breaking-changes:
     name: OpenAPI compatibility
-    runs-on: ubuntu-24.04
+    runs-on: linux-cpu
     timeout-minutes: 10
     permissions:
       contents: read
