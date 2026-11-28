@@ -43,6 +43,7 @@ describe("personal calendar route cache ordering", () => {
       calendar: {
         cacheControl: "private, no-store",
         etag: '"sha256-cached"',
+        generatedAtMs: Date.UTC(2026, 5, 7),
         filename: "life-ustc-subscriptions.ics",
         text: "BEGIN:VCALENDAR\nEND:VCALENDAR",
       },
@@ -54,10 +55,13 @@ describe("personal calendar route cache ordering", () => {
 
     const response = await generateUserCalendarAction(
       "user-1",
-      new Request("https://example.test"),
+      new Request("https://example.test", {
+        headers: { "If-Modified-Since": "Sun, 07 Jun 2026 00:00:00 GMT" },
+      }),
     );
 
     expect(response.status).toBe(200);
+    expect(await response.text()).toBe("BEGIN:VCALENDAR\nEND:VCALENDAR");
     expect(getUserRecordMock).not.toHaveBeenCalled();
     expect(buildUserCalendarExportMock).not.toHaveBeenCalled();
   });
