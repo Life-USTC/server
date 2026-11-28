@@ -1,4 +1,4 @@
-import { serializeDescriptionRecord } from "@/features/descriptions/server/description-payload";
+import { emptyDescriptionData } from "@/features/descriptions/lib/description-empty-payload";
 import { withRuntimeDatabaseAdapter } from "@/lib/db/prisma-adapter";
 
 /** Editable descriptions and lifecycle state must stay live across core-cache hits. */
@@ -39,25 +39,26 @@ export async function loadSectionPageMutableData(jwId: number) {
     username,
     image,
   ] = row ?? [];
+  const description = id
+    ? (
+        await import("@/features/descriptions/server/description-payload")
+      ).serializeDescriptionRecord({
+        id,
+        content,
+        updatedAt,
+        lastEditedAt,
+        lastEditedBy: editorId
+          ? {
+              id: editorId,
+              name: name ?? null,
+              username: username ?? null,
+              image: image ?? null,
+            }
+          : null,
+      })
+    : emptyDescriptionData();
   return {
-    description: serializeDescriptionRecord(
-      id
-        ? {
-            id,
-            content,
-            updatedAt,
-            lastEditedAt,
-            lastEditedBy: editorId
-              ? {
-                  id: editorId,
-                  name: name ?? null,
-                  username: username ?? null,
-                  image: image ?? null,
-                }
-              : null,
-          }
-        : null,
-    ),
+    description,
     retiredAt: retiredAt ? new Date(retiredAt).toISOString() : null,
   };
 }
