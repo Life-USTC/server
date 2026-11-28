@@ -16,6 +16,10 @@ export type CloudflareR2Bucket = {
   ): Promise<
     (CloudflareR2Object & { body: ReadableStream<Uint8Array> }) | null
   >;
+  get(
+    key: string,
+    options: { onlyIf: Headers },
+  ): Promise<CloudflareR2Object | null>;
   head(key: string): Promise<CloudflareR2Object | null>;
   put(
     key: string,

@@ -479,37 +479,38 @@ export async function getPublicationImageResponse(input: {
 
   const bucket = requirePublicationsBucket();
   const key = publicationImageR2Key(input.hash);
-  if (input.request.headers.has("If-None-Match")) {
-    const head = await bucket.head(key);
-    if (
-      head?.etag &&
-      head.size <= PUBLICATION_IMAGE_MAX_BYTES &&
-      normalizeRasterContentType(head.httpMetadata?.contentType)
-    ) {
-      const etag = normalizeEtag(head.etag);
-      if (requestMatchesEtag(input.request, etag)) {
-        return new Response(null, {
-          status: 304,
-          headers: imageResponseHeaders(etag),
-        });
-      }
-    }
-  }
-
-  const object = await bucket.get(key);
+  const condition = input.request.headers.get("If-None-Match");
+  const validCondition =
+    condition &&
+    /^(?:\*|(?:W\/)?"[^"\s,]*"(?:\s*,\s*(?:W\/)?"[^"\s,]*")*)$/.test(condition);
+  const object = validCondition
+    ? await bucket.get(key, {
+        onlyIf: new Headers({ "If-None-Match": condition }),
+      })
+    : await bucket.get(key);
   if (object) {
     const contentType = normalizeRasterContentType(
       object.httpMetadata?.contentType,
     );
     if (contentType && object.size <= PUBLICATION_IMAGE_MAX_BYTES) {
+      if (
+        object.etag &&
+        requestMatchesEtag(input.request, normalizeEtag(object.etag))
+      ) {
+        await object.body?.cancel();
+        return new Response(null, {
+          status: 304,
+          headers: imageResponseHeaders(normalizeEtag(object.etag)),
+        });
+      }
       const headers = imageResponseHeaders(
         object.etag ? normalizeEtag(object.etag) : undefined,
       );
       headers.set("Content-Type", contentType);
       headers.set("Content-Length", String(object.size));
-      return new Response(object.body, { headers });
+      if (object.body) return new Response(object.body, { headers });
     }
-    await object.body.cancel();
+    await object.body?.cancel();
   }
 
   const { bytes, contentType } = await fetchPublicationImage(
